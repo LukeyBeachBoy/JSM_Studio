@@ -7,6 +7,15 @@ import {
   BindingTriggerKind,
 } from '../../utils/bindingCommands'
 import keymapStyles from '../Keymap.module.css'
+import {
+  getDefaultVirtualControllerLogicalOutput,
+  getPreferredVirtualControllerDisplayType,
+  getVirtualControllerLogicalOutput,
+  getVirtualControllerOptions,
+  toVirtualControllerToken,
+  type VirtualControllerLogicalOutput,
+  type VirtualControllerType,
+} from '../../utils/virtualController'
 
 type Option = { value: string; label: string; disabled?: boolean }
 
@@ -14,6 +23,7 @@ type BindingCommandEditorProps = {
   command: BindingCommand
   modifierOptions: Option[]
   specialOptions: Option[]
+  virtualControllerType: VirtualControllerType
   isCapturing: boolean
   captureLabel: string
   onChange: (patch: BindingCommandPatch) => void
@@ -36,6 +46,7 @@ const OUTPUT_KIND_OPTIONS: Array<{ value: BindingOutputKind; labelKey: string }>
   { value: 'keyboard', labelKey: 'keymap.commandOutputKeyboard' },
   { value: 'mouse', labelKey: 'keymap.commandOutputMouse' },
   { value: 'wheel', labelKey: 'keymap.commandOutputWheel' },
+  { value: 'virtualController', labelKey: 'keymap.commandOutputVirtualController' },
   { value: 'special', labelKey: 'keymap.commandOutputSpecial' },
   { value: 'command', labelKey: 'keymap.commandOutputCommand' },
   { value: 'raw', labelKey: 'keymap.commandOutputRaw' },
@@ -56,6 +67,7 @@ export function BindingCommandEditor({
   command,
   modifierOptions,
   specialOptions,
+  virtualControllerType,
   isCapturing,
   captureLabel,
   onChange,
@@ -64,9 +76,22 @@ export function BindingCommandEditor({
   const { t } = useTranslation()
   const canCapture = command.outputKind === 'keyboard' || command.outputKind === 'mouse' || command.outputKind === 'wheel'
   const showCondition = conditionTriggers.has(command.triggerKind)
+  const virtualDisplayType = getPreferredVirtualControllerDisplayType(virtualControllerType, command.outputValue)
+  const virtualOptions = virtualDisplayType ? getVirtualControllerOptions(virtualDisplayType, t) : []
+  const virtualSelection = command.virtualControllerLogicalOutput ?? getVirtualControllerLogicalOutput(command.outputValue) ?? ''
   const handleOutputKindChange = (nextOutputKind: BindingOutputKind) => {
     if (nextOutputKind === command.outputKind) return
-    onChange({ outputKind: nextOutputKind, outputValue: '' })
+    if (nextOutputKind === 'virtualController') {
+      const logical = getDefaultVirtualControllerLogicalOutput(virtualControllerType)
+      const token = logical ? toVirtualControllerToken(logical, virtualControllerType) ?? '' : ''
+      onChange({
+        outputKind: nextOutputKind,
+        outputValue: token,
+        virtualControllerLogicalOutput: logical ?? undefined,
+      })
+      return
+    }
+    onChange({ outputKind: nextOutputKind, outputValue: '', virtualControllerLogicalOutput: undefined })
   }
 
   return (
@@ -116,7 +141,11 @@ export function BindingCommandEditor({
           disabled={command.triggerKind === 'stickShift'}
         >
           {OUTPUT_KIND_OPTIONS.map(option => (
-            <option key={option.value} value={option.value}>
+            <option
+              key={option.value}
+              value={option.value}
+              disabled={option.value === 'virtualController' && virtualControllerType === 'NONE' && command.outputKind !== 'virtualController'}
+            >
               {t(option.labelKey)}
             </option>
           ))}
@@ -164,6 +193,26 @@ export function BindingCommandEditor({
             <option value="">{t('keymap.commandNoOutput')}</option>
             {specialOptions.map(option => (
               <option key={option.value} value={option.value} disabled={option.disabled}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        ) : command.outputKind === 'virtualController' ? (
+          <select
+            className="app-select"
+            value={virtualSelection}
+            onChange={(event) => {
+              const logical = event.target.value as VirtualControllerLogicalOutput | ''
+              const tokenType = virtualControllerType !== 'NONE' ? virtualControllerType : virtualDisplayType
+              const token = logical && tokenType ? toVirtualControllerToken(logical, tokenType) ?? '' : ''
+              onChange({ outputValue: token, virtualControllerLogicalOutput: logical || undefined })
+            }}
+            data-capture-ignore="true"
+            disabled={command.triggerKind === 'stickShift' || virtualControllerType === 'NONE'}
+          >
+            <option value="">{t('keymap.commandNoOutput')}</option>
+            {virtualOptions.map(option => (
+              <option key={option.value} value={option.value}>
                 {option.label}
               </option>
             ))}

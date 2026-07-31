@@ -6,12 +6,15 @@ import { SectionActions } from '../SectionActions'
 
 type TouchpadSettingsSectionProps = {
   touchpadMode: string
+  touchpadDualStageMode: string
   gridColumns: number
   gridRows: number
   onTouchpadModeChange?: (value: string) => void
   onGridSizeChange?: (cols: number, rows: number) => void
   touchpadSensitivity?: number
   onTouchpadSensitivityChange?: (value: string) => void
+  onTouchpadDualStageModeChange?: (value: string) => void
+  warnings?: string[]
   hasPendingChanges: boolean
   statusMessage?: string | null
   onApply: () => void
@@ -21,12 +24,15 @@ type TouchpadSettingsSectionProps = {
 
 export function TouchpadSettingsSection({
   touchpadMode,
+  touchpadDualStageMode,
   gridColumns,
   gridRows,
   onTouchpadModeChange,
   onGridSizeChange,
   touchpadSensitivity,
   onTouchpadSensitivityChange,
+  onTouchpadDualStageModeChange,
+  warnings,
   hasPendingChanges,
   statusMessage,
   onApply,
@@ -34,6 +40,12 @@ export function TouchpadSettingsSection({
   applyDisabled,
 }: TouchpadSettingsSectionProps) {
   const { t } = useTranslation()
+  const hasCustomDualStageMode = Boolean(
+    touchpadDualStageMode &&
+      !['NO_FULL', 'NO_SKIP', 'NO_SKIP_EXCLUSIVE', 'MUST_SKIP', 'MAY_SKIP', 'MUST_SKIP_R', 'MAY_SKIP_R'].includes(
+        touchpadDualStageMode
+      )
+  )
 
   return (
     <>
@@ -45,6 +57,24 @@ export function TouchpadSettingsSection({
               <option value="">{t('common.noneSelected')}</option>
               <option value="GRID_AND_STICK">{t('keymap.gridAndStick')}</option>
               <option value="MOUSE">{t('keymap.mouse')}</option>
+              <option value="PS_TOUCHPAD">{t('keymap.psTouchpad')}</option>
+            </select>
+          </label>
+          <label>
+            {t('keymap.touchpadDualStageMode')}
+            <select
+              className="app-select"
+              value={touchpadDualStageMode || 'NO_SKIP'}
+              onChange={(event) => onTouchpadDualStageModeChange?.(event.target.value)}
+            >
+              {['NO_FULL', 'NO_SKIP', 'NO_SKIP_EXCLUSIVE', 'MUST_SKIP', 'MAY_SKIP', 'MUST_SKIP_R', 'MAY_SKIP_R'].map(mode => (
+                <option key={mode} value={mode}>
+                  {mode === 'NO_SKIP' ? t('common.defaultValue', { value: mode }) : mode}
+                </option>
+              ))}
+              {hasCustomDualStageMode && (
+                <option value={touchpadDualStageMode}>{t('keymap.currentRawValue', { value: touchpadDualStageMode })}</option>
+              )}
             </select>
           </label>
           {touchpadMode === 'GRID_AND_STICK' && (
@@ -85,6 +115,15 @@ export function TouchpadSettingsSection({
                 placeholder={t('common.defaultPlaceholder')}
               />
             </label>
+          )}
+          {warnings && warnings.length > 0 && (
+            <div className={styles.touchpadWarnings}>
+              {warnings.map((warning, index) => (
+                <div key={`${warning}-${index}`} className={styles.touchpadWarning}>
+                  {warning}
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </KeymapSection>

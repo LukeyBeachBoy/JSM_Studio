@@ -3,6 +3,13 @@ import { useTranslation } from 'react-i18next'
 import { BindingCommand, BindingCommandPatch } from '../../utils/bindingCommands'
 import keymapStyles from '../Keymap.module.css'
 import { BindingQuickComposer } from './BindingQuickComposer'
+import {
+  getPreferredVirtualControllerDisplayType,
+  getVirtualControllerLogicalOutput,
+  getVirtualControllerOutputLabel,
+  getVirtualControllerTokenType,
+  type VirtualControllerType,
+} from '../../utils/virtualController'
 
 type Option = { value: string; label: string; disabled?: boolean }
 
@@ -10,6 +17,7 @@ type BindingCommandCardProps = {
   command: BindingCommand
   modifierOptions: Option[]
   specialOptions: Option[]
+  virtualControllerType: VirtualControllerType
   isCapturing: boolean
   captureLabel: string
   onUpdate: (command: BindingCommand, patch: BindingCommandPatch) => void
@@ -48,6 +56,7 @@ export function BindingCommandCard({
   command,
   modifierOptions,
   specialOptions,
+  virtualControllerType,
   isCapturing,
   captureLabel,
   onUpdate,
@@ -63,8 +72,25 @@ export function BindingCommandCard({
   const conditionLabel = command.conditionInput
     ? `${t(conditionPrefixKeys[command.triggerKind] ?? 'keymap.commandCondition')}: ${command.conditionInput}`
     : ''
-  const outputLabel = command.outputValue || t('keymap.commandNoOutput')
+  const virtualLogicalOutput = command.virtualControllerLogicalOutput ?? getVirtualControllerLogicalOutput(command.outputValue)
+  const virtualDisplayType = getPreferredVirtualControllerDisplayType(virtualControllerType, command.outputValue)
+  const outputLabel =
+    command.outputKind === 'virtualController' && virtualLogicalOutput && virtualDisplayType
+      ? getVirtualControllerOutputLabel(virtualLogicalOutput, virtualDisplayType, t)
+      : command.outputValue || t('keymap.commandNoOutput')
   const summaryOutput = behaviorLabel ? `${behaviorLabel} ${outputLabel}` : outputLabel
+  const tokenType = command.outputKind === 'virtualController' ? getVirtualControllerTokenType(command.outputValue) : null
+  const virtualWarning =
+    command.outputKind !== 'virtualController'
+      ? ''
+      : virtualControllerType === 'NONE'
+        ? t('keymap.virtualControllerWarningCommandModeRequired')
+        : tokenType && tokenType !== virtualControllerType
+          ? t('keymap.virtualControllerWarningCommandSchemeMismatch', {
+              detected: t(`keymap.virtualControllerType_${tokenType}`),
+              current: t(`keymap.virtualControllerType_${virtualControllerType}`),
+            })
+          : ''
 
   return (
     <div className={keymapStyles.commandCard}>
@@ -85,12 +111,14 @@ export function BindingCommandCard({
           </button>
         </div>
       </div>
+      {virtualWarning && <div className={keymapStyles.commandWarningText}>{virtualWarning}</div>}
 
       {expanded && (
         <BindingQuickComposer
           command={command}
           modifierOptions={modifierOptions}
           specialOptions={specialOptions}
+          virtualControllerType={virtualControllerType}
           isCapturing={isCapturing}
           captureLabel={captureLabel}
           onChange={(patch) => onUpdate(command, patch)}

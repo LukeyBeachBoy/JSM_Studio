@@ -14,6 +14,11 @@ import {
   serializeBindingToken,
   updateBindingExpressionToken,
 } from './keymap'
+import {
+  getVirtualControllerLogicalOutput,
+  isVirtualControllerToken,
+  type VirtualControllerLogicalOutput,
+} from './virtualController'
 
 export type BindingTriggerKind =
   | 'regular'
@@ -27,7 +32,7 @@ export type BindingTriggerKind =
   | 'diagonal'
   | 'stickShift'
 
-export type BindingOutputKind = 'keyboard' | 'mouse' | 'wheel' | 'special' | 'command' | 'raw'
+export type BindingOutputKind = 'keyboard' | 'mouse' | 'wheel' | 'special' | 'command' | 'raw' | 'virtualController'
 export type BindingOutputBehavior = 'normal' | 'tapOnce' | 'toggle' | 'releaseOnly'
 
 export type BindingCommandSource =
@@ -58,6 +63,7 @@ export type BindingCommand = {
   triggerKind: BindingTriggerKind
   outputKind: BindingOutputKind
   outputValue: string
+  virtualControllerLogicalOutput?: VirtualControllerLogicalOutput
   outputBehavior: BindingOutputBehavior
   conditionInput?: string
   tokens: BindingToken[]
@@ -67,7 +73,10 @@ export type BindingCommand = {
 }
 
 export type BindingCommandPatch = Partial<
-  Pick<BindingCommand, 'triggerKind' | 'outputKind' | 'outputValue' | 'outputBehavior' | 'conditionInput'>
+  Pick<
+    BindingCommand,
+    'triggerKind' | 'outputKind' | 'outputValue' | 'virtualControllerLogicalOutput' | 'outputBehavior' | 'conditionInput'
+  >
 >
 
 export type BindingCommandPreset = Pick<
@@ -88,7 +97,15 @@ const TRIGGER_KINDS = new Set<BindingTriggerKind>([
   'stickShift',
 ])
 
-const OUTPUT_KINDS = new Set<BindingOutputKind>(['keyboard', 'mouse', 'wheel', 'special', 'command', 'raw'])
+const OUTPUT_KINDS = new Set<BindingOutputKind>([
+  'keyboard',
+  'mouse',
+  'wheel',
+  'special',
+  'command',
+  'raw',
+  'virtualController',
+])
 const OUTPUT_BEHAVIORS = new Set<BindingOutputBehavior>(['normal', 'tapOnce', 'toggle', 'releaseOnly'])
 const MOUSE_OUTPUT_VALUES = new Set(['LMOUSE', 'MMOUSE', 'RMOUSE', 'BMOUSE', 'FMOUSE'])
 const WHEEL_OUTPUT_VALUES = new Set(['SCROLLUP', 'SCROLLDOWN'])
@@ -97,6 +114,7 @@ export const inferOutputKindFromBindingValue = (value: string): BindingOutputKin
   const normalized = value.trim().toUpperCase()
   if (MOUSE_OUTPUT_VALUES.has(normalized)) return 'mouse'
   if (WHEEL_OUTPUT_VALUES.has(normalized)) return 'wheel'
+  if (isVirtualControllerToken(normalized)) return 'virtualController'
   return 'keyboard'
 }
 
@@ -167,7 +185,7 @@ const outputKindFromToken = (token: BindingToken): BindingOutputKind => {
       return 'raw'
     case 'input':
     default:
-      return 'keyboard'
+      return isVirtualControllerToken(token.value) ? 'virtualController' : 'keyboard'
   }
 }
 
@@ -183,6 +201,7 @@ const tokenKindFromOutput = (kind: BindingOutputKind): BindingTokenKind => {
       return 'console_command'
     case 'raw':
       return 'raw_literal'
+    case 'virtualController':
     case 'keyboard':
     default:
       return 'input'
@@ -247,6 +266,8 @@ function manualRowToCommand(row: ButtonBindingRow, physicalInput: string): Bindi
     triggerKind: manualTriggerKind(row),
     outputKind,
     outputValue: row.manualOutputValue ?? '',
+    virtualControllerLogicalOutput:
+      outputKind === 'virtualController' ? getVirtualControllerLogicalOutput(row.manualOutputValue ?? '') ?? undefined : undefined,
     outputBehavior: manualOutputBehavior(row),
     conditionInput: row.modifierCommand,
     tokens: [],
@@ -286,6 +307,8 @@ export function bindingTokenToCommand(
     triggerKind,
     outputKind,
     outputValue: token.value,
+    virtualControllerLogicalOutput:
+      outputKind === 'virtualController' ? getVirtualControllerLogicalOutput(token.value) ?? undefined : undefined,
     outputBehavior: ACTION_TO_BEHAVIOR[token.actionModifier],
     conditionInput: context.row.modifierCommand,
     tokens: [token],

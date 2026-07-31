@@ -35,6 +35,7 @@ import {
 } from '../../keymap/schema'
 import { BindingCommandCard } from './BindingCommandCard'
 import { ButtonMappingCard } from './ButtonMappingCard'
+import { getVirtualControllerLogicalOutput, type VirtualControllerType } from '../../utils/virtualController'
 
 type ButtonBindingsCardProps = {
   button: ButtonDefinition
@@ -83,6 +84,7 @@ type ButtonBindingsCardProps = {
   onStickModeShiftChange?: (button: string, target: 'LEFT' | 'RIGHT', mode?: string) => void
   trackballDecay: string
   onTrackballDecayChange: (value: string) => void
+  virtualControllerType: VirtualControllerType
 }
 
 const triggerToSlot = (trigger: BindingTriggerKind): BindingSlot => {
@@ -132,6 +134,7 @@ export const ButtonBindingsCard = ({
   onStickModeShiftChange,
   trackballDecay,
   onTrackballDecayChange,
+  virtualControllerType,
 }: ButtonBindingsCardProps) => {
   const { t } = useTranslation()
   const buttonKey = button.command.toUpperCase()
@@ -272,7 +275,16 @@ export const ButtonBindingsCard = ({
   }
 
   const updateCommand = (command: BindingCommand, patch: BindingCommandPatch) => {
-    const nextCommand = { ...command, ...patch }
+    const nextCommand = {
+      ...command,
+      ...patch,
+      virtualControllerLogicalOutput:
+        patch.outputKind === 'virtualController' && patch.outputValue
+          ? getVirtualControllerLogicalOutput(patch.outputValue) ?? patch.virtualControllerLogicalOutput ?? command.virtualControllerLogicalOutput
+          : patch.outputKind && patch.outputKind !== 'virtualController'
+            ? undefined
+            : patch.virtualControllerLogicalOutput ?? command.virtualControllerLogicalOutput,
+    }
     if (command.source.kind !== 'special' && nextCommand.outputKind === 'special' && isGyroButtonSettingSpecial(nextCommand.outputValue)) {
       removeCommand(command)
       onAssignSpecialAction(nextCommand.outputValue, button.command)
@@ -454,6 +466,7 @@ export const ButtonBindingsCard = ({
               command={command}
               modifierOptions={modifierOptions}
               specialOptions={command.source.kind === 'special' ? allSpecialOptionList : actionSpecialOptionList}
+              virtualControllerType={virtualControllerType}
               isCapturing={isCapturingValue(command.id)}
               captureLabel={captureLabel}
               onUpdate={updateCommand}

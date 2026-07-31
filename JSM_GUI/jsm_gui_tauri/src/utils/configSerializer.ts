@@ -8,6 +8,7 @@ import {
   MISC_BUTTONS,
   PADDLE_BUTTONS,
   RIGHT_STICK_BUTTONS,
+  TOUCH_STICK_BUTTONS,
   TOUCH_BUTTONS,
   TRIGGER_BUTTONS,
 } from '../keymap/schema'
@@ -109,7 +110,7 @@ const BUTTON_TO_SUBSECTION: Array<{ commands: string[]; subsection: KeymapSubsec
   { commands: TRIGGER_BUTTONS.map(b => b.command.toUpperCase()), subsection: 'triggers' },
   { commands: CENTER_BUTTONS.map(b => b.command.toUpperCase()), subsection: 'center' },
   { commands: PADDLE_BUTTONS.map(b => b.command.toUpperCase()), subsection: 'paddles' },
-  { commands: TOUCH_BUTTONS.map(b => b.command.toUpperCase()), subsection: 'touch' },
+  { commands: [...TOUCH_BUTTONS, ...TOUCH_STICK_BUTTONS].map(b => b.command.toUpperCase()), subsection: 'touch' },
   { commands: LEFT_STICK_BUTTONS.map(b => b.command.toUpperCase()).concat(RIGHT_STICK_BUTTONS.map(b => b.command.toUpperCase())), subsection: 'stick_buttons' },
   { commands: MISC_BUTTONS.map(b => b.command.toUpperCase()), subsection: 'extra' },
 ]
@@ -161,6 +162,9 @@ const classify = (rawKey: string, value: string): { section: SectionKey; subsect
   // Trigger threshold lives under Triggers in UI
   if (key === keyName.TRIGGER_THRESHOLD) {
     return { section: 'keymap', subsection: 'triggers' }
+  }
+  if (key === keyName.VIRTUAL_CONTROLLER) {
+    return { section: 'keymap', subsection: 'global' }
   }
   if (key === keyName.ADAPTIVE_TRIGGER || key === keyName.ZL_MODE || key === keyName.ZR_MODE) {
     return { section: 'keymap', subsection: 'triggers' }
@@ -321,8 +325,14 @@ export function serializeConfig(parsed: ParsedConfig): string {
         TOUCHPAD_MODE: 0,
         GRID_SIZE: 1,
         TOUCHPAD_SENS: 2,
-        TOUCH: 3,
-        CAPTURE: 4,
+        TOUCHPAD_DUAL_STAGE_MODE: 3,
+        TOUCH_STICK_MODE: 4,
+        TOUCH_DEADZONE_INNER: 5,
+        TOUCH_RING_MODE: 6,
+        TOUCH_STICK_RADIUS: 7,
+        TOUCH_STICK_AXIS: 8,
+        TOUCH: 9,
+        CAPTURE: 10,
       }
       const touchRank = (line: string) => {
         const [lhsRaw, rhsRaw = ''] = line.split('=')

@@ -16,6 +16,11 @@ import {
 import { bindingSpecialKeys, keyName } from '../constants/configKeys'
 import type { GyroActivationMode } from '../utils/gyroActivation'
 import { parseGyroActivation, writeGyroActivation } from '../utils/gyroActivation'
+import {
+  analyzeVirtualControllerConfig,
+  normalizeVirtualControllerType,
+  type VirtualControllerType,
+} from '../utils/virtualController'
 
 const TOGGLE_SPECIALS = [keyName.GYRO_ON, keyName.GYRO_OFF] as const
 const SPECIAL_COMMANDS = bindingSpecialKeys.map(key => key.toUpperCase())
@@ -195,6 +200,16 @@ export function useBindingsConfig({ configText, setConfigText }: BindingArgs) {
   }
 
   const trackballDecayValue = useMemo(() => getKeymapValue(configText, keyName.TRACKBALL_DECAY) ?? '', [configText])
+  const virtualControllerConfig = useMemo(() => analyzeVirtualControllerConfig(configText), [configText])
+
+  const handleVirtualControllerTypeChange = (nextType: VirtualControllerType) => {
+    const normalized = normalizeVirtualControllerType(nextType)
+    setConfigText(prev =>
+      normalized === 'NONE'
+        ? removeKeymapEntry(prev, keyName.VIRTUAL_CONTROLLER)
+        : updateKeymapEntry(prev, keyName.VIRTUAL_CONTROLLER, [normalized])
+    )
+  }
 
   return {
     handleFaceButtonBindingChange,
@@ -206,5 +221,8 @@ export function useBindingsConfig({ configText, setConfigText }: BindingArgs) {
     handleGyroActivationButtonChange,
     handleTrackballDecayChange,
     trackballDecayValue,
+    virtualControllerType: virtualControllerConfig.type,
+    virtualControllerWarnings: virtualControllerConfig.warnings,
+    handleVirtualControllerTypeChange,
   }
 }

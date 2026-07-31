@@ -8,6 +8,15 @@ import {
 } from '../../utils/bindingCommands'
 import keymapStyles from '../Keymap.module.css'
 import { BindingCommandEditor } from './BindingCommandEditor'
+import {
+  getDefaultVirtualControllerLogicalOutput,
+  getPreferredVirtualControllerDisplayType,
+  getVirtualControllerLogicalOutput,
+  getVirtualControllerOptions,
+  toVirtualControllerToken,
+  type VirtualControllerLogicalOutput,
+  type VirtualControllerType,
+} from '../../utils/virtualController'
 
 type Option = { value: string; label: string; disabled?: boolean }
 
@@ -15,6 +24,7 @@ type BindingQuickComposerProps = {
   command: BindingCommand
   modifierOptions: Option[]
   specialOptions: Option[]
+  virtualControllerType: VirtualControllerType
   isCapturing: boolean
   captureLabel: string
   onChange: (patch: BindingCommandPatch) => void
@@ -40,6 +50,7 @@ const OUTPUT_KIND_OPTIONS: Array<{ value: BindingOutputKind; labelKey: string }>
   { value: 'keyboard', labelKey: 'keymap.commandOutputKeyboard' },
   { value: 'mouse', labelKey: 'keymap.commandOutputMouse' },
   { value: 'wheel', labelKey: 'keymap.commandOutputWheel' },
+  { value: 'virtualController', labelKey: 'keymap.commandOutputVirtualController' },
   { value: 'special', labelKey: 'keymap.commandOutputSpecial' },
   { value: 'command', labelKey: 'keymap.commandOutputCommand' },
   { value: 'raw', labelKey: 'keymap.commandOutputRaw' },
@@ -53,6 +64,7 @@ export function BindingQuickComposer({
   command,
   modifierOptions,
   specialOptions,
+  virtualControllerType,
   isCapturing,
   captureLabel,
   onChange,
@@ -62,13 +74,26 @@ export function BindingQuickComposer({
   const [advancedOpen, setAdvancedOpen] = useState(command.outputKind === 'raw' || command.outputKind === 'command')
   const canCapture = command.outputKind === 'keyboard' || command.outputKind === 'mouse' || command.outputKind === 'wheel'
   const showCondition = conditionTriggers.has(command.triggerKind)
+  const virtualDisplayType = getPreferredVirtualControllerDisplayType(virtualControllerType, command.outputValue)
+  const virtualOptions = virtualDisplayType ? getVirtualControllerOptions(virtualDisplayType, t) : []
+  const virtualSelection = command.virtualControllerLogicalOutput ?? getVirtualControllerLogicalOutput(command.outputValue) ?? ''
   const triggerOptions = PRIMARY_TRIGGERS.some(option => option.value === command.triggerKind)
     ? PRIMARY_TRIGGERS
     : [...PRIMARY_TRIGGERS, ...ADVANCED_TRIGGERS]
 
   const handleOutputKindChange = (nextOutputKind: BindingOutputKind) => {
     if (nextOutputKind === command.outputKind) return
-    onChange({ outputKind: nextOutputKind, outputValue: '' })
+    if (nextOutputKind === 'virtualController') {
+      const logical = getDefaultVirtualControllerLogicalOutput(virtualControllerType)
+      const token = logical ? toVirtualControllerToken(logical, virtualControllerType) ?? '' : ''
+      onChange({
+        outputKind: nextOutputKind,
+        outputValue: token,
+        virtualControllerLogicalOutput: logical ?? undefined,
+      })
+      return
+    }
+    onChange({ outputKind: nextOutputKind, outputValue: '', virtualControllerLogicalOutput: undefined })
   }
 
   const renderOutputValue = () => {
@@ -113,6 +138,27 @@ export function BindingQuickComposer({
           <option value="">{t('keymap.commandNoOutput')}</option>
           {specialOptions.map(option => (
             <option key={option.value} value={option.value} disabled={option.disabled}>{option.label}</option>
+          ))}
+        </select>
+      )
+    }
+    if (command.outputKind === 'virtualController') {
+      return (
+        <select
+          className="app-select"
+          value={virtualSelection}
+          onChange={(event) => {
+            const logical = event.target.value as VirtualControllerLogicalOutput | ''
+            const tokenType = virtualControllerType !== 'NONE' ? virtualControllerType : virtualDisplayType
+            const token = logical && tokenType ? toVirtualControllerToken(logical, tokenType) ?? '' : ''
+            onChange({ outputValue: token, virtualControllerLogicalOutput: logical || undefined })
+          }}
+          data-capture-ignore="true"
+          disabled={virtualControllerType === 'NONE' || command.triggerKind === 'stickShift'}
+        >
+          <option value="">{t('keymap.commandNoOutput')}</option>
+          {virtualOptions.map(option => (
+            <option key={option.value} value={option.value}>{option.label}</option>
           ))}
         </select>
       )
@@ -179,7 +225,10 @@ export function BindingQuickComposer({
               type="button"
               className={`${keymapStyles.outputKindChip} ${command.outputKind === option.value ? keymapStyles.outputKindChipActive : ''}`}
               onClick={() => handleOutputKindChange(option.value)}
-              disabled={command.triggerKind === 'stickShift'}
+              disabled={
+                command.triggerKind === 'stickShift' ||
+                (option.value === 'virtualController' && virtualControllerType === 'NONE' && command.outputKind !== 'virtualController')
+              }
             >
               {t(option.labelKey)}
             </button>
@@ -203,6 +252,7 @@ export function BindingQuickComposer({
           command={command}
           modifierOptions={modifierOptions}
           specialOptions={specialOptions}
+          virtualControllerType={virtualControllerType}
           isCapturing={isCapturing}
           captureLabel={captureLabel}
           onChange={onChange}

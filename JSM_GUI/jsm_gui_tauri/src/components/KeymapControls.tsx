@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DEFAULT_STICK_DEADZONE_INNER, DEFAULT_STICK_DEADZONE_OUTER } from '../constants/defaults'
 import type { TelemetryDevice } from '../hooks/useTelemetry'
@@ -20,6 +20,7 @@ import {
   MISC_BUTTONS,
   PADDLE_BUTTONS,
   RIGHT_STICK_BUTTONS,
+  TOUCH_STICK_BUTTONS,
   STICK_AIM_DEFAULTS,
   TOUCH_BUTTONS,
   TRIGGER_BUTTONS,
@@ -35,14 +36,18 @@ import { ButtonGridSection } from './keymap/ButtonGridSection'
 import { Card } from './Card'
 import keymapStyles from './Keymap.module.css'
 import { GlobalControlsSection } from './keymap/GlobalControlsSection'
+import { KeymapSection } from './KeymapSection'
 import { MappingRulesHelpModal } from './keymap/MappingRulesHelpModal'
 import stickStyles from './Sticks.module.css'
 import { TouchpadGridSection } from './keymap/TouchpadGridSection'
 import { TouchpadSettingsSection } from './keymap/TouchpadSettingsSection'
+import { TouchpadStickSection } from './keymap/TouchpadStickSection'
 import { SectionActions } from './SectionActions'
 import { ControllerStatusSvg } from './ControllerStatusSvg'
 import { controllerButtonLabel } from '../utils/controllerStatus'
 import { StickSettingsCard } from './StickSettingsCard'
+import type { VirtualControllerType, VirtualControllerWarning } from '../utils/virtualController'
+import { normalizeTouchpadMode, type TouchpadWarning } from '../utils/touchpadConfig'
 
 type KeymapControlsProps = {
   configText: string
@@ -88,12 +93,25 @@ type KeymapControlsProps = {
   lockMessage?: string
   visibleSections?: string[]
   touchpadMode?: string
+  touchpadDualStageMode?: string
   onTouchpadModeChange?: (value: string) => void
+  onTouchpadDualStageModeChange?: (value: string) => void
   gridColumns?: number
   gridRows?: number
   onGridSizeChange?: (cols: number, rows: number) => void
   touchpadSensitivity?: number
   onTouchpadSensitivityChange?: (value: string) => void
+  touchDeadzoneInner?: string
+  touchRingMode?: string
+  touchStickMode?: string
+  touchStickRadius?: string
+  touchStickAxis?: string
+  onTouchDeadzoneInnerChange?: (value: string) => void
+  onTouchRingModeChange?: (value: string) => void
+  onTouchStickModeChange?: (value: string) => void
+  onTouchStickRadiusChange?: (value: string) => void
+  onTouchStickAxisChange?: (value: string) => void
+  touchpadWarnings?: TouchpadWarning[]
   stickDeadzoneSettings?: {
     defaults: { inner: string; outer: string }
     left: { inner: string; outer: string }
@@ -149,6 +167,9 @@ type KeymapControlsProps = {
   devices?: TelemetryDevice[]
   selectedMappingCommand?: string | null
   onSelectedMappingCommandChange?: (command: string | null) => void
+  virtualControllerType?: VirtualControllerType
+  virtualControllerWarnings?: VirtualControllerWarning[]
+  onVirtualControllerTypeChange?: (value: VirtualControllerType) => void
 }
 
 type StickAimSettingsProps = {
@@ -336,15 +357,32 @@ const VIRTUAL_MAPPING_DEVICE: TelemetryDevice = {
   },
 }
 
-const MAPPING_BUTTON_GROUPS: Record<string, { titleKey: string; buttons: ButtonDefinition[] }> = {
-  face: { titleKey: 'keymap.faceButtonsTitle', buttons: FACE_BUTTONS },
-  dpad: { titleKey: 'keymap.dpadTitle', buttons: DPAD_BUTTONS },
-  bumpers: { titleKey: 'keymap.bumpersTitle', buttons: [...BUMPER_BUTTONS, ...MINI_BUTTONS] },
-  triggers: { titleKey: 'keymap.triggersTitle', buttons: TRIGGER_BUTTONS },
-  center: { titleKey: 'keymap.centerButtonsTitle', buttons: CENTER_BUTTONS },
-  paddles: { titleKey: 'keymap.paddlesTitle', buttons: PADDLE_BUTTONS },
-  sticks: { titleKey: 'app.nav.sticks', buttons: [...LEFT_STICK_BUTTONS, ...RIGHT_STICK_BUTTONS] },
-  extra: { titleKey: 'keymap.extraButtonsTitle', buttons: MISC_BUTTONS },
+const MAPPING_BUTTON_GROUPS: Record<string, { titleKey: string; descriptionKey?: string; buttons: ButtonDefinition[] }> = {
+  face: { titleKey: 'keymap.faceButtonsTitle', descriptionKey: 'keymap.faceButtonsDescription', buttons: FACE_BUTTONS },
+  dpad: { titleKey: 'keymap.dpadTitle', descriptionKey: 'keymap.dpadDescription', buttons: DPAD_BUTTONS },
+  bumpers: {
+    titleKey: 'keymap.bumpersTitle',
+    descriptionKey: 'keymap.bumpersDescription',
+    buttons: [...BUMPER_BUTTONS, ...MINI_BUTTONS],
+  },
+  triggers: { titleKey: 'keymap.triggersTitle', descriptionKey: 'keymap.triggersDescription', buttons: TRIGGER_BUTTONS },
+  center: {
+    titleKey: 'keymap.centerButtonsTitle',
+    descriptionKey: 'keymap.centerButtonsDescription',
+    buttons: CENTER_BUTTONS,
+  },
+  paddles: { titleKey: 'keymap.paddlesTitle', descriptionKey: 'keymap.paddlesDescription', buttons: PADDLE_BUTTONS },
+  leftStick: {
+    titleKey: 'keymap.leftStickTitle',
+    descriptionKey: 'keymap.leftStickDescription',
+    buttons: LEFT_STICK_BUTTONS,
+  },
+  rightStick: {
+    titleKey: 'keymap.rightStickTitle',
+    descriptionKey: 'keymap.rightStickDescription',
+    buttons: RIGHT_STICK_BUTTONS,
+  },
+  extra: { titleKey: 'keymap.extraButtonsTitle', descriptionKey: 'keymap.extraButtonsDescription', buttons: MISC_BUTTONS },
 }
 
 const allMappingButtons = () => {
@@ -393,12 +431,25 @@ export function KeymapControls({
   lockMessage,
   visibleSections,
   touchpadMode: touchpadModeProp = '',
+  touchpadDualStageMode = '',
   onTouchpadModeChange,
+  onTouchpadDualStageModeChange,
   gridColumns = 2,
   gridRows = 2,
   onGridSizeChange,
   touchpadSensitivity,
   onTouchpadSensitivityChange,
+  touchDeadzoneInner = '',
+  touchRingMode = '',
+  touchStickMode = '',
+  touchStickRadius = '',
+  touchStickAxis = '',
+  onTouchDeadzoneInnerChange,
+  onTouchRingModeChange,
+  onTouchStickModeChange,
+  onTouchStickRadiusChange,
+  onTouchStickAxisChange,
+  touchpadWarnings,
   stickDeadzoneSettings,
   onStickDeadzoneChange,
   stickModeSettings,
@@ -423,10 +474,15 @@ export function KeymapControls({
   devices,
   selectedMappingCommand,
   onSelectedMappingCommandChange,
+  virtualControllerType = 'NONE',
+  virtualControllerWarnings,
+  onVirtualControllerTypeChange,
 }: KeymapControlsProps) {
   const { t } = useTranslation()
+  const [mappingLayoutMode, setMappingLayoutMode] = useState<'visual' | 'list'>('visual')
   const [mappingHelpOpen, setMappingHelpOpen] = useState(false)
   const [selectedTouchpadGridCommand, setSelectedTouchpadGridCommand] = useState<string | null>(null)
+  const listSectionRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const {
     manualRows,
     ensureManualRow,
@@ -452,9 +508,7 @@ export function KeymapControls({
   }
 
   const touchpadMode = useMemo(() => {
-    const upper = touchpadModeProp?.toUpperCase()
-    if (upper === 'GRID_AND_STICK' || upper === 'MOUSE') return upper
-    return ''
+    return normalizeTouchpadMode(touchpadModeProp)
   }, [touchpadModeProp])
 
   const gridActive = touchpadMode === 'GRID_AND_STICK'
@@ -497,6 +551,7 @@ export function KeymapControls({
       ...LEFT_STICK_BUTTONS,
       ...RIGHT_STICK_BUTTONS,
       ...TOUCH_BUTTONS,
+      ...TOUCH_STICK_BUTTONS,
       ...MISC_BUTTONS,
       ...touchpadGridButtons,
     ].forEach(({ command }) => {
@@ -594,7 +649,9 @@ export function KeymapControls({
 
   const showFullLayout = view === 'full'
   const showGlobalOnlyLayout = showFullLayout && visibleSections?.length === 1 && visibleSections[0] === 'global'
-  const showVisualMappingLayout = showFullLayout && !showGlobalOnlyLayout
+  const showMappedLayout = showFullLayout && !showGlobalOnlyLayout
+  const showVisualMappingLayout = showMappedLayout && mappingLayoutMode === 'visual'
+  const showListMappingLayout = showMappedLayout && mappingLayoutMode === 'list'
   const deadzoneDefaults = stickDeadzoneSettings?.defaults ?? {
     inner: DEFAULT_STICK_DEADZONE_INNER,
     outer: DEFAULT_STICK_DEADZONE_OUTER,
@@ -656,6 +713,7 @@ export function KeymapControls({
         onStickModeShiftChange={onStickModeShiftChange}
         trackballDecay={trackballDecay}
         onTrackballDecayChange={onTrackballDecayChange}
+        virtualControllerType={virtualControllerType ?? 'NONE'}
       />
     )
   }
@@ -668,11 +726,34 @@ export function KeymapControls({
     applyDisabled: isCalibrating,
   }
 
+  const renderVirtualControllerWarning = (warning: VirtualControllerWarning) => {
+    if (warning.kind === 'modeRequired') {
+      return t('keymap.virtualControllerWarningModeRequired')
+    }
+    return t('keymap.virtualControllerWarningSchemeMismatch', {
+      detected: t(`keymap.virtualControllerType_${warning.detectedType}`),
+      current: t(`keymap.virtualControllerType_${virtualControllerType ?? 'NONE'}`),
+    })
+  }
+
+  const renderTouchpadWarning = (warning: TouchpadWarning) => {
+    if (warning.code === 'psTouchpadNeedsDs4') return t('keymap.touchpadWarningPsTouchpadNeedsDs4')
+    if (warning.code === 'touchStickRequiresGrid') return t('keymap.touchpadWarningTouchStickRequiresGrid')
+    return t('keymap.touchpadWarningGridSizeInvalid', { value: warning.rawValue ?? '' })
+  }
+
+  const scrollToListSection = (groupKey: string) => {
+    listSectionRefs.current[groupKey]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   const isTouchpadButtonBound = (command: string) => {
     const key = command.toUpperCase()
     const rows = bindingRowsByButton[key] ?? bindingRowsByButton[command] ?? []
     return rows.length > 0 || Boolean(specialsByButton[key] || specialsByButton[command])
   }
+
+  const showTouchStickButtons = gridActive || Boolean(touchStickMode) || TOUCH_STICK_BUTTONS.some(button => isTouchpadButtonBound(button.command))
+  const touchpadButtonSectionButtons = showTouchStickButtons ? [...TOUCH_BUTTONS, ...TOUCH_STICK_BUTTONS] : TOUCH_BUTTONS
 
   const stickModeExtras = (side: 'LEFT' | 'RIGHT') => {
     const mode = side === 'LEFT' ? stickModeSettings?.left.mode ?? '' : stickModeSettings?.right.mode ?? ''
@@ -737,7 +818,7 @@ export function KeymapControls({
       locked={isCalibrating}
       lockMessage={lockMessage ?? t('messages.lockMessage')}
     >
-      {!showVisualMappingLayout && (
+      {!showMappedLayout && (
         <div className={keymapStyles.keymapCardHeader}>
           <div className={keymapStyles.keymapTitleRow}>
             <h2>
@@ -772,7 +853,7 @@ export function KeymapControls({
         />
       )}
 
-      {showVisualMappingLayout && (
+      {showMappedLayout && (
         <>
           <GlobalControlsSection
             compact
@@ -796,6 +877,103 @@ export function KeymapControls({
             onOpenMappingHelp={() => setMappingHelpOpen(true)}
             {...actionsProps}
           />
+          {onVirtualControllerTypeChange && (
+            <section className={keymapStyles.virtualControllerPanel}>
+              <div className={keymapStyles.mappingVisualHeader}>
+                <div>
+                  <h3>{t('keymap.virtualControllerTitle')}</h3>
+                  <p>{t('keymap.virtualControllerDescription')}</p>
+                </div>
+              </div>
+              <div className={keymapStyles.virtualControllerControls} data-capture-ignore="true">
+                <label className={keymapStyles.quickComposerField}>
+                  <span>{t('keymap.virtualControllerTypeLabel')}</span>
+                  <select
+                    className="app-select"
+                    value={virtualControllerType ?? 'NONE'}
+                    onChange={(event) => onVirtualControllerTypeChange(event.target.value as VirtualControllerType)}
+                    disabled={isCalibrating}
+                  >
+                    <option value="NONE">{t('keymap.virtualControllerType_NONE')}</option>
+                    <option value="XBOX">{t('keymap.virtualControllerType_XBOX')}</option>
+                    <option value="DS4">{t('keymap.virtualControllerType_DS4')}</option>
+                  </select>
+                </label>
+                <p className={keymapStyles.virtualControllerHint}>{t('keymap.virtualControllerHint')}</p>
+              </div>
+              {virtualControllerWarnings && virtualControllerWarnings.length > 0 && (
+                <div className={keymapStyles.virtualControllerWarnings}>
+                  {virtualControllerWarnings.map((warning, index) => (
+                    <div key={`${warning.kind}-${index}`} className={keymapStyles.virtualControllerWarning}>
+                      {renderVirtualControllerWarning(warning)}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+          <div className={keymapStyles.mappingLayoutTabs} data-capture-ignore="true">
+            <button
+              type="button"
+              className={`${keymapStyles.mappingLayoutTab} ${mappingLayoutMode === 'visual' ? keymapStyles.mappingLayoutTabActive : ''}`}
+              onClick={() => setMappingLayoutMode('visual')}
+            >
+              {t('keymap.mappingLayoutVisual')}
+            </button>
+            <button
+              type="button"
+              className={`${keymapStyles.mappingLayoutTab} ${mappingLayoutMode === 'list' ? keymapStyles.mappingLayoutTabActive : ''}`}
+              onClick={() => setMappingLayoutMode('list')}
+            >
+              {t('keymap.mappingLayoutList')}
+            </button>
+          </div>
+          {showListMappingLayout && (
+            <section className={keymapStyles.mappingListShell}>
+              <aside className={keymapStyles.mappingListSidebar} data-capture-ignore="true">
+                <div className={keymapStyles.mappingListSidebarTitle}>{t('keymap.mappingLayoutList')}</div>
+                <div className={keymapStyles.mappingListJumpBar}>
+                  {Object.entries(MAPPING_BUTTON_GROUPS).map(([groupKey, group]) => (
+                    <button
+                      key={groupKey}
+                      type="button"
+                      className={keymapStyles.mappingListJumpChip}
+                      onClick={() => scrollToListSection(groupKey)}
+                    >
+                      {t(group.titleKey)}
+                    </button>
+                  ))}
+                </div>
+              </aside>
+              <div className={keymapStyles.mappingListContent}>
+                {Object.entries(MAPPING_BUTTON_GROUPS).map(([groupKey, group]) => (
+                  <div
+                    key={groupKey}
+                    ref={element => {
+                      listSectionRefs.current[groupKey] = element
+                    }}
+                    className={keymapStyles.mappingListSectionAnchor}
+                  >
+                    <KeymapSection
+                      title={t(group.titleKey)}
+                      description={group.descriptionKey ? t(group.descriptionKey) : undefined}
+                    >
+                      <div className={keymapStyles.keymapGrid}>
+                        {group.buttons.map(button => (
+                          <div key={button.command}>{renderButtonCard(button)}</div>
+                        ))}
+                      </div>
+                    </KeymapSection>
+                  </div>
+                ))}
+                <SectionActions
+                  className={keymapStyles.keymapSectionActions}
+                  {...actionsProps}
+                />
+              </div>
+            </section>
+          )}
+          {showVisualMappingLayout && (
           <section className={keymapStyles.mappingWorkbench}>
             <div className={keymapStyles.mappingVisualPanel}>
               <div className={keymapStyles.mappingVisualHeader}>
@@ -895,6 +1073,7 @@ export function KeymapControls({
               />
             </aside>
           </section>
+          )}
         </>
       )}
 
@@ -908,12 +1087,15 @@ export function KeymapControls({
                 <>
                   <TouchpadSettingsSection
                     touchpadMode={touchpadMode}
+                    touchpadDualStageMode={touchpadDualStageMode}
                     gridColumns={gridColumns}
                     gridRows={gridRows}
                     onTouchpadModeChange={onTouchpadModeChange}
+                    onTouchpadDualStageModeChange={onTouchpadDualStageModeChange}
                     onGridSizeChange={onGridSizeChange}
                     touchpadSensitivity={touchpadSensitivity}
                     onTouchpadSensitivityChange={onTouchpadSensitivityChange}
+                    warnings={touchpadWarnings?.map(renderTouchpadWarning)}
                     {...actionsProps}
                   />
                   {touchpadMode === 'GRID_AND_STICK' && (
@@ -933,13 +1115,32 @@ export function KeymapControls({
               ),
             },
             {
+              key: 'touch-stick',
+              shouldRender: isVisible('touch-stick') && touchpadMode === 'GRID_AND_STICK',
+              node: (
+                <TouchpadStickSection
+                  touchStickMode={touchStickMode}
+                  touchDeadzoneInner={touchDeadzoneInner}
+                  touchRingMode={touchRingMode}
+                  touchStickRadius={touchStickRadius}
+                  touchStickAxis={touchStickAxis}
+                  onTouchStickModeChange={onTouchStickModeChange}
+                  onTouchDeadzoneInnerChange={onTouchDeadzoneInnerChange}
+                  onTouchRingModeChange={onTouchRingModeChange}
+                  onTouchStickRadiusChange={onTouchStickRadiusChange}
+                  onTouchStickAxisChange={onTouchStickAxisChange}
+                  {...actionsProps}
+                />
+              ),
+            },
+            {
               key: 'touch-bind',
               shouldRender: isVisible('touch-bind'),
               node: (
                 <ButtonGridSection
                   title={t('keymap.touchButtonsTitle')}
                   description={t('keymap.touchButtonsDescription')}
-                  buttons={TOUCH_BUTTONS}
+                  buttons={touchpadButtonSectionButtons}
                   renderButton={renderButtonCard}
                   {...actionsProps}
                 />

@@ -276,6 +276,13 @@ function App() {
     touchpadModeValue,
     gridSizeValue,
     touchpadSensitivityValue,
+    touchpadDualStageModeValue,
+    touchStickModeValue,
+    touchDeadzoneInnerValue,
+    touchRingModeValue,
+    touchStickRadiusValue,
+    touchStickAxisValue,
+    touchpadWarnings,
     hasPendingChanges,
     handleSensitivityModeshiftButtonChange,
     handleThresholdChange,
@@ -305,6 +312,12 @@ function App() {
     handleTouchpadModeChange,
     handleGridSizeChange,
     handleTouchpadSensitivityChange,
+    handleTouchpadDualStageModeChange,
+    handleTouchStickModeChange,
+    handleTouchDeadzoneInnerChange,
+    handleTouchRingModeChange,
+    handleTouchStickRadiusChange,
+    handleTouchStickAxisChange,
     handleInGameSensChange,
     handleRealWorldCalibrationChange,
     handleAccelCurveChange,
@@ -325,6 +338,9 @@ function App() {
     handleGyroActivationButtonChange,
     trackballDecayValue,
     handleTrackballDecayChange,
+    virtualControllerType,
+    virtualControllerWarnings,
+    handleVirtualControllerTypeChange,
     handleStickDeadzoneChange,
     handleStickModeChange,
     handleRingModeChange,
@@ -908,8 +924,15 @@ function App() {
             onTriggerThresholdChange={handleTriggerThresholdChange}
             onModifierChange={handleModifierChange}
             touchpadMode={touchpadModeValue}
+            touchpadDualStageMode={touchpadDualStageModeValue}
             gridColumns={gridSizeValue.columns}
             gridRows={gridSizeValue.rows}
+            touchDeadzoneInner={touchDeadzoneInnerValue}
+            touchRingMode={touchRingModeValue}
+            touchStickMode={touchStickModeValue}
+            touchStickRadius={touchStickRadiusValue}
+            touchStickAxis={touchStickAxisValue}
+            touchpadWarnings={touchpadWarnings}
             stickDeadzoneSettings={{
               defaults: stickDeadzoneDefaults,
               left: leftStickDeadzone,
@@ -939,13 +962,16 @@ function App() {
             devices={sample?.devices}
             selectedMappingCommand={selectedMappingCommand}
             onSelectedMappingCommandChange={setSelectedMappingCommand}
+            virtualControllerType={virtualControllerType}
+            virtualControllerWarnings={virtualControllerWarnings}
+            onVirtualControllerTypeChange={handleVirtualControllerTypeChange}
           />
         </Suspense>
       )
     }
 
     if (primaryTab === 'touchpad') {
-      const sections = ['touch-grid', 'touch-bind']
+      const sections = ['touch-grid', 'touch-stick', 'touch-bind']
       return (
         <Suspense fallback={<LazyPanelFallback title={t('app.nav.touchpad')} />}>
           <KeymapControls
@@ -977,12 +1003,25 @@ function App() {
             onTriggerThresholdChange={handleTriggerThresholdChange}
             onModifierChange={handleModifierChange}
             touchpadMode={touchpadModeValue}
+            touchpadDualStageMode={touchpadDualStageModeValue}
             onTouchpadModeChange={handleTouchpadModeChange}
+            onTouchpadDualStageModeChange={handleTouchpadDualStageModeChange}
             gridColumns={gridSizeValue.columns}
             gridRows={gridSizeValue.rows}
             onGridSizeChange={handleGridSizeChange}
             touchpadSensitivity={touchpadSensitivityValue}
             onTouchpadSensitivityChange={handleTouchpadSensitivityChange}
+            touchDeadzoneInner={touchDeadzoneInnerValue}
+            touchRingMode={touchRingModeValue}
+            touchStickMode={touchStickModeValue}
+            touchStickRadius={touchStickRadiusValue}
+            touchStickAxis={touchStickAxisValue}
+            onTouchDeadzoneInnerChange={handleTouchDeadzoneInnerChange}
+            onTouchRingModeChange={handleTouchRingModeChange}
+            onTouchStickModeChange={handleTouchStickModeChange}
+            onTouchStickRadiusChange={handleTouchStickRadiusChange}
+            onTouchStickAxisChange={handleTouchStickAxisChange}
+            touchpadWarnings={touchpadWarnings}
             stickDeadzoneSettings={{
               defaults: stickDeadzoneDefaults,
               left: leftStickDeadzone,

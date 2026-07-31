@@ -67,6 +67,14 @@ export const TOUCH_BUTTONS: ButtonDefinition[] = [
   { command: 'CAPTURE', descriptionKey: 'buttons.descriptions.touchpadClick', playstation: 'Click', xbox: 'Click' },
 ]
 
+export const TOUCH_STICK_BUTTONS: ButtonDefinition[] = [
+  { command: 'TUP', descriptionKey: 'buttons.descriptions.touchStickUp', playstation: 'T Up', xbox: 'T Up' },
+  { command: 'TDOWN', descriptionKey: 'buttons.descriptions.touchStickDown', playstation: 'T Down', xbox: 'T Down' },
+  { command: 'TLEFT', descriptionKey: 'buttons.descriptions.touchStickLeft', playstation: 'T Left', xbox: 'T Left' },
+  { command: 'TRIGHT', descriptionKey: 'buttons.descriptions.touchStickRight', playstation: 'T Right', xbox: 'T Right' },
+  { command: 'TRING', descriptionKey: 'buttons.descriptions.touchStickRing', playstation: 'T Ring', xbox: 'T Ring' },
+]
+
 export const LEFT_STICK_BUTTONS: ButtonDefinition[] = [
   { command: 'LUP', descriptionKey: 'buttons.descriptions.leftStickUp', playstation: 'LS Up', xbox: 'LS Up' },
   { command: 'LDOWN', descriptionKey: 'buttons.descriptions.leftStickDown', playstation: 'LS Down', xbox: 'LS Down' },
