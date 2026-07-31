@@ -7,6 +7,7 @@ type UpdateState =
   | { phase: 'idle' }
   | { phase: 'available'; version: string }
   | { phase: 'downloading' }
+  | { phase: 'error' }
   | { phase: 'ready' }
 
 export function UpdateBanner() {
@@ -26,7 +27,11 @@ export function UpdateBanner() {
     const removeDownloaded = desktopBridge.onUpdateDownloaded(() => {
       setUpdate({ phase: 'ready' })
     })
+    const checkTimer = window.setTimeout(() => {
+      void desktopBridge.checkForUpdates()
+    }, 1500)
     return () => {
+      window.clearTimeout(checkTimer)
       removeAvailable?.()
       removeProgress?.()
       removeDownloaded?.()
@@ -46,7 +51,10 @@ export function UpdateBanner() {
               className="primary-btn"
               onClick={() => {
                 setUpdate({ phase: 'downloading' })
-                void desktopBridge.downloadUpdate()
+                void desktopBridge.downloadUpdate().catch(error => {
+                  console.error('Failed to download JSM Studio update', error)
+                  setUpdate({ phase: 'error' })
+                })
               }}
             >
               {t('update.downloadNow')}
@@ -58,10 +66,27 @@ export function UpdateBanner() {
         </>
       )}
       {update.phase === 'downloading' && <span>{t('update.downloading', { percent: progress })}</span>}
+      {update.phase === 'error' && (
+        <>
+          <span>{t('update.failed')}</span>
+          <button type="button" className="ghost-btn" onClick={() => setDismissed(true)}>
+            {t('common.later')}
+          </button>
+        </>
+      )}
       {update.phase === 'ready' && (
         <>
           <span>{t('update.ready')}</span>
-          <button type="button" className="primary-btn" onClick={() => void desktopBridge.installUpdate()}>
+          <button
+            type="button"
+            className="primary-btn"
+            onClick={() => {
+              void desktopBridge.installUpdate().catch(error => {
+                console.error('Failed to install JSM Studio update', error)
+                setUpdate({ phase: 'error' })
+              })
+            }}
+          >
             {t('update.restartNow')}
           </button>
         </>

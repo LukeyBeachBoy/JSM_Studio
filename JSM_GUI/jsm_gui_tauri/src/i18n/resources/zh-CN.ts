@@ -50,6 +50,7 @@ export const zhCN = {
     downloadNow: '立即下载',
     downloading: '正在下载更新… {{percent}}%',
     ready: '更新已准备好安装。',
+    failed: '更新下载或安装失败。',
     restartNow: '立即重启',
   },
   messages: {

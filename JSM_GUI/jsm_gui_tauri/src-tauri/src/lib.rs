@@ -9,6 +9,8 @@ use services::{app_state::AppState, hidhide, input_debug, jsm_process, telemetry
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default()
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(AppState::default())
         .setup(|app| {
             let state = app.state::<AppState>().inner().clone();

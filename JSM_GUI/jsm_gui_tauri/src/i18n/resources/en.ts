@@ -50,6 +50,7 @@ export const en = {
     downloadNow: 'Download Now',
     downloading: 'Downloading update… {{percent}}%',
     ready: 'Update ready to install.',
+    failed: 'The update could not be downloaded or installed.',
     restartNow: 'Restart Now',
   },
   messages: {

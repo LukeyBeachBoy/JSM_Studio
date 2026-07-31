@@ -187,6 +187,7 @@ export interface DesktopBridge {
   onUpdateAvailable: (callback: (version: string) => void) => Unsubscribe
   onUpdateDownloaded: (callback: () => void) => Unsubscribe
   onUpdateDownloadProgress: (callback: (percent: number) => void) => Unsubscribe
+  checkForUpdates: () => Promise<void>
   downloadUpdate: () => Promise<void>
   installUpdate: () => Promise<void>
   onTelemetrySample: (callback: (payload: unknown) => void) => Unsubscribe
@@ -213,6 +214,25 @@ const noop: Unsubscribe = () => {}
 const getElectronAPI = () => (typeof window === 'undefined' ? undefined : window.electronAPI)
 const getTelemetryAPI = () => (typeof window === 'undefined' ? undefined : window.telemetry)
 const isTauriWindow = () => typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
+
+type TauriUpdate = import('@tauri-apps/plugin-updater').Update
+
+let pendingTauriUpdate: TauriUpdate | null = null
+const tauriUpdateAvailableListeners = new Set<(version: string) => void>()
+const tauriUpdateDownloadedListeners = new Set<() => void>()
+const tauriUpdateProgressListeners = new Set<(percent: number) => void>()
+
+const notifyTauriUpdateAvailable = (version: string) => {
+  tauriUpdateAvailableListeners.forEach(listener => listener(version))
+}
+
+const notifyTauriUpdateDownloaded = () => {
+  tauriUpdateDownloadedListeners.forEach(listener => listener())
+}
+
+const notifyTauriUpdateProgress = (percent: number) => {
+  tauriUpdateProgressListeners.forEach(listener => listener(Math.max(0, Math.min(100, percent))))
+}
 
 const invokeTauri = async <T>(command: string, args?: Record<string, unknown>) => {
   const { invoke } = await import('@tauri-apps/api/core')
@@ -467,28 +487,78 @@ export const desktopBridge: DesktopBridge = {
   },
   onUpdateAvailable(callback) {
     if (isTauriWindow()) {
-      return listenTauri<string>('update-available', callback)
+      tauriUpdateAvailableListeners.add(callback)
+      return () => tauriUpdateAvailableListeners.delete(callback)
     }
     return getElectronAPI()?.onUpdateAvailable?.(callback) ?? noop
   },
   onUpdateDownloaded(callback) {
     if (isTauriWindow()) {
-      return listenTauri('update-downloaded', callback)
+      tauriUpdateDownloadedListeners.add(callback)
+      return () => tauriUpdateDownloadedListeners.delete(callback)
     }
     return getElectronAPI()?.onUpdateDownloaded?.(callback) ?? noop
   },
   onUpdateDownloadProgress(callback) {
     if (isTauriWindow()) {
-      return listenTauri<number>('update-download-progress', callback)
+      tauriUpdateProgressListeners.add(callback)
+      return () => tauriUpdateProgressListeners.delete(callback)
     }
     return getElectronAPI()?.onUpdateDownloadProgress?.(callback) ?? noop
   },
+  async checkForUpdates() {
+    if (!isTauriWindow()) return
+
+    try {
+      const { check } = await import('@tauri-apps/plugin-updater')
+      pendingTauriUpdate = await check()
+      if (pendingTauriUpdate) {
+        notifyTauriUpdateAvailable(pendingTauriUpdate.version)
+      }
+    } catch (error) {
+      console.warn('Failed to check for JSM Studio updates', error)
+    }
+  },
   async downloadUpdate() {
-    if (isTauriWindow()) return
+    if (isTauriWindow()) {
+      if (!pendingTauriUpdate) {
+        throw new Error('No JSM Studio update is available to download.')
+      }
+
+      let contentLength = 0
+      let downloadedLength = 0
+      notifyTauriUpdateProgress(0)
+      await pendingTauriUpdate.download(event => {
+        if (event.event === 'Started') {
+          contentLength = event.data.contentLength ?? 0
+          downloadedLength = 0
+          notifyTauriUpdateProgress(0)
+        } else if (event.event === 'Progress') {
+          downloadedLength += event.data.chunkLength
+          notifyTauriUpdateProgress(
+            contentLength > 0 ? Math.round((downloadedLength / contentLength) * 100) : 0,
+          )
+        } else if (event.event === 'Finished') {
+          notifyTauriUpdateProgress(100)
+        }
+      })
+      notifyTauriUpdateDownloaded()
+      return
+    }
     await getElectronAPI()?.downloadUpdate?.()
   },
   async installUpdate() {
-    if (isTauriWindow()) return
+    if (isTauriWindow()) {
+      if (!pendingTauriUpdate) {
+        throw new Error('No downloaded JSM Studio update is ready to install.')
+      }
+
+      await pendingTauriUpdate.install()
+      pendingTauriUpdate = null
+      const { relaunch } = await import('@tauri-apps/plugin-process')
+      await relaunch()
+      return
+    }
     await getElectronAPI()?.installUpdate?.()
   },
   onTelemetrySample(callback) {
