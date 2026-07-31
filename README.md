@@ -6,7 +6,7 @@ JSM Studio is a graphical tool for JoyShockMapper on Windows. It integrates JoyS
 
 ![alt text](docs/1.png)
 
-This repository is a fork of [`evan1mclean/JSM_custom_curve`](https://github.com/evan1mclean/JSM_custom_curve). The upstream repo itself is based on JoyShockMapper, adding custom curves, filtering, and GUI configuration capabilities; this fork further extends it into a more complete JSM Studio desktop tool.
+This repository is a fork of [`evan1mclean/JSM_custom_curve`](https://github.com/evan1mclean/JSM_custom_curve), with JoyShockMapper maintained separately in [`hotuns/JoyShockMapper`](https://github.com/hotuns/JoyShockMapper). The JSM Studio repository pins that fork as the `JoyShockMapper` submodule on its `jsm-studio` branch. The fork's `main` branch tracks [`Electronicks/JoyShockMapper`](https://github.com/Electronicks/JoyShockMapper), while the integration branch preserves custom curves and the telemetry/controller interfaces required by this desktop application.
 
 ## Download
 
@@ -217,9 +217,20 @@ Note: The rule name should match the actual game process, e.g. `game.exe`. If yo
 
 ```powershell
 cd JSM_GUI/jsm_gui_tauri
+git -C ..\.. submodule update --init --recursive
 npm install
 npm run tauri:dev:admin
 ```
+
+When the JoyShockMapper submodule changes, rebuild the bundled SDL runtime
+before packaging:
+
+```powershell
+npm run build:joyshockmapper
+```
+
+See [the JoyShockMapper upstream workflow](docs/joyshockmapper-upstream.md)
+for the fork synchronization procedure.
 
 `tauri:dev:admin` starts the dev version with admin rights for testing HidHide, input injection, and whitelist fix features.
 

@@ -13,6 +13,7 @@
     "native:configure": "cmake -S native/console-injector -B native/console-injector/build",
     "native:build": "cmake --build native/console-injector/build --config Release",
     "build:sidecars": "powershell -ExecutionPolicy Bypass -File scripts/build-console-injector.ps1",
+    "build:joyshockmapper": "powershell -ExecutionPolicy Bypass -File scripts/build-joyshockmapper.ps1",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "tauri": "tauri",

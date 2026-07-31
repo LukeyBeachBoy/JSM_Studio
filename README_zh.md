@@ -8,7 +8,7 @@ JSM Studio 是一个面向 Windows 的 JoyShockMapper 图形化工具。它把 J
 
 
 
-本仓库是 [`evan1mclean/JSM_custom_curve`](https://github.com/evan1mclean/JSM_custom_curve) 的 fork。源仓库本身基于 JoyShockMapper，并加入了自定义曲线、滤波和 GUI 配置能力；本仓库在此基础上继续改造成更完整的 JSM Studio 桌面工具。
+本仓库是 [`evan1mclean/JSM_custom_curve`](https://github.com/evan1mclean/JSM_custom_curve) 的 fork，JoyShockMapper 现独立维护在 [`hotuns/JoyShockMapper`](https://github.com/hotuns/JoyShockMapper)。本仓库通过 `jsm-studio` 分支 submodule 使用该 fork；该 fork 的 `main` 分支跟随 [`Electronicks/JoyShockMapper`](https://github.com/Electronicks/JoyShockMapper)，`jsm-studio` 分支保留自定义曲线以及 Tauri 所需的控制器和 telemetry 接口。
 
 ## 下载
 
@@ -103,11 +103,20 @@ JSM Studio 会自动把当前实际启动的 `JoyShockMapper.exe` 加入 HidHide
 
 ### 运行 Tauri 开发版
 
-```powershell
+  ```powershell
 cd JSM_GUI/jsm_gui_tauri
+git -C ..\.. submodule update --init --recursive
 npm install
 npm run tauri:dev:admin
+  ```
+
+如果 JoyShockMapper submodule 有更新，打包前先重新构建内置 SDL 运行时：
+
+```powershell
+npm run build:joyshockmapper
 ```
+
+同步流程详见 [`docs/joyshockmapper-upstream.md`](docs/joyshockmapper-upstream.md)。
 
 `tauri:dev:admin` 会以管理员权限启动开发版，便于测试 HidHide、输入注入和白名单修复。
 
@@ -142,7 +151,8 @@ GitHub Actions 会自动构建并把 `.exe` / `.msi` 上传到对应 GitHub Rele
 
 - 本仓库：[`hotuns/JSM_Studio`](https://github.com/hotuns/JSM_Studio)
 - Fork 源仓库：[`evan1mclean/JSM_custom_curve`](https://github.com/evan1mclean/JSM_custom_curve)
-- JoyShockMapper：[`JibbSmart/JoyShockMapper`](https://github.com/JibbSmart/JoyShockMapper)
+- JoyShockMapper 上游：[`Electronicks/JoyShockMapper`](https://github.com/Electronicks/JoyShockMapper)
+- JoyShockMapper 集成 fork：[`hotuns/JoyShockMapper`](https://github.com/hotuns/JoyShockMapper)
 - HidHide：[`nefarius/HidHide`](https://github.com/nefarius/HidHide)
 - GyroWiki：[`gyrowiki.jibbsmart.com`](http://gyrowiki.jibbsmart.com)
 
