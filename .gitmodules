@@ -1,4 +1,4 @@
 [submodule "JoyShockMapper"]
 	path = JoyShockMapper
-	url = git@github.com:hotuns/JoyShockMapper.git
-	branch = jsm-studio
+	url = https://github.com/LukeyBeachBoy/JoyShockMapper.git
+	branch = feat/steam-controller-2026

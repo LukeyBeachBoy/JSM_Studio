@@ -1,4 +1,4 @@
-name: Release JSM Studio
+name: Release JSM Studio (Fork)
 
 on:
   push:
@@ -19,6 +19,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -34,6 +35,10 @@ jobs:
         working-directory: JSM_GUI/jsm_gui_tauri
         run: npm ci
 
+      - name: Build JoyShockMapper from forked submodule
+        working-directory: JSM_GUI/jsm_gui_tauri
+        run: npm run build:joyshockmapper
+
       - name: Build, sign, and publish Tauri release
         uses: tauri-apps/tauri-action@v1
         env:
@@ -43,8 +48,26 @@ jobs:
         with:
           projectPath: JSM_GUI/jsm_gui_tauri
           tagName: v__VERSION__
-          releaseName: JSM Studio v__VERSION__
-          releaseBody: Download the Windows installer below. The application can check this release for future updates.
+          releaseName: JSM Studio v__VERSION__ (Steam Controller 2026)
+          releaseBody: |
+            ## JSM Studio with Steam Controller 2026 support
+
+            This release bundles the forked JoyShockMapper with full Steam Controller 2026 (Triton/Proteus/Nereid) support.
+
+            ### What's new
+            - Steam Controller 2026 recognized over USB, Bluetooth, Proteus Puck, and Nereid receiver
+            - All Valve-specific inputs exposed: QAM, 4 paddles, 2 pad clicks, grip sensors, capacitive stick touch
+            - Both physical trackpads read independently (left pad = SDL index 0, right pad = SDL index 1)
+            - Per-pad configuration: `LEFT_TOUCHPAD_MODE`, `RIGHT_TOUCHPAD_MODE`, `LEFT_GRID_SIZE`, `RIGHT_GRID_SIZE`, etc.
+            - SDL 3.4.14+ with Triton HID driver and two-touchpad support
+
+            ### Known limitations
+            - Left/right trigger clicks are defined in the hardware report but not yet emitted by SDL (requires upstream SDL patch)
+            - macOS builds are not supported (this is a Windows-only release)
+
+            ### Source
+            - JoyShockMapper: https://github.com/LukeyBeachBoy/JoyShockMapper
+            - JSM Studio: https://github.com/LukeyBeachBoy/JSM_Studio
           releaseDraft: false
           prerelease: false
           uploadUpdaterJson: true
