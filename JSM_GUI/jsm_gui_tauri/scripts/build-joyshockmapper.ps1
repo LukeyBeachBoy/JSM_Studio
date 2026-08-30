@@ -28,7 +28,7 @@ if (-not $cmakePath) {
 }
 
 $sourceCommit = (& git -C $sourceDir rev-parse HEAD).Trim()
-& $cmakePath -S $projectRoot -B $buildDir -DSDL=ON
+& $cmakePath -S $sourceDir -B $buildDir -DSDL=ON
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 & $cmakePath --build $buildDir --config Release --target JoyShockMapper --parallel 2
