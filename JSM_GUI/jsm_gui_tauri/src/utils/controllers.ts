@@ -24,6 +24,7 @@ const CONTROLLER_LABEL_KEYS: Record<number, string> = {
   21: 'controllers.flydigiVader4Pro',
   22: 'controllers.flydigiVader5Pro',
   23: 'controllers.switch2Pro',
+  24: 'controllers.steamController2026',
 }
 
 export const controllerLabelKey = (type?: number) => CONTROLLER_LABEL_KEYS[type ?? -1] ?? 'controllers.unknown'

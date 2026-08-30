@@ -1087,6 +1087,7 @@ export const en = {
     flydigiVader4Pro: 'Flydigi Vader 4 Pro',
     flydigiVader5Pro: 'Flydigi Vader 5 Pro',
     switch2Pro: 'Switch 2 Pro',
+    steamController2026: 'Steam Controller (2026)',
     unknown: 'Unknown',
   },
   stickModes: {

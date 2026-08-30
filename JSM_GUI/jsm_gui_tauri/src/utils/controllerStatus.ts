@@ -36,6 +36,7 @@ const CONTROLLER_TYPES = {
   FLYDIGI_VADER4_PRO: 21,
   FLYDIGI_VADER5_PRO: 22,
   SWITCH2_PRO_CONTROLLER: 23,
+  STEAM_CONTROLLER_2026: 24,
 } as const
 
 const SPLIT_TYPES = {
@@ -51,6 +52,7 @@ const FOUR_PADDLE_CONTROLLER_TYPES = new Set<number>([
   CONTROLLER_TYPES.FLYDIGI_VADER3_PRO,
   CONTROLLER_TYPES.FLYDIGI_VADER4_PRO,
   CONTROLLER_TYPES.FLYDIGI_VADER5_PRO,
+  CONTROLLER_TYPES.STEAM_CONTROLLER_2026,
 ])
 
 const TWO_PADDLE_CONTROLLER_TYPES = new Set<number>([
@@ -298,6 +300,19 @@ export const getPressedControllerCommandSet = (device?: TelemetryDevice) => {
         addIfPressed(commands, buttons, 'LSL', RAW_BUTTONS.SL)
         addIfPressed(commands, buttons, 'RSR', RAW_BUTTONS.SR)
         addIfPressed(commands, buttons, 'MISC1', RAW_BUTTONS.MISC1)
+        break
+      case CONTROLLER_TYPES.STEAM_CONTROLLER_2026:
+        addIfPressed(commands, buttons, 'LSL', RAW_BUTTONS.SL)
+        addIfPressed(commands, buttons, 'RSR', RAW_BUTTONS.SR)
+        addIfPressed(commands, buttons, 'LSR', RAW_BUTTONS.FNL)
+        addIfPressed(commands, buttons, 'RSL', RAW_BUTTONS.FNR)
+        addIfPressed(commands, buttons, 'LTOUCH', RAW_BUTTONS.LTOUCH)
+        addIfPressed(commands, buttons, 'RTOUCH', RAW_BUTTONS.RTOUCH)
+        addIfPressed(commands, buttons, 'MISC1', RAW_BUTTONS.MISC1)
+        addIfPressed(commands, buttons, 'MISC2', RAW_BUTTONS.MISC2)
+        addIfPressed(commands, buttons, 'MISC3', RAW_BUTTONS.MISC3)
+        addIfPressed(commands, buttons, 'MISC5', RAW_BUTTONS.MISC5)
+        addIfPressed(commands, buttons, 'MISC6', RAW_BUTTONS.MISC6)
         break
       case CONTROLLER_TYPES.HORI_STEAM:
         addIfPressed(commands, buttons, 'LSL', RAW_BUTTONS.SL)
