@@ -39,12 +39,10 @@ jobs:
         working-directory: JSM_GUI/jsm_gui_tauri
         run: npm run build:joyshockmapper
 
-      - name: Build, sign, and publish Tauri release
+      - name: Build Tauri MSI/NSIS installer
         uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: JSM_GUI/jsm_gui_tauri
           tagName: v__VERSION__
@@ -54,22 +52,20 @@ jobs:
 
             This release bundles the forked JoyShockMapper with full Steam Controller 2026 (Triton/Proteus/Nereid) support.
 
-            ### What's new
+            ### What's new in this fork
             - Steam Controller 2026 recognized over USB, Bluetooth, Proteus Puck, and Nereid receiver
-            - All Valve-specific inputs exposed: QAM, 4 paddles, 2 pad clicks, grip sensors, capacitive stick touch
-            - Both physical trackpads read independently (left pad = SDL index 0, right pad = SDL index 1)
-            - Per-pad configuration: `LEFT_TOUCHPAD_MODE`, `RIGHT_TOUCHPAD_MODE`, `LEFT_GRID_SIZE`, `RIGHT_GRID_SIZE`, etc.
+            - All Valve-specific inputs: QAM, 4 paddles, 2 pad clicks, grip sensors, capacitive stick touch
+            - Both physical trackpads with independent per-pad configuration
+            - `LEFT_TOUCHPAD_MODE`, `RIGHT_TOUCHPAD_MODE`, `LEFT_GRID_SIZE`, `RIGHT_GRID_SIZE`, etc.
             - SDL 3.4.14+ with Triton HID driver and two-touchpad support
 
             ### Known limitations
-            - Left/right trigger clicks are defined in the hardware report but not yet emitted by SDL (requires upstream SDL patch)
-            - macOS builds are not supported (this is a Windows-only release)
+            - Trigger clicks (physical click at end of trigger travel) are not yet exposed — requires SDL upstream patch
+            - Auto-updater is disabled (pending signing key setup)
+            - macOS builds not supported (Windows-only)
 
             ### Source
             - JoyShockMapper: https://github.com/LukeyBeachBoy/JoyShockMapper
             - JSM Studio: https://github.com/LukeyBeachBoy/JSM_Studio
           releaseDraft: false
           prerelease: false
-          uploadUpdaterJson: true
-          uploadUpdaterSignatures: true
-          uploadWorkflowArtifacts: true

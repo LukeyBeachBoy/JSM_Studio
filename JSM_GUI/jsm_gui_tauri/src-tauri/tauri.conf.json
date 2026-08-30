@@ -25,7 +25,7 @@
   },
   "bundle": {
     "active": true,
-    "createUpdaterArtifacts": true,
+    "createUpdaterArtifacts": false,
     "icon": [
       "icons/icon.ico"
     ],
@@ -34,16 +34,5 @@
       "third_party/HidHide": "third_party/HidHide"
     },
     "targets": "all"
-  },
-  "plugins": {
-    "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDJFOTg4ODczNDg3ODlBMkMKUldRc21uaEljNGlZTGpIRWVDKy9tVXNCaGVBdE1EckZMVVBPdmRpR0E3bDZqWTYra2NvLzFzZk0K",
-      "endpoints": [
-        "https://github.com/LukeyBeachBoy/JSM_Studio/releases/latest/download/latest.json"
-      ],
-      "windows": {
-        "installMode": "passive"
-      }
-    }
   }
 }
