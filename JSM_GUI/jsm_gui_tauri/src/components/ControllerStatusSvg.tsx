@@ -4,6 +4,7 @@ import {
   controllerButtonGlyph,
   controllerVisualFamily,
   getPressedControllerCommandSet,
+  type ControllerVisualFamily,
 } from '../utils/controllerStatus'
 import styles from './ControllerStatusSvg.module.css'
 
@@ -128,30 +129,6 @@ const DUALSENSE_PATHS = {
     'M839.082,206.321l-6.369,31.916c-0,-0 -2.557,11.875 11.724,14.725c14.281,2.849 16.478,-9.098 16.478,-9.098l6.4,-32.075c0,-0 2.559,-11.876 -11.74,-14.645c-14.298,-2.77 -16.493,9.177 -16.493,9.177Z',
   mute:
     'M590.061,591.266c-0,-3.699 -2.999,-6.698 -6.698,-6.698c-11.914,0 -36.653,0 -48.567,0c-3.7,0 -6.698,2.999 -6.698,6.698c-0,0.001 -0,0.001 -0,0.002c-0,3.699 2.998,6.698 6.698,6.698c11.914,-0 36.653,-0 48.567,-0c3.699,-0 6.698,-2.999 6.698,-6.698c-0,-0.001 -0,-0.001 -0,-0.002Z',
-} as const
-
-const STEAM_CONTROLLER_PATHS = {
-  // Wide rectangular body with rounded corners
-  body:
-    'M150,120 L967,120 A50,50 0 0,1 1017,170 L1017,580 A50,50 0 0,1 967,630 L150,630 A50,50 0 0,1 100,580 L100,170 A50,50 0 0,1 150,120 Z',
-  // Left trackpad (circular touch zone)
-  leftTrackpad:
-    'M280,180 A65,65 0 1,1 280,310 A65,65 0 1,1 280,180 Z',
-  // Right trackpad (circular touch zone)
-  rightTrackpad:
-    'M837,180 A65,65 0 1,1 837,310 A65,65 0 1,1 837,310 Z',
-  leftTrigger:
-    'M120,120 L230,120 A40,15 0 0,1 270,135 L270,100 A30,15 0 0,0 240,85 L120,100 Z',
-  rightTrigger:
-    'M997,120 L887,120 A40,15 0 0,0 847,135 L847,100 A30,15 0 0,1 877,85 L997,100 Z',
-  leftBumper:
-    'M120,160 L270,155 A30,20 0 0,1 300,175 L290,200 A10,10 0 0,1 280,190 L130,185 Z',
-  rightBumper:
-    'M997,160 L847,155 A30,20 0 0,0 817,175 L827,200 A10,10 0 0,0 837,190 L987,185 Z',
-  steamBtn:
-    'M530,160 A20,20 0 1,1 530,200 A20,20 0 1,1 530,160 Z',
-  qamBtn:
-    'M475,180 A12,12 0 1,1 475,204 A12,12 0 1,1 475,180 Z',
 } as const
 
 const join = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(' ')
