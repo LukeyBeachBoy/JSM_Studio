@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react'
 import { desktopBridge, type CalibrationStatus } from '../platform/desktopBridge'
 
+export type TelemetryPadState = {
+  x: number
+  y: number
+  touched: boolean
+}
+
 export type TelemetryDeviceStatus = {
   buttons: number
   leftStick: {
@@ -20,6 +26,8 @@ export type TelemetryDeviceStatus = {
     y: number
     z: number
   }
+  leftPad?: TelemetryPadState
+  rightPad?: TelemetryPadState
 }
 
 export type TelemetryDevice = {

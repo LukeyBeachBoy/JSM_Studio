@@ -186,8 +186,18 @@ function ShellArtwork({ family }: { family: ControllerVisualFamily }) {
   if (family === 'steam') {
     return (
       <g aria-hidden="true">
-        <rect className={styles.shell} x={100} y={120} width={917} height={510} rx={50} ry={50} />
-        <rect className={styles.shellLine} x={100} y={120} width={917} height={510} rx={50} ry={50} fill="none" />
+        {/* Steam Controller 2026 shell - based on the actual controller shape */}
+        {/* Left grip/handle */}
+        <path className={styles.shell} d="M175,200 C160,200 145,210 138,225 L100,340 C85,380 78,430 82,480 L110,610 C118,640 135,655 155,648 C165,620 170,580 168,540 L160,360 C162,320 170,280 180,250 C185,220 185,210 175,200 Z" />
+        {/* Right grip/handle */}
+        <path className={styles.shell} d="M942,200 C957,200 972,210 979,225 L1017,340 C1032,380 1039,430 1035,480 L1007,610 C999,640 982,655 962,648 C952,620 947,580 949,540 L957,360 C955,320 947,280 937,250 C932,220 932,210 942,200 Z" />
+        {/* Center body */}
+        <path className={styles.shell} d="M175,200 C200,160 250,150 310,152 L808,152 C868,150 918,160 942,200 C950,230 945,270 935,300 L900,470 C885,510 855,530 815,528 L302,528 C262,530 232,510 217,470 L182,300 C172,270 167,230 175,200 Z" />
+        {/* Trackpad rings (subtle bezels) */}
+        <circle className={styles.shellLine} cx={280} cy={230} r={75} fill="none" strokeWidth={2} />
+        <circle className={styles.shellLine} cx={837} cy={230} r={75} fill="none" strokeWidth={2} />
+        {/* Outline */}
+        <path className={styles.shellLine} d="M175,200 C200,160 250,150 310,152 L808,152 C868,150 918,160 942,200 C950,230 945,270 935,300 L900,470 C885,510 855,530 815,528 L302,528 C262,530 232,510 217,470 L182,300 C172,270 167,230 175,200 Z" fill="none" />
       </g>
     )
   }
@@ -402,6 +412,8 @@ export function ControllerStatusSvg({
   const isSteam = family === 'steam'
   const pressed = getPressedControllerCommandSet(device)
   const hasLeftSide = device.split !== 2
+  const leftPad = device.status?.leftPad
+  const rightPad = device.status?.rightPad
   const hasRightSide = device.split !== 1
   const leftTrigger = clamp(device.status?.triggers.left ?? 0, 0, 1)
   const rightTrigger = clamp(device.status?.triggers.right ?? 0, 0, 1)
@@ -438,14 +450,20 @@ export function ControllerStatusSvg({
 
           {/* Left trackpad (upper-left) */}
           <g className={join(styles.interactive)} onClick={() => onSelectCommand?.('TOUCH')}>
-            <ellipse className={join(styles.control, boundCommands?.has('TOUCH') && styles.controlBound, selectedCommand === 'TOUCH' && styles.controlSelected)} cx={280} cy={230} rx={70} ry={70} />
+            <ellipse className={join(styles.control, boundCommands?.has('TOUCH') && styles.controlBound, selectedCommand === 'TOUCH' && styles.controlSelected, leftPad?.touched && styles.controlPressed)} cx={280} cy={230} rx={70} ry={70} />
             <text className={styles.controlText} x={280} y={230}>LPad</text>
+            {leftPad?.touched && (
+              <circle cx={280 + clamp(leftPad.x, -1, 1) * 50} cy={230 + clamp(-leftPad.y, -1, 1) * 50} r={10} className={styles.stickKnob} />
+            )}
           </g>
 
           {/* Right trackpad (upper-right) */}
           <g className={join(styles.interactive)} onClick={() => onSelectCommand?.('CAPTURE')}>
-            <ellipse className={join(styles.control, boundCommands?.has('CAPTURE') && styles.controlBound, selectedCommand === 'CAPTURE' && styles.controlSelected)} cx={837} cy={230} rx={70} ry={70} />
+            <ellipse className={join(styles.control, boundCommands?.has('CAPTURE') && styles.controlBound, selectedCommand === 'CAPTURE' && styles.controlSelected, rightPad?.touched && styles.controlPressed)} cx={837} cy={230} rx={70} ry={70} />
             <text className={styles.controlText} x={837} y={230}>RPad</text>
+            {rightPad?.touched && (
+              <circle cx={837 + clamp(rightPad.x, -1, 1) * 50} cy={230 + clamp(-rightPad.y, -1, 1) * 50} r={10} className={styles.stickKnob} />
+            )}
           </g>
 
           {/* D-pad (left, middle) */}

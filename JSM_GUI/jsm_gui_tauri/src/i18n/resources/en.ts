@@ -113,7 +113,7 @@ export const en = {
       tuningGroup: 'Tuning',
       gyroAndSensitivity: 'Gyro & Sensitivity',
       keybinds: 'Button Mapping',
-      touchpad: 'Touchpad',
+      touchpad: 'Touchpad(s)',
       aiAssistant: 'AI Assistant',
       sticks: 'Sticks',
       controllerStatus: 'Controller Status',
