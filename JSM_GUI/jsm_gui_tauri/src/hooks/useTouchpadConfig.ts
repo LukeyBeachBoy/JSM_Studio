@@ -62,6 +62,8 @@ export function useTouchpadConfig({ configText, setConfigText }: TouchpadArgs) {
         let next = prev
         if (upper === '') {
           next = removeKeymapEntry(next, keyName.TOUCHPAD_MODE)
+          next = removeKeymapEntry(next, keyName.LEFT_TOUCHPAD_MODE)
+          next = removeKeymapEntry(next, keyName.RIGHT_TOUCHPAD_MODE)
           return next
         }
         next = updateKeymapEntry(next, keyName.TOUCHPAD_MODE, [upper])
