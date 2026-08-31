@@ -93,6 +93,8 @@ type KeymapControlsProps = {
   lockMessage?: string
   visibleSections?: string[]
   touchpadMode?: string
+  lightTouchThreshold?: number
+  onLightTouchThresholdChange?: (value: string) => void
   touchpadDualStageMode?: string
   onTouchpadModeChange?: (value: string) => void
   onTouchpadDualStageModeChange?: (value: string) => void
@@ -449,6 +451,8 @@ export function KeymapControls({
   lockMessage,
   visibleSections,
   touchpadMode: touchpadModeProp = '',
+  lightTouchThreshold,
+  onLightTouchThresholdChange,
   touchpadDualStageMode = '',
   onTouchpadModeChange,
   onTouchpadDualStageModeChange,
@@ -1123,6 +1127,8 @@ export function KeymapControls({
                 <>
                   <TouchpadSettingsSection
                     touchpadMode={touchpadMode}
+                    lightTouchThreshold={lightTouchThreshold}
+                    onLightTouchThresholdChange={onLightTouchThresholdChange}
                     touchpadDualStageMode={touchpadDualStageMode}
                     left={{ mode: leftTouchpadMode ?? '', dualStageMode: leftTouchpadDualStageMode ?? '', gridColumns: leftGridColumns ?? gridColumns, gridRows: leftGridRows ?? gridRows, sensitivity: leftTouchpadSensitivity, onModeChange: onLeftTouchpadModeChange, onGridSizeChange: onLeftGridSizeChange, onSensitivityChange: onLeftTouchpadSensitivityChange, onDualStageModeChange: onLeftTouchpadDualStageModeChange }}
                     right={{ mode: rightTouchpadMode ?? '', dualStageMode: rightTouchpadDualStageMode ?? '', gridColumns: rightGridColumns ?? gridColumns, gridRows: rightGridRows ?? gridRows, sensitivity: rightTouchpadSensitivity, onModeChange: onRightTouchpadModeChange, onGridSizeChange: onRightGridSizeChange, onSensitivityChange: onRightTouchpadSensitivityChange, onDualStageModeChange: onRightTouchpadDualStageModeChange }}

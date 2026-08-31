@@ -274,6 +274,8 @@ function App() {
     handleLightBarChange,
     triggerThresholdValue,
     touchpadModeValue,
+    lightTouchThreshold,
+    handleLightTouchThresholdChange,
     leftTouchpadModeValue,
     rightTouchpadModeValue,
     gridSizeValue,
@@ -942,6 +944,8 @@ function App() {
             onTriggerThresholdChange={handleTriggerThresholdChange}
             onModifierChange={handleModifierChange}
             touchpadMode={touchpadModeValue}
+            lightTouchThreshold={lightTouchThreshold}
+            onLightTouchThresholdChange={handleLightTouchThresholdChange}
             touchpadDualStageMode={touchpadDualStageModeValue}
             leftTouchpadMode={leftTouchpadModeValue}
             rightTouchpadMode={rightTouchpadModeValue}
@@ -1039,6 +1043,8 @@ function App() {
             onTriggerThresholdChange={handleTriggerThresholdChange}
             onModifierChange={handleModifierChange}
             touchpadMode={touchpadModeValue}
+            lightTouchThreshold={lightTouchThreshold}
+            onLightTouchThresholdChange={handleLightTouchThresholdChange}
             touchpadDualStageMode={touchpadDualStageModeValue}
             leftTouchpadMode={leftTouchpadModeValue}
             rightTouchpadMode={rightTouchpadModeValue}

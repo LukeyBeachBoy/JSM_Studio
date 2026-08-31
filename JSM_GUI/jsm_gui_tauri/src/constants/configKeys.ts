@@ -53,6 +53,7 @@ export const timingKeys = [
 
 export const touchpadKeys = [
   'TOUCHPAD_MODE',
+  'TOUCHPAD_LIGHT_TOUCH_THRESHOLD',
   'GRID_SIZE',
   'TOUCHPAD_SENS',
   'TOUCHPAD_DUAL_STAGE_MODE',
