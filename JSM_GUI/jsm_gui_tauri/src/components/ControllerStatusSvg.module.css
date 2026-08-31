@@ -118,7 +118,7 @@
   fill: color-mix(in srgb, var(--bg-input) 72%, rgba(255, 255, 255, 0.08));
   stroke: var(--border-strong);
   stroke-width: 2.2;
-  transition: fill 120ms ease, stroke 120ms ease, filter 120ms ease;
+  /* Telemetry-driven pressed state must render 1:1 with samples. */
   vector-effect: non-scaling-stroke;
 }
 
@@ -161,7 +161,6 @@
   fill: color-mix(in srgb, var(--bg-input) 72%, rgba(255, 255, 255, 0.08));
   stroke: var(--border-strong);
   stroke-width: 2.5;
-  transition: fill 120ms ease, stroke 120ms ease;
   vector-effect: non-scaling-stroke;
 }
 
@@ -191,7 +190,7 @@
   fill: color-mix(in srgb, var(--text-strong) 84%, var(--bg-input));
   stroke: var(--border-strong);
   stroke-width: 2.2;
-  transition: cx 70ms linear, cy 70ms linear, fill 120ms ease, stroke 120ms ease;
+  /* Do not interpolate telemetry coordinates: interpolation is visible input lag. */
   vector-effect: non-scaling-stroke;
 }
 
