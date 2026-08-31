@@ -34,6 +34,7 @@ export interface SensitivityValues {
   gyroSpace?: string
   gyroAxisX?: string
   gyroAxisY?: string
+  gyroOutput?: string
   tickTime?: number
 }
 
@@ -110,6 +111,7 @@ export function parseSensitivityValues(text: string, options?: { prefix?: string
     gyroSpace: raw('GYRO_SPACE'),
     gyroAxisX: raw('GYRO_AXIS_X'),
     gyroAxisY: raw('GYRO_AXIS_Y'),
+    gyroOutput: raw('GYRO_OUTPUT'),
     tickTime: single('TICK_TIME'),
     accelCurve,
     naturalVHalf,

@@ -283,6 +283,13 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
     }
     setConfigText(prev => updateKeymapEntry(prev, keyName.GYRO_AXIS_Y, [value]))
   }
+  const handleGyroOutputChange = (value: string) => {
+    if (!value) {
+      setConfigText(prev => removeKeymapEntry(prev, keyName.GYRO_OUTPUT))
+      return
+    }
+    setConfigText(prev => updateKeymapEntry(prev, keyName.GYRO_OUTPUT, [value]))
+  }
 
   const handleDualSensChange = (key: typeof keyName.MIN_GYRO_SENS | typeof keyName.MAX_GYRO_SENS, index: 0 | 1) => (value: string) => {
     const keyPrefix = prefixKey(activeSensitivityPrefix)
@@ -946,6 +953,7 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
     handleGyroSpaceChange,
     handleGyroAxisXChange,
     handleGyroAxisYChange,
+    handleGyroOutputChange,
     handleDualSensChange,
     handleStaticSensChange,
     handleRollContributionChange,

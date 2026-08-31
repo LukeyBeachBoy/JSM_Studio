@@ -796,6 +796,7 @@ function App() {
                 onGyroSpaceChange={handleGyroSpaceChange}
                 onGyroAxisXChange={handleGyroAxisXChange}
                 onGyroAxisYChange={handleGyroAxisYChange}
+                onGyroOutputChange={handleGyroOutputChange}
                 onGyroActivationModeChange={handleGyroActivationModeChange}
                 onGyroActivationButtonChange={handleGyroActivationButtonChange}
                 counterOsMouseSpeed={counterOsMouseSpeedEnabled}

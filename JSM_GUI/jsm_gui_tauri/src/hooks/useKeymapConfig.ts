@@ -81,6 +81,7 @@ export function useKeymapConfig() {
     handleGyroSpaceChange: sensitivityConfig.handleGyroSpaceChange,
     handleGyroAxisXChange: sensitivityConfig.handleGyroAxisXChange,
     handleGyroAxisYChange: sensitivityConfig.handleGyroAxisYChange,
+    handleGyroOutputChange: sensitivityConfig.handleGyroOutputChange,
     handleDualSensChange: sensitivityConfig.handleDualSensChange,
     handleStaticSensChange: sensitivityConfig.handleStaticSensChange,
     handleRollContributionChange: sensitivityConfig.handleRollContributionChange,

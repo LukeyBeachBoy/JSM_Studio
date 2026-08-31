@@ -51,6 +51,7 @@ type GyroBehaviorControlsProps = {
   onGyroSpaceChange: (value: string) => void
   onGyroAxisXChange: (value: string) => void
   onGyroAxisYChange: (value: string) => void
+  onGyroOutputChange: (value: string) => void
   onGyroActivationModeChange: (mode: GyroActivationMode, fallbackButton?: string) => void
   onGyroActivationButtonChange: (button: string) => void
   counterOsMouseSpeed: boolean
@@ -81,6 +82,7 @@ export function GyroBehaviorControls({
   onGyroSpaceChange,
   onGyroAxisXChange,
   onGyroAxisYChange,
+  onGyroOutputChange,
   onGyroActivationModeChange,
   onGyroActivationButtonChange,
   counterOsMouseSpeed,
@@ -209,6 +211,15 @@ export function GyroBehaviorControls({
         </label>
       </div>
       <div className="flex-inputs">
+        <label>
+          {t('gyro.gyroOutput')}
+          <p className="field-description">{t('gyro.gyroOutputHint')}</p>
+          <select value={sensitivity.gyroOutput ?? ''} onChange={(e) => onGyroOutputChange(e.target.value)}>
+            <option value="">{t('gyro.gyroOutputMouse')} ({t('common.default')})</option>
+            <option value="LEFT_STICK">{t('gyro.gyroOutputLeftStick')}</option>
+            <option value="RIGHT_STICK">{t('gyro.gyroOutputRightStick')}</option>
+          </select>
+        </label>
         <label>
           {t('gyro.gyroAxisX')}
           <select value={sensitivity.gyroAxisX ?? ''} onChange={(e) => onGyroAxisXChange(e.target.value)}>
