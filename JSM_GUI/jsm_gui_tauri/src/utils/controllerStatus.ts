@@ -13,7 +13,7 @@ import {
 } from '../keymap/schema'
 import type { TelemetryDevice } from '../hooks/useTelemetry'
 
-export type ControllerVisualFamily = 'playstation' | 'xbox' | 'nintendo' | 'generic'
+export type ControllerVisualFamily = 'playstation' | 'xbox' | 'nintendo' | 'steam' | 'generic'
 export type ControllerBackInputMode = 'none' | 'twoPaddles' | 'fourPaddles' | 'leftJoyConRail' | 'rightJoyConRail'
 
 const CONTROLLER_TYPES = {
@@ -159,6 +159,8 @@ export const controllerVisualFamily = (type?: number): ControllerVisualFamily =>
     case CONTROLLER_TYPES.FLYDIGI_VADER4_PRO:
     case CONTROLLER_TYPES.FLYDIGI_VADER5_PRO:
       return 'xbox'
+    case CONTROLLER_TYPES.STEAM_CONTROLLER_2026:
+      return 'steam'
     default:
       return 'generic'
   }
