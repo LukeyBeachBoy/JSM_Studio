@@ -65,6 +65,11 @@ export function useTouchpadConfig({ configText, setConfigText }: TouchpadArgs) {
           return next
         }
         next = updateKeymapEntry(next, keyName.TOUCHPAD_MODE, [upper])
+        // Steam Controller 2026 has two physical pads. Keep the legacy
+        // combined control useful by mirroring an explicit mode to both pads;
+        // the dedicated left/right controls can override these afterwards.
+        next = updateKeymapEntry(next, keyName.LEFT_TOUCHPAD_MODE, [upper])
+        next = updateKeymapEntry(next, keyName.RIGHT_TOUCHPAD_MODE, [upper])
         if (upper === 'GRID_AND_STICK' && !gridSizeRaw) {
           next = updateKeymapEntry(next, keyName.GRID_SIZE, [gridSizeValue.columns, gridSizeValue.rows])
         }

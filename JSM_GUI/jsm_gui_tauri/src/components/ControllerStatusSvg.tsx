@@ -184,20 +184,62 @@ const uniquePaddleCommands = (commands: PaddleCommand[]) => Array.from(new Set(c
 
 function ShellArtwork({ family }: { family: ControllerVisualFamily }) {
   if (family === 'steam') {
+    // Steam Controller 2026 shell — modeled after Valve's own schematic
+    // The controller has: two circular trackpads at top, analog sticks below,
+    // a diamond face button layout, D-pad, and wide grips that flare down.
     return (
       <g aria-hidden="true">
-        {/* Steam Controller 2026 shell - based on the actual controller shape */}
-        {/* Left grip/handle */}
-        <path className={styles.shell} d="M175,200 C160,200 145,210 138,225 L100,340 C85,380 78,430 82,480 L110,610 C118,640 135,655 155,648 C165,620 170,580 168,540 L160,360 C162,320 170,280 180,250 C185,220 185,210 175,200 Z" />
-        {/* Right grip/handle */}
-        <path className={styles.shell} d="M942,200 C957,200 972,210 979,225 L1017,340 C1032,380 1039,430 1035,480 L1007,610 C999,640 982,655 962,648 C952,620 947,580 949,540 L957,360 C955,320 947,280 937,250 C932,220 932,210 942,200 Z" />
-        {/* Center body */}
-        <path className={styles.shell} d="M175,200 C200,160 250,150 310,152 L808,152 C868,150 918,160 942,200 C950,230 945,270 935,300 L900,470 C885,510 855,530 815,528 L302,528 C262,530 232,510 217,470 L182,300 C172,270 167,230 175,200 Z" />
-        {/* Trackpad rings (subtle bezels) */}
-        <circle className={styles.shellLine} cx={280} cy={230} r={75} fill="none" strokeWidth={2} />
-        <circle className={styles.shellLine} cx={837} cy={230} r={75} fill="none" strokeWidth={2} />
-        {/* Outline */}
-        <path className={styles.shellLine} d="M175,200 C200,160 250,150 310,152 L808,152 C868,150 918,160 942,200 C950,230 945,270 935,300 L900,470 C885,510 855,530 815,528 L302,528 C262,530 232,510 217,470 L182,300 C172,270 167,230 175,200 Z" fill="none" />
+        {/* Main body — rounded top, flared grips at bottom */}
+        <path className={styles.shell} d="
+          M 200,180
+          C 200,140 240,125 300,125 L 817,125
+          C 877,125 917,140 917,180
+          L 917,340
+          C 917,380 905,420 880,460
+          L 840,540
+          C 820,580 790,600 750,605
+          L 367,605
+          C 327,600 297,580 277,540
+          L 237,460
+          C 212,420 200,380 200,340
+          Z" />
+        {/* Left grip flare */}
+        <path className={styles.shell} d="
+          M 200,340
+          C 195,380 185,420 165,450
+          L 120,520
+          C 100,560 90,600 100,630
+          C 110,650 135,650 150,625
+          L 185,560
+          C 200,530 205,490 200,450
+          Z" />
+        {/* Right grip flare */}
+        <path className={styles.shell} d="
+          M 917,340
+          C 922,380 932,420 952,450
+          L 997,520
+          C 1017,560 1027,600 1017,630
+          C 1007,650 982,650 967,625
+          L 932,560
+          C 917,530 912,490 917,450
+          Z" />
+        {/* Trackpad bezels — raised circular rims */}
+        <circle className={styles.shellLine} cx={280} cy={230} r={78} fill="none" strokeWidth={3} opacity={0.5} />
+        <circle className={styles.shellLine} cx={837} cy={230} r={78} fill="none" strokeWidth={3} opacity={0.5} />
+        {/* Body outline */}
+        <path className={styles.shellLine} d="
+          M 200,180
+          C 200,140 240,125 300,125 L 817,125
+          C 877,125 917,140 917,180
+          L 917,340
+          C 917,380 905,420 880,460
+          L 840,540
+          C 820,580 790,600 750,605
+          L 367,605
+          C 327,600 297,580 277,540
+          L 237,460
+          C 212,420 200,380 200,340
+          Z" fill="none" />
       </g>
     )
   }
