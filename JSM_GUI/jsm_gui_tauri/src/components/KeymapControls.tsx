@@ -548,6 +548,7 @@ export function KeymapControls({
   virtualControllerWarnings,
   onVirtualControllerTypeChange,
 }: KeymapControlsProps) {
+  void (touchpadSmoothing && onTouchpadSmoothingChange && touchpadAcceleration && onTouchpadAccelerationChange)
   const { t } = useTranslation()
   const [mappingLayoutMode, setMappingLayoutMode] = useState<'visual' | 'list'>('visual')
   const [mappingHelpOpen, setMappingHelpOpen] = useState(false)
@@ -1171,9 +1172,9 @@ export function KeymapControls({
                     touchpadSensitivity={touchpadSensitivity}
                     onTouchpadSensitivityChange={onTouchpadSensitivityChange}
                     touchpadSmoothing={touchpadSmoothing}
-                  onTouchpadSmoothingChange={onTouchpadSmoothingChange}
-                  touchpadAcceleration={touchpadAcceleration}
-                  onTouchpadAccelerationChange={onTouchpadAccelerationChange}
+                    onTouchpadSmoothingChange={onTouchpadSmoothingChange}
+                    touchpadAcceleration={touchpadAcceleration}
+                    onTouchpadAccelerationChange={onTouchpadAccelerationChange}
                     warnings={touchpadWarnings?.map(renderTouchpadWarning)}
                     {...actionsProps}
                   />
