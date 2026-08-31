@@ -287,6 +287,7 @@ function HidHidePanel({ telemetryDevices }: HidHidePanelProps) {
   const [loading, setLoading] = useState(true)
   const [busyKey, setBusyKey] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [collapsed, setCollapsed] = useState(false)
 
   const telemetryKeys = useMemo(() => {
     const keys = new Set<string>()
@@ -464,17 +465,35 @@ function HidHidePanel({ telemetryDevices }: HidHidePanelProps) {
   return (
     <Card className={`${styles.pageCard} ${styles.hidHideCard}`}>
       <div className={styles.hidHideHeader}>
-        <div className={styles.hidHideHeading}>
-          <h2>{t('controllerStatus.hidHideTitle')}</h2>
-          {status && (
-            <span className={styles.cardMetric}>
-              {status.installed
-                ? status.active
-                  ? t('controllerStatus.hidHideActive')
-                  : t('controllerStatus.hidHideInactive')
-                : t('controllerStatus.hidHideNotInstalled')}
+        <div className={styles.hidHideTitleRow}>
+          <button
+            type="button"
+            className={styles.hidHideToggle}
+            onClick={() => setCollapsed(prev => !prev)}
+            aria-expanded={!collapsed}
+            aria-label={collapsed ? 'Expand HidHide panel' : 'Collapse HidHide panel'}
+            title={collapsed ? 'Expand' : 'Collapse'}
+          >
+            <span
+              className={`${styles.hidHideChevron} ${
+                collapsed ? styles.hidHideChevronCollapsed : ''
+              }`}
+            >
+              ▾
             </span>
-          )}
+          </button>
+          <div className={styles.hidHideHeading}>
+            <h2>{t('controllerStatus.hidHideTitle')}</h2>
+            {status && (
+              <span className={styles.cardMetric}>
+                {status.installed
+                  ? status.active
+                    ? t('controllerStatus.hidHideActive')
+                    : t('controllerStatus.hidHideInactive')
+                  : t('controllerStatus.hidHideNotInstalled')}
+              </span>
+            )}
+          </div>
         </div>
         <div className={styles.hidHideActions}>
           <button
@@ -520,133 +539,137 @@ function HidHidePanel({ telemetryDevices }: HidHidePanelProps) {
         </div>
       </div>
 
-      {status?.installed && (
-        <div className={styles.hidHideSummary}>
-          <span
-            className={`${styles.hidHideChip} ${
-              status.whitelistSynced ? styles.hidHideChipPositive : styles.hidHideChipWarn
-            }`}
-          >
-            {status.whitelistSynced
-              ? t('controllerStatus.hidHideWhitelistReady')
-              : t('controllerStatus.hidHideWhitelistNeedsRepair')}
-          </span>
-        </div>
-      )}
-
-      {error && (
-        <div className={`${styles.hidHideNotice} ${styles.hidHideNoticeError}`}>
-          {t('controllerStatus.hidHideError', { error })}
-        </div>
-      )}
-
-      {loading && !status ? (
-        <div className={styles.emptyInline}>{t('common.refreshing')}</div>
-      ) : !status ? null : !status.supported ? (
-        <div className={`${styles.hidHideNotice} ${styles.hidHideNoticeMuted}`}>
-          {t('controllerStatus.hidHideUnsupported')}
-        </div>
-      ) : status.requiresElevation ? (
-        <div className={`${styles.hidHideNotice} ${styles.hidHideNoticeWarn}`}>
-          <div className={styles.hidHideNoticeTitle}>{t('controllerStatus.hidHideElevationTitle')}</div>
-          <p>{t('controllerStatus.hidHideElevationBody')}</p>
-        </div>
-      ) : !status.installed ? (
-        <div className={`${styles.hidHideNotice} ${styles.hidHideNoticeMuted}`}>
-          <div className={styles.hidHideNoticeTitle}>{t('controllerStatus.hidHidePrerequisiteTitle')}</div>
-          <p>{t('controllerStatus.hidHidePrerequisiteBody')}</p>
-          <div className={styles.hidHideNoticeActions}>
-            <button
-              type="button"
-              className="primary-btn"
-              onClick={handleInstallHidHide}
-              disabled={hidHideInstallBusy}
-            >
-              {hidHideInstallBusy ? t('common.refreshing') : t('controllerStatus.hidHideInstallButton')}
-            </button>
-            <button type="button" className="ghost-btn" onClick={openInstallGuide} disabled={hasActionInFlight}>
-              {t('controllerStatus.hidHideDownloadButton')}
-            </button>
-          </div>
-        </div>
-      ) : (
+      {!collapsed && (
         <>
-          {heuristicAmbiguous && (
-            <div className={`${styles.hidHideNotice} ${styles.hidHideNoticeWarn}`}>
-              {t('controllerStatus.hidHideHeuristicWarning')}
-            </div>
-          )}
+        {status?.installed && (
+          <div className={styles.hidHideSummary}>
+            <span
+              className={`${styles.hidHideChip} ${
+                status.whitelistSynced ? styles.hidHideChipPositive : styles.hidHideChipWarn
+              }`}
+            >
+              {status.whitelistSynced
+                ? t('controllerStatus.hidHideWhitelistReady')
+                : t('controllerStatus.hidHideWhitelistNeedsRepair')}
+            </span>
+          </div>
+        )}
 
-          {decoratedDevices.length === 0 ? (
-            <div className={`${styles.hidHideNotice} ${styles.hidHideNoticeMuted}`}>
-              {t('controllerStatus.hidHideNoDevices')}
-            </div>
-          ) : (
-            <div className={styles.hidHideDeviceList}>
-              {decoratedDevices.map(device => {
-                const actionBusy = busyKey === `hidhide:${device.instanceId}`
-                const actionDisabled = actionBusy || hidHideControlsLocked
-                const actionLabel = device.stale
-                  ? t('controllerStatus.hidHideClearStale')
-                  : device.hidden
-                    ? t('controllerStatus.hidHideUnhideDevice')
-                    : t('controllerStatus.hidHideHideDevice')
+        {error && (
+          <div className={`${styles.hidHideNotice} ${styles.hidHideNoticeError}`}>
+            {t('controllerStatus.hidHideError', { error })}
+          </div>
+        )}
 
-                return (
-                  <div key={device.instanceId} className={styles.hidHideDeviceRow}>
-                    <div className={styles.hidHideDeviceMain}>
-                      <div className={styles.hidHideDeviceTitleRow}>
-                        <strong>{device.displayName}</strong>
-                        <div className={styles.hidHideDeviceBadges}>
-                          <span
-                            className={`${styles.hidHidePill} ${
-                              device.hidden ? styles.hidHidePillWarn : styles.hidHidePillMuted
-                            }`}
-                          >
-                            {device.hidden
-                              ? t('controllerStatus.hidHideHidden')
-                              : t('controllerStatus.hidHideVisible')}
-                          </span>
-                          <span
-                            className={`${styles.hidHidePill} ${
-                              device.present ? styles.hidHidePillPositive : styles.hidHidePillMuted
-                            }`}
-                          >
-                            {device.present
-                              ? t('controllerStatus.hidHidePresent')
-                              : t('controllerStatus.hidHideSavedOnly')}
-                          </span>
+        {loading && !status ? (
+          <div className={styles.emptyInline}>{t('common.refreshing')}</div>
+        ) : !status ? null : !status.supported ? (
+          <div className={`${styles.hidHideNotice} ${styles.hidHideNoticeMuted}`}>
+            {t('controllerStatus.hidHideUnsupported')}
+          </div>
+        ) : status.requiresElevation ? (
+          <div className={`${styles.hidHideNotice} ${styles.hidHideNoticeWarn}`}>
+            <div className={styles.hidHideNoticeTitle}>{t('controllerStatus.hidHideElevationTitle')}</div>
+            <p>{t('controllerStatus.hidHideElevationBody')}</p>
+          </div>
+        ) : !status.installed ? (
+          <div className={`${styles.hidHideNotice} ${styles.hidHideNoticeMuted}`}>
+            <div className={styles.hidHideNoticeTitle}>{t('controllerStatus.hidHidePrerequisiteTitle')}</div>
+            <p>{t('controllerStatus.hidHidePrerequisiteBody')}</p>
+            <div className={styles.hidHideNoticeActions}>
+              <button
+                type="button"
+                className="primary-btn"
+                onClick={handleInstallHidHide}
+                disabled={hidHideInstallBusy}
+              >
+                {hidHideInstallBusy ? t('common.refreshing') : t('controllerStatus.hidHideInstallButton')}
+              </button>
+              <button type="button" className="ghost-btn" onClick={openInstallGuide} disabled={hasActionInFlight}>
+                {t('controllerStatus.hidHideDownloadButton')}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            {heuristicAmbiguous && (
+              <div className={`${styles.hidHideNotice} ${styles.hidHideNoticeWarn}`}>
+                {t('controllerStatus.hidHideHeuristicWarning')}
+              </div>
+            )}
+
+            {decoratedDevices.length === 0 ? (
+              <div className={`${styles.hidHideNotice} ${styles.hidHideNoticeMuted}`}>
+                {t('controllerStatus.hidHideNoDevices')}
+              </div>
+            ) : (
+              <div className={styles.hidHideDeviceList}>
+                {decoratedDevices.map(device => {
+                  const actionBusy = busyKey === `hidhide:${device.instanceId}`
+                  const actionDisabled = actionBusy || hidHideControlsLocked
+                  const actionLabel = device.stale
+                    ? t('controllerStatus.hidHideClearStale')
+                    : device.hidden
+                      ? t('controllerStatus.hidHideUnhideDevice')
+                      : t('controllerStatus.hidHideHideDevice')
+
+                  return (
+                    <div key={device.instanceId} className={styles.hidHideDeviceRow}>
+                      <div className={styles.hidHideDeviceMain}>
+                        <div className={styles.hidHideDeviceTitleRow}>
+                          <strong>{device.displayName}</strong>
+                          <div className={styles.hidHideDeviceBadges}>
+                            <span
+                              className={`${styles.hidHidePill} ${
+                                device.hidden ? styles.hidHidePillWarn : styles.hidHidePillMuted
+                              }`}
+                            >
+                              {device.hidden
+                                ? t('controllerStatus.hidHideHidden')
+                                : t('controllerStatus.hidHideVisible')}
+                            </span>
+                            <span
+                              className={`${styles.hidHidePill} ${
+                                device.present ? styles.hidHidePillPositive : styles.hidHidePillMuted
+                              }`}
+                            >
+                              {device.present
+                                ? t('controllerStatus.hidHidePresent')
+                                : t('controllerStatus.hidHideSavedOnly')}
+                            </span>
+                          </div>
                         </div>
+
+                        {device.likelyCurrentController && (
+                          <div className={styles.hidHideDeviceMeta}>
+                            {t('controllerStatus.hidHideLikelyCurrent')}
+                          </div>
+                        )}
                       </div>
 
-                      {device.likelyCurrentController && (
-                        <div className={styles.hidHideDeviceMeta}>
-                          {t('controllerStatus.hidHideLikelyCurrent')}
-                        </div>
-                      )}
+                      <div className={styles.hidHideDeviceActions}>
+                        {device.hidden && !device.managedByApp && !device.stale ? (
+                          <button type="button" className="ghost-btn" disabled>
+                            {t('controllerStatus.hidHideHiddenExternally')}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className={device.hidden || device.stale ? 'secondary-btn' : 'primary-btn'}
+                            onClick={() => handleToggleDevice(device)}
+                            disabled={actionDisabled}
+                          >
+                            {actionBusy ? t('common.refreshing') : actionLabel}
+                          </button>
+                        )}
+                      </div>
                     </div>
-
-                    <div className={styles.hidHideDeviceActions}>
-                      {device.hidden && !device.managedByApp && !device.stale ? (
-                        <button type="button" className="ghost-btn" disabled>
-                          {t('controllerStatus.hidHideHiddenExternally')}
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          className={device.hidden || device.stale ? 'secondary-btn' : 'primary-btn'}
-                          onClick={() => handleToggleDevice(device)}
-                          disabled={actionDisabled}
-                        >
-                          {actionBusy ? t('common.refreshing') : actionLabel}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
+                  )
+                })}
+              </div>
+            )}
+          </>
+        )}
         </>
       )}
     </Card>

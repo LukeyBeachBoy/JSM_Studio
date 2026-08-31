@@ -757,6 +757,45 @@
   gap: 0.8rem;
 }
 
+.hidHideTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.hidHideToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 1.6rem;
+  height: 1.6rem;
+  padding: 0;
+  border: none;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.hidHideToggle:hover {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--text-strong);
+}
+
+.hidHideChevron {
+  display: inline-block;
+  transition: transform 0.15s ease;
+}
+
+.hidHideChevronCollapsed {
+  transform: rotate(-90deg);
+}
+
 .hidHideHeading {
   display: flex;
   flex-direction: column;
