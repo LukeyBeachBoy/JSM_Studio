@@ -302,6 +302,10 @@ function App() {
     touchStickAxisValue,
     leftTouchStickAxisValue,
     rightTouchStickAxisValue,
+    touchpadSmoothingValue,
+    touchpadAccelerationValue,
+    handleSmoothing,
+    handleAcceleration,
     touchpadWarnings,
     hasPendingChanges,
     handleSensitivityModeshiftButtonChange,
@@ -993,6 +997,10 @@ function App() {
             touchStickRadius={touchStickRadiusValue}
             touchStickAxis={touchStickAxisValue}
             touchpadWarnings={touchpadWarnings}
+            touchpadSmoothing={touchpadSmoothingValue}
+            onTouchpadSmoothingChange={handleSmoothing}
+            touchpadAcceleration={touchpadAccelerationValue}
+            onTouchpadAccelerationChange={handleAcceleration}
             stickDeadzoneSettings={{
               defaults: stickDeadzoneDefaults,
               left: leftStickDeadzone,
@@ -1122,6 +1130,10 @@ function App() {
             onLeftTouchStickAxisChange={handleLeftTouchStickAxisChange}
             onRightTouchStickAxisChange={handleRightTouchStickAxisChange}
             touchpadWarnings={touchpadWarnings}
+            touchpadSmoothing={touchpadSmoothingValue}
+            onTouchpadSmoothingChange={handleSmoothing}
+            touchpadAcceleration={touchpadAccelerationValue}
+            onTouchpadAccelerationChange={handleAcceleration}
             stickDeadzoneSettings={{
               defaults: stickDeadzoneDefaults,
               left: leftStickDeadzone,
