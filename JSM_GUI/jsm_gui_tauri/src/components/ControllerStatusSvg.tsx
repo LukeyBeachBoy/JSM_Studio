@@ -449,22 +449,22 @@ export function ControllerStatusSvg({
           <ShellArtwork family={family} />
 
           {/* Left trackpad (upper-left) */}
-          <g className={join(styles.interactive)} onClick={() => onSelectCommand?.('TOUCH')}>
-            <ellipse className={join(styles.control, boundCommands?.has('TOUCH') && styles.controlBound, selectedCommand === 'TOUCH' && styles.controlSelected, leftPad?.touched && styles.controlPressed)} cx={280} cy={230} rx={70} ry={70} />
-            <text className={styles.controlText} x={280} y={230}>LPad</text>
-            {leftPad?.touched && (
-              <circle cx={280 + clamp(leftPad.x, -1, 1) * 50} cy={230 + clamp(-leftPad.y, -1, 1) * 50} r={10} className={styles.stickKnob} />
-            )}
-          </g>
+                    <g className={join(styles.interactive)} onClick={() => onSelectCommand?.('TOUCH')}>
+                      <ellipse className={join(styles.control, boundCommands?.has('TOUCH') && styles.controlBound, selectedCommand === 'TOUCH' && styles.controlSelected, leftPad?.touched && styles.controlPressed)} cx={280} cy={230} rx={70} ry={70} />
+                      <text className={styles.controlText} x={280} y={230}>LPad</text>
+                      {leftPad?.touched && (
+                        <circle cx={280 + clamp(leftPad.x, -1, 1) * 50} cy={230 + clamp(leftPad.y, -1, 1) * 50} r={10} className={styles.stickKnob} />
+                      )}
+                    </g>
 
-          {/* Right trackpad (upper-right) */}
-          <g className={join(styles.interactive)} onClick={() => onSelectCommand?.('CAPTURE')}>
-            <ellipse className={join(styles.control, boundCommands?.has('CAPTURE') && styles.controlBound, selectedCommand === 'CAPTURE' && styles.controlSelected, rightPad?.touched && styles.controlPressed)} cx={837} cy={230} rx={70} ry={70} />
-            <text className={styles.controlText} x={837} y={230}>RPad</text>
-            {rightPad?.touched && (
-              <circle cx={837 + clamp(rightPad.x, -1, 1) * 50} cy={230 + clamp(-rightPad.y, -1, 1) * 50} r={10} className={styles.stickKnob} />
-            )}
-          </g>
+                    {/* Right trackpad (upper-right) */}
+                    <g className={join(styles.interactive)} onClick={() => onSelectCommand?.('CAPTURE')}>
+                      <ellipse className={join(styles.control, boundCommands?.has('CAPTURE') && styles.controlBound, selectedCommand === 'CAPTURE' && styles.controlSelected, rightPad?.touched && styles.controlPressed)} cx={837} cy={230} rx={70} ry={70} />
+                      <text className={styles.controlText} x={837} y={230}>RPad</text>
+                      {rightPad?.touched && (
+                        <circle cx={837 + clamp(rightPad.x, -1, 1) * 50} cy={230 + clamp(rightPad.y, -1, 1) * 50} r={10} className={styles.stickKnob} />
+                      )}
+                    </g>
 
           {/* D-pad (left, middle) */}
           <g className={join(!hasLeftSide && styles.sideMuted)}>
