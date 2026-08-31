@@ -96,6 +96,24 @@ type KeymapControlsProps = {
   touchpadDualStageMode?: string
   onTouchpadModeChange?: (value: string) => void
   onTouchpadDualStageModeChange?: (value: string) => void
+  leftTouchpadMode?: string
+  rightTouchpadMode?: string
+  leftTouchpadDualStageMode?: string
+  rightTouchpadDualStageMode?: string
+  onLeftTouchpadModeChange?: (value: string) => void
+  onRightTouchpadModeChange?: (value: string) => void
+  onLeftTouchpadDualStageModeChange?: (value: string) => void
+  onRightTouchpadDualStageModeChange?: (value: string) => void
+  leftGridColumns?: number
+  leftGridRows?: number
+  rightGridColumns?: number
+  rightGridRows?: number
+  onLeftGridSizeChange?: (cols: number, rows: number) => void
+  onRightGridSizeChange?: (cols: number, rows: number) => void
+  leftTouchpadSensitivity?: number
+  rightTouchpadSensitivity?: number
+  onLeftTouchpadSensitivityChange?: (value: string) => void
+  onRightTouchpadSensitivityChange?: (value: string) => void
   gridColumns?: number
   gridRows?: number
   onGridSizeChange?: (cols: number, rows: number) => void
@@ -434,6 +452,24 @@ export function KeymapControls({
   touchpadDualStageMode = '',
   onTouchpadModeChange,
   onTouchpadDualStageModeChange,
+  leftTouchpadMode,
+  rightTouchpadMode,
+  leftTouchpadDualStageMode,
+  rightTouchpadDualStageMode,
+  onLeftTouchpadModeChange,
+  onRightTouchpadModeChange,
+  onLeftTouchpadDualStageModeChange,
+  onRightTouchpadDualStageModeChange,
+  leftGridColumns,
+  leftGridRows,
+  rightGridColumns,
+  rightGridRows,
+  onLeftGridSizeChange,
+  onRightGridSizeChange,
+  leftTouchpadSensitivity,
+  rightTouchpadSensitivity,
+  onLeftTouchpadSensitivityChange,
+  onRightTouchpadSensitivityChange,
   gridColumns = 2,
   gridRows = 2,
   onGridSizeChange,
@@ -1088,8 +1124,11 @@ export function KeymapControls({
                   <TouchpadSettingsSection
                     touchpadMode={touchpadMode}
                     touchpadDualStageMode={touchpadDualStageMode}
+                    left={{ mode: leftTouchpadMode ?? '', dualStageMode: leftTouchpadDualStageMode ?? '', gridColumns: leftGridColumns ?? gridColumns, gridRows: leftGridRows ?? gridRows, sensitivity: leftTouchpadSensitivity, onModeChange: onLeftTouchpadModeChange, onGridSizeChange: onLeftGridSizeChange, onSensitivityChange: onLeftTouchpadSensitivityChange, onDualStageModeChange: onLeftTouchpadDualStageModeChange }}
+                    right={{ mode: rightTouchpadMode ?? '', dualStageMode: rightTouchpadDualStageMode ?? '', gridColumns: rightGridColumns ?? gridColumns, gridRows: rightGridRows ?? gridRows, sensitivity: rightTouchpadSensitivity, onModeChange: onRightTouchpadModeChange, onGridSizeChange: onRightGridSizeChange, onSensitivityChange: onRightTouchpadSensitivityChange, onDualStageModeChange: onRightTouchpadDualStageModeChange }}
                     gridColumns={gridColumns}
                     gridRows={gridRows}
+
                     onTouchpadModeChange={onTouchpadModeChange}
                     onTouchpadDualStageModeChange={onTouchpadDualStageModeChange}
                     onGridSizeChange={onGridSizeChange}

@@ -274,9 +274,17 @@ function App() {
     handleLightBarChange,
     triggerThresholdValue,
     touchpadModeValue,
+    leftTouchpadModeValue,
+    rightTouchpadModeValue,
     gridSizeValue,
+    leftGridSizeValue,
+    rightGridSizeValue,
     touchpadSensitivityValue,
+    leftTouchpadSensitivityValue,
+    rightTouchpadSensitivityValue,
     touchpadDualStageModeValue,
+    leftTouchpadDualStageModeValue,
+    rightTouchpadDualStageModeValue,
     touchStickModeValue,
     touchDeadzoneInnerValue,
     touchRingModeValue,
@@ -311,9 +319,17 @@ function App() {
     handleStaticSensChange,
     handleRollContributionChange,
     handleTouchpadModeChange,
+    handleLeftTouchpadModeChange,
+    handleRightTouchpadModeChange,
     handleGridSizeChange,
+    handleLeftGridSizeChange,
+    handleRightGridSizeChange,
     handleTouchpadSensitivityChange,
+    handleLeftTouchpadSensitivityChange,
+    handleRightTouchpadSensitivityChange,
     handleTouchpadDualStageModeChange,
+    handleLeftTouchpadDualStageModeChange,
+    handleRightTouchpadDualStageModeChange,
     handleTouchStickModeChange,
     handleTouchDeadzoneInnerChange,
     handleTouchRingModeChange,
@@ -927,6 +943,24 @@ function App() {
             onModifierChange={handleModifierChange}
             touchpadMode={touchpadModeValue}
             touchpadDualStageMode={touchpadDualStageModeValue}
+            leftTouchpadMode={leftTouchpadModeValue}
+            rightTouchpadMode={rightTouchpadModeValue}
+            leftTouchpadDualStageMode={leftTouchpadDualStageModeValue}
+            rightTouchpadDualStageMode={rightTouchpadDualStageModeValue}
+            onLeftTouchpadModeChange={handleLeftTouchpadModeChange}
+            onRightTouchpadModeChange={handleRightTouchpadModeChange}
+            onLeftTouchpadDualStageModeChange={handleLeftTouchpadDualStageModeChange}
+            onRightTouchpadDualStageModeChange={handleRightTouchpadDualStageModeChange}
+            leftGridColumns={leftGridSizeValue.columns}
+            leftGridRows={leftGridSizeValue.rows}
+            rightGridColumns={rightGridSizeValue.columns}
+            rightGridRows={rightGridSizeValue.rows}
+            onLeftGridSizeChange={handleLeftGridSizeChange}
+            onRightGridSizeChange={handleRightGridSizeChange}
+            leftTouchpadSensitivity={leftTouchpadSensitivityValue}
+            rightTouchpadSensitivity={rightTouchpadSensitivityValue}
+            onLeftTouchpadSensitivityChange={handleLeftTouchpadSensitivityChange}
+            onRightTouchpadSensitivityChange={handleRightTouchpadSensitivityChange}
             gridColumns={gridSizeValue.columns}
             gridRows={gridSizeValue.rows}
             touchDeadzoneInner={touchDeadzoneInnerValue}
@@ -1006,6 +1040,24 @@ function App() {
             onModifierChange={handleModifierChange}
             touchpadMode={touchpadModeValue}
             touchpadDualStageMode={touchpadDualStageModeValue}
+            leftTouchpadMode={leftTouchpadModeValue}
+            rightTouchpadMode={rightTouchpadModeValue}
+            leftTouchpadDualStageMode={leftTouchpadDualStageModeValue}
+            rightTouchpadDualStageMode={rightTouchpadDualStageModeValue}
+            onLeftTouchpadModeChange={handleLeftTouchpadModeChange}
+            onRightTouchpadModeChange={handleRightTouchpadModeChange}
+            onLeftTouchpadDualStageModeChange={handleLeftTouchpadDualStageModeChange}
+            onRightTouchpadDualStageModeChange={handleRightTouchpadDualStageModeChange}
+            leftGridColumns={leftGridSizeValue.columns}
+            leftGridRows={leftGridSizeValue.rows}
+            rightGridColumns={rightGridSizeValue.columns}
+            rightGridRows={rightGridSizeValue.rows}
+            onLeftGridSizeChange={handleLeftGridSizeChange}
+            onRightGridSizeChange={handleRightGridSizeChange}
+            leftTouchpadSensitivity={leftTouchpadSensitivityValue}
+            rightTouchpadSensitivity={rightTouchpadSensitivityValue}
+            onLeftTouchpadSensitivityChange={handleLeftTouchpadSensitivityChange}
+            onRightTouchpadSensitivityChange={handleRightTouchpadSensitivityChange}
             onTouchpadModeChange={handleTouchpadModeChange}
             onTouchpadDualStageModeChange={handleTouchpadDualStageModeChange}
             gridColumns={gridSizeValue.columns}
