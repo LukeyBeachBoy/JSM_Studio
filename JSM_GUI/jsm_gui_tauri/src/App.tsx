@@ -306,6 +306,7 @@ function App() {
     handleGyroSpaceChange,
     handleGyroAxisXChange,
     handleGyroAxisYChange,
+    handleGyroOutputChange,
     handleDualSensChange,
     handleStaticSensChange,
     handleRollContributionChange,
