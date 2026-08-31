@@ -99,6 +99,8 @@ export function useKeymapConfig() {
     switchToAccelMode: sensitivityConfig.switchToAccelMode,
     // Touchpad slice
     touchpadModeValue: touchpadConfig.touchpadModeValue,
+    lightTouchThreshold: touchpadConfig.lightTouchThreshold,
+    handleLightTouchThresholdChange: touchpadConfig.handleLightTouchThresholdChange,
     leftTouchpadModeValue: touchpadConfig.leftTouchpadModeValue,
     rightTouchpadModeValue: touchpadConfig.rightTouchpadModeValue,
     leftGridSizeValue: touchpadConfig.leftGridSizeValue,
