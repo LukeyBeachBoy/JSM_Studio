@@ -499,54 +499,54 @@ export function ControllerStatusSvg({
                     </g>
             {/* Live overlays on the Steam Controller 2026 front artwork */}
             {/* Sticks (top) */}
-            <Stick cx={407} cy={230} x={leftStickX} y={leftStickY} pressed={pressed.has('L3')} muted={!hasLeftSide} bound={leftStickBound} selected={leftStickSelected} onSelect={hasLeftSide ? () => onSelectCommand?.(pickCommand(LEFT_STICK_COMMANDS, boundCommands, selectedCommand)) : undefined} title="Left stick" />
-            <Stick cx={713} cy={230} x={rightStickX} y={rightStickY} pressed={pressed.has('R3')} muted={!hasRightSide} bound={rightStickBound} selected={rightStickSelected} onSelect={hasRightSide ? () => onSelectCommand?.(pickCommand(RIGHT_STICK_COMMANDS, boundCommands, selectedCommand)) : undefined} title="Right stick" />
+            <Stick cx={555} cy={146} x={leftStickX} y={leftStickY} pressed={pressed.has('L3')} muted={!hasLeftSide} bound={leftStickBound} selected={leftStickSelected} onSelect={hasLeftSide ? () => onSelectCommand?.(pickCommand(LEFT_STICK_COMMANDS, boundCommands, selectedCommand)) : undefined} title="Left stick" />
+            <Stick cx={805} cy={146} x={rightStickX} y={rightStickY} pressed={pressed.has('R3')} muted={!hasRightSide} bound={rightStickBound} selected={rightStickSelected} onSelect={hasRightSide ? () => onSelectCommand?.(pickCommand(RIGHT_STICK_COMMANDS, boundCommands, selectedCommand)) : undefined} title="Right stick" />
 
             {/* D-pad (upper-left area) */}
             <g className={join(!hasLeftSide && styles.sideMuted)}>
-              <ButtonBubble cx={236} cy={382} label="U" pressed={pressed.has('UP')} bound={boundCommands?.has('UP')} selected={selectedCommand === 'UP'} onSelect={hasLeftSide ? () => onSelectCommand?.('UP') : undefined} radius={18} title="D-pad up" />
-              <ButtonBubble cx={218} cy={400} label="L" pressed={pressed.has('LEFT')} bound={boundCommands?.has('LEFT')} selected={selectedCommand === 'LEFT'} onSelect={hasLeftSide ? () => onSelectCommand?.('LEFT') : undefined} radius={18} title="D-pad left" />
-              <ButtonBubble cx={254} cy={400} label="R" pressed={pressed.has('RIGHT')} bound={boundCommands?.has('RIGHT')} selected={selectedCommand === 'RIGHT'} onSelect={hasLeftSide ? () => onSelectCommand?.('RIGHT') : undefined} radius={18} title="D-pad right" />
-              <ButtonBubble cx={236} cy={418} label="D" pressed={pressed.has('DOWN')} bound={boundCommands?.has('DOWN')} selected={selectedCommand === 'DOWN'} onSelect={hasLeftSide ? () => onSelectCommand?.('DOWN') : undefined} radius={18} title="D-pad down" />
+              <ButtonBubble cx={372} cy={391} label="U" pressed={pressed.has('UP')} bound={boundCommands?.has('UP')} selected={selectedCommand === 'UP'} onSelect={hasLeftSide ? () => onSelectCommand?.('UP') : undefined} radius={18} title="D-pad up" />
+              <ButtonBubble cx={354} cy={409} label="L" pressed={pressed.has('LEFT')} bound={boundCommands?.has('LEFT')} selected={selectedCommand === 'LEFT'} onSelect={hasLeftSide ? () => onSelectCommand?.('LEFT') : undefined} radius={18} title="D-pad left" />
+              <ButtonBubble cx={390} cy={409} label="R" pressed={pressed.has('RIGHT')} bound={boundCommands?.has('RIGHT')} selected={selectedCommand === 'RIGHT'} onSelect={hasLeftSide ? () => onSelectCommand?.('RIGHT') : undefined} radius={18} title="D-pad right" />
+              <ButtonBubble cx={372} cy={427} label="D" pressed={pressed.has('DOWN')} bound={boundCommands?.has('DOWN')} selected={selectedCommand === 'DOWN'} onSelect={hasLeftSide ? () => onSelectCommand?.('DOWN') : undefined} radius={18} title="D-pad down" />
             </g>
 
             {/* ABXY (upper-right area) */}
             <g className={join(!hasRightSide && styles.sideMuted)}>
-              <ButtonBubble cx={889} cy={372} radius={28} label={controllerButtonGlyph(device.type, 'N')} pressed={pressed.has('N')} bound={boundCommands?.has('N')} selected={selectedCommand === 'N'} onSelect={hasRightSide ? () => onSelectCommand?.('N') : undefined} title="North face button" />
-              <ButtonBubble cx={917} cy={400} radius={28} label={controllerButtonGlyph(device.type, 'E')} pressed={pressed.has('E')} bound={boundCommands?.has('E')} selected={selectedCommand === 'E'} onSelect={hasRightSide ? () => onSelectCommand?.('E') : undefined} title="East face button" />
-              <ButtonBubble cx={889} cy={428} radius={28} label={controllerButtonGlyph(device.type, 'S')} pressed={pressed.has('S')} bound={boundCommands?.has('S')} selected={selectedCommand === 'S'} onSelect={hasRightSide ? () => onSelectCommand?.('S') : undefined} title="South face button" />
-              <ButtonBubble cx={861} cy={400} radius={28} label={controllerButtonGlyph(device.type, 'W')} pressed={pressed.has('W')} bound={boundCommands?.has('W')} selected={selectedCommand === 'W'} onSelect={hasRightSide ? () => onSelectCommand?.('W') : undefined} title="West face button" />
+              <ButtonBubble cx={748} cy={381} radius={28} label={controllerButtonGlyph(device.type, 'N')} pressed={pressed.has('N')} bound={boundCommands?.has('N')} selected={selectedCommand === 'N'} onSelect={hasRightSide ? () => onSelectCommand?.('N') : undefined} title="North face button" />
+              <ButtonBubble cx={776} cy={409} radius={28} label={controllerButtonGlyph(device.type, 'E')} pressed={pressed.has('E')} bound={boundCommands?.has('E')} selected={selectedCommand === 'E'} onSelect={hasRightSide ? () => onSelectCommand?.('E') : undefined} title="East face button" />
+              <ButtonBubble cx={748} cy={437} radius={28} label={controllerButtonGlyph(device.type, 'S')} pressed={pressed.has('S')} bound={boundCommands?.has('S')} selected={selectedCommand === 'S'} onSelect={hasRightSide ? () => onSelectCommand?.('S') : undefined} title="South face button" />
+              <ButtonBubble cx={720} cy={409} radius={28} label={controllerButtonGlyph(device.type, 'W')} pressed={pressed.has('W')} bound={boundCommands?.has('W')} selected={selectedCommand === 'W'} onSelect={hasRightSide ? () => onSelectCommand?.('W') : undefined} title="West face button" />
             </g>
 
             {/* Left pad (bottom-left) */}
             <g className={join(styles.interactive)} onClick={() => onSelectCommand?.('TOUCH')}>
-              <rect className={join(styles.control, boundCommands?.has('TOUCH') && styles.controlBound, selectedCommand === 'TOUCH' && styles.controlSelected, leftPad?.touched && styles.controlPressed)} x="174" y="490" width="160" height="120" rx="20" ry="20" />
-              <text className={styles.controlText} x={254} y={550}>LPad</text>
+              <rect className={join(styles.control, boundCommands?.has('TOUCH') && styles.controlBound, selectedCommand === 'TOUCH' && styles.controlSelected, leftPad?.touched && styles.controlPressed)} x="360" y="170" width="230" height="130" rx="20" ry="20" />
+              <text className={styles.controlText} x={475} y={235}>LPad</text>
               {leftPad?.touched && (
-                <circle cx={254 + clamp(leftPad.x, -1, 1) * 50} cy={550 + clamp(leftPad.y, -1, 1) * 50} r={10} className={styles.stickKnob} />
+                <circle cx={475 + clamp(leftPad.x, -1, 1) * 50} cy={235 + clamp(leftPad.y, -1, 1) * 50} r={10} className={styles.stickKnob} />
               )}
             </g>
 
             {/* Right pad (bottom-right) */}
             <g className={join(styles.interactive)} onClick={() => onSelectCommand?.('CAPTURE')}>
-              <rect className={join(styles.control, boundCommands?.has('CAPTURE') && styles.controlBound, selectedCommand === 'CAPTURE' && styles.controlSelected, rightPad?.touched && styles.controlPressed)} x="783" y="490" width="160" height="120" rx="20" ry="20" />
-              <text className={styles.controlText} x={863} y={550}>RPad</text>
+              <rect className={join(styles.control, boundCommands?.has('CAPTURE') && styles.controlBound, selectedCommand === 'CAPTURE' && styles.controlSelected, rightPad?.touched && styles.controlPressed)} x="750" y="170" width="230" height="130" rx="20" ry="20" />
+              <text className={styles.controlText} x={865} y={235}>RPad</text>
               {rightPad?.touched && (
-                <circle cx={863 + clamp(rightPad.x, -1, 1) * 50} cy={550 + clamp(rightPad.y, -1, 1) * 50} r={10} className={styles.stickKnob} />
+                <circle cx={865 + clamp(rightPad.x, -1, 1) * 50} cy={235 + clamp(rightPad.y, -1, 1) * 50} r={10} className={styles.stickKnob} />
               )}
             </g>
 
             {/* Center buttons */}
-                        <ButtonBubble cx={513} cy={282} radius={22} label="⌂" pressed={pressed.has('HOME')} bound={boundCommands?.has('HOME')} selected={selectedCommand === 'HOME'} onSelect={() => onSelectCommand?.('HOME')} title="Steam button" />
-                        <ButtonBubble cx={454} cy={292} radius={14} label="•" pressed={pressed.has('MISC1')} bound={boundCommands?.has('MISC1')} selected={selectedCommand === 'MISC1'} onSelect={() => onSelectCommand?.('MISC1')} title="QAM button" />
-                        <ButtonBubble cx={470} cy={264} radius={12} label="-" pressed={pressed.has('-')} bound={boundCommands?.has('-')} selected={selectedCommand === '-'} onSelect={() => onSelectCommand?.('-')} title="View button" />
-                        <ButtonBubble cx={526} cy={264} radius={12} label="+" pressed={pressed.has('+')} bound={boundCommands?.has('+')} selected={selectedCommand === '+'} onSelect={() => onSelectCommand?.('+')} title="Menu button" />
+                        <ButtonBubble cx={560} cy={240} radius={22} label="⌂" pressed={pressed.has('HOME')} bound={boundCommands?.has('HOME')} selected={selectedCommand === 'HOME'} onSelect={() => onSelectCommand?.('HOME')} title="Steam button" />
+                        <ButtonBubble cx={560} cy={280} radius={14} label="•" pressed={pressed.has('MISC1')} bound={boundCommands?.has('MISC1')} selected={selectedCommand === 'MISC1'} onSelect={() => onSelectCommand?.('MISC1')} title="QAM button" />
+                        <ButtonBubble cx={490} cy={220} radius={12} label="-" pressed={pressed.has('-')} bound={boundCommands?.has('-')} selected={selectedCommand === '-'} onSelect={() => onSelectCommand?.('-')} title="View button" />
+                        <ButtonBubble cx={630} cy={220} radius={12} label="+" pressed={pressed.has('+')} bound={boundCommands?.has('+')} selected={selectedCommand === '+'} onSelect={() => onSelectCommand?.('+')} title="Menu button" />
 
             {/* Bumpers/triggers */}
-            <TriggerPath d={DUALSENSE_PATHS.l2} fillX={142} fillY={50} fillWidth={106} label={leftTriggerLabel} labelX={196} labelY={50} value={leftTrigger} muted={!hasLeftSide} bound={leftTriggerBound} selected={leftTriggerSelected} onSelect={hasLeftSide ? () => onSelectCommand?.(pickCommand(LEFT_TRIGGER_COMMANDS, boundCommands, selectedCommand)) : undefined} title="Left trigger" />
-            <PathButton d={DUALSENSE_PATHS.l1} label={controllerButtonGlyph(device.type, 'L')} labelX={196} labelY={120} pressed={pressed.has('L')} muted={!hasLeftSide} bound={boundCommands?.has('L')} selected={selectedCommand === 'L'} onSelect={hasLeftSide ? () => onSelectCommand?.('L') : undefined} title="Left bumper" />
-            <TriggerPath d={DUALSENSE_PATHS.r2} fillX={870} fillY={50} fillWidth={106} label={rightTriggerLabel} labelX={923} labelY={50} value={rightTrigger} muted={!hasRightSide} bound={rightTriggerBound} selected={rightTriggerSelected} onSelect={hasRightSide ? () => onSelectCommand?.(pickCommand(RIGHT_TRIGGER_COMMANDS, boundCommands, selectedCommand)) : undefined} title="Right trigger" />
-            <PathButton d={DUALSENSE_PATHS.r1} label={controllerButtonGlyph(device.type, 'R')} labelX={922} labelY={120} pressed={pressed.has('R')} muted={!hasRightSide} bound={boundCommands?.has('R')} selected={selectedCommand === 'R'} onSelect={hasRightSide ? () => onSelectCommand?.('R') : undefined} title="Right bumper" />
+            <TriggerPath d={DUALSENSE_PATHS.l2} fillX={142} fillY={40} fillWidth={106} label={leftTriggerLabel} labelX={196} labelY={40} value={leftTrigger} muted={!hasLeftSide} bound={leftTriggerBound} selected={leftTriggerSelected} onSelect={hasLeftSide ? () => onSelectCommand?.(pickCommand(LEFT_TRIGGER_COMMANDS, boundCommands, selectedCommand)) : undefined} title="Left trigger" />
+            <PathButton d={DUALSENSE_PATHS.l1} label={controllerButtonGlyph(device.type, 'L')} labelX={196} labelY={110} pressed={pressed.has('L')} muted={!hasLeftSide} bound={boundCommands?.has('L')} selected={selectedCommand === 'L'} onSelect={hasLeftSide ? () => onSelectCommand?.('L') : undefined} title="Left bumper" />
+            <TriggerPath d={DUALSENSE_PATHS.r2} fillX={869} fillY={40} fillWidth={106} label={rightTriggerLabel} labelX={922} labelY={40} value={rightTrigger} muted={!hasRightSide} bound={rightTriggerBound} selected={rightTriggerSelected} onSelect={hasRightSide ? () => onSelectCommand?.(pickCommand(RIGHT_TRIGGER_COMMANDS, boundCommands, selectedCommand)) : undefined} title="Right trigger" />
+            <PathButton d={DUALSENSE_PATHS.r1} label={controllerButtonGlyph(device.type, 'R')} labelX={922} labelY={110} pressed={pressed.has('R')} muted={!hasRightSide} bound={boundCommands?.has('R')} selected={selectedCommand === 'R'} onSelect={hasRightSide ? () => onSelectCommand?.('R') : undefined} title="Right bumper" />
 
             {/* Paddles */}
             {PADDLE_LAYOUT.filter(entry => visiblePaddleCommandSet.has(entry.command)).map(entry => {
