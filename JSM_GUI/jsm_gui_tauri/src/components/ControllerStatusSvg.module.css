@@ -9,6 +9,33 @@
   display: block;
 }
 
+.steamArtwork {
+  opacity: 0.92;
+  pointer-events: none;
+}
+
+.steamDivider {
+  fill: color-mix(in srgb, var(--accent) 55%, transparent);
+  opacity: 0.55;
+}
+
+.gripSense {
+  fill: color-mix(in srgb, var(--telemetry-green) 10%, transparent);
+  stroke: color-mix(in srgb, var(--telemetry-green) 70%, var(--border-strong));
+  stroke-width: 2.5;
+  vector-effect: non-scaling-stroke;
+  cursor: pointer;
+  transition: fill 120ms ease, stroke 120ms ease, filter 120ms ease;
+}
+
+.gripSenseText {
+  fill: var(--text-muted);
+  font: 700 22px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+}
+
 .interactive {
   cursor: pointer;
 }

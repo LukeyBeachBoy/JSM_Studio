@@ -1,3 +1,5 @@
+import steamControllerBack from '../assets/steam-controller-back.svg'
+import steamControllerFront from '../assets/steam-controller-front.svg'
 import type { TelemetryDevice } from '../hooks/useTelemetry'
 import {
   controllerBackInputMode,
@@ -488,8 +490,17 @@ export function ControllerStatusSvg({
     return (
       <div className={styles.visualizer}>
         <svg className={styles.controllerSvg} viewBox="0 0 1117 750" role="img" aria-label="Steam Controller live status">
-          <ShellArtwork family={family} />
-
+                  <title>Steam Controller front and back live status</title>
+                  <image className={styles.steamArtwork} href={steamControllerFront} x="0" y="0" width="550" height="750" preserveAspectRatio="none" aria-label="Steam Controller front artwork" />
+                  <image className={styles.steamArtwork} href={steamControllerBack} x="567" y="0" width="550" height="750" preserveAspectRatio="none" aria-label="Steam Controller back artwork" />
+                  <rect className={styles.steamDivider} x="555" y="24" width="7" height="702" rx="3.5" />
+                  <g aria-label="Grip sense overlays">
+                    <rect className={join(styles.gripSense, pressed.has('GRIP_L') && styles.controlPressed, boundCommands?.has('GRIP_L') && styles.controlBound, selectedCommand === 'GRIP_L' && styles.controlSelected)} x="80" y="585" width="150" height="105" rx="42" onClick={() => onSelectCommand?.('GRIP_L')} />
+                    <text className={styles.gripSenseText} x="155" y="638">L GRIP</text>
+                    <rect className={join(styles.gripSense, pressed.has('GRIP_R') && styles.controlPressed, boundCommands?.has('GRIP_R') && styles.controlBound, selectedCommand === 'GRIP_R' && styles.controlSelected)} x="887" y="585" width="150" height="105" rx="42" onClick={() => onSelectCommand?.('GRIP_R')} />
+                    <text className={styles.gripSenseText} x="962" y="638">R GRIP</text>
+                  </g> 
+          {/* Live overlays on the supplied Figma artwork */}
           {/* Left trackpad (upper-left) */}
                     <g className={join(styles.interactive)} onClick={() => onSelectCommand?.('TOUCH')}>
                       <ellipse className={join(styles.control, boundCommands?.has('TOUCH') && styles.controlBound, selectedCommand === 'TOUCH' && styles.controlSelected, leftPad?.touched && styles.controlPressed)} cx={280} cy={230} rx={70} ry={70} />
