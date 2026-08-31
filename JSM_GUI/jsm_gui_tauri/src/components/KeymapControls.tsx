@@ -126,11 +126,31 @@ type KeymapControlsProps = {
   touchStickMode?: string
   touchStickRadius?: string
   touchStickAxis?: string
+  leftTouchStickMode?: string
+  rightTouchStickMode?: string
+  leftTouchDeadzoneInner?: string
+  rightTouchDeadzoneInner?: string
+  leftTouchRingMode?: string
+  rightTouchRingMode?: string
+  leftTouchStickRadius?: string
+  rightTouchStickRadius?: string
+  leftTouchStickAxis?: string
+  rightTouchStickAxis?: string
   onTouchDeadzoneInnerChange?: (value: string) => void
   onTouchRingModeChange?: (value: string) => void
   onTouchStickModeChange?: (value: string) => void
   onTouchStickRadiusChange?: (value: string) => void
   onTouchStickAxisChange?: (value: string) => void
+  onLeftTouchStickModeChange?: (value: string) => void
+  onRightTouchStickModeChange?: (value: string) => void
+  onLeftTouchDeadzoneInnerChange?: (value: string) => void
+  onRightTouchDeadzoneInnerChange?: (value: string) => void
+  onLeftTouchRingModeChange?: (value: string) => void
+  onRightTouchRingModeChange?: (value: string) => void
+  onLeftTouchStickRadiusChange?: (value: string) => void
+  onRightTouchStickRadiusChange?: (value: string) => void
+  onLeftTouchStickAxisChange?: (value: string) => void
+  onRightTouchStickAxisChange?: (value: string) => void
   touchpadWarnings?: TouchpadWarning[]
   stickDeadzoneSettings?: {
     defaults: { inner: string; outer: string }
@@ -484,11 +504,13 @@ export function KeymapControls({
   touchStickMode = '',
   touchStickRadius = '',
   touchStickAxis = '',
+  leftTouchStickMode = '', rightTouchStickMode = '', leftTouchDeadzoneInner = '', rightTouchDeadzoneInner = '', leftTouchRingMode = '', rightTouchRingMode = '', leftTouchStickRadius = '', rightTouchStickRadius = '', leftTouchStickAxis = '', rightTouchStickAxis = '',
   onTouchDeadzoneInnerChange,
   onTouchRingModeChange,
   onTouchStickModeChange,
   onTouchStickRadiusChange,
   onTouchStickAxisChange,
+  onLeftTouchStickModeChange, onRightTouchStickModeChange, onLeftTouchDeadzoneInnerChange, onRightTouchDeadzoneInnerChange, onLeftTouchRingModeChange, onRightTouchRingModeChange, onLeftTouchStickRadiusChange, onRightTouchStickRadiusChange, onLeftTouchStickAxisChange, onRightTouchStickAxisChange,
   touchpadWarnings,
   stickDeadzoneSettings,
   onStickDeadzoneChange,
@@ -1163,19 +1185,34 @@ export function KeymapControls({
               key: 'touch-stick',
               shouldRender: isVisible('touch-stick') && touchpadMode === 'GRID_AND_STICK',
               node: (
-                <TouchpadStickSection
-                  touchStickMode={touchStickMode}
-                  touchDeadzoneInner={touchDeadzoneInner}
-                  touchRingMode={touchRingMode}
-                  touchStickRadius={touchStickRadius}
-                  touchStickAxis={touchStickAxis}
-                  onTouchStickModeChange={onTouchStickModeChange}
-                  onTouchDeadzoneInnerChange={onTouchDeadzoneInnerChange}
-                  onTouchRingModeChange={onTouchRingModeChange}
-                  onTouchStickRadiusChange={onTouchStickRadiusChange}
-                  onTouchStickAxisChange={onTouchStickAxisChange}
-                  {...actionsProps}
-                />
+                <>
+                  <TouchpadStickSection
+                    touchStickMode={leftTouchStickMode ?? touchStickMode}
+                    touchDeadzoneInner={leftTouchDeadzoneInner ?? touchDeadzoneInner}
+                    touchRingMode={leftTouchRingMode ?? touchRingMode}
+                    touchStickRadius={leftTouchStickRadius ?? touchStickRadius}
+                    touchStickAxis={leftTouchStickAxis ?? touchStickAxis}
+                    onTouchStickModeChange={onLeftTouchStickModeChange ?? onTouchStickModeChange}
+                    onTouchDeadzoneInnerChange={onLeftTouchDeadzoneInnerChange ?? onTouchDeadzoneInnerChange}
+                    onTouchRingModeChange={onLeftTouchRingModeChange ?? onTouchRingModeChange}
+                    onTouchStickRadiusChange={onLeftTouchStickRadiusChange ?? onTouchStickRadiusChange}
+                    onTouchStickAxisChange={onLeftTouchStickAxisChange ?? onTouchStickAxisChange}
+                    {...actionsProps}
+                  />
+                  <TouchpadStickSection
+                    touchStickMode={rightTouchStickMode ?? touchStickMode}
+                    touchDeadzoneInner={rightTouchDeadzoneInner ?? touchDeadzoneInner}
+                    touchRingMode={rightTouchRingMode ?? touchRingMode}
+                    touchStickRadius={rightTouchStickRadius ?? touchStickRadius}
+                    touchStickAxis={rightTouchStickAxis ?? touchStickAxis}
+                    onTouchStickModeChange={onRightTouchStickModeChange ?? onTouchStickModeChange}
+                    onTouchDeadzoneInnerChange={onRightTouchDeadzoneInnerChange ?? onTouchDeadzoneInnerChange}
+                    onTouchRingModeChange={onRightTouchRingModeChange ?? onTouchRingModeChange}
+                    onTouchStickRadiusChange={onRightTouchStickRadiusChange ?? onTouchStickRadiusChange}
+                    onTouchStickAxisChange={onRightTouchStickAxisChange ?? onTouchStickAxisChange}
+                    {...actionsProps}
+                  />
+                </>
               ),
             },
             {

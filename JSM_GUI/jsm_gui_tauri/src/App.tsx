@@ -288,10 +288,20 @@ function App() {
     leftTouchpadDualStageModeValue,
     rightTouchpadDualStageModeValue,
     touchStickModeValue,
+    leftTouchStickModeValue,
+    rightTouchStickModeValue,
     touchDeadzoneInnerValue,
+    leftTouchDeadzoneInnerValue,
+    rightTouchDeadzoneInnerValue,
     touchRingModeValue,
+    leftTouchRingModeValue,
+    rightTouchRingModeValue,
     touchStickRadiusValue,
+    leftTouchStickRadiusValue,
+    rightTouchStickRadiusValue,
     touchStickAxisValue,
+    leftTouchStickAxisValue,
+    rightTouchStickAxisValue,
     touchpadWarnings,
     hasPendingChanges,
     handleSensitivityModeshiftButtonChange,
@@ -333,10 +343,20 @@ function App() {
     handleLeftTouchpadDualStageModeChange,
     handleRightTouchpadDualStageModeChange,
     handleTouchStickModeChange,
+    handleLeftTouchStickModeChange,
+    handleRightTouchStickModeChange,
     handleTouchDeadzoneInnerChange,
+    handleLeftTouchDeadzoneInnerChange,
+    handleRightTouchDeadzoneInnerChange,
     handleTouchRingModeChange,
+    handleLeftTouchRingModeChange,
+    handleRightTouchRingModeChange,
     handleTouchStickRadiusChange,
+    handleLeftTouchStickRadiusChange,
+    handleRightTouchStickRadiusChange,
     handleTouchStickAxisChange,
+    handleLeftTouchStickAxisChange,
+    handleRightTouchStickAxisChange,
     handleInGameSensChange,
     handleRealWorldCalibrationChange,
     handleAccelCurveChange,
@@ -1071,16 +1091,36 @@ function App() {
             onGridSizeChange={handleGridSizeChange}
             touchpadSensitivity={touchpadSensitivityValue}
             onTouchpadSensitivityChange={handleTouchpadSensitivityChange}
-            touchDeadzoneInner={touchDeadzoneInnerValue}
-            touchRingMode={touchRingModeValue}
             touchStickMode={touchStickModeValue}
+            leftTouchStickMode={leftTouchStickModeValue}
+            rightTouchStickMode={rightTouchStickModeValue}
+            touchDeadzoneInner={touchDeadzoneInnerValue}
+            leftTouchDeadzoneInner={leftTouchDeadzoneInnerValue}
+            rightTouchDeadzoneInner={rightTouchDeadzoneInnerValue}
+            touchRingMode={touchRingModeValue}
+            leftTouchRingMode={leftTouchRingModeValue}
+            rightTouchRingMode={rightTouchRingModeValue}
             touchStickRadius={touchStickRadiusValue}
+            leftTouchStickRadius={leftTouchStickRadiusValue}
+            rightTouchStickRadius={rightTouchStickRadiusValue}
             touchStickAxis={touchStickAxisValue}
+            leftTouchStickAxis={leftTouchStickAxisValue}
+            rightTouchStickAxis={rightTouchStickAxisValue}
             onTouchDeadzoneInnerChange={handleTouchDeadzoneInnerChange}
+            onLeftTouchDeadzoneInnerChange={handleLeftTouchDeadzoneInnerChange}
+            onRightTouchDeadzoneInnerChange={handleRightTouchDeadzoneInnerChange}
             onTouchRingModeChange={handleTouchRingModeChange}
+            onLeftTouchRingModeChange={handleLeftTouchRingModeChange}
+            onRightTouchRingModeChange={handleRightTouchRingModeChange}
             onTouchStickModeChange={handleTouchStickModeChange}
+            onLeftTouchStickModeChange={handleLeftTouchStickModeChange}
+            onRightTouchStickModeChange={handleRightTouchStickModeChange}
             onTouchStickRadiusChange={handleTouchStickRadiusChange}
+            onLeftTouchStickRadiusChange={handleLeftTouchStickRadiusChange}
+            onRightTouchStickRadiusChange={handleRightTouchStickRadiusChange}
             onTouchStickAxisChange={handleTouchStickAxisChange}
+            onLeftTouchStickAxisChange={handleLeftTouchStickAxisChange}
+            onRightTouchStickAxisChange={handleRightTouchStickAxisChange}
             touchpadWarnings={touchpadWarnings}
             stickDeadzoneSettings={{
               defaults: stickDeadzoneDefaults,
