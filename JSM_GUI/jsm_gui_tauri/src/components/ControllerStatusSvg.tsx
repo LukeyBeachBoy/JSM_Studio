@@ -48,6 +48,7 @@ type StickProps = SharedControlProps & {
 }
 
 type TriggerPathProps = SharedControlProps & {
+  compact?: boolean
   d: string
   fillX: number
   fillY: number
@@ -385,6 +386,7 @@ function PaddleButton({
 }
 
 function TriggerPath({
+  compact = false,
   d,
   fillX,
   fillY,
@@ -414,11 +416,57 @@ function TriggerPath({
         d={d}
       />
       <rect className={styles.triggerFill} x={fillX} y={fillY} width={fillWidth * fillValue} height={12} rx={6} />
-      <text className={join(styles.triggerLabel, selected && styles.triggerLabelSelected)} x={labelX} y={labelY}>
+      <text className={join(styles.triggerLabel, compact && styles.controlTextCompact, selected && styles.triggerLabelSelected)} x={labelX} y={labelY}>
         {label}
       </text>
     </g>
   )
+}
+
+// Rounded-rect path data, for the overlay components that take a `d` rather than
+// x/y/width/height.
+function roundedRectPath(x: number, y: number, w: number, h: number, r: number) {
+  const rr = Math.min(r, w / 2, h / 2)
+  return `M${x + rr},${y}h${w - 2 * rr}a${rr},${rr} 0 0 1 ${rr},${rr}v${h - 2 * rr}a${rr},${rr} 0 0 1 ${-rr},${rr}h${-(w - 2 * rr)}a${rr},${rr} 0 0 1 ${-rr},${-rr}v${-(h - 2 * rr)}a${rr},${rr} 0 0 1 ${rr},${-rr}z`
+}
+
+// The shoulder humps, measured off the body outline of steam-controller-front.svg
+// (left x[195.6,346.6] y[6.8,57.8], right x[773.5,924.0] y[6.8,56.5]).
+//
+// The front artwork does not depict the triggers at all -- they sit behind the
+// bumpers -- so each hump carries two stacked bands: the trigger on top with its
+// analog fill, the bumper below it. Before this, the Steam layout reused
+// DUALSENSE_PATHS, which drew large lens shapes straight across the D-pad and the
+// face buttons. Those overlays are interactive and are painted after the buttons,
+// so they were also swallowing clicks meant for UP/DOWN/LEFT/RIGHT and N/E/S/W.
+const STEAM_SHOULDER = {
+  left: { x: 196, w: 151 },
+  right: { x: 773.5, w: 150.5 },
+} as const
+const SHOULDER_TRIGGER_Y = 7
+const SHOULDER_TRIGGER_H = 24
+const SHOULDER_BUMPER_Y = 33
+const SHOULDER_BUMPER_H = 25
+
+function shoulderTrigger(side: keyof typeof STEAM_SHOULDER) {
+  const { x, w } = STEAM_SHOULDER[side]
+  return {
+    d: roundedRectPath(x, SHOULDER_TRIGGER_Y, w, SHOULDER_TRIGGER_H, 11),
+    fillX: x + 6,
+    fillY: SHOULDER_TRIGGER_Y + 6,
+    fillWidth: w - 12,
+    labelX: x + w / 2,
+    labelY: SHOULDER_TRIGGER_Y + SHOULDER_TRIGGER_H / 2,
+  }
+}
+
+function shoulderBumper(side: keyof typeof STEAM_SHOULDER) {
+  const { x, w } = STEAM_SHOULDER[side]
+  return {
+    d: roundedRectPath(x, SHOULDER_BUMPER_Y, w, SHOULDER_BUMPER_H, 12),
+    labelX: x + w / 2,
+    labelY: SHOULDER_BUMPER_Y + SHOULDER_BUMPER_H / 2,
+  }
 }
 
 // Measured directly from the paths in steam-controller-front.svg, expressed in the
@@ -570,11 +618,11 @@ export function ControllerStatusSvg({
                         <ButtonBubble cx={382} cy={77} radius={15} label="-" pressed={pressed.has('-')} bound={boundCommands?.has('-')} selected={selectedCommand === '-'} onSelect={() => onSelectCommand?.('-')} title="View button" />
                         <ButtonBubble cx={730} cy={77} radius={15} label="+" pressed={pressed.has('+')} bound={boundCommands?.has('+')} selected={selectedCommand === '+'} onSelect={() => onSelectCommand?.('+')} title="Menu button" />
 
-            {/* Bumpers/triggers */}
-            <TriggerPath d={DUALSENSE_PATHS.l2} fillX={142} fillY={40} fillWidth={106} label={leftTriggerLabel} labelX={196} labelY={40} value={leftTrigger} muted={!hasLeftSide} bound={leftTriggerBound} selected={leftTriggerSelected} onSelect={hasLeftSide ? () => onSelectCommand?.(pickCommand(LEFT_TRIGGER_COMMANDS, boundCommands, selectedCommand)) : undefined} title="Left trigger" />
-            <PathButton d={DUALSENSE_PATHS.l1} label={controllerButtonGlyph(device.type, 'L')} labelX={196} labelY={110} pressed={pressed.has('L')} muted={!hasLeftSide} bound={boundCommands?.has('L')} selected={selectedCommand === 'L'} onSelect={hasLeftSide ? () => onSelectCommand?.('L') : undefined} title="Left bumper" />
-            <TriggerPath d={DUALSENSE_PATHS.r2} fillX={869} fillY={40} fillWidth={106} label={rightTriggerLabel} labelX={922} labelY={40} value={rightTrigger} muted={!hasRightSide} bound={rightTriggerBound} selected={rightTriggerSelected} onSelect={hasRightSide ? () => onSelectCommand?.(pickCommand(RIGHT_TRIGGER_COMMANDS, boundCommands, selectedCommand)) : undefined} title="Right trigger" />
-            <PathButton d={DUALSENSE_PATHS.r1} label={controllerButtonGlyph(device.type, 'R')} labelX={922} labelY={110} pressed={pressed.has('R')} muted={!hasRightSide} bound={boundCommands?.has('R')} selected={selectedCommand === 'R'} onSelect={hasRightSide ? () => onSelectCommand?.('R') : undefined} title="Right bumper" />
+            {/* Bumpers/triggers, on the artwork's own shoulder humps */}
+            <TriggerPath {...shoulderTrigger('left')} compact label={leftTriggerLabel} value={leftTrigger} muted={!hasLeftSide} bound={leftTriggerBound} selected={leftTriggerSelected} onSelect={hasLeftSide ? () => onSelectCommand?.(pickCommand(LEFT_TRIGGER_COMMANDS, boundCommands, selectedCommand)) : undefined} title="Left trigger" />
+            <PathButton {...shoulderBumper('left')} compact label={controllerButtonGlyph(device.type, 'L')} pressed={pressed.has('L')} muted={!hasLeftSide} bound={boundCommands?.has('L')} selected={selectedCommand === 'L'} onSelect={hasLeftSide ? () => onSelectCommand?.('L') : undefined} title="Left bumper" />
+            <TriggerPath {...shoulderTrigger('right')} compact label={rightTriggerLabel} value={rightTrigger} muted={!hasRightSide} bound={rightTriggerBound} selected={rightTriggerSelected} onSelect={hasRightSide ? () => onSelectCommand?.(pickCommand(RIGHT_TRIGGER_COMMANDS, boundCommands, selectedCommand)) : undefined} title="Right trigger" />
+            <PathButton {...shoulderBumper('right')} compact label={controllerButtonGlyph(device.type, 'R')} pressed={pressed.has('R')} muted={!hasRightSide} bound={boundCommands?.has('R')} selected={selectedCommand === 'R'} onSelect={hasRightSide ? () => onSelectCommand?.('R') : undefined} title="Right bumper" />
 
             {/* Paddles */}
             {PADDLE_LAYOUT.filter(entry => visiblePaddleCommandSet.has(entry.command)).map(entry => {
