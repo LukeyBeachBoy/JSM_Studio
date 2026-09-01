@@ -116,6 +116,12 @@ type KeymapControlsProps = {
   rightTouchpadSensitivity?: number
   onLeftTouchpadSensitivityChange?: (value: string) => void
   onRightTouchpadSensitivityChange?: (value: string) => void
+  leftTouchpadSensitivityY?: number
+  rightTouchpadSensitivityY?: number
+  onLeftTouchpadSensitivityYChange?: (value: string) => void
+  onRightTouchpadSensitivityYChange?: (value: string) => void
+  touchpadSensitivityY?: number
+  onTouchpadSensitivityYChange?: (value: string) => void
   gridColumns?: number
   gridRows?: number
   onGridSizeChange?: (cols: number, rows: number) => void
@@ -495,6 +501,12 @@ export function KeymapControls({
   onLeftGridSizeChange,
   onRightGridSizeChange,
   leftTouchpadSensitivity,
+  leftTouchpadSensitivityY,
+  rightTouchpadSensitivityY,
+  touchpadSensitivityY,
+  onLeftTouchpadSensitivityYChange,
+  onRightTouchpadSensitivityYChange,
+  onTouchpadSensitivityYChange,
   rightTouchpadSensitivity,
   onLeftTouchpadSensitivityChange,
   onRightTouchpadSensitivityChange,
@@ -1161,8 +1173,8 @@ export function KeymapControls({
                     lightTouchThreshold={lightTouchThreshold}
                     onLightTouchThresholdChange={onLightTouchThresholdChange}
                     touchpadDualStageMode={touchpadDualStageMode}
-                    left={{ mode: leftTouchpadMode ?? '', dualStageMode: leftTouchpadDualStageMode ?? '', gridColumns: leftGridColumns ?? gridColumns, gridRows: leftGridRows ?? gridRows, sensitivity: leftTouchpadSensitivity, smoothing: touchpadSmoothing, acceleration: touchpadAcceleration, onModeChange: onLeftTouchpadModeChange, onGridSizeChange: onLeftGridSizeChange, onSensitivityChange: onLeftTouchpadSensitivityChange, onDualStageModeChange: onLeftTouchpadDualStageModeChange, onSmoothingChange: onTouchpadSmoothingChange, onAccelerationChange: onTouchpadAccelerationChange }}
-                    right={{ mode: rightTouchpadMode ?? '', dualStageMode: rightTouchpadDualStageMode ?? '', gridColumns: rightGridColumns ?? gridColumns, gridRows: rightGridRows ?? gridRows, sensitivity: rightTouchpadSensitivity, smoothing: touchpadSmoothing, acceleration: touchpadAcceleration, onModeChange: onRightTouchpadModeChange, onGridSizeChange: onRightGridSizeChange, onSensitivityChange: onRightTouchpadSensitivityChange, onDualStageModeChange: onRightTouchpadDualStageModeChange, onSmoothingChange: onTouchpadSmoothingChange, onAccelerationChange: onTouchpadAccelerationChange }}
+                    left={{ mode: leftTouchpadMode ?? '', dualStageMode: leftTouchpadDualStageMode ?? '', gridColumns: leftGridColumns ?? gridColumns, gridRows: leftGridRows ?? gridRows, sensitivity: leftTouchpadSensitivity, sensitivityY: leftTouchpadSensitivityY, onSensitivityYChange: onLeftTouchpadSensitivityYChange, smoothing: touchpadSmoothing, acceleration: touchpadAcceleration, onModeChange: onLeftTouchpadModeChange, onGridSizeChange: onLeftGridSizeChange, onSensitivityChange: onLeftTouchpadSensitivityChange, onDualStageModeChange: onLeftTouchpadDualStageModeChange, onSmoothingChange: onTouchpadSmoothingChange, onAccelerationChange: onTouchpadAccelerationChange }}
+                    right={{ mode: rightTouchpadMode ?? '', dualStageMode: rightTouchpadDualStageMode ?? '', gridColumns: rightGridColumns ?? gridColumns, gridRows: rightGridRows ?? gridRows, sensitivity: rightTouchpadSensitivity, sensitivityY: rightTouchpadSensitivityY, onSensitivityYChange: onRightTouchpadSensitivityYChange, smoothing: touchpadSmoothing, acceleration: touchpadAcceleration, onModeChange: onRightTouchpadModeChange, onGridSizeChange: onRightGridSizeChange, onSensitivityChange: onRightTouchpadSensitivityChange, onDualStageModeChange: onRightTouchpadDualStageModeChange, onSmoothingChange: onTouchpadSmoothingChange, onAccelerationChange: onTouchpadAccelerationChange }}
                     gridColumns={gridColumns}
                     gridRows={gridRows}
 
@@ -1170,6 +1182,8 @@ export function KeymapControls({
                     onTouchpadDualStageModeChange={onTouchpadDualStageModeChange}
                     onGridSizeChange={onGridSizeChange}
                     touchpadSensitivity={touchpadSensitivity}
+                    touchpadSensitivityY={touchpadSensitivityY}
+                    onTouchpadSensitivityYChange={onTouchpadSensitivityYChange}
                     onTouchpadSensitivityChange={onTouchpadSensitivityChange}
                     touchpadSmoothing={touchpadSmoothing}
                     onTouchpadSmoothingChange={onTouchpadSmoothingChange}

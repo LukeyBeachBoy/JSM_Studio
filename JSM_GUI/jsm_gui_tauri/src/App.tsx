@@ -284,6 +284,9 @@ function App() {
     touchpadSensitivityValue,
     leftTouchpadSensitivityValue,
     rightTouchpadSensitivityValue,
+    touchpadSensitivityYValue,
+    leftTouchpadSensitivityYValue,
+    rightTouchpadSensitivityYValue,
     touchpadDualStageModeValue,
     leftTouchpadDualStageModeValue,
     rightTouchpadDualStageModeValue,
@@ -343,6 +346,9 @@ function App() {
     handleTouchpadSensitivityChange,
     handleLeftTouchpadSensitivityChange,
     handleRightTouchpadSensitivityChange,
+    handleTouchpadSensitivityYChange,
+    handleLeftTouchpadSensitivityYChange,
+    handleRightTouchpadSensitivityYChange,
     handleTouchpadDualStageModeChange,
     handleLeftTouchpadDualStageModeChange,
     handleRightTouchpadDualStageModeChange,
@@ -989,6 +995,10 @@ function App() {
             rightTouchpadSensitivity={rightTouchpadSensitivityValue}
             onLeftTouchpadSensitivityChange={handleLeftTouchpadSensitivityChange}
             onRightTouchpadSensitivityChange={handleRightTouchpadSensitivityChange}
+            leftTouchpadSensitivityY={leftTouchpadSensitivityYValue}
+            rightTouchpadSensitivityY={rightTouchpadSensitivityYValue}
+            onLeftTouchpadSensitivityYChange={handleLeftTouchpadSensitivityYChange}
+            onRightTouchpadSensitivityYChange={handleRightTouchpadSensitivityYChange}
             gridColumns={gridSizeValue.columns}
             gridRows={gridSizeValue.rows}
             touchDeadzoneInner={touchDeadzoneInnerValue}
@@ -1092,6 +1102,10 @@ function App() {
             rightTouchpadSensitivity={rightTouchpadSensitivityValue}
             onLeftTouchpadSensitivityChange={handleLeftTouchpadSensitivityChange}
             onRightTouchpadSensitivityChange={handleRightTouchpadSensitivityChange}
+            leftTouchpadSensitivityY={leftTouchpadSensitivityYValue}
+            rightTouchpadSensitivityY={rightTouchpadSensitivityYValue}
+            onLeftTouchpadSensitivityYChange={handleLeftTouchpadSensitivityYChange}
+            onRightTouchpadSensitivityYChange={handleRightTouchpadSensitivityYChange}
             onTouchpadModeChange={handleTouchpadModeChange}
             onTouchpadDualStageModeChange={handleTouchpadDualStageModeChange}
             gridColumns={gridSizeValue.columns}
@@ -1099,6 +1113,8 @@ function App() {
             onGridSizeChange={handleGridSizeChange}
             touchpadSensitivity={touchpadSensitivityValue}
             onTouchpadSensitivityChange={handleTouchpadSensitivityChange}
+            touchpadSensitivityY={touchpadSensitivityYValue}
+            onTouchpadSensitivityYChange={handleTouchpadSensitivityYChange}
             touchStickMode={touchStickModeValue}
             leftTouchStickMode={leftTouchStickModeValue}
             rightTouchStickMode={rightTouchStickModeValue}
