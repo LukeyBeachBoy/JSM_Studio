@@ -276,6 +276,14 @@ function App() {
     touchpadModeValue,
     lightTouchThreshold,
     handleLightTouchThresholdChange,
+    touchpadMinCutoffValue,
+    touchpadSpeedCoeffValue,
+    touchpadLiftoffRatioValue,
+    touchpadPositionFallbackValue,
+    handleTouchpadMinCutoffChange,
+    handleTouchpadSpeedCoeffChange,
+    handleTouchpadLiftoffRatioChange,
+    handleTouchpadPositionFallbackChange,
     leftTouchpadModeValue,
     rightTouchpadModeValue,
     gridSizeValue,
@@ -976,6 +984,14 @@ function App() {
             touchpadMode={touchpadModeValue}
             lightTouchThreshold={lightTouchThreshold}
             onLightTouchThresholdChange={handleLightTouchThresholdChange}
+            touchpadMinCutoff={touchpadMinCutoffValue}
+            touchpadSpeedCoeff={touchpadSpeedCoeffValue}
+            touchpadLiftoffRatio={touchpadLiftoffRatioValue}
+            touchpadPositionFallback={touchpadPositionFallbackValue}
+            onTouchpadMinCutoffChange={handleTouchpadMinCutoffChange}
+            onTouchpadSpeedCoeffChange={handleTouchpadSpeedCoeffChange}
+            onTouchpadLiftoffRatioChange={handleTouchpadLiftoffRatioChange}
+            onTouchpadPositionFallbackChange={handleTouchpadPositionFallbackChange}
             touchpadDualStageMode={touchpadDualStageModeValue}
             leftTouchpadMode={leftTouchpadModeValue}
             rightTouchpadMode={rightTouchpadModeValue}
@@ -1083,6 +1099,14 @@ function App() {
             touchpadMode={touchpadModeValue}
             lightTouchThreshold={lightTouchThreshold}
             onLightTouchThresholdChange={handleLightTouchThresholdChange}
+            touchpadMinCutoff={touchpadMinCutoffValue}
+            touchpadSpeedCoeff={touchpadSpeedCoeffValue}
+            touchpadLiftoffRatio={touchpadLiftoffRatioValue}
+            touchpadPositionFallback={touchpadPositionFallbackValue}
+            onTouchpadMinCutoffChange={handleTouchpadMinCutoffChange}
+            onTouchpadSpeedCoeffChange={handleTouchpadSpeedCoeffChange}
+            onTouchpadLiftoffRatioChange={handleTouchpadLiftoffRatioChange}
+            onTouchpadPositionFallbackChange={handleTouchpadPositionFallbackChange}
             touchpadDualStageMode={touchpadDualStageModeValue}
             leftTouchpadMode={leftTouchpadModeValue}
             rightTouchpadMode={rightTouchpadModeValue}

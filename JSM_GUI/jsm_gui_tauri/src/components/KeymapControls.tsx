@@ -95,6 +95,14 @@ type KeymapControlsProps = {
   touchpadMode?: string
   lightTouchThreshold?: number
   onLightTouchThresholdChange?: (value: string) => void
+  touchpadMinCutoff?: number
+  touchpadSpeedCoeff?: number
+  touchpadLiftoffRatio?: number
+  touchpadPositionFallback?: boolean
+  onTouchpadMinCutoffChange?: (value: string) => void
+  onTouchpadSpeedCoeffChange?: (value: string) => void
+  onTouchpadLiftoffRatioChange?: (value: string) => void
+  onTouchpadPositionFallbackChange?: (value: boolean) => void
   touchpadDualStageMode?: string
   onTouchpadModeChange?: (value: string) => void
   onTouchpadDualStageModeChange?: (value: string) => void
@@ -483,6 +491,14 @@ export function KeymapControls({
   touchpadMode: touchpadModeProp = '',
   lightTouchThreshold,
   onLightTouchThresholdChange,
+  touchpadMinCutoff,
+  touchpadSpeedCoeff,
+  touchpadLiftoffRatio,
+  touchpadPositionFallback,
+  onTouchpadMinCutoffChange,
+  onTouchpadSpeedCoeffChange,
+  onTouchpadLiftoffRatioChange,
+  onTouchpadPositionFallbackChange,
   touchpadDualStageMode = '',
   onTouchpadModeChange,
   onTouchpadDualStageModeChange,
@@ -1172,6 +1188,14 @@ export function KeymapControls({
                     touchpadMode={touchpadMode}
                     lightTouchThreshold={lightTouchThreshold}
                     onLightTouchThresholdChange={onLightTouchThresholdChange}
+                    touchpadMinCutoff={touchpadMinCutoff}
+                    touchpadSpeedCoeff={touchpadSpeedCoeff}
+                    touchpadLiftoffRatio={touchpadLiftoffRatio}
+                    touchpadPositionFallback={touchpadPositionFallback}
+                    onTouchpadMinCutoffChange={onTouchpadMinCutoffChange}
+                    onTouchpadSpeedCoeffChange={onTouchpadSpeedCoeffChange}
+                    onTouchpadLiftoffRatioChange={onTouchpadLiftoffRatioChange}
+                    onTouchpadPositionFallbackChange={onTouchpadPositionFallbackChange}
                     touchpadDualStageMode={touchpadDualStageMode}
                     left={{ mode: leftTouchpadMode ?? '', dualStageMode: leftTouchpadDualStageMode ?? '', gridColumns: leftGridColumns ?? gridColumns, gridRows: leftGridRows ?? gridRows, sensitivity: leftTouchpadSensitivity, sensitivityY: leftTouchpadSensitivityY, onSensitivityYChange: onLeftTouchpadSensitivityYChange, smoothing: touchpadSmoothing, acceleration: touchpadAcceleration, onModeChange: onLeftTouchpadModeChange, onGridSizeChange: onLeftGridSizeChange, onSensitivityChange: onLeftTouchpadSensitivityChange, onDualStageModeChange: onLeftTouchpadDualStageModeChange, onSmoothingChange: onTouchpadSmoothingChange, onAccelerationChange: onTouchpadAccelerationChange }}
                     right={{ mode: rightTouchpadMode ?? '', dualStageMode: rightTouchpadDualStageMode ?? '', gridColumns: rightGridColumns ?? gridColumns, gridRows: rightGridRows ?? gridRows, sensitivity: rightTouchpadSensitivity, sensitivityY: rightTouchpadSensitivityY, onSensitivityYChange: onRightTouchpadSensitivityYChange, smoothing: touchpadSmoothing, acceleration: touchpadAcceleration, onModeChange: onRightTouchpadModeChange, onGridSizeChange: onRightGridSizeChange, onSensitivityChange: onRightTouchpadSensitivityChange, onDualStageModeChange: onRightTouchpadDualStageModeChange, onSmoothingChange: onTouchpadSmoothingChange, onAccelerationChange: onTouchpadAccelerationChange }}

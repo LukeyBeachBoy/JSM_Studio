@@ -58,6 +58,19 @@
   color: var(--touchpad-grid-limit);
 }
 
+.touchpadDeprecated {
+  opacity: 0.62;
+}
+
+.touchpadCheckbox {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
 .touchpadHint {
   margin: 0;
   color: var(--text-mid);
