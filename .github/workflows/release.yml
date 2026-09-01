@@ -59,6 +59,19 @@ jobs:
             - `LEFT_TOUCHPAD_MODE`, `RIGHT_TOUCHPAD_MODE`, `LEFT_GRID_SIZE`, `RIGHT_GRID_SIZE`, etc.
             - SDL 3.4.14+ with Triton HID driver and two-touchpad support
 
+            ### Trackpad precision
+            - Pad deltas are floating point end to end. They were cast to `int16_t` every
+              3ms poll, so a slow steady swipe rounded to zero and the cursor stepped
+              instead of moving
+            - Steam Controller pads are treated as square. They were reusing the
+              DualShock 4's 1920x920, making vertical gain 2.09x too low
+            - Contact detection is separate from motion gating, so a capacitive
+              zero-force touch registers without pressing hard
+            - One Euro filter on pad position with measured frame time, tuned by
+              `TOUCHPAD_MIN_CUTOFF` and `TOUCHPAD_SPEED_COEFF`
+            - New `TOUCHPAD_LIFTOFF_RATIO` suppresses the involuntary tail of a swipe
+            - Overlay artwork and live touch dots aligned to the controller diagram
+
             ### Known limitations
             - Trigger clicks (physical click at end of trigger travel) are not yet exposed — requires SDL upstream patch
             - Auto-updater is disabled (pending signing key setup)
