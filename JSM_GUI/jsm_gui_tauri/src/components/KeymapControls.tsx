@@ -95,6 +95,14 @@ type KeymapControlsProps = {
   touchpadMode?: string
   lightTouchThreshold?: number
   onLightTouchThresholdChange?: (value: string) => void
+  touchOnThreshold?: number
+  touchOffThreshold?: number
+  onTouchOnThresholdChange?: (value: string) => void
+  onTouchOffThresholdChange?: (value: string) => void
+  touchTrackball?: boolean
+  onTouchTrackballChange?: (on: boolean) => void
+  touchTrackballFriction?: number
+  onTouchTrackballFrictionChange?: (value: string) => void
   touchpadMinCutoff?: number
   touchpadSpeedCoeff?: number
   touchpadLiftoffRatio?: number
@@ -491,6 +499,14 @@ export function KeymapControls({
   touchpadMode: touchpadModeProp = '',
   lightTouchThreshold,
   onLightTouchThresholdChange,
+  touchOnThreshold,
+  touchOffThreshold,
+  onTouchOnThresholdChange,
+  onTouchOffThresholdChange,
+  touchTrackball,
+  onTouchTrackballChange,
+  touchTrackballFriction,
+  onTouchTrackballFrictionChange,
   touchpadMinCutoff,
   touchpadSpeedCoeff,
   touchpadLiftoffRatio,
@@ -1188,6 +1204,14 @@ export function KeymapControls({
                     touchpadMode={touchpadMode}
                     lightTouchThreshold={lightTouchThreshold}
                     onLightTouchThresholdChange={onLightTouchThresholdChange}
+                    touchOnThreshold={touchOnThreshold}
+                    touchOffThreshold={touchOffThreshold}
+                    onTouchOnThresholdChange={onTouchOnThresholdChange}
+                    onTouchOffThresholdChange={onTouchOffThresholdChange}
+                    touchTrackball={touchTrackball}
+                    onTouchTrackballChange={onTouchTrackballChange}
+                    touchTrackballFriction={touchTrackballFriction}
+                    onTouchTrackballFrictionChange={onTouchTrackballFrictionChange}
                     touchpadMinCutoff={touchpadMinCutoff}
                     touchpadSpeedCoeff={touchpadSpeedCoeff}
                     touchpadLiftoffRatio={touchpadLiftoffRatio}
