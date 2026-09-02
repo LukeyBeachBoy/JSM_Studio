@@ -630,10 +630,31 @@ export function ControllerStatusSvg({
               return (
                 <PaddleButton key={entry.command} x={entry.x} y={entry.y} width={entry.width} height={entry.height}
                   label={getPaddleLabel(backInputMode, entry.command)} pressed={pressed.has(entry.command)} muted={!hasSide}
-                  bound={boundCommands?.has(entry.command)} selected={selectedCommand === entry.command}
-                  onSelect={hasSide ? () => onSelectCommand?.(entry.command) : undefined} title={BACK_INPUT_TITLES[entry.command]} />
+                  bound={boundCommands?.has(entry.command)} selected={selectedCommand === entry.command}                  onSelect={hasSide ? () => onSelectCommand?.(entry.command) : undefined} title={BACK_INPUT_TITLES[entry.command]} />
               )
             })}
+
+            {/* Grip sense live preview: the grip sensors are binary contact
+                sensors, so the indicator lights only — no fill value. MISC6 =
+                left grip, MISC5 = right grip. */}
+            <g className={join(!hasLeftSide && styles.sideMuted, styles.interactive)} onClick={() => onSelectCommand?.('MISC6')}>
+              <title>Left grip sensor</title>
+              <rect x={60} y={330} width={30} height={150} rx={14}
+                className={join(styles.control, styles.paddleControl,
+                  boundCommands?.has('MISC6') && styles.controlBound,
+                  selectedCommand === 'MISC6' && styles.controlSelected,
+                  pressed.has('MISC6') && styles.controlPressed)} />
+              <text className={styles.paddleText} x={75} y={410} textAnchor="middle">L Grip</text>
+            </g>
+            <g className={join(!hasRightSide && styles.sideMuted, styles.interactive)} onClick={() => onSelectCommand?.('MISC5')}>
+              <title>Right grip sensor</title>
+              <rect x={1003} y={330} width={30} height={150} rx={14}
+                className={join(styles.control, styles.paddleControl,
+                  boundCommands?.has('MISC5') && styles.controlBound,
+                  selectedCommand === 'MISC5' && styles.controlSelected,
+                  pressed.has('MISC5') && styles.controlPressed)} />
+              <text className={styles.paddleText} x={1018} y={410} textAnchor="middle">R Grip</text>
+            </g>
           </svg>
         </div>
       )

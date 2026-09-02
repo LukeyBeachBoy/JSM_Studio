@@ -284,6 +284,14 @@ function App() {
     handleTouchTrackballChange,
     touchTrackballFriction,
     handleTouchTrackballFrictionChange,
+    leftGripOnMs,
+    leftGripOffMs,
+    rightGripOnMs,
+    rightGripOffMs,
+    handleLeftGripOnMsChange,
+    handleLeftGripOffMsChange,
+    handleRightGripOnMsChange,
+    handleRightGripOffMsChange,
     touchpadMinCutoffValue,
     touchpadSpeedCoeffValue,
     touchpadLiftoffRatioValue,
@@ -1000,6 +1008,14 @@ function App() {
             onTouchTrackballChange={handleTouchTrackballChange}
             touchTrackballFriction={touchTrackballFriction}
             onTouchTrackballFrictionChange={handleTouchTrackballFrictionChange}
+            leftGripOnMs={leftGripOnMs}
+            leftGripOffMs={leftGripOffMs}
+            rightGripOnMs={rightGripOnMs}
+            rightGripOffMs={rightGripOffMs}
+            onLeftGripOnMsChange={handleLeftGripOnMsChange}
+            onLeftGripOffMsChange={handleLeftGripOffMsChange}
+            onRightGripOnMsChange={handleRightGripOnMsChange}
+            onRightGripOffMsChange={handleRightGripOffMsChange}
             touchpadMinCutoff={touchpadMinCutoffValue}
             touchpadSpeedCoeff={touchpadSpeedCoeffValue}
             touchpadLiftoffRatio={touchpadLiftoffRatioValue}
@@ -1123,6 +1139,14 @@ function App() {
             onTouchTrackballChange={handleTouchTrackballChange}
             touchTrackballFriction={touchTrackballFriction}
             onTouchTrackballFrictionChange={handleTouchTrackballFrictionChange}
+            leftGripOnMs={leftGripOnMs}
+            leftGripOffMs={leftGripOffMs}
+            rightGripOnMs={rightGripOnMs}
+            rightGripOffMs={rightGripOffMs}
+            onLeftGripOnMsChange={handleLeftGripOnMsChange}
+            onLeftGripOffMsChange={handleLeftGripOffMsChange}
+            onRightGripOnMsChange={handleRightGripOnMsChange}
+            onRightGripOffMsChange={handleRightGripOffMsChange}
             touchpadMinCutoff={touchpadMinCutoffValue}
             touchpadSpeedCoeff={touchpadSpeedCoeffValue}
             touchpadLiftoffRatio={touchpadLiftoffRatioValue}

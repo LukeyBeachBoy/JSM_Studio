@@ -103,6 +103,14 @@ type KeymapControlsProps = {
   onTouchTrackballChange?: (on: boolean) => void
   touchTrackballFriction?: number
   onTouchTrackballFrictionChange?: (value: string) => void
+  leftGripOnMs?: number
+  leftGripOffMs?: number
+  rightGripOnMs?: number
+  rightGripOffMs?: number
+  onLeftGripOnMsChange?: (value: string) => void
+  onLeftGripOffMsChange?: (value: string) => void
+  onRightGripOnMsChange?: (value: string) => void
+  onRightGripOffMsChange?: (value: string) => void
   touchpadMinCutoff?: number
   touchpadSpeedCoeff?: number
   touchpadLiftoffRatio?: number
@@ -507,6 +515,14 @@ export function KeymapControls({
   onTouchTrackballChange,
   touchTrackballFriction,
   onTouchTrackballFrictionChange,
+  leftGripOnMs,
+  leftGripOffMs,
+  rightGripOnMs,
+  rightGripOffMs,
+  onLeftGripOnMsChange,
+  onLeftGripOffMsChange,
+  onRightGripOnMsChange,
+  onRightGripOffMsChange,
   touchpadMinCutoff,
   touchpadSpeedCoeff,
   touchpadLiftoffRatio,
@@ -1212,6 +1228,14 @@ export function KeymapControls({
                     onTouchTrackballChange={onTouchTrackballChange}
                     touchTrackballFriction={touchTrackballFriction}
                     onTouchTrackballFrictionChange={onTouchTrackballFrictionChange}
+                    leftGripOnMs={leftGripOnMs}
+                    leftGripOffMs={leftGripOffMs}
+                    rightGripOnMs={rightGripOnMs}
+                    rightGripOffMs={rightGripOffMs}
+                    onLeftGripOnMsChange={onLeftGripOnMsChange}
+                    onLeftGripOffMsChange={onLeftGripOffMsChange}
+                    onRightGripOnMsChange={onRightGripOnMsChange}
+                    onRightGripOffMsChange={onRightGripOffMsChange}
                     touchpadMinCutoff={touchpadMinCutoff}
                     touchpadSpeedCoeff={touchpadSpeedCoeff}
                     touchpadLiftoffRatio={touchpadLiftoffRatio}
