@@ -5,6 +5,7 @@ export type TelemetryPadState = {
   x: number
   y: number
   touched: boolean
+  pressure?: number
 }
 
 export type TelemetryDeviceStatus = {

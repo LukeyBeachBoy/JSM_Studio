@@ -48,7 +48,6 @@ type StickProps = SharedControlProps & {
 }
 
 type TriggerPathProps = SharedControlProps & {
-  compact?: boolean
   d: string
   fillX: number
   fillY: number
@@ -386,7 +385,6 @@ function PaddleButton({
 }
 
 function TriggerPath({
-  compact = false,
   d,
   fillX,
   fillY,
@@ -416,77 +414,11 @@ function TriggerPath({
         d={d}
       />
       <rect className={styles.triggerFill} x={fillX} y={fillY} width={fillWidth * fillValue} height={12} rx={6} />
-      <text className={join(styles.triggerLabel, compact && styles.controlTextCompact, selected && styles.triggerLabelSelected)} x={labelX} y={labelY}>
+      <text className={join(styles.triggerLabel, selected && styles.triggerLabelSelected)} x={labelX} y={labelY}>
         {label}
       </text>
     </g>
   )
-}
-
-// Rounded-rect path data, for the overlay components that take a `d` rather than
-// x/y/width/height.
-function roundedRectPath(x: number, y: number, w: number, h: number, r: number) {
-  const rr = Math.min(r, w / 2, h / 2)
-  return `M${x + rr},${y}h${w - 2 * rr}a${rr},${rr} 0 0 1 ${rr},${rr}v${h - 2 * rr}a${rr},${rr} 0 0 1 ${-rr},${rr}h${-(w - 2 * rr)}a${rr},${rr} 0 0 1 ${-rr},${-rr}v${-(h - 2 * rr)}a${rr},${rr} 0 0 1 ${rr},${-rr}z`
-}
-
-// The shoulder humps, measured off the body outline of steam-controller-front.svg
-// (left x[195.6,346.6] y[6.8,57.8], right x[773.5,924.0] y[6.8,56.5]).
-//
-// The front artwork does not depict the triggers at all -- they sit behind the
-// bumpers -- so each hump carries two stacked bands: the trigger on top with its
-// analog fill, the bumper below it. Before this, the Steam layout reused
-// DUALSENSE_PATHS, which drew large lens shapes straight across the D-pad and the
-// face buttons. Those overlays are interactive and are painted after the buttons,
-// so they were also swallowing clicks meant for UP/DOWN/LEFT/RIGHT and N/E/S/W.
-const STEAM_SHOULDER = {
-  left: { x: 196, w: 151 },
-  right: { x: 773.5, w: 150.5 },
-} as const
-const SHOULDER_TRIGGER_Y = 7
-const SHOULDER_TRIGGER_H = 24
-const SHOULDER_BUMPER_Y = 33
-const SHOULDER_BUMPER_H = 25
-
-function shoulderTrigger(side: keyof typeof STEAM_SHOULDER) {
-  const { x, w } = STEAM_SHOULDER[side]
-  return {
-    d: roundedRectPath(x, SHOULDER_TRIGGER_Y, w, SHOULDER_TRIGGER_H, 11),
-    fillX: x + 6,
-    fillY: SHOULDER_TRIGGER_Y + 6,
-    fillWidth: w - 12,
-    labelX: x + w / 2,
-    labelY: SHOULDER_TRIGGER_Y + SHOULDER_TRIGGER_H / 2,
-  }
-}
-
-function shoulderBumper(side: keyof typeof STEAM_SHOULDER) {
-  const { x, w } = STEAM_SHOULDER[side]
-  return {
-    d: roundedRectPath(x, SHOULDER_BUMPER_Y, w, SHOULDER_BUMPER_H, 12),
-    labelX: x + w / 2,
-    labelY: SHOULDER_BUMPER_Y + SHOULDER_BUMPER_H / 2,
-  }
-}
-
-// Measured directly from the paths in steam-controller-front.svg, expressed in the
-// same 1117x750 space the artwork now uses. Do not hand-tune these: re-measure the
-// SVG if the artwork changes.
-const STEAM_PAD = {
-  left: { cx: 364.9, cy: 410.5, half: 108.0, rot: 10.7 },
-  right: { cx: 750.8, cy: 410.5, half: 108.7, rot: -10.5 },
-} as const
-
-// The pads are tilted ~10.6 degrees outward, so a live touch point has to be rotated
-// into pad space. Clamping to an axis-aligned box put the dot outside the artwork
-// near the corners.
-function padPoint(pad: { cx: number; cy: number; half: number; rot: number }, u: number, v: number) {
-  const t = (pad.rot * Math.PI) / 180
-  const c = Math.cos(t)
-  const sn = Math.sin(t)
-  const x = clamp(u, -1, 1)
-  const y = clamp(v, -1, 1)
-  return { x: pad.cx + (x * c - y * sn) * pad.half, y: pad.cy + (x * sn + y * c) * pad.half }
 }
 
 function Stick({
@@ -558,7 +490,7 @@ export function ControllerStatusSvg({
         <div className={styles.visualizer}>
           <svg className={styles.controllerSvg} viewBox="0 0 1117 750" role="img" aria-label="Steam Controller live status">
                     <title>Steam Controller live status</title>
-                                      <image className={styles.steamArtwork} href={steamControllerFront} x="0" y="0" width="1117" height="750" preserveAspectRatio="none" aria-label="Steam Controller front artwork" />
+                                      <image className={styles.steamArtwork} href={steamControllerFront} x="0" y="0" width="1117" height="750" preserveAspectRatio="xMidYMid meet" aria-label="Steam Controller front artwork" />
                     <g aria-label="Grip sense overlays">
                       <rect className={join(styles.gripSense, pressed.has('GRIP_L') && styles.controlPressed, boundCommands?.has('GRIP_L') && styles.controlBound, selectedCommand === 'GRIP_L' && styles.controlSelected)} x="80" y="585" width="150" height="105" rx="42" onClick={() => onSelectCommand?.('GRIP_L')} />
                       <text className={styles.gripSenseText} x="155" y="638">L GRIP</text>
@@ -567,62 +499,56 @@ export function ControllerStatusSvg({
                     </g>
             {/* Live overlays on the Steam Controller 2026 front artwork */}
             {/* Sticks (top) */}
-            <Stick cx={412} cy={219} x={leftStickX} y={leftStickY} pressed={pressed.has('L3')} muted={!hasLeftSide} bound={leftStickBound} selected={leftStickSelected} onSelect={hasLeftSide ? () => onSelectCommand?.(pickCommand(LEFT_STICK_COMMANDS, boundCommands, selectedCommand)) : undefined} title="Left stick" />
-            <Stick cx={700} cy={219} x={rightStickX} y={rightStickY} pressed={pressed.has('R3')} muted={!hasRightSide} bound={rightStickBound} selected={rightStickSelected} onSelect={hasRightSide ? () => onSelectCommand?.(pickCommand(RIGHT_STICK_COMMANDS, boundCommands, selectedCommand)) : undefined} title="Right stick" />
+            <Stick cx={555} cy={146} x={leftStickX} y={leftStickY} pressed={pressed.has('L3')} muted={!hasLeftSide} bound={leftStickBound} selected={leftStickSelected} onSelect={hasLeftSide ? () => onSelectCommand?.(pickCommand(LEFT_STICK_COMMANDS, boundCommands, selectedCommand)) : undefined} title="Left stick" />
+            <Stick cx={805} cy={146} x={rightStickX} y={rightStickY} pressed={pressed.has('R3')} muted={!hasRightSide} bound={rightStickBound} selected={rightStickSelected} onSelect={hasRightSide ? () => onSelectCommand?.(pickCommand(RIGHT_STICK_COMMANDS, boundCommands, selectedCommand)) : undefined} title="Right stick" />
 
             {/* D-pad (upper-left area) */}
             <g className={join(!hasLeftSide && styles.sideMuted)}>
-              <ButtonBubble cx={252} cy={99} label="U" pressed={pressed.has('UP')} bound={boundCommands?.has('UP')} selected={selectedCommand === 'UP'} onSelect={hasLeftSide ? () => onSelectCommand?.('UP') : undefined} radius={22} title="D-pad up" />
-              <ButtonBubble cx={206} cy={145} label="L" pressed={pressed.has('LEFT')} bound={boundCommands?.has('LEFT')} selected={selectedCommand === 'LEFT'} onSelect={hasLeftSide ? () => onSelectCommand?.('LEFT') : undefined} radius={22} title="D-pad left" />
-              <ButtonBubble cx={298} cy={145} label="R" pressed={pressed.has('RIGHT')} bound={boundCommands?.has('RIGHT')} selected={selectedCommand === 'RIGHT'} onSelect={hasLeftSide ? () => onSelectCommand?.('RIGHT') : undefined} radius={22} title="D-pad right" />
-              <ButtonBubble cx={252} cy={191} label="D" pressed={pressed.has('DOWN')} bound={boundCommands?.has('DOWN')} selected={selectedCommand === 'DOWN'} onSelect={hasLeftSide ? () => onSelectCommand?.('DOWN') : undefined} radius={22} title="D-pad down" />
+              <ButtonBubble cx={372} cy={391} label="U" pressed={pressed.has('UP')} bound={boundCommands?.has('UP')} selected={selectedCommand === 'UP'} onSelect={hasLeftSide ? () => onSelectCommand?.('UP') : undefined} radius={18} title="D-pad up" />
+              <ButtonBubble cx={354} cy={409} label="L" pressed={pressed.has('LEFT')} bound={boundCommands?.has('LEFT')} selected={selectedCommand === 'LEFT'} onSelect={hasLeftSide ? () => onSelectCommand?.('LEFT') : undefined} radius={18} title="D-pad left" />
+              <ButtonBubble cx={390} cy={409} label="R" pressed={pressed.has('RIGHT')} bound={boundCommands?.has('RIGHT')} selected={selectedCommand === 'RIGHT'} onSelect={hasLeftSide ? () => onSelectCommand?.('RIGHT') : undefined} radius={18} title="D-pad right" />
+              <ButtonBubble cx={372} cy={427} label="D" pressed={pressed.has('DOWN')} bound={boundCommands?.has('DOWN')} selected={selectedCommand === 'DOWN'} onSelect={hasLeftSide ? () => onSelectCommand?.('DOWN') : undefined} radius={18} title="D-pad down" />
             </g>
 
             {/* ABXY (upper-right area) */}
             <g className={join(!hasRightSide && styles.sideMuted)}>
-              <ButtonBubble cx={864} cy={93} radius={31} label={controllerButtonGlyph(device.type, 'N')} pressed={pressed.has('N')} bound={boundCommands?.has('N')} selected={selectedCommand === 'N'} onSelect={hasRightSide ? () => onSelectCommand?.('N') : undefined} title="North face button" />
-              <ButtonBubble cx={922} cy={146} radius={31} label={controllerButtonGlyph(device.type, 'E')} pressed={pressed.has('E')} bound={boundCommands?.has('E')} selected={selectedCommand === 'E'} onSelect={hasRightSide ? () => onSelectCommand?.('E') : undefined} title="East face button" />
-              <ButtonBubble cx={864} cy={200} radius={31} label={controllerButtonGlyph(device.type, 'S')} pressed={pressed.has('S')} bound={boundCommands?.has('S')} selected={selectedCommand === 'S'} onSelect={hasRightSide ? () => onSelectCommand?.('S') : undefined} title="South face button" />
-              <ButtonBubble cx={805} cy={146} radius={31} label={controllerButtonGlyph(device.type, 'W')} pressed={pressed.has('W')} bound={boundCommands?.has('W')} selected={selectedCommand === 'W'} onSelect={hasRightSide ? () => onSelectCommand?.('W') : undefined} title="West face button" />
+              <ButtonBubble cx={748} cy={381} radius={28} label={controllerButtonGlyph(device.type, 'N')} pressed={pressed.has('N')} bound={boundCommands?.has('N')} selected={selectedCommand === 'N'} onSelect={hasRightSide ? () => onSelectCommand?.('N') : undefined} title="North face button" />
+              <ButtonBubble cx={776} cy={409} radius={28} label={controllerButtonGlyph(device.type, 'E')} pressed={pressed.has('E')} bound={boundCommands?.has('E')} selected={selectedCommand === 'E'} onSelect={hasRightSide ? () => onSelectCommand?.('E') : undefined} title="East face button" />
+              <ButtonBubble cx={748} cy={437} radius={28} label={controllerButtonGlyph(device.type, 'S')} pressed={pressed.has('S')} bound={boundCommands?.has('S')} selected={selectedCommand === 'S'} onSelect={hasRightSide ? () => onSelectCommand?.('S') : undefined} title="South face button" />
+              <ButtonBubble cx={720} cy={409} radius={28} label={controllerButtonGlyph(device.type, 'W')} pressed={pressed.has('W')} bound={boundCommands?.has('W')} selected={selectedCommand === 'W'} onSelect={hasRightSide ? () => onSelectCommand?.('W') : undefined} title="West face button" />
             </g>
 
             {/* Left pad (bottom-left) */}
             <g className={join(styles.interactive)} onClick={() => onSelectCommand?.('TOUCH')}>
-              <rect className={join(styles.control, boundCommands?.has('TOUCH') && styles.controlBound, selectedCommand === 'TOUCH' && styles.controlSelected, leftPad?.touched && styles.controlPressed)}
-                x={STEAM_PAD.left.cx - STEAM_PAD.left.half} y={STEAM_PAD.left.cy - STEAM_PAD.left.half}
-                width={STEAM_PAD.left.half * 2} height={STEAM_PAD.left.half * 2} rx="48" ry="48"
-                transform={`rotate(${STEAM_PAD.left.rot} ${STEAM_PAD.left.cx} ${STEAM_PAD.left.cy})`} />
-              <text className={styles.controlText} x={STEAM_PAD.left.cx} y={STEAM_PAD.left.cy}>LPad</text>
-              {leftPad?.touched && (() => {
-                const pt = padPoint(STEAM_PAD.left, leftPad.x, leftPad.y)
-                return <circle cx={pt.x} cy={pt.y} r={12} className={styles.stickKnob} />
-              })()}
+              <rect className={join(styles.control, boundCommands?.has('TOUCH') && styles.controlBound, selectedCommand === 'TOUCH' && styles.controlSelected, leftPad?.touched && styles.controlPressed)} x="360" y="170" width="230" height="130" rx="20" ry="20" />
+              <text className={styles.controlText} x={475} y={228}>LPad</text>
+              {leftPad && <text className={styles.gripSenseText} x={475} y={252}>{`p=${(leftPad.pressure ?? 0).toFixed(4)}`}</text>}
+              {leftPad?.touched && (
+                <circle cx={475 + clamp(leftPad.x, -1, 1) * 50} cy={235 + clamp(leftPad.y, -1, 1) * 50} r={10} className={styles.stickKnob} />
+              )}
             </g>
 
             {/* Right pad (bottom-right) */}
             <g className={join(styles.interactive)} onClick={() => onSelectCommand?.('CAPTURE')}>
-              <rect className={join(styles.control, boundCommands?.has('CAPTURE') && styles.controlBound, selectedCommand === 'CAPTURE' && styles.controlSelected, rightPad?.touched && styles.controlPressed)}
-                x={STEAM_PAD.right.cx - STEAM_PAD.right.half} y={STEAM_PAD.right.cy - STEAM_PAD.right.half}
-                width={STEAM_PAD.right.half * 2} height={STEAM_PAD.right.half * 2} rx="48" ry="48"
-                transform={`rotate(${STEAM_PAD.right.rot} ${STEAM_PAD.right.cx} ${STEAM_PAD.right.cy})`} />
-              <text className={styles.controlText} x={STEAM_PAD.right.cx} y={STEAM_PAD.right.cy}>RPad</text>
-              {rightPad?.touched && (() => {
-                const pt = padPoint(STEAM_PAD.right, rightPad.x, rightPad.y)
-                return <circle cx={pt.x} cy={pt.y} r={12} className={styles.stickKnob} />
-              })()}
+              <rect className={join(styles.control, boundCommands?.has('CAPTURE') && styles.controlBound, selectedCommand === 'CAPTURE' && styles.controlSelected, rightPad?.touched && styles.controlPressed)} x="750" y="170" width="230" height="130" rx="20" ry="20" />
+              <text className={styles.controlText} x={865} y={228}>RPad</text>
+              {rightPad && <text className={styles.gripSenseText} x={865} y={252}>{`p=${(rightPad.pressure ?? 0).toFixed(4)}`}</text>}
+              {rightPad?.touched && (
+                <circle cx={865 + clamp(rightPad.x, -1, 1) * 50} cy={235 + clamp(rightPad.y, -1, 1) * 50} r={10} className={styles.stickKnob} />
+              )}
             </g>
 
             {/* Center buttons */}
-                        <ButtonBubble cx={557} cy={147} radius={33} label="⌂" pressed={pressed.has('HOME')} bound={boundCommands?.has('HOME')} selected={selectedCommand === 'HOME'} onSelect={() => onSelectCommand?.('HOME')} title="Steam button" />
-                        <ButtonBubble cx={556} cy={409} radius={18} label="•" pressed={pressed.has('MISC1')} bound={boundCommands?.has('MISC1')} selected={selectedCommand === 'MISC1'} onSelect={() => onSelectCommand?.('MISC1')} title="QAM button" />
-                        <ButtonBubble cx={382} cy={77} radius={15} label="-" pressed={pressed.has('-')} bound={boundCommands?.has('-')} selected={selectedCommand === '-'} onSelect={() => onSelectCommand?.('-')} title="View button" />
-                        <ButtonBubble cx={730} cy={77} radius={15} label="+" pressed={pressed.has('+')} bound={boundCommands?.has('+')} selected={selectedCommand === '+'} onSelect={() => onSelectCommand?.('+')} title="Menu button" />
+                        <ButtonBubble cx={560} cy={240} radius={22} label="⌂" pressed={pressed.has('HOME')} bound={boundCommands?.has('HOME')} selected={selectedCommand === 'HOME'} onSelect={() => onSelectCommand?.('HOME')} title="Steam button" />
+                        <ButtonBubble cx={560} cy={280} radius={14} label="•" pressed={pressed.has('MISC1')} bound={boundCommands?.has('MISC1')} selected={selectedCommand === 'MISC1'} onSelect={() => onSelectCommand?.('MISC1')} title="QAM button" />
+                        <ButtonBubble cx={490} cy={220} radius={12} label="-" pressed={pressed.has('-')} bound={boundCommands?.has('-')} selected={selectedCommand === '-'} onSelect={() => onSelectCommand?.('-')} title="View button" />
+                        <ButtonBubble cx={630} cy={220} radius={12} label="+" pressed={pressed.has('+')} bound={boundCommands?.has('+')} selected={selectedCommand === '+'} onSelect={() => onSelectCommand?.('+')} title="Menu button" />
 
-            {/* Bumpers/triggers, on the artwork's own shoulder humps */}
-            <TriggerPath {...shoulderTrigger('left')} compact label={leftTriggerLabel} value={leftTrigger} muted={!hasLeftSide} bound={leftTriggerBound} selected={leftTriggerSelected} onSelect={hasLeftSide ? () => onSelectCommand?.(pickCommand(LEFT_TRIGGER_COMMANDS, boundCommands, selectedCommand)) : undefined} title="Left trigger" />
-            <PathButton {...shoulderBumper('left')} compact label={controllerButtonGlyph(device.type, 'L')} pressed={pressed.has('L')} muted={!hasLeftSide} bound={boundCommands?.has('L')} selected={selectedCommand === 'L'} onSelect={hasLeftSide ? () => onSelectCommand?.('L') : undefined} title="Left bumper" />
-            <TriggerPath {...shoulderTrigger('right')} compact label={rightTriggerLabel} value={rightTrigger} muted={!hasRightSide} bound={rightTriggerBound} selected={rightTriggerSelected} onSelect={hasRightSide ? () => onSelectCommand?.(pickCommand(RIGHT_TRIGGER_COMMANDS, boundCommands, selectedCommand)) : undefined} title="Right trigger" />
-            <PathButton {...shoulderBumper('right')} compact label={controllerButtonGlyph(device.type, 'R')} pressed={pressed.has('R')} muted={!hasRightSide} bound={boundCommands?.has('R')} selected={selectedCommand === 'R'} onSelect={hasRightSide ? () => onSelectCommand?.('R') : undefined} title="Right bumper" />
+            {/* Bumpers/triggers */}
+            <TriggerPath d={DUALSENSE_PATHS.l2} fillX={142} fillY={40} fillWidth={106} label={leftTriggerLabel} labelX={196} labelY={40} value={leftTrigger} muted={!hasLeftSide} bound={leftTriggerBound} selected={leftTriggerSelected} onSelect={hasLeftSide ? () => onSelectCommand?.(pickCommand(LEFT_TRIGGER_COMMANDS, boundCommands, selectedCommand)) : undefined} title="Left trigger" />
+            <PathButton d={DUALSENSE_PATHS.l1} label={controllerButtonGlyph(device.type, 'L')} labelX={196} labelY={110} pressed={pressed.has('L')} muted={!hasLeftSide} bound={boundCommands?.has('L')} selected={selectedCommand === 'L'} onSelect={hasLeftSide ? () => onSelectCommand?.('L') : undefined} title="Left bumper" />
+            <TriggerPath d={DUALSENSE_PATHS.r2} fillX={869} fillY={40} fillWidth={106} label={rightTriggerLabel} labelX={922} labelY={40} value={rightTrigger} muted={!hasRightSide} bound={rightTriggerBound} selected={rightTriggerSelected} onSelect={hasRightSide ? () => onSelectCommand?.(pickCommand(RIGHT_TRIGGER_COMMANDS, boundCommands, selectedCommand)) : undefined} title="Right trigger" />
+            <PathButton d={DUALSENSE_PATHS.r1} label={controllerButtonGlyph(device.type, 'R')} labelX={922} labelY={110} pressed={pressed.has('R')} muted={!hasRightSide} bound={boundCommands?.has('R')} selected={selectedCommand === 'R'} onSelect={hasRightSide ? () => onSelectCommand?.('R') : undefined} title="Right bumper" />
 
             {/* Paddles */}
             {PADDLE_LAYOUT.filter(entry => visiblePaddleCommandSet.has(entry.command)).map(entry => {
@@ -630,31 +556,10 @@ export function ControllerStatusSvg({
               return (
                 <PaddleButton key={entry.command} x={entry.x} y={entry.y} width={entry.width} height={entry.height}
                   label={getPaddleLabel(backInputMode, entry.command)} pressed={pressed.has(entry.command)} muted={!hasSide}
-                  bound={boundCommands?.has(entry.command)} selected={selectedCommand === entry.command}                  onSelect={hasSide ? () => onSelectCommand?.(entry.command) : undefined} title={BACK_INPUT_TITLES[entry.command]} />
+                  bound={boundCommands?.has(entry.command)} selected={selectedCommand === entry.command}
+                  onSelect={hasSide ? () => onSelectCommand?.(entry.command) : undefined} title={BACK_INPUT_TITLES[entry.command]} />
               )
             })}
-
-            {/* Grip sense live preview: the grip sensors are binary contact
-                sensors, so the indicator lights only — no fill value. MISC6 =
-                left grip, MISC5 = right grip. */}
-            <g className={join(!hasLeftSide && styles.sideMuted, styles.interactive)} onClick={() => onSelectCommand?.('MISC6')}>
-              <title>Left grip sensor</title>
-              <rect x={60} y={330} width={30} height={150} rx={14}
-                className={join(styles.control, styles.paddleControl,
-                  boundCommands?.has('MISC6') && styles.controlBound,
-                  selectedCommand === 'MISC6' && styles.controlSelected,
-                  pressed.has('MISC6') && styles.controlPressed)} />
-              <text className={styles.paddleText} x={75} y={410} textAnchor="middle">L Grip</text>
-            </g>
-            <g className={join(!hasRightSide && styles.sideMuted, styles.interactive)} onClick={() => onSelectCommand?.('MISC5')}>
-              <title>Right grip sensor</title>
-              <rect x={1003} y={330} width={30} height={150} rx={14}
-                className={join(styles.control, styles.paddleControl,
-                  boundCommands?.has('MISC5') && styles.controlBound,
-                  selectedCommand === 'MISC5' && styles.controlSelected,
-                  pressed.has('MISC5') && styles.controlPressed)} />
-              <text className={styles.paddleText} x={1018} y={410} textAnchor="middle">R Grip</text>
-            </g>
           </svg>
         </div>
       )
