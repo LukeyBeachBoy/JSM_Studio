@@ -24,12 +24,34 @@
   gap: 0.8rem;
 }
 
+/* Settings rows read label-left / control-right with the value pinned to the
+   end, the way Steam Input lays its own out. Stacking the label above a
+   full-width input made every row look like a heading with a field under it and
+   forced the eye to zig-zag down the page. */
 .touchpadSettings label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
+  display: grid;
+  grid-template-columns: minmax(11rem, 18rem) minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 1rem;
+  row-gap: 0.3rem;
   font-weight: 600;
   color: var(--text-strong);
+}
+
+/* The paired inputs (touch on/off, the filter dials) sit side by side, where the
+   grid above would stretch each one across a whole row. */
+.gridSizeInputs .touchpadSettings label,
+.gridSizeInputs label {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.3rem;
+}
+
+@media (max-width: 720px) {
+  .touchpadSettings label {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .touchpadSettings select,
@@ -77,6 +99,14 @@
   font-weight: 500;
   font-size: 0.85rem;
   color: var(--text-mid);
+  justify-self: end;
+  min-width: 8ch;
+  text-align: right;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-1);
+  font-variant-numeric: tabular-nums;
 }
 
 .touchpadHint {

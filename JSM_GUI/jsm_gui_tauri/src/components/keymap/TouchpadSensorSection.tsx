@@ -75,7 +75,6 @@ export function TouchpadSensorSection(props: Props) {
         )}
       >
         <div className={styles.touchpadSettings}>
-          <div className={styles.gridSizeInputs}>
             <label>
               {t('keymap.touchOnThreshold', 'Touch threshold')}
               <input
@@ -94,7 +93,6 @@ export function TouchpadSensorSection(props: Props) {
               />
               <span className={styles.settingReadout}>{showDefault(touchOff)}</span>
             </label>
-          </div>
           <p className={styles.touchpadHint}>
             {t(
               'keymap.touchThresholdHint',
@@ -124,7 +122,6 @@ export function TouchpadSensorSection(props: Props) {
               'Smoothing cutoff is the floor, in Hz: how much smoothing survives when your finger is barely moving. Lower is smoother but laggier, and below about 3 a quick swipe visibly trails your finger. Flick responsiveness lifts that cutoff as the finger speeds up, so a fast flick escapes the smoothing a slow pan needs. If the cursor looks jittery during steady movement, go one step heavier; if it feels like it lags behind your finger, go one step lighter.'
             )}
           </p>
-          <div className={styles.gridSizeInputs}>
             <label>
               {t('keymap.touchpadMinCutoff', 'Smoothing cutoff (Hz)')}
               <input
@@ -141,7 +138,6 @@ export function TouchpadSensorSection(props: Props) {
                 onChange={e => props.onTouchpadSpeedCoeffChange?.(e.target.value)}
               />
             </label>
-          </div>
 
           <label>
             {t('keymap.touchpadTrackballDecay', 'Trackball glide decay')}
