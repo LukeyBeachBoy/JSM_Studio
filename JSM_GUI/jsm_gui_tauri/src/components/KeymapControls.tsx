@@ -41,6 +41,7 @@ import { MappingRulesHelpModal } from './keymap/MappingRulesHelpModal'
 import stickStyles from './Sticks.module.css'
 import { TouchpadGridSection } from './keymap/TouchpadGridSection'
 import { TouchpadSettingsSection } from './keymap/TouchpadSettingsSection'
+import { GripSettingsSection } from './keymap/GripSettingsSection'
 import { TouchpadStickSection } from './keymap/TouchpadStickSection'
 import { SectionActions } from './SectionActions'
 import { ControllerStatusSvg } from './ControllerStatusSvg'
@@ -103,6 +104,10 @@ type KeymapControlsProps = {
   onTouchpadSpeedCoeffChange?: (value: string) => void
   onTouchpadLiftoffRatioChange?: (value: string) => void
   onTouchpadPositionFallbackChange?: (value: boolean) => void
+  gripThreshold?: number
+  gripHysteresis?: number
+  onGripThresholdChange?: (value: string) => void
+  onGripHysteresisChange?: (value: string) => void
   touchpadDualStageMode?: string
   onTouchpadModeChange?: (value: string) => void
   onTouchpadDualStageModeChange?: (value: string) => void
@@ -499,6 +504,10 @@ export function KeymapControls({
   onTouchpadSpeedCoeffChange,
   onTouchpadLiftoffRatioChange,
   onTouchpadPositionFallbackChange,
+  gripThreshold,
+  gripHysteresis,
+  onGripThresholdChange,
+  onGripHysteresisChange,
   touchpadDualStageMode = '',
   onTouchpadModeChange,
   onTouchpadDualStageModeChange,
@@ -1230,6 +1239,19 @@ export function KeymapControls({
                     />
                   )}
                 </>
+              ),
+            },
+            {
+              key: 'grip-sensors',
+              shouldRender: isVisible('grip-sensors'),
+              node: (
+                <GripSettingsSection
+                  gripThreshold={gripThreshold}
+                  gripHysteresis={gripHysteresis}
+                  onGripThresholdChange={onGripThresholdChange}
+                  onGripHysteresisChange={onGripHysteresisChange}
+                  {...actionsProps}
+                />
               ),
             },
             {

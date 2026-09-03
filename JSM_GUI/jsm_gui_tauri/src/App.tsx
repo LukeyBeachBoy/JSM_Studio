@@ -284,6 +284,10 @@ function App() {
     handleTouchpadSpeedCoeffChange,
     handleTouchpadLiftoffRatioChange,
     handleTouchpadPositionFallbackChange,
+    gripThresholdValue,
+    gripHysteresisValue,
+    handleGripThresholdChange,
+    handleGripHysteresisChange,
     leftTouchpadModeValue,
     rightTouchpadModeValue,
     gridSizeValue,
@@ -992,6 +996,10 @@ function App() {
             onTouchpadSpeedCoeffChange={handleTouchpadSpeedCoeffChange}
             onTouchpadLiftoffRatioChange={handleTouchpadLiftoffRatioChange}
             onTouchpadPositionFallbackChange={handleTouchpadPositionFallbackChange}
+            gripThreshold={gripThresholdValue}
+            gripHysteresis={gripHysteresisValue}
+            onGripThresholdChange={handleGripThresholdChange}
+            onGripHysteresisChange={handleGripHysteresisChange}
             touchpadDualStageMode={touchpadDualStageModeValue}
             leftTouchpadMode={leftTouchpadModeValue}
             rightTouchpadMode={rightTouchpadModeValue}
@@ -1065,7 +1073,7 @@ function App() {
     }
 
     if (primaryTab === 'touchpad') {
-      const sections = ['touch-grid', 'touch-stick', 'touch-bind']
+      const sections = ['touch-grid', 'grip-sensors', 'touch-stick', 'touch-bind']
       return (
         <Suspense fallback={<LazyPanelFallback title={t('app.nav.touchpad')} />}>
           <KeymapControls
@@ -1107,6 +1115,10 @@ function App() {
             onTouchpadSpeedCoeffChange={handleTouchpadSpeedCoeffChange}
             onTouchpadLiftoffRatioChange={handleTouchpadLiftoffRatioChange}
             onTouchpadPositionFallbackChange={handleTouchpadPositionFallbackChange}
+            gripThreshold={gripThresholdValue}
+            gripHysteresis={gripHysteresisValue}
+            onGripThresholdChange={handleGripThresholdChange}
+            onGripHysteresisChange={handleGripHysteresisChange}
             touchpadDualStageMode={touchpadDualStageModeValue}
             leftTouchpadMode={leftTouchpadModeValue}
             rightTouchpadMode={rightTouchpadModeValue}

@@ -7,6 +7,11 @@ export type TelemetryPadState = {
   touched: boolean
 }
 
+export type TelemetryGripState = {
+  value: number    // 0..1 raw squeeze distance, before the threshold/hysteresis gate
+  pressed: boolean // digital state after GRIP_THRESHOLD/GRIP_HYSTERESIS
+}
+
 export type TelemetryDeviceStatus = {
   buttons: number
   leftStick: { x: number; y: number }
@@ -15,6 +20,8 @@ export type TelemetryDeviceStatus = {
   gyro: { x: number; y: number; z: number }
   leftPad?: TelemetryPadState
   rightPad?: TelemetryPadState
+  leftGrip?: TelemetryGripState
+  rightGrip?: TelemetryGripState
 }
 
 export type TelemetryDevice = {

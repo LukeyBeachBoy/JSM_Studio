@@ -3,6 +3,7 @@ import { getKeymapValue } from '../utils/keymap'
 import { keyName } from '../constants/configKeys'
 import { useSensitivityConfig } from './useSensitivityConfig'
 import { useTouchpadConfig } from './useTouchpadConfig'
+import { useGripConfig } from './useGripConfig'
 import { useStickConfig } from './useStickConfig'
 import { useBindingsConfig } from './useBindingsConfig'
 
@@ -12,6 +13,7 @@ export function useKeymapConfig() {
 
   const sensitivityConfig = useSensitivityConfig({ configText, setConfigText })
   const touchpadConfig = useTouchpadConfig({ configText, setConfigText })
+  const gripConfig = useGripConfig({ configText, setConfigText })
   const stickConfig = useStickConfig({ configText, setConfigText })
   const bindingsConfig = useBindingsConfig({ configText, setConfigText })
 
@@ -109,6 +111,10 @@ export function useKeymapConfig() {
     handleTouchpadSpeedCoeffChange: touchpadConfig.handleTouchpadSpeedCoeffChange,
     handleTouchpadLiftoffRatioChange: touchpadConfig.handleTouchpadLiftoffRatioChange,
     handleTouchpadPositionFallbackChange: touchpadConfig.handleTouchpadPositionFallbackChange,
+    gripThresholdValue: gripConfig.gripThresholdValue,
+    gripHysteresisValue: gripConfig.gripHysteresisValue,
+    handleGripThresholdChange: gripConfig.handleGripThresholdChange,
+    handleGripHysteresisChange: gripConfig.handleGripHysteresisChange,
     leftTouchpadModeValue: touchpadConfig.leftTouchpadModeValue,
     rightTouchpadModeValue: touchpadConfig.rightTouchpadModeValue,
     leftGridSizeValue: touchpadConfig.leftGridSizeValue,

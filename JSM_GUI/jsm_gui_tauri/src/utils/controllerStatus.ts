@@ -328,6 +328,12 @@ export const getPressedControllerCommandSet = (device?: TelemetryDevice) => {
         addIfPressed(commands, buttons, 'MISC3', RAW_BUTTONS.MISC3)
         addIfPressed(commands, buttons, 'MISC5', RAW_BUTTONS.MISC5)
         addIfPressed(commands, buttons, 'MISC6', RAW_BUTTONS.MISC6)
+        // Grip sense overlay aliases: the preview highlights these as 'GRIP_L'/
+        // 'GRIP_R' (ControllerStatusSvg), but the underlying bindable commands are
+        // MISC6 (left) / MISC5 (right) -- same mapping the backend's GetButtons()
+        // uses. Without these the grip zones in the preview never light up.
+        addIfPressed(commands, buttons, 'GRIP_L', RAW_BUTTONS.MISC6)
+        addIfPressed(commands, buttons, 'GRIP_R', RAW_BUTTONS.MISC5)
         break
       case CONTROLLER_TYPES.HORI_STEAM:
         addIfPressed(commands, buttons, 'LSL', RAW_BUTTONS.SL)

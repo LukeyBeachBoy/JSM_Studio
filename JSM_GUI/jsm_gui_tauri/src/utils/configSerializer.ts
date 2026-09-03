@@ -14,6 +14,7 @@ import {
 } from '../keymap/schema'
 import {
   bindingSpecialKeys,
+  gripKeys,
   gyroBehaviorKeys,
   keyName,
   noiseKeys,
@@ -199,6 +200,10 @@ const classify = (rawKey: string, value: string): { section: SectionKey; subsect
   // Touchpad settings (grouped with touch bindings)
   if (isKnownKey(key, touchpadKeys)) {
     return { section: 'keymap', subsection: 'touch' }
+  }
+  // Grip sensor settings (grouped with MISC5/MISC6, the commands they gate)
+  if (isKnownKey(key, gripKeys)) {
+    return { section: 'keymap', subsection: 'extra' }
   }
   // Stick settings
   if (isKnownKey(key, stickKeys)) {

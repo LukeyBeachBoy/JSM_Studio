@@ -28,6 +28,14 @@
   transition: fill 120ms ease, stroke 120ms ease, filter 120ms ease;
 }
 
+/* Live squeeze-distance meter, clipped to the grip zone's rounded rect and
+   drawn under it. No transition on height: the raw sensor value already
+   arrives once per telemetry frame, and animating it would add lag between
+   the finger and what the meter shows. */
+.gripFill {
+  fill: color-mix(in srgb, var(--telemetry-green) 55%, transparent);
+}
+
 .gripSenseText {
   fill: var(--text-muted);
   font: 700 22px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;

@@ -28,8 +28,10 @@ export function useTouchpadConfig({ configText, setConfigText }: TouchpadArgs) {
   // TOUCHPAD_MIN_CUTOFF and TOUCHPAD_SPEED_COEFF are the One Euro filter's two
   // dials; they replace TOUCHPAD_SMOOTHING, which the backend no longer reads.
   const globalNum = (name: string, fallback: number) => { const n = Number.parseFloat(read(name) ?? ''); return Number.isFinite(n) ? n : fallback }
-  const touchpadMinCutoffValue = globalNum(keyName.TOUCHPAD_MIN_CUTOFF, 0.8)
-  const touchpadSpeedCoeffValue = globalNum(keyName.TOUCHPAD_SPEED_COEFF, 0.015)
+  // Must track the backend's JSMSetting defaults in main.cpp -- these are
+  // display fallbacks for "not set in config", not independent defaults.
+  const touchpadMinCutoffValue = globalNum(keyName.TOUCHPAD_MIN_CUTOFF, 6.0)
+  const touchpadSpeedCoeffValue = globalNum(keyName.TOUCHPAD_SPEED_COEFF, 0.6)
   const touchpadLiftoffRatioValue = globalNum(keyName.TOUCHPAD_LIFTOFF_RATIO, 0)
   const touchpadPositionFallbackValue = (read(keyName.TOUCHPAD_POSITION_FALLBACK) ?? '').trim().toUpperCase() === 'ON'
   const value = (name: string, pad?: Pad) => (read(name, pad) ?? '').trim().toUpperCase()

@@ -113,6 +113,11 @@ export const stickKeys = [
   'SCROLL_SENS',
 ] as const
 
+export const gripKeys = [
+  'GRIP_THRESHOLD',
+  'GRIP_HYSTERESIS',
+] as const
+
 export const bindingSpecialKeys = [
   'GYRO_OFF',
   'GYRO_ON',
@@ -132,6 +137,7 @@ export type SensitivityKey = typeof sensitivityKeys[number]
 export type TimingKey = typeof timingKeys[number]
 export type TouchpadKey = typeof touchpadKeys[number]
 export type StickKey = typeof stickKeys[number]
+export type GripKey = typeof gripKeys[number]
 export type BindingSpecialKey = typeof bindingSpecialKeys[number]
 
 // Flat key name map for convenient imports
@@ -199,6 +205,8 @@ export const keyName = {
     TOUCHPAD_SPEED_COEFF: 'TOUCHPAD_SPEED_COEFF',
     TOUCHPAD_LIFTOFF_RATIO: 'TOUCHPAD_LIFTOFF_RATIO',
     TOUCHPAD_POSITION_FALLBACK: 'TOUCHPAD_POSITION_FALLBACK',
+    GRIP_THRESHOLD: 'GRIP_THRESHOLD',
+    GRIP_HYSTERESIS: 'GRIP_HYSTERESIS',
     TOUCH_STICK_MODE: 'TOUCH_STICK_MODE',
   TOUCH_DEADZONE_INNER: 'TOUCH_DEADZONE_INNER',
   TOUCH_RING_MODE: 'TOUCH_RING_MODE',
