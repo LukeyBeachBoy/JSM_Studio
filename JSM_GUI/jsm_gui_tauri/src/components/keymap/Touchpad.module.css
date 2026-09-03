@@ -71,6 +71,14 @@
   line-height: 1.35;
 }
 
+/* The value shown next to a control. The surrounding label is bold by design,
+   which made a readout under a full-width input read as another heading. */
+.settingReadout {
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--text-mid);
+}
+
 .touchpadHint {
   margin: 0;
   color: var(--text-mid);

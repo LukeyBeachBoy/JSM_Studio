@@ -45,6 +45,11 @@ type StickProps = SharedControlProps & {
   cy: number
   x: number
   y: number
+  // Radius of the stick's outer well in overlay units. The legacy DualSense
+  // layout is drawn in its own 1117x892 space where 87 is right; the Steam
+  // artwork's well measures ~135 units across, so it needs a smaller one or the
+  // overlay spills past the drawn ring.
+  baseRadius?: number
 }
 
 type TriggerPathProps = SharedControlProps & {
@@ -489,6 +494,10 @@ function padPoint(pad: { cx: number; cy: number; half: number; rot: number }, u:
   return { x: pad.cx + (x * c - y * sn) * pad.half, y: pad.cy + (x * sn + y * c) * pad.half }
 }
 
+// Half the width of the stick well in the artwork (paths measuring 135.2 and
+// 127.9 units across, left and right). Do not hand-tune: re-measure the SVG.
+const STEAM_STICK_RADIUS = 66
+
 // Grip zone geometry. The grip reaches the host as a single bit -- the
 // controller decides how hard a squeeze that takes, from LEFT_GRIP_RANGE /
 // RIGHT_GRIP_RANGE -- so this lights up rather than filling like a meter.
@@ -525,6 +534,7 @@ function Stick({
   cy,
   x,
   y,
+  baseRadius = 87,
   pressed = false,
   muted = false,
   bound = false,
@@ -532,14 +542,16 @@ function Stick({
   onSelect,
   title,
 }: StickProps) {
-  const knobX = cx + clamp(x, -1, 1) * 27
-  const knobY = cy + clamp(-y, -1, 1) * 27
+  // The ring, knob and throw all scale with the well so the proportions stay put.
+  const k = baseRadius / 87
+  const knobX = cx + clamp(x, -1, 1) * 27 * k
+  const knobY = cy + clamp(-y, -1, 1) * 27 * k
   return (
     <g className={join(muted && styles.sideMuted, onSelect && styles.interactive)} onClick={onSelect}>
       {title && <title>{title}</title>}
-      <circle className={join(styles.stickBase, bound && styles.stickBaseBound, selected && styles.stickBaseSelected)} cx={cx} cy={cy} r={87} />
-      <circle className={join(styles.stickRing, bound && styles.stickRingBound)} cx={cx} cy={cy} r={57} />
-      <circle className={join(styles.stickKnob, selected && styles.stickKnobSelected, pressed && styles.stickKnobPressed)} cx={knobX} cy={knobY} r={38} />
+      <circle className={join(styles.stickBase, bound && styles.stickBaseBound, selected && styles.stickBaseSelected)} cx={cx} cy={cy} r={baseRadius} />
+      <circle className={join(styles.stickRing, bound && styles.stickRingBound)} cx={cx} cy={cy} r={57 * k} />
+      <circle className={join(styles.stickKnob, selected && styles.stickKnobSelected, pressed && styles.stickKnobPressed)} cx={knobX} cy={knobY} r={38 * k} />
     </g>
   )
 }
@@ -608,8 +620,8 @@ export function ControllerStatusSvg({
                     </g>
             {/* Live overlays on the Steam Controller 2026 front artwork */}
             {/* Sticks (top) */}
-            <Stick cx={412} cy={219} x={leftStickX} y={leftStickY} pressed={pressed.has('L3')} muted={!hasLeftSide} bound={leftStickBound} selected={leftStickSelected} onSelect={hasLeftSide ? () => onSelectCommand?.(pickCommand(LEFT_STICK_COMMANDS, boundCommands, selectedCommand)) : undefined} title="Left stick" />
-            <Stick cx={700} cy={219} x={rightStickX} y={rightStickY} pressed={pressed.has('R3')} muted={!hasRightSide} bound={rightStickBound} selected={rightStickSelected} onSelect={hasRightSide ? () => onSelectCommand?.(pickCommand(RIGHT_STICK_COMMANDS, boundCommands, selectedCommand)) : undefined} title="Right stick" />
+            <Stick cx={412} cy={219} baseRadius={STEAM_STICK_RADIUS} x={leftStickX} y={leftStickY} pressed={pressed.has('L3')} muted={!hasLeftSide} bound={leftStickBound} selected={leftStickSelected} onSelect={hasLeftSide ? () => onSelectCommand?.(pickCommand(LEFT_STICK_COMMANDS, boundCommands, selectedCommand)) : undefined} title="Left stick" />
+            <Stick cx={700} cy={219} baseRadius={STEAM_STICK_RADIUS} x={rightStickX} y={rightStickY} pressed={pressed.has('R3')} muted={!hasRightSide} bound={rightStickBound} selected={rightStickSelected} onSelect={hasRightSide ? () => onSelectCommand?.(pickCommand(RIGHT_STICK_COMMANDS, boundCommands, selectedCommand)) : undefined} title="Right stick" />
 
             {/* D-pad (upper-left area) */}
             <g className={join(!hasLeftSide && styles.sideMuted)}>

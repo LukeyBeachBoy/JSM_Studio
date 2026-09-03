@@ -37,6 +37,7 @@ export function GripSettingsSection(props: Props) {
         )}
       >
         <div className={styles.touchpadSettings}>
+          <div className={styles.gridSizeInputs}>
           <label>
             {t('keymap.leftGripRange', 'Left grip range')}
             <input
@@ -47,7 +48,7 @@ export function GripSettingsSection(props: Props) {
               value={left}
               onChange={e => props.onLeftGripRangeChange?.(e.target.value)}
             />
-            <span>{show(left)}</span>
+            <span className={styles.settingReadout}>{show(left)}</span>
           </label>
           <label>
             {t('keymap.rightGripRange', 'Right grip range')}
@@ -59,8 +60,9 @@ export function GripSettingsSection(props: Props) {
               value={right}
               onChange={e => props.onRightGripRangeChange?.(e.target.value)}
             />
-            <span>{show(right)}</span>
+            <span className={styles.settingReadout}>{show(right)}</span>
           </label>
+          </div>
           <p className={styles.touchpadHint}>
             {t(
               'keymap.gripRangeHint',

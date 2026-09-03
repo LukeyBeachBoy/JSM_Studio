@@ -19,9 +19,12 @@
   opacity: 0.55;
 }
 
+/* Idle is neutral, like every other control on the face. It used to be tinted
+   green at rest, which read as "this grip is active" on the sensor that was NOT
+   being squeezed -- exactly backwards. .controlPressed supplies the highlight. */
 .gripSense {
-  fill: color-mix(in srgb, var(--telemetry-green) 10%, transparent);
-  stroke: color-mix(in srgb, var(--telemetry-green) 70%, var(--border-strong));
+  fill: color-mix(in srgb, var(--bg-input) 72%, rgba(255, 255, 255, 0.08));
+  stroke: var(--border-strong);
   stroke-width: 2.5;
   vector-effect: non-scaling-stroke;
   cursor: pointer;
