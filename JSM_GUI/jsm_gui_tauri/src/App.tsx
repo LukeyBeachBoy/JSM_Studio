@@ -1,5 +1,8 @@
 import './App.css'
-import { version as APP_VERSION } from '../package.json'
+// The version people see must be the one on the installer they downloaded,
+// which tauri.conf.json carries -- package.json's is the frontend package's own
+// and has drifted away from it.
+import tauriConf from '../src-tauri/tauri.conf.json'
 import sideNavStyles from './components/SideNav.module.css'
 import { ThemeToggle } from './components/ThemeToggle'
 import { Suspense, lazy, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
@@ -20,10 +23,8 @@ import { showToast } from './utils/toast'
 import { LanguageSelect } from './components/LanguageSelect'
 
 
-type PrimaryTab = 'gyro' | 'keybinds' | 'touchpad' | 'controllerStatus' | 'debugConsole' | 'ai' | 'help' | 'deviceVisibility'
+type PrimaryTab = 'gyro' | 'keybinds' | 'touchpad' | 'sensors' | 'controllerStatus' | 'debugConsole' | 'ai' | 'help' | 'deviceVisibility'
 type GyroSubTab = 'behavior' | 'sensitivity' | 'noise'
-const QQ_GROUP_URL = 'https://qm.qq.com/q/OyPvwoBSkU'
-const QQ_GROUP_NUMBER = '855488128'
 
 const asNumber = (value: unknown) => (typeof value === 'number' ? value : undefined)
 const formatNumber = (value: number | undefined, digits = 2) =>
@@ -188,6 +189,12 @@ const PrimaryNav = ({ primaryTab, setPrimaryTab, includeHelp = false }: PrimaryN
         >
           {t('app.nav.gyroAndSensitivity')}
         </button>
+        <button
+          className={`${sideNavStyles.navItem} ${primaryTab === 'sensors' ? sideNavStyles.active : ''}`}
+          onClick={() => setPrimaryTab('sensors')}
+        >
+          {t('app.nav.sensors')}
+        </button>
       </div>
       <div className={sideNavStyles.navSection}>
         <div className={sideNavStyles.navSectionLabel}>{t('app.nav.settingsGroup')}</div>
@@ -207,23 +214,6 @@ const PrimaryNav = ({ primaryTab, setPrimaryTab, includeHelp = false }: PrimaryN
         </button>
       )}
     </div>
-  )
-}
-
-const CommunityNavButton = () => {
-  const { t } = useTranslation()
-
-  return (
-    <button
-      type="button"
-      className={sideNavStyles.navFooterAction}
-      onClick={() => {
-        void desktopBridge.openExternal(QQ_GROUP_URL)
-      }}
-    >
-      <span className={sideNavStyles.navFooterLinkTitle}>{t('common.joinQqGroup')}</span>
-      <span className={sideNavStyles.navFooterLinkMeta}>{t('common.qqGroupNumber', { number: QQ_GROUP_NUMBER })}</span>
-    </button>
   )
 }
 
@@ -1082,8 +1072,12 @@ function App() {
       )
     }
 
-    if (primaryTab === 'touchpad') {
-      const sections = ['touch-grid', 'grip-sensors', 'touch-stick', 'touch-bind']
+    if (primaryTab === 'touchpad' || primaryTab === 'sensors') {
+      // Sensor thresholds and smoothing describe the hardware; the touchpad page
+      // is for what the pads are bound to. Same panel, two disjoint slices of it.
+      const sections = primaryTab === 'sensors'
+        ? ['touch-sensors', 'grip-sensors']
+        : ['touch-grid', 'touch-stick', 'touch-bind']
       return (
         <Suspense fallback={<LazyPanelFallback title={t('app.nav.touchpad')} />}>
           <KeymapControls
@@ -1285,9 +1279,8 @@ function App() {
         <div className={sideNavStyles.navBrand}>{t('common.appName')}</div>
         <PrimaryNav primaryTab={primaryTab} setPrimaryTab={setPrimaryTab} includeHelp />
         <div className={sideNavStyles.navFooter}>
-          <CommunityNavButton />
           <NavSettings />
-          <div className={sideNavStyles.navVersion}>v{APP_VERSION}</div>
+          <div className={sideNavStyles.navVersion}>v{tauriConf.version}</div>
         </div>
       </aside>
       {/* Narrow-width sticky header */}

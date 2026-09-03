@@ -41,6 +41,7 @@ import { MappingRulesHelpModal } from './keymap/MappingRulesHelpModal'
 import stickStyles from './Sticks.module.css'
 import { TouchpadGridSection } from './keymap/TouchpadGridSection'
 import { TouchpadSettingsSection } from './keymap/TouchpadSettingsSection'
+import { TouchpadSensorSection } from './keymap/TouchpadSensorSection'
 import { GripSettingsSection } from './keymap/GripSettingsSection'
 import { TouchpadStickSection } from './keymap/TouchpadStickSection'
 import { SectionActions } from './SectionActions'
@@ -930,8 +931,13 @@ export function KeymapControls({
         <div className={keymapStyles.keymapCardHeader}>
           <div className={keymapStyles.keymapTitleRow}>
             <h2>
+              {/* The touchpad view is used twice: once for the pads' bindings and
+                  once for the sensor tuning, which is a different page and needs
+                  its own name. */}
               {view === 'touchpad'
-                ? t('keymap.touchpadControlsTitle')
+                ? (isVisible('touch-sensors')
+                    ? t('keymap.sensorControlsTitle', 'Trackpad & Grip Sensors')
+                    : t('keymap.touchpadControlsTitle'))
                 : t('keymap.controlsTitle')}
             </h2>
           </div>
@@ -1195,16 +1201,6 @@ export function KeymapControls({
                 <>
                   <TouchpadSettingsSection
                     touchpadMode={touchpadMode}
-                    touchOnThreshold={touchOnThreshold}
-                    touchOffThreshold={touchOffThreshold}
-                    onTouchOnThresholdChange={onTouchOnThresholdChange}
-                    onTouchOffThresholdChange={onTouchOffThresholdChange}
-                    touchpadMinCutoff={touchpadMinCutoff}
-                    touchpadSpeedCoeff={touchpadSpeedCoeff}
-                    touchpadTrackballDecay={touchpadTrackballDecay}
-                    onTouchpadMinCutoffChange={onTouchpadMinCutoffChange}
-                    onTouchpadSpeedCoeffChange={onTouchpadSpeedCoeffChange}
-                    onTouchpadTrackballDecayChange={onTouchpadTrackballDecayChange}
                     touchpadDualStageMode={touchpadDualStageMode}
                     left={{ mode: leftTouchpadMode ?? '', dualStageMode: leftTouchpadDualStageMode ?? '', gridColumns: leftGridColumns ?? gridColumns, gridRows: leftGridRows ?? gridRows, sensitivity: leftTouchpadSensitivity, sensitivityY: leftTouchpadSensitivityY, onSensitivityYChange: onLeftTouchpadSensitivityYChange, smoothing: touchpadSmoothing, acceleration: touchpadAcceleration, onModeChange: onLeftTouchpadModeChange, onGridSizeChange: onLeftGridSizeChange, onSensitivityChange: onLeftTouchpadSensitivityChange, onDualStageModeChange: onLeftTouchpadDualStageModeChange, onSmoothingChange: onTouchpadSmoothingChange, onAccelerationChange: onTouchpadAccelerationChange }}
                     right={{ mode: rightTouchpadMode ?? '', dualStageMode: rightTouchpadDualStageMode ?? '', gridColumns: rightGridColumns ?? gridColumns, gridRows: rightGridRows ?? gridRows, sensitivity: rightTouchpadSensitivity, sensitivityY: rightTouchpadSensitivityY, onSensitivityYChange: onRightTouchpadSensitivityYChange, smoothing: touchpadSmoothing, acceleration: touchpadAcceleration, onModeChange: onRightTouchpadModeChange, onGridSizeChange: onRightGridSizeChange, onSensitivityChange: onRightTouchpadSensitivityChange, onDualStageModeChange: onRightTouchpadDualStageModeChange, onSmoothingChange: onTouchpadSmoothingChange, onAccelerationChange: onTouchpadAccelerationChange }}
@@ -1239,6 +1235,25 @@ export function KeymapControls({
                     />
                   )}
                 </>
+              ),
+            },
+            {
+              key: 'touch-sensors',
+              shouldRender: isVisible('touch-sensors'),
+              node: (
+                <TouchpadSensorSection
+                  touchOnThreshold={touchOnThreshold}
+                  touchOffThreshold={touchOffThreshold}
+                  onTouchOnThresholdChange={onTouchOnThresholdChange}
+                  onTouchOffThresholdChange={onTouchOffThresholdChange}
+                  touchpadMinCutoff={touchpadMinCutoff}
+                  touchpadSpeedCoeff={touchpadSpeedCoeff}
+                  touchpadTrackballDecay={touchpadTrackballDecay}
+                  onTouchpadMinCutoffChange={onTouchpadMinCutoffChange}
+                  onTouchpadSpeedCoeffChange={onTouchpadSpeedCoeffChange}
+                  onTouchpadTrackballDecayChange={onTouchpadTrackballDecayChange}
+                  {...actionsProps}
+                />
               ),
             },
             {
