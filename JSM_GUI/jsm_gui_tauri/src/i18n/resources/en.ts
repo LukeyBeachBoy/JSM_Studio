@@ -112,6 +112,8 @@ export const en = {
       mappingGroup: 'Mapping',
       tuningGroup: 'Tuning',
       gyroAndSensitivity: 'Gyro & Sensitivity',
+      settingsGroup: 'Settings',
+      deviceVisibility: 'Device Visibility',
       keybinds: 'Button Mapping',
       touchpad: 'Touchpad(s)',
       aiAssistant: 'AI Assistant',

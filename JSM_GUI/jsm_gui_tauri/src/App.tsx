@@ -9,6 +9,7 @@ import miscStyles from './components/Misc.module.css'
 import { SectionActions } from './components/SectionActions'
 import { DEFAULT_HOLD_PRESS_TIME } from './constants/defaults'
 import { ControllerStatusPage } from './components/ControllerStatusPage'
+import { HidHidePage } from './components/HidHidePage'
 import { useProfileLibrary } from './hooks/useProfileLibrary'
 import { useKeymapConfig } from './hooks/useKeymapConfig'
 import { useCalibration } from './hooks/useCalibration'
@@ -19,7 +20,7 @@ import { showToast } from './utils/toast'
 import { LanguageSelect } from './components/LanguageSelect'
 
 
-type PrimaryTab = 'gyro' | 'keybinds' | 'touchpad' | 'controllerStatus' | 'debugConsole' | 'ai' | 'help'
+type PrimaryTab = 'gyro' | 'keybinds' | 'touchpad' | 'controllerStatus' | 'debugConsole' | 'ai' | 'help' | 'deviceVisibility'
 type GyroSubTab = 'behavior' | 'sensitivity' | 'noise'
 const QQ_GROUP_URL = 'https://qm.qq.com/q/OyPvwoBSkU'
 const QQ_GROUP_NUMBER = '855488128'
@@ -186,6 +187,15 @@ const PrimaryNav = ({ primaryTab, setPrimaryTab, includeHelp = false }: PrimaryN
           onClick={() => setPrimaryTab('gyro')}
         >
           {t('app.nav.gyroAndSensitivity')}
+        </button>
+      </div>
+      <div className={sideNavStyles.navSection}>
+        <div className={sideNavStyles.navSectionLabel}>{t('app.nav.settingsGroup')}</div>
+        <button
+          className={`${sideNavStyles.navItem} ${primaryTab === 'deviceVisibility' ? sideNavStyles.active : ''}`}
+          onClick={() => setPrimaryTab('deviceVisibility')}
+        >
+          {t('app.nav.deviceVisibility')}
         </button>
       </div>
       {includeHelp && (
@@ -1219,6 +1229,10 @@ function App() {
           ignoredDevices={ignoredGyroDevices}
         />
       )
+    }
+
+    if (primaryTab === 'deviceVisibility') {
+      return <HidHidePage telemetryDevices={sample?.devices} />
     }
 
     if (primaryTab === 'debugConsole') {

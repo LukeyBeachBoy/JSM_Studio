@@ -112,6 +112,8 @@ export const zhCN = {
       mappingGroup: '映射',
       tuningGroup: '调校',
       gyroAndSensitivity: '陀螺仪与灵敏度',
+      settingsGroup: '设置',
+      deviceVisibility: '设备可见性',
       keybinds: '按键映射',
       touchpad: '触摸板',
       aiAssistant: 'AI 助手',
