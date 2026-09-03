@@ -65,12 +65,28 @@ jobs:
               instead of moving
             - Steam Controller pads are treated as square. They were reusing the
               DualShock 4's 1920x920, making vertical gain 2.09x too low
-            - Contact detection is separate from motion gating, so a capacitive
-              zero-force touch registers without pressing hard
             - One Euro filter on pad position with measured frame time, tuned by
-              `TOUCHPAD_MIN_CUTOFF` and `TOUCHPAD_SPEED_COEFF`
-            - New `TOUCHPAD_LIFTOFF_RATIO` suppresses the involuntary tail of a swipe
+              `TOUCHPAD_MIN_CUTOFF` and `TOUCHPAD_SPEED_COEFF`. The defaults now track
+              most of a quick swipe live instead of deferring it to a post-lift coast
+            - `TOUCHPAD_TRACKBALL_DECAY` for that coast, 0 (off) by default, matching
+              Steam Input's Mouse touch style
             - Overlay artwork and live touch dots aligned to the controller diagram
+
+            ### Contact detection and grip range
+            Both are set in the controller's own firmware, which is where Steam Input
+            sets them too. Nothing is written to the device unless you pick a value, so
+            out of the box the pads and grips behave exactly as they do under Steam.
+            - `TOUCHPAD_TOUCH_ON` / `TOUCHPAD_TOUCH_OFF` -- a touch threshold with its
+              own lower release threshold. The gap between them is the hysteresis that
+              stops a finger resting on the threshold from chattering
+            - `LEFT_GRIP_RANGE` / `RIGHT_GRIP_RANGE` -- squeeze force per hand, because
+              nobody holds both sides of a controller with the same grip
+            - Values are raw firmware units; -1 (the default) keeps the controller's own
+            - This replaces the host-side gates these superseded: the light-touch
+              pressure threshold, lift-off rejection, the position fallback, and the
+              grip debounce timers. A host-side gate on a bit the controller has already
+              decided can only add latency, and the pressure one is what used to force
+              you to press hard before a touch registered
 
             ### Known limitations
             - Trigger clicks (physical click at end of trigger travel) are not yet exposed — requires SDL upstream patch
