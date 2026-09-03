@@ -138,6 +138,29 @@ def test_trackpad_overlays_match_the_artwork_pads():
     check('padPoint(' in tsx, 'the live touch dot must be rotated into pad space')
 
 
+def test_pads_and_sticks_are_not_swapped():
+    """A merge once landed the pad overlays on the stick features and vice versa.
+    Both sit on the vertical centre line of their half of the controller, so a
+    nearest-feature check alone can miss it -- but the trackpads are by far the
+    largest circular features on the face, and the sticks are the ones with a
+    surrounding well. Assert the sizes, not just the positions."""
+    pad_block = re.search(r'const STEAM_PAD = \{(.*?)\} as const', tsx, re.S).group(1)
+    pads = dict(re.findall(r'(left|right):\s*\{([^}]*)\}', pad_block))
+    sticks = [(float(x), float(y)) for x, y in re.findall(r'<Stick cx=\{(%s)\} cy=\{(%s)\}' % (NUM, NUM), steam)]
+    check(len(sticks) == 2, f'expected two sticks in the Steam layout, found {len(sticks)}')
+
+    def width_at(cx, cy):
+        s = nearest(cx, cy)
+        return s['x1'] - s['x0']
+
+    pad_widths = [width_at(*(float(dict(re.findall(r'(\w+):\s*(%s)' % NUM, body))[k]) for k in ('cx', 'cy')))
+                  for body in pads.values()]
+    stick_widths = [width_at(cx, cy) for cx, cy in sticks]
+    check(min(pad_widths) > max(stick_widths) * 1.4,
+          f'pad overlays sit on features {min(pad_widths):.0f} units wide but stick overlays sit on '
+          f'{max(stick_widths):.0f}-unit features -- the trackpads are the larger circles, so these look swapped')
+
+
 def test_steam_layout_does_not_reuse_dualsense_geometry():
     """The shoulder overlays were left on DualSense paths, which drew across the
     D-pad and face buttons and swallowed their clicks."""

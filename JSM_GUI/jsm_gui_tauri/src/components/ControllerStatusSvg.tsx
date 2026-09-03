@@ -489,52 +489,34 @@ function padPoint(pad: { cx: number; cy: number; half: number; rot: number }, u:
   return { x: pad.cx + (x * c - y * sn) * pad.half, y: pad.cy + (x * sn + y * c) * pad.half }
 }
 
-// Grip zone geometry, shared between the outline rect and its fill meter so
-// they can never drift apart.
+// Grip zone geometry. The grip reaches the host as a single bit -- the
+// controller decides how hard a squeeze that takes, from LEFT_GRIP_RANGE /
+// RIGHT_GRIP_RANGE -- so this lights up rather than filling like a meter.
 const GRIP_ZONE = { width: 150, height: 105, rx: 42 } as const
 
-type GripMeterProps = {
+type GripZoneProps = {
   x: number
   y: number
-  value: number // 0..1 raw squeeze distance, live from telemetry
   pressed: boolean
   bound?: boolean
   selected?: boolean
   label: string
-  clipId: string
   onSelect?: () => void
 }
 
-// A live level meter, not just an on/off flash: the fill rises with the raw
-// squeeze value so tuning GRIP_THRESHOLD/GRIP_HYSTERESIS has something to
-// watch respond, and the outline still switches to the bound/pressed style
-// the instant the digital gate (threshold + hysteresis) actually trips.
-function GripMeter({ x, y, value, pressed, bound, selected, label, clipId, onSelect }: GripMeterProps) {
+function GripZone({ x, y, pressed, bound, selected, label, onSelect }: GripZoneProps) {
   const { width, height, rx } = GRIP_ZONE
-  const fillHeight = clamp(value, 0, 1) * height
   return (
-    <g aria-label={label}>
-      <clipPath id={clipId}>
-        <rect x={x} y={y} width={width} height={height} rx={rx} />
-      </clipPath>
-      <rect
-        className={styles.gripFill}
-        x={x}
-        y={y + (height - fillHeight)}
-        width={width}
-        height={fillHeight}
-        clipPath={`url(#${clipId})`}
-      />
-      <rect
-        className={join(styles.gripSense, pressed && styles.controlPressed, bound && styles.controlBound, selected && styles.controlSelected)}
-        x={x}
-        y={y}
-        width={width}
-        height={height}
-        rx={rx}
-        onClick={onSelect}
-      />
-    </g>
+    <rect
+      aria-label={label}
+      className={join(styles.gripSense, pressed && styles.controlPressed, bound && styles.controlBound, selected && styles.controlSelected)}
+      x={x}
+      y={y}
+      width={width}
+      height={height}
+      rx={rx}
+      onClick={onSelect}
+    />
   )
 }
 
@@ -574,8 +556,6 @@ export function ControllerStatusSvg({
   const hasLeftSide = device.split !== 2
   const leftPad = device.status?.leftPad
   const rightPad = device.status?.rightPad
-  const leftGrip = device.status?.leftGrip
-  const rightGrip = device.status?.rightGrip
   const hasRightSide = device.split !== 1
   const leftTrigger = clamp(device.status?.triggers.left ?? 0, 0, 1)
   const rightTrigger = clamp(device.status?.triggers.right ?? 0, 0, 1)
@@ -609,18 +589,18 @@ export function ControllerStatusSvg({
         <div className={styles.visualizer}>
           <svg className={styles.controllerSvg} viewBox="0 0 1117 750" role="img" aria-label="Steam Controller live status">
                     <title>Steam Controller live status</title>
-                                      <image className={styles.steamArtwork} href={steamControllerFront} x="0" y="0" width="1117" height="750" preserveAspectRatio="none" aria-label="Steam Controller front artwork" />
+                                      <image className={styles.steamArtwork} href={steamControllerFront} x="0" y="0" width="1117" height="750" preserveAspectRatio="xMidYMid meet" aria-label="Steam Controller front artwork" />
                     <g aria-label="Grip sense overlays">
-                      <GripMeter
-                        x={80} y={585} clipId={`grip-clip-l-${device.handle}`}
-                        value={leftGrip?.value ?? 0} pressed={pressed.has('GRIP_L')}
+                      <GripZone
+                        x={80} y={585}
+                        pressed={pressed.has('GRIP_L')}
                         bound={boundCommands?.has('GRIP_L')} selected={selectedCommand === 'GRIP_L'}
                         label="Left grip sensor" onSelect={() => onSelectCommand?.('GRIP_L')}
                       />
                       <text className={styles.gripSenseText} x="155" y="638">L GRIP</text>
-                      <GripMeter
-                        x={887} y={585} clipId={`grip-clip-r-${device.handle}`}
-                        value={rightGrip?.value ?? 0} pressed={pressed.has('GRIP_R')}
+                      <GripZone
+                        x={887} y={585}
+                        pressed={pressed.has('GRIP_R')}
                         bound={boundCommands?.has('GRIP_R')} selected={selectedCommand === 'GRIP_R'}
                         label="Right grip sensor" onSelect={() => onSelectCommand?.('GRIP_R')}
                       />
@@ -654,6 +634,7 @@ export function ControllerStatusSvg({
                 width={STEAM_PAD.left.half * 2} height={STEAM_PAD.left.half * 2} rx="48" ry="48"
                 transform={`rotate(${STEAM_PAD.left.rot} ${STEAM_PAD.left.cx} ${STEAM_PAD.left.cy})`} />
               <text className={styles.controlText} x={STEAM_PAD.left.cx} y={STEAM_PAD.left.cy}>LPad</text>
+              {leftPad && <text className={styles.gripSenseText} x={STEAM_PAD.left.cx} y={STEAM_PAD.left.cy + 24}>{`p=${(leftPad.pressure ?? 0).toFixed(4)}`}</text>}
               {leftPad?.touched && (() => {
                 const pt = padPoint(STEAM_PAD.left, leftPad.x, leftPad.y)
                 return <circle cx={pt.x} cy={pt.y} r={12} className={styles.stickKnob} />
@@ -667,6 +648,7 @@ export function ControllerStatusSvg({
                 width={STEAM_PAD.right.half * 2} height={STEAM_PAD.right.half * 2} rx="48" ry="48"
                 transform={`rotate(${STEAM_PAD.right.rot} ${STEAM_PAD.right.cx} ${STEAM_PAD.right.cy})`} />
               <text className={styles.controlText} x={STEAM_PAD.right.cx} y={STEAM_PAD.right.cy}>RPad</text>
+              {rightPad && <text className={styles.gripSenseText} x={STEAM_PAD.right.cx} y={STEAM_PAD.right.cy + 24}>{`p=${(rightPad.pressure ?? 0).toFixed(4)}`}</text>}
               {rightPad?.touched && (() => {
                 const pt = padPoint(STEAM_PAD.right, rightPad.x, rightPad.y)
                 return <circle cx={pt.x} cy={pt.y} r={12} className={styles.stickKnob} />

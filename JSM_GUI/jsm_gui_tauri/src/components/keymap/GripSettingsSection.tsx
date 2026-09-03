@@ -3,12 +3,13 @@ import { KeymapSection } from '../KeymapSection'
 import keymapStyles from '../Keymap.module.css'
 import styles from './Touchpad.module.css'
 import { SectionActions } from '../SectionActions'
+import { GRIP_RANGE_FIRMWARE_DEFAULT } from '../../hooks/useGripConfig'
 
 type Props = {
-  gripThreshold?: number
-  gripHysteresis?: number
-  onGripThresholdChange?: (v: string) => void
-  onGripHysteresisChange?: (v: string) => void
+  leftGripRange?: number
+  rightGripRange?: number
+  onLeftGripRangeChange?: (v: string) => void
+  onRightGripRangeChange?: (v: string) => void
   hasPendingChanges: boolean
   statusMessage?: string | null
   onApply: () => void
@@ -16,33 +17,54 @@ type Props = {
   applyDisabled?: boolean
 }
 
+// One control per hand, because the grip range genuinely is per hand -- the
+// controller stores a separate squeeze threshold for each side. There is no
+// second "hysteresis" control here: the grip arrives as one bit with one
+// threshold behind it, and a host-side gate on an already-quantized bit can
+// only add latency, not sensitivity.
 export function GripSettingsSection(props: Props) {
   const { t } = useTranslation()
-  const threshold = props.gripThreshold ?? 0.5
-  const hysteresis = props.gripHysteresis ?? 0.08
-  const releasePoint = Math.max(0, threshold - hysteresis)
+  const left = props.leftGripRange ?? GRIP_RANGE_FIRMWARE_DEFAULT
+  const right = props.rightGripRange ?? GRIP_RANGE_FIRMWARE_DEFAULT
+  const show = (v: number) => (v < 0 ? t('keymap.gripRangeDefault', 'Controller default') : String(Math.round(v)))
   return (
     <>
       <KeymapSection
         title={t('keymap.gripSettingsTitle', 'Grip sensors')}
-        description={t('keymap.gripSettingsDescription', 'How far the grips must be squeezed to register, and how much they must relax before releasing.')}
+        description={t(
+          'keymap.gripSettingsDescription',
+          'How hard each grip must be squeezed to register. Set in the controller itself, per hand -- you do not hold both sides with the same squeeze.'
+        )}
       >
         <div className={styles.touchpadSettings}>
           <label>
-            {t('keymap.gripThreshold', 'Squeeze distance')}
-            <input type="range" min="0" max="1" step="0.01" value={threshold} onChange={e => props.onGripThresholdChange?.(e.target.value)} />
-            <span>{threshold.toFixed(2)}</span>
+            {t('keymap.leftGripRange', 'Left grip range')}
+            <input
+              type="number"
+              min="-1"
+              max="32767"
+              step="1"
+              value={left}
+              onChange={e => props.onLeftGripRangeChange?.(e.target.value)}
+            />
+            <span>{show(left)}</span>
           </label>
           <label>
-            {t('keymap.gripHysteresis', 'Hysteresis')}
-            <input type="range" min="0" max="0.5" step="0.01" value={hysteresis} onChange={e => props.onGripHysteresisChange?.(e.target.value)} />
-            <span>{hysteresis.toFixed(2)}</span>
+            {t('keymap.rightGripRange', 'Right grip range')}
+            <input
+              type="number"
+              min="-1"
+              max="32767"
+              step="1"
+              value={right}
+              onChange={e => props.onRightGripRangeChange?.(e.target.value)}
+            />
+            <span>{show(right)}</span>
           </label>
           <p className={styles.touchpadHint}>
             {t(
-              'keymap.gripHysteresisHint',
-              'Releases at {{releasePoint}}, not {{threshold}} -- resting exactly on the threshold can\'t make the grip chatter on and off.',
-              { releasePoint: releasePoint.toFixed(2), threshold: threshold.toFixed(2) }
+              'keymap.gripRangeHint',
+              'Raw firmware units, the same setting Steam Input drives. Lower means a lighter squeeze is enough. -1 keeps the controller’s own value.'
             )}
           </p>
         </div>

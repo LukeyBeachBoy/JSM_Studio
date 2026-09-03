@@ -94,20 +94,20 @@ type KeymapControlsProps = {
   lockMessage?: string
   visibleSections?: string[]
   touchpadMode?: string
-  lightTouchThreshold?: number
-  onLightTouchThresholdChange?: (value: string) => void
+  touchOnThreshold?: number
+  touchOffThreshold?: number
+  onTouchOnThresholdChange?: (value: string) => void
+  onTouchOffThresholdChange?: (value: string) => void
   touchpadMinCutoff?: number
   touchpadSpeedCoeff?: number
-  touchpadLiftoffRatio?: number
-  touchpadPositionFallback?: boolean
+  touchpadTrackballDecay?: number
   onTouchpadMinCutoffChange?: (value: string) => void
   onTouchpadSpeedCoeffChange?: (value: string) => void
-  onTouchpadLiftoffRatioChange?: (value: string) => void
-  onTouchpadPositionFallbackChange?: (value: boolean) => void
-  gripThreshold?: number
-  gripHysteresis?: number
-  onGripThresholdChange?: (value: string) => void
-  onGripHysteresisChange?: (value: string) => void
+  onTouchpadTrackballDecayChange?: (value: string) => void
+  leftGripRange?: number
+  rightGripRange?: number
+  onLeftGripRangeChange?: (value: string) => void
+  onRightGripRangeChange?: (value: string) => void
   touchpadDualStageMode?: string
   onTouchpadModeChange?: (value: string) => void
   onTouchpadDualStageModeChange?: (value: string) => void
@@ -494,20 +494,20 @@ export function KeymapControls({
   lockMessage,
   visibleSections,
   touchpadMode: touchpadModeProp = '',
-  lightTouchThreshold,
-  onLightTouchThresholdChange,
+  touchOnThreshold,
+  touchOffThreshold,
+  onTouchOnThresholdChange,
+  onTouchOffThresholdChange,
   touchpadMinCutoff,
   touchpadSpeedCoeff,
-  touchpadLiftoffRatio,
-  touchpadPositionFallback,
+  touchpadTrackballDecay,
   onTouchpadMinCutoffChange,
   onTouchpadSpeedCoeffChange,
-  onTouchpadLiftoffRatioChange,
-  onTouchpadPositionFallbackChange,
-  gripThreshold,
-  gripHysteresis,
-  onGripThresholdChange,
-  onGripHysteresisChange,
+  onTouchpadTrackballDecayChange,
+  leftGripRange,
+  rightGripRange,
+  onLeftGripRangeChange,
+  onRightGripRangeChange,
   touchpadDualStageMode = '',
   onTouchpadModeChange,
   onTouchpadDualStageModeChange,
@@ -1195,16 +1195,16 @@ export function KeymapControls({
                 <>
                   <TouchpadSettingsSection
                     touchpadMode={touchpadMode}
-                    lightTouchThreshold={lightTouchThreshold}
-                    onLightTouchThresholdChange={onLightTouchThresholdChange}
+                    touchOnThreshold={touchOnThreshold}
+                    touchOffThreshold={touchOffThreshold}
+                    onTouchOnThresholdChange={onTouchOnThresholdChange}
+                    onTouchOffThresholdChange={onTouchOffThresholdChange}
                     touchpadMinCutoff={touchpadMinCutoff}
                     touchpadSpeedCoeff={touchpadSpeedCoeff}
-                    touchpadLiftoffRatio={touchpadLiftoffRatio}
-                    touchpadPositionFallback={touchpadPositionFallback}
+                    touchpadTrackballDecay={touchpadTrackballDecay}
                     onTouchpadMinCutoffChange={onTouchpadMinCutoffChange}
                     onTouchpadSpeedCoeffChange={onTouchpadSpeedCoeffChange}
-                    onTouchpadLiftoffRatioChange={onTouchpadLiftoffRatioChange}
-                    onTouchpadPositionFallbackChange={onTouchpadPositionFallbackChange}
+                    onTouchpadTrackballDecayChange={onTouchpadTrackballDecayChange}
                     touchpadDualStageMode={touchpadDualStageMode}
                     left={{ mode: leftTouchpadMode ?? '', dualStageMode: leftTouchpadDualStageMode ?? '', gridColumns: leftGridColumns ?? gridColumns, gridRows: leftGridRows ?? gridRows, sensitivity: leftTouchpadSensitivity, sensitivityY: leftTouchpadSensitivityY, onSensitivityYChange: onLeftTouchpadSensitivityYChange, smoothing: touchpadSmoothing, acceleration: touchpadAcceleration, onModeChange: onLeftTouchpadModeChange, onGridSizeChange: onLeftGridSizeChange, onSensitivityChange: onLeftTouchpadSensitivityChange, onDualStageModeChange: onLeftTouchpadDualStageModeChange, onSmoothingChange: onTouchpadSmoothingChange, onAccelerationChange: onTouchpadAccelerationChange }}
                     right={{ mode: rightTouchpadMode ?? '', dualStageMode: rightTouchpadDualStageMode ?? '', gridColumns: rightGridColumns ?? gridColumns, gridRows: rightGridRows ?? gridRows, sensitivity: rightTouchpadSensitivity, sensitivityY: rightTouchpadSensitivityY, onSensitivityYChange: onRightTouchpadSensitivityYChange, smoothing: touchpadSmoothing, acceleration: touchpadAcceleration, onModeChange: onRightTouchpadModeChange, onGridSizeChange: onRightGridSizeChange, onSensitivityChange: onRightTouchpadSensitivityChange, onDualStageModeChange: onRightTouchpadDualStageModeChange, onSmoothingChange: onTouchpadSmoothingChange, onAccelerationChange: onTouchpadAccelerationChange }}
@@ -1246,10 +1246,10 @@ export function KeymapControls({
               shouldRender: isVisible('grip-sensors'),
               node: (
                 <GripSettingsSection
-                  gripThreshold={gripThreshold}
-                  gripHysteresis={gripHysteresis}
-                  onGripThresholdChange={onGripThresholdChange}
-                  onGripHysteresisChange={onGripHysteresisChange}
+                  leftGripRange={leftGripRange}
+                  rightGripRange={rightGripRange}
+                  onLeftGripRangeChange={onLeftGripRangeChange}
+                  onRightGripRangeChange={onRightGripRangeChange}
                   {...actionsProps}
                 />
               ),

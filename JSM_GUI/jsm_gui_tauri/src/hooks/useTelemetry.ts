@@ -5,11 +5,13 @@ export type TelemetryPadState = {
   x: number
   y: number
   touched: boolean
+  pressure?: number
 }
 
 export type TelemetryGripState = {
-  value: number    // 0..1 raw squeeze distance, before the threshold/hysteresis gate
-  pressed: boolean // digital state after GRIP_THRESHOLD/GRIP_HYSTERESIS
+  // The grip is a single capacitive bit on the wire; how hard you must squeeze to
+  // set it is decided in the controller, from LEFT_GRIP_RANGE / RIGHT_GRIP_RANGE.
+  pressed: boolean
 }
 
 export type TelemetryDeviceStatus = {

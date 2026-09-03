@@ -284,20 +284,20 @@ function App() {
     handleLightBarChange,
     triggerThresholdValue,
     touchpadModeValue,
-    lightTouchThreshold,
-    handleLightTouchThresholdChange,
+    touchOnThreshold,
+    touchOffThreshold,
+    handleTouchOnThresholdChange,
+    handleTouchOffThresholdChange,
     touchpadMinCutoffValue,
     touchpadSpeedCoeffValue,
-    touchpadLiftoffRatioValue,
-    touchpadPositionFallbackValue,
+    touchpadTrackballDecayValue,
     handleTouchpadMinCutoffChange,
     handleTouchpadSpeedCoeffChange,
-    handleTouchpadLiftoffRatioChange,
-    handleTouchpadPositionFallbackChange,
-    gripThresholdValue,
-    gripHysteresisValue,
-    handleGripThresholdChange,
-    handleGripHysteresisChange,
+    handleTouchpadTrackballDecayChange,
+    leftGripRangeValue,
+    rightGripRangeValue,
+    handleLeftGripRangeChange,
+    handleRightGripRangeChange,
     leftTouchpadModeValue,
     rightTouchpadModeValue,
     gridSizeValue,
@@ -996,20 +996,20 @@ function App() {
             onTriggerThresholdChange={handleTriggerThresholdChange}
             onModifierChange={handleModifierChange}
             touchpadMode={touchpadModeValue}
-            lightTouchThreshold={lightTouchThreshold}
-            onLightTouchThresholdChange={handleLightTouchThresholdChange}
+            touchOnThreshold={touchOnThreshold}
+            touchOffThreshold={touchOffThreshold}
+            onTouchOnThresholdChange={handleTouchOnThresholdChange}
+            onTouchOffThresholdChange={handleTouchOffThresholdChange}
             touchpadMinCutoff={touchpadMinCutoffValue}
             touchpadSpeedCoeff={touchpadSpeedCoeffValue}
-            touchpadLiftoffRatio={touchpadLiftoffRatioValue}
-            touchpadPositionFallback={touchpadPositionFallbackValue}
+            touchpadTrackballDecay={touchpadTrackballDecayValue}
             onTouchpadMinCutoffChange={handleTouchpadMinCutoffChange}
             onTouchpadSpeedCoeffChange={handleTouchpadSpeedCoeffChange}
-            onTouchpadLiftoffRatioChange={handleTouchpadLiftoffRatioChange}
-            onTouchpadPositionFallbackChange={handleTouchpadPositionFallbackChange}
-            gripThreshold={gripThresholdValue}
-            gripHysteresis={gripHysteresisValue}
-            onGripThresholdChange={handleGripThresholdChange}
-            onGripHysteresisChange={handleGripHysteresisChange}
+            onTouchpadTrackballDecayChange={handleTouchpadTrackballDecayChange}
+            leftGripRange={leftGripRangeValue}
+            rightGripRange={rightGripRangeValue}
+            onLeftGripRangeChange={handleLeftGripRangeChange}
+            onRightGripRangeChange={handleRightGripRangeChange}
             touchpadDualStageMode={touchpadDualStageModeValue}
             leftTouchpadMode={leftTouchpadModeValue}
             rightTouchpadMode={rightTouchpadModeValue}
@@ -1115,20 +1115,20 @@ function App() {
             onTriggerThresholdChange={handleTriggerThresholdChange}
             onModifierChange={handleModifierChange}
             touchpadMode={touchpadModeValue}
-            lightTouchThreshold={lightTouchThreshold}
-            onLightTouchThresholdChange={handleLightTouchThresholdChange}
+            touchOnThreshold={touchOnThreshold}
+            touchOffThreshold={touchOffThreshold}
+            onTouchOnThresholdChange={handleTouchOnThresholdChange}
+            onTouchOffThresholdChange={handleTouchOffThresholdChange}
             touchpadMinCutoff={touchpadMinCutoffValue}
             touchpadSpeedCoeff={touchpadSpeedCoeffValue}
-            touchpadLiftoffRatio={touchpadLiftoffRatioValue}
-            touchpadPositionFallback={touchpadPositionFallbackValue}
+            touchpadTrackballDecay={touchpadTrackballDecayValue}
             onTouchpadMinCutoffChange={handleTouchpadMinCutoffChange}
             onTouchpadSpeedCoeffChange={handleTouchpadSpeedCoeffChange}
-            onTouchpadLiftoffRatioChange={handleTouchpadLiftoffRatioChange}
-            onTouchpadPositionFallbackChange={handleTouchpadPositionFallbackChange}
-            gripThreshold={gripThresholdValue}
-            gripHysteresis={gripHysteresisValue}
-            onGripThresholdChange={handleGripThresholdChange}
-            onGripHysteresisChange={handleGripHysteresisChange}
+            onTouchpadTrackballDecayChange={handleTouchpadTrackballDecayChange}
+            leftGripRange={leftGripRangeValue}
+            rightGripRange={rightGripRangeValue}
+            onLeftGripRangeChange={handleLeftGripRangeChange}
+            onRightGripRangeChange={handleRightGripRangeChange}
             touchpadDualStageMode={touchpadDualStageModeValue}
             leftTouchpadMode={leftTouchpadModeValue}
             rightTouchpadMode={rightTouchpadModeValue}
