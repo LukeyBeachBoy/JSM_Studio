@@ -59,6 +59,39 @@ jobs:
             - `LEFT_TOUCHPAD_MODE`, `RIGHT_TOUCHPAD_MODE`, `LEFT_GRID_SIZE`, `RIGHT_GRID_SIZE`, etc.
             - SDL 3.4.14+ with Triton HID driver and two-touchpad support
 
+            ### The interface, rebuilt around Steam Input's shape
+            - The controller is split across pages the way Steam Input splits it:
+              Buttons, D-Pad, Triggers, Joysticks, Trackpads, Gyro. Each page shows
+              only its own inputs instead of one long wall of bindings
+            - A setting appears only when it can do something. Mouse smoothing shows
+              up on a pad set to Mouse; columns and rows only on a pad set to Grid
+              and Stick; each pad carries its own copy of the section rather than a
+              shared one at the top of the page
+            - Grid and Stick now explains itself and draws the actual pad, split into
+              its columns and rows, with your finger shown live on it so you can
+              practice hitting a cell before you bind it
+            - The back buttons are called L4, R4, L5 and R5, as they are on the
+              hardware and in Steam Input
+            - Capacitive stick touch is shown live in the controller preview, and
+              every touch indication -- pads, sticks, grips -- now uses one colour
+            - Softer, flatter palette; sensor tuning lives on its own page; the
+              deprecated smoothing slider is gone
+
+            ### Haptics you can bind
+            The controller's actuators are no longer reserved for the grip sensors.
+            Any effect can be bound to any input, alongside or instead of a key:
+            `HAPTIC_L_CLICK`, `HAPTIC_R_TICK`, `HAPTIC_BOTH_TONE`, and so on, with an
+            optional gain -- `HAPTIC_L_CLICK_6` for louder, `HAPTIC_R_TICK_N12` for
+            quieter. Side is `L`, `R` or `BOTH`; the effects are the firmware's own
+            OFF, TICK, CLICK, TONE, RUMBLE, NOISE, SCRIPT and SWEEP. The same names
+            will work as mode-shift actions once mode shifting lands.
+
+            The grip pulse is audible now. It was addressing the actuator by index
+            where the firmware wants a side bitmask, so the left grip selected no
+            actuator at all, and it hand-rolled a burst instead of asking for the
+            firmware's CLICK -- the same effect Steam Input plays during grip
+            calibration. `GRIP_HAPTIC_INTENSITY` is its gain.
+
             ### Trackpad precision
             - Pad deltas are floating point end to end. They were cast to `int16_t` every
               3ms poll, so a slow steady swipe rounded to zero and the cursor stepped
@@ -66,10 +99,14 @@ jobs:
             - Steam Controller pads are treated as square. They were reusing the
               DualShock 4's 1920x920, making vertical gain 2.09x too low
             - One Euro filter on pad position with measured frame time, tuned by
-              `TOUCHPAD_MIN_CUTOFF` and `TOUCHPAD_SPEED_COEFF`. The defaults now track
-              most of a quick swipe live instead of deferring it to a post-lift coast
-            - `TOUCHPAD_TRACKBALL_DECAY` for that coast, 0 (off) by default, matching
-              Steam Input's Mouse touch style
+              `TOUCHPAD_MIN_CUTOFF` and `TOUCHPAD_SPEED_COEFF`
+            - The cursor no longer stutters on a swipe held at constant speed. The
+              pad reports slower than JSM polls, so a repeated position was being fed
+              to the filter as if the finger had stopped; the filter's adaptive cutoff
+              collapsed, then snapped back on the next real sample. Repeated samples
+              are now folded into the next real one's frame time, bounded so a genuine
+              pause still registers, and mouse motion is flushed once per poll rather
+              than per pad
             - Overlay artwork and live touch dots aligned to the controller diagram
 
             ### Trackpad contact
@@ -89,8 +126,8 @@ jobs:
             - `GRIP_FLICKER_GUARD` -- the extra distance your hand must move away
               again before it releases, so a hand resting at the edge of the range
               cannot chatter on and off
-            - `GRIP_HAPTIC_INTENSITY` -- a short pulse from the grip's own actuator
-              when that sensor detects your hand. 0 (default) is off
+            - `GRIP_HAPTIC_INTENSITY` -- a pulse from the grip's own actuator when
+              that sensor detects your hand. 0 (default) is off
             - Raw firmware units; -1 keeps the controller's own value. One pair for
               both grips: the firmware stores a single capacitive threshold, which is
               why Steam Input shows a single pair too. These are unrelated to the
@@ -101,10 +138,16 @@ jobs:
             trackball does. It used to differentiate the gap between where your
             finger lifted and where it landed, flinging the cursor across the screen
             to meet you and turning that delta into the next coast. Coast momentum is
-            a velocity now, so it no longer stutters when the poll interval jitters.
+            a velocity, so it no longer stutters when the poll interval jitters.
+            `TOUCHPAD_TRACKBALL_MIN_VELOCITY` sets how fast a swipe must still be
+            travelling at liftoff to start a coast at all, so a finger tapped down to
+            stop the ball no longer nudges the cursor on the way back up.
 
             ### Known limitations
-            - Trigger clicks (physical click at end of trigger travel) are not yet exposed — requires SDL upstream patch
+            - Trigger clicks (physical click at end of trigger travel) are not yet exposed - requires SDL upstream patch
+            - Touch and click bindings are shared by both pads. JSM exposes one set of
+              touch commands, not one per pad; splitting them needs new bindings in
+              JoyShockMapper itself
             - Auto-updater is disabled (pending signing key setup)
             - macOS builds not supported (Windows-only)
 
