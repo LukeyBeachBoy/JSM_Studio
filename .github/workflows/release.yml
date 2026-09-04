@@ -143,11 +143,20 @@ jobs:
             travelling at liftoff to start a coast at all, so a finger tapped down to
             stop the ball no longer nudges the cursor on the way back up.
 
+            ### Each pad's grid is its own
+            Grid and Stick gives each trackpad its own cells now -- LT1.. on the left,
+            RT1.. on the right, each with its own columns and rows, its own bindings
+            and its own live touch. Both pads used to drive the same T1..Tn, so a cell
+            on one fired whatever the other's matching cell was bound to, the two
+            grids' commands collided by name, and a per-pad grid larger than the shared
+            one indexed past the end of the button array. A chord can name a per-pad
+            cell too, so `LT3` is expressible rather than only `T3`.
+
             ### Known limitations
             - Trigger clicks (physical click at end of trigger travel) are not yet exposed - requires SDL upstream patch
-            - Touch and click bindings are shared by both pads. JSM exposes one set of
-              touch commands, not one per pad; splitting them needs new bindings in
-              JoyShockMapper itself
+            - The touch and click buttons themselves -- TOUCH, CAPTURE and the touch
+              stick's directions -- are still shared by both pads. Only the grid cells
+              are per-pad; splitting the rest needs further bindings in JoyShockMapper
             - Auto-updater is disabled (pending signing key setup)
             - macOS builds not supported (Windows-only)
 
