@@ -277,9 +277,11 @@ function App() {
     touchpadMinCutoffValue,
     touchpadSpeedCoeffValue,
     touchpadTrackballDecayValue,
+    touchpadTrackballMinVelocityValue,
     handleTouchpadMinCutoffChange,
     handleTouchpadSpeedCoeffChange,
     handleTouchpadTrackballDecayChange,
+    handleTouchpadTrackballMinVelocityChange,
     gripSensorRangeValue,
     gripFlickerGuardValue,
     gripHapticIntensityValue,
@@ -985,9 +987,11 @@ function App() {
             touchpadMinCutoff={touchpadMinCutoffValue}
             touchpadSpeedCoeff={touchpadSpeedCoeffValue}
             touchpadTrackballDecay={touchpadTrackballDecayValue}
+            touchpadTrackballMinVelocity={touchpadTrackballMinVelocityValue}
             onTouchpadMinCutoffChange={handleTouchpadMinCutoffChange}
             onTouchpadSpeedCoeffChange={handleTouchpadSpeedCoeffChange}
             onTouchpadTrackballDecayChange={handleTouchpadTrackballDecayChange}
+            onTouchpadTrackballMinVelocityChange={handleTouchpadTrackballMinVelocityChange}
             gripSensorRange={gripSensorRangeValue}
             gripFlickerGuard={gripFlickerGuardValue}
             gripHapticIntensity={gripHapticIntensityValue}
@@ -1104,9 +1108,11 @@ function App() {
             touchpadMinCutoff={touchpadMinCutoffValue}
             touchpadSpeedCoeff={touchpadSpeedCoeffValue}
             touchpadTrackballDecay={touchpadTrackballDecayValue}
+            touchpadTrackballMinVelocity={touchpadTrackballMinVelocityValue}
             onTouchpadMinCutoffChange={handleTouchpadMinCutoffChange}
             onTouchpadSpeedCoeffChange={handleTouchpadSpeedCoeffChange}
             onTouchpadTrackballDecayChange={handleTouchpadTrackballDecayChange}
+            onTouchpadTrackballMinVelocityChange={handleTouchpadTrackballMinVelocityChange}
             gripSensorRange={gripSensorRangeValue}
             gripFlickerGuard={gripFlickerGuardValue}
             gripHapticIntensity={gripHapticIntensityValue}

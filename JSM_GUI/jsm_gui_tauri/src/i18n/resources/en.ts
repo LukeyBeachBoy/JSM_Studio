@@ -653,6 +653,8 @@ export const en = {
     firmwareDefault: 'Controller default',
     touchSensitivityTitle: 'Mouse output',
     touchSensitivityDescription: 'How the cursor is smoothed as you swipe, and what it does when you let go.',
+    touchpadTrackballMinVelocity: 'Minimum flick speed',
+    touchpadTrackballMinVelocityHint: 'How fast a swipe must still be moving as your finger leaves the pad before the trackball coasts, in pixels per second. Raise it if putting a finger down to stop a coast flicks the cursor instead; 0 coasts from any speed.',
     touchpadTrackballDecay: 'Trackball glide decay',
     touchpadTrackballDecayHint: '0 stops the cursor the instant your finger leaves the pad, matching Steam Input\u2019s Mouse style. Higher values coast briefly after a flick.',
     touchpadAcceleration: 'Acceleration',

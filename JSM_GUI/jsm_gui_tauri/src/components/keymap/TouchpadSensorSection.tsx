@@ -8,9 +8,11 @@ type Props = {
   touchpadMinCutoff?: number
   touchpadSpeedCoeff?: number
   touchpadTrackballDecay?: number
+  touchpadTrackballMinVelocity?: number
   onTouchpadMinCutoffChange?: (v: string) => void
   onTouchpadSpeedCoeffChange?: (v: string) => void
   onTouchpadTrackballDecayChange?: (v: string) => void
+  onTouchpadTrackballMinVelocityChange?: (v: string) => void
   hasPendingChanges: boolean
   statusMessage?: string | null
   onApply: () => void
@@ -111,6 +113,21 @@ export function TouchpadSensorSection(props: Props) {
             />
             <span className={styles.settingReadout}>{props.touchpadTrackballDecay ?? 0}</span>
           </label>
+          <label>
+            {t('keymap.touchpadTrackballMinVelocity', 'Minimum flick speed')}
+            <input
+              type="range" min="0" max="2000" step="25"
+              value={props.touchpadTrackballMinVelocity ?? 200}
+              onChange={e => props.onTouchpadTrackballMinVelocityChange?.(e.target.value)}
+            />
+            <span className={styles.settingReadout}>{props.touchpadTrackballMinVelocity ?? 200}</span>
+          </label>
+          <p className={styles.touchpadHint}>
+            {t(
+              'keymap.touchpadTrackballMinVelocityHint',
+              'How fast a swipe must still be moving as your finger leaves the pad before the trackball coasts, in pixels per second. Raise it if putting a finger down to stop a coast flicks the cursor instead; 0 coasts from any speed.'
+            )}
+          </p>
           <p className={styles.touchpadHint}>
             {t(
               'keymap.touchpadTrackballDecayHint',

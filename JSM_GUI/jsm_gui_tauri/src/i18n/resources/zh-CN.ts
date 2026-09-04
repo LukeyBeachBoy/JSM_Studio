@@ -643,6 +643,8 @@ export const zhCN = {
     firmwareDefault: '手柄默认值',
     touchSensitivityTitle: '鼠标输出',
     touchSensitivityDescription: '滑动时光标如何平滑处理，以及抬指后的行为。',
+    touchpadTrackballMinVelocity: '最低甩动速度',
+    touchpadTrackballMinVelocityHint: '手指离开触摸板时滑动速度需达到多少（像素/秒）才会触发轨迹球惯性滑行。如果轻触停止滑行时光标反而被甩出，可调高该值；设为 0 则任何速度都会滑行。',
     touchpadTrackballDecay: '轨迹球滑动衰减',
     touchpadTrackballDecayHint: '设为 0 时，手指离开触摸板光标立即停止，与 Steam Input 的鼠标模式一致。数值越大，快速滑动后的惯性滑行越短。',
     touchpadAcceleration: '加速度',

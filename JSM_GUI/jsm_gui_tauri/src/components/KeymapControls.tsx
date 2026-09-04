@@ -98,9 +98,11 @@ type KeymapControlsProps = {
   touchpadMinCutoff?: number
   touchpadSpeedCoeff?: number
   touchpadTrackballDecay?: number
+  touchpadTrackballMinVelocity?: number
   onTouchpadMinCutoffChange?: (value: string) => void
   onTouchpadSpeedCoeffChange?: (value: string) => void
   onTouchpadTrackballDecayChange?: (value: string) => void
+  onTouchpadTrackballMinVelocityChange?: (value: string) => void
   gripSensorRange?: number
   gripFlickerGuard?: number
   gripHapticIntensity?: number
@@ -496,9 +498,11 @@ export function KeymapControls({
   touchpadMinCutoff,
   touchpadSpeedCoeff,
   touchpadTrackballDecay,
+  touchpadTrackballMinVelocity,
   onTouchpadMinCutoffChange,
   onTouchpadSpeedCoeffChange,
   onTouchpadTrackballDecayChange,
+  onTouchpadTrackballMinVelocityChange,
   gripSensorRange,
   gripFlickerGuard,
   gripHapticIntensity,
@@ -1241,9 +1245,11 @@ export function KeymapControls({
                   touchpadMinCutoff={touchpadMinCutoff}
                   touchpadSpeedCoeff={touchpadSpeedCoeff}
                   touchpadTrackballDecay={touchpadTrackballDecay}
+                  touchpadTrackballMinVelocity={touchpadTrackballMinVelocity}
                   onTouchpadMinCutoffChange={onTouchpadMinCutoffChange}
                   onTouchpadSpeedCoeffChange={onTouchpadSpeedCoeffChange}
                   onTouchpadTrackballDecayChange={onTouchpadTrackballDecayChange}
+                  onTouchpadTrackballMinVelocityChange={onTouchpadTrackballMinVelocityChange}
                   {...actionsProps}
                 />
               ),
