@@ -622,6 +622,7 @@ export const zhCN = {
     rightStickDescription: '配置右摇杆方向、环区绑定或摇杆点击。',
     rightStickModesDescription: '右摇杆的死区、模式和环区设置。',
     touchButtonsTitle: '触摸与点击按键',
+    touchButtonsDescriptionShared: '触摸接触、触摸板按下和触摸摇杆方向的映射。与网格区域不同，这些由两块触摸板共用：手柄只报告一个触摸按键，而非每板一个。',
     touchButtonsDescription: '触摸接触、触摸板按下和触摸摇杆方向绑定。',
     touchpadSettingsTitle: '触摸板模式与网格',
     touchpadSettingsDescription: '调整触摸板模式、双段触发、网格大小和灵敏度。',

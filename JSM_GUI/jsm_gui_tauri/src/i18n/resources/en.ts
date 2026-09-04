@@ -632,6 +632,7 @@ export const en = {
     rightStickDescription: 'Configure the right stick directions, ring binding, or stick click.',
     rightStickModesDescription: 'Deadzone, mode, and ring settings for the right stick.',
     touchButtonsTitle: 'Touch and click buttons',
+    touchButtonsDescriptionShared: 'Bindings for touch contact, pad click, and touch-stick directions. Unlike the grid regions, these are shared by both pads: the controller reports one touch button, not one per pad.',
     touchButtonsDescription: 'Bindings for touch contact, pad click, and touch-stick directions.',
     touchpadSettingsTitle: 'Touchpad mode and grid',
     touchpadSettingsDescription: 'Adjust mode, dual-stage behavior, grid size, and sensitivity for the touchpad.',

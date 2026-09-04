@@ -83,6 +83,36 @@ def test_per_pad_cells_can_be_used_as_chord_conditions():
           'KeymapControls no longer passes the real grid commands to the modifier list')
 
 
+def test_only_a_two_pad_controller_is_offered_two_pads():
+    check('controllerHasTwoTrackpads' in CONTROLS,
+          'the pad settings no longer ask whether the controller has two pads, so a '
+          'DualSense is shown a "Left touchpad" and a "Right touchpad" it does not have')
+    check('showPerPadTouchpads' in CONTROLS, 'the per-pad visibility rule is gone')
+    gate = re.search(r'const showPerPadTouchpads = useMemo\(.*?\n  \}, \[', CONTROLS, re.S)
+    check(gate is not None, 'showPerPadTouchpads is no longer derived')
+    body = gate.group(0)
+    check('if (hasPerPadSettings) return true' in body,
+          'a config that already sets per-pad values would lose its per-pad UI')
+    check('if (!devices || devices.length === 0) return true' in body,
+          'with nothing connected the per-pad settings must still be offered, or a '
+          'Steam Controller owner cannot set them up offline')
+
+    per_pad = re.search(r'const hasPerPadSettings = useMemo\(.*?\n  \)', CONTROLS, re.S)
+    check(per_pad is not None, 'hasPerPadSettings is no longer derived')
+    check('configText' in per_pad.group(0),
+          'hasPerPadSettings reads resolved values again; the per-pad grid size falls '
+          'back to 2x1 whether or not the config sets it, so it always looked set')
+
+
+def test_the_shared_touch_bindings_say_they_are_shared():
+    check("t('keymap.touchButtonsDescriptionShared')" in CONTROLS,
+          'a two-pad controller is not told that Touch and Click are shared, which now '
+          'reads as an inconsistency next to the per-pad grids')
+    for locale, name in ((EN, 'en'), (ZH, 'zh-CN')):
+        check('touchButtonsDescriptionShared:' in locale,
+              f'{name} is missing touchButtonsDescriptionShared')
+
+
 def main():
     tests = [value for name, value in sorted(globals().items()) if name.startswith('test_')]
     failures = 0

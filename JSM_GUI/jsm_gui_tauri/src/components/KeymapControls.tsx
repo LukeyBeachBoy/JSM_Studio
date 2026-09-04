@@ -47,7 +47,7 @@ import { GripSettingsSection } from './keymap/GripSettingsSection'
 import { TouchpadStickSection } from './keymap/TouchpadStickSection'
 import { SectionActions } from './SectionActions'
 import { ControllerStatusSvg } from './ControllerStatusSvg'
-import { controllerButtonLabel } from '../utils/controllerStatus'
+import { controllerButtonLabel, controllerHasTwoTrackpads } from '../utils/controllerStatus'
 import { StickSettingsCard } from './StickSettingsCard'
 import type { VirtualControllerType, VirtualControllerWarning } from '../utils/virtualController'
 import { normalizeTouchpadMode, type TouchpadWarning } from '../utils/touchpadConfig'
@@ -806,6 +806,22 @@ export function KeymapControls({
   // Whichever pad is being touched drives the grid's live dot. The grid's
   // bindings are shared between the two pads, so showing one dot rather than two
   // matches what a press will actually do.
+  // Only a controller with two pads gets a left and a right pad to configure.
+  // With nothing connected we cannot tell, so we offer both rather than hiding
+  // settings a Steam Controller owner came here to edit; a config that already
+  // sets per-pad values keeps them visible either way.
+  // Read the config rather than the resolved values: the per-pad grid size falls
+  // back to 2x1 whether or not the config sets it, so it can't tell us anything.
+  const hasPerPadSettings = useMemo(
+    () => /^\s*(LEFT|RIGHT)_(TOUCHPAD_MODE|GRID_SIZE|TOUCHPAD_SENS|TOUCH_STICK_MODE)\b/im.test(configText ?? ''),
+    [configText]
+  )
+  const showPerPadTouchpads = useMemo(() => {
+    if (hasPerPadSettings) return true
+    if (!devices || devices.length === 0) return true
+    return devices.some(device => controllerHasTwoTrackpads(device.type))
+  }, [devices, hasPerPadSettings])
+
   const livePadTouches = useMemo(() => {
     const status = devices?.find(device => device.status)?.status
     const read = (pad?: { x: number; y: number; touched?: boolean } | null) =>
@@ -1299,8 +1315,8 @@ export function KeymapControls({
                   <TouchpadSettingsSection
                     touchpadMode={touchpadMode}
                     touchpadDualStageMode={touchpadDualStageMode}
-                    left={{ mode: leftTouchpadMode ?? '', dualStageMode: leftTouchpadDualStageMode ?? '', gridColumns: leftGridColumns ?? gridColumns, gridRows: leftGridRows ?? gridRows, sensitivity: leftTouchpadSensitivity, sensitivityY: leftTouchpadSensitivityY, onSensitivityYChange: onLeftTouchpadSensitivityYChange, smoothing: touchpadSmoothing, acceleration: touchpadAcceleration, onModeChange: onLeftTouchpadModeChange, onGridSizeChange: onLeftGridSizeChange, onSensitivityChange: onLeftTouchpadSensitivityChange, onDualStageModeChange: onLeftTouchpadDualStageModeChange, onSmoothingChange: onTouchpadSmoothingChange, onAccelerationChange: onTouchpadAccelerationChange }}
-                    right={{ mode: rightTouchpadMode ?? '', dualStageMode: rightTouchpadDualStageMode ?? '', gridColumns: rightGridColumns ?? gridColumns, gridRows: rightGridRows ?? gridRows, sensitivity: rightTouchpadSensitivity, sensitivityY: rightTouchpadSensitivityY, onSensitivityYChange: onRightTouchpadSensitivityYChange, smoothing: touchpadSmoothing, acceleration: touchpadAcceleration, onModeChange: onRightTouchpadModeChange, onGridSizeChange: onRightGridSizeChange, onSensitivityChange: onRightTouchpadSensitivityChange, onDualStageModeChange: onRightTouchpadDualStageModeChange, onSmoothingChange: onTouchpadSmoothingChange, onAccelerationChange: onTouchpadAccelerationChange }}
+                    left={showPerPadTouchpads ? { mode: leftTouchpadMode ?? '', dualStageMode: leftTouchpadDualStageMode ?? '', gridColumns: leftGridColumns ?? gridColumns, gridRows: leftGridRows ?? gridRows, sensitivity: leftTouchpadSensitivity, sensitivityY: leftTouchpadSensitivityY, onSensitivityYChange: onLeftTouchpadSensitivityYChange, smoothing: touchpadSmoothing, acceleration: touchpadAcceleration, onModeChange: onLeftTouchpadModeChange, onGridSizeChange: onLeftGridSizeChange, onSensitivityChange: onLeftTouchpadSensitivityChange, onDualStageModeChange: onLeftTouchpadDualStageModeChange, onSmoothingChange: onTouchpadSmoothingChange, onAccelerationChange: onTouchpadAccelerationChange } : undefined}
+                    right={showPerPadTouchpads ? { mode: rightTouchpadMode ?? '', dualStageMode: rightTouchpadDualStageMode ?? '', gridColumns: rightGridColumns ?? gridColumns, gridRows: rightGridRows ?? gridRows, sensitivity: rightTouchpadSensitivity, sensitivityY: rightTouchpadSensitivityY, onSensitivityYChange: onRightTouchpadSensitivityYChange, smoothing: touchpadSmoothing, acceleration: touchpadAcceleration, onModeChange: onRightTouchpadModeChange, onGridSizeChange: onRightGridSizeChange, onSensitivityChange: onRightTouchpadSensitivityChange, onDualStageModeChange: onRightTouchpadDualStageModeChange, onSmoothingChange: onTouchpadSmoothingChange, onAccelerationChange: onTouchpadAccelerationChange } : undefined}
                     gridColumns={gridColumns}
                     gridRows={gridRows}
 
@@ -1421,7 +1437,11 @@ export function KeymapControls({
               node: (
                 <ButtonGridSection
                   title={t('keymap.touchButtonsTitle')}
-                  description={t('keymap.touchButtonsDescription')}
+                  description={
+                    showPerPadTouchpads
+                      ? t('keymap.touchButtonsDescriptionShared')
+                      : t('keymap.touchButtonsDescription')
+                  }
                   buttons={touchpadButtonSectionButtons}
                   renderButton={renderButtonCard}
                   {...actionsProps}

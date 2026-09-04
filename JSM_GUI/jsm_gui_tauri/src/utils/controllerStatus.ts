@@ -55,6 +55,14 @@ const FOUR_PADDLE_CONTROLLER_TYPES = new Set<number>([
   CONTROLLER_TYPES.STEAM_CONTROLLER_2026,
 ])
 
+// Two physical trackpads, each separately configurable. Everything else has one
+// pad at most, and showing it a "Left touchpad" and a "Right touchpad" invents
+// hardware it does not have.
+const TWO_TRACKPAD_CONTROLLER_TYPES = new Set<number>([CONTROLLER_TYPES.STEAM_CONTROLLER_2026])
+
+export const controllerHasTwoTrackpads = (type?: number) =>
+  type !== undefined && TWO_TRACKPAD_CONTROLLER_TYPES.has(type)
+
 const TWO_PADDLE_CONTROLLER_TYPES = new Set<number>([
   CONTROLLER_TYPES.G7_PRO_8K,
   CONTROLLER_TYPES.EIGHTBITDO_PRO_2,
