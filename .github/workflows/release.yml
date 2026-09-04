@@ -156,6 +156,20 @@ jobs:
             one indexed past the end of the button array. A chord can name a per-pad
             cell too, so `LT3` is expressible rather than only `T3`.
 
+            ### The trackpad no longer teleports on a slow drag or a long coast
+            Reported reproducible, about once a second, worse the slower you drag and
+            worse still watching a long coast: a value that genuinely stalls -- not a
+            stale duplicate HID report, but a slow, constant-speed swipe whose
+            consecutive real samples quantise to the identical coordinate for a
+            stretch -- used to sit frozen past a 16ms bound and then get processed
+            anyway, handing the position filter a dt inflated by the whole stalled
+            span for a sample that had not moved at all. That inflated dt did not
+            recover any missing displacement (there was none to recover); it only
+            snapped whatever smoothing lag had built up during the stall onto the raw
+            value in one oversized step instead of several small ones. Fixed by
+            settling the filter directly to the confirmed-stalled value instead of
+            processing it -- emits nothing, and leaves nothing to catch up on later.
+
             ### Only the pads you have
             The Trackpads page offered a "Left touchpad" and a "Right touchpad" to
             every controller, including ones with a single pad or none. It now shows
