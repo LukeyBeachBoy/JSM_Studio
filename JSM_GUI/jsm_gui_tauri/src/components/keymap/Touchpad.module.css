@@ -132,6 +132,30 @@
   line-height: 1.45;
 }
 
+/* Wraps the grid so the live finger dot can be positioned over it. */
+.touchpadGridPreviewWrap {
+  position: relative;
+}
+
+/* Where the finger is right now. Deliberately the same green as every other
+   capacitive contact in this app rather than the accent, so it reads as live
+   hardware rather than as a selection. */
+.touchpadGridDot {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border-radius: 50%;
+  background: var(--telemetry-green);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--telemetry-green) 60%, transparent);
+  pointer-events: none;
+}
+
+.touchpadGridCellLive {
+  border-color: var(--telemetry-green);
+  background: color-mix(in srgb, var(--telemetry-green) 16%, var(--touchpad-grid-cell-bg));
+}
+
 .touchpadGridPreview {
   display: grid;
   gap: 0.4rem;

@@ -881,7 +881,6 @@ function App() {
                 }
                 isCalibrating={isCalibrating}
                 statusMessage={statusMessage}
-                devices={sample?.devices}
                 ignoredDevices={ignoredGyroDevices}
                 onToggleIgnoreDevice={handleToggleIgnoreGyroDevice}
                 onInGameSensChange={handleInGameSensChange}
@@ -1093,6 +1092,7 @@ function App() {
             rightGridRows={rightGridSizeValue.rows}
             onLeftGridSizeChange={handleLeftGridSizeChange}
             onRightGridSizeChange={handleRightGridSizeChange}
+            devices={sample?.devices}
             leftTouchpadSensitivity={leftTouchpadSensitivityValue}
             rightTouchpadSensitivity={rightTouchpadSensitivityValue}
             onLeftTouchpadSensitivityChange={handleLeftTouchpadSensitivityChange}
@@ -1137,7 +1137,6 @@ function App() {
             scrollSens={scrollSensValue}
             onScrollSensChange={handleScrollSensChange}
             lockMessage={lockMessage}
-            devices={sample?.devices}
             selectedMappingCommand={selectedMappingCommand}
             onSelectedMappingCommandChange={setSelectedMappingCommand}
             virtualControllerType={virtualControllerType}
@@ -1214,6 +1213,7 @@ function App() {
             rightGridRows={rightGridSizeValue.rows}
             onLeftGridSizeChange={handleLeftGridSizeChange}
             onRightGridSizeChange={handleRightGridSizeChange}
+            devices={sample?.devices}
             leftTouchpadSensitivity={leftTouchpadSensitivityValue}
             rightTouchpadSensitivity={rightTouchpadSensitivityValue}
             onLeftTouchpadSensitivityChange={handleLeftTouchpadSensitivityChange}

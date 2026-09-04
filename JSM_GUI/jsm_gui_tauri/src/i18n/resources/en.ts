@@ -637,6 +637,7 @@ export const en = {
     touchpadSettingsDescription: 'Adjust mode, dual-stage behavior, grid size, and sensitivity for the touchpad.',
     touchpadGridTitle: 'Touchpad grid',
     touchpadGridDescription: 'Click a region in the preview, then assign its mapping below.',
+    touchpadGridExplainer: 'Grid and stick splits the pad into regions you can bind separately, and treats the pad as a stick at the same time. Touching a region presses whatever is bound to it, so it works like a set of buttons drawn on the pad, while sliding your thumb still drives the touch stick. Set the rows and columns above, click a region to bind it, and touch the pad to see where your finger lands.',
     selectedTouchpadRegion: 'Selected region',
     bound: 'Bound',
     mode: 'Mode',

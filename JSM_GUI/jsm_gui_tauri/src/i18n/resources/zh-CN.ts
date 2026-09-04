@@ -627,6 +627,7 @@ export const zhCN = {
     touchpadSettingsDescription: '调整触摸板模式、双段触发、网格大小和灵敏度。',
     touchpadGridTitle: '触摸板网格',
     touchpadGridDescription: '点击预览中的区域，然后在下方为该区域分配映射。',
+    touchpadGridExplainer: '“网格 + 摇杆”模式会把触控板划分为若干可分别绑定的区域，同时整块触控板仍作为摇杆使用。触碰某个区域即触发绑定到该区域的操作，相当于在触控板上画出一组按键；滑动拇指则继续驱动触摸摇杆。在上方设置行列数，点击区域进行绑定，触摸触控板即可看到手指所在的位置。',
     selectedTouchpadRegion: '已选区域',
     bound: '已绑定',
     mode: '模式',

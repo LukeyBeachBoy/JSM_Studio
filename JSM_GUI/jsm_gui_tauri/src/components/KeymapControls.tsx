@@ -616,9 +616,17 @@ export function KeymapControls({
     return visibleSections.includes(section)
   }
 
+  // On a two-pad controller the shared TOUCHPAD_MODE is usually unset and the
+  // real answer lives in the per-pad modes, so a page keying off the shared value
+  // alone showed grid bindings for a pad in mouse mode and hid the grid widget
+  // for a pad actually in grid mode.
   const touchpadMode = useMemo(() => {
-    return normalizeTouchpadMode(touchpadModeProp)
-  }, [touchpadModeProp])
+    const shared = normalizeTouchpadMode(touchpadModeProp)
+    if (shared) return shared
+    const left = normalizeTouchpadMode(leftTouchpadMode ?? '')
+    const right = normalizeTouchpadMode(rightTouchpadMode ?? '')
+    return left === 'GRID_AND_STICK' || right === 'GRID_AND_STICK' ? 'GRID_AND_STICK' : left || right
+  }, [leftTouchpadMode, rightTouchpadMode, touchpadModeProp])
 
   const gridActive = touchpadMode === 'GRID_AND_STICK'
   const clampedGridCols = Math.max(1, Math.min(5, gridColumns || 1))
@@ -754,6 +762,15 @@ export function KeymapControls({
       : null
   const visualDevice = devices?.find(device => device.status) ?? devices?.[0] ?? VIRTUAL_MAPPING_DEVICE
 
+  // Whichever pad is being touched drives the grid's live dot. The grid's
+  // bindings are shared between the two pads, so showing one dot rather than two
+  // matches what a press will actually do.
+  const livePadTouch = useMemo(() => {
+    const status = devices?.find(device => device.status)?.status
+    const touched = [status?.leftPad, status?.rightPad].find(pad => pad?.touched)
+    return touched ? { x: touched.x, y: touched.y, touched: true } : null
+  }, [devices])
+
   useEffect(() => {
     if (view !== 'full') return
     if (!selectedVisualButton) return
@@ -878,10 +895,19 @@ export function KeymapControls({
   const isTouchpadButtonBound = (command: string) => {
     const key = command.toUpperCase()
     const rows = bindingRowsByButton[key] ?? bindingRowsByButton[command] ?? []
-    return rows.length > 0 || Boolean(specialsByButton[key] || specialsByButton[command])
+    // A row exists for every editable slot whether or not anything is in it, so
+    // counting rows made every touch button look bound -- which is why the touch
+    // stick directions showed up on a pad that was not acting as a stick.
+    const hasBinding = rows.some(row => Boolean(row.binding) || Boolean(row.expression))
+    return hasBinding || Boolean(specialsByButton[key] || specialsByButton[command])
   }
 
-  const showTouchStickButtons = gridActive || Boolean(touchStickMode) || TOUCH_STICK_BUTTONS.some(button => isTouchpadButtonBound(button.command))
+  // Touch-stick directions only mean something when a pad is actually acting as a
+  // stick. Showing them beside Touch and Click regardless is what made this page
+  // read as a wall of settings for a mode you are not in. Anything already bound
+  // still shows, so an existing config never hides bindings you cannot then find.
+  const showTouchStickButtons =
+    gridActive || TOUCH_STICK_BUTTONS.some(button => isTouchpadButtonBound(button.command))
   const touchpadButtonSectionButtons = showTouchStickButtons ? [...TOUCH_BUTTONS, ...TOUCH_STICK_BUTTONS] : TOUCH_BUTTONS
 
   const stickModeExtras = (side: 'LEFT' | 'RIGHT') => {
@@ -1250,6 +1276,7 @@ export function KeymapControls({
                     <TouchpadGridSection
                       gridColumns={clampedGridCols}
                       gridCells={clampedGridCells}
+                      livePad={livePadTouch}
                       renderButton={renderButtonCard}
                       touchpadButtons={touchpadGridButtons}
                       selectedButton={selectedTouchpadGridButton}
