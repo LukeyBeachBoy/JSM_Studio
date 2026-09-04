@@ -19,6 +19,7 @@ import {
   isVirtualControllerToken,
   type VirtualControllerLogicalOutput,
 } from './virtualController'
+import { isHapticBindingValue } from './hapticBindings'
 
 export type BindingTriggerKind =
   | 'regular'
@@ -32,7 +33,7 @@ export type BindingTriggerKind =
   | 'diagonal'
   | 'stickShift'
 
-export type BindingOutputKind = 'keyboard' | 'mouse' | 'wheel' | 'special' | 'command' | 'raw' | 'virtualController'
+export type BindingOutputKind = 'keyboard' | 'mouse' | 'wheel' | 'special' | 'command' | 'raw' | 'virtualController' | 'haptic'
 export type BindingOutputBehavior = 'normal' | 'tapOnce' | 'toggle' | 'releaseOnly'
 
 export type BindingCommandSource =
@@ -105,6 +106,7 @@ const OUTPUT_KINDS = new Set<BindingOutputKind>([
   'command',
   'raw',
   'virtualController',
+  'haptic',
 ])
 const OUTPUT_BEHAVIORS = new Set<BindingOutputBehavior>(['normal', 'tapOnce', 'toggle', 'releaseOnly'])
 const MOUSE_OUTPUT_VALUES = new Set(['LMOUSE', 'MMOUSE', 'RMOUSE', 'BMOUSE', 'FMOUSE'])
@@ -115,6 +117,7 @@ export const inferOutputKindFromBindingValue = (value: string): BindingOutputKin
   if (MOUSE_OUTPUT_VALUES.has(normalized)) return 'mouse'
   if (WHEEL_OUTPUT_VALUES.has(normalized)) return 'wheel'
   if (isVirtualControllerToken(normalized)) return 'virtualController'
+  if (isHapticBindingValue(normalized)) return 'haptic'
   return 'keyboard'
 }
 
@@ -185,7 +188,8 @@ const outputKindFromToken = (token: BindingToken): BindingOutputKind => {
       return 'raw'
     case 'input':
     default:
-      return isVirtualControllerToken(token.value) ? 'virtualController' : 'keyboard'
+      if (isVirtualControllerToken(token.value)) return 'virtualController'
+      return isHapticBindingValue(token.value) ? 'haptic' : 'keyboard'
   }
 }
 
@@ -202,6 +206,7 @@ const tokenKindFromOutput = (kind: BindingOutputKind): BindingTokenKind => {
     case 'raw':
       return 'raw_literal'
     case 'virtualController':
+    case 'haptic':
     case 'keyboard':
     default:
       return 'input'

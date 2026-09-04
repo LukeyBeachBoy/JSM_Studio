@@ -20,6 +20,8 @@ type BindingCommandCardProps = {
   virtualControllerType: VirtualControllerType
   isCapturing: boolean
   captureLabel: string
+  // Set when this card replaces a draft the user was already editing.
+  defaultExpanded?: boolean
   onUpdate: (command: BindingCommand, patch: BindingCommandPatch) => void
   onRemove: (command: BindingCommand) => void
   onDuplicate: (command: BindingCommand) => void
@@ -59,6 +61,7 @@ export function BindingCommandCard({
   virtualControllerType,
   isCapturing,
   captureLabel,
+  defaultExpanded = false,
   onUpdate,
   onRemove,
   onDuplicate,
@@ -66,7 +69,7 @@ export function BindingCommandCard({
 }: BindingCommandCardProps) {
   const { t } = useTranslation()
   const isDraftCommand = command.source.kind === 'row' && command.source.isManual && !command.outputValue
-  const [expanded, setExpanded] = useState(isDraftCommand)
+  const [expanded, setExpanded] = useState(isDraftCommand || defaultExpanded)
   const triggerLabel = t(TRIGGER_LABEL_KEYS[command.triggerKind])
   const behaviorLabel = command.outputBehavior === 'normal' ? '' : t(BEHAVIOR_LABEL_KEYS[command.outputBehavior])
   const conditionLabel = command.conditionInput

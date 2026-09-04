@@ -8,6 +8,8 @@ import {
 } from '../../utils/bindingCommands'
 import keymapStyles from '../Keymap.module.css'
 import { BindingCommandEditor } from './BindingCommandEditor'
+import { HapticOutputPicker } from './HapticOutputPicker'
+import { DEFAULT_HAPTIC_BINDING, formatHapticBinding } from '../../utils/hapticBindings'
 import {
   getDefaultVirtualControllerLogicalOutput,
   getPreferredVirtualControllerDisplayType,
@@ -51,6 +53,7 @@ const OUTPUT_KIND_OPTIONS: Array<{ value: BindingOutputKind; labelKey: string }>
   { value: 'mouse', labelKey: 'keymap.commandOutputMouse' },
   { value: 'wheel', labelKey: 'keymap.commandOutputWheel' },
   { value: 'virtualController', labelKey: 'keymap.commandOutputVirtualController' },
+  { value: 'haptic', labelKey: 'keymap.commandOutputHaptic' },
   { value: 'special', labelKey: 'keymap.commandOutputSpecial' },
   { value: 'command', labelKey: 'keymap.commandOutputCommand' },
   { value: 'raw', labelKey: 'keymap.commandOutputRaw' },
@@ -93,6 +96,14 @@ export function BindingQuickComposer({
       })
       return
     }
+    if (nextOutputKind === 'haptic') {
+      onChange({
+        outputKind: nextOutputKind,
+        outputValue: formatHapticBinding(DEFAULT_HAPTIC_BINDING),
+        virtualControllerLogicalOutput: undefined,
+      })
+      return
+    }
     onChange({ outputKind: nextOutputKind, outputValue: '', virtualControllerLogicalOutput: undefined })
   }
 
@@ -125,6 +136,15 @@ export function BindingQuickComposer({
             <option key={value} value={value}>{value}</option>
           ))}
         </select>
+      )
+    }
+    if (command.outputKind === 'haptic') {
+      return (
+        <HapticOutputPicker
+          value={command.outputValue}
+          disabled={command.triggerKind === 'stickShift'}
+          onChange={(next) => onChange({ outputValue: next })}
+        />
       )
     }
     if (command.outputKind === 'special') {
@@ -215,7 +235,13 @@ export function BindingQuickComposer({
           onClick={onCapture}
           disabled={!canCapture || command.triggerKind === 'stickShift'}
         >
-          <span>{isCapturing ? captureLabel : t('keymap.quickCapturePrompt')}</span>
+          <span>
+            {isCapturing
+              ? captureLabel
+              : canCapture
+                ? t('keymap.quickCapturePrompt')
+                : t('keymap.quickCaptureUnavailable')}
+          </span>
           <strong>{command.outputValue || t('keymap.commandNoOutput')}</strong>
         </button>
         <div className={keymapStyles.outputKindChips} data-capture-ignore="true">

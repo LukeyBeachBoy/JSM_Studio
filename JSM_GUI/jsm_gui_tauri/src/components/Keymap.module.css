@@ -821,6 +821,52 @@
   justify-content: flex-end;
 }
 
+.hapticPicker {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: 0.65rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border-1);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg-input) 60%, transparent);
+}
+
+.hapticField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.hapticField span {
+  color: var(--text-mid);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.hapticField input {
+  padding: 0.5rem 0.6rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-1);
+  background: var(--bg-input);
+  color: var(--text-strong);
+  width: 100%;
+}
+
+.hapticHint {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--text-mid);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.hapticHint code {
+  color: var(--text-strong);
+  background: color-mix(in srgb, var(--bg-2) 70%, transparent);
+  border-radius: 6px;
+  padding: 0.1rem 0.35rem;
+}
+
 @media (max-width: 1060px) {
   .mappingWorkbench {
     grid-template-columns: 1fr;

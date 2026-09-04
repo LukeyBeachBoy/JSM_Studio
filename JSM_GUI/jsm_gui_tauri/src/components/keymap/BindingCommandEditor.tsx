@@ -7,6 +7,8 @@ import {
   BindingTriggerKind,
 } from '../../utils/bindingCommands'
 import keymapStyles from '../Keymap.module.css'
+import { HapticOutputPicker } from './HapticOutputPicker'
+import { DEFAULT_HAPTIC_BINDING, formatHapticBinding } from '../../utils/hapticBindings'
 import {
   getDefaultVirtualControllerLogicalOutput,
   getPreferredVirtualControllerDisplayType,
@@ -47,6 +49,7 @@ const OUTPUT_KIND_OPTIONS: Array<{ value: BindingOutputKind; labelKey: string }>
   { value: 'mouse', labelKey: 'keymap.commandOutputMouse' },
   { value: 'wheel', labelKey: 'keymap.commandOutputWheel' },
   { value: 'virtualController', labelKey: 'keymap.commandOutputVirtualController' },
+  { value: 'haptic', labelKey: 'keymap.commandOutputHaptic' },
   { value: 'special', labelKey: 'keymap.commandOutputSpecial' },
   { value: 'command', labelKey: 'keymap.commandOutputCommand' },
   { value: 'raw', labelKey: 'keymap.commandOutputRaw' },
@@ -88,6 +91,14 @@ export function BindingCommandEditor({
         outputKind: nextOutputKind,
         outputValue: token,
         virtualControllerLogicalOutput: logical ?? undefined,
+      })
+      return
+    }
+    if (nextOutputKind === 'haptic') {
+      onChange({
+        outputKind: nextOutputKind,
+        outputValue: formatHapticBinding(DEFAULT_HAPTIC_BINDING),
+        virtualControllerLogicalOutput: undefined,
       })
       return
     }
@@ -182,6 +193,12 @@ export function BindingCommandEditor({
               </option>
             ))}
           </select>
+        ) : command.outputKind === 'haptic' ? (
+          <HapticOutputPicker
+            value={command.outputValue}
+            disabled={command.triggerKind === 'stickShift'}
+            onChange={(next) => onChange({ outputValue: next })}
+          />
         ) : command.outputKind === 'special' ? (
           <select
             className="app-select"
