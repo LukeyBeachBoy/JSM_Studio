@@ -170,6 +170,25 @@ jobs:
             settling the filter directly to the confirmed-stalled value instead of
             processing it -- emits nothing, and leaves nothing to catch up on later.
 
+            ### The real cause of the periodic "double cursor" jitter
+            The trackpad fix above turned out not to be the whole story: the same
+            once-a-second stutter was also reported on gyro and on stick mouse aim,
+            two paths that share no smoothing code with the trackpad or with each
+            other. What they share is the process, and the OS call that actually
+            moves the cursor. This fork's "Auto switch" (profile auto-load by
+            foreground app) polls the foreground window every second, and was
+            fetching its window TITLE unconditionally on every one of those polls --
+            not just when the foreground app changes, which is the only time the
+            title is actually used. On win32, fetching another process's window
+            title sends it a message and waits for that process's own message pump
+            to answer, and a game that's busy rendering can leave that wait hanging
+            for a real stretch. Because it runs on a thread in the same process as
+            the one actually moving your cursor, that stall could delay mouse output
+            regardless of source -- touchpad, gyro, or stick, once a second, and
+            worse the faster the cursor was already moving. The title is now fetched
+            only when the foreground app has actually changed, which is what "Auto
+            switch" only ever needed it for.
+
             ### Only the pads you have
             The Trackpads page offered a "Left touchpad" and a "Right touchpad" to
             every controller, including ones with a single pad or none. It now shows
