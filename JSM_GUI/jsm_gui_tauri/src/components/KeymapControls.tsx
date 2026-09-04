@@ -25,6 +25,7 @@ import {
   TOUCH_BUTTONS,
   TRIGGER_BUTTONS,
   buildTouchpadGridButton,
+  type TouchpadGridPrefix,
   getButtonDescription,
   getSpecialOptionList,
   type ButtonDefinition,
@@ -634,26 +635,66 @@ export function KeymapControls({
   const clampedGridCells = touchpadMode === 'GRID_AND_STICK' ? Math.min(25, clampedGridCols * clampedGridRows) : 0
   const configuredGridButtons = gridActive ? clampedGridCells : 0
 
+  // A controller with two pads gives each its own grid: its own size, its own
+  // cells, its own bindings. Both pads used to drive the same T1..Tn, so a cell
+  // on one pad fired the other's binding. A single-pad controller, and a two-pad
+  // controller configured only through the shared TOUCHPAD_MODE, still get the
+  // one shared grid.
+  const touchpadGridPads = useMemo(() => {
+    const buildCells = (prefix: TouchpadGridPrefix, columns: number, rows: number) => {
+      const cols = Math.max(1, Math.min(5, columns || 1))
+      const cells = Math.min(25, cols * Math.max(1, Math.min(5, rows || 1)))
+      return {
+        prefix,
+        columns: cols,
+        cells,
+        buttons: Array.from({ length: cells }, (_, index) =>
+          buildTouchpadGridButton(index + 1, Math.floor(index / cols) + 1, (index % cols) + 1, prefix)
+        ),
+      }
+    }
+
+    const perPad: Array<ReturnType<typeof buildCells> & { side: 'left' | 'right' }> = []
+    if (normalizeTouchpadMode(leftTouchpadMode ?? '') === 'GRID_AND_STICK') {
+      perPad.push({ side: 'left', ...buildCells('LT', leftGridColumns ?? gridColumns, leftGridRows ?? gridRows) })
+    }
+    if (normalizeTouchpadMode(rightTouchpadMode ?? '') === 'GRID_AND_STICK') {
+      perPad.push({ side: 'right', ...buildCells('RT', rightGridColumns ?? gridColumns, rightGridRows ?? gridRows) })
+    }
+    if (perPad.length > 0) return perPad
+    if (!gridActive) return []
+    return [{ side: 'shared' as const, ...buildCells('T', clampedGridCols, clampedGridRows) }]
+  }, [
+    clampedGridCols,
+    clampedGridRows,
+    gridActive,
+    gridColumns,
+    gridRows,
+    leftGridColumns,
+    leftGridRows,
+    leftTouchpadMode,
+    rightGridColumns,
+    rightGridRows,
+    rightTouchpadMode,
+  ])
+
+  const touchpadGridButtons = useMemo<ButtonDefinition[]>(
+    () => touchpadGridPads.flatMap(pad => pad.buttons),
+    [touchpadGridPads]
+  )
+
+  const touchpadGridCommands = useMemo(
+    () => touchpadGridButtons.map(button => button.command),
+    [touchpadGridButtons]
+  )
+
   const modifierOptions = useMemo(() => {
-    return buildModifierOptions(gridActive, configuredGridButtons).map(option => ({
+    return buildModifierOptions(gridActive, configuredGridButtons, touchpadGridCommands).map(option => ({
       value: option.value,
       label: resolveModifierOptionLabel(option, t),
       disabled: option.disabled,
     }))
-  }, [configuredGridButtons, gridActive, t])
-
-  const touchpadGridButtons = useMemo<ButtonDefinition[]>(() => {
-    return Array.from({ length: clampedGridCells }, (_, index) => {
-      const rowIndex = Math.floor(index / clampedGridCols) + 1
-      const colIndex = (index % clampedGridCols) + 1
-      return buildTouchpadGridButton(index + 1, rowIndex, colIndex)
-    })
-  }, [clampedGridCells, clampedGridCols])
-
-  const selectedTouchpadGridButton =
-    touchpadGridButtons.find(button => button.command.toUpperCase() === selectedTouchpadGridCommand?.toUpperCase()) ??
-    touchpadGridButtons[0] ??
-    null
+  }, [configuredGridButtons, gridActive, t, touchpadGridCommands])
 
   const bindingRowsByButton = useMemo(() => {
     const record: Record<string, ButtonBindingRow[]> = {}
@@ -765,11 +806,16 @@ export function KeymapControls({
   // Whichever pad is being touched drives the grid's live dot. The grid's
   // bindings are shared between the two pads, so showing one dot rather than two
   // matches what a press will actually do.
-  const livePadTouch = useMemo(() => {
+  const livePadTouches = useMemo(() => {
     const status = devices?.find(device => device.status)?.status
-    const touched = [status?.leftPad, status?.rightPad].find(pad => pad?.touched)
-    return touched ? { x: touched.x, y: touched.y, touched: true } : null
+    const read = (pad?: { x: number; y: number; touched?: boolean } | null) =>
+      pad?.touched ? { x: pad.x, y: pad.y, touched: true } : null
+    return { left: read(status?.leftPad), right: read(status?.rightPad) }
   }, [devices])
+
+  // The shared grid belongs to a single-pad controller, where either reported
+  // point is that pad's.
+  const livePadTouch = livePadTouches.left ?? livePadTouches.right
 
   useEffect(() => {
     if (view !== 'full') return
@@ -1272,20 +1318,34 @@ export function KeymapControls({
                     warnings={touchpadWarnings?.map(renderTouchpadWarning)}
                     {...actionsProps}
                   />
-                  {touchpadMode === 'GRID_AND_STICK' && (
-                    <TouchpadGridSection
-                      gridColumns={clampedGridCols}
-                      gridCells={clampedGridCells}
-                      livePad={livePadTouch}
-                      renderButton={renderButtonCard}
-                      touchpadButtons={touchpadGridButtons}
-                      selectedButton={selectedTouchpadGridButton}
-                      selectedCommand={selectedTouchpadGridButton?.command ?? null}
-                      onSelectButton={setSelectedTouchpadGridCommand}
-                      isButtonBound={isTouchpadButtonBound}
-                      {...actionsProps}
-                    />
-                  )}
+                  {touchpadGridPads.map(pad => {
+                    const selected =
+                      pad.buttons.find(
+                        button => button.command.toUpperCase() === selectedTouchpadGridCommand?.toUpperCase()
+                      ) ?? null
+                    return (
+                      <TouchpadGridSection
+                        key={pad.side}
+                        side={pad.side}
+                        gridColumns={pad.columns}
+                        gridCells={pad.cells}
+                        livePad={
+                          pad.side === 'left'
+                            ? livePadTouches.left
+                            : pad.side === 'right'
+                              ? livePadTouches.right
+                              : livePadTouch
+                        }
+                        renderButton={renderButtonCard}
+                        touchpadButtons={pad.buttons}
+                        selectedButton={selected}
+                        selectedCommand={selected?.command ?? null}
+                        onSelectButton={setSelectedTouchpadGridCommand}
+                        isButtonBound={isTouchpadButtonBound}
+                        {...actionsProps}
+                      />
+                    )
+                  })}
                 </>
               ),
             },

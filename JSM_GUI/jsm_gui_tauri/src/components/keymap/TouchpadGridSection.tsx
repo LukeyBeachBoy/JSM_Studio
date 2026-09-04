@@ -10,6 +10,8 @@ import { SectionActions } from '../SectionActions'
 export type LivePadTouch = { x: number; y: number; touched: boolean }
 
 type TouchpadGridSectionProps = {
+  // Which pad this grid belongs to, so a two-pad controller can say so.
+  side?: 'left' | 'right' | 'shared'
   gridColumns: number
   gridCells: number
   livePad?: LivePadTouch | null
@@ -27,6 +29,7 @@ type TouchpadGridSectionProps = {
 }
 
 export function TouchpadGridSection({
+  side = 'shared',
   gridColumns,
   gridCells,
   livePad,
@@ -60,7 +63,14 @@ export function TouchpadGridSection({
 
   return (
     <>
-      <KeymapSection title={t('keymap.touchpadGridTitle')} description={t('keymap.touchpadGridDescription')}>
+      <KeymapSection
+        title={
+          side === 'shared'
+            ? t('keymap.touchpadGridTitle')
+            : t(side === 'left' ? 'keymap.touchpadGridTitleLeft' : 'keymap.touchpadGridTitleRight')
+        }
+        description={t('keymap.touchpadGridDescription')}
+      >
         <p className={styles.touchpadHint}>
           {t(
             'keymap.touchpadGridExplainer',

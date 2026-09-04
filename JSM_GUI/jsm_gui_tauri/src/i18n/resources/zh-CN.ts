@@ -625,6 +625,8 @@ export const zhCN = {
     touchButtonsDescription: '触摸接触、触摸板按下和触摸摇杆方向绑定。',
     touchpadSettingsTitle: '触摸板模式与网格',
     touchpadSettingsDescription: '调整触摸板模式、双段触发、网格大小和灵敏度。',
+    touchpadGridTitleLeft: '左触摸板网格',
+    touchpadGridTitleRight: '右触摸板网格',
     touchpadGridTitle: '触摸板网格',
     touchpadGridDescription: '点击预览中的区域，然后在下方为该区域分配映射。',
     touchpadGridExplainer: '“网格 + 摇杆”模式会把触控板划分为若干可分别绑定的区域，同时整块触控板仍作为摇杆使用。触碰某个区域即触发绑定到该区域的操作，相当于在触控板上画出一组按键；滑动拇指则继续驱动触摸摇杆。在上方设置行列数，点击区域进行绑定，触摸触控板即可看到手指所在的位置。',
@@ -1081,6 +1083,8 @@ export const zhCN = {
     misc6: 'MISC6 — 左握把感应器',
     touch: 'TOUCH — 触摸板触摸',
     touchGridRegion: 'T{{index}} — 触摸板网格区域 {{index}}',
+    touchGridRegionLeft: 'LT{{index}} — 左触摸板网格区域 {{index}}',
+    touchGridRegionRight: 'RT{{index}} — 右触摸板网格区域 {{index}}',
     touchGridRegionDisabled: 'T{{index}} — 触摸板网格区域 {{index}}（启用 GRID_AND_STICK 后可用）',
   },
   specialBindings: {

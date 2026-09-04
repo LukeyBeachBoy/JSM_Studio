@@ -69,17 +69,31 @@ const clampGridButtons = (value: number) => {
 export const resolveModifierOptionLabel = (option: ModifierSelectOption, t: TFunction) =>
   t(option.labelKey, option.labelParams)
 
-export const buildModifierOptions = (gridActive: boolean, configuredGridButtons: number) => {
+// A two-pad controller's cells are LT1.. and RT1.., so the caller passes the
+// commands it actually built rather than a count; the count path stays for the
+// single shared grid and for the disabled preview.
+export const buildModifierOptions = (
+  gridActive: boolean,
+  configuredGridButtons: number,
+  gridCommands?: string[]
+) => {
   const options: ModifierSelectOption[] = [...BASE_MODIFIER_OPTIONS, ...TOUCHPAD_CORE_OPTIONS]
   if (gridActive) {
-    const count = clampGridButtons(configuredGridButtons || 1)
-    for (let index = 1; index <= count; index += 1) {
-      options.push({
-        value: `T${index}`,
-        labelKey: 'modifiers.touchGridRegion',
-        labelParams: { index },
-      })
-    }
+    const commands =
+      gridCommands && gridCommands.length > 0
+        ? gridCommands
+        : Array.from({ length: clampGridButtons(configuredGridButtons || 1) }, (_, i) => `T${i + 1}`)
+    commands.forEach(command => {
+      const match = /^(LT|RT|T)(\d+)$/.exec(command.toUpperCase())
+      const index = match ? Number(match[2]) : 0
+      const labelKey =
+        match?.[1] === 'LT'
+          ? 'modifiers.touchGridRegionLeft'
+          : match?.[1] === 'RT'
+            ? 'modifiers.touchGridRegionRight'
+            : 'modifiers.touchGridRegion'
+      options.push({ value: command, labelKey, labelParams: { index } })
+    })
   } else {
     const previewCount = Math.min(TOUCHPAD_GRID_PREVIEW_COUNT, Math.max(configuredGridButtons, 2) || 2)
     for (let index = 1; index <= previewCount; index += 1) {

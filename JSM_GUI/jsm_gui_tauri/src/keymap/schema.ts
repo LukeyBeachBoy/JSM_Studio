@@ -104,12 +104,23 @@ export const MISC_BUTTONS: ButtonDefinition[] = [
   { command: 'MISC6', descriptionKey: 'buttons.descriptions.extraButton6', playstation: 'Misc 6', xbox: 'Misc 6' },
 ]
 
-export const buildTouchpadGridButton = (index: number, row: number, col: number): ButtonDefinition => ({
-  command: `T${index}`,
+// Each pad addresses its own cells on a controller that has two of them: LT1..
+// on the left, RT1.. on the right. T1.. stays the single-pad controller's grid,
+// and is what a two-pad controller falls back to when only the shared
+// TOUCHPAD_MODE and GRID_SIZE are set.
+export type TouchpadGridPrefix = 'T' | 'LT' | 'RT'
+
+export const buildTouchpadGridButton = (
+  index: number,
+  row: number,
+  col: number,
+  prefix: TouchpadGridPrefix = 'T'
+): ButtonDefinition => ({
+  command: `${prefix}${index}`,
   descriptionKey: 'buttons.descriptions.touchpadGridRegion',
   descriptionParams: { row, col },
-  playstation: `T${index}`,
-  xbox: `T${index}`,
+  playstation: `${prefix}${index}`,
+  xbox: `${prefix}${index}`,
 })
 
 export const getButtonDescription = (button: ButtonDefinition, t: TFunction) =>
