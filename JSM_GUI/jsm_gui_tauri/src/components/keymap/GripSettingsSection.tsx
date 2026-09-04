@@ -4,14 +4,17 @@ import keymapStyles from '../Keymap.module.css'
 import styles from './Touchpad.module.css'
 import { SectionActions } from '../SectionActions'
 import { GRIP_FIRMWARE_DEFAULT } from '../../hooks/useGripConfig'
+import { HAPTIC_EFFECTS } from '../../utils/hapticBindings'
 
 type Props = {
   gripSensorRange?: number
   gripFlickerGuard?: number
   gripHapticIntensity?: number
+  gripHapticEffect?: string
   onGripSensorRangeChange?: (v: string) => void
   onGripFlickerGuardChange?: (v: string) => void
   onGripHapticIntensityChange?: (v: string) => void
+  onGripHapticEffectChange?: (v: string) => void
   hasPendingChanges: boolean
   statusMessage?: string | null
   onApply: () => void
@@ -28,6 +31,7 @@ export function GripSettingsSection(props: Props) {
   const range = props.gripSensorRange ?? GRIP_FIRMWARE_DEFAULT
   const guard = props.gripFlickerGuard ?? GRIP_FIRMWARE_DEFAULT
   const haptic = props.gripHapticIntensity ?? 0
+  const hapticEffect = props.gripHapticEffect ?? 'CLICK'
   const show = (v: number) =>
     v < 0 ? t('keymap.firmwareDefault', 'Controller default') : String(Math.round(v))
 
@@ -76,10 +80,23 @@ export function GripSettingsSection(props: Props) {
               {haptic === 0 ? t('keymap.gripHapticOff', 'Off') : String(haptic)}
             </span>
           </label>
+          <label>
+            {t('keymap.gripHapticEffect', 'Grip haptic effect')}
+            <select
+              className="app-select"
+              value={hapticEffect}
+              disabled={haptic === 0}
+              onChange={e => props.onGripHapticEffectChange?.(e.target.value)}
+            >
+              {HAPTIC_EFFECTS.filter(effect => effect !== 'OFF').map(effect => (
+                <option key={effect} value={effect}>{t(`keymap.hapticEffect_${effect}`)}</option>
+              ))}
+            </select>
+          </label>
           <p className={styles.touchpadHint}>
             {t(
               'keymap.gripHapticHint',
-              'A short pulse from the grip’s own actuator the moment that sensor detects your hand. Fires once on detection rather than buzzing for as long as you hold the controller. 0 turns it off.'
+              'A short pulse from the grip’s own actuator the moment that sensor detects your hand. Fires once on detection rather than buzzing for as long as you hold the controller. 0 turns it off. Click is the tap Steam Input plays while calibrating the grip sensors; the other effects are the controller’s own, and any of them can be bound to any input from the Buttons pages.'
             )}
           </p>
         </div>

@@ -320,9 +320,11 @@ function App() {
     gripSensorRangeValue,
     gripFlickerGuardValue,
     gripHapticIntensityValue,
+    gripHapticEffectValue,
     handleGripSensorRangeChange,
     handleGripFlickerGuardChange,
     handleGripHapticIntensityChange,
+    handleGripHapticEffectChange,
     leftTouchpadModeValue,
     rightTouchpadModeValue,
     gridSizeValue,
@@ -1074,9 +1076,11 @@ function App() {
             gripSensorRange={gripSensorRangeValue}
             gripFlickerGuard={gripFlickerGuardValue}
             gripHapticIntensity={gripHapticIntensityValue}
+            gripHapticEffect={gripHapticEffectValue}
             onGripSensorRangeChange={handleGripSensorRangeChange}
             onGripFlickerGuardChange={handleGripFlickerGuardChange}
             onGripHapticIntensityChange={handleGripHapticIntensityChange}
+            onGripHapticEffectChange={handleGripHapticEffectChange}
             touchpadDualStageMode={touchpadDualStageModeValue}
             leftTouchpadMode={leftTouchpadModeValue}
             rightTouchpadMode={rightTouchpadModeValue}
@@ -1195,9 +1199,11 @@ function App() {
             gripSensorRange={gripSensorRangeValue}
             gripFlickerGuard={gripFlickerGuardValue}
             gripHapticIntensity={gripHapticIntensityValue}
+            gripHapticEffect={gripHapticEffectValue}
             onGripSensorRangeChange={handleGripSensorRangeChange}
             onGripFlickerGuardChange={handleGripFlickerGuardChange}
             onGripHapticIntensityChange={handleGripHapticIntensityChange}
+            onGripHapticEffectChange={handleGripHapticEffectChange}
             touchpadDualStageMode={touchpadDualStageModeValue}
             leftTouchpadMode={leftTouchpadModeValue}
             rightTouchpadMode={rightTouchpadModeValue}

@@ -45,28 +45,63 @@ def gui_sides():
     return re.findall(r"'([A-Z]+)'", m.group(1))
 
 
-def backend_source():
+def backend_file(relative):
     # The submodule when it is checked out, or a sibling clone. The repo nests
     # its sources one level down, so glob rather than hard-code the depth.
     for base in (ROOT / 'JoyShockMapper', ROOT.parent / 'JoyShockMapper'):
         if not base.is_dir():
             continue
-        for candidate in sorted(base.glob('**/src/win32/PlatformDefinitions.cpp')):
+        for candidate in sorted(base.glob(f'**/{relative}')):
             return candidate.read_text(encoding='utf-8')
     return None
 
 
+def backend_source():
+    return backend_file('src/win32/PlatformDefinitions.cpp')
+
+
 def test_effect_order_matches_the_backend():
-    cpp = backend_source()
-    if cpp is None:
+    header = backend_file('include/JoyShockMapper.h')
+    if header is None:
         print('SKIP test_effect_order_matches_the_backend (JoyShockMapper source not checked out)')
         return
-    m = re.search(r"static constexpr std::string_view effects\[\] = \{(.*?)\};", cpp, re.S)
-    check(m is not None, 'effects[] table not found in parseHapticName')
-    backend = re.findall(r'"([A-Z]+)"', m.group(1))
+    m = re.search(r'enum class HapticEffect\s*\{(.*?)\};', header, re.S)
+    check(m is not None, 'the HapticEffect enum is gone from JoyShockMapper.h')
+    backend = [name for name in re.findall(r'^\t([A-Z]+),', m.group(1), re.M) if name != 'INVALID']
     check(backend == gui_effects(),
           f'effect order differs: backend {backend}, GUI {gui_effects()}. '
-          'The index is what goes on the wire, so order is meaning.')
+          'The ordinal is what goes on the wire, so order is meaning.')
+
+    # One list, used by both the binding names and the grip setting.
+    cpp = backend_source()
+    if cpp is not None:
+        check('magic_enum::enum_cast<HapticEffect>' in cpp,
+              'parseHapticName keeps its own copy of the effect names again, which can '
+              'drift from the enum the GRIP_HAPTIC_EFFECT setting uses')
+
+
+def test_the_grip_pulse_can_choose_its_effect():
+    header = backend_file('include/JoyShockMapper.h')
+    main = backend_file('src/main.cpp')
+    sdl = backend_file('src/SDLWrapper.cpp')
+    if header is None or main is None or sdl is None:
+        print('SKIP test_the_grip_pulse_can_choose_its_effect (JoyShockMapper source not checked out)')
+        return
+    check('GRIP_HAPTIC_EFFECT' in header, 'the GRIP_HAPTIC_EFFECT setting is gone')
+    check('JSMSetting<HapticEffect>(SettingID::GRIP_HAPTIC_EFFECT, HapticEffect::CLICK)' in main,
+          'GRIP_HAPTIC_EFFECT no longer defaults to CLICK, the tap Steam Input calibrates with')
+    check('SettingID::GRIP_HAPTIC_EFFECT' in sdl,
+          'the grip pulse ignores the configured effect and plays a hardcoded one')
+    check('TRITON_HAPTIC_CLICK' not in sdl,
+          'the hardcoded click constant is back alongside the setting')
+
+    check("keyName.GRIP_HAPTIC_EFFECT" in (GUI / 'hooks/useGripConfig.ts').read_text(encoding='utf-8'),
+          'the GUI cannot read or write GRIP_HAPTIC_EFFECT')
+    section = (GUI / 'components/keymap/GripSettingsSection.tsx').read_text(encoding='utf-8')
+    check('HAPTIC_EFFECTS' in section,
+          'the grip page builds its own effect list instead of the shared one')
+    check("effect !== 'OFF'" in section,
+          'the grip effect picker offers OFF, which is what the intensity slider is for')
 
 
 def test_side_tokens_match_the_backend():

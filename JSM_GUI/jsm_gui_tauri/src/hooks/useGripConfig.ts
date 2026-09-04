@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { getKeymapValue, removeKeymapEntry, updateKeymapEntry } from '../utils/keymap'
+import { HAPTIC_EFFECTS } from '../utils/hapticBindings'
 import { keyName } from '../constants/configKeys'
 
 type GripArgs = { configText: string; setConfigText: React.Dispatch<React.SetStateAction<string>> }
@@ -32,6 +33,12 @@ export function useGripConfig({ configText, setConfigText }: GripArgs) {
   // Haptics are a plain 0-100 intensity, not a firmware threshold: 0 is off, not
   // "leave it alone", because there is nothing on the device to leave alone.
   const gripHapticIntensityValue = num(keyName.GRIP_HAPTIC_INTENSITY, 0)
+  // CLICK is the backend's default: the tap Steam Input plays while calibrating
+  // the grip sensors.
+  const gripHapticEffectValue = (() => {
+    const raw = read(keyName.GRIP_HAPTIC_EFFECT)?.trim().toUpperCase()
+    return raw && HAPTIC_EFFECTS.some(effect => effect === raw) ? raw : 'CLICK'
+  })()
 
   const writeClamped = useCallback(
     (name: string, v: string, lo: number, hi: number) => {
@@ -55,13 +62,23 @@ export function useGripConfig({ configText, setConfigText }: GripArgs) {
     (v: string) => writeClamped(keyName.GRIP_HAPTIC_INTENSITY, v, 0, 100),
     [writeClamped]
   )
+  const handleGripHapticEffectChange = useCallback(
+    (v: string) => {
+      const next = v.trim().toUpperCase()
+      if (!HAPTIC_EFFECTS.some(effect => effect === next)) return
+      setConfigText(prev => updateKeymapEntry(prev, keyName.GRIP_HAPTIC_EFFECT, [next]))
+    },
+    [setConfigText]
+  )
 
   return {
     gripSensorRangeValue,
     gripFlickerGuardValue,
     gripHapticIntensityValue,
+    gripHapticEffectValue,
     handleGripSensorRangeChange,
     handleGripFlickerGuardChange,
     handleGripHapticIntensityChange,
+    handleGripHapticEffectChange,
   }
 }
