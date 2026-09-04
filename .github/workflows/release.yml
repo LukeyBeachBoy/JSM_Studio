@@ -170,7 +170,7 @@ jobs:
             settling the filter directly to the confirmed-stalled value instead of
             processing it -- emits nothing, and leaves nothing to catch up on later.
 
-            ### The real cause of the periodic "double cursor" jitter
+            ### A first cause of the periodic "double cursor" jitter (not the whole story)
             The trackpad fix above turned out not to be the whole story: the same
             once-a-second stutter was also reported on gyro and on stick mouse aim,
             two paths that share no smoothing code with the trackpad or with each
@@ -188,6 +188,34 @@ jobs:
             worse the faster the cursor was already moving. The title is now fetched
             only when the foreground app has actually changed, which is what "Auto
             switch" only ever needed it for.
+
+            That fix was real, but confirmed still insufficient: reported still
+            reproducible on 0.7.3 with "Auto switch" turned off in the GUI, and even
+            running JoyShockMapper.exe on its own with the GUI closed entirely,
+            `AUTOLOAD = OFF` and `TELEMETRY_ENABLED = OFF` typed directly into its own
+            console. All three still stuttered.
+
+            ### The actual cause: a second once-a-second thread holding the same lock the cursor needs
+            A separate background thread, AutoConnect, also polls every second,
+            forever, and is on by default -- independent of "Auto switch" and
+            unaffected by either setting the previous test ruled out. Its only job
+            is comparing the connected controller count against the last time it
+            checked, which means asking SDL for a fresh device count. That call
+            used to take the *same* lock the main 333Hz output loop needs for its
+            entire tick -- touch, gyro, stick processing, and the single mouse-move
+            event all three funnel into -- and hold it across a hardcoded,
+            unconditional 20 millisecond wait built into that SDL refresh (there to
+            give the OS a moment to finish enumerating a controller that was just
+            plugged in). So once a second, forever, on every session, the thread
+            that actually moves your cursor was guaranteed to stall for at least
+            20ms waiting on a lock a different, unrelated thread was sitting on for
+            no reason connected to your input at all. That is the once-a-second
+            beat, it explains why it hit the trackpad, gyro, and stick aim
+            identically (none of those three share filtering code, but all three
+            share this one lock and this one flush), and it explains why disabling
+            AutoLoad didn't touch it -- AutoConnect never was AutoLoad. The device
+            refresh now only holds that lock around the actual SDL calls, releasing
+            it during the 20ms wait, so the poll loop is never blocked by it.
 
             ### Only the pads you have
             The Trackpads page offered a "Left touchpad" and a "Right touchpad" to
