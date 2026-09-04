@@ -1,8 +1,12 @@
-/* Palette follows Steam Input's controller configuration screen: a deep
-   blue-black shell (#1b2838 is Steam's own panel color), Steam's signature
-   link/highlight blue (#66c0f4) for accents and selection, and Steam's acid
-   green (#a3d34e family) reserved for "live/active" telemetry -- kept a
-   distinct hue from the accent so a lit-up input never reads as "selected". */
+/* Palette follows Steam Input's current controller configuration screen: a
+   near-neutral dark grey shell rather than the old blue-black one, panels
+   separated from the page by a step in lightness rather than by a border, a
+   desaturated link blue for accents and selection, and Steam's acid green
+   (#a3d34e family) reserved for "live/active" telemetry -- kept a distinct hue
+   from the accent so a lit-up input never reads as "selected".
+
+   The blue-black version read as heavier and more saturated than the thing it
+   was imitating: colour was doing work that spacing and lightness should do. */
 :root,
 :root[data-theme='dark'] {
   /* Layout */
@@ -10,38 +14,39 @@
   --bp-main: 1060px;
 
   /* Backgrounds */
-  --bg-0: #0e141b;
-  --bg-1: #121a23;
-  --bg-1-5: #17212c;
-  --bg-2: #1b2838;
-  --bg-btn: #1b2838;
-  --bg-btn-hover: #223449;
-  --bg-btn-primary: #1a3c57;
-  --bg-input: #0f1620;
-  --canvas-grid-x: rgba(255, 255, 255, 0.025);
-  --canvas-grid-y: rgba(255, 255, 255, 0.018);
-  --canvas-gradient: linear-gradient(180deg, #0d131a 0%, var(--bg-0) 100%);
-  --shell-scroll-grid-x: rgba(255, 255, 255, 0.018);
-  --shell-scroll-grid-y: rgba(255, 255, 255, 0.014);
-  --topbar-bg: linear-gradient(180deg, #16212c, #121a23);
-  --sidebar-bg: linear-gradient(180deg, #121a23, #0b1017);
-  --toolbar-bg: #17212c;
-  --inset-highlight: rgba(255, 255, 255, 0.025);
+  --bg-0: #16181c;
+  --bg-1: #1a1d22;
+  --bg-1-5: #1f2329;
+  --bg-2: #23272e;
+  --bg-btn: #272c34;
+  --bg-btn-hover: #31373f;
+  --bg-btn-primary: #2b5878;
+  --bg-input: #1a1d22;
+  --canvas-grid-x: rgba(255, 255, 255, 0.016);
+  --canvas-grid-y: rgba(255, 255, 255, 0.012);
+  --canvas-gradient: linear-gradient(180deg, #14161a 0%, var(--bg-0) 100%);
+  --shell-scroll-grid-x: rgba(255, 255, 255, 0.012);
+  --shell-scroll-grid-y: rgba(255, 255, 255, 0.01);
+  --topbar-bg: linear-gradient(180deg, #1f2329, #1a1d22);
+  --sidebar-bg: linear-gradient(180deg, #1a1d22, #141619);
+  --toolbar-bg: #1f2329;
+  --inset-highlight: rgba(255, 255, 255, 0.02);
 
   /* Text */
-  --text-strong: #eef6fb;
-  --text-mid: #c7d5e0;
-  --text-muted: #8f98a0;
-  --text-dim: #6b7b8c;
+  --text-strong: #e9ebee;
+  --text-mid: #b4bac2;
+  --text-muted: #8b919a;
+  --text-dim: #6a7078;
 
-  /* Borders */
-  --border-1: rgba(120, 148, 176, 0.22);
-  --border-strong: rgba(102, 192, 244, 0.6);
+  /* Borders: neutral and quiet. A saturated border on every panel was what made
+     the old palette feel busy -- panels separate by lightness instead. */
+  --border-1: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.16);
 
   /* Accent */
-  --accent: #66c0f4;
-  --accent-primary: #1a9fff;
-  --btn-primary-text: #071019;
+  --accent: #4c9fd8;
+  --accent-primary: #3183c4;
+  --btn-primary-text: #f2f7fb;
 
   /* Specialty */
   --telemetry-green: #a3d34e;
@@ -76,13 +81,13 @@
   --toast-error-text: #ffe0e3;
 
   /* Touchpad grid (dark) */
-  --touchpad-grid-bg: #121a23;
-  --touchpad-grid-border: #2a3b4d;
-  --touchpad-grid-cell-bg: #16212c;
-  --touchpad-grid-cell-border: #35495d;
-  --touchpad-grid-muted: #93a3b8;
-  --touchpad-grid-hint: #cfe0f0;
-  --touchpad-grid-limit: #a9bccf;
+  --touchpad-grid-bg: #1a1d22;
+  --touchpad-grid-border: #333941;
+  --touchpad-grid-cell-bg: #1f2329;
+  --touchpad-grid-cell-border: #3c434c;
+  --touchpad-grid-muted: #99a0a9;
+  --touchpad-grid-hint: #d3d8de;
+  --touchpad-grid-limit: #adb4bd;
 
 }
 

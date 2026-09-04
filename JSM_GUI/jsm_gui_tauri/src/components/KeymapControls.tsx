@@ -669,16 +669,31 @@ export function KeymapControls({
     return record
   }, [configText, manualRows, touchpadGridButtons])
 
+  // A page names the groups it is about, and gets exactly those, in the order the
+  // groups are declared. Previously only a single group could be focused, which
+  // is why every control lived on one long page: there was no way to say
+  // "Buttons" and mean face buttons, bumpers, centre and paddles together.
+  const focusedMappingGroups = useMemo(
+    () => (visibleSections ?? []).filter(section => section in MAPPING_BUTTON_GROUPS),
+    [visibleSections]
+  )
+
   const visualMappingGroups = useMemo(() => {
-    const focusedSections = visibleSections?.filter(section => section !== 'global') ?? []
-    if (focusedSections.length === 1 && focusedSections[0] === 'face') {
+    if (focusedMappingGroups.length === 0) {
       return Object.values(MAPPING_BUTTON_GROUPS)
     }
-    if (focusedSections.length === 1 && MAPPING_BUTTON_GROUPS[focusedSections[0]]) {
-      return [MAPPING_BUTTON_GROUPS[focusedSections[0]]]
+    return Object.entries(MAPPING_BUTTON_GROUPS)
+      .filter(([key]) => focusedMappingGroups.includes(key))
+      .map(([, group]) => group)
+  }, [focusedMappingGroups])
+
+  // The list layout walks the same set, so the jump bar and the page agree.
+  const listMappingGroups = useMemo(() => {
+    if (focusedMappingGroups.length === 0) {
+      return Object.entries(MAPPING_BUTTON_GROUPS)
     }
-    return Object.values(MAPPING_BUTTON_GROUPS)
-  }, [visibleSections])
+    return Object.entries(MAPPING_BUTTON_GROUPS).filter(([key]) => focusedMappingGroups.includes(key))
+  }, [focusedMappingGroups])
 
   const visualMappingButtons = useMemo(
     () => visualMappingGroups.flatMap(group => group.buttons),
@@ -759,6 +774,11 @@ export function KeymapControls({
   const showFullLayout = view === 'full'
   const showGlobalOnlyLayout = showFullLayout && visibleSections?.length === 1 && visibleSections[0] === 'global'
   const showMappedLayout = showFullLayout && !showGlobalOnlyLayout
+  // Press timing and virtual output apply to the whole config, not to whichever
+  // control you happen to be editing. Repeating them above every control page was
+  // most of what made those pages feel like a wall of settings, so they only
+  // appear where they belong now: on their own page.
+  const showConfigWidePanels = showMappedLayout && (visibleSections ?? []).includes('global')
   const showVisualMappingLayout = showMappedLayout && mappingLayoutMode === 'visual'
   const showListMappingLayout = showMappedLayout && mappingLayoutMode === 'list'
   const deadzoneDefaults = stickDeadzoneSettings?.defaults ?? {
@@ -967,7 +987,7 @@ export function KeymapControls({
         />
       )}
 
-      {showMappedLayout && (
+      {showConfigWidePanels && (
         <>
           <GlobalControlsSection
             compact
@@ -1026,6 +1046,11 @@ export function KeymapControls({
               )}
             </section>
           )}
+        </>
+      )}
+
+      {showMappedLayout && (
+        <>
           <div className={keymapStyles.mappingLayoutTabs} data-capture-ignore="true">
             <button
               type="button"
@@ -1047,7 +1072,7 @@ export function KeymapControls({
               <aside className={keymapStyles.mappingListSidebar} data-capture-ignore="true">
                 <div className={keymapStyles.mappingListSidebarTitle}>{t('keymap.mappingLayoutList')}</div>
                 <div className={keymapStyles.mappingListJumpBar}>
-                  {Object.entries(MAPPING_BUTTON_GROUPS).map(([groupKey, group]) => (
+                  {listMappingGroups.map(([groupKey, group]) => (
                     <button
                       key={groupKey}
                       type="button"
@@ -1060,7 +1085,7 @@ export function KeymapControls({
                 </div>
               </aside>
               <div className={keymapStyles.mappingListContent}>
-                {Object.entries(MAPPING_BUTTON_GROUPS).map(([groupKey, group]) => (
+                {listMappingGroups.map(([groupKey, group]) => (
                   <div
                     key={groupKey}
                     ref={element => {

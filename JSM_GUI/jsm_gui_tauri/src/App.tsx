@@ -23,7 +23,18 @@ import { showToast } from './utils/toast'
 import { LanguageSelect } from './components/LanguageSelect'
 
 
-type PrimaryTab = 'gyro' | 'keybinds' | 'touchpad' | 'sensors' | 'controllerStatus' | 'debugConsole' | 'ai' | 'help' | 'deviceVisibility'
+// One page per physical control, the way Steam Input splits them up, instead of
+// one page carrying every binding on the controller.
+type ControlTab = 'buttons' | 'dpad' | 'triggers' | 'joysticks'
+type PrimaryTab = ControlTab | 'gyro' | 'touchpad' | 'sensors' | 'timing' | 'controllerStatus' | 'debugConsole' | 'ai' | 'help' | 'deviceVisibility'
+
+// Which of KeymapControls' button groups each control page is about.
+const CONTROL_TAB_SECTIONS: Record<ControlTab, string[]> = {
+  buttons: ['face', 'bumpers', 'center', 'paddles', 'extra'],
+  dpad: ['dpad'],
+  triggers: ['triggers'],
+  joysticks: ['leftStick', 'rightStick'],
+}
 type GyroSubTab = 'behavior' | 'sensitivity' | 'noise'
 
 const asNumber = (value: unknown) => (typeof value === 'number' ? value : undefined)
@@ -161,39 +172,63 @@ const PrimaryNav = ({ primaryTab, setPrimaryTab, includeHelp = false }: PrimaryN
         </button>
       </div>
       <div className={sideNavStyles.navSection}>
-        <div className={sideNavStyles.navSectionLabel}>{t('app.nav.mappingGroup')}</div>
+        <div className={sideNavStyles.navSectionLabel}>{t('app.nav.controlsGroup')}</div>
         <button
-          className={`${sideNavStyles.navItem} ${primaryTab === 'keybinds' ? sideNavStyles.active : ''}`}
-          onClick={() => setPrimaryTab('keybinds')}
+          className={`${sideNavStyles.navItem} ${primaryTab === 'buttons' ? sideNavStyles.active : ''}`}
+          onClick={() => setPrimaryTab('buttons')}
         >
-          {t('app.nav.keybinds')}
+          {t('app.nav.buttons')}
+        </button>
+        <button
+          className={`${sideNavStyles.navItem} ${primaryTab === 'dpad' ? sideNavStyles.active : ''}`}
+          onClick={() => setPrimaryTab('dpad')}
+        >
+          {t('app.nav.dpad')}
+        </button>
+        <button
+          className={`${sideNavStyles.navItem} ${primaryTab === 'triggers' ? sideNavStyles.active : ''}`}
+          onClick={() => setPrimaryTab('triggers')}
+        >
+          {t('app.nav.triggers')}
+        </button>
+        <button
+          className={`${sideNavStyles.navItem} ${primaryTab === 'joysticks' ? sideNavStyles.active : ''}`}
+          onClick={() => setPrimaryTab('joysticks')}
+        >
+          {t('app.nav.joysticks')}
         </button>
         <button
           className={`${sideNavStyles.navItem} ${primaryTab === 'touchpad' ? sideNavStyles.active : ''}`}
           onClick={() => setPrimaryTab('touchpad')}
         >
-          {t('app.nav.touchpad')}
+          {t('app.nav.trackpads')}
+        </button>
+        <button
+          className={`${sideNavStyles.navItem} ${primaryTab === 'gyro' ? sideNavStyles.active : ''}`}
+          onClick={() => setPrimaryTab('gyro')}
+        >
+          {t('app.nav.gyro')}
+        </button>
+      </div>
+      <div className={sideNavStyles.navSection}>
+        <div className={sideNavStyles.navSectionLabel}>{t('app.nav.tuningGroup')}</div>
+        <button
+          className={`${sideNavStyles.navItem} ${primaryTab === 'sensors' ? sideNavStyles.active : ''}`}
+          onClick={() => setPrimaryTab('sensors')}
+        >
+          {t('app.nav.sensors')}
+        </button>
+        <button
+          className={`${sideNavStyles.navItem} ${primaryTab === 'timing' ? sideNavStyles.active : ''}`}
+          onClick={() => setPrimaryTab('timing')}
+        >
+          {t('app.nav.timing')}
         </button>
         <button
           className={`${sideNavStyles.navItem} ${primaryTab === 'ai' ? sideNavStyles.active : ''}`}
           onClick={() => setPrimaryTab('ai')}
         >
           {t('app.nav.aiAssistant')}
-        </button>
-      </div>
-      <div className={sideNavStyles.navSection}>
-        <div className={sideNavStyles.navSectionLabel}>{t('app.nav.tuningGroup')}</div>
-        <button
-          className={`${sideNavStyles.navItem} ${primaryTab === 'gyro' ? sideNavStyles.active : ''}`}
-          onClick={() => setPrimaryTab('gyro')}
-        >
-          {t('app.nav.gyroAndSensitivity')}
-        </button>
-        <button
-          className={`${sideNavStyles.navItem} ${primaryTab === 'sensors' ? sideNavStyles.active : ''}`}
-          onClick={() => setPrimaryTab('sensors')}
-        >
-          {t('app.nav.sensors')}
         </button>
       </div>
       <div className={sideNavStyles.navSection}>
@@ -953,10 +988,55 @@ function App() {
       )
     }
 
-    if (primaryTab === 'keybinds') {
+    if (primaryTab === 'timing') {
       return (
-        <Suspense fallback={<LazyPanelFallback title={t('app.nav.keybinds')} />}>
+        <Suspense fallback={<LazyPanelFallback title={t('app.nav.timing')} />}>
           <KeymapControls
+            visibleSections={['global']}
+            configText={configText}
+            onBindingChange={handleFaceButtonBindingChange}
+            onAssignSpecialAction={handleSpecialActionAssignment}
+            onClearSpecialAction={handleClearSpecialAction}
+            trackballDecay={trackballDecayValue}
+            onTrackballDecayChange={handleTrackballDecayChange}
+            onModifierChange={handleModifierChange}
+            hasPendingChanges={hasPendingChanges}
+            isCalibrating={isCalibrating}
+            statusMessage={statusMessage}
+            onApply={handleApplyWithFinalize}
+            onCancel={handleCancel}
+            holdPressTimeSeconds={holdPressTimeSeconds}
+            holdPressTimeIsCustom={holdPressTimeIsCustom}
+            holdPressTimeDefault={DEFAULT_HOLD_PRESS_TIME}
+            onHoldPressTimeChange={handleHoldPressTimeChange}
+            doublePressWindowSeconds={doublePressWindowSeconds}
+            doublePressWindowIsCustom={doublePressWindowIsCustom}
+            onDoublePressWindowChange={handleDoublePressWindowChange}
+            simPressWindowSeconds={simPressWindowSeconds}
+            simPressWindowIsCustom={simPressWindowIsCustom}
+            onSimPressWindowChange={handleSimPressWindowChange}
+            lightBarColor={lightBarColor}
+            onLightBarChange={handleLightBarChange}
+            adaptiveTriggerValue={adaptiveTriggerValue}
+            onAdaptiveTriggerChange={handleAdaptiveTriggerChange}
+            triggerThreshold={triggerThresholdValue}
+            onTriggerThresholdChange={handleTriggerThresholdChange}
+            virtualControllerType={virtualControllerType}
+            virtualControllerWarnings={virtualControllerWarnings}
+            onVirtualControllerTypeChange={handleVirtualControllerTypeChange}
+            lockMessage={lockMessage}
+          />
+        </Suspense>
+      )
+    }
+
+    if (primaryTab in CONTROL_TAB_SECTIONS) {
+      const controlTab = primaryTab as ControlTab
+      const sections = CONTROL_TAB_SECTIONS[controlTab]
+      return (
+        <Suspense fallback={<LazyPanelFallback title={t(`app.nav.${controlTab}`)} />}>
+          <KeymapControls
+            visibleSections={sections}
             configText={configText}
             hasPendingChanges={hasPendingChanges}
             isCalibrating={isCalibrating}
