@@ -72,21 +72,36 @@ jobs:
               Steam Input's Mouse touch style
             - Overlay artwork and live touch dots aligned to the controller diagram
 
-            ### Contact detection and grip range
-            Both are set in the controller's own firmware, which is where Steam Input
-            sets them too. Nothing is written to the device unless you pick a value, so
-            out of the box the pads and grips behave exactly as they do under Steam.
-            - `TOUCHPAD_TOUCH_ON` / `TOUCHPAD_TOUCH_OFF` -- a touch threshold with its
-              own lower release threshold. The gap between them is the hysteresis that
-              stops a finger resting on the threshold from chattering
-            - `LEFT_GRIP_RANGE` / `RIGHT_GRIP_RANGE` -- squeeze force per hand, because
-              nobody holds both sides of a controller with the same grip
-            - Values are raw firmware units; -1 (the default) keeps the controller's own
-            - This replaces the host-side gates these superseded: the light-touch
-              pressure threshold, lift-off rejection, the position fallback, and the
-              grip debounce timers. A host-side gate on a bit the controller has already
-              decided can only add latency, and the pressure one is what used to force
-              you to press hard before a touch registered
+            ### Trackpad contact
+            The pads report a capacitive touch rather than a press. SDL's Triton
+            driver built the finger-down flag out of the pressure channel and never
+            used the pads' own capacitive contact bits, so a resting finger
+            registered nothing until it exerted force -- and right at that boundary
+            the pressure reading sits in the noise, so contact flickered. Patched at
+            build time; the lightest touch now registers.
+
+            ### Grip sensors
+            The capacitive strips inside the handles, calibrated exactly as Steam
+            Input's Grip Sensor Calibration page does it, and stored on the
+            controller:
+            - `GRIP_SENSOR_RANGE` -- how near your hand must come before the sensor
+              trips. Lower detects your hands sooner
+            - `GRIP_FLICKER_GUARD` -- the extra distance your hand must move away
+              again before it releases, so a hand resting at the edge of the range
+              cannot chatter on and off
+            - `GRIP_HAPTIC_INTENSITY` -- a short pulse from the grip's own actuator
+              when that sensor detects your hand. 0 (default) is off
+            - Raw firmware units; -1 keeps the controller's own value. One pair for
+              both grips: the firmware stores a single capacitive threshold, which is
+              why Steam Input shows a single pair too. These are unrelated to the
+              back buttons (L4/L5/R4/R5), which are physical switches
+
+            ### Trackball
+            Touching the pad during a coast now stops it, the way grabbing a
+            trackball does. It used to differentiate the gap between where your
+            finger lifted and where it landed, flinging the cursor across the screen
+            to meet you and turning that delta into the next coast. Coast momentum is
+            a velocity now, so it no longer stutters when the poll interval jitters.
 
             ### Known limitations
             - Trigger clicks (physical click at end of trigger travel) are not yet exposed — requires SDL upstream patch
