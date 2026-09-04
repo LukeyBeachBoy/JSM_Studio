@@ -313,7 +313,7 @@ export const zhCN = {
     activationMode: '陀螺仪启用方式',
     activationHint: '用于按住开启或按住关闭。这里会写入 GYRO_ON/GYRO_OFF 作为陀螺仪开关键设置，而不是普通按钮输出。',
     activationButton: '启用按键',
-    activationButtonHint: 'T1/T2 等触摸板网格按键需要先在触摸板页面启用 GRID_AND_STICK。',
+    activationButtonHint: '在「触摸板」页面把某块触摸板设为 Grid and Stick 后，其网格区域才会出现在这里：单板为 T1/T2，双板手柄为 LT1/RT1。',
     activationAlwaysOn: '始终开启',
     activationHoldOn: '按住按键开启陀螺仪',
     activationHoldOff: '按住按键关闭陀螺仪',

@@ -312,7 +312,7 @@ export const en = {
     activationMode: 'Gyro Activation',
     activationHint: 'Use this for hold-to-enable or hold-to-disable. It writes GYRO_ON/GYRO_OFF as gyro button settings, not ordinary button outputs.',
     activationButton: 'Activation button',
-    activationButtonHint: 'Touchpad grid buttons such as T1/T2 require GRID_AND_STICK on the Touchpad page.',
+    activationButtonHint: 'Touch grid cells appear here once a pad is set to Grid and Stick on the Trackpads page \u2014 T1/T2 for a single pad, LT1/RT1 for a controller with two.',
     activationAlwaysOn: 'Always enabled',
     activationHoldOn: 'Hold button to enable gyro',
     activationHoldOff: 'Hold button to disable gyro',

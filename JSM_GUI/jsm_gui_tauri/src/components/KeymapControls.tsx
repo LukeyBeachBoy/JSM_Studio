@@ -25,7 +25,6 @@ import {
   TOUCH_BUTTONS,
   TRIGGER_BUTTONS,
   buildTouchpadGridButton,
-  type TouchpadGridPrefix,
   getButtonDescription,
   getSpecialOptionList,
   type ButtonDefinition,
@@ -48,6 +47,7 @@ import { TouchpadStickSection } from './keymap/TouchpadStickSection'
 import { SectionActions } from './SectionActions'
 import { ControllerStatusSvg } from './ControllerStatusSvg'
 import { controllerButtonLabel, controllerHasTwoTrackpads } from '../utils/controllerStatus'
+import { resolveTouchpadGrids } from '../utils/touchpadGrids'
 import { StickSettingsCard } from './StickSettingsCard'
 import type { VirtualControllerType, VirtualControllerWarning } from '../utils/virtualController'
 import { normalizeTouchpadMode, type TouchpadWarning } from '../utils/touchpadConfig'
@@ -645,33 +645,29 @@ export function KeymapControls({
   // controller configured only through the shared TOUCHPAD_MODE, still get the
   // one shared grid.
   const touchpadGridPads = useMemo(() => {
-    const buildCells = (prefix: TouchpadGridPrefix, columns: number, rows: number) => {
-      const cols = Math.max(1, Math.min(5, columns || 1))
-      const cells = Math.min(25, cols * Math.max(1, Math.min(5, rows || 1)))
-      return {
-        prefix,
-        columns: cols,
-        cells,
-        buttons: Array.from({ length: cells }, (_, index) =>
-          buildTouchpadGridButton(index + 1, Math.floor(index / cols) + 1, (index % cols) + 1, prefix)
-        ),
-      }
-    }
-
-    const perPad: Array<ReturnType<typeof buildCells> & { side: 'left' | 'right' }> = []
-    if (normalizeTouchpadMode(leftTouchpadMode ?? '') === 'GRID_AND_STICK') {
-      perPad.push({ side: 'left', ...buildCells('LT', leftGridColumns ?? gridColumns, leftGridRows ?? gridRows) })
-    }
-    if (normalizeTouchpadMode(rightTouchpadMode ?? '') === 'GRID_AND_STICK') {
-      perPad.push({ side: 'right', ...buildCells('RT', rightGridColumns ?? gridColumns, rightGridRows ?? gridRows) })
-    }
-    if (perPad.length > 0) return perPad
-    if (!gridActive) return []
-    return [{ side: 'shared' as const, ...buildCells('T', clampedGridCols, clampedGridRows) }]
+    const pads = resolveTouchpadGrids({
+      touchpadMode: touchpadModeProp,
+      leftMode: leftTouchpadMode,
+      rightMode: rightTouchpadMode,
+      columns: gridColumns,
+      rows: gridRows,
+      leftColumns: leftGridColumns,
+      leftRows: leftGridRows,
+      rightColumns: rightGridColumns,
+      rightRows: rightGridRows,
+    })
+    return pads.map(pad => ({
+      ...pad,
+      buttons: Array.from({ length: pad.cells }, (_, index) =>
+        buildTouchpadGridButton(
+          index + 1,
+          Math.floor(index / pad.columns) + 1,
+          (index % pad.columns) + 1,
+          pad.prefix
+        )
+      ),
+    }))
   }, [
-    clampedGridCols,
-    clampedGridRows,
-    gridActive,
     gridColumns,
     gridRows,
     leftGridColumns,
@@ -680,6 +676,7 @@ export function KeymapControls({
     rightGridColumns,
     rightGridRows,
     rightTouchpadMode,
+    touchpadModeProp,
   ])
 
   const touchpadGridButtons = useMemo<ButtonDefinition[]>(

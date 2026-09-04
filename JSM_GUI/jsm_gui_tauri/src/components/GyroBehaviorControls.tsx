@@ -34,6 +34,7 @@ type GyroBehaviorControlsProps = {
   gyroActivationButton: string
   touchpadMode: string
   touchpadGridCells: number
+  touchpadGridCommands?: string[]
   isCalibrating: boolean
   statusMessage?: string | null
   devices?: {
@@ -71,6 +72,7 @@ export function GyroBehaviorControls({
   gyroActivationButton,
   touchpadMode,
   touchpadGridCells,
+  touchpadGridCommands,
   isCalibrating,
   statusMessage,
   devices,
@@ -96,9 +98,16 @@ export function GyroBehaviorControls({
   appliedSampleHz,
 }: GyroBehaviorControlsProps) {
   const { t } = useTranslation()
-  const isTouchpadGridActive = touchpadMode === 'GRID_AND_STICK'
+  // A pad in grid mode is what makes its cells bindable, and on a two-pad
+  // controller that is decided per pad -- so the caller passes the cells it
+  // actually built rather than this page deriving them from the shared mode.
+  const isTouchpadGridActive = touchpadMode === 'GRID_AND_STICK' || (touchpadGridCommands?.length ?? 0) > 0
   const activationButtonOptions = useMemo(() => {
-    const options = buildModifierOptions(isTouchpadGridActive, isTouchpadGridActive ? touchpadGridCells : 0).map(option => ({
+    const options = buildModifierOptions(
+      isTouchpadGridActive,
+      isTouchpadGridActive ? touchpadGridCells : 0,
+      touchpadGridCommands
+    ).map(option => ({
       value: option.value,
       label: resolveModifierOptionLabel(option, t),
       disabled: option.disabled,
@@ -107,7 +116,7 @@ export function GyroBehaviorControls({
       options.push({ value: gyroActivationButton, label: gyroActivationButton, disabled: false })
     }
     return options
-  }, [gyroActivationButton, isTouchpadGridActive, t, touchpadGridCells])
+  }, [gyroActivationButton, isTouchpadGridActive, t, touchpadGridCells, touchpadGridCommands])
   const fallbackActivationButton =
     activationButtonOptions.find(option => option.value === 'R3' && !option.disabled)?.value ??
     activationButtonOptions.find(option => !option.disabled)?.value ??

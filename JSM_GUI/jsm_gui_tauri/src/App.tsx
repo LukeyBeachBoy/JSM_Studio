@@ -1,11 +1,10 @@
 import './App.css'
-// The version people see must be the one on the installer they downloaded,
-// which tauri.conf.json carries -- package.json's is the frontend package's own
-// and has drifted away from it.
+// The version people see must be the one on the installer they downloaded, and
+// tauri.conf.json is what the installer is built from.
 import tauriConf from '../src-tauri/tauri.conf.json'
 import sideNavStyles from './components/SideNav.module.css'
 import { ThemeToggle } from './components/ThemeToggle'
-import { Suspense, lazy, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useTelemetry } from './hooks/useTelemetry'
 import miscStyles from './components/Misc.module.css'
@@ -19,6 +18,7 @@ import { useCalibration } from './hooks/useCalibration'
 import { ToastHost } from './components/ToastHost'
 import { desktopBridge } from './platform/desktopBridge'
 import { updateKeymapEntry } from './utils/keymap'
+import { resolveTouchpadGrids, touchpadGridCommands } from './utils/touchpadGrids'
 import { showToast } from './utils/toast'
 import { LanguageSelect } from './components/LanguageSelect'
 
@@ -465,6 +465,35 @@ function App() {
     handleScrollSensChange,
     resetPendingSensitivityChanges,
   } = useKeymapConfig()
+
+  // The gyro's activation button can be a touch grid cell, so it has to see the
+  // same cells the Trackpads page builds -- LT1.. and RT1.. on a two-pad
+  // controller, T1.. on the shared grid. Deriving it from the shared mode alone
+  // meant a Steam Controller offered none at all.
+  const gyroGridCommands = useMemo(
+    () =>
+      touchpadGridCommands(
+        resolveTouchpadGrids({
+          touchpadMode: touchpadModeValue,
+          leftMode: leftTouchpadModeValue,
+          rightMode: rightTouchpadModeValue,
+          columns: gridSizeValue.columns,
+          rows: gridSizeValue.rows,
+          leftColumns: leftGridSizeValue.columns,
+          leftRows: leftGridSizeValue.rows,
+          rightColumns: rightGridSizeValue.columns,
+          rightRows: rightGridSizeValue.rows,
+        })
+      ),
+    [
+      gridSizeValue,
+      leftGridSizeValue,
+      leftTouchpadModeValue,
+      rightGridSizeValue,
+      rightTouchpadModeValue,
+      touchpadModeValue,
+    ]
+  )
   const {
     libraryProfiles,
     isLibraryLoading,
@@ -878,9 +907,8 @@ function App() {
                 gyroActivationMode={gyroActivation.mode}
                 gyroActivationButton={gyroActivation.button}
                 touchpadMode={touchpadModeValue}
-                touchpadGridCells={
-                  touchpadModeValue === 'GRID_AND_STICK' ? Math.min(25, gridSizeValue.columns * gridSizeValue.rows) : 0
-                }
+                touchpadGridCells={gyroGridCommands.length}
+                touchpadGridCommands={gyroGridCommands}
                 isCalibrating={isCalibrating}
                 statusMessage={statusMessage}
                 ignoredDevices={ignoredGyroDevices}
@@ -926,9 +954,7 @@ function App() {
                 sample={sample}
                 telemetry={telemetryValues}
                 touchpadMode={touchpadModeValue}
-                touchpadGridCells={
-                  touchpadModeValue === 'GRID_AND_STICK' ? Math.min(25, gridSizeValue.columns * gridSizeValue.rows) : 0
-                }
+                touchpadGridCells={gyroGridCommands.length}
                 onModeChange={(mode) => handleModeSelection(mode, activeSensitivityPrefix)}
                 onSensitivityViewChange={setSensitivityView}
                 onApply={handleApplyWithFinalize}

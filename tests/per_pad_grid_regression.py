@@ -23,6 +23,9 @@ SCHEMA = (GUI / 'keymap/schema.ts').read_text(encoding='utf-8')
 CONTROLS = (GUI / 'components/KeymapControls.tsx').read_text(encoding='utf-8')
 SECTION = (GUI / 'components/keymap/TouchpadGridSection.tsx').read_text(encoding='utf-8')
 MODIFIERS = (GUI / 'utils/modifierOptions.ts').read_text(encoding='utf-8')
+GRIDS = (GUI / 'utils/touchpadGrids.ts').read_text(encoding='utf-8')
+APP = (GUI / 'App.tsx').read_text(encoding='utf-8')
+GYRO = (GUI / 'components/GyroBehaviorControls.tsx').read_text(encoding='utf-8')
 EN = (GUI / 'i18n/resources/en.ts').read_text(encoding='utf-8')
 ZH = (GUI / 'i18n/resources/zh-CN.ts').read_text(encoding='utf-8')
 
@@ -40,18 +43,32 @@ def test_grid_cells_can_be_named_per_pad():
 
 
 def test_a_pad_in_grid_mode_gets_its_own_grid():
-    pads = re.search(r'const touchpadGridPads = useMemo\(.*?\n  \}, \[', CONTROLS, re.S)
-    check(pads is not None, 'touchpadGridPads is gone; the pads would share one grid')
-    body = pads.group(0)
-    check("buildCells('LT'" in body and "buildCells('RT'" in body,
+    check("pad('left', 'LT'" in GRIDS and "pad('right', 'RT'" in GRIDS,
           'the per-pad grids no longer use their own LT/RT commands')
-    check('leftGridColumns' in body and 'rightGridColumns' in body,
+    check('leftColumns' in GRIDS and 'rightColumns' in GRIDS,
           'the per-pad grids no longer read their own sizes')
-    check("buildCells('T'" in body,
+    check("pad('shared', 'T'" in GRIDS,
           'the shared grid fallback is gone; single-pad controllers would show nothing')
-    # The shared grid is the fallback, not an extra section alongside the pads.
-    check('if (perPad.length > 0) return perPad' in body,
-          'the shared grid would render alongside the per-pad ones, offering the same cells twice')
+    # The shared grid is the fallback, not an extra grid alongside the pads.
+    check('if (perPad.length > 0) return perPad' in GRIDS,
+          'the shared grid would come back alongside the per-pad ones, offering the same cells twice')
+    check('Math.min(25,' in GRIDS,
+          'a grid could exceed the 25 cells the backend caps it at, binding nothing')
+
+
+def test_everything_that_needs_grid_cells_asks_the_same_place():
+    """The Trackpads page and the gyro activation list must agree about which
+    cells exist. The gyro page used to derive them from the shared TOUCHPAD_MODE,
+    so a Steam Controller with per-pad grids was offered no cells at all."""
+    check('resolveTouchpadGrids' in CONTROLS,
+          'the Trackpads page builds its own grid list again')
+    check('resolveTouchpadGrids' in APP and 'touchpadGridCommands' in APP,
+          'the gyro activation list no longer reads the real grid cells')
+    check('touchpadGridCommands' in GYRO,
+          'the gyro page cannot be given the cells that actually exist')
+    check("touchpadMode === 'GRID_AND_STICK' ||" in GYRO,
+          'the gyro page decides on the shared mode alone again, which is unset on a '
+          'controller configured per pad')
 
 
 def test_each_grid_shows_only_its_own_finger():
