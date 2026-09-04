@@ -79,18 +79,22 @@ jobs:
 
             ### Haptics you can bind
             The controller's actuators are no longer reserved for the grip sensors.
-            Any effect can be bound to any input, alongside or instead of a key:
-            `HAPTIC_L_CLICK`, `HAPTIC_R_TICK`, `HAPTIC_BOTH_TONE`, and so on, with an
-            optional gain -- `HAPTIC_L_CLICK_6` for louder, `HAPTIC_R_TICK_N12` for
-            quieter. Side is `L`, `R` or `BOTH`; the effects are the firmware's own
-            OFF, TICK, CLICK, TONE, RUMBLE, NOISE, SCRIPT and SWEEP. The same names
-            will work as mode-shift actions once mode shifting lands.
+            Any effect can be bound to any input, alongside or instead of a key --
+            pick Haptics in the binding editor and choose the actuator, the effect
+            and the gain, or write the name yourself: `HAPTIC_L_CLICK`,
+            `HAPTIC_R_TICK`, `HAPTIC_BOTH_TONE`, with an optional gain
+            (`HAPTIC_L_CLICK_6` for louder, `HAPTIC_R_TICK_N12` for quieter). Side is
+            `L`, `R` or `BOTH`; the effects are the firmware's own OFF, TICK, CLICK,
+            TONE, RUMBLE, NOISE, SCRIPT and SWEEP. The same names will work as
+            mode-shift actions once mode shifting lands.
 
             The grip pulse is audible now. It was addressing the actuator by index
             where the firmware wants a side bitmask, so the left grip selected no
             actuator at all, and it hand-rolled a burst instead of asking for the
             firmware's CLICK -- the same effect Steam Input plays during grip
-            calibration. `GRIP_HAPTIC_INTENSITY` is its gain.
+            calibration. `GRIP_HAPTIC_INTENSITY` is its gain, and
+            `GRIP_HAPTIC_EFFECT` picks which effect it plays rather than leaving
+            CLICK hardcoded.
 
             ### Trackpad precision
             - Pad deltas are floating point end to end. They were cast to `int16_t` every
@@ -151,6 +155,12 @@ jobs:
             grids' commands collided by name, and a per-pad grid larger than the shared
             one indexed past the end of the button array. A chord can name a per-pad
             cell too, so `LT3` is expressible rather than only `T3`.
+
+            ### Only the pads you have
+            The Trackpads page offered a "Left touchpad" and a "Right touchpad" to
+            every controller, including ones with a single pad or none. It now shows
+            what the connected controller actually has, while still offering both
+            with nothing plugged in so a config can be built offline.
 
             ### Known limitations
             - Trigger clicks (physical click at end of trigger travel) are not yet exposed - requires SDL upstream patch
