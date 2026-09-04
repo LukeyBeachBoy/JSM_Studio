@@ -3,13 +3,15 @@ import { KeymapSection } from '../KeymapSection'
 import keymapStyles from '../Keymap.module.css'
 import styles from './Touchpad.module.css'
 import { SectionActions } from '../SectionActions'
-import { GRIP_RANGE_FIRMWARE_DEFAULT } from '../../hooks/useGripConfig'
+import { GRIP_FIRMWARE_DEFAULT } from '../../hooks/useGripConfig'
 
 type Props = {
-  leftGripRange?: number
-  rightGripRange?: number
-  onLeftGripRangeChange?: (v: string) => void
-  onRightGripRangeChange?: (v: string) => void
+  gripSensorRange?: number
+  gripFlickerGuard?: number
+  gripHapticIntensity?: number
+  onGripSensorRangeChange?: (v: string) => void
+  onGripFlickerGuardChange?: (v: string) => void
+  onGripHapticIntensityChange?: (v: string) => void
   hasPendingChanges: boolean
   statusMessage?: string | null
   onApply: () => void
@@ -17,54 +19,67 @@ type Props = {
   applyDisabled?: boolean
 }
 
-// One control per hand, because the grip range genuinely is per hand -- the
-// controller stores a separate squeeze threshold for each side. There is no
-// second "hysteresis" control here: the grip arrives as one bit with one
-// threshold behind it, and a host-side gate on an already-quantized bit can
-// only add latency, not sensitivity.
+// Mirrors Steam Input's Grip Sensor Calibration page: a Range and a Flicker
+// Guard, both written to the controller. One pair rather than one per side --
+// the firmware has a single capacitive threshold pair, which is why Steam Input
+// shows a single pair too.
 export function GripSettingsSection(props: Props) {
   const { t } = useTranslation()
-  const left = props.leftGripRange ?? GRIP_RANGE_FIRMWARE_DEFAULT
-  const right = props.rightGripRange ?? GRIP_RANGE_FIRMWARE_DEFAULT
-  const show = (v: number) => (v < 0 ? t('keymap.gripRangeDefault', 'Controller default') : String(Math.round(v)))
+  const range = props.gripSensorRange ?? GRIP_FIRMWARE_DEFAULT
+  const guard = props.gripFlickerGuard ?? GRIP_FIRMWARE_DEFAULT
+  const haptic = props.gripHapticIntensity ?? 0
+  const show = (v: number) =>
+    v < 0 ? t('keymap.firmwareDefault', 'Controller default') : String(Math.round(v))
+
   return (
     <>
       <KeymapSection
         title={t('keymap.gripSettingsTitle', 'Grip sensors')}
         description={t(
           'keymap.gripSettingsDescription',
-          'How hard each grip must be squeezed to register. Set in the controller itself, per hand -- you do not hold both sides with the same squeeze.'
+          'The capacitive strips inside the handles detect how near your hands are. These are the same two settings as Steam Input’s Grip Sensor Calibration, and they are stored on the controller.'
         )}
       >
         <div className={styles.touchpadSettings}>
           <label>
-            {t('keymap.leftGripRange', 'Left grip range')}
+            {t('keymap.gripSensorRange', 'Grip sensor range')}
             <input
-              type="number"
-              min="-1"
-              max="32767"
-              step="1"
-              value={left}
-              onChange={e => props.onLeftGripRangeChange?.(e.target.value)}
+              type="number" min="-1" max="32767" step="1"
+              value={range}
+              onChange={e => props.onGripSensorRangeChange?.(e.target.value)}
             />
-            <span className={styles.settingReadout}>{show(left)}</span>
+            <span className={styles.settingReadout}>{show(range)}</span>
           </label>
           <label>
-            {t('keymap.rightGripRange', 'Right grip range')}
+            {t('keymap.gripFlickerGuard', 'Flicker guard size')}
             <input
-              type="number"
-              min="-1"
-              max="32767"
-              step="1"
-              value={right}
-              onChange={e => props.onRightGripRangeChange?.(e.target.value)}
+              type="number" min="-1" max="32767" step="1"
+              value={guard}
+              onChange={e => props.onGripFlickerGuardChange?.(e.target.value)}
             />
-            <span className={styles.settingReadout}>{show(right)}</span>
+            <span className={styles.settingReadout}>{show(guard)}</span>
           </label>
           <p className={styles.touchpadHint}>
             {t(
-              'keymap.gripRangeHint',
-              'Raw firmware units, the same setting Steam Input drives. Lower means a lighter squeeze is enough. -1 keeps the controller’s own value.'
+              'keymap.gripSensorHint',
+              'Range is how near your hand must come before the sensor trips; lower detects your hands sooner. Flicker guard is the extra distance it must move away again before releasing, so a hand resting at the edge of the range cannot chatter on and off. Raw firmware units, and -1 keeps the controller’s own value. This is one setting for both grips: the controller stores a single capacitive threshold, which is why Steam Input also shows one.'
+            )}
+          </p>
+          <label>
+            {t('keymap.gripHapticIntensity', 'Grip haptic')}
+            <input
+              type="range" min="0" max="100" step="1"
+              value={haptic}
+              onChange={e => props.onGripHapticIntensityChange?.(e.target.value)}
+            />
+            <span className={styles.settingReadout}>
+              {haptic === 0 ? t('keymap.gripHapticOff', 'Off') : String(haptic)}
+            </span>
+          </label>
+          <p className={styles.touchpadHint}>
+            {t(
+              'keymap.gripHapticHint',
+              'A short pulse from the grip’s own actuator the moment that sensor detects your hand. Fires once on detection rather than buzzing for as long as you hold the controller. 0 turns it off.'
             )}
           </p>
         </div>

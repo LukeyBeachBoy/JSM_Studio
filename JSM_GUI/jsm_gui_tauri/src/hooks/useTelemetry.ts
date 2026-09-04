@@ -24,6 +24,10 @@ export type TelemetryDeviceStatus = {
   rightPad?: TelemetryPadState
   leftGrip?: TelemetryGripState
   rightGrip?: TelemetryGripState
+  // Capacitive thumbstick contact -- the same family of signal as a pad touch or
+  // a grip, so the preview shows all three the same way.
+  leftStickTouch?: boolean
+  rightStickTouch?: boolean
 }
 
 export type TelemetryDevice = {

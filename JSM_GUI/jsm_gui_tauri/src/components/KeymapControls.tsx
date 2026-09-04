@@ -95,20 +95,18 @@ type KeymapControlsProps = {
   lockMessage?: string
   visibleSections?: string[]
   touchpadMode?: string
-  touchOnThreshold?: number
-  touchOffThreshold?: number
-  onTouchOnThresholdChange?: (value: string) => void
-  onTouchOffThresholdChange?: (value: string) => void
   touchpadMinCutoff?: number
   touchpadSpeedCoeff?: number
   touchpadTrackballDecay?: number
   onTouchpadMinCutoffChange?: (value: string) => void
   onTouchpadSpeedCoeffChange?: (value: string) => void
   onTouchpadTrackballDecayChange?: (value: string) => void
-  leftGripRange?: number
-  rightGripRange?: number
-  onLeftGripRangeChange?: (value: string) => void
-  onRightGripRangeChange?: (value: string) => void
+  gripSensorRange?: number
+  gripFlickerGuard?: number
+  gripHapticIntensity?: number
+  onGripSensorRangeChange?: (value: string) => void
+  onGripFlickerGuardChange?: (value: string) => void
+  onGripHapticIntensityChange?: (value: string) => void
   touchpadDualStageMode?: string
   onTouchpadModeChange?: (value: string) => void
   onTouchpadDualStageModeChange?: (value: string) => void
@@ -495,20 +493,18 @@ export function KeymapControls({
   lockMessage,
   visibleSections,
   touchpadMode: touchpadModeProp = '',
-  touchOnThreshold,
-  touchOffThreshold,
-  onTouchOnThresholdChange,
-  onTouchOffThresholdChange,
   touchpadMinCutoff,
   touchpadSpeedCoeff,
   touchpadTrackballDecay,
   onTouchpadMinCutoffChange,
   onTouchpadSpeedCoeffChange,
   onTouchpadTrackballDecayChange,
-  leftGripRange,
-  rightGripRange,
-  onLeftGripRangeChange,
-  onRightGripRangeChange,
+  gripSensorRange,
+  gripFlickerGuard,
+  gripHapticIntensity,
+  onGripSensorRangeChange,
+  onGripFlickerGuardChange,
+  onGripHapticIntensityChange,
   touchpadDualStageMode = '',
   onTouchpadModeChange,
   onTouchpadDualStageModeChange,
@@ -1242,10 +1238,6 @@ export function KeymapControls({
               shouldRender: isVisible('touch-sensors'),
               node: (
                 <TouchpadSensorSection
-                  touchOnThreshold={touchOnThreshold}
-                  touchOffThreshold={touchOffThreshold}
-                  onTouchOnThresholdChange={onTouchOnThresholdChange}
-                  onTouchOffThresholdChange={onTouchOffThresholdChange}
                   touchpadMinCutoff={touchpadMinCutoff}
                   touchpadSpeedCoeff={touchpadSpeedCoeff}
                   touchpadTrackballDecay={touchpadTrackballDecay}
@@ -1261,10 +1253,12 @@ export function KeymapControls({
               shouldRender: isVisible('grip-sensors'),
               node: (
                 <GripSettingsSection
-                  leftGripRange={leftGripRange}
-                  rightGripRange={rightGripRange}
-                  onLeftGripRangeChange={onLeftGripRangeChange}
-                  onRightGripRangeChange={onRightGripRangeChange}
+                  gripSensorRange={gripSensorRange}
+                  gripFlickerGuard={gripFlickerGuard}
+                  gripHapticIntensity={gripHapticIntensity}
+                  onGripSensorRangeChange={onGripSensorRangeChange}
+                  onGripFlickerGuardChange={onGripFlickerGuardChange}
+                  onGripHapticIntensityChange={onGripHapticIntensityChange}
                   {...actionsProps}
                 />
               ),

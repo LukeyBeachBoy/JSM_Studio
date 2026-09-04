@@ -274,20 +274,18 @@ function App() {
     handleLightBarChange,
     triggerThresholdValue,
     touchpadModeValue,
-    touchOnThreshold,
-    touchOffThreshold,
-    handleTouchOnThresholdChange,
-    handleTouchOffThresholdChange,
     touchpadMinCutoffValue,
     touchpadSpeedCoeffValue,
     touchpadTrackballDecayValue,
     handleTouchpadMinCutoffChange,
     handleTouchpadSpeedCoeffChange,
     handleTouchpadTrackballDecayChange,
-    leftGripRangeValue,
-    rightGripRangeValue,
-    handleLeftGripRangeChange,
-    handleRightGripRangeChange,
+    gripSensorRangeValue,
+    gripFlickerGuardValue,
+    gripHapticIntensityValue,
+    handleGripSensorRangeChange,
+    handleGripFlickerGuardChange,
+    handleGripHapticIntensityChange,
     leftTouchpadModeValue,
     rightTouchpadModeValue,
     gridSizeValue,
@@ -317,9 +315,7 @@ function App() {
     touchStickAxisValue,
     leftTouchStickAxisValue,
     rightTouchStickAxisValue,
-    touchpadSmoothingValue,
     touchpadAccelerationValue,
-    handleSmoothing,
     handleAcceleration,
     touchpadWarnings,
     hasPendingChanges,
@@ -986,20 +982,18 @@ function App() {
             onTriggerThresholdChange={handleTriggerThresholdChange}
             onModifierChange={handleModifierChange}
             touchpadMode={touchpadModeValue}
-            touchOnThreshold={touchOnThreshold}
-            touchOffThreshold={touchOffThreshold}
-            onTouchOnThresholdChange={handleTouchOnThresholdChange}
-            onTouchOffThresholdChange={handleTouchOffThresholdChange}
             touchpadMinCutoff={touchpadMinCutoffValue}
             touchpadSpeedCoeff={touchpadSpeedCoeffValue}
             touchpadTrackballDecay={touchpadTrackballDecayValue}
             onTouchpadMinCutoffChange={handleTouchpadMinCutoffChange}
             onTouchpadSpeedCoeffChange={handleTouchpadSpeedCoeffChange}
             onTouchpadTrackballDecayChange={handleTouchpadTrackballDecayChange}
-            leftGripRange={leftGripRangeValue}
-            rightGripRange={rightGripRangeValue}
-            onLeftGripRangeChange={handleLeftGripRangeChange}
-            onRightGripRangeChange={handleRightGripRangeChange}
+            gripSensorRange={gripSensorRangeValue}
+            gripFlickerGuard={gripFlickerGuardValue}
+            gripHapticIntensity={gripHapticIntensityValue}
+            onGripSensorRangeChange={handleGripSensorRangeChange}
+            onGripFlickerGuardChange={handleGripFlickerGuardChange}
+            onGripHapticIntensityChange={handleGripHapticIntensityChange}
             touchpadDualStageMode={touchpadDualStageModeValue}
             leftTouchpadMode={leftTouchpadModeValue}
             rightTouchpadMode={rightTouchpadModeValue}
@@ -1031,8 +1025,6 @@ function App() {
             touchStickRadius={touchStickRadiusValue}
             touchStickAxis={touchStickAxisValue}
             touchpadWarnings={touchpadWarnings}
-            touchpadSmoothing={touchpadSmoothingValue}
-            onTouchpadSmoothingChange={handleSmoothing}
             touchpadAcceleration={touchpadAccelerationValue}
             onTouchpadAccelerationChange={handleAcceleration}
             stickDeadzoneSettings={{
@@ -1109,20 +1101,18 @@ function App() {
             onTriggerThresholdChange={handleTriggerThresholdChange}
             onModifierChange={handleModifierChange}
             touchpadMode={touchpadModeValue}
-            touchOnThreshold={touchOnThreshold}
-            touchOffThreshold={touchOffThreshold}
-            onTouchOnThresholdChange={handleTouchOnThresholdChange}
-            onTouchOffThresholdChange={handleTouchOffThresholdChange}
             touchpadMinCutoff={touchpadMinCutoffValue}
             touchpadSpeedCoeff={touchpadSpeedCoeffValue}
             touchpadTrackballDecay={touchpadTrackballDecayValue}
             onTouchpadMinCutoffChange={handleTouchpadMinCutoffChange}
             onTouchpadSpeedCoeffChange={handleTouchpadSpeedCoeffChange}
             onTouchpadTrackballDecayChange={handleTouchpadTrackballDecayChange}
-            leftGripRange={leftGripRangeValue}
-            rightGripRange={rightGripRangeValue}
-            onLeftGripRangeChange={handleLeftGripRangeChange}
-            onRightGripRangeChange={handleRightGripRangeChange}
+            gripSensorRange={gripSensorRangeValue}
+            gripFlickerGuard={gripFlickerGuardValue}
+            gripHapticIntensity={gripHapticIntensityValue}
+            onGripSensorRangeChange={handleGripSensorRangeChange}
+            onGripFlickerGuardChange={handleGripFlickerGuardChange}
+            onGripHapticIntensityChange={handleGripHapticIntensityChange}
             touchpadDualStageMode={touchpadDualStageModeValue}
             leftTouchpadMode={leftTouchpadModeValue}
             rightTouchpadMode={rightTouchpadModeValue}
@@ -1186,8 +1176,6 @@ function App() {
             onLeftTouchStickAxisChange={handleLeftTouchStickAxisChange}
             onRightTouchStickAxisChange={handleRightTouchStickAxisChange}
             touchpadWarnings={touchpadWarnings}
-            touchpadSmoothing={touchpadSmoothingValue}
-            onTouchpadSmoothingChange={handleSmoothing}
             touchpadAcceleration={touchpadAccelerationValue}
             onTouchpadAccelerationChange={handleAcceleration}
             stickDeadzoneSettings={{

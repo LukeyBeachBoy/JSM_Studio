@@ -5,10 +5,6 @@ import styles from './Touchpad.module.css'
 import { SectionActions } from '../SectionActions'
 
 type Props = {
-  touchOnThreshold?: number
-  touchOffThreshold?: number
-  onTouchOnThresholdChange?: (v: string) => void
-  onTouchOffThresholdChange?: (v: string) => void
   touchpadMinCutoff?: number
   touchpadSpeedCoeff?: number
   touchpadTrackballDecay?: number
@@ -21,10 +17,6 @@ type Props = {
   onCancel: () => void
   applyDisabled?: boolean
 }
-
-// Contact detection is a firmware threshold on the controller, in raw sensor
-// units, and -1 means "leave whatever the device already has".
-export const FIRMWARE_DEFAULT = -1
 
 // The One Euro filter has two dials and neither is self-explanatory, so the
 // combinations that are actually worth using are named. The pair is what the
@@ -53,10 +45,6 @@ export function TouchpadSensorSection(props: Props) {
   const cutoff = props.touchpadMinCutoff ?? 6.0
   const speed = props.touchpadSpeedCoeff ?? 0.6
   const preset = matchPreset(cutoff, speed)
-  const touchOn = props.touchOnThreshold ?? FIRMWARE_DEFAULT
-  const touchOff = props.touchOffThreshold ?? FIRMWARE_DEFAULT
-  const showDefault = (v: number) =>
-    v < 0 ? t('keymap.firmwareDefault', 'Controller default') : String(Math.round(v))
 
   const applyPreset = (id: string) => {
     const p = SMOOTHING_PRESETS.find(entry => entry.id === id)
@@ -68,38 +56,13 @@ export function TouchpadSensorSection(props: Props) {
   return (
     <>
       <KeymapSection
-        title={t('keymap.touchSensitivityTitle', 'Trackpad sensitivity')}
+        title={t('keymap.touchSensitivityTitle', 'Mouse output')}
         description={t(
           'keymap.touchSensitivityDescription',
-          'How light a touch the pads register, and how the cursor is smoothed once they do.'
+          'How the cursor is smoothed as you swipe, and what it does when you let go.'
         )}
       >
         <div className={styles.touchpadSettings}>
-            <label>
-              {t('keymap.touchOnThreshold', 'Touch threshold')}
-              <input
-                type="number" min="-1" max="32767" step="1"
-                value={touchOn}
-                onChange={e => props.onTouchOnThresholdChange?.(e.target.value)}
-              />
-              <span className={styles.settingReadout}>{showDefault(touchOn)}</span>
-            </label>
-            <label>
-              {t('keymap.touchOffThreshold', 'Touch release threshold')}
-              <input
-                type="number" min="-1" max="32767" step="1"
-                value={touchOff}
-                onChange={e => props.onTouchOffThresholdChange?.(e.target.value)}
-              />
-              <span className={styles.settingReadout}>{showDefault(touchOff)}</span>
-            </label>
-          <p className={styles.touchpadHint}>
-            {t(
-              'keymap.touchThresholdHint',
-              'Set in the controller itself, the same place Steam Input sets it. Lower the first value to register lighter touches; the gap down to the second is the hysteresis that stops a resting finger chattering. -1 keeps the controller’s own value.'
-            )}
-          </p>
-
           <label>
             {t('keymap.touchSmoothing', 'Mouse smoothing')}
             <select

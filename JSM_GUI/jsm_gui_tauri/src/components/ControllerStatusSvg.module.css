@@ -31,6 +31,16 @@
   transition: fill 120ms ease, stroke 120ms ease, filter 120ms ease;
 }
 
+/* Every capacitive contact on this controller -- pad touch, grip sense,
+   thumbstick touch -- lights up the same way, because they are the same kind of
+   signal and telling them apart by colour taught the reader nothing. Distinct
+   from .controlPressed, which is a physical press. */
+.capSenseActive {
+  fill: color-mix(in srgb, var(--telemetry-green) 22%, transparent);
+  stroke: var(--telemetry-green);
+  filter: drop-shadow(0 0 13px color-mix(in srgb, var(--telemetry-green) 36%, transparent));
+}
+
 .gripSenseText {
   fill: var(--text-muted);
   font: 700 22px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;

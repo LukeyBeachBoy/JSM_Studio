@@ -50,6 +50,9 @@ type StickProps = SharedControlProps & {
   // artwork's well measures ~135 units across, so it needs a smaller one or the
   // overlay spills past the drawn ring.
   baseRadius?: number
+  // Capacitive contact, the same family of signal as a pad touch or a grip. Shown
+  // with the same treatment so all three read as one kind of input.
+  touched?: boolean
 }
 
 type TriggerPathProps = SharedControlProps & {
@@ -168,7 +171,20 @@ const getDefaultPaddleCommands = (mode: ReturnType<typeof controllerBackInputMod
   }
 }
 
-const getPaddleLabel = (mode: ReturnType<typeof controllerBackInputMode>, command: PaddleCommand) => {
+// The Steam Controller's back buttons are called L4/L5/R4/R5 on the device and in
+// Steam Input, so calling them "L B1" here just made them hard to find. Other
+// controllers keep the generic naming: a DualSense Edge's paddles are not L4.
+const STEAM_PADDLE_LABELS: Record<PaddleCommand, string> = {
+  LSL: 'L4',
+  LSR: 'L5',
+  RSR: 'R4',
+  RSL: 'R5',
+}
+
+const getPaddleLabel = (mode: ReturnType<typeof controllerBackInputMode>, command: PaddleCommand, steam = false) => {
+  if (steam) {
+    return STEAM_PADDLE_LABELS[command]
+  }
   if (mode === 'leftJoyConRail' || mode === 'rightJoyConRail') {
     const joyConLabels: Record<PaddleCommand, string> = {
       LSL: 'L SL',
@@ -518,7 +534,7 @@ function GripZone({ x, y, pressed, bound, selected, label, onSelect }: GripZoneP
   return (
     <rect
       aria-label={label}
-      className={join(styles.gripSense, pressed && styles.controlPressed, bound && styles.controlBound, selected && styles.controlSelected)}
+      className={join(styles.gripSense, pressed && styles.capSenseActive, bound && styles.controlBound, selected && styles.controlSelected)}
       x={x}
       y={y}
       width={width}
@@ -535,6 +551,7 @@ function Stick({
   x,
   y,
   baseRadius = 87,
+  touched = false,
   pressed = false,
   muted = false,
   bound = false,
@@ -549,7 +566,7 @@ function Stick({
   return (
     <g className={join(muted && styles.sideMuted, onSelect && styles.interactive)} onClick={onSelect}>
       {title && <title>{title}</title>}
-      <circle className={join(styles.stickBase, bound && styles.stickBaseBound, selected && styles.stickBaseSelected)} cx={cx} cy={cy} r={baseRadius} />
+      <circle className={join(styles.stickBase, bound && styles.stickBaseBound, selected && styles.stickBaseSelected, touched && styles.capSenseActive)} cx={cx} cy={cy} r={baseRadius} />
       <circle className={join(styles.stickRing, bound && styles.stickRingBound)} cx={cx} cy={cy} r={57 * k} />
       <circle className={join(styles.stickKnob, selected && styles.stickKnobSelected, pressed && styles.stickKnobPressed)} cx={knobX} cy={knobY} r={38 * k} />
     </g>
@@ -620,8 +637,8 @@ export function ControllerStatusSvg({
                     </g>
             {/* Live overlays on the Steam Controller 2026 front artwork */}
             {/* Sticks (top) */}
-            <Stick cx={412} cy={219} baseRadius={STEAM_STICK_RADIUS} x={leftStickX} y={leftStickY} pressed={pressed.has('L3')} muted={!hasLeftSide} bound={leftStickBound} selected={leftStickSelected} onSelect={hasLeftSide ? () => onSelectCommand?.(pickCommand(LEFT_STICK_COMMANDS, boundCommands, selectedCommand)) : undefined} title="Left stick" />
-            <Stick cx={700} cy={219} baseRadius={STEAM_STICK_RADIUS} x={rightStickX} y={rightStickY} pressed={pressed.has('R3')} muted={!hasRightSide} bound={rightStickBound} selected={rightStickSelected} onSelect={hasRightSide ? () => onSelectCommand?.(pickCommand(RIGHT_STICK_COMMANDS, boundCommands, selectedCommand)) : undefined} title="Right stick" />
+            <Stick cx={412} cy={219} baseRadius={STEAM_STICK_RADIUS} touched={device.status?.leftStickTouch} x={leftStickX} y={leftStickY} pressed={pressed.has('L3')} muted={!hasLeftSide} bound={leftStickBound} selected={leftStickSelected} onSelect={hasLeftSide ? () => onSelectCommand?.(pickCommand(LEFT_STICK_COMMANDS, boundCommands, selectedCommand)) : undefined} title="Left stick" />
+            <Stick cx={700} cy={219} baseRadius={STEAM_STICK_RADIUS} touched={device.status?.rightStickTouch} x={rightStickX} y={rightStickY} pressed={pressed.has('R3')} muted={!hasRightSide} bound={rightStickBound} selected={rightStickSelected} onSelect={hasRightSide ? () => onSelectCommand?.(pickCommand(RIGHT_STICK_COMMANDS, boundCommands, selectedCommand)) : undefined} title="Right stick" />
 
             {/* D-pad (upper-left area) */}
             <g className={join(!hasLeftSide && styles.sideMuted)}>
@@ -641,7 +658,7 @@ export function ControllerStatusSvg({
 
             {/* Left pad (bottom-left) */}
             <g className={join(styles.interactive)} onClick={() => onSelectCommand?.('TOUCH')}>
-              <rect className={join(styles.control, boundCommands?.has('TOUCH') && styles.controlBound, selectedCommand === 'TOUCH' && styles.controlSelected, leftPad?.touched && styles.controlPressed)}
+              <rect className={join(styles.control, boundCommands?.has('TOUCH') && styles.controlBound, selectedCommand === 'TOUCH' && styles.controlSelected, leftPad?.touched && styles.capSenseActive)}
                 x={STEAM_PAD.left.cx - STEAM_PAD.left.half} y={STEAM_PAD.left.cy - STEAM_PAD.left.half}
                 width={STEAM_PAD.left.half * 2} height={STEAM_PAD.left.half * 2} rx="48" ry="48"
                 transform={`rotate(${STEAM_PAD.left.rot} ${STEAM_PAD.left.cx} ${STEAM_PAD.left.cy})`} />
@@ -655,7 +672,7 @@ export function ControllerStatusSvg({
 
             {/* Right pad (bottom-right) */}
             <g className={join(styles.interactive)} onClick={() => onSelectCommand?.('CAPTURE')}>
-              <rect className={join(styles.control, boundCommands?.has('CAPTURE') && styles.controlBound, selectedCommand === 'CAPTURE' && styles.controlSelected, rightPad?.touched && styles.controlPressed)}
+              <rect className={join(styles.control, boundCommands?.has('CAPTURE') && styles.controlBound, selectedCommand === 'CAPTURE' && styles.controlSelected, rightPad?.touched && styles.capSenseActive)}
                 x={STEAM_PAD.right.cx - STEAM_PAD.right.half} y={STEAM_PAD.right.cy - STEAM_PAD.right.half}
                 width={STEAM_PAD.right.half * 2} height={STEAM_PAD.right.half * 2} rx="48" ry="48"
                 transform={`rotate(${STEAM_PAD.right.rot} ${STEAM_PAD.right.cx} ${STEAM_PAD.right.cy})`} />
@@ -684,7 +701,7 @@ export function ControllerStatusSvg({
               const hasSide = entry.side === 'left' ? hasLeftSide : hasRightSide
               return (
                 <PaddleButton key={entry.command} x={entry.x} y={entry.y} width={entry.width} height={entry.height}
-                  label={getPaddleLabel(backInputMode, entry.command)} pressed={pressed.has(entry.command)} muted={!hasSide}
+                  label={getPaddleLabel(backInputMode, entry.command, true)} pressed={pressed.has(entry.command)} muted={!hasSide}
                   bound={boundCommands?.has(entry.command)} selected={selectedCommand === entry.command}
                   onSelect={hasSide ? () => onSelectCommand?.(entry.command) : undefined} title={BACK_INPUT_TITLES[entry.command]} />
               )

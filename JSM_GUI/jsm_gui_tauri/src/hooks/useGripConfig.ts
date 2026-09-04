@@ -4,16 +4,20 @@ import { keyName } from '../constants/configKeys'
 
 type GripArgs = { configText: string; setConfigText: React.Dispatch<React.SetStateAction<string>> }
 
-// LEFT_GRIP_RANGE / RIGHT_GRIP_RANGE are the squeeze force each grip must reach to
-// register. The grip reaches the host as a single bit, so the threshold behind it
-// lives in the controller's firmware -- the same setting Steam Input drives -- and
-// JoyShockMapper pushes these two values to the device. They are per hand on
-// purpose: nobody holds both sides with the same squeeze.
+// The grip sensors are the capacitive strips inside the handles: they sense how
+// near your hands are, not how hard you squeeze. The physical back buttons
+// (L4/R4/L5/R5) are separate switches and none of this touches them.
 //
-// Values are raw firmware units and -1 means "leave the controller's own value
-// alone", which is the default: an unset config never overwrites what the device
-// (or Steam) already had.
-export const GRIP_RANGE_FIRMWARE_DEFAULT = -1
+// Both knobs live in the controller's firmware, which is the only place a
+// threshold on a capacitive signal can act -- by the time the host sees it, it is
+// one bit. They are the pair behind Steam Input's Grip Sensor Calibration page.
+// The firmware carries a single capacitive threshold pair rather than one per
+// side, which is also why Steam Input shows a single Range and a single Flicker
+// Guard.
+//
+// -1 means "leave the controller's own value alone", which is the default: an
+// unset config never overwrites what the device (or Steam) already had.
+export const GRIP_FIRMWARE_DEFAULT = -1
 const GRIP_RANGE_MAX = 32767
 
 export function useGripConfig({ configText, setConfigText }: GripArgs) {
@@ -23,22 +27,41 @@ export function useGripConfig({ configText, setConfigText }: GripArgs) {
     return Number.isFinite(n) ? n : fallback
   }
 
-  const leftGripRangeValue = num(keyName.LEFT_GRIP_RANGE, GRIP_RANGE_FIRMWARE_DEFAULT)
-  const rightGripRangeValue = num(keyName.RIGHT_GRIP_RANGE, GRIP_RANGE_FIRMWARE_DEFAULT)
+  const gripSensorRangeValue = num(keyName.GRIP_SENSOR_RANGE, GRIP_FIRMWARE_DEFAULT)
+  const gripFlickerGuardValue = num(keyName.GRIP_FLICKER_GUARD, GRIP_FIRMWARE_DEFAULT)
+  // Haptics are a plain 0-100 intensity, not a firmware threshold: 0 is off, not
+  // "leave it alone", because there is nothing on the device to leave alone.
+  const gripHapticIntensityValue = num(keyName.GRIP_HAPTIC_INTENSITY, 0)
 
   const writeClamped = useCallback(
-    (name: string, v: string) => {
+    (name: string, v: string, lo: number, hi: number) => {
       if (v === '') return setConfigText(prev => removeKeymapEntry(prev, name))
       const n = Number.parseFloat(v)
       if (!Number.isFinite(n)) return
-      const clamped = Math.max(GRIP_RANGE_FIRMWARE_DEFAULT, Math.min(GRIP_RANGE_MAX, Math.round(n)))
-      setConfigText(prev => updateKeymapEntry(prev, name, [clamped]))
+      setConfigText(prev => updateKeymapEntry(prev, name, [Math.max(lo, Math.min(hi, Math.round(n)))]))
     },
     [setConfigText]
   )
 
-  const handleLeftGripRangeChange = useCallback((v: string) => writeClamped(keyName.LEFT_GRIP_RANGE, v), [writeClamped])
-  const handleRightGripRangeChange = useCallback((v: string) => writeClamped(keyName.RIGHT_GRIP_RANGE, v), [writeClamped])
+  const handleGripSensorRangeChange = useCallback(
+    (v: string) => writeClamped(keyName.GRIP_SENSOR_RANGE, v, GRIP_FIRMWARE_DEFAULT, GRIP_RANGE_MAX),
+    [writeClamped]
+  )
+  const handleGripFlickerGuardChange = useCallback(
+    (v: string) => writeClamped(keyName.GRIP_FLICKER_GUARD, v, GRIP_FIRMWARE_DEFAULT, GRIP_RANGE_MAX),
+    [writeClamped]
+  )
+  const handleGripHapticIntensityChange = useCallback(
+    (v: string) => writeClamped(keyName.GRIP_HAPTIC_INTENSITY, v, 0, 100),
+    [writeClamped]
+  )
 
-  return { leftGripRangeValue, rightGripRangeValue, handleLeftGripRangeChange, handleRightGripRangeChange }
+  return {
+    gripSensorRangeValue,
+    gripFlickerGuardValue,
+    gripHapticIntensityValue,
+    handleGripSensorRangeChange,
+    handleGripFlickerGuardChange,
+    handleGripHapticIntensityChange,
+  }
 }
