@@ -380,7 +380,12 @@ export function HidHidePage({ telemetryDevices }: HidHidePageProps) {
 
                       <div className={styles.hidHideDeviceActions}>
                         {device.hidden && !device.managedByApp && !device.stale ? (
-                          <button type="button" className="ghost-btn" disabled>
+                          <button
+                            type="button"
+                            className="ghost-btn"
+                            disabled
+                            title={t('controllerStatus.hidHideHiddenExternallyHint')}
+                          >
                             {t('controllerStatus.hidHideHiddenExternally')}
                           </button>
                         ) : (

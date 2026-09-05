@@ -11,6 +11,14 @@ export const STICK_MODE_VALUES = [
   'HYBRID_AIM',
   'INNER_RING',
   'OUTER_RING',
+  // Real analog passthrough to a virtual Xbox/DS4 controller (JoyShockMapper's
+  // processGyroStick already forwards the physical stick's own curve/deadzone
+  // untouched when no gyro is combined with it -- these aren't gyro-only modes
+  // despite the backend naming). Lets a game keep native analog stick input
+  // while everything else (buttons, the other stick, gyro) still goes through
+  // JSM. Requires VIRTUAL_CONTROLLER to be set; see stickModeExtras' hint.
+  'LEFT_STICK',
+  'RIGHT_STICK',
 ] as const
 
 export type StickMode = (typeof STICK_MODE_VALUES)[number]
@@ -26,6 +34,8 @@ const STICK_MODE_LABEL_KEYS: Record<StickMode, string> = {
   HYBRID_AIM: 'stickModes.HYBRID_AIM',
   INNER_RING: 'stickModes.INNER_RING',
   OUTER_RING: 'stickModes.OUTER_RING',
+  LEFT_STICK: 'stickModes.LEFT_STICK',
+  RIGHT_STICK: 'stickModes.RIGHT_STICK',
 }
 
 export const getStickModeLabelKey = (mode: string) => {

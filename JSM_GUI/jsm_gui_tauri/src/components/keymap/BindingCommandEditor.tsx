@@ -64,6 +64,16 @@ const BEHAVIOR_OPTIONS: Array<{ value: BindingOutputBehavior; labelKey: string }
 
 const mouseOptions = ['LMOUSE', 'MMOUSE', 'RMOUSE', 'BMOUSE', 'FMOUSE']
 const wheelOptions = ['SCROLLUP', 'SCROLLDOWN']
+// These already work as plain keyboard-output tokens (JoyShockMapper maps them
+// to real Windows media-key VKs), but a physical keyboard capture can't produce
+// them, so without this quick-pick they were only reachable by knowing to type
+// the exact token name into the free-text field.
+const systemKeyOptions = ['VOLUME_UP', 'VOLUME_DOWN', 'MUTE', 'SCREENSHOT', 'NEXT_TRACK', 'PREV_TRACK', 'PLAY_PAUSE']
+// JSM console macros that are also valid as a button's bound action, same as
+// any key name. TURN_OFF_CONTROLLER sends Valve's own ID_TURN_OFF_CONTROLLER
+// feature report -- matches Steam Input's Guide+Y / QAM+Y shortcut -- and only
+// does anything on hardware that supports it (Steam Controller 2026).
+const builtInCommandOptions = ['TURN_OFF_CONTROLLER', 'RESTART_GYRO_CALIBRATION', 'FINISH_GYRO_CALIBRATION', 'CALIBRATE_TRIGGERS']
 const conditionTriggers = new Set<BindingTriggerKind>(['chord', 'simultaneous', 'diagonal'])
 
 export function BindingCommandEditor({
@@ -244,6 +254,51 @@ export function BindingCommandEditor({
           />
         )}
       </label>
+
+      {command.outputKind === 'keyboard' && (
+        <label>
+          <span>{t('keymap.commandOutputSystemKey')}</span>
+          <select
+            className="app-select"
+            value={systemKeyOptions.includes(command.outputValue) ? command.outputValue : ''}
+            onChange={(event) => {
+              if (event.target.value) onChange({ outputValue: event.target.value })
+            }}
+            data-capture-ignore="true"
+          >
+            <option value="">{t('keymap.commandNoOutput')}</option>
+            {systemKeyOptions.map(value => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+
+      {command.outputKind === 'command' && (
+        <label>
+          <span>{t('keymap.commandOutputBuiltIn')}</span>
+          <select
+            className="app-select"
+            value={builtInCommandOptions.includes(command.outputValue) ? command.outputValue : ''}
+            onChange={(event) => {
+              if (event.target.value) onChange({ outputValue: event.target.value })
+            }}
+            data-capture-ignore="true"
+          >
+            <option value="">{t('keymap.commandNoOutput')}</option>
+            {builtInCommandOptions.map(value => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
+          </select>
+          {command.outputValue === 'TURN_OFF_CONTROLLER' && (
+            <small>{t('keymap.turnOffControllerHint')}</small>
+          )}
+        </label>
+      )}
 
       {canCapture && (
         <button type="button" className={keymapStyles.commandCaptureBtn} onClick={onCapture}>

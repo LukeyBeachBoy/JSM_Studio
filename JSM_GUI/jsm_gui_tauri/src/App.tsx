@@ -321,10 +321,14 @@ function App() {
     gripFlickerGuardValue,
     gripHapticIntensityValue,
     gripHapticEffectValue,
+    gripReleaseHapticIntensityValue,
+    gripReleaseHapticEffectValue,
     handleGripSensorRangeChange,
     handleGripFlickerGuardChange,
     handleGripHapticIntensityChange,
     handleGripHapticEffectChange,
+    handleGripReleaseHapticIntensityChange,
+    handleGripReleaseHapticEffectChange,
     leftTouchpadModeValue,
     rightTouchpadModeValue,
     gridSizeValue,
@@ -1103,10 +1107,14 @@ function App() {
             gripFlickerGuard={gripFlickerGuardValue}
             gripHapticIntensity={gripHapticIntensityValue}
             gripHapticEffect={gripHapticEffectValue}
+            gripReleaseHapticIntensity={gripReleaseHapticIntensityValue}
+            gripReleaseHapticEffect={gripReleaseHapticEffectValue}
             onGripSensorRangeChange={handleGripSensorRangeChange}
             onGripFlickerGuardChange={handleGripFlickerGuardChange}
             onGripHapticIntensityChange={handleGripHapticIntensityChange}
             onGripHapticEffectChange={handleGripHapticEffectChange}
+            onGripReleaseHapticIntensityChange={handleGripReleaseHapticIntensityChange}
+            onGripReleaseHapticEffectChange={handleGripReleaseHapticEffectChange}
             touchpadDualStageMode={touchpadDualStageModeValue}
             leftTouchpadMode={leftTouchpadModeValue}
             rightTouchpadMode={rightTouchpadModeValue}
@@ -1226,10 +1234,14 @@ function App() {
             gripFlickerGuard={gripFlickerGuardValue}
             gripHapticIntensity={gripHapticIntensityValue}
             gripHapticEffect={gripHapticEffectValue}
+            gripReleaseHapticIntensity={gripReleaseHapticIntensityValue}
+            gripReleaseHapticEffect={gripReleaseHapticEffectValue}
             onGripSensorRangeChange={handleGripSensorRangeChange}
             onGripFlickerGuardChange={handleGripFlickerGuardChange}
             onGripHapticIntensityChange={handleGripHapticIntensityChange}
             onGripHapticEffectChange={handleGripHapticEffectChange}
+            onGripReleaseHapticIntensityChange={handleGripReleaseHapticIntensityChange}
+            onGripReleaseHapticEffectChange={handleGripReleaseHapticEffectChange}
             touchpadDualStageMode={touchpadDualStageModeValue}
             leftTouchpadMode={leftTouchpadModeValue}
             rightTouchpadMode={rightTouchpadModeValue}

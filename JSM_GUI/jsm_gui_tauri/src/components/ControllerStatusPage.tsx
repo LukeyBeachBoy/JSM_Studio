@@ -216,6 +216,32 @@ function ControllerConnectionStatusPanel({ connectedDevices, priority = false }:
       })
   }
 
+  // Steam Input doesn't dedicate a big card to "yes, a controller is plugged
+  // in" -- that's the expected state, not news. Once at least one controller
+  // is connected this collapses to a single status-bar-style line; the full
+  // card treatment is reserved for the one moment it's actually actionable:
+  // no controller connected at all (priority === true, forced by the caller).
+  if (connected && !priority) {
+    return (
+      <div className={styles.connectionBar}>
+        <span className={`${styles.cardMetric} ${styles.cardMetricSuccess}`}>
+          {t('controllerStatus.connectionConnectedCount', { count: connectedCount })}
+        </span>
+        <button
+          type="button"
+          className="ghost-btn"
+          onClick={reconnectControllers}
+          disabled={reconnecting}
+        >
+          {reconnecting ? t('controllerStatus.connectionReconnecting') : t('controllerStatus.connectionReconnect')}
+        </button>
+        {error && (
+          <span className={styles.connectionBarError}>{t('controllerStatus.connectionError', { error })}</span>
+        )}
+      </div>
+    )
+  }
+
   return (
     <Card className={`${styles.pageCard} ${styles.connectionCard} ${priority ? styles.connectionCardPriority : ''}`}>
       <div className={styles.connectionHeader}>

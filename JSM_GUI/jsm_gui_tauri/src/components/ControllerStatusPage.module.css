@@ -589,6 +589,20 @@
   gap: 0.8rem;
 }
 
+/* The compact, already-connected status line -- no Card, no heading, just a
+   metric and a way to reconnect. See ControllerConnectionStatusPanel. */
+.connectionBar {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.15rem 0.1rem 0.6rem;
+}
+
+.connectionBarError {
+  color: var(--toast-error-text);
+  font-size: 0.82rem;
+}
+
 .connectionHeading {
   display: flex;
   flex-direction: column;

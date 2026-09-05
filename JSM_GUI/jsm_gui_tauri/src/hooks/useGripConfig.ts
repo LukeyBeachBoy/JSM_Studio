@@ -39,6 +39,12 @@ export function useGripConfig({ configText, setConfigText }: GripArgs) {
     const raw = read(keyName.GRIP_HAPTIC_EFFECT)?.trim().toUpperCase()
     return raw && HAPTIC_EFFECTS.some(effect => effect === raw) ? raw : 'CLICK'
   })()
+  // Independent pulse for the hand pulling away, not the same knob as contact.
+  const gripReleaseHapticIntensityValue = num(keyName.GRIP_RELEASE_HAPTIC_INTENSITY, 0)
+  const gripReleaseHapticEffectValue = (() => {
+    const raw = read(keyName.GRIP_RELEASE_HAPTIC_EFFECT)?.trim().toUpperCase()
+    return raw && HAPTIC_EFFECTS.some(effect => effect === raw) ? raw : 'CLICK'
+  })()
 
   const writeClamped = useCallback(
     (name: string, v: string, lo: number, hi: number) => {
@@ -70,15 +76,31 @@ export function useGripConfig({ configText, setConfigText }: GripArgs) {
     },
     [setConfigText]
   )
+  const handleGripReleaseHapticIntensityChange = useCallback(
+    (v: string) => writeClamped(keyName.GRIP_RELEASE_HAPTIC_INTENSITY, v, 0, 100),
+    [writeClamped]
+  )
+  const handleGripReleaseHapticEffectChange = useCallback(
+    (v: string) => {
+      const next = v.trim().toUpperCase()
+      if (!HAPTIC_EFFECTS.some(effect => effect === next)) return
+      setConfigText(prev => updateKeymapEntry(prev, keyName.GRIP_RELEASE_HAPTIC_EFFECT, [next]))
+    },
+    [setConfigText]
+  )
 
   return {
     gripSensorRangeValue,
     gripFlickerGuardValue,
     gripHapticIntensityValue,
     gripHapticEffectValue,
+    gripReleaseHapticIntensityValue,
+    gripReleaseHapticEffectValue,
     handleGripSensorRangeChange,
     handleGripFlickerGuardChange,
     handleGripHapticIntensityChange,
     handleGripHapticEffectChange,
+    handleGripReleaseHapticIntensityChange,
+    handleGripReleaseHapticEffectChange,
   }
 }

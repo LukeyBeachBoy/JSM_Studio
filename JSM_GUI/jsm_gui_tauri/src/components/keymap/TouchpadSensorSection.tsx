@@ -28,11 +28,18 @@ type Props = {
 // Cutoff is the floor: how much smoothing survives when the finger is barely
 // moving, in Hz. Lower is smoother and laggier. Speed lifts the cutoff as the
 // finger speeds up, so a flick escapes the smoothing that a slow pan needs.
+//
+// Speed only matters once TOUCHPAD_D_CUTOFF (fixed at 15Hz, not exposed here)
+// has noticed the finger sped up, so these presets no longer tie speed to
+// cutoff the way earlier tuning did. Cutoff is free to go as low as Heavy
+// wants for a still, jitter-free resting finger, while speed stays high
+// across every preset so a flick escapes that smoothing almost immediately
+// instead of inheriting the same lag the low floor implies.
 const SMOOTHING_PRESETS = [
   { id: 'off', cutoff: 0, speed: 0 },
   { id: 'light', cutoff: 10, speed: 0.8 },
-  { id: 'balanced', cutoff: 6, speed: 0.6 },
-  { id: 'heavy', cutoff: 2.5, speed: 0.35 },
+  { id: 'balanced', cutoff: 6, speed: 1.2 },
+  { id: 'heavy', cutoff: 2.5, speed: 3.0 },
 ] as const
 
 function matchPreset(cutoff: number, speed: number) {
@@ -74,8 +81,8 @@ export function TouchpadSensorSection(props: Props) {
             >
               <option value="off">{t('keymap.smoothingOff', 'Off — raw pad motion (0 / 0)')}</option>
               <option value="light">{t('keymap.smoothingLight', 'Light — sharpest, some jitter (10 / 0.8)')}</option>
-              <option value="balanced">{t('keymap.smoothingBalanced', 'Balanced — default (6 / 0.6)')}</option>
-              <option value="heavy">{t('keymap.smoothingHeavy', 'Heavy — smoothest slow pans (2.5 / 0.35)')}</option>
+              <option value="balanced">{t('keymap.smoothingBalanced', 'Balanced — default (6 / 1.2)')}</option>
+              <option value="heavy">{t('keymap.smoothingHeavy', 'Heavy — smoothest at rest, flicks stay fast (2.5 / 3.0)')}</option>
               <option value="custom" disabled={preset !== 'custom'}>
                 {t('keymap.smoothingCustom', 'Custom')}
               </option>
@@ -84,7 +91,7 @@ export function TouchpadSensorSection(props: Props) {
           <p className={styles.touchpadHint}>
             {t(
               'keymap.touchSmoothingHint',
-              'Smoothing cutoff is the floor, in Hz: how much smoothing survives when your finger is barely moving. Lower is smoother but laggier, and below about 3 a quick swipe visibly trails your finger. Flick responsiveness lifts that cutoff as the finger speeds up, so a fast flick escapes the smoothing a slow pan needs. If the cursor looks jittery during steady movement, go one step heavier; if it feels like it lags behind your finger, go one step lighter.'
+              'Smoothing cutoff is the floor, in Hz: how much smoothing survives when your finger is barely moving or resting. Lower is smoother but laggier at rest. Flick responsiveness lifts that cutoff once a flick is detected, letting a fast swipe escape the resting smoothing almost immediately — so a low cutoff no longer means a slow flick, only a stiller resting cursor. If the cursor looks jittery at rest or panning slowly, go one step heavier; if flicks still feel like they trail your finger, go one step lighter.'
             )}
           </p>
             <label>

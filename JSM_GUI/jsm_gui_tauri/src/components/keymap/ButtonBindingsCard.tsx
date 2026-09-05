@@ -409,27 +409,40 @@ export const ButtonBindingsCard = ({
       : undefined))
   }
 
-  const addControl = (
-    <div className={keymapStyles.addCommandRow} data-capture-ignore="true">
-      <div className={keymapStyles.addCommandLabel}>{t('keymap.addCommand')}</div>
-      <div className={keymapStyles.addCommandButtons}>
-        <button type="button" className="secondary-btn" onClick={() => handleAddCommand('regular')}>{t('keymap.commandTriggerRegular')}</button>
-        <button type="button" className="secondary-btn" onClick={() => handleAddCommand('tap')}>{t('keymap.commandTriggerTap')}</button>
-        <button type="button" className="secondary-btn" onClick={() => handleAddCommand('hold')}>{t('keymap.commandTriggerHold')}</button>
-        <button type="button" className="secondary-btn" onClick={() => handleAddCommand('double')}>{t('keymap.commandTriggerDouble')}</button>
-        <button type="button" className="secondary-btn" onClick={() => handleAddCommand('chord')}>{t('keymap.commandTriggerChord')}</button>
+  // Nothing bound yet: one button, defaulting to Press, same as Steam Input's
+  // own empty-slot affordance. Changing that first command's trigger kind
+  // (Press/Tap/Hold/...) happens on the command card itself once it exists --
+  // this row is for adding a *new* trigger, so there's nothing to choose among
+  // before the first one exists. The full picker only reappears once there's
+  // already a command to add an additional simultaneous trigger alongside.
+  const addControl =
+    commands.length === 0 ? (
+      <div className={keymapStyles.addCommandRow} data-capture-ignore="true">
+        <button type="button" className="secondary-btn" onClick={() => handleAddCommand('regular')}>
+          {t('keymap.addCommand')}
+        </button>
       </div>
-      <details className={keymapStyles.addCommandAdvanced}>
-        <summary>{t('keymap.quickShowAdvanced')}</summary>
+    ) : (
+      <div className={keymapStyles.addCommandRow} data-capture-ignore="true">
+        <div className={keymapStyles.addCommandLabel}>{t('keymap.addAnotherTrigger')}</div>
         <div className={keymapStyles.addCommandButtons}>
-          <button type="button" className="secondary-btn" onClick={() => handleAddCommand('simultaneous')}>{t('keymap.commandTriggerSimultaneous')}</button>
-          <button type="button" className="secondary-btn" onClick={() => handleAddCommand('diagonal')}>{t('keymap.commandTriggerDiagonal')}</button>
-          {onStickModeShiftChange && <button type="button" className="secondary-btn" onClick={() => handleAddCommand('stickShift')}>{t('keymap.commandAddStickShift')}</button>}
-          <button type="button" className="secondary-btn" onClick={() => handleAddCommand('script')}>{t('keymap.commandAddScript')}</button>
+          <button type="button" className="secondary-btn" onClick={() => handleAddCommand('regular')}>{t('keymap.commandTriggerRegular')}</button>
+          <button type="button" className="secondary-btn" onClick={() => handleAddCommand('tap')}>{t('keymap.commandTriggerTap')}</button>
+          <button type="button" className="secondary-btn" onClick={() => handleAddCommand('hold')}>{t('keymap.commandTriggerHold')}</button>
+          <button type="button" className="secondary-btn" onClick={() => handleAddCommand('double')}>{t('keymap.commandTriggerDouble')}</button>
+          <button type="button" className="secondary-btn" onClick={() => handleAddCommand('chord')}>{t('keymap.commandTriggerChord')}</button>
         </div>
-      </details>
-    </div>
-  )
+        <details className={keymapStyles.addCommandAdvanced}>
+          <summary>{t('keymap.quickShowAdvanced')}</summary>
+          <div className={keymapStyles.addCommandButtons}>
+            <button type="button" className="secondary-btn" onClick={() => handleAddCommand('simultaneous')}>{t('keymap.commandTriggerSimultaneous')}</button>
+            <button type="button" className="secondary-btn" onClick={() => handleAddCommand('diagonal')}>{t('keymap.commandTriggerDiagonal')}</button>
+            {onStickModeShiftChange && <button type="button" className="secondary-btn" onClick={() => handleAddCommand('stickShift')}>{t('keymap.commandAddStickShift')}</button>}
+            <button type="button" className="secondary-btn" onClick={() => handleAddCommand('script')}>{t('keymap.commandAddScript')}</button>
+          </div>
+        </details>
+      </div>
+    )
 
   const extras = (
     <>

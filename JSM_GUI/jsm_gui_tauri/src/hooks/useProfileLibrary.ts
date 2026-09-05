@@ -253,6 +253,26 @@ export function useProfileLibrary({
             return next
           })
           refreshLibraryProfiles()
+          // The backend sanitizes/dedupes the requested name, so it can differ
+          // from what was typed (invalid characters stripped, or a suffix added
+          // to dodge a collision) -- say so, otherwise a silently-adjusted name
+          // reads as "nothing happened".
+          const finalName = result.name ?? pendingName
+          showToast(
+            finalName === pendingName
+              ? t('messages.profileRenamed', { name: finalName })
+              : t('messages.profileRenamedAdjusted', { requested: pendingName, name: finalName })
+          )
+        } else {
+          // desktopBridge swallows the underlying Tauri error into null rather
+          // than rejecting, so this branch -- not the catch below -- is what
+          // actually runs on a real backend failure. Without it, a failed
+          // rename produced no feedback at all: the button just stopped being
+          // disabled-looking and nothing else happened.
+          const message = t('messages.renameProfileFailed')
+          setStatusMessage(message)
+          showToast(message, 'error')
+          clearStatusLater()
         }
       } catch (err) {
         console.error('Failed to rename profile', err)

@@ -108,10 +108,14 @@ type KeymapControlsProps = {
   gripFlickerGuard?: number
   gripHapticIntensity?: number
   gripHapticEffect?: string
+  gripReleaseHapticIntensity?: number
+  gripReleaseHapticEffect?: string
   onGripSensorRangeChange?: (value: string) => void
   onGripFlickerGuardChange?: (value: string) => void
   onGripHapticIntensityChange?: (value: string) => void
   onGripHapticEffectChange?: (value: string) => void
+  onGripReleaseHapticIntensityChange?: (value: string) => void
+  onGripReleaseHapticEffectChange?: (value: string) => void
   touchpadDualStageMode?: string
   onTouchpadModeChange?: (value: string) => void
   onTouchpadDualStageModeChange?: (value: string) => void
@@ -510,10 +514,14 @@ export function KeymapControls({
   gripFlickerGuard,
   gripHapticIntensity,
   gripHapticEffect,
+  gripReleaseHapticIntensity,
+  gripReleaseHapticEffect,
   onGripSensorRangeChange,
   onGripFlickerGuardChange,
   onGripHapticIntensityChange,
   onGripHapticEffectChange,
+  onGripReleaseHapticIntensityChange,
+  onGripReleaseHapticEffectChange,
   touchpadDualStageMode = '',
   onTouchpadModeChange,
   onTouchpadDualStageModeChange,
@@ -1023,6 +1031,18 @@ export function KeymapControls({
         </div>
       )
     }
+    if (mode === 'LEFT_STICK' || mode === 'RIGHT_STICK') {
+      return (
+        <div className={stickStyles.stickFlickSettings} data-capture-ignore="true">
+          <small>{t('stickModes.virtualStickHint')}</small>
+          {virtualControllerType === 'NONE' && (
+            <div className={keymapStyles.virtualControllerWarning}>
+              {t('stickModes.virtualStickDisabledWarning')}
+            </div>
+          )}
+        </div>
+      )
+    }
     return null
   }
 
@@ -1271,8 +1291,22 @@ export function KeymapControls({
                       {['NO_FULL', 'NO_SKIP', 'NO_SKIP_EXCLUSIVE', 'MUST_SKIP', 'MAY_SKIP', 'MUST_SKIP_R', 'MAY_SKIP_R'].map(mode => (
                         <option key={mode} value={mode}>{mode === 'NO_FULL' ? t('common.defaultValue', { value: mode }) : mode}</option>
                       ))}
+                      <option value={selectedTriggerModeSide === 'left' ? 'X_LT' : 'X_RT'}>
+                        {t('keymap.triggerVirtualPassthrough')}
+                      </option>
                     </select>
                   </label>
+                  {(selectedTriggerModeSide === 'left' ? zlModeValue : zrModeValue) ===
+                    (selectedTriggerModeSide === 'left' ? 'X_LT' : 'X_RT') && (
+                    <div className={stickStyles.stickFlickSettings} data-capture-ignore="true">
+                      <small>{t('keymap.triggerVirtualPassthroughHint')}</small>
+                      {virtualControllerType === 'NONE' && (
+                        <div className={keymapStyles.virtualControllerWarning}>
+                          {t('stickModes.virtualStickDisabledWarning')}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
               {selectedStickSide && stickModeSettings && onStickModeChange && onRingModeChange && onStickDeadzoneChange && (
@@ -1392,10 +1426,14 @@ export function KeymapControls({
                   gripFlickerGuard={gripFlickerGuard}
                   gripHapticIntensity={gripHapticIntensity}
                   gripHapticEffect={gripHapticEffect}
+                  gripReleaseHapticIntensity={gripReleaseHapticIntensity}
+                  gripReleaseHapticEffect={gripReleaseHapticEffect}
                   onGripSensorRangeChange={onGripSensorRangeChange}
                   onGripFlickerGuardChange={onGripFlickerGuardChange}
                   onGripHapticIntensityChange={onGripHapticIntensityChange}
                   onGripHapticEffectChange={onGripHapticEffectChange}
+                  onGripReleaseHapticIntensityChange={onGripReleaseHapticIntensityChange}
+                  onGripReleaseHapticEffectChange={onGripReleaseHapticEffectChange}
                   {...actionsProps}
                 />
               ),
