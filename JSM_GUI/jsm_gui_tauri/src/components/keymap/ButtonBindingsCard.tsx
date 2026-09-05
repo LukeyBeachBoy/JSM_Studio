@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   BindingCommand,
@@ -39,12 +39,6 @@ import { Menu, type MenuItem } from '../ui/Menu'
 import { controllerButtonLabel, type ControllerVisualFamily } from '../../utils/controllerStatus'
 import { InputGlyph } from '../glyphs/InputGlyph'
 
-// A draft row is written into the config and deleted the moment it has a value,
-// so its card unmounts and a fresh one mounts in its place. An output kind that
-// arrives with a value already set -- haptics do -- would therefore slam the
-// editor shut before you could choose the effect. Remember what was just
-// written so the card that replaces it opens.
-const commandSignature = (command: BindingCommand) => `${command.triggerKind}|${command.outputValue}`
 import { ButtonMappingCard } from './ButtonMappingCard'
 import { getVirtualControllerLogicalOutput, type VirtualControllerType } from '../../utils/virtualController'
 
@@ -181,7 +175,6 @@ export const ButtonBindingsCard = ({
     ].filter((option, index, source) => source.findIndex(candidate => candidate.value === option.value) === index),
     [t]
   )
-  const [expandOnMount, setExpandOnMount] = useState<string | null>(null)
   const commands = useMemo(
     () => parseRowsToCommands(rows, button.command, { specialKey, stickShiftAssignments: stickShiftEntries }),
     [button.command, rows, specialKey, stickShiftEntries]
@@ -323,7 +316,6 @@ export const ButtonBindingsCard = ({
         updateDraftCommand(command, nextCommand)
         return
       }
-      setExpandOnMount(commandSignature(nextCommand))
       writeCommand({
         triggerKind: nextCommand.triggerKind,
         outputKind: nextCommand.outputKind,
@@ -506,7 +498,6 @@ export const ButtonBindingsCard = ({
           commands.map(command => (
             <BindingCommandCard
               key={command.id}
-              defaultExpanded={commandSignature(command) === expandOnMount}
               command={command}
               modifierOptions={modifierOptions}
               specialOptions={command.source.kind === 'special' ? allSpecialOptionList : actionSpecialOptionList}

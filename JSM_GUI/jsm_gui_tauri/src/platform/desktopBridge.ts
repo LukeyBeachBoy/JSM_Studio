@@ -94,7 +94,10 @@ export type HidHideDevice = {
   product: string
   serialNumber?: string | null
   present: boolean
+  /** Every HID interface of this controller is on HidHide's blacklist. */
   hidden: boolean
+  /** Some interfaces are hidden and some are not, so apps can still read it. */
+  partiallyHidden: boolean
   likelyCurrentController: boolean
   stale: boolean
   managedByApp: boolean

@@ -510,6 +510,7 @@ export const en = {
     hidHideHiddenExternally: 'Hidden by another app',
     hidHideHiddenExternallyHint: 'HidHide is already hiding this device, but not through this app’s whitelist — another program (or a leftover rule) hid it. Use HidHide’s own app to change it.',
     hidHideHidden: 'Hidden',
+    hidHidePartiallyHidden: 'Partly hidden — still readable',
     hidHideVisible: 'Visible',
     hidHidePresent: 'Present',
     hidHideSavedOnly: 'Saved only',

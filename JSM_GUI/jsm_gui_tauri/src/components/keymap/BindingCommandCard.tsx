@@ -21,8 +21,6 @@ type BindingCommandCardProps = {
   virtualControllerType: VirtualControllerType
   isCapturing: boolean
   captureLabel: string
-  // Set when this card replaces a draft the user was already editing.
-  defaultExpanded?: boolean
   onUpdate: (command: BindingCommand, patch: BindingCommandPatch) => void
   onRemove: (command: BindingCommand) => void
   onDuplicate: (command: BindingCommand) => void
@@ -72,7 +70,6 @@ export function BindingCommandCard({
   virtualControllerType,
   isCapturing,
   captureLabel,
-  defaultExpanded = false,
   onUpdate,
   onRemove,
   onDuplicate,
@@ -80,8 +77,12 @@ export function BindingCommandCard({
   onEnableVirtualController,
 }: BindingCommandCardProps) {
   const { t } = useTranslation()
-  const isDraftCommand = command.source.kind === 'row' && command.source.isManual && !command.outputValue
-  const [expanded, setExpanded] = useState(isDraftCommand || defaultExpanded)
+  // Open by default. Collapsing as soon as a binding had a value meant the only
+  // editable control left on screen was the trigger badge, with the binding
+  // itself rendered as plain text behind a summary row that does not look
+  // clickable -- so a bound grid region (or any bound input) looked like it
+  // could no longer be changed at all. The row still collapses on request.
+  const [expanded, setExpanded] = useState(true)
   const triggerLabel = t(TRIGGER_LABEL_KEYS[command.triggerKind])
   const behaviorLabel = command.outputBehavior === 'normal' ? '' : t(BEHAVIOR_LABEL_KEYS[command.outputBehavior])
   const conditionLabel = command.conditionInput

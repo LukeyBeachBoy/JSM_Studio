@@ -15,7 +15,14 @@ pub struct HidHideDevice {
     pub product: String,
     pub serial_number: Option<String>,
     pub present: bool,
+    /// True only when every one of this controller's HID interfaces is on
+    /// HidHide's blacklist. A controller exposes several, and another app keeps
+    /// reading it through any interface that is still visible.
     pub hidden: bool,
+    /// Some but not all interfaces are blacklisted -- the controller is still
+    /// reachable, which is not the same thing as hidden and must not be
+    /// reported as if it were.
+    pub partially_hidden: bool,
     pub likely_current_controller: bool,
     pub stale: bool,
     pub managed_by_app: bool,
@@ -677,6 +684,7 @@ mod imp {
                 serial_number: None,
                 present: false,
                 hidden: blacklisted_ids.contains(&canonicalize_instance_id(managed_instance_id)),
+                partially_hidden: false,
                 likely_current_controller: false,
                 stale: true,
                 managed_by_app: true,
@@ -719,6 +727,7 @@ mod imp {
                     serial_number: None,
                     present: false,
                     hidden: false,
+                    partially_hidden: false,
                     likely_current_controller: false,
                     stale: true,
                     managed_by_app: true,
@@ -811,7 +820,12 @@ mod imp {
                     product,
                     serial_number,
                     present: devices.iter().any(|device| device.present),
-                    hidden: devices.iter().any(|device| device.hidden),
+                    // `any` here was what told people a controller was hidden
+                    // from Steam while Steam was still plainly reading it: one
+                    // blacklisted interface out of several is not hidden.
+                    hidden: devices.iter().all(|device| device.hidden),
+                    partially_hidden: devices.iter().any(|device| device.hidden)
+                        && !devices.iter().all(|device| device.hidden),
                     likely_current_controller: devices
                         .iter()
                         .any(|device| device.likely_current_controller),

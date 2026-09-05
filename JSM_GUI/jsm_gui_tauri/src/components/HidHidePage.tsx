@@ -357,7 +357,9 @@ export function HidHidePage({ telemetryDevices }: HidHidePageProps) {
                             >
                               {device.hidden
                                 ? t('controllerStatus.hidHideHidden')
-                                : t('controllerStatus.hidHideVisible')}
+                                : device.partiallyHidden
+                                  ? t('controllerStatus.hidHidePartiallyHidden')
+                                  : t('controllerStatus.hidHideVisible')}
                             </span>
                             <span
                               className={`${styles.hidHidePill} ${
