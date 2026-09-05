@@ -65,6 +65,7 @@ export const zhCN = {
     importProfileFailed: '导入配置失败。',
     copyProfileFailed: '复制当前配置失败。',
     emptyProfileName: '配置名称不能为空。',
+    autostartFailed: '无法更新 Windows 开机启动任务。请重试，或确认 JSM Studio 正以管理员身份运行。',
     profileApplied: '已将 {{profileName}} 应用到 JoyShockMapper。',
     profileAppliedRestarted: '已将 {{profileName}} 应用到 JoyShockMapper（已重启）。',
     profileLoaded: '已从配置库加载“{{profileName}}”并应用到 JoyShockMapper。',
@@ -131,6 +132,7 @@ export const zhCN = {
       controllerStatus: '手柄状态',
       debugConsole: '调试台',
       documentation: 'JSM 文档',
+      startWithWindows: '开机启动',
     },
     tabs: {
       status: '状态',

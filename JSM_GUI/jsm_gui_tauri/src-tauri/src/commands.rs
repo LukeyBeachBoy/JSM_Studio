@@ -4,7 +4,7 @@ use tauri::{AppHandle, State, Window};
 
 use crate::{
     runtime,
-    services::{ai, app_state::AppState, hidhide, input_debug, jsm_process, telemetry},
+    services::{ai, app_state::AppState, autostart, hidhide, input_debug, jsm_process, telemetry},
 };
 
 type CommandResult<T> = Result<T, String>;
@@ -781,6 +781,16 @@ pub async fn generate_ai_mapping(
     request: ai::GenerateMappingRequest,
 ) -> CommandResult<ai::GenerateMappingResponse> {
     ai::generate_mapping(&app, request).await
+}
+
+#[tauri::command]
+pub fn get_autostart_enabled() -> CommandResult<bool> {
+    autostart::is_autostart_enabled()
+}
+
+#[tauri::command]
+pub fn set_autostart_enabled(enabled: bool) -> CommandResult<()> {
+    autostart::set_autostart_enabled(enabled)
 }
 
 #[cfg(test)]

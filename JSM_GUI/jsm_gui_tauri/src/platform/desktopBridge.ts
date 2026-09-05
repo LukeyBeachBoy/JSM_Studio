@@ -182,6 +182,13 @@ export interface DesktopBridge {
   runCalibrationCommand: (command: string) => Promise<CalibrationCommandResult>
   getBackendChoice: () => Promise<BackendChoice | null>
   setBackendChoice: (choice: BackendChoice) => Promise<{ success: boolean; backend: BackendChoice } | null>
+  // Registers/removes a Windows Scheduled Task (run-level Highest) rather than
+  // a Registry Run key -- the app's manifest requires admin, and a Run-key
+  // launch would still hit an interactive UAC prompt every logon. See
+  // src-tauri/src/services/autostart.rs for why the scheduled-task route
+  // avoids that.
+  getAutostartEnabled: () => Promise<boolean>
+  setAutostartEnabled: (enabled: boolean) => Promise<boolean>
   openExternal: (url: string) => Promise<void>
   openConfigDirectory: () => Promise<void>
   onUpdateAvailable: (callback: (version: string) => void) => Unsubscribe
@@ -471,6 +478,20 @@ export const desktopBridge: DesktopBridge = {
       return invokeTauri<{ success: boolean; backend: BackendChoice }>('set_backend_choice', { choice }).catch(() => null)
     }
     return (await getElectronAPI()?.setBackendChoice?.(choice)) ?? null
+  },
+  async getAutostartEnabled() {
+    if (isTauriWindow()) {
+      return invokeTauri<boolean>('get_autostart_enabled').catch(() => false)
+    }
+    return (await getElectronAPI()?.getAutostartEnabled?.()) ?? false
+  },
+  async setAutostartEnabled(enabled) {
+    if (isTauriWindow()) {
+      return invokeTauri<void>('set_autostart_enabled', { enabled })
+        .then(() => true)
+        .catch(() => false)
+    }
+    return (await getElectronAPI()?.setAutostartEnabled?.(enabled)) ?? false
   },
   async openExternal(url) {
     if (isTauriWindow()) {

@@ -65,6 +65,7 @@ export const en = {
     copyProfileFailed: 'Failed to copy active configuration.',
     openConfigDirectoryFailed: 'Failed to open config directory.',
     emptyProfileName: 'Configuration name cannot be empty.',
+    autostartFailed: 'Couldn\'t update the Windows startup task. Try again, or check that JSM Studio is running as administrator.',
     profileApplied: 'Applied {{profileName}} to JoyShockMapper.',
     profileAppliedRestarted: 'Applied {{profileName}} to JoyShockMapper (restarted).',
     profileLoaded: 'Loaded "{{profileName}}" from library and applied it to JoyShockMapper.',
@@ -131,6 +132,7 @@ export const en = {
       controllerStatus: 'Controller Status',
       debugConsole: 'Debug Console',
       documentation: 'JSM Documentation',
+      startWithWindows: 'Start with Windows',
     },
     tabs: {
       status: 'Status',

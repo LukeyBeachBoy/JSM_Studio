@@ -25,6 +25,8 @@ declare interface Window {
     getBackendChoice?: () => Promise<'SDL' | 'legacy'>
     setBackendChoice?: (choice: 'SDL' | 'legacy') => Promise<{ success: boolean; backend: 'SDL' | 'legacy' }>
     openExternal?: (url: string) => Promise<void>
+    getAutostartEnabled?: () => Promise<boolean>
+    setAutostartEnabled?: (enabled: boolean) => Promise<boolean>
     getHidHideStatus?: () => Promise<{
       supported: boolean
       installed: boolean

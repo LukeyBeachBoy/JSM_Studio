@@ -73,6 +73,8 @@ pub fn run() {
             commands::get_ai_settings,
             commands::save_ai_settings,
             commands::generate_ai_mapping,
+            commands::get_autostart_enabled,
+            commands::set_autostart_enabled,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

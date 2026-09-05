@@ -20,6 +20,7 @@ import {
   DocumentIcon,
 } from './components/NavIcons'
 import { ThemeToggle } from './components/ThemeToggle'
+import themeToggleStyles from './components/ThemeToggle.module.css'
 import { Suspense, lazy, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useTelemetry } from './hooks/useTelemetry'
@@ -293,10 +294,64 @@ type NavSettingsProps = {
   compactThemeToggle?: boolean
 }
 
+// Registers a Windows Scheduled Task rather than a Registry Run entry -- see
+// desktopBridge.getAutostartEnabled/setAutostartEnabled and
+// src-tauri/src/services/autostart.rs for why that's the version that
+// actually launches without a UAC prompt at every logon.
+function AutostartToggle() {
+  const { t } = useTranslation()
+  const [enabled, setEnabled] = useState(false)
+  const [pending, setPending] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    desktopBridge.getAutostartEnabled().then(value => {
+      if (!cancelled) setEnabled(value)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const handleChange = async (next: boolean) => {
+    setPending(true)
+    const previous = enabled
+    setEnabled(next)
+    const success = await desktopBridge.setAutostartEnabled(next)
+    setPending(false)
+    if (!success) {
+      // Revert the optimistic flip and say so -- a silent failure here would
+      // leave someone thinking Windows will start the app for them when it
+      // won't, which they'd only discover the next time they reboot.
+      setEnabled(previous)
+      showToast(t('messages.autostartFailed'), 'error')
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      className={`${themeToggleStyles.themeToggle} ${enabled ? themeToggleStyles.on : ''} ${sideNavStyles.navThemeToggle}`}
+      aria-pressed={enabled}
+      aria-label={t('app.nav.startWithWindows')}
+      disabled={pending}
+      onClick={() => handleChange(!enabled)}
+    >
+      <span className={themeToggleStyles.labelGroup}>
+        <span className={themeToggleStyles.text}>{t('app.nav.startWithWindows')}</span>
+      </span>
+      <span className={themeToggleStyles.switch} aria-hidden="true">
+        <span className={themeToggleStyles.thumb} />
+      </span>
+    </button>
+  )
+}
+
 const NavSettings = ({ compactThemeToggle = false }: NavSettingsProps) => (
   <div className={sideNavStyles.navSettings}>
     <LanguageSelect className={sideNavStyles.navLanguageSelect} />
     <ThemeToggle compact={compactThemeToggle} className={sideNavStyles.navThemeToggle} />
+    <AutostartToggle />
   </div>
 )
 
