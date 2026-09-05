@@ -14,6 +14,56 @@ use crate::services::app_state::AppState;
 const TELEMETRY_PORT: u16 = 8974;
 const TELEMETRY_STALE_MS: u64 = 1500;
 const TELEMETRY_HEALTH_CHECK_MS: u64 = 500;
+const TELEMETRY_REBIND_DELAY_MS: u64 = 1000;
+
+// Windows reports ICMP "port unreachable" from an earlier datagram as
+// WSAECONNRESET on a *later* recv against a bound UDP socket -- so JoyShockMapper
+// exiting, or any transient loopback hiccup, could surface as a read error on
+// this receiving socket even though nothing is wrong with it. Turning
+// SIO_UDP_CONNRESET off is the documented fix; the error simply stops being
+// reported. The read loop below also treats it as recoverable, so a platform
+// that reports it anyway still cannot kill telemetry.
+#[cfg(target_os = "windows")]
+fn silence_udp_connection_reset(socket: &UdpSocket) {
+    use std::os::windows::io::AsRawSocket;
+    use windows_sys::Win32::Networking::WinSock::{WSAIoctl, SIO_UDP_CONNRESET, SOCKET};
+
+    let handle = socket.as_raw_socket() as SOCKET;
+    let mut disabled: u32 = 0;
+    let mut returned: u32 = 0;
+    // Safety: `handle` is a live socket owned by `socket`, and both buffers
+    // outlive the call.
+    let result = unsafe {
+        WSAIoctl(
+            handle,
+            SIO_UDP_CONNRESET,
+            &mut disabled as *mut u32 as *mut core::ffi::c_void,
+            std::mem::size_of::<u32>() as u32,
+            std::ptr::null_mut(),
+            0,
+            &mut returned,
+            std::ptr::null_mut(),
+            None,
+        )
+    };
+    if result != 0 {
+        eprintln!("Could not disable UDP connection-reset reporting on the telemetry socket.");
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn silence_udp_connection_reset(_socket: &UdpSocket) {}
+
+/// Errors that say nothing about the socket's health: nothing arrived in time,
+/// the call was interrupted, or the OS surfaced an ICMP error from a peer that
+/// has gone away. None of them mean telemetry should stop.
+fn is_recoverable(error: &std::io::Error) -> bool {
+    use std::io::ErrorKind::*;
+    matches!(
+        error.kind(),
+        WouldBlock | TimedOut | Interrupted | ConnectionReset | ConnectionAborted | ConnectionRefused
+    )
+}
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -31,15 +81,23 @@ pub fn start(app: AppHandle, state: AppState) {
         },
     );
 
-    thread::spawn(move || {
+    // This thread is started once, at app setup, and nothing else can restart
+    // it -- so it must not be able to end. It used to break out of the read loop
+    // on any error other than a timeout, which left the controller permanently
+    // missing from the UI while JoyShockMapper carried on mapping happily, and
+    // no amount of pressing Reconnect could bring it back: that only restarts
+    // JoyShockMapper, and the listener was already gone.
+    thread::spawn(move || loop {
         let socket = match UdpSocket::bind(("127.0.0.1", TELEMETRY_PORT)) {
             Ok(socket) => socket,
             Err(error) => {
-                eprintln!("Failed to bind telemetry socket: {error}");
-                return;
+                eprintln!("Failed to bind telemetry socket, retrying: {error}");
+                thread::sleep(Duration::from_millis(TELEMETRY_REBIND_DELAY_MS));
+                continue;
             }
         };
 
+        silence_udp_connection_reset(&socket);
         let _ = socket.set_read_timeout(Some(Duration::from_millis(TELEMETRY_HEALTH_CHECK_MS)));
         let mut buffer = [0_u8; 65535];
 
@@ -54,13 +112,13 @@ pub fn start(app: AppHandle, state: AppState) {
                         eprintln!("Failed to parse telemetry packet: {error}");
                     }
                 },
-                Err(error)
-                    if matches!(
-                        error.kind(),
-                        std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut
-                    ) => {}
+                Err(error) if is_recoverable(&error) => {}
                 Err(error) => {
-                    eprintln!("Telemetry socket error: {error}");
+                    // The socket itself looks unusable. Drop it and rebind
+                    // rather than leaving the app blind until it is restarted.
+                    eprintln!("Telemetry socket error, rebinding: {error}");
+                    let _ = handle_health(&app, &state);
+                    thread::sleep(Duration::from_millis(TELEMETRY_REBIND_DELAY_MS));
                     break;
                 }
             }
