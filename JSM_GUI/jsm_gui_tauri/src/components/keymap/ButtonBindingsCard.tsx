@@ -94,6 +94,8 @@ type ButtonBindingsCardProps = {
   trackballDecay: string
   onTrackballDecayChange: (value: string) => void
   virtualControllerType: VirtualControllerType
+  bindingLabel?: string
+  onBindingLabelChange?: (command: string, label: string) => void
 }
 
 const triggerToSlot = (trigger: BindingTriggerKind): BindingSlot => {
@@ -144,6 +146,8 @@ export const ButtonBindingsCard = ({
   trackballDecay,
   onTrackballDecayChange,
   virtualControllerType,
+  bindingLabel,
+  onBindingLabelChange,
 }: ButtonBindingsCardProps) => {
   const { t } = useTranslation()
   const buttonKey = button.command.toUpperCase()
@@ -471,6 +475,8 @@ export const ButtonBindingsCard = ({
       isCapturing={rowCapturing}
       addControl={addControl}
       extras={extras}
+      label={bindingLabel}
+      onLabelChange={onBindingLabelChange ? (value) => onBindingLabelChange(button.command, value) : undefined}
       commands={
         commands.length > 0 ? (
           commands.map(command => (

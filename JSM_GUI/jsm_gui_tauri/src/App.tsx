@@ -38,6 +38,7 @@ import { useCalibration } from './hooks/useCalibration'
 import { ToastHost } from './components/ToastHost'
 import { desktopBridge } from './platform/desktopBridge'
 import { updateKeymapEntry } from './utils/keymap'
+import { parseBindingLabels, setBindingLabel } from './utils/bindingLabels'
 import { resolveTouchpadGrids, touchpadGridCommands } from './utils/touchpadGrids'
 import { showToast } from './utils/toast'
 import { LanguageSelect } from './components/LanguageSelect'
@@ -926,6 +927,14 @@ function App() {
     }
   }
 
+  // Your own names for what each input does. They live in the configuration as
+  // their own comment lines, so they survive editing the binding they describe
+  // and JoyShockMapper ignores them. See utils/bindingLabels.
+  const bindingLabels = useMemo(() => parseBindingLabels(configText), [configText])
+  const handleBindingLabelChange = useCallback((command: string, label: string) => {
+    setConfigText(prev => setBindingLabel(prev, command, label))
+  }, [setConfigText])
+
   const handleOpenConfigDirectory = async () => {
     try {
       await desktopBridge.openConfigDirectory()
@@ -1247,6 +1256,8 @@ function App() {
         <Suspense fallback={<LazyPanelFallback title={t(`app.nav.${controlTab}`)} />}>
           <KeymapControls
             visibleSections={sections}
+            bindingLabels={bindingLabels}
+            onBindingLabelChange={handleBindingLabelChange}
             configText={configText}
             hasPendingChanges={hasPendingChanges}
             isCalibrating={isCalibrating}
@@ -1520,6 +1531,8 @@ function App() {
             stickAimHandlers={stickAimHandlers}
             lockMessage={lockMessage}
             visibleSections={sections}
+            bindingLabels={bindingLabels}
+            onBindingLabelChange={handleBindingLabelChange}
           />
         </Suspense>
       )
@@ -1539,6 +1552,7 @@ function App() {
         <OverviewPage
           devices={sample?.devices}
           onNavigate={(target) => setPrimaryTab(target)}
+          configText={configText}
         />
       )
     }

@@ -450,6 +450,35 @@
   color: var(--text-mid);
 }
 
+/* Your own name for the action, echoed on the Overview diagram. Quiet until
+   it has a value or focus, so an unlabelled input is not a second empty box
+   competing with the binding controls. */
+.buttonLabelInput {
+  margin-top: 0.3rem;
+  width: 100%;
+  max-width: 15rem;
+  padding: 0.22rem 0.45rem;
+  border-radius: var(--radius-control);
+  border: 1px dashed color-mix(in srgb, var(--border-1) 80%, transparent);
+  background: transparent;
+  color: var(--text-strong);
+  font: inherit;
+  font-size: var(--font-hint);
+  font-weight: 700;
+}
+
+.buttonLabelInput::placeholder {
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.buttonLabelInput:hover,
+.buttonLabelInput:focus {
+  border-style: solid;
+  border-color: var(--border-strong);
+  background: var(--bg-input);
+}
+
 .keymapBindingControls {
   flex: 1;
   display: flex;

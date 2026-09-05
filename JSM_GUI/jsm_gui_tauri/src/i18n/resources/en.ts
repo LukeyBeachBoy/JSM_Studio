@@ -382,6 +382,7 @@ export const en = {
   },
   overview: {
     diagramTitle: 'Your controller',
+    labelledActions: 'Named actions',
     noDevice: 'Connect a controller to see it here.',
     buttonsDesc: 'Face buttons, bumpers, and back paddles.',
     dpadDesc: 'Directional pad bindings.',
@@ -771,6 +772,8 @@ export const en = {
     touchpadSmoothingDeprecated: 'Legacy smoothing',
     touchpadSmoothingDeprecatedHint: 'Deprecated \u2014 prefer the smoothing cutoff under Mouse output. Leave at 0.',
     advancedOptions: 'Advanced',
+    bindingLabel: 'Action name',
+    bindingLabelPlaceholder: 'Name this action',
     sideLeft: 'Left',
     sideRight: 'Right',
     leftTrackpadSection: 'Left trackpad',

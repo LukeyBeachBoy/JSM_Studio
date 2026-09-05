@@ -114,6 +114,9 @@ const findButton = (collection: ButtonDefinition[], command: string) => {
   return button
 }
 
+/** Every input in the order a controller diagram reads them. */
+export const controllerButtonOrder = () => BUTTON_ORDER
+
 const BUTTON_ORDER: ButtonDefinition[] = [
   ...FACE_BUTTONS,
   ...DPAD_BUTTONS,

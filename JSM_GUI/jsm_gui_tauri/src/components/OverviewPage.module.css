@@ -4,6 +4,25 @@
   gap: 1rem;
 }
 
+/* Diagram on the left, the configuration's named actions beside it. The legend
+   drops under the diagram once there is no room for a column. */
+.diagramRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.diagram {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .diagramRow {
+    flex-direction: column;
+  }
+}
+
 .noDevice {
   color: var(--text-muted);
   font-size: 0.85rem;

@@ -166,6 +166,9 @@ type KeymapControlsProps = {
   onTouchpadSmoothingChange?: (value: string) => void
   touchpadAcceleration?: number
   onTouchpadAccelerationChange?: (value: string) => void
+  /** Your own names for what each input does, shown on the Overview diagram. */
+  bindingLabels?: Record<string, string>
+  onBindingLabelChange?: (command: string, label: string) => void
   touchpadAccelValues?: TouchpadAccelValues
   accelCurveLink?: string
   gyroAccelShape?: AccelCurveShape
@@ -598,6 +601,8 @@ export function KeymapControls({
     onTouchpadSmoothingChange,
     touchpadAcceleration,
     onTouchpadAccelerationChange,
+    bindingLabels,
+    onBindingLabelChange,
     touchpadAccelValues,
     accelCurveLink,
     gyroAccelShape,
@@ -956,6 +961,8 @@ export function KeymapControls({
         trackballDecay={trackballDecay}
         onTrackballDecayChange={onTrackballDecayChange}
         virtualControllerType={virtualControllerType ?? 'NONE'}
+        bindingLabel={bindingLabels?.[button.command.toUpperCase()]}
+        onBindingLabelChange={onBindingLabelChange}
       />
     )
   }

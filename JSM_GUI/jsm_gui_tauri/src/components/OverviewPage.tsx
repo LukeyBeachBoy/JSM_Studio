@@ -1,8 +1,11 @@
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TelemetryDevice } from '../hooks/useTelemetry'
 import { BatteryIndicator } from './BatteryIndicator'
+import { BindingLabelLegend } from './BindingLabelLegend'
 import { Card } from './Card'
 import { ControllerStatusSvg } from './ControllerStatusSvg'
+import { parseBindingLabels } from '../utils/bindingLabels'
 import {
   ButtonsIcon,
   DPadIcon,
@@ -19,6 +22,8 @@ export type OverviewNavTarget = 'buttons' | 'dpad' | 'triggers' | 'joysticks' | 
 type OverviewPageProps = {
   devices?: TelemetryDevice[]
   onNavigate: (target: OverviewNavTarget) => void
+  /** The active configuration, for the bound-input marks and action names. */
+  configText?: string
 }
 
 // Replaces the per-page Visual/List toggle that used to live on every Controls
@@ -35,9 +40,28 @@ const CATEGORIES: { target: OverviewNavTarget; icon: JSX.Element; titleKey: stri
   { target: 'gyro', icon: <GyroIcon />, titleKey: 'app.nav.gyro', descKey: 'overview.gyroDesc' },
 ]
 
-export function OverviewPage({ devices, onNavigate }: OverviewPageProps) {
+export function OverviewPage({ devices, onNavigate, configText }: OverviewPageProps) {
   const { t } = useTranslation()
   const device = devices?.[0]
+  const [hoveredCommand, setHoveredCommand] = useState<string | null>(null)
+
+  const labels = useMemo(() => parseBindingLabels(configText ?? ''), [configText])
+  const boundCommands = useMemo(() => {
+    const bound = new Set<string>()
+    ;(configText ?? '').split(/\r?\n/).forEach(line => {
+      const trimmed = line.trim()
+      if (!trimmed || trimmed.startsWith('#')) return
+      const match = /^([A-Z0-9_+*,]+)\s*=/i.exec(trimmed)
+      if (!match) return
+      // A chorded or simultaneous line names more than one input; all of them
+      // count as bound so the diagram marks each.
+      match[1].split(/[,+*]/).forEach(part => {
+        const key = part.trim().toUpperCase()
+        if (key) bound.add(key)
+      })
+    })
+    return bound
+  }, [configText])
 
   return (
     <div className={styles.page}>
@@ -47,7 +71,16 @@ export function OverviewPage({ devices, onNavigate }: OverviewPageProps) {
           {device && <BatteryIndicator percent={device.batteryPercent} state={device.batteryState} />}
         </div>
         {device ? (
-          <ControllerStatusSvg device={device} />
+          <div className={styles.diagramRow}>
+            <div className={styles.diagram}>
+              <ControllerStatusSvg
+                device={device}
+                boundCommands={boundCommands}
+                selectedCommand={hoveredCommand}
+              />
+            </div>
+            <BindingLabelLegend labels={labels} device={device} onHoverCommand={setHoveredCommand} />
+          </div>
         ) : (
           <p className={styles.noDevice}>{t('overview.noDevice')}</p>
         )}

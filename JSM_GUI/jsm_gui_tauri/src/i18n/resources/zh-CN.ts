@@ -382,6 +382,7 @@ export const zhCN = {
   },
   overview: {
     diagramTitle: '\u4f60\u7684\u624b\u67c4',
+    labelledActions: '\u5df2\u547d\u540d\u7684\u64cd\u4f5c',
     noDevice: '\u8fde\u63a5\u624b\u67c4\u540e\u5373\u53ef\u5728\u6b64\u67e5\u770b\u3002',
     buttonsDesc: '\u9762\u677f\u6309\u952e\u3001\u80a9\u952e\u548c\u80cc\u90e8\u62e8\u7247\u3002',
     dpadDesc: '\u65b9\u5411\u952e\u7ed1\u5b9a\u3002',
@@ -759,6 +760,8 @@ export const zhCN = {
     touchpadSmoothingDeprecated: '旧版平滑',
     touchpadSmoothingDeprecatedHint: '已弃用 — 请改用「鼠标输出」中的平滑截止频率，保持为 0。',
     advancedOptions: '高级',
+    bindingLabel: '操作名称',
+    bindingLabelPlaceholder: '为该操作命名',
     sideLeft: '左侧',
     sideRight: '右侧',
     leftTrackpadSection: '左触控板',
