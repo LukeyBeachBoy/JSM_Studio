@@ -1,6 +1,8 @@
+import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TelemetryDevice } from '../hooks/useTelemetry'
-import { controllerButtonGlyph, controllerVisualFamily } from '../utils/controllerStatus'
+import { controllerVisualFamily } from '../utils/controllerStatus'
+import { InputGlyph } from './glyphs/InputGlyph'
 import styles from './ControllerGlyphBar.module.css'
 
 type ControllerGlyphBarProps = {
@@ -11,15 +13,7 @@ type ControllerGlyphBarProps = {
   enabled: boolean
 }
 
-const TRIGGER_GLYPHS: Record<ReturnType<typeof controllerVisualFamily>, [string, string]> = {
-  playstation: ['L2', 'R2'],
-  nintendo: ['ZL', 'ZR'],
-  xbox: ['LT', 'RT'],
-  steam: ['LT', 'RT'],
-  generic: ['ZL', 'ZR'],
-}
-
-// Steam-style footer: which controller button does what on this screen. Only
+// Steam-style footer: which controller input does what on this screen. Only
 // shown while a controller is connected and the built-in navigation rule is
 // live, so it never nags someone using a mouse.
 export function ControllerGlyphBar({ devices, modalOpen, enabled }: ControllerGlyphBarProps) {
@@ -27,32 +21,39 @@ export function ControllerGlyphBar({ devices, modalOpen, enabled }: ControllerGl
   const device = devices?.[0]
   if (!enabled || !device) return null
 
-  const type = device.type
-  const [lt, rt] = TRIGGER_GLYPHS[controllerVisualFamily(type)]
-  const hints: Array<{ glyphs: string[]; label: string }> = modalOpen
+  const family = controllerVisualFamily(device.type)
+  const glyph = (command: string) => <InputGlyph key={command} command={command} family={family} size={15} />
+
+  // The d-pad hint is all four directions as one cluster, and the cursor hint
+  // is the right pad -- neither is a single button, so both are drawn as sets.
+  const dpadCluster: ReactNode = (
+    <span className={styles.cluster}>
+      {['UP', 'LEFT', 'DOWN', 'RIGHT'].map(command => (
+        <InputGlyph key={command} command={command} family={family} size={11} />
+      ))}
+    </span>
+  )
+
+  const hints: Array<{ key: string; glyphs: ReactNode[]; label: string }> = modalOpen
     ? [
-        { glyphs: [controllerButtonGlyph(type, 'S')], label: t('glyphBar.select') },
-        { glyphs: [controllerButtonGlyph(type, 'E')], label: t('glyphBar.close') },
-        { glyphs: ['✥'], label: t('glyphBar.move') },
+        { key: 'select', glyphs: [glyph('S')], label: t('glyphBar.select') },
+        { key: 'close', glyphs: [glyph('E')], label: t('glyphBar.close') },
+        { key: 'move', glyphs: [dpadCluster], label: t('glyphBar.move') },
       ]
     : [
-        { glyphs: [controllerButtonGlyph(type, 'S')], label: t('glyphBar.select') },
-        { glyphs: [controllerButtonGlyph(type, 'E')], label: t('glyphBar.back') },
-        { glyphs: ['✥'], label: t('glyphBar.move') },
-        { glyphs: [controllerButtonGlyph(type, 'L'), controllerButtonGlyph(type, 'R')], label: t('glyphBar.step') },
-        { glyphs: [lt, rt], label: t('glyphBar.page') },
-        { glyphs: ['▭'], label: t('glyphBar.cursor') },
+        { key: 'select', glyphs: [glyph('S')], label: t('glyphBar.select') },
+        { key: 'back', glyphs: [glyph('E')], label: t('glyphBar.back') },
+        { key: 'move', glyphs: [dpadCluster], label: t('glyphBar.move') },
+        { key: 'step', glyphs: [glyph('L'), glyph('R')], label: t('glyphBar.step') },
+        { key: 'page', glyphs: [glyph('ZL'), glyph('ZR')], label: t('glyphBar.page') },
+        { key: 'cursor', glyphs: [glyph('TOUCH')], label: t('glyphBar.cursor') },
       ]
 
   return (
     <div className={styles.bar} role="status" aria-live="off">
       {hints.map(hint => (
-        <span key={hint.label} className={styles.hint}>
-          {hint.glyphs.map(glyph => (
-            <kbd key={glyph} className={styles.glyph}>
-              {glyph}
-            </kbd>
-          ))}
+        <span key={hint.key} className={styles.hint}>
+          <span className={styles.glyphGroup}>{hint.glyphs}</span>
           <span className={styles.label}>{hint.label}</span>
         </span>
       ))}

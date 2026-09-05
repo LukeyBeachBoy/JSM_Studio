@@ -9,6 +9,8 @@ type ButtonMappingCardProps = {
   commands: ReactNode
   addControl: ReactNode
   extras?: ReactNode
+  /** The input's drawn glyph, shown beside its name. */
+  glyph?: ReactNode
   /** Your own name for what this input does; shown on the Overview diagram. */
   label?: string
   onLabelChange?: (label: string) => void
@@ -21,6 +23,7 @@ export function ButtonMappingCard({
   commands,
   addControl,
   extras,
+  glyph,
   label,
   onLabelChange,
 }: ButtonMappingCardProps) {
@@ -35,7 +38,10 @@ export function ButtonMappingCard({
   return (
     <div className={`${keymapStyles.keymapRow} ${isCapturing ? keymapStyles.keymapRowCapturing : ''}`}>
       <div className={keymapStyles.keymapLabel}>
-        <span className={keymapStyles.buttonName}>{title}</span>
+        <span className={keymapStyles.buttonNameRow}>
+          {glyph && <span className={keymapStyles.buttonGlyph}>{glyph}</span>}
+          <span className={keymapStyles.buttonName}>{title}</span>
+        </span>
         <span className={keymapStyles.buttonMeta}>{description}</span>
         {onLabelChange && (
           <input

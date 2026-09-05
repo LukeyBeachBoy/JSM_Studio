@@ -439,10 +439,30 @@
   min-width: 180px;
 }
 
+.buttonNameRow {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.buttonGlyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 999px;
+  background: var(--bg-2);
+  color: var(--text-strong);
+  flex: 0 0 auto;
+}
+
 .buttonName {
   font-size: 1.05rem;
   font-weight: 600;
   color: var(--text-strong);
+  min-width: 0;
 }
 
 .buttonMeta {

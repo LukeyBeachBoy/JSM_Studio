@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DEFAULT_STICK_DEADZONE_INNER, DEFAULT_STICK_DEADZONE_OUTER } from '../constants/defaults'
 import type { TelemetryDevice } from '../hooks/useTelemetry'
@@ -48,7 +48,7 @@ import { TouchpadSensorSection } from './keymap/TouchpadSensorSection'
 import { GripSettingsSection } from './keymap/GripSettingsSection'
 import { TouchpadStickSection } from './keymap/TouchpadStickSection'
 import { SectionActions } from './SectionActions'
-import { controllerHasTwoTrackpads } from '../utils/controllerStatus'
+import { controllerHasTwoTrackpads, controllerVisualFamily } from '../utils/controllerStatus'
 import {
   BumperIcon,
   ButtonsIcon,
@@ -492,7 +492,26 @@ const STICK_DIRECTION_COMMANDS: Record<'leftStick' | 'rightStick', Set<string>> 
   rightStick: new Set(['RUP', 'RDOWN', 'RLEFT', 'RRIGHT']),
 }
 
-function visibleButtonsForGroup(groupKey: string, buttons: ButtonDefinition[], leftStickMode: string, rightStickMode: string) {
+// LMINI/RMINI exist on a handful of pads (an Xbox Elite's L4/R4, a Razer
+// Wolverine's L5/R5) and on nothing else, so listing them for every controller
+// offered two inputs most people do not have. Anything already bound still
+// shows, so an existing config never hides a binding you cannot then find.
+const MINI_SHOULDER_COMMANDS = new Set(['LMINI', 'RMINI'])
+
+function visibleButtonsForGroup(
+  groupKey: string,
+  buttons: ButtonDefinition[],
+  leftStickMode: string,
+  rightStickMode: string,
+  isBound: (command: string) => boolean,
+  hasConnectedController: boolean
+) {
+  if (groupKey === 'bumpers' && hasConnectedController) {
+    return buttons.filter(button => {
+      const key = button.command.toUpperCase()
+      return !MINI_SHOULDER_COMMANDS.has(key) || isBound(key)
+    })
+  }
   const directionCommands =
     groupKey === 'leftStick' ? STICK_DIRECTION_COMMANDS.leftStick :
     groupKey === 'rightStick' ? STICK_DIRECTION_COMMANDS.rightStick :
@@ -808,6 +827,14 @@ export function KeymapControls({
 
   const leftStickModeForVisibility = stickModeSettings?.left?.mode ?? ''
   const rightStickModeForVisibility = stickModeSettings?.right?.mode ?? ''
+  const hasConnectedController = (devices?.length ?? 0) > 0
+  const isCommandBound = useCallback(
+    (command: string) => {
+      const rows = bindingRowsByButton[command.toUpperCase()] ?? bindingRowsByButton[command] ?? []
+      return rows.some(row => Boolean(row.binding) || Boolean(row.expression))
+    },
+    [bindingRowsByButton]
+  )
 
   const visualMappingGroups = useMemo(() => {
     const entries = focusedMappingGroups.length === 0
@@ -815,9 +842,9 @@ export function KeymapControls({
       : Object.entries(MAPPING_BUTTON_GROUPS).filter(([key]) => focusedMappingGroups.includes(key))
     return entries.map(([key, group]) => ({
       ...group,
-      buttons: visibleButtonsForGroup(key, group.buttons, leftStickModeForVisibility, rightStickModeForVisibility),
+      buttons: visibleButtonsForGroup(key, group.buttons, leftStickModeForVisibility, rightStickModeForVisibility, isCommandBound, hasConnectedController),
     }))
-  }, [focusedMappingGroups, leftStickModeForVisibility, rightStickModeForVisibility])
+  }, [focusedMappingGroups, leftStickModeForVisibility, rightStickModeForVisibility, isCommandBound, hasConnectedController])
 
   // The list layout walks the same set, so the jump bar and the page agree.
   const listMappingGroups = useMemo(() => {
@@ -826,9 +853,9 @@ export function KeymapControls({
       : Object.entries(MAPPING_BUTTON_GROUPS).filter(([key]) => focusedMappingGroups.includes(key))
     return entries.map(([key, group]) => [key, {
       ...group,
-      buttons: visibleButtonsForGroup(key, group.buttons, leftStickModeForVisibility, rightStickModeForVisibility),
+      buttons: visibleButtonsForGroup(key, group.buttons, leftStickModeForVisibility, rightStickModeForVisibility, isCommandBound, hasConnectedController),
     }] as const)
-  }, [focusedMappingGroups, leftStickModeForVisibility, rightStickModeForVisibility])
+  }, [focusedMappingGroups, leftStickModeForVisibility, rightStickModeForVisibility, isCommandBound, hasConnectedController])
 
   const visualMappingButtons = useMemo(
     () => visualMappingGroups.flatMap(group => group.buttons),
@@ -877,6 +904,10 @@ export function KeymapControls({
     () => /^\s*(LEFT|RIGHT)_(TOUCHPAD_MODE|GRID_SIZE|TOUCHPAD_SENS|TOUCH_STICK_MODE)\b/im.test(configText ?? ''),
     [configText]
   )
+  // Glyphs follow whatever is plugged in; with nothing connected the generic
+  // set keeps every input readable rather than falling back to raw tokens.
+  const controllerFamily = controllerVisualFamily(devices?.[0]?.type)
+
   const showPerPadTouchpads = useMemo(() => {
     if (hasPerPadSettings) return true
     if (!devices || devices.length === 0) return true
@@ -981,6 +1012,7 @@ export function KeymapControls({
         trackballDecay={trackballDecay}
         onTrackballDecayChange={onTrackballDecayChange}
         virtualControllerType={virtualControllerType ?? 'NONE'}
+        controllerFamily={controllerFamily}
         bindingLabel={bindingLabels?.[button.command.toUpperCase()]}
         onBindingLabelChange={onBindingLabelChange}
       />

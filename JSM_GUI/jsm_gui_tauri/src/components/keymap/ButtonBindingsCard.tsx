@@ -36,7 +36,8 @@ import {
 import { BindingCommandCard } from './BindingCommandCard'
 import { NumberField } from '../NumberField'
 import { Menu, type MenuItem } from '../ui/Menu'
-import { controllerButtonLabel } from '../../utils/controllerStatus'
+import { controllerButtonLabel, type ControllerVisualFamily } from '../../utils/controllerStatus'
+import { InputGlyph } from '../glyphs/InputGlyph'
 
 // A draft row is written into the config and deleted the moment it has a value,
 // so its card unmounts and a fresh one mounts in its place. An output kind that
@@ -95,6 +96,8 @@ type ButtonBindingsCardProps = {
   trackballDecay: string
   onTrackballDecayChange: (value: string) => void
   virtualControllerType: VirtualControllerType
+  /** Which controller's glyphs to draw beside the input's name. */
+  controllerFamily?: ControllerVisualFamily
   bindingLabel?: string
   onBindingLabelChange?: (command: string, label: string) => void
 }
@@ -147,6 +150,7 @@ export const ButtonBindingsCard = ({
   trackballDecay,
   onTrackballDecayChange,
   virtualControllerType,
+  controllerFamily = 'generic',
   bindingLabel,
   onBindingLabelChange,
 }: ButtonBindingsCardProps) => {
@@ -488,6 +492,7 @@ export const ButtonBindingsCard = ({
   return (
     <ButtonMappingCard
       title={controllerButtonLabel(button)}
+      glyph={<InputGlyph command={button.command} family={controllerFamily} size={16} />}
       description={getButtonDescription(button, t)}
       isCapturing={rowCapturing}
       addControl={addControl}
