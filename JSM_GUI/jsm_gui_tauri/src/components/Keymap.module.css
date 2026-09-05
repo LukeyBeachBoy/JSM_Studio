@@ -30,7 +30,7 @@
 .keymapSection {
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
+  gap: var(--space-3);
 }
 
 .keymapSectionHeader h3 {
@@ -49,9 +49,11 @@
 }
 
 .keymapSectionHeader p {
-  margin: 0.15rem 0 0;
-  color: var(--text-mid);
-  font-size: 0.8rem;
+  margin: 0.2rem 0 0;
+  color: var(--text-muted);
+  font-size: var(--font-hint);
+  line-height: 1.45;
+  max-width: 68ch;
 }
 
 .keymapSectionHeading {

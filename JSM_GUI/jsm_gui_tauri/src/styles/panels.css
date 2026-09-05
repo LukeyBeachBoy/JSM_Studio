@@ -93,21 +93,23 @@
   box-shadow: none;
 }
 
+/* Panels separate from the page by a step in lightness plus one soft shadow,
+   not by a border on everything. */
 .app-card {
-  border: 1px solid var(--border-1);
-  border-radius: 8px;
-  padding: 0.72rem 0.8rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-card);
+  padding: var(--space-4);
   background: var(--bg-2);
-  box-shadow: inset 0 1px 0 var(--inset-highlight);
+  box-shadow: var(--elevation-card), inset 0 1px 0 var(--inset-highlight);
   display: flex;
   flex-direction: column;
-  gap: 0.58rem;
+  gap: var(--space-3);
 }
 
 .control-panel {
   display: flex;
   flex-direction: column;
-  gap: 0.78rem;
+  gap: var(--space-3);
 }
 
 .control-panel h2 {
@@ -118,8 +120,9 @@
 .control-panel h2 {
   margin: 0;
   color: var(--text-strong);
-  font-size: 1.05rem;
-  line-height: 1.18;
+  font-size: var(--font-page-title);
+  font-weight: 750;
+  line-height: 1.2;
   letter-spacing: -0.01em;
 }
 
@@ -127,8 +130,17 @@
 .control-panel h3 {
   margin: 0;
   color: var(--text-strong);
-  font-size: 0.96rem;
-  line-height: 1.2;
+  font-size: var(--font-section-title);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.app-card h4 {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: var(--font-label);
+  font-weight: 700;
+  line-height: 1.25;
 }
 
 .tab-placeholder {

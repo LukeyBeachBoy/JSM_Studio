@@ -31,19 +31,19 @@
 .page-subnav {
   display: flex;
   justify-content: flex-start;
-  padding: 0.45rem;
-  border: 1px solid var(--border-1);
-  border-radius: 8px;
+  padding: var(--space-1);
+  border-radius: 999px;
   background: color-mix(in srgb, var(--bg-2) 74%, transparent);
+  align-self: flex-start;
 }
 
 .utility-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: var(--space-3);
   margin: 0;
-  padding: 0.45rem 1rem;
+  padding: var(--space-2) var(--space-5);
   border: 1px solid var(--border-1);
   border-width: 0 0 1px;
   border-radius: 0;

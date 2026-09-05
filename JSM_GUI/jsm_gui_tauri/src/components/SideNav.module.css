@@ -12,11 +12,11 @@
 }
 
 .navBrand {
-  font-size: 0.95rem;
+  font-size: 0.98rem;
   font-weight: 800;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   color: var(--text-strong);
-  padding: 0.25rem 0.35rem 0.55rem;
+  padding: 0.35rem 0.5rem 0.7rem;
   border-bottom: 1px solid var(--border-1);
 }
 
@@ -196,15 +196,15 @@
   align-items: center;
   gap: 0.55rem;
   text-align: left;
-  border-radius: 7px;
+  border-radius: 999px;
   border: 1px solid transparent;
   background: transparent;
   color: var(--text-mid);
-  padding: 0.52rem 0.7rem 0.52rem 0.88rem;
+  padding: 0.46rem 0.85rem;
   cursor: pointer;
-  font-size: 0.83rem;
-  font-weight: 700;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  font-size: var(--font-label);
+  font-weight: 650;
+  transition: color 0.15s ease, background 0.15s ease;
 }
 
 .navItemIcon {
@@ -219,21 +219,21 @@
   color: currentColor;
 }
 
-.navItem:hover {
-  border-color: var(--border-strong);
-  background: color-mix(in srgb, var(--bg-btn-hover) 72%, transparent);
+.navItem:hover:not(.active) {
+  background: color-mix(in srgb, var(--bg-btn-hover) 60%, transparent);
   color: var(--text-strong);
 }
 
-.navItem.active:hover {
-  border-color: var(--accent);
-}
-
+/* The current page is a filled pill, the way Steam's own left rail marks it,
+   rather than a bordered box with an accent edge. */
 .active {
-  border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--border-1));
-  color: var(--text-strong);
-  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 16%, var(--bg-btn-hover)), var(--bg-btn-hover));
-  box-shadow: inset 3px 0 0 var(--accent);
+  color: var(--btn-primary-text);
+  background: var(--accent-primary);
+  font-weight: 750;
+}
+
+.active .navItemIcon {
+  color: currentColor;
 }
 
 @media (max-width: 1060px) {

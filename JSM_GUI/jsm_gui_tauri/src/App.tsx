@@ -1040,24 +1040,28 @@ function App() {
         </label>
       </div>
 
+      {/* One toolbar with a clear order of importance: the configuration you
+          are editing leads, then managing configurations, then the two
+          occasional escape hatches as quiet ghost buttons. Four equal-weight
+          buttons in a row gave no clue which one you normally want. */}
       <div className="utility-actions">
-        <button className="secondary-btn" onClick={() => setAutoloadModalOpen(true)}>
-          {t('app.profileSummary.autoloadManager')}
-        </button>
         <button className="secondary-btn" onClick={() => setProfileModalOpen(true)}>
           {t('app.profileSummary.manageProfiles')}
         </button>
-        <button className="secondary-btn" onClick={handleOpenConfigDirectory}>
-          {t('app.profileSummary.openConfigDirectory')}
+        <button className="ghost-btn" onClick={() => setAutoloadModalOpen(true)}>
+          {t('app.profileSummary.autoloadManager')}
         </button>
         <button
-          className="secondary-btn"
+          className="ghost-btn"
           onClick={() => {
             setConfigWindowPosition(null)
             setConfigDrawerOpen(true)
           }}
         >
           {t('app.profileSummary.openSourceConfig')}
+        </button>
+        <button className="ghost-btn" onClick={handleOpenConfigDirectory}>
+          {t('app.profileSummary.openConfigDirectory')}
         </button>
         {isCalibrating ? (
           <span className="calibration-pill calibration-pill-inline utility-calibration-pill">

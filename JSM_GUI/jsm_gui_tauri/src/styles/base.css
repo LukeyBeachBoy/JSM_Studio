@@ -17,10 +17,8 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background:
-    linear-gradient(90deg, var(--canvas-grid-x) 1px, transparent 1px),
-    linear-gradient(180deg, var(--canvas-grid-y) 1px, transparent 1px),
-    var(--canvas-gradient);
-  background-size: 32px 32px, 32px 32px, auto;
+  /* Flat, like the scroll area above it -- see layout.css. */
+  background: var(--bg-0);
   color: var(--text-strong);
+  font-size: var(--font-label);
 }

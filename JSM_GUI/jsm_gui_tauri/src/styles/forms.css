@@ -9,34 +9,37 @@
   text-align: center;
 }
 
+/* Segmented control: a track with the selected segment filled, which is how
+   Steam Input marks the active tab. */
 .pill-tab {
-  border: 1px solid var(--border-1);
-  border-radius: 6px;
-  background: var(--bg-input);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
   color: var(--text-mid);
-  padding: 0.38rem 0.72rem;
-  font-weight: 750;
-  font-size: 0.82rem;
+  padding: 0.4rem 0.9rem;
+  font-weight: 700;
+  font-size: var(--font-label);
   cursor: pointer;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease, background-color 0.2s ease;
+  transition: color 0.18s ease, background-color 0.18s ease;
 }
 
 .pill-tab:hover:not(.active) {
-  border-color: var(--border-strong);
-  background: var(--bg-btn-hover);
+  background: color-mix(in srgb, var(--bg-btn-hover) 60%, transparent);
   color: var(--text-strong);
 }
 
 .pill-tab.active {
-  border: 1px solid var(--accent);
-  color: var(--text-strong);
-  background: color-mix(in srgb, var(--accent) 13%, var(--bg-input));
-  box-shadow: inset 0 -2px 0 var(--accent);
+  color: var(--btn-primary-text);
+  background: var(--accent-primary);
 }
 
 .mode-toggle {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.2rem;
+  padding: 0.22rem;
+  border-radius: 999px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-1);
 }
 
 .mode-toggle.secondary {
@@ -48,13 +51,34 @@
   text-align: center;
 }
 
+/* One dropdown look across the app, with our own chevron so it matches the
+   rest of the controls instead of the platform's default arrow. */
 .app-select {
-  border-radius: 6px;
+  appearance: none;
+  -webkit-appearance: none;
+  border-radius: var(--radius-control);
   border: 1px solid var(--border-1);
-  background: var(--bg-input);
+  background-color: var(--bg-input);
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: right 0.95rem center, right 0.7rem center;
+  background-size: 0.3rem 0.3rem, 0.3rem 0.3rem;
+  background-repeat: no-repeat;
   color: var(--text-strong);
-  padding: 0.34rem 0.55rem;
+  padding: 0.38rem 1.7rem 0.38rem 0.6rem;
   font-family: inherit;
+  font-size: var(--font-label);
+  font-weight: 600;
+  line-height: 1.3;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.app-select:hover:not(:disabled) {
+  border-color: var(--border-strong);
+}
+
+.app-select:disabled {
+  opacity: 0.55;
 }
 
 .flex-inputs {
@@ -118,14 +142,10 @@
   box-sizing: border-box;
 }
 
+/* .app-select brings its own chevron and padding; only the row spacing is
+   this rule's business. */
 .flex-inputs > label > select.app-select {
-  border-radius: 6px;
-  border: 1px solid var(--border-1);
-  background: var(--bg-input);
-  color: var(--text-strong);
-  font-size: 0.85rem;
-  font-weight: 600;
-  appearance: auto;
+  margin-top: 0.35rem;
 }
 
 .sensitivity-shift-row select {

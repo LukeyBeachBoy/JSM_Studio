@@ -15,23 +15,22 @@
   background: var(--bg-0);
 }
 
+/* Flat ground. The 32px graph-paper grid that used to sit behind every page
+   competed with the panels for attention; Steam Input's own config screens
+   are a plain field with the panels doing all the work. */
 .shell-scroll {
   flex: 1;
   overflow-y: auto;
   scrollbar-gutter: stable;
   min-height: 0;
-  background:
-    linear-gradient(90deg, var(--shell-scroll-grid-x) 1px, transparent 1px),
-    linear-gradient(180deg, var(--shell-scroll-grid-y) 1px, transparent 1px),
-    var(--bg-0);
-  background-size: 32px 32px, 32px 32px, auto;
+  background: var(--bg-0);
 }
 
 .content-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
-  padding: 0.85rem 1rem 1.2rem;
+  padding: var(--space-5) var(--space-5) var(--space-6);
   align-items: start;
   width: 100%;
   /* Steam Input's own config window stays a bounded, centered column even on
@@ -44,7 +43,7 @@
 }
 
 .main-pane > * + * {
-  margin-top: 1rem;
+  margin-top: var(--space-4);
 }
 
 .main-pane {
