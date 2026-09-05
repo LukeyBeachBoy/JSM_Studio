@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { NumberField } from './NumberField'
 import { AdvancedDisclosure } from './AdvancedDisclosure'
 import { AppSelect } from './ui/AppSelect'
+import styles from './AccelCurveEditor.module.css'
 import {
   ACCEL_CURVE_TYPES,
   inheritsCurveShape,
@@ -171,7 +172,7 @@ export function AccelCurveEditor({
   )
 
   return (
-    <div className="accel-curve-editor">
+    <div className={styles.editor}>
       {onLinkChange && (
         <div className="flex-inputs">
           <label>

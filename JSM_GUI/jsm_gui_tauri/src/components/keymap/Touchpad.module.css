@@ -8,11 +8,20 @@
 .touchpadCard {
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
-  padding: 1rem;
+  gap: var(--space-3);
+  padding: var(--space-4);
   border: 1px solid var(--border-1);
-  border-radius: 0.75rem;
+  border-radius: var(--radius-card);
   background: var(--bg-elevated);
+}
+
+/* Same defect as .touchpadSettings above, on the Mouse-mode card specifically:
+   NumberField's `flex: 1 1 200px` (meant for sharing a row) instead stretched
+   Acceleration and Legacy smoothing to fill this column's leftover height,
+   which is what made the Right trackpad Mouse page look like it had huge gaps
+   between otherwise ordinary sliders. */
+.touchpadCard > * {
+  flex: 0 0 auto;
 }
 
 .touchpadCard h4 { margin: 0; color: var(--text-strong); }
@@ -21,7 +30,7 @@
 .touchpadSettings {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-3);
 }
 
 /* NumberField carries `flex: 1 1 200px` so it can share a row inside

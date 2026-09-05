@@ -131,16 +131,22 @@ type KeymapControlsProps = {
   onGripReleaseHapticIntensityChange?: (value: string) => void
   onGripReleaseHapticEffectChange?: (value: string) => void
   touchpadDualStageMode?: string
+  touchpadGridRequiresClick?: boolean
   onTouchpadModeChange?: (value: string) => void
   onTouchpadDualStageModeChange?: (value: string) => void
+  onTouchpadGridRequiresClickChange?: (checked: boolean) => void
   leftTouchpadMode?: string
   rightTouchpadMode?: string
   leftTouchpadDualStageMode?: string
   rightTouchpadDualStageMode?: string
+  leftGridRequiresClick?: boolean
+  rightGridRequiresClick?: boolean
   onLeftTouchpadModeChange?: (value: string) => void
   onRightTouchpadModeChange?: (value: string) => void
   onLeftTouchpadDualStageModeChange?: (value: string) => void
   onRightTouchpadDualStageModeChange?: (value: string) => void
+  onLeftGridRequiresClickChange?: (checked: boolean) => void
+  onRightGridRequiresClickChange?: (checked: boolean) => void
   leftGridColumns?: number
   leftGridRows?: number
   rightGridColumns?: number
@@ -606,16 +612,22 @@ export function KeymapControls({
   onGripReleaseHapticIntensityChange,
   onGripReleaseHapticEffectChange,
   touchpadDualStageMode = '',
+  touchpadGridRequiresClick,
   onTouchpadModeChange,
   onTouchpadDualStageModeChange,
+  onTouchpadGridRequiresClickChange,
   leftTouchpadMode,
   rightTouchpadMode,
   leftTouchpadDualStageMode,
   rightTouchpadDualStageMode,
+  leftGridRequiresClick,
+  rightGridRequiresClick,
   onLeftTouchpadModeChange,
   onRightTouchpadModeChange,
   onLeftTouchpadDualStageModeChange,
   onRightTouchpadDualStageModeChange,
+  onLeftGridRequiresClickChange,
+  onRightGridRequiresClickChange,
   leftGridColumns,
   leftGridRows,
   rightGridColumns,
@@ -1065,7 +1077,22 @@ export function KeymapControls({
   // still shows, so an existing config never hides bindings you cannot then find.
   const showTouchStickButtons =
     gridActive || TOUCH_STICK_BUTTONS.some(button => isTouchpadButtonBound(button.command))
-  const touchpadButtonSectionButtons = showTouchStickButtons ? [...TOUCH_BUTTONS, ...TOUCH_STICK_BUTTONS] : TOUCH_BUTTONS
+  // TOUCH and CAPTURE are legacy single-pad signals: JoyShockMapper never feeds
+  // them for a two-pad controller (see touchCallback's isSteam branch and the
+  // JS_TYPE_STEAM_CONTROLLER_2026 button switch in main.cpp -- neither ever
+  // calls handleButtonChange for ButtonID::TOUCH or ButtonID::CAPTURE there),
+  // so binding either one on a Steam Controller does nothing. Its equivalents
+  // are per-pad: Right/Left pad click live on MISC2/MISC3 in Extra buttons.
+  // Only hide once a two-pad controller is actually confirmed connected --
+  // unlike showPerPadTouchpads, we deliberately do NOT default this true while
+  // disconnected, since that would hide a working control for anyone whose
+  // single-pad controller just isn't plugged in yet. Anything already bound
+  // still shows, so an existing config never hides a binding you cannot then find.
+  const confirmedTwoPadTouchpads = Boolean(devices?.some(device => controllerHasTwoTrackpads(device.type)))
+  const legacyTouchButtons = confirmedTwoPadTouchpads
+    ? TOUCH_BUTTONS.filter(button => isTouchpadButtonBound(button.command))
+    : TOUCH_BUTTONS
+  const touchpadButtonSectionButtons = showTouchStickButtons ? [...legacyTouchButtons, ...TOUCH_STICK_BUTTONS] : legacyTouchButtons
 
   // Per-pad cards for a two-pad controller. Each side gets its own mode, grid
   // and touch stick, stacked left-then-right rather than interleaved.
@@ -1084,6 +1111,8 @@ export function KeymapControls({
         onSensitivityChange: onLeftTouchpadSensitivityChange,
         onSensitivityYChange: onLeftTouchpadSensitivityYChange,
         onDualStageModeChange: onLeftTouchpadDualStageModeChange,
+        gridRequiresClick: leftGridRequiresClick,
+        onGridRequiresClickChange: onLeftGridRequiresClickChange,
         onSmoothingChange: onTouchpadSmoothingChange,
         onAccelerationChange: onTouchpadAccelerationChange,
       }
@@ -1103,6 +1132,8 @@ export function KeymapControls({
         onSensitivityChange: onRightTouchpadSensitivityChange,
         onSensitivityYChange: onRightTouchpadSensitivityYChange,
         onDualStageModeChange: onRightTouchpadDualStageModeChange,
+        gridRequiresClick: rightGridRequiresClick,
+        onGridRequiresClickChange: onRightGridRequiresClickChange,
         onSmoothingChange: onTouchpadSmoothingChange,
         onAccelerationChange: onTouchpadAccelerationChange,
       }
@@ -1534,11 +1565,13 @@ export function KeymapControls({
                   <TouchpadSettingsSection
                     touchpadMode={touchpadMode}
                     touchpadDualStageMode={touchpadDualStageMode}
+                    touchpadGridRequiresClick={touchpadGridRequiresClick}
                     gridColumns={gridColumns}
                     gridRows={gridRows}
 
                     onTouchpadModeChange={onTouchpadModeChange}
                     onTouchpadDualStageModeChange={onTouchpadDualStageModeChange}
+                    onTouchpadGridRequiresClickChange={onTouchpadGridRequiresClickChange}
                     onGridSizeChange={onGridSizeChange}
                     touchpadSensitivity={touchpadSensitivity}
                     touchpadSensitivityY={touchpadSensitivityY}
@@ -1661,9 +1694,11 @@ export function KeymapControls({
                 <ButtonGridSection
                   title={t('keymap.touchButtonsTitle')}
                   description={
-                    showPerPadTouchpads
-                      ? t('keymap.touchButtonsDescriptionShared')
-                      : t('keymap.touchButtonsDescription')
+                    confirmedTwoPadTouchpads
+                      ? t('keymap.touchButtonsDescriptionTwoPad')
+                      : hasConnectedController
+                        ? t('keymap.touchButtonsDescriptionShared')
+                        : t('keymap.touchButtonsDescription')
                   }
                   buttons={touchpadButtonSectionButtons}
                   renderButton={renderButtonCard}

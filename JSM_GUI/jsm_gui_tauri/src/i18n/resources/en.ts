@@ -751,8 +751,10 @@ export const en = {
     rightStickDescription: 'Configure the right stick directions, ring binding, or stick click.',
     rightStickModesDescription: 'Deadzone, mode, and ring settings for the right stick.',
     touchButtonsTitle: 'Touch and click buttons',
-    touchButtonsDescriptionShared: 'Bindings for touch contact, pad click, and touch-stick directions. Unlike the grid regions, these are shared by both pads: the controller reports one touch button, not one per pad.',
+    touchButtonsDescriptionShared: 'Bindings for touch contact, pad click, and touch-stick directions. The controller reports one touch button, not one per pad.',
     touchButtonsDescription: 'Bindings for touch contact, pad click, and touch-stick directions.',
+    touchButtonsDescriptionTwoPad:
+      'Touch stick directions still work here, but Touch and Click do not: this controller reports a separate click for each pad instead of one shared signal. Bind Right pad click and Left pad click on the Extra buttons page instead.',
     touchpadSettingsTitle: 'Touchpad mode and grid',
     touchpadSettingsDescription: 'Adjust mode, dual-stage behavior, grid size, and sensitivity for the touchpad.',
     touchpadGridTitleLeft: 'Left trackpad grid',
@@ -773,6 +775,25 @@ export const en = {
     touchpadSmoothingDeprecated: 'Legacy smoothing',
     touchpadSmoothingDeprecatedHint: 'Deprecated \u2014 prefer the smoothing cutoff under Mouse output. Leave at 0.',
     advancedOptions: 'Advanced',
+    // TOUCHPAD_DUAL_STAGE_MODE reuses the trigger dual-stage enum: TOUCH stands
+    // in for the soft pull, CAPTURE (the click) for the full pull. Same source
+    // of truth as mappingHelpTriggerMode_*_desc above, reworded for touch/click.
+    touchpadDualStageMode_NO_FULL_desc: 'Ignores the click binding. Only the touch binding can fire.',
+    touchpadDualStageMode_NO_SKIP_desc:
+      'Default. Touching the pad always fires the touch binding. Clicking on top of that also fires the click binding — both can be active together.',
+    touchpadDualStageMode_NO_SKIP_EXCLUSIVE_desc:
+      'Touching always fires the touch binding first, but once you click, only the click binding stays active.',
+    touchpadDualStageMode_MUST_SKIP_desc:
+      'Only a quick click sends the click binding by itself and skips the touch binding. If the touch binding already fired first, clicking does not switch over.',
+    touchpadDualStageMode_MAY_SKIP_desc:
+      'A quick click may skip the touch binding; a normal click still layers the click binding on top of the touch binding.',
+    touchpadDualStageMode_MUST_SKIP_R_desc:
+      'Responsive MUST_SKIP: the touch binding activates immediately, but gets removed if you click quickly enough to count as a skip.',
+    touchpadDualStageMode_MAY_SKIP_R_desc:
+      'Responsive MAY_SKIP: the touch binding activates immediately; a quick click can cancel it and keep only the click binding, while a normal click can still activate both.',
+    gridRequiresClick: 'Require a click to activate a region',
+    gridRequiresClickHint:
+      'Off (default): a region fires the instant your finger lands on it. On: your finger can rest anywhere on the pad to preview a region, and it only fires once you actually click the pad while over it.',
     bindingLabel: 'Action name',
     bindingLabelPlaceholder: 'Name this action',
     sideLeft: 'Left',
@@ -818,14 +839,15 @@ export const en = {
     touchpadTrackballDecayHint: '0 stops the cursor the instant your finger leaves the pad, matching Steam Input\u2019s Mouse style. Higher values coast briefly after a flick.',
     touchpadAcceleration: 'Acceleration',
     touchpadDualStageMode: 'Touch and click dual-stage mode',
-    touchStickTitle: 'Touch stick',
-    touchStickDescription: 'Configure the touch stick and its direction outputs while using GRID_AND_STICK.',
-    touchStickMode: 'Touch stick mode',
+    touchStickTitle: 'Drag-to-stick output',
+    touchStickDescription:
+      'Grid and stick reads your finger two ways at once: landing on a numbered region presses that button (set up above), and dragging from wherever you first touched down acts like an analog stick — that drag behavior is what this section turns on.',
+    touchStickMode: 'What the drag acts as',
     touchDeadzoneInner: 'Touch deadzone inner',
     touchStickRadius: 'Touch stick radius',
     touchStickAxis: 'Touch stick axis',
     touchStickHint:
-      'Touch-stick directions are most useful in NO_MOUSE mode. Combine them with T1/T2 style grid buttons for split-pad swipe layouts.',
+      'Leave this at None if you only want the grid buttons above and no stick output. Direction modes like NO_MOUSE are most useful combined with T1/T2-style grid buttons for split-pad swipe layouts; AIM or a mouse mode instead sends smooth analog movement rather than discrete directions.',
     currentRawValue: 'Current raw value: {{value}}',
     touchpadWarningPsTouchpadNeedsDs4:
       'PS_TOUCHPAD works best with a DS4 virtual controller. Set VIRTUAL_CONTROLLER = DS4 if the game should see a PlayStation touchpad.',

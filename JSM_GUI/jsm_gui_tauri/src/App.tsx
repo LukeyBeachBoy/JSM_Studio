@@ -535,6 +535,12 @@ function App() {
     touchpadDualStageModeValue,
     leftTouchpadDualStageModeValue,
     rightTouchpadDualStageModeValue,
+    gridRequiresClickValue,
+    leftGridRequiresClickValue,
+    rightGridRequiresClickValue,
+    handleGridRequiresClickChange,
+    handleLeftGridRequiresClickChange,
+    handleRightGridRequiresClickChange,
     touchStickModeValue,
     leftTouchStickModeValue,
     rightTouchStickModeValue,
@@ -1307,14 +1313,20 @@ function App() {
             onGripReleaseHapticIntensityChange={handleGripReleaseHapticIntensityChange}
             onGripReleaseHapticEffectChange={handleGripReleaseHapticEffectChange}
             touchpadDualStageMode={touchpadDualStageModeValue}
+            touchpadGridRequiresClick={gridRequiresClickValue}
             leftTouchpadMode={leftTouchpadModeValue}
             rightTouchpadMode={rightTouchpadModeValue}
             leftTouchpadDualStageMode={leftTouchpadDualStageModeValue}
             rightTouchpadDualStageMode={rightTouchpadDualStageModeValue}
+            leftGridRequiresClick={leftGridRequiresClickValue}
+            rightGridRequiresClick={rightGridRequiresClickValue}
             onLeftTouchpadModeChange={handleLeftTouchpadModeChange}
             onRightTouchpadModeChange={handleRightTouchpadModeChange}
             onLeftTouchpadDualStageModeChange={handleLeftTouchpadDualStageModeChange}
             onRightTouchpadDualStageModeChange={handleRightTouchpadDualStageModeChange}
+            onTouchpadGridRequiresClickChange={handleGridRequiresClickChange}
+            onLeftGridRequiresClickChange={handleLeftGridRequiresClickChange}
+            onRightGridRequiresClickChange={handleRightGridRequiresClickChange}
             leftGridColumns={leftGridSizeValue.columns}
             leftGridRows={leftGridSizeValue.rows}
             rightGridColumns={rightGridSizeValue.columns}
@@ -1440,14 +1452,20 @@ function App() {
             onGripReleaseHapticIntensityChange={handleGripReleaseHapticIntensityChange}
             onGripReleaseHapticEffectChange={handleGripReleaseHapticEffectChange}
             touchpadDualStageMode={touchpadDualStageModeValue}
+            touchpadGridRequiresClick={gridRequiresClickValue}
             leftTouchpadMode={leftTouchpadModeValue}
             rightTouchpadMode={rightTouchpadModeValue}
             leftTouchpadDualStageMode={leftTouchpadDualStageModeValue}
             rightTouchpadDualStageMode={rightTouchpadDualStageModeValue}
+            leftGridRequiresClick={leftGridRequiresClickValue}
+            rightGridRequiresClick={rightGridRequiresClickValue}
             onLeftTouchpadModeChange={handleLeftTouchpadModeChange}
             onRightTouchpadModeChange={handleRightTouchpadModeChange}
             onLeftTouchpadDualStageModeChange={handleLeftTouchpadDualStageModeChange}
             onRightTouchpadDualStageModeChange={handleRightTouchpadDualStageModeChange}
+            onTouchpadGridRequiresClickChange={handleGridRequiresClickChange}
+            onLeftGridRequiresClickChange={handleLeftGridRequiresClickChange}
+            onRightGridRequiresClickChange={handleRightGridRequiresClickChange}
             leftGridColumns={leftGridSizeValue.columns}
             leftGridRows={leftGridSizeValue.rows}
             rightGridColumns={rightGridSizeValue.columns}

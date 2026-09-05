@@ -745,8 +745,10 @@ export const zhCN = {
     rightStickDescription: '配置右摇杆方向、环区绑定或摇杆点击。',
     rightStickModesDescription: '右摇杆的死区、模式和环区设置。',
     touchButtonsTitle: '触摸与点击按键',
-    touchButtonsDescriptionShared: '触摸接触、触摸板按下和触摸摇杆方向的映射。与网格区域不同，这些由两块触摸板共用：手柄只报告一个触摸按键，而非每板一个。',
+    touchButtonsDescriptionShared: '触摸接触、触摸板按下和触摸摇杆方向的映射。手柄只报告一个触摸按键，而非每块触摸板各一个。',
     touchButtonsDescription: '触摸接触、触摸板按下和触摸摇杆方向绑定。',
+    touchButtonsDescriptionTwoPad:
+      '触摸摇杆方向在此手柄上仍然有效，但"触摸"和"点击"无效：该手柄为每块触摸板分别报告点击信号，而不是共用一个信号。请改到"额外按键"页面绑定"右触控板点击"和"左触控板点击"。',
     touchpadSettingsTitle: '触摸板模式与网格',
     touchpadSettingsDescription: '调整触摸板模式、双段触发、网格大小和灵敏度。',
     touchpadGridTitleLeft: '左触摸板网格',
@@ -767,6 +769,22 @@ export const zhCN = {
     touchpadSmoothingDeprecated: '旧版平滑',
     touchpadSmoothingDeprecatedHint: '已弃用 — 请改用「鼠标输出」中的平滑截止频率，保持为 0。',
     advancedOptions: '高级',
+    touchpadDualStageMode_NO_FULL_desc: '忽略点击绑定，只有触摸绑定可以触发。',
+    touchpadDualStageMode_NO_SKIP_desc:
+      '默认。触摸触控板始终触发触摸绑定；在此基础上点击还会同时触发点击绑定——两者可以同时生效。',
+    touchpadDualStageMode_NO_SKIP_EXCLUSIVE_desc:
+      '触摸时先触发触摸绑定，但一旦点击，则只有点击绑定保持生效。',
+    touchpadDualStageMode_MUST_SKIP_desc:
+      '只有快速点击才会单独触发点击绑定并跳过触摸绑定；如果触摸绑定已先触发，点击不会切换。',
+    touchpadDualStageMode_MAY_SKIP_desc:
+      '快速点击可以跳过触摸绑定；正常点击仍会在触摸绑定基础上叠加点击绑定。',
+    touchpadDualStageMode_MUST_SKIP_R_desc:
+      '响应式 MUST_SKIP：触摸绑定立即生效，但如果你足够快地点击（视为跳过），会被移除。',
+    touchpadDualStageMode_MAY_SKIP_R_desc:
+      '响应式 MAY_SKIP：触摸绑定立即生效；快速点击可取消它只保留点击绑定，正常点击仍可同时激活两者。',
+    gridRequiresClick: '需要点击才能激活区域',
+    gridRequiresClickHint:
+      '关闭（默认）：手指一落到区域上就会触发。开启：手指可以在触控板上任意位置停留以预览区域，只有在该区域上实际点击触控板时才会触发。',
     bindingLabel: '操作名称',
     bindingLabelPlaceholder: '为该操作命名',
     sideLeft: '左侧',
@@ -812,13 +830,15 @@ export const zhCN = {
     touchpadTrackballDecayHint: '设为 0 时，手指离开触摸板光标立即停止，与 Steam Input 的鼠标模式一致。数值越大，快速滑动后的惯性滑行越短。',
     touchpadAcceleration: '加速度',
     touchpadDualStageMode: '触摸与点击双段模式',
-    touchStickTitle: '触摸摇杆',
-    touchStickDescription: '在 GRID_AND_STICK 模式下配置触摸摇杆及其方向输出。',
-    touchStickMode: '触摸摇杆模式',
+    touchStickTitle: '拖动转摇杆输出',
+    touchStickDescription:
+      '网格与摇杆模式会同时以两种方式读取你的手指：落在某个编号区域上会按下该按键（见上方设置），而从最初触摸点开始拖动则表现为一个模拟摇杆——本节就是用来开启这个拖动行为的。',
+    touchStickMode: '拖动的作用',
     touchDeadzoneInner: '触摸内死区',
     touchStickRadius: '触摸摇杆半径',
     touchStickAxis: '触摸摇杆轴向',
-    touchStickHint: '触摸摇杆方向在 NO_MOUSE 模式下最有用；可和 T1/T2 这类网格分区组合，实现左右半区滑动手势。',
+    touchStickHint:
+      '如果只想要上方的网格按键、不需要摇杆输出，请保持为"无"。NO_MOUSE 这类方向模式最适合和 T1/T2 这类网格按键组合，用于分区滑动手势；AIM 或鼠标模式则会发送平滑的模拟移动，而不是离散方向。',
     currentRawValue: '当前原始值：{{value}}',
     touchpadWarningPsTouchpadNeedsDs4:
       'PS_TOUCHPAD 最适合配合 DS4 虚拟手柄使用。如果希望游戏识别为 PlayStation 触摸板，请设置 VIRTUAL_CONTROLLER = DS4。',

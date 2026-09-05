@@ -23,6 +23,8 @@ export type TouchpadModeCardConfig = {
   onDualStageModeChange?: (v: string) => void
   onSmoothingChange?: (v: string) => void
   onAccelerationChange?: (v: string) => void
+  gridRequiresClick?: boolean
+  onGridRequiresClickChange?: (checked: boolean) => void
 }
 
 type Props = {
@@ -39,6 +41,8 @@ type Props = {
   onTouchpadSensitivityChange?: (v: string) => void
   onTouchpadSensitivityYChange?: (v: string) => void
   onTouchpadDualStageModeChange?: (v: string) => void
+  touchpadGridRequiresClick?: boolean
+  onTouchpadGridRequiresClickChange?: (checked: boolean) => void
   touchpadSmoothing?: number
   onTouchpadSmoothingChange?: (v: string) => void
   touchpadAcceleration?: number
@@ -52,6 +56,21 @@ type Props = {
 }
 
 const DUAL_STAGE_MODES = ['NO_FULL', 'NO_SKIP', 'NO_SKIP_EXCLUSIVE', 'MUST_SKIP', 'MAY_SKIP', 'MUST_SKIP_R', 'MAY_SKIP_R']
+
+// Reuses the same canonical explanations the trigger help modal shows for
+// these modes -- TOUCHPAD_DUAL_STAGE_MODE is the same TriggerMode enum,
+// TOUCH standing in for the soft pull and CAPTURE (the click) for the full
+// pull. Keeping one accurate source of truth for what NO_SKIP/MAY_SKIP/etc
+// actually do rather than re-describing them from scratch here.
+const DUAL_STAGE_MODE_DESC_KEYS: Record<string, string> = {
+  NO_FULL: 'keymap.touchpadDualStageMode_NO_FULL_desc',
+  NO_SKIP: 'keymap.touchpadDualStageMode_NO_SKIP_desc',
+  NO_SKIP_EXCLUSIVE: 'keymap.touchpadDualStageMode_NO_SKIP_EXCLUSIVE_desc',
+  MUST_SKIP: 'keymap.touchpadDualStageMode_MUST_SKIP_desc',
+  MAY_SKIP: 'keymap.touchpadDualStageMode_MAY_SKIP_desc',
+  MUST_SKIP_R: 'keymap.touchpadDualStageMode_MUST_SKIP_R_desc',
+  MAY_SKIP_R: 'keymap.touchpadDualStageMode_MAY_SKIP_R_desc',
+}
 
 // One pad's mode and the settings that only mean anything for that mode. Exported
 // so the per-side Trackpads layout can place it inside a Left / Right column.
@@ -157,6 +176,18 @@ export function TouchpadModeCard({ config, title }: { config: TouchpadModeCardCo
               ))}
             </AppSelect>
           </label>
+          <p className={styles.touchpadHint}>
+            {t(DUAL_STAGE_MODE_DESC_KEYS[config.dualStageMode || 'NO_SKIP'] ?? DUAL_STAGE_MODE_DESC_KEYS.NO_SKIP)}
+          </p>
+          <label className={styles.touchpadCheckbox}>
+            <input
+              type="checkbox"
+              checked={config.gridRequiresClick ?? false}
+              onChange={e => config.onGridRequiresClickChange?.(e.target.checked)}
+            />
+            {t('keymap.gridRequiresClick')}
+          </label>
+          <p className={styles.touchpadHint}>{t('keymap.gridRequiresClickHint')}</p>
         </AdvancedDisclosure>
       )}
     </div>
@@ -194,6 +225,8 @@ export function TouchpadSettingsSection(props: Props) {
                 onSensitivityChange: props.onTouchpadSensitivityChange,
                 onSensitivityYChange: props.onTouchpadSensitivityYChange,
                 onDualStageModeChange: props.onTouchpadDualStageModeChange,
+                gridRequiresClick: props.touchpadGridRequiresClick,
+                onGridRequiresClickChange: props.onTouchpadGridRequiresClickChange,
                 onSmoothingChange: props.onTouchpadSmoothingChange,
                 onAccelerationChange: props.onTouchpadAccelerationChange,
               }}

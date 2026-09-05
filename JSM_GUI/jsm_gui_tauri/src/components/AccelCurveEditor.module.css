@@ -1,0 +1,14 @@
+/* This div previously carried a plain string className with no CSS behind it
+   anywhere in the app, so its stacked .flex-inputs rows (curve source, curve
+   type, the sensitivity/gain outputs, min/max speed) had zero gap between
+   them -- ordinary block divs touching edge to edge. That is what made the
+   Gyro acceleration-curve page read as everything "bunched together": the
+   rows never lost their own internal layout, only the space between them.
+   --space-3 matches the rhythm .control-panel already uses between ITS direct
+   children, so this reads as a continuation of the same page rather than a
+   denser or looser box nested inside it. */
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
