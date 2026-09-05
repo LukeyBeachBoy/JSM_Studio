@@ -112,6 +112,15 @@ export const en = {
     globalChordsReset: 'Global chords reset to defaults. Apply to keep them.',
     controllerNavUpdateFailed: 'Failed to update controller navigation.',
   },
+  glyphBar: {
+    select: 'Select',
+    back: 'Back',
+    close: 'Close',
+    move: 'Move',
+    step: 'Next control',
+    page: 'Page',
+    cursor: 'Cursor',
+  },
   globalChords: {
     title: 'Global chords',
     description:

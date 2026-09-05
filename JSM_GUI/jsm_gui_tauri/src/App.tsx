@@ -22,7 +22,7 @@ import {
 } from './components/NavIcons'
 import { ThemeToggle } from './components/ThemeToggle'
 import themeToggleStyles from './components/ThemeToggle.module.css'
-import { Suspense, lazy, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useTelemetry } from './hooks/useTelemetry'
 import miscStyles from './components/Misc.module.css'
@@ -41,6 +41,8 @@ import { updateKeymapEntry } from './utils/keymap'
 import { resolveTouchpadGrids, touchpadGridCommands } from './utils/touchpadGrids'
 import { showToast } from './utils/toast'
 import { LanguageSelect } from './components/LanguageSelect'
+import { useKeyboardNav } from './hooks/useKeyboardNav'
+import { ControllerGlyphBar } from './components/ControllerGlyphBar'
 
 
 // One page per physical control, the way Steam Input splits them up, instead of
@@ -55,6 +57,11 @@ const CONTROL_TAB_SECTIONS: Record<ControlTab, string[]> = {
   triggers: ['triggers'],
   joysticks: ['leftStick', 'rightStick'],
 }
+// Page Up / Page Down (controller triggers) walk this order.
+const PAGE_ORDER: PrimaryTab[] = [
+  'overview', 'buttons', 'dpad', 'triggers', 'joysticks', 'touchpad', 'gyro', 'globalChords',
+  'sensors', 'timing', 'ai', 'controllerStatus', 'debugConsole', 'deviceVisibility', 'help',
+]
 type GyroSubTab = 'behavior' | 'sensitivity' | 'noise'
 
 const asNumber = (value: unknown) => (typeof value === 'number' ? value : undefined)
@@ -386,6 +393,7 @@ function ControllerNavToggle() {
     try {
       const state = await desktopBridge.setControllerNavEnabled(next)
       setEnabled(state.controllerNavEnabled)
+      window.dispatchEvent(new CustomEvent('jsm:controller-nav', { detail: state.controllerNavEnabled }))
     } catch (error) {
       console.error('Failed to update controller navigation', error)
       setEnabled(previous)
@@ -436,9 +444,31 @@ function App() {
   const [configWindowDragging, setConfigWindowDragging] = useState(false)
   const [mappingEnabled, setMappingEnabled] = useState(true)
   const [autoloadEnabled, setAutoloadEnabled] = useState(true)
+  const [controllerNavEnabled, setControllerNavEnabled] = useState(true)
   const [runtimeMappingBusy, setRuntimeMappingBusy] = useState(false)
   const [calibrationTurns, setCalibrationTurns] = useState('1')
   const [primaryTab, setPrimaryTab] = useState<PrimaryTab>('controllerStatus')
+
+  const stepPage = useCallback((delta: 1 | -1) => {
+    setPrimaryTab(prev => {
+      const index = Math.max(0, PAGE_ORDER.indexOf(prev))
+      return PAGE_ORDER[(index + delta + PAGE_ORDER.length) % PAGE_ORDER.length]
+    })
+  }, [])
+  const closeFloatingWindows = useCallback(() => {
+    if (isConfigDrawerOpen) {
+      setConfigDrawerOpen(false)
+      return true
+    }
+    return false
+  }, [isConfigDrawerOpen])
+  const { modalOpen } = useKeyboardNav({ onPageStep: stepPage, onEscape: closeFloatingWindows })
+
+  useEffect(() => {
+    const handler = (event: Event) => setControllerNavEnabled(Boolean((event as CustomEvent<boolean>).detail))
+    window.addEventListener('jsm:controller-nav', handler)
+    return () => window.removeEventListener('jsm:controller-nav', handler)
+  }, [])
   const [gyroSubTab, setGyroSubTab] = useState<GyroSubTab>('behavior')
   const [selectedMappingCommand, setSelectedMappingCommand] = useState<string | null>('N')
   const [showHidHideElevationModal, setShowHidHideElevationModal] = useState(false)
@@ -821,6 +851,7 @@ function App() {
       if (disposed) return
       setMappingEnabled(state.mappingEnabled)
       setAutoloadEnabled(state.autoloadEnabled)
+      setControllerNavEnabled(state.controllerNavEnabled)
     }).catch(error => {
       console.error('Failed to load runtime mapping state', error)
     })
@@ -1570,6 +1601,11 @@ function App() {
         <div className="shell-scroll"><div className="content-grid">
           <main className="main-pane">{renderPrimaryContent()}</main>
         </div></div>
+        <ControllerGlyphBar
+          devices={sample?.devices}
+          modalOpen={modalOpen}
+          enabled={mappingEnabled && autoloadEnabled && controllerNavEnabled}
+        />
       </div>
       {isConfigDrawerOpen && (
         <div
@@ -1727,6 +1763,7 @@ function App() {
               <button
                 type="button"
                 className="ghost-btn"
+                data-modal-close
                 onClick={() => setShowHidHideElevationModal(false)}
               >
                 {t('common.close')}
@@ -1755,7 +1792,7 @@ function App() {
           <div className="modal-card profile-modal">
             <div className="modal-header">
               <h3>{t('app.profilesModal.title')}</h3>
-              <button className="ghost-btn" onClick={() => setProfileModalOpen(false)}>
+              <button className="ghost-btn" data-modal-close onClick={() => setProfileModalOpen(false)}>
                 {t('common.close')}
               </button>
             </div>
