@@ -1,0 +1,45 @@
+# JSM Studio controller navigation
+#
+# Auto-loaded while JSM Studio is the foreground window (an AutoLoad rule named
+# after the app's own executable points here). It turns the controller into a
+# keyboard and mouse so the whole app can be driven from the pad:
+#
+#   D-pad / left stick   move focus (arrow keys)
+#   A                    activate (Enter)
+#   B                    back / close (Escape)
+#   X                    toggle (Space)
+#   LB / RB              previous / next control (Shift+Tab / Tab)
+#   LT / RT              previous / next page (Page Up / Page Down)
+#   Right pad, R stick   mouse cursor; pad clicks are the mouse buttons
+#
+# Starts with RESET_MAPPINGS so OnReset.txt (and the global chord layer) still
+# apply here. Alt-tabbing to a game restores that game's own configuration.
+
+RESET_MAPPINGS
+
+LEFT_STICK_MODE = NO_MOUSE
+UP = UP
+DOWN = DOWN
+LEFT = LEFT
+RIGHT = RIGHT
+LUP = UP
+LDOWN = DOWN
+LLEFT = LEFT
+LRIGHT = RIGHT
+
+S = ENTER
+E = ESC
+W = SPACE
+N = NONE
+
+L = LSHIFT\ !TAB\
+R = TAB
+ZL_MODE = NO_FULL
+ZR_MODE = NO_FULL
+ZL = PAGEUP
+ZR = PAGEDOWN
+
+RIGHT_TOUCHPAD_MODE = MOUSE
+RIGHT_STICK_MODE = AIM
+MISC2 = LMOUSE
+MISC3 = RMOUSE

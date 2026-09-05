@@ -30,6 +30,17 @@ export function OverviewIcon() {
   )
 }
 
+// A held button (filled) plus a pressed one: the "hold Steam, press X" idea.
+export function ChordIcon() {
+  return (
+    <svg {...base}>
+      <circle cx="5" cy="8" r="3" fill="currentColor" stroke="none" opacity="0.9" />
+      <circle cx="11" cy="8" r="3" />
+      <path d="M8 6.2v3.6" strokeWidth="1.2" />
+    </svg>
+  )
+}
+
 export function ControllerIcon() {
   return (
     <svg {...base}>

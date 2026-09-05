@@ -18,6 +18,7 @@ import {
   SparkleIcon,
   EyeIcon,
   DocumentIcon,
+  ChordIcon,
 } from './components/NavIcons'
 import { ThemeToggle } from './components/ThemeToggle'
 import themeToggleStyles from './components/ThemeToggle.module.css'
@@ -45,7 +46,7 @@ import { LanguageSelect } from './components/LanguageSelect'
 // One page per physical control, the way Steam Input splits them up, instead of
 // one page carrying every binding on the controller.
 type ControlTab = 'buttons' | 'dpad' | 'triggers' | 'joysticks'
-type PrimaryTab = ControlTab | 'gyro' | 'touchpad' | 'sensors' | 'timing' | 'controllerStatus' | 'debugConsole' | 'ai' | 'help' | 'deviceVisibility' | 'overview'
+type PrimaryTab = ControlTab | 'gyro' | 'touchpad' | 'globalChords' | 'sensors' | 'timing' | 'controllerStatus' | 'debugConsole' | 'ai' | 'help' | 'deviceVisibility' | 'overview'
 
 // Which of KeymapControls' button groups each control page is about.
 const CONTROL_TAB_SECTIONS: Record<ControlTab, string[]> = {
@@ -130,6 +131,11 @@ const AutoloadManager = lazy(async () => {
 const HelpDocsPage = lazy(async () => {
   const module = await import('./components/HelpDocsPage')
   return { default: module.HelpDocsPage }
+})
+
+const GlobalChordsPage = lazy(async () => {
+  const module = await import('./components/GlobalChordsPage')
+  return { default: module.GlobalChordsPage }
 })
 
 const MappingDebugPage = lazy(async () => {
@@ -243,6 +249,13 @@ const PrimaryNav = ({ primaryTab, setPrimaryTab, includeHelp = false }: PrimaryN
           <span className={sideNavStyles.navItemIcon}><GyroIcon /></span>
           {t('app.nav.gyro')}
         </button>
+        <button
+          className={`${sideNavStyles.navItem} ${primaryTab === 'globalChords' ? sideNavStyles.active : ''}`}
+          onClick={() => setPrimaryTab('globalChords')}
+        >
+          <span className={sideNavStyles.navItemIcon}><ChordIcon /></span>
+          {t('app.nav.globalChords')}
+        </button>
       </div>
       <div className={sideNavStyles.navSection}>
         <div className={sideNavStyles.navSectionLabel}>{t('app.nav.tuningGroup')}</div>
@@ -348,10 +361,64 @@ function AutostartToggle() {
   )
 }
 
+// Installs / removes the AutoLoad rule that maps the controller to keyboard
+// and mouse while JSM Studio's own window is in front (AppNavigation.txt).
+// Needs AutoLoad on to do anything, which the toggle's hint says.
+function ControllerNavToggle() {
+  const { t } = useTranslation()
+  const [enabled, setEnabled] = useState(true)
+  const [pending, setPending] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    desktopBridge.getRuntimeMappingState().then(state => {
+      if (!cancelled) setEnabled(state.controllerNavEnabled)
+    }).catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const handleChange = async (next: boolean) => {
+    setPending(true)
+    const previous = enabled
+    setEnabled(next)
+    try {
+      const state = await desktopBridge.setControllerNavEnabled(next)
+      setEnabled(state.controllerNavEnabled)
+    } catch (error) {
+      console.error('Failed to update controller navigation', error)
+      setEnabled(previous)
+      showToast(t('messages.controllerNavUpdateFailed'), 'error')
+    } finally {
+      setPending(false)
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      className={`${themeToggleStyles.themeToggle} ${enabled ? themeToggleStyles.on : ''} ${sideNavStyles.navThemeToggle}`}
+      aria-pressed={enabled}
+      aria-label={t('app.nav.controllerNav')}
+      disabled={pending}
+      onClick={() => handleChange(!enabled)}
+    >
+      <span className={themeToggleStyles.labelGroup}>
+        <span className={themeToggleStyles.text}>{t('app.nav.controllerNav')}</span>
+      </span>
+      <span className={themeToggleStyles.switch} aria-hidden="true">
+        <span className={themeToggleStyles.thumb} />
+      </span>
+    </button>
+  )
+}
+
 const NavSettings = ({ compactThemeToggle = false }: NavSettingsProps) => (
   <div className={sideNavStyles.navSettings}>
     <LanguageSelect className={sideNavStyles.navLanguageSelect} />
     <ThemeToggle compact={compactThemeToggle} className={sideNavStyles.navThemeToggle} />
+    <ControllerNavToggle />
     <AutostartToggle />
   </div>
 )
@@ -1419,6 +1486,14 @@ function App() {
           devices={sample?.devices}
           onNavigate={(target) => setPrimaryTab(target)}
         />
+      )
+    }
+
+    if (primaryTab === 'globalChords') {
+      return (
+        <Suspense fallback={<LazyPanelFallback title={t('app.nav.globalChords')} />}>
+          <GlobalChordsPage devices={sample?.devices} />
+        </Suspense>
       )
     }
 

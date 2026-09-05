@@ -15,6 +15,8 @@ export type RuntimeMappingState = {
   activeProfilePath: string
   mappingEnabled: boolean
   autoloadEnabled: boolean
+  /** Built-in AutoLoad rule that lets the controller drive JSM Studio itself. */
+  controllerNavEnabled: boolean
 }
 
 export type AutoloadRule = {
@@ -24,6 +26,13 @@ export type AutoloadRule = {
   profileName?: string
   profilePath?: string
   missingProfile: boolean
+  /** The rule JSM Studio installs for its own window; read-only in the UI. */
+  builtIn: boolean
+}
+
+export type GlobalChordsDocument = {
+  text: string
+  defaultText: string
 }
 
 export type NamedProfile = {
@@ -160,9 +169,15 @@ export interface DesktopBridge {
   getRuntimeMappingState: () => Promise<RuntimeMappingState>
   setMappingEnabled: (enabled: boolean) => Promise<RuntimeMappingState>
   setAutoloadEnabled: (enabled: boolean) => Promise<RuntimeMappingState>
+  setControllerNavEnabled: (enabled: boolean) => Promise<RuntimeMappingState>
   listAutoloadRules: () => Promise<AutoloadRule[]>
   saveAutoloadRule: (processName: string, profileName: string) => Promise<AutoloadRule | null>
   deleteAutoloadRule: (processName: string) => Promise<{ success: boolean }>
+  // The Steam-button chord layer (GlobalChords.txt) that applies on top of
+  // every configuration. Writing re-applies the active configuration so the
+  // change is live immediately.
+  readGlobalChords: () => Promise<GlobalChordsDocument>
+  writeGlobalChords: (text: string) => Promise<{ success: boolean }>
   recalibrateGyro: () => Promise<{ success: boolean }>
   getCalibrationSeconds: () => Promise<number | null>
   setCalibrationSeconds: (seconds: number) => Promise<number | null>
@@ -332,19 +347,37 @@ export const desktopBridge: DesktopBridge = {
     if (isTauriWindow()) {
       return invokeTauri<RuntimeMappingState>('get_runtime_mapping_state')
     }
-    return { activeProfilePath: 'profiles-library/Profile 1.txt', mappingEnabled: true, autoloadEnabled: true }
+    return { activeProfilePath: 'profiles-library/Profile 1.txt', mappingEnabled: true, autoloadEnabled: true, controllerNavEnabled: true }
   },
   async setMappingEnabled(enabled) {
     if (isTauriWindow()) {
       return invokeTauri<RuntimeMappingState>('set_mapping_enabled', { enabled })
     }
-    return { activeProfilePath: 'profiles-library/Profile 1.txt', mappingEnabled: enabled, autoloadEnabled: true }
+    return { activeProfilePath: 'profiles-library/Profile 1.txt', mappingEnabled: enabled, autoloadEnabled: true, controllerNavEnabled: true }
   },
   async setAutoloadEnabled(enabled) {
     if (isTauriWindow()) {
       return invokeTauri<RuntimeMappingState>('set_autoload_enabled', { enabled })
     }
-    return { activeProfilePath: 'profiles-library/Profile 1.txt', mappingEnabled: true, autoloadEnabled: enabled }
+    return { activeProfilePath: 'profiles-library/Profile 1.txt', mappingEnabled: true, autoloadEnabled: enabled, controllerNavEnabled: true }
+  },
+  async setControllerNavEnabled(enabled) {
+    if (isTauriWindow()) {
+      return invokeTauri<RuntimeMappingState>('set_controller_nav_enabled', { enabled })
+    }
+    return { activeProfilePath: 'profiles-library/Profile 1.txt', mappingEnabled: true, autoloadEnabled: true, controllerNavEnabled: enabled }
+  },
+  async readGlobalChords() {
+    if (isTauriWindow()) {
+      return invokeTauri<GlobalChordsDocument>('read_global_chords')
+    }
+    return { text: '', defaultText: '' }
+  },
+  async writeGlobalChords(text) {
+    if (isTauriWindow()) {
+      return invokeTauri<{ success: boolean }>('write_global_chords', { text })
+    }
+    return { success: false }
   },
   async listAutoloadRules() {
     if (isTauriWindow()) {

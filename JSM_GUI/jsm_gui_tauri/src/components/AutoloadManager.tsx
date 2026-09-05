@@ -99,6 +99,9 @@ export function AutoloadManager({
   }
 
   const renderStatus = (rule: AutoloadRule) => {
+    if (rule.builtIn) {
+      return <span className={styles.statusOk}>{t('autoload.builtInRule')}</span>
+    }
     if (rule.kind !== 'profile') {
       return <span className={styles.statusAdvanced}>{t('autoload.advancedRule')}</span>
     }
@@ -166,7 +169,9 @@ export function AutoloadManager({
                       <small>{t('autoload.ruleFile', { file: rule.fileName })}</small>
                     </div>
                     <div className={styles.ruleProfile}>
-                      {rule.kind === 'profile' ? (
+                      {rule.builtIn ? (
+                        <span className={styles.advancedNote}>{t('autoload.builtInNote')}</span>
+                      ) : rule.kind === 'profile' ? (
                         <select
                           className="app-select"
                           value={selectedProfile}
@@ -187,7 +192,7 @@ export function AutoloadManager({
                     </div>
                     <div className={styles.ruleStatus}>{renderStatus(rule)}</div>
                     <div className={styles.ruleActions}>
-                      {rule.kind === 'profile' && (
+                      {!rule.builtIn && rule.kind === 'profile' && (
                         <button
                           type="button"
                           className="primary-btn"
@@ -197,14 +202,16 @@ export function AutoloadManager({
                           {t('common.save')}
                         </button>
                       )}
-                      <button
-                        type="button"
-                        className="danger-btn"
-                        disabled={isBusy}
-                        onClick={() => void handleDeleteRule(rule.processName)}
-                      >
-                        {t('common.delete')}
-                      </button>
+                      {!rule.builtIn && (
+                        <button
+                          type="button"
+                          className="danger-btn"
+                          disabled={isBusy}
+                          onClick={() => void handleDeleteRule(rule.processName)}
+                        >
+                          {t('common.delete')}
+                        </button>
+                      )}
                     </div>
                   </div>
                 )
