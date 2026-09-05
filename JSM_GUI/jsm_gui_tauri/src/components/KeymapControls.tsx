@@ -456,6 +456,30 @@ const MAPPING_BUTTON_GROUPS: Record<string, { titleKey: string; descriptionKey?:
   extra: { titleKey: 'keymap.extraButtonsTitle', descriptionKey: 'keymap.extraButtonsDescription', buttons: MISC_BUTTONS },
 }
 
+// Directional presses (Up/Down/Left/Right) only mean anything when the stick
+// is in one of these digital-direction modes. Once it's in a whole-stick mode
+// (AIM, a mouse mode, LEFT_STICK/RIGHT_STICK passthrough, ...) those four
+// commands are never sent, so listing them as bindable is just noise -- Steam
+// Input folds them away the same way once a stick has a "mode" applied.
+// Click/Ring/Touch stay visible in every mode: those fire independently of
+// which mode the stick's continuous output is in.
+const STICK_DIRECTIONAL_MODES = new Set(['', 'NO_MOUSE', 'INNER_RING', 'OUTER_RING'])
+const STICK_DIRECTION_COMMANDS: Record<'leftStick' | 'rightStick', Set<string>> = {
+  leftStick: new Set(['LUP', 'LDOWN', 'LLEFT', 'LRIGHT']),
+  rightStick: new Set(['RUP', 'RDOWN', 'RLEFT', 'RRIGHT']),
+}
+
+function visibleButtonsForGroup(groupKey: string, buttons: ButtonDefinition[], leftStickMode: string, rightStickMode: string) {
+  const directionCommands =
+    groupKey === 'leftStick' ? STICK_DIRECTION_COMMANDS.leftStick :
+    groupKey === 'rightStick' ? STICK_DIRECTION_COMMANDS.rightStick :
+    null
+  if (!directionCommands) return buttons
+  const mode = (groupKey === 'leftStick' ? leftStickMode : rightStickMode).toUpperCase()
+  if (STICK_DIRECTIONAL_MODES.has(mode)) return buttons
+  return buttons.filter(button => !directionCommands.has(button.command.toUpperCase()))
+}
+
 const allMappingButtons = () => {
   const seen = new Set<string>()
   return Object.values(MAPPING_BUTTON_GROUPS)
@@ -736,22 +760,29 @@ export function KeymapControls({
     [visibleSections]
   )
 
+  const leftStickModeForVisibility = stickModeSettings?.left?.mode ?? ''
+  const rightStickModeForVisibility = stickModeSettings?.right?.mode ?? ''
+
   const visualMappingGroups = useMemo(() => {
-    if (focusedMappingGroups.length === 0) {
-      return Object.values(MAPPING_BUTTON_GROUPS)
-    }
-    return Object.entries(MAPPING_BUTTON_GROUPS)
-      .filter(([key]) => focusedMappingGroups.includes(key))
-      .map(([, group]) => group)
-  }, [focusedMappingGroups])
+    const entries = focusedMappingGroups.length === 0
+      ? Object.entries(MAPPING_BUTTON_GROUPS)
+      : Object.entries(MAPPING_BUTTON_GROUPS).filter(([key]) => focusedMappingGroups.includes(key))
+    return entries.map(([key, group]) => ({
+      ...group,
+      buttons: visibleButtonsForGroup(key, group.buttons, leftStickModeForVisibility, rightStickModeForVisibility),
+    }))
+  }, [focusedMappingGroups, leftStickModeForVisibility, rightStickModeForVisibility])
 
   // The list layout walks the same set, so the jump bar and the page agree.
   const listMappingGroups = useMemo(() => {
-    if (focusedMappingGroups.length === 0) {
-      return Object.entries(MAPPING_BUTTON_GROUPS)
-    }
-    return Object.entries(MAPPING_BUTTON_GROUPS).filter(([key]) => focusedMappingGroups.includes(key))
-  }, [focusedMappingGroups])
+    const entries = focusedMappingGroups.length === 0
+      ? Object.entries(MAPPING_BUTTON_GROUPS)
+      : Object.entries(MAPPING_BUTTON_GROUPS).filter(([key]) => focusedMappingGroups.includes(key))
+    return entries.map(([key, group]) => [key, {
+      ...group,
+      buttons: visibleButtonsForGroup(key, group.buttons, leftStickModeForVisibility, rightStickModeForVisibility),
+    }] as const)
+  }, [focusedMappingGroups, leftStickModeForVisibility, rightStickModeForVisibility])
 
   const visualMappingButtons = useMemo(
     () => visualMappingGroups.flatMap(group => group.buttons),

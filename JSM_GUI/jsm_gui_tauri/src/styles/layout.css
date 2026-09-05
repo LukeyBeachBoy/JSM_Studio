@@ -34,6 +34,12 @@
   padding: 0.85rem 1rem 1.2rem;
   align-items: start;
   width: 100%;
+  /* Steam Input's own config window stays a bounded, centered column even on
+     a wide display -- a maximized window here previously stretched every
+     line of text edge-to-edge, which is what actually made it hard to read,
+     not the font or spacing. */
+  max-width: 1220px;
+  margin: 0 auto;
   box-sizing: border-box;
 }
 

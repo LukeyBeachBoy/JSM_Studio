@@ -301,9 +301,13 @@
   color: var(--text-strong);
 }
 
+/* Has a binding assigned. Deliberately not the telemetry green (that's
+   reserved for something actually moving right now) and not the accent blue
+   (that means "currently selected for editing") -- just a stronger neutral so
+   "bound" reads as a state, not a third color competing for attention. */
 .mappingButtonChipBound {
-  border-color: color-mix(in srgb, var(--telemetry-green) 58%, var(--border-1));
-  color: var(--telemetry-green);
+  border-color: var(--border-strong);
+  color: var(--text-strong);
 }
 
 .mappingButtonChipActive {
@@ -328,7 +332,7 @@
 }
 
 .mappingButtonChipBound .mappingButtonChipMeta {
-  color: color-mix(in srgb, var(--telemetry-green) 78%, var(--text-muted));
+  color: var(--text-mid);
 }
 
 .mappingDetailHeader {

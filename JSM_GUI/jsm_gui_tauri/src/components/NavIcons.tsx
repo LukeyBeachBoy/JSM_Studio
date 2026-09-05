@@ -1,0 +1,156 @@
+// Small, hand-authored line icons for the sidebar and list-section headers.
+// currentColor-themed (no fill baked in) so they follow the nav item's own
+// text color -- active/hover states need no icon-specific CSS. Deliberately
+// not an icon-library dependency: this is ~13 icons, not worth the bundle
+// weight or version-pinning of a whole set for a fixed, small vocabulary.
+
+import type { SVGProps } from 'react'
+
+const base: SVGProps<SVGSVGElement> = {
+  width: 16,
+  height: 16,
+  viewBox: '0 0 16 16',
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 1.5,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  'aria-hidden': true,
+  focusable: false,
+}
+
+export function OverviewIcon() {
+  return (
+    <svg {...base}>
+      <rect x="1.75" y="1.75" width="5.5" height="5.5" rx="1" />
+      <rect x="8.75" y="1.75" width="5.5" height="5.5" rx="1" />
+      <rect x="1.75" y="8.75" width="5.5" height="5.5" rx="1" />
+      <rect x="8.75" y="8.75" width="5.5" height="5.5" rx="1" />
+    </svg>
+  )
+}
+
+export function ControllerIcon() {
+  return (
+    <svg {...base}>
+      <path d="M4.5 5.5h7a3 3 0 0 1 3 3.3l-.4 3.2a1.6 1.6 0 0 1-2.9.8L10 11H6l-1.2 1.8a1.6 1.6 0 0 1-2.9-.8l-.4-3.2a3 3 0 0 1 3-3.3Z" />
+      <path d="M4.6 7.9h1.8M5.5 7v1.8" />
+      <circle cx="11.1" cy="7.6" r="0.55" fill="currentColor" stroke="none" />
+      <circle cx="12.3" cy="8.8" r="0.55" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
+export function ConsoleIcon() {
+  return (
+    <svg {...base}>
+      <rect x="1.75" y="2.75" width="12.5" height="10.5" rx="1.4" />
+      <path d="M4 6.2 6.2 8 4 9.8" />
+      <path d="M7.6 9.8h3.4" />
+    </svg>
+  )
+}
+
+export function ButtonsIcon() {
+  return (
+    <svg {...base}>
+      <circle cx="8" cy="8" r="5.6" />
+      <circle cx="8" cy="8" r="1.7" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
+export function DPadIcon() {
+  return (
+    <svg {...base}>
+      <path d="M6.4 1.9h3.2v3.6h3.5v3.2H9.6V12.1H6.4V8.7H2.9V5.5h3.5Z" />
+    </svg>
+  )
+}
+
+export function TriggersIcon() {
+  return (
+    <svg {...base}>
+      <path d="M2.4 6.4c0-2 1.5-3.6 3.4-3.6h4.4c1.9 0 3.4 1.6 3.4 3.6" />
+      <rect x="2.2" y="6.4" width="11.6" height="4.2" rx="1.4" />
+    </svg>
+  )
+}
+
+export function JoystickIcon() {
+  return (
+    <svg {...base}>
+      <circle cx="8" cy="7" r="4" />
+      <circle cx="8" cy="7" r="1.5" fill="currentColor" stroke="none" />
+      <path d="M6 13.3h4" />
+    </svg>
+  )
+}
+
+export function TrackpadIcon() {
+  return (
+    <svg {...base}>
+      <rect x="1.75" y="3.25" width="12.5" height="9.5" rx="1.6" />
+      <circle cx="8" cy="8" r="1.3" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
+export function GyroIcon() {
+  return (
+    <svg {...base}>
+      <ellipse cx="8" cy="8" rx="6" ry="2.6" />
+      <ellipse cx="8" cy="8" rx="2.6" ry="6" transform="rotate(35 8 8)" />
+      <circle cx="8" cy="8" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
+export function TuneIcon() {
+  return (
+    <svg {...base}>
+      <path d="M2.3 4.6h11.4M2.3 8h11.4M2.3 11.4h11.4" />
+      <circle cx="5.6" cy="4.6" r="1.15" fill="var(--bg-1)" />
+      <circle cx="10.2" cy="8" r="1.15" fill="var(--bg-1)" />
+      <circle cx="6.8" cy="11.4" r="1.15" fill="var(--bg-1)" />
+    </svg>
+  )
+}
+
+export function TimingIcon() {
+  return (
+    <svg {...base}>
+      <circle cx="8" cy="8.6" r="5.3" />
+      <path d="M8 5.6V8.6l2.2 1.3" />
+      <path d="M6.3 1.9h3.4" />
+    </svg>
+  )
+}
+
+export function SparkleIcon() {
+  return (
+    <svg {...base}>
+      <path d="M8 2.2c.35 2.1 1 3.35 3.3 3.8-2.3.45-2.95 1.7-3.3 3.8-.35-2.1-1-3.35-3.3-3.8 2.3-.45 2.95-1.7 3.3-3.8Z" />
+      <path d="M12.6 9.6c.2 1.05.5 1.65 1.5 1.9-1 .25-1.3.85-1.5 1.9-.2-1.05-.5-1.65-1.5-1.9 1-.25 1.3-.85 1.5-1.9Z" />
+    </svg>
+  )
+}
+
+export function EyeIcon() {
+  return (
+    <svg {...base}>
+      <path d="M1.6 8S3.8 3.4 8 3.4 14.4 8 14.4 8 12.2 12.6 8 12.6 1.6 8 1.6 8Z" />
+      <circle cx="8" cy="8" r="2" />
+    </svg>
+  )
+}
+
+export function DocumentIcon() {
+  return (
+    <svg {...base}>
+      <path d="M4.2 1.9h5.1l2.5 2.5v9.7H4.2Z" />
+      <path d="M9.1 1.9v2.7h2.7" />
+      <path d="M6 8.2h4M6 10.4h4" />
+    </svg>
+  )
+}

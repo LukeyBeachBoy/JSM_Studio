@@ -3,6 +3,22 @@ import './App.css'
 // tauri.conf.json is what the installer is built from.
 import tauriConf from '../src-tauri/tauri.conf.json'
 import sideNavStyles from './components/SideNav.module.css'
+import {
+  OverviewIcon,
+  ControllerIcon,
+  ConsoleIcon,
+  ButtonsIcon,
+  DPadIcon,
+  TriggersIcon,
+  JoystickIcon,
+  TrackpadIcon,
+  GyroIcon,
+  TuneIcon,
+  TimingIcon,
+  SparkleIcon,
+  EyeIcon,
+  DocumentIcon,
+} from './components/NavIcons'
 import { ThemeToggle } from './components/ThemeToggle'
 import { Suspense, lazy, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -11,6 +27,7 @@ import miscStyles from './components/Misc.module.css'
 import { SectionActions } from './components/SectionActions'
 import { DEFAULT_HOLD_PRESS_TIME } from './constants/defaults'
 import { ControllerStatusPage } from './components/ControllerStatusPage'
+import { OverviewPage } from './components/OverviewPage'
 import { HidHidePage } from './components/HidHidePage'
 import { useProfileLibrary } from './hooks/useProfileLibrary'
 import { useKeymapConfig } from './hooks/useKeymapConfig'
@@ -26,7 +43,7 @@ import { LanguageSelect } from './components/LanguageSelect'
 // One page per physical control, the way Steam Input splits them up, instead of
 // one page carrying every binding on the controller.
 type ControlTab = 'buttons' | 'dpad' | 'triggers' | 'joysticks'
-type PrimaryTab = ControlTab | 'gyro' | 'touchpad' | 'sensors' | 'timing' | 'controllerStatus' | 'debugConsole' | 'ai' | 'help' | 'deviceVisibility'
+type PrimaryTab = ControlTab | 'gyro' | 'touchpad' | 'sensors' | 'timing' | 'controllerStatus' | 'debugConsole' | 'ai' | 'help' | 'deviceVisibility' | 'overview'
 
 // Which of KeymapControls' button groups each control page is about.
 const CONTROL_TAB_SECTIONS: Record<ControlTab, string[]> = {
@@ -162,51 +179,66 @@ const PrimaryNav = ({ primaryTab, setPrimaryTab, includeHelp = false }: PrimaryN
           className={`${sideNavStyles.navItem} ${primaryTab === 'controllerStatus' ? sideNavStyles.active : ''}`}
           onClick={() => setPrimaryTab('controllerStatus')}
         >
+          <span className={sideNavStyles.navItemIcon}><ControllerIcon /></span>
           {t('app.nav.controllerStatus')}
         </button>
         <button
           className={`${sideNavStyles.navItem} ${primaryTab === 'debugConsole' ? sideNavStyles.active : ''}`}
           onClick={() => setPrimaryTab('debugConsole')}
         >
+          <span className={sideNavStyles.navItemIcon}><ConsoleIcon /></span>
           {t('app.nav.debugConsole')}
         </button>
       </div>
       <div className={sideNavStyles.navSection}>
         <div className={sideNavStyles.navSectionLabel}>{t('app.nav.controlsGroup')}</div>
         <button
+          className={`${sideNavStyles.navItem} ${primaryTab === 'overview' ? sideNavStyles.active : ''}`}
+          onClick={() => setPrimaryTab('overview')}
+        >
+          <span className={sideNavStyles.navItemIcon}><OverviewIcon /></span>
+          {t('app.nav.overview')}
+        </button>
+        <button
           className={`${sideNavStyles.navItem} ${primaryTab === 'buttons' ? sideNavStyles.active : ''}`}
           onClick={() => setPrimaryTab('buttons')}
         >
+          <span className={sideNavStyles.navItemIcon}><ButtonsIcon /></span>
           {t('app.nav.buttons')}
         </button>
         <button
           className={`${sideNavStyles.navItem} ${primaryTab === 'dpad' ? sideNavStyles.active : ''}`}
           onClick={() => setPrimaryTab('dpad')}
         >
+          <span className={sideNavStyles.navItemIcon}><DPadIcon /></span>
           {t('app.nav.dpad')}
         </button>
         <button
           className={`${sideNavStyles.navItem} ${primaryTab === 'triggers' ? sideNavStyles.active : ''}`}
           onClick={() => setPrimaryTab('triggers')}
         >
+          <span className={sideNavStyles.navItemIcon}><TriggersIcon /></span>
           {t('app.nav.triggers')}
         </button>
         <button
           className={`${sideNavStyles.navItem} ${primaryTab === 'joysticks' ? sideNavStyles.active : ''}`}
           onClick={() => setPrimaryTab('joysticks')}
         >
+          <span className={sideNavStyles.navItemIcon}><JoystickIcon /></span>
           {t('app.nav.joysticks')}
         </button>
         <button
           className={`${sideNavStyles.navItem} ${primaryTab === 'touchpad' ? sideNavStyles.active : ''}`}
           onClick={() => setPrimaryTab('touchpad')}
         >
+          <span className={sideNavStyles.navItemIcon}><TrackpadIcon /></span>
           {t('app.nav.trackpads')}
         </button>
         <button
           className={`${sideNavStyles.navItem} ${primaryTab === 'gyro' ? sideNavStyles.active : ''}`}
           onClick={() => setPrimaryTab('gyro')}
         >
+          <span className={sideNavStyles.navItemIcon}><GyroIcon /></span>
           {t('app.nav.gyro')}
         </button>
       </div>
@@ -216,18 +248,21 @@ const PrimaryNav = ({ primaryTab, setPrimaryTab, includeHelp = false }: PrimaryN
           className={`${sideNavStyles.navItem} ${primaryTab === 'sensors' ? sideNavStyles.active : ''}`}
           onClick={() => setPrimaryTab('sensors')}
         >
+          <span className={sideNavStyles.navItemIcon}><TuneIcon /></span>
           {t('app.nav.sensors')}
         </button>
         <button
           className={`${sideNavStyles.navItem} ${primaryTab === 'timing' ? sideNavStyles.active : ''}`}
           onClick={() => setPrimaryTab('timing')}
         >
+          <span className={sideNavStyles.navItemIcon}><TimingIcon /></span>
           {t('app.nav.timing')}
         </button>
         <button
           className={`${sideNavStyles.navItem} ${primaryTab === 'ai' ? sideNavStyles.active : ''}`}
           onClick={() => setPrimaryTab('ai')}
         >
+          <span className={sideNavStyles.navItemIcon}><SparkleIcon /></span>
           {t('app.nav.aiAssistant')}
         </button>
       </div>
@@ -237,6 +272,7 @@ const PrimaryNav = ({ primaryTab, setPrimaryTab, includeHelp = false }: PrimaryN
           className={`${sideNavStyles.navItem} ${primaryTab === 'deviceVisibility' ? sideNavStyles.active : ''}`}
           onClick={() => setPrimaryTab('deviceVisibility')}
         >
+          <span className={sideNavStyles.navItemIcon}><EyeIcon /></span>
           {t('app.nav.deviceVisibility')}
         </button>
       </div>
@@ -245,6 +281,7 @@ const PrimaryNav = ({ primaryTab, setPrimaryTab, includeHelp = false }: PrimaryN
           className={`${sideNavStyles.navItem} ${primaryTab === 'help' ? sideNavStyles.active : ''}`}
           onClick={() => setPrimaryTab('help')}
         >
+          <span className={sideNavStyles.navItemIcon}><DocumentIcon /></span>
           {t('app.nav.documentation')}
         </button>
       )}
@@ -1339,6 +1376,15 @@ function App() {
         <ControllerStatusPage
           devices={sample?.devices}
           ignoredDevices={ignoredGyroDevices}
+        />
+      )
+    }
+
+    if (primaryTab === 'overview') {
+      return (
+        <OverviewPage
+          devices={sample?.devices}
+          onNavigate={(target) => setPrimaryTab(target)}
         />
       )
     }

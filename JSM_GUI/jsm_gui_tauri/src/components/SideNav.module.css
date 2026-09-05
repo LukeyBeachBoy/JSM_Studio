@@ -192,6 +192,9 @@
 
 .navItem {
   position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
   text-align: left;
   border-radius: 7px;
   border: 1px solid transparent;
@@ -202,6 +205,18 @@
   font-size: 0.83rem;
   font-weight: 700;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.navItemIcon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  color: var(--text-dim);
+  transition: color 0.15s ease;
+}
+
+.navItem:hover .navItemIcon,
+.navItem.active .navItemIcon {
+  color: currentColor;
 }
 
 .navItem:hover {

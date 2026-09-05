@@ -1,9 +1,16 @@
 /* Palette follows Steam Input's current controller configuration screen: a
    near-neutral dark grey shell rather than the old blue-black one, panels
-   separated from the page by a step in lightness rather than by a border, a
-   desaturated link blue for accents and selection, and Steam's acid green
-   (#a3d34e family) reserved for "live/active" telemetry -- kept a distinct hue
-   from the accent so a lit-up input never reads as "selected".
+   separated from the page by a step in lightness rather than by a border, and
+   a desaturated link blue for accents, selection, AND success/confirmation
+   feedback (toasts, pills, badges) -- Steam Input leans on this one blue for
+   nearly everything positive rather than switching hue per state.
+
+   Green (#a3d34e family) is kept, but narrowed to genuine live/real-time
+   telemetry only (a stick or touch position actually moving right now) --
+   the one case where sharing the accent's hue would make "live" and
+   "selected" indistinguishable. Success toasts/pills previously used this
+   same green for every routine confirmation, which read as green splashed
+   across the whole app rather than a rare, meaningful signal.
 
    The blue-black version read as heavier and more saturated than the thing it
    was imitating: colour was doing work that spacing and lightness should do. */
@@ -60,9 +67,9 @@
   --pill-error-border: rgba(255, 116, 120, 0.64);
   --pill-error-text: #ffc7c9;
 
-  --pill-success-bg: rgba(163, 211, 78, 0.16);
-  --pill-success-border: rgba(163, 211, 78, 0.56);
-  --pill-success-text: #e3f5c0;
+  --pill-success-bg: rgba(76, 159, 216, 0.16);
+  --pill-success-border: rgba(76, 159, 216, 0.56);
+  --pill-success-text: #cfe9fb;
 
   /* Danger buttons/links (dark) */
   --danger-bg: var(--pill-error-bg);
@@ -70,9 +77,9 @@
   --danger-text: var(--pill-error-text);
 
   /* Toasts (dark) */
-  --toast-success-bg: #1a2a12;
-  --toast-success-border: #a3d34e;
-  --toast-success-text: #eaf7d2;
+  --toast-success-bg: #122430;
+  --toast-success-border: #4c9fd8;
+  --toast-success-text: #d9eefb;
   --toast-warn-bg: #442f12;
   --toast-warn-border: #ffc15e;
   --toast-warn-text: #ffe9c4;
@@ -137,9 +144,9 @@
   --pill-error-border: rgba(181, 60, 72, 0.48);
   --pill-error-text: #9d2d39;
 
-  --pill-success-bg: rgba(91, 138, 31, 0.12);
-  --pill-success-border: rgba(91, 138, 31, 0.45);
-  --pill-success-text: #45690f;
+  --pill-success-bg: rgba(10, 110, 189, 0.12);
+  --pill-success-border: rgba(10, 110, 189, 0.45);
+  --pill-success-text: #0f4d7d;
 
   /* Danger buttons/links (light) */
   --danger-bg: var(--pill-error-bg);
@@ -147,9 +154,9 @@
   --danger-text: var(--pill-error-text);
 
   /* Toasts (light) */
-  --toast-success-bg: #eaf2da;
-  --toast-success-border: #7ba832;
-  --toast-success-text: #3f5e14;
+  --toast-success-bg: #dceaf5;
+  --toast-success-border: #1677b7;
+  --toast-success-text: #0f4d7d;
   --toast-warn-bg: #f5ebd8;
   --toast-warn-border: #bd7b26;
   --toast-warn-text: #805016;
