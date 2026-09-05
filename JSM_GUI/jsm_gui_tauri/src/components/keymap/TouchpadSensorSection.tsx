@@ -4,6 +4,7 @@ import keymapStyles from '../Keymap.module.css'
 import styles from './Touchpad.module.css'
 import { SectionActions } from '../SectionActions'
 import { NumberField } from '../NumberField'
+import { AdvancedDisclosure } from '../AdvancedDisclosure'
 
 type Props = {
   touchpadMinCutoff?: number
@@ -95,23 +96,25 @@ export function TouchpadSensorSection(props: Props) {
               'Smoothing cutoff is the floor, in Hz: how much smoothing survives when your finger is barely moving or resting. Lower is smoother but laggier at rest. Flick responsiveness lifts that cutoff once a flick is detected, letting a fast swipe escape the resting smoothing almost immediately — so a low cutoff no longer means a slow flick, only a stiller resting cursor. If the cursor looks jittery at rest or panning slowly, go one step heavier; if flicks still feel like they trail your finger, go one step lighter.'
             )}
           </p>
-          <NumberField
-            label={t('keymap.touchpadMinCutoff', 'Smoothing cutoff')}
-            value={cutoff}
-            onChange={v => props.onTouchpadMinCutoffChange?.(v)}
-            min={0}
-            max={20}
-            step={0.1}
-            unit="Hz"
-          />
-          <NumberField
-            label={t('keymap.touchpadSpeedCoeff', 'Flick responsiveness')}
-            value={speed}
-            onChange={v => props.onTouchpadSpeedCoeffChange?.(v)}
-            min={0}
-            max={5}
-            step={0.05}
-          />
+          <AdvancedDisclosure summary={`${cutoff} Hz · ${speed}`}>
+            <NumberField
+              label={t('keymap.touchpadMinCutoff', 'Smoothing cutoff')}
+              value={cutoff}
+              onChange={v => props.onTouchpadMinCutoffChange?.(v)}
+              min={0}
+              max={20}
+              step={0.1}
+              unit="Hz"
+            />
+            <NumberField
+              label={t('keymap.touchpadSpeedCoeff', 'Flick responsiveness')}
+              value={speed}
+              onChange={v => props.onTouchpadSpeedCoeffChange?.(v)}
+              min={0}
+              max={5}
+              step={0.05}
+            />
+          </AdvancedDisclosure>
           <NumberField
             label={t('keymap.touchpadTrackballDecay', 'Trackball glide decay')}
             value={props.touchpadTrackballDecay ?? 0}

@@ -4,6 +4,7 @@ import keymapStyles from '../Keymap.module.css'
 import styles from './Touchpad.module.css'
 import { SectionActions } from '../SectionActions'
 import { NumberField } from '../NumberField'
+import { AdvancedDisclosure } from '../AdvancedDisclosure'
 
 export type TouchpadModeCardConfig = {
   mode: string
@@ -120,8 +121,7 @@ export function TouchpadModeCard({ config, title }: { config: TouchpadModeCardCo
             step={0.1}
             coarseStep={0.5}
           />
-          <details className={styles.touchpadAdvanced}>
-            <summary>{t('keymap.advancedOptions', 'Advanced')}</summary>
+          <AdvancedDisclosure>
             <NumberField
               className={styles.touchpadDeprecated}
               label={t('keymap.touchpadSmoothingDeprecated', 'Legacy smoothing')}
@@ -133,12 +133,11 @@ export function TouchpadModeCard({ config, title }: { config: TouchpadModeCardCo
               coarseStep={0.05}
               hint={t('keymap.touchpadSmoothingDeprecatedHint', 'Deprecated — prefer the smoothing cutoff under Mouse output. Leave at 0.')}
             />
-          </details>
+          </AdvancedDisclosure>
         </>
       )}
       {config.mode === 'GRID_AND_STICK' && (
-        <details className={styles.touchpadAdvanced}>
-          <summary>{t('keymap.advancedOptions', 'Advanced')}</summary>
+        <AdvancedDisclosure summary={config.dualStageMode || 'NO_SKIP'}>
           <label>
             {t('keymap.touchpadDualStageMode')}
             <select
@@ -151,7 +150,7 @@ export function TouchpadModeCard({ config, title }: { config: TouchpadModeCardCo
               ))}
             </select>
           </label>
-        </details>
+        </AdvancedDisclosure>
       )}
     </div>
   )

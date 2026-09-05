@@ -1,0 +1,74 @@
+.block {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 0.85rem 0.95rem 0.95rem 1.05rem;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg-2) 70%, transparent);
+  border: 1px solid var(--border-1);
+}
+
+.block::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.75rem;
+  bottom: 0.75rem;
+  width: 3px;
+  border-radius: 999px;
+  background: var(--side-color);
+}
+
+.left {
+  --side-color: color-mix(in srgb, var(--accent) 80%, #ffffff 20%);
+}
+
+.right {
+  --side-color: color-mix(in srgb, var(--accent) 55%, #d19a4a 45%);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--side-color) 22%, transparent);
+  color: var(--side-color);
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  flex: 0 0 auto;
+}
+
+.headerText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.title {
+  color: var(--text-strong);
+  font-size: 0.92rem;
+  font-weight: 750;
+}
+
+.description {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}

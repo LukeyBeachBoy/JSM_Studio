@@ -550,6 +550,11 @@ function App() {
     rightTouchStickAxisValue,
     touchpadAccelerationValue,
     handleAcceleration,
+    touchpadAccelValues,
+    accelCurveLinkValue,
+    handleTouchpadAccelCurveChange,
+    handleTouchpadAccelParamChange,
+    handleAccelCurveLinkChange,
     touchpadWarnings,
     hasPendingChanges,
     handleSensitivityModeshiftButtonChange,
@@ -1150,6 +1155,8 @@ function App() {
                 modeshiftButton={sensitivityModeshiftButton}
                 onModeshiftButtonChange={handleSensitivityModeshiftButtonChange}
                 lockMessage={lockMessage}
+                accelCurveLink={accelCurveLinkValue}
+                onAccelCurveLinkChange={handleAccelCurveLinkChange}
               />
             </Suspense>
           )}
@@ -1317,6 +1324,12 @@ function App() {
             touchpadWarnings={touchpadWarnings}
             touchpadAcceleration={touchpadAccelerationValue}
             onTouchpadAccelerationChange={handleAcceleration}
+            touchpadAccelValues={touchpadAccelValues}
+            accelCurveLink={accelCurveLinkValue}
+            gyroAccelShape={sensitivity}
+            onTouchpadAccelCurveChange={handleTouchpadAccelCurveChange}
+            onTouchpadAccelParamChange={handleTouchpadAccelParamChange}
+            onAccelCurveLinkChange={handleAccelCurveLinkChange}
             stickDeadzoneSettings={{
               defaults: stickDeadzoneDefaults,
               left: leftStickDeadzone,
@@ -1476,6 +1489,12 @@ function App() {
             touchpadWarnings={touchpadWarnings}
             touchpadAcceleration={touchpadAccelerationValue}
             onTouchpadAccelerationChange={handleAcceleration}
+            touchpadAccelValues={touchpadAccelValues}
+            accelCurveLink={accelCurveLinkValue}
+            gyroAccelShape={sensitivity}
+            onTouchpadAccelCurveChange={handleTouchpadAccelCurveChange}
+            onTouchpadAccelParamChange={handleTouchpadAccelParamChange}
+            onAccelCurveLinkChange={handleAccelCurveLinkChange}
             stickDeadzoneSettings={{
               defaults: stickDeadzoneDefaults,
               left: leftStickDeadzone,

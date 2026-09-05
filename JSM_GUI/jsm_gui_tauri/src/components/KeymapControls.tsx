@@ -39,7 +39,11 @@ import { KeymapSection } from './KeymapSection'
 import { MappingRulesHelpModal } from './keymap/MappingRulesHelpModal'
 import stickStyles from './Sticks.module.css'
 import { TouchpadGridSection } from './keymap/TouchpadGridSection'
-import { TouchpadSettingsSection } from './keymap/TouchpadSettingsSection'
+import { TouchpadSettingsSection, TouchpadModeCard, type TouchpadModeCardConfig } from './keymap/TouchpadSettingsSection'
+import { SideBlock } from './keymap/SideBlock'
+import { TouchpadAccelSection } from './keymap/TouchpadAccelSection'
+import type { TouchpadAccelParamKey, TouchpadAccelValues } from '../hooks/useTouchpadConfig'
+import type { AccelCurveLink, AccelCurveShape } from '../utils/accelCurve'
 import { TouchpadSensorSection } from './keymap/TouchpadSensorSection'
 import { GripSettingsSection } from './keymap/GripSettingsSection'
 import { TouchpadStickSection } from './keymap/TouchpadStickSection'
@@ -58,6 +62,7 @@ import {
 import { resolveTouchpadGrids } from '../utils/touchpadGrids'
 import { StickSettingsCard } from './StickSettingsCard'
 import { NumberField } from './NumberField'
+import { AdvancedDisclosure } from './AdvancedDisclosure'
 import type { VirtualControllerType, VirtualControllerWarning } from '../utils/virtualController'
 import { normalizeTouchpadMode, type TouchpadWarning } from '../utils/touchpadConfig'
 
@@ -161,6 +166,12 @@ type KeymapControlsProps = {
   onTouchpadSmoothingChange?: (value: string) => void
   touchpadAcceleration?: number
   onTouchpadAccelerationChange?: (value: string) => void
+  touchpadAccelValues?: TouchpadAccelValues
+  accelCurveLink?: string
+  gyroAccelShape?: AccelCurveShape
+  onTouchpadAccelCurveChange?: (value: string) => void
+  onTouchpadAccelParamChange?: (param: TouchpadAccelParamKey, value: string) => void
+  onAccelCurveLinkChange?: (value: AccelCurveLink) => void
   touchDeadzoneInner?: string
   touchRingMode?: string
   touchStickMode?: string
@@ -295,40 +306,44 @@ const StickAimSettings = ({ values, handlers, disabled }: StickAimSettingsProps)
           placeholder={formatDefault(STICK_AIM_DEFAULTS.sens)}
           disabled={disabled}
         />
-        <NumberField
-          label={t('keymap.stickPower')}
-          value={powerValue}
-          onChange={handlers.onPowerChange}
-          min={0.1}
-          max={6}
-          step={0.1}
-          coarseStep={0.5}
-          placeholder={formatDefault(STICK_AIM_DEFAULTS.power)}
-          disabled={disabled}
-        />
-        <NumberField
-          label={t('keymap.accelerationRate')}
-          value={accelRateValue}
-          onChange={handlers.onAccelerationRateChange}
-          min={0}
-          max={50}
-          step={0.1}
-          coarseStep={1}
-          placeholder={formatDefault(STICK_AIM_DEFAULTS.accelerationRate)}
-          disabled={disabled}
-        />
-        <NumberField
-          label={t('keymap.accelerationCap')}
-          value={accelCapValue}
-          onChange={handlers.onAccelerationCapChange}
-          min={0}
-          max={10000}
-          step={1}
-          coarseStep={100}
-          placeholder={formatDefault(STICK_AIM_DEFAULTS.accelerationCap)}
-          disabled={disabled}
-        />
       </div>
+      <AdvancedDisclosure>
+        <div className={stickStyles.stickAimGrid}>
+          <NumberField
+            label={t('keymap.stickPower')}
+            value={powerValue}
+            onChange={handlers.onPowerChange}
+            min={0.1}
+            max={6}
+            step={0.1}
+            coarseStep={0.5}
+            placeholder={formatDefault(STICK_AIM_DEFAULTS.power)}
+            disabled={disabled}
+          />
+          <NumberField
+            label={t('keymap.accelerationRate')}
+            value={accelRateValue}
+            onChange={handlers.onAccelerationRateChange}
+            min={0}
+            max={50}
+            step={0.1}
+            coarseStep={1}
+            placeholder={formatDefault(STICK_AIM_DEFAULTS.accelerationRate)}
+            disabled={disabled}
+          />
+          <NumberField
+            label={t('keymap.accelerationCap')}
+            value={accelCapValue}
+            onChange={handlers.onAccelerationCapChange}
+            min={0}
+            max={10000}
+            step={1}
+            coarseStep={100}
+            placeholder={formatDefault(STICK_AIM_DEFAULTS.accelerationCap)}
+            disabled={disabled}
+          />
+        </div>
+      </AdvancedDisclosure>
     </div>
   )
 }
@@ -359,16 +374,6 @@ const StickFlickSettings = ({ values, handlers, disabled }: StickFlickSettingsPr
           placeholder={formatDefault('0.1')}
           disabled={disabled}
         />
-        <NumberField
-          label={t('keymap.flickTimeExponent')}
-          value={values.flickTimeExponent}
-          onChange={handlers.onFlickTimeExponentChange}
-          min={0}
-          max={2}
-          step={0.1}
-          placeholder={formatDefault('0.0')}
-          disabled={disabled}
-        />
         <label>
           {t('keymap.snapMode')}
           <select className="app-select" value={snapMode} onChange={(event) => handlers.onSnapModeChange(event.target.value)} disabled={disabled}>
@@ -377,30 +382,44 @@ const StickFlickSettings = ({ values, handlers, disabled }: StickFlickSettingsPr
             <option value="8">{t('keymap.snapToEight')}</option>
           </select>
         </label>
-        <NumberField
-          label={t('keymap.snapStrength')}
-          value={values.snapStrength}
-          onChange={handlers.onSnapStrengthChange}
-          min={0}
-          max={1}
-          step={0.01}
-          coarseStep={0.05}
-          placeholder={formatDefault('1.0')}
-          disabled={disabled}
-        />
-        <NumberField
-          label={t('keymap.forwardDeadzoneAngle')}
-          value={values.deadzoneAngle}
-          onChange={handlers.onDeadzoneAngleChange}
-          min={0}
-          max={180}
-          step={1}
-          coarseStep={5}
-          unit="°"
-          placeholder={formatDefault('0')}
-          disabled={disabled}
-        />
       </div>
+      <AdvancedDisclosure>
+        <div className={stickStyles.stickAimGrid}>
+          <NumberField
+            label={t('keymap.flickTimeExponent')}
+            value={values.flickTimeExponent}
+            onChange={handlers.onFlickTimeExponentChange}
+            min={0}
+            max={2}
+            step={0.1}
+            placeholder={formatDefault('0.0')}
+            disabled={disabled}
+          />
+          <NumberField
+            label={t('keymap.snapStrength')}
+            value={values.snapStrength}
+            onChange={handlers.onSnapStrengthChange}
+            min={0}
+            max={1}
+            step={0.01}
+            coarseStep={0.05}
+            placeholder={formatDefault('1.0')}
+            disabled={disabled || !snapMode}
+          />
+          <NumberField
+            label={t('keymap.forwardDeadzoneAngle')}
+            value={values.deadzoneAngle}
+            onChange={handlers.onDeadzoneAngleChange}
+            min={0}
+            max={180}
+            step={1}
+            coarseStep={5}
+            unit="°"
+            placeholder={formatDefault('0')}
+            disabled={disabled}
+          />
+        </div>
+      </AdvancedDisclosure>
     </div>
   )
 }
@@ -459,6 +478,25 @@ function visibleButtonsForGroup(groupKey: string, buttons: ButtonDefinition[], l
   const mode = (groupKey === 'leftStick' ? leftStickMode : rightStickMode).toUpperCase()
   if (STICK_DIRECTIONAL_MODES.has(mode)) return buttons
   return buttons.filter(button => !directionCommands.has(button.command.toUpperCase()))
+}
+
+// Which hand an input belongs to, for the left-then-right layout. Anything not
+// obviously one-sided (face buttons, Steam/QAM, d-pad) stays unsplit.
+const LEFT_SIDE_COMMANDS = new Set(['L', 'ZL', 'ZLF', 'LSL', 'LSR', 'LMINI', 'MISC3', 'MISC6', 'L3', 'LTOUCH', 'LUP', 'LDOWN', 'LLEFT', 'LRIGHT', 'LRING'])
+const RIGHT_SIDE_COMMANDS = new Set(['R', 'ZR', 'ZRF', 'RSR', 'RSL', 'RMINI', 'MISC2', 'MISC5', 'R3', 'RTOUCH', 'RUP', 'RDOWN', 'RLEFT', 'RRIGHT', 'RRING'])
+const SIDE_SPLIT_GROUPS = new Set(['triggers', 'bumpers', 'paddles', 'mini', 'extra'])
+
+function splitButtonsBySide(buttons: ButtonDefinition[]) {
+  const left: ButtonDefinition[] = []
+  const right: ButtonDefinition[] = []
+  const rest: ButtonDefinition[] = []
+  buttons.forEach(button => {
+    const key = button.command.toUpperCase()
+    if (LEFT_SIDE_COMMANDS.has(key)) left.push(button)
+    else if (RIGHT_SIDE_COMMANDS.has(key)) right.push(button)
+    else rest.push(button)
+  })
+  return { left, right, rest }
 }
 
 const allMappingButtons = () => {
@@ -560,6 +598,12 @@ export function KeymapControls({
     onTouchpadSmoothingChange,
     touchpadAcceleration,
     onTouchpadAccelerationChange,
+    touchpadAccelValues,
+    accelCurveLink,
+    gyroAccelShape,
+    onTouchpadAccelCurveChange,
+    onTouchpadAccelParamChange,
+    onAccelCurveLinkChange,
   touchDeadzoneInner = '',
   touchRingMode = '',
   touchStickMode = '',
@@ -962,6 +1006,150 @@ export function KeymapControls({
     gridActive || TOUCH_STICK_BUTTONS.some(button => isTouchpadButtonBound(button.command))
   const touchpadButtonSectionButtons = showTouchStickButtons ? [...TOUCH_BUTTONS, ...TOUCH_STICK_BUTTONS] : TOUCH_BUTTONS
 
+  // Per-pad cards for a two-pad controller. Each side gets its own mode, grid
+  // and touch stick, stacked left-then-right rather than interleaved.
+  const leftPadCard: TouchpadModeCardConfig | undefined = showPerPadTouchpads
+    ? {
+        mode: leftTouchpadMode ?? '',
+        dualStageMode: leftTouchpadDualStageMode ?? '',
+        gridColumns: leftGridColumns ?? gridColumns,
+        gridRows: leftGridRows ?? gridRows,
+        sensitivity: leftTouchpadSensitivity,
+        sensitivityY: leftTouchpadSensitivityY,
+        smoothing: touchpadSmoothing,
+        acceleration: touchpadAcceleration,
+        onModeChange: onLeftTouchpadModeChange,
+        onGridSizeChange: onLeftGridSizeChange,
+        onSensitivityChange: onLeftTouchpadSensitivityChange,
+        onSensitivityYChange: onLeftTouchpadSensitivityYChange,
+        onDualStageModeChange: onLeftTouchpadDualStageModeChange,
+        onSmoothingChange: onTouchpadSmoothingChange,
+        onAccelerationChange: onTouchpadAccelerationChange,
+      }
+    : undefined
+  const rightPadCard: TouchpadModeCardConfig | undefined = showPerPadTouchpads
+    ? {
+        mode: rightTouchpadMode ?? '',
+        dualStageMode: rightTouchpadDualStageMode ?? '',
+        gridColumns: rightGridColumns ?? gridColumns,
+        gridRows: rightGridRows ?? gridRows,
+        sensitivity: rightTouchpadSensitivity,
+        sensitivityY: rightTouchpadSensitivityY,
+        smoothing: touchpadSmoothing,
+        acceleration: touchpadAcceleration,
+        onModeChange: onRightTouchpadModeChange,
+        onGridSizeChange: onRightGridSizeChange,
+        onSensitivityChange: onRightTouchpadSensitivityChange,
+        onSensitivityYChange: onRightTouchpadSensitivityYChange,
+        onDualStageModeChange: onRightTouchpadDualStageModeChange,
+        onSmoothingChange: onTouchpadSmoothingChange,
+        onAccelerationChange: onTouchpadAccelerationChange,
+      }
+    : undefined
+  const padModeFor = (side: 'left' | 'right') =>
+    normalizeTouchpadMode((side === 'left' ? leftTouchpadMode : rightTouchpadMode) ?? touchpadModeProp ?? '')
+
+  const renderTriggerMode = (side: 'left' | 'right') => (
+    <div className={keymapStyles.triggerModeInline} data-capture-ignore="true">
+      <label>
+        {side === 'left' ? t('keymap.l2FullPullMode') : t('keymap.r2FullPullMode')}
+        <select
+          className="app-select"
+          value={(side === 'left' ? zlModeValue : zrModeValue) || 'NO_FULL'}
+          onChange={e => (side === 'left' ? onZlModeChange : onZrModeChange)(e.target.value)}
+          disabled={isCalibrating}
+        >
+          {['NO_FULL', 'NO_SKIP', 'NO_SKIP_EXCLUSIVE', 'MUST_SKIP', 'MAY_SKIP', 'MUST_SKIP_R', 'MAY_SKIP_R'].map(mode => (
+            <option key={mode} value={mode}>{mode === 'NO_FULL' ? t('common.defaultValue', { value: mode }) : mode}</option>
+          ))}
+          <option value={side === 'left' ? 'X_LT' : 'X_RT'}>
+            {t('keymap.triggerVirtualPassthrough')}
+          </option>
+        </select>
+      </label>
+      {(side === 'left' ? zlModeValue : zrModeValue) === (side === 'left' ? 'X_LT' : 'X_RT') && (
+        <div className={stickStyles.stickFlickSettings} data-capture-ignore="true">
+          <small>{t('keymap.triggerVirtualPassthroughHint')}</small>
+          {virtualControllerType === 'NONE' && (
+            <div className={keymapStyles.virtualControllerWarning}>
+              {t('stickModes.virtualStickDisabledWarning')}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+
+  const renderPadSide = (side: 'left' | 'right') => {
+    const card = side === 'left' ? leftPadCard : rightPadCard
+    if (!card) return null
+    const pad = touchpadGridPads.find(candidate => candidate.side === side)
+    const gridMode = padModeFor(side) === 'GRID_AND_STICK'
+    const stickProps =
+      side === 'left'
+        ? {
+            touchStickMode: leftTouchStickMode ?? touchStickMode,
+            touchDeadzoneInner: leftTouchDeadzoneInner ?? touchDeadzoneInner,
+            touchRingMode: leftTouchRingMode ?? touchRingMode,
+            touchStickRadius: leftTouchStickRadius ?? touchStickRadius,
+            touchStickAxis: leftTouchStickAxis ?? touchStickAxis,
+            onTouchStickModeChange: onLeftTouchStickModeChange ?? onTouchStickModeChange,
+            onTouchDeadzoneInnerChange: onLeftTouchDeadzoneInnerChange ?? onTouchDeadzoneInnerChange,
+            onTouchRingModeChange: onLeftTouchRingModeChange ?? onTouchRingModeChange,
+            onTouchStickRadiusChange: onLeftTouchStickRadiusChange ?? onTouchStickRadiusChange,
+            onTouchStickAxisChange: onLeftTouchStickAxisChange ?? onTouchStickAxisChange,
+          }
+        : {
+            touchStickMode: rightTouchStickMode ?? touchStickMode,
+            touchDeadzoneInner: rightTouchDeadzoneInner ?? touchDeadzoneInner,
+            touchRingMode: rightTouchRingMode ?? touchRingMode,
+            touchStickRadius: rightTouchStickRadius ?? touchStickRadius,
+            touchStickAxis: rightTouchStickAxis ?? touchStickAxis,
+            onTouchStickModeChange: onRightTouchStickModeChange ?? onTouchStickModeChange,
+            onTouchDeadzoneInnerChange: onRightTouchDeadzoneInnerChange ?? onTouchDeadzoneInnerChange,
+            onTouchRingModeChange: onRightTouchRingModeChange ?? onTouchRingModeChange,
+            onTouchStickRadiusChange: onRightTouchStickRadiusChange ?? onTouchStickRadiusChange,
+            onTouchStickAxisChange: onRightTouchStickAxisChange ?? onTouchStickAxisChange,
+          }
+    return (
+      <SideBlock
+        key={side}
+        side={side}
+        title={side === 'left' ? t('keymap.leftTrackpadSection', 'Left trackpad') : t('keymap.rightTrackpadSection', 'Right trackpad')}
+        description={t('keymap.touchpadSettingsDescription')}
+      >
+        <TouchpadModeCard config={card} />
+        {gridMode && pad && isVisible('touch-grid') && (
+          <TouchpadGridSection
+            side={side}
+            gridColumns={pad.columns}
+            gridCells={pad.cells}
+            livePad={side === 'left' ? livePadTouches.left : livePadTouches.right}
+            renderButton={renderButtonCard}
+            touchpadButtons={pad.buttons}
+            selectedButton={
+              pad.buttons.find(button => button.command.toUpperCase() === selectedTouchpadGridCommand?.toUpperCase()) ?? null
+            }
+            selectedCommand={selectedTouchpadGridCommand ?? null}
+            onSelectButton={setSelectedTouchpadGridCommand}
+            isButtonBound={isTouchpadButtonBound}
+            {...actionsProps}
+          />
+        )}
+        {gridMode && isVisible('touch-stick') && (
+          <TouchpadStickSection
+            title={side === 'left' ? t('keymap.touchStickTitleLeft', 'Left touch stick') : t('keymap.touchStickTitleRight', 'Right touch stick')}
+            {...stickProps}
+            {...actionsProps}
+          />
+        )}
+        {!gridMode && (
+          <SectionActions className={keymapStyles.keymapSectionActions} {...actionsProps} />
+        )}
+      </SideBlock>
+    )
+  }
+
   const stickModeExtras = (side: 'LEFT' | 'RIGHT') => {
     const mode = side === 'LEFT' ? stickModeSettings?.left.mode ?? '' : stickModeSettings?.right.mode ?? ''
     if ((mode === 'AIM' || (side === 'LEFT' && mode === 'HYBRID_AIM')) && stickAimSettings && stickAimHandlers) {
@@ -1173,60 +1361,66 @@ export function KeymapControls({
                       icon={group.icon}
                     >
                       {(groupKey === 'leftStick' || groupKey === 'rightStick') && stickModeSettings && onStickModeChange && onRingModeChange && onStickDeadzoneChange && (
-                        <div className={keymapStyles.stickSettingsInline}>
-                          <StickSettingsCard
-                            variant="inline"
-                            title={groupKey === 'leftStick' ? t('keymap.leftStickTitle') : t('keymap.rightStickTitle')}
-                            innerValue={groupKey === 'leftStick' ? leftDeadzoneValues.inner : rightDeadzoneValues.inner}
-                            outerValue={groupKey === 'leftStick' ? leftDeadzoneValues.outer : rightDeadzoneValues.outer}
-                            defaultInner={deadzoneDefaults.inner}
-                            defaultOuter={deadzoneDefaults.outer}
-                            modeValue={groupKey === 'leftStick' ? leftStickModes.mode : rightStickModes.mode}
-                            ringValue={groupKey === 'leftStick' ? leftStickModes.ring : rightStickModes.ring}
-                            onModeChange={(value) => onStickModeChange(groupKey === 'leftStick' ? 'LEFT' : 'RIGHT', value)}
-                            onRingChange={(value) => onRingModeChange(groupKey === 'leftStick' ? 'LEFT' : 'RIGHT', value)}
-                            onInnerChange={(value) => onStickDeadzoneChange(groupKey === 'leftStick' ? 'LEFT' : 'RIGHT', 'INNER', value)}
-                            onOuterChange={(value) => onStickDeadzoneChange(groupKey === 'leftStick' ? 'LEFT' : 'RIGHT', 'OUTER', value)}
-                            disabled={isCalibrating}
-                            modeExtras={stickModeExtras(groupKey === 'leftStick' ? 'LEFT' : 'RIGHT')}
-                          />
-                        </div>
+                        <SideBlock side={groupKey === 'leftStick' ? 'left' : 'right'} title={groupKey === 'leftStick' ? t('keymap.leftStickTitle') : t('keymap.rightStickTitle')}>
+                          <div className={keymapStyles.stickSettingsInline}>
+                            <StickSettingsCard
+                              variant="inline"
+                              title=""
+                              innerValue={groupKey === 'leftStick' ? leftDeadzoneValues.inner : rightDeadzoneValues.inner}
+                              outerValue={groupKey === 'leftStick' ? leftDeadzoneValues.outer : rightDeadzoneValues.outer}
+                              defaultInner={deadzoneDefaults.inner}
+                              defaultOuter={deadzoneDefaults.outer}
+                              modeValue={groupKey === 'leftStick' ? leftStickModes.mode : rightStickModes.mode}
+                              ringValue={groupKey === 'leftStick' ? leftStickModes.ring : rightStickModes.ring}
+                              onModeChange={(value) => onStickModeChange(groupKey === 'leftStick' ? 'LEFT' : 'RIGHT', value)}
+                              onRingChange={(value) => onRingModeChange(groupKey === 'leftStick' ? 'LEFT' : 'RIGHT', value)}
+                              onInnerChange={(value) => onStickDeadzoneChange(groupKey === 'leftStick' ? 'LEFT' : 'RIGHT', 'INNER', value)}
+                              onOuterChange={(value) => onStickDeadzoneChange(groupKey === 'leftStick' ? 'LEFT' : 'RIGHT', 'OUTER', value)}
+                              disabled={isCalibrating}
+                              modeExtras={stickModeExtras(groupKey === 'leftStick' ? 'LEFT' : 'RIGHT')}
+                            />
+                          </div>
+                          <div className={keymapStyles.keymapGrid}>
+                            {group.buttons.map(button => (
+                              <div key={button.command}>{renderButtonCard(button)}</div>
+                            ))}
+                          </div>
+                        </SideBlock>
                       )}
-                      {groupKey === 'triggers' && (['left', 'right'] as const).map(side => (
-                        <div key={side} className={keymapStyles.triggerModeInline} data-capture-ignore="true">
-                          <label>
-                            {side === 'left' ? t('keymap.l2FullPullMode') : t('keymap.r2FullPullMode')}
-                            <select
-                              className="app-select"
-                              value={(side === 'left' ? zlModeValue : zrModeValue) || 'NO_FULL'}
-                              onChange={e => (side === 'left' ? onZlModeChange : onZrModeChange)(e.target.value)}
-                              disabled={actionsProps.applyDisabled}
-                            >
-                              {['NO_FULL', 'NO_SKIP', 'NO_SKIP_EXCLUSIVE', 'MUST_SKIP', 'MAY_SKIP', 'MUST_SKIP_R', 'MAY_SKIP_R'].map(mode => (
-                                <option key={mode} value={mode}>{mode === 'NO_FULL' ? t('common.defaultValue', { value: mode }) : mode}</option>
+                      {groupKey !== 'leftStick' && groupKey !== 'rightStick' && (() => {
+                        const split = splitButtonsBySide(group.buttons)
+                        const sided = SIDE_SPLIT_GROUPS.has(groupKey) && split.left.length > 0 && split.right.length > 0
+                        if (!sided) {
+                          return (
+                            <div className={keymapStyles.keymapGrid}>
+                              {group.buttons.map(button => (
+                                <div key={button.command}>{renderButtonCard(button)}</div>
                               ))}
-                              <option value={side === 'left' ? 'X_LT' : 'X_RT'}>
-                                {t('keymap.triggerVirtualPassthrough')}
-                              </option>
-                            </select>
-                          </label>
-                          {(side === 'left' ? zlModeValue : zrModeValue) === (side === 'left' ? 'X_LT' : 'X_RT') && (
-                            <div className={stickStyles.stickFlickSettings} data-capture-ignore="true">
-                              <small>{t('keymap.triggerVirtualPassthroughHint')}</small>
-                              {virtualControllerType === 'NONE' && (
-                                <div className={keymapStyles.virtualControllerWarning}>
-                                  {t('stickModes.virtualStickDisabledWarning')}
-                                </div>
-                              )}
                             </div>
-                          )}
-                        </div>
-                      ))}
-                      <div className={keymapStyles.keymapGrid}>
-                        {group.buttons.map(button => (
-                          <div key={button.command}>{renderButtonCard(button)}</div>
-                        ))}
-                      </div>
+                          )
+                        }
+                        return (
+                          <>
+                            {(['left', 'right'] as const).map(side => (
+                              <SideBlock key={side} side={side}>
+                                {groupKey === 'triggers' && renderTriggerMode(side)}
+                                <div className={keymapStyles.keymapGrid}>
+                                  {(side === 'left' ? split.left : split.right).map(button => (
+                                    <div key={button.command}>{renderButtonCard(button)}</div>
+                                  ))}
+                                </div>
+                              </SideBlock>
+                            ))}
+                            {split.rest.length > 0 && (
+                              <div className={keymapStyles.keymapGrid}>
+                                {split.rest.map(button => (
+                                  <div key={button.command}>{renderButtonCard(button)}</div>
+                                ))}
+                              </div>
+                            )}
+                          </>
+                        )
+                      })()}
                     </KeymapSection>
                   </div>
                 ))}
@@ -1244,15 +1438,32 @@ export function KeymapControls({
         <>
           {renderSections([
             {
+              key: 'touch-sides',
+              shouldRender: showPerPadTouchpads && (isVisible('touch-grid') || isVisible('touch-stick')),
+              node: (
+                <>
+                  {touchpadWarnings && touchpadWarnings.length > 0 && (
+                    <div className={keymapStyles.virtualControllerWarnings}>
+                      {touchpadWarnings.map((warning, index) => (
+                        <div key={`${warning.code}-${index}`} className={keymapStyles.virtualControllerWarning}>
+                          {renderTouchpadWarning(warning)}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {renderPadSide('left')}
+                  {renderPadSide('right')}
+                </>
+              ),
+            },
+            {
               key: 'touch-grid',
-              shouldRender: isVisible('touch-grid'),
+              shouldRender: !showPerPadTouchpads && isVisible('touch-grid'),
               node: (
                 <>
                   <TouchpadSettingsSection
                     touchpadMode={touchpadMode}
                     touchpadDualStageMode={touchpadDualStageMode}
-                    left={showPerPadTouchpads ? { mode: leftTouchpadMode ?? '', dualStageMode: leftTouchpadDualStageMode ?? '', gridColumns: leftGridColumns ?? gridColumns, gridRows: leftGridRows ?? gridRows, sensitivity: leftTouchpadSensitivity, sensitivityY: leftTouchpadSensitivityY, onSensitivityYChange: onLeftTouchpadSensitivityYChange, smoothing: touchpadSmoothing, acceleration: touchpadAcceleration, onModeChange: onLeftTouchpadModeChange, onGridSizeChange: onLeftGridSizeChange, onSensitivityChange: onLeftTouchpadSensitivityChange, onDualStageModeChange: onLeftTouchpadDualStageModeChange, onSmoothingChange: onTouchpadSmoothingChange, onAccelerationChange: onTouchpadAccelerationChange } : undefined}
-                    right={showPerPadTouchpads ? { mode: rightTouchpadMode ?? '', dualStageMode: rightTouchpadDualStageMode ?? '', gridColumns: rightGridColumns ?? gridColumns, gridRows: rightGridRows ?? gridRows, sensitivity: rightTouchpadSensitivity, sensitivityY: rightTouchpadSensitivityY, onSensitivityYChange: onRightTouchpadSensitivityYChange, smoothing: touchpadSmoothing, acceleration: touchpadAcceleration, onModeChange: onRightTouchpadModeChange, onGridSizeChange: onRightGridSizeChange, onSensitivityChange: onRightTouchpadSensitivityChange, onDualStageModeChange: onRightTouchpadDualStageModeChange, onSmoothingChange: onTouchpadSmoothingChange, onAccelerationChange: onTouchpadAccelerationChange } : undefined}
                     gridColumns={gridColumns}
                     gridRows={gridRows}
 
@@ -1319,6 +1530,21 @@ export function KeymapControls({
               ),
             },
             {
+              key: 'touch-accel',
+              shouldRender: isVisible('touch-sensors') && Boolean(touchpadAccelValues && onTouchpadAccelCurveChange && onTouchpadAccelParamChange && onAccelCurveLinkChange),
+              node: (
+                <TouchpadAccelSection
+                  values={touchpadAccelValues ?? {}}
+                  gyroShape={gyroAccelShape}
+                  accelCurveLink={accelCurveLink}
+                  onCurveChange={onTouchpadAccelCurveChange ?? (() => {})}
+                  onParamChange={onTouchpadAccelParamChange ?? (() => {})}
+                  onLinkChange={onAccelCurveLinkChange ?? (() => {})}
+                  {...actionsProps}
+                />
+              ),
+            },
+            {
               key: 'grip-sensors',
               shouldRender: isVisible('grip-sensors'),
               node: (
@@ -1341,36 +1567,21 @@ export function KeymapControls({
             },
             {
               key: 'touch-stick',
-              shouldRender: isVisible('touch-stick') && touchpadMode === 'GRID_AND_STICK',
+              shouldRender: !showPerPadTouchpads && isVisible('touch-stick') && touchpadMode === 'GRID_AND_STICK',
               node: (
-                <>
-                  <TouchpadStickSection
-                    touchStickMode={leftTouchStickMode ?? touchStickMode}
-                    touchDeadzoneInner={leftTouchDeadzoneInner ?? touchDeadzoneInner}
-                    touchRingMode={leftTouchRingMode ?? touchRingMode}
-                    touchStickRadius={leftTouchStickRadius ?? touchStickRadius}
-                    touchStickAxis={leftTouchStickAxis ?? touchStickAxis}
-                    onTouchStickModeChange={onLeftTouchStickModeChange ?? onTouchStickModeChange}
-                    onTouchDeadzoneInnerChange={onLeftTouchDeadzoneInnerChange ?? onTouchDeadzoneInnerChange}
-                    onTouchRingModeChange={onLeftTouchRingModeChange ?? onTouchRingModeChange}
-                    onTouchStickRadiusChange={onLeftTouchStickRadiusChange ?? onTouchStickRadiusChange}
-                    onTouchStickAxisChange={onLeftTouchStickAxisChange ?? onTouchStickAxisChange}
-                    {...actionsProps}
-                  />
-                  <TouchpadStickSection
-                    touchStickMode={rightTouchStickMode ?? touchStickMode}
-                    touchDeadzoneInner={rightTouchDeadzoneInner ?? touchDeadzoneInner}
-                    touchRingMode={rightTouchRingMode ?? touchRingMode}
-                    touchStickRadius={rightTouchStickRadius ?? touchStickRadius}
-                    touchStickAxis={rightTouchStickAxis ?? touchStickAxis}
-                    onTouchStickModeChange={onRightTouchStickModeChange ?? onTouchStickModeChange}
-                    onTouchDeadzoneInnerChange={onRightTouchDeadzoneInnerChange ?? onTouchDeadzoneInnerChange}
-                    onTouchRingModeChange={onRightTouchRingModeChange ?? onTouchRingModeChange}
-                    onTouchStickRadiusChange={onRightTouchStickRadiusChange ?? onTouchStickRadiusChange}
-                    onTouchStickAxisChange={onRightTouchStickAxisChange ?? onTouchStickAxisChange}
-                    {...actionsProps}
-                  />
-                </>
+                <TouchpadStickSection
+                  touchStickMode={touchStickMode}
+                  touchDeadzoneInner={touchDeadzoneInner}
+                  touchRingMode={touchRingMode}
+                  touchStickRadius={touchStickRadius}
+                  touchStickAxis={touchStickAxis}
+                  onTouchStickModeChange={onTouchStickModeChange}
+                  onTouchDeadzoneInnerChange={onTouchDeadzoneInnerChange}
+                  onTouchRingModeChange={onTouchRingModeChange}
+                  onTouchStickRadiusChange={onTouchStickRadiusChange}
+                  onTouchStickAxisChange={onTouchStickAxisChange}
+                  {...actionsProps}
+                />
               ),
             },
             {

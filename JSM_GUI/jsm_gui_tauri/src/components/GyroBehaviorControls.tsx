@@ -6,6 +6,7 @@ import { buildModifierOptions, resolveModifierOptionLabel } from '../utils/modif
 import { Card } from './Card'
 import { SectionActions } from './SectionActions'
 import { NumberField } from './NumberField'
+import { AdvancedDisclosure } from './AdvancedDisclosure'
 import { controllerLabel, formatVidPid } from '../utils/controllers'
 import styles from './Gyro.module.css'
 
@@ -124,6 +125,7 @@ export function GyroBehaviorControls({
     'R3'
   const selectedActivationButton = gyroActivationButton || fallbackActivationButton
   const usesActivationButton = gyroActivationMode === 'hold_on' || gyroActivationMode === 'hold_off'
+  const gyroDrivesMouse = !sensitivity.gyroOutput
 
   return (
     <Card className="control-panel" lockable locked={isCalibrating} lockMessage={lockMessage ?? t('messages.lockMessage')}>
@@ -179,92 +181,105 @@ export function GyroBehaviorControls({
         </label>
       </div>
       <div className="flex-inputs">
-        <NumberField
-          label={t('gyro.realWorldCalibration')}
-          value={sensitivity.realWorldCalibration}
-          onChange={onRealWorldCalibrationChange}
-          min={0}
-          max={500}
-          step={0.1}
-          coarseStep={5}
-        />
-        <NumberField
-          label={t('gyro.inGameSensitivity')}
-          value={sensitivity.inGameSens}
-          onChange={onInGameSensChange}
-          min={0}
-          max={100}
-          step={0.1}
-          defaultValue={1}
-        />
-      </div>
-      <div className="flex-inputs">
-        <label>
-          <div className="label-row">
-            <span>{t('gyro.pollingTickTime')}</span>
-            {appliedSampleHz && <span className="field-description inline-helper">{appliedSampleHz} Hz</span>}
-          </div>
-          <select value={sensitivity.tickTime?.toString() ?? ''} onChange={(e) => onTickTimeChange(e.target.value)}>
-            <option value="">{t('common.useDefault')}</option>
-            {TICK_TIME_OPTIONS.map(option => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          {t('gyro.gyroSpace')}
-          <select value={sensitivity.gyroSpace ?? ''} onChange={(e) => onGyroSpaceChange(e.target.value)}>
-            <option value="">{t('common.useDefault')}</option>
-            {GYRO_SPACE_OPTIONS.map(option => (
-              <option key={option.value} value={option.value}>
-                {t(option.labelKey)}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-      <div className="flex-inputs">
         <label>
           {t('gyro.gyroOutput')}
           <p className="field-description">{t('gyro.gyroOutputHint')}</p>
-          <select value={sensitivity.gyroOutput ?? ''} onChange={(e) => onGyroOutputChange(e.target.value)}>
+          <select className="app-select" value={sensitivity.gyroOutput ?? ''} onChange={(e) => onGyroOutputChange(e.target.value)}>
             <option value="">{t('gyro.gyroOutputMouse')} ({t('common.default')})</option>
             <option value="LEFT_STICK">{t('gyro.gyroOutputLeftStick')}</option>
             <option value="RIGHT_STICK">{t('gyro.gyroOutputRightStick')}</option>
           </select>
         </label>
-        <label>
-          {t('gyro.gyroAxisX')}
-          <select value={sensitivity.gyroAxisX ?? ''} onChange={(e) => onGyroAxisXChange(e.target.value)}>
-            <option value="">{t('common.default')}</option>
-            <option value="INVERTED">{t('gyro.inverted')}</option>
-          </select>
-        </label>
-        <label>
-          {t('gyro.gyroAxisY')}
-          <select value={sensitivity.gyroAxisY ?? ''} onChange={(e) => onGyroAxisYChange(e.target.value)}>
-            <option value="">{t('common.default')}</option>
-            <option value="INVERTED">{t('gyro.inverted')}</option>
-          </select>
-        </label>
       </div>
-      <div className="flex-inputs">
-        <label>
-          {t('gyro.counterOsMouseSpeed')}
-          <p className="field-description">{t('gyro.counterOsMouseSpeedHint')}</p>
-          <select
-            className="app-select"
-            value={counterOsMouseSpeed ? 'ON' : 'OFF'}
-            onChange={(event) => onCounterOsMouseSpeedChange(event.target.value === 'ON')}
-            disabled={isCalibrating}
-          >
-            <option value="OFF">{t('common.offDefault')}</option>
-            <option value="ON">{t('common.on')}</option>
-          </select>
-        </label>
-      </div>
+      {/* Real-world calibration and in-game sensitivity scale the *mouse* the
+          gyro produces. When the gyro is driving a virtual stick instead they
+          do nothing, so they fold away rather than inviting a pointless edit. */}
+      {gyroDrivesMouse ? (
+        <div className="flex-inputs">
+          <NumberField
+            label={t('gyro.realWorldCalibration')}
+            value={sensitivity.realWorldCalibration}
+            onChange={onRealWorldCalibrationChange}
+            min={0}
+            max={500}
+            step={0.1}
+            coarseStep={5}
+          />
+          <NumberField
+            label={t('gyro.inGameSensitivity')}
+            value={sensitivity.inGameSens}
+            onChange={onInGameSensChange}
+            min={0}
+            max={100}
+            step={0.1}
+            defaultValue={1}
+          />
+        </div>
+      ) : (
+        <p className="field-description">{t('gyro.stickOutputNote', 'Calibration and in-game sensitivity apply when the gyro drives the mouse. With a stick output, tune the stick’s own settings instead.')}</p>
+      )}
+      <AdvancedDisclosure>
+        <div className="flex-inputs">
+          <label>
+            <div className="label-row">
+              <span>{t('gyro.pollingTickTime')}</span>
+              {appliedSampleHz && <span className="field-description inline-helper">{appliedSampleHz} Hz</span>}
+            </div>
+            <select className="app-select" value={sensitivity.tickTime?.toString() ?? ''} onChange={(e) => onTickTimeChange(e.target.value)}>
+              <option value="">{t('common.useDefault')}</option>
+              {TICK_TIME_OPTIONS.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            {t('gyro.gyroSpace')}
+            <select className="app-select" value={sensitivity.gyroSpace ?? ''} onChange={(e) => onGyroSpaceChange(e.target.value)}>
+              <option value="">{t('common.useDefault')}</option>
+              {GYRO_SPACE_OPTIONS.map(option => (
+                <option key={option.value} value={option.value}>
+                  {t(option.labelKey)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className="flex-inputs">
+          <label>
+            {t('gyro.gyroAxisX')}
+            <select className="app-select" value={sensitivity.gyroAxisX ?? ''} onChange={(e) => onGyroAxisXChange(e.target.value)}>
+              <option value="">{t('common.default')}</option>
+              <option value="INVERTED">{t('gyro.inverted')}</option>
+            </select>
+          </label>
+          <label>
+            {t('gyro.gyroAxisY')}
+            <select className="app-select" value={sensitivity.gyroAxisY ?? ''} onChange={(e) => onGyroAxisYChange(e.target.value)}>
+              <option value="">{t('common.default')}</option>
+              <option value="INVERTED">{t('gyro.inverted')}</option>
+            </select>
+          </label>
+        </div>
+        {gyroDrivesMouse && (
+          <div className="flex-inputs">
+            <label>
+              {t('gyro.counterOsMouseSpeed')}
+              <p className="field-description">{t('gyro.counterOsMouseSpeedHint')}</p>
+              <select
+                className="app-select"
+                value={counterOsMouseSpeed ? 'ON' : 'OFF'}
+                onChange={(event) => onCounterOsMouseSpeedChange(event.target.value === 'ON')}
+                disabled={isCalibrating}
+              >
+                <option value="OFF">{t('common.offDefault')}</option>
+                <option value="ON">{t('common.on')}</option>
+              </select>
+            </label>
+          </div>
+        )}
+      </AdvancedDisclosure>
       {devices && devices.length > 0 && (
         <div className="flex-inputs">
           <label>

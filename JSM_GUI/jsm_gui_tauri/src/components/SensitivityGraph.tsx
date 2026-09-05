@@ -20,6 +20,9 @@ interface SensitivityGraphProps {
   currentSensX?: number
   omega?: number
   disableLiveDot?: boolean
+  /** Axis captions. Default to the gyro's, since that is where this started. */
+  xAxisLabel?: string
+  yAxisLabel?: string
 }
 
 const MAX_OMEGA = 500
@@ -121,6 +124,8 @@ export function SensitivityGraph(props: SensitivityGraphProps) {
     currentSensX,
     omega,
     disableLiveDot,
+    xAxisLabel,
+    yAxisLabel,
   } = props
 
   useEffect(() => {
@@ -214,11 +219,11 @@ export function SensitivityGraph(props: SensitivityGraphProps) {
     ctx.fillStyle = labelColor
     ctx.font = '14px sans-serif'
     ctx.textAlign = 'center'
-    ctx.fillText('Threshold (°/s)', paddingLeft + graphWidth / 2, baseHeight - 10)
+    ctx.fillText(xAxisLabel ?? 'Threshold (°/s)', paddingLeft + graphWidth / 2, baseHeight - 10)
     ctx.save()
     ctx.translate(18, paddingTop + graphHeight / 2 + 20)
     ctx.rotate(-Math.PI / 2)
-    ctx.fillText('RWS', 0, 0)
+    ctx.fillText(yAxisLabel ?? 'RWS', 0, 0)
     ctx.restore()
 
     const safeMinSensX = minSensX ?? 0

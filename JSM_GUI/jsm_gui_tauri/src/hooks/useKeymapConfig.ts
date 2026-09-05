@@ -183,6 +183,11 @@ export function useKeymapConfig() {
     handleRightTouchStickAxisChange: touchpadConfig.handleRightTouchStickAxisChange,
     touchpadAccelerationValue: touchpadConfig.touchpadAccelerationValue,
     handleAcceleration: touchpadConfig.handleTouchpadAccelerationChange,
+    touchpadAccelValues: touchpadConfig.touchpadAccelValues,
+    accelCurveLinkValue: touchpadConfig.accelCurveLinkValue,
+    handleTouchpadAccelCurveChange: touchpadConfig.handleTouchpadAccelCurveChange,
+    handleTouchpadAccelParamChange: touchpadConfig.handleTouchpadAccelParamChange,
+    handleAccelCurveLinkChange: touchpadConfig.handleAccelCurveLinkChange,
     // Stick slice
     handleStickDeadzoneChange: stickConfig.handleStickDeadzoneChange,
     handleStickModeChange: stickConfig.handleStickModeChange,

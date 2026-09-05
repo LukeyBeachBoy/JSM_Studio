@@ -2,6 +2,7 @@ import { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { formatStickModeLabel, STICK_MODE_VALUES } from '../constants/sticks'
 import { NumberField } from './NumberField'
+import { AdvancedDisclosure } from './AdvancedDisclosure'
 import styles from './Sticks.module.css'
 
 type StickSettingsCardProps = {
@@ -42,7 +43,7 @@ export function StickSettingsCard({
 
   return (
     <div className={`${styles.stickModeCard} ${variant === 'inline' ? styles.stickModeInline : ''}`} data-capture-ignore="true">
-      <h3>{title}</h3>
+      {title && <h3>{title}</h3>}
       <label>
         {t('stickModes.stickMode')}
         <select className="app-select" value={modeValue} onChange={(event) => onModeChange(event.target.value)} disabled={disabled}>
@@ -54,37 +55,41 @@ export function StickSettingsCard({
           ))}
         </select>
       </label>
-      <label>
-        {t('stickModes.ringMode')}
-        <select className="app-select" value={ringValue} onChange={(event) => onRingChange(event.target.value)} disabled={disabled}>
-          <option value="">{t('common.defaultValue', { value: t('stickModes.outer') })}</option>
-          <option value="INNER">{t('stickModes.inner')}</option>
-          <option value="OUTER">{t('stickModes.outer')}</option>
-        </select>
-      </label>
-      <NumberField
-        label={t('stickModes.innerDeadzone')}
-        value={innerValue}
-        onChange={onInnerChange}
-        min={0}
-        max={1}
-        step={0.01}
-        placeholder={defaultInner}
-        hint={innerValue ? undefined : t('common.defaultValue', { value: defaultInner })}
-        disabled={disabled}
-      />
-      <NumberField
-        label={t('stickModes.outerDeadzone')}
-        value={outerValue}
-        onChange={onOuterChange}
-        min={0}
-        max={1}
-        step={0.01}
-        placeholder={defaultOuter}
-        hint={outerValue ? undefined : t('common.defaultValue', { value: defaultOuter })}
-        disabled={disabled}
-      />
       {modeExtras && <div className={styles.stickModeExtras}>{modeExtras}</div>}
+      <AdvancedDisclosure
+        summary={`${t('stickModes.innerDeadzone')} ${innerValue || defaultInner} · ${t('stickModes.outerDeadzone')} ${outerValue || defaultOuter}`}
+      >
+        <NumberField
+          label={t('stickModes.innerDeadzone')}
+          value={innerValue}
+          onChange={onInnerChange}
+          min={0}
+          max={1}
+          step={0.01}
+          placeholder={defaultInner}
+          hint={innerValue ? undefined : t('common.defaultValue', { value: defaultInner })}
+          disabled={disabled}
+        />
+        <NumberField
+          label={t('stickModes.outerDeadzone')}
+          value={outerValue}
+          onChange={onOuterChange}
+          min={0}
+          max={1}
+          step={0.01}
+          placeholder={defaultOuter}
+          hint={outerValue ? undefined : t('common.defaultValue', { value: defaultOuter })}
+          disabled={disabled}
+        />
+        <label>
+          {t('stickModes.ringMode')}
+          <select className="app-select" value={ringValue} onChange={(event) => onRingChange(event.target.value)} disabled={disabled}>
+            <option value="">{t('common.defaultValue', { value: t('stickModes.outer') })}</option>
+            <option value="INNER">{t('stickModes.inner')}</option>
+            <option value="OUTER">{t('stickModes.outer')}</option>
+          </select>
+        </label>
+      </AdvancedDisclosure>
     </div>
   )
 }

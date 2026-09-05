@@ -8,6 +8,7 @@ import { TelemetrySample } from '../hooks/useTelemetry'
 import { CurvePreview } from './CurvePreview'
 import { SectionActions } from './SectionActions'
 import { SensitivityValues } from '../utils/keymap'
+import type { AccelCurveLink } from '../utils/accelCurve'
 
 type SensitivityControlsProps = {
   sensitivity: SensitivityValues
@@ -56,6 +57,8 @@ type SensitivityControlsProps = {
   modeshiftButton: string | null
   onModeshiftButtonChange: (value: string) => void
   lockMessage?: string
+  accelCurveLink?: string
+  onAccelCurveLinkChange?: (value: AccelCurveLink) => void
 }
 
 export function SensitivityControls({
@@ -92,6 +95,8 @@ export function SensitivityControls({
   modeshiftButton,
   onModeshiftButtonChange,
   lockMessage,
+  accelCurveLink,
+  onAccelCurveLinkChange,
 }: SensitivityControlsProps) {
   const { t } = useTranslation()
   const displaySensitivity = sensitivity
@@ -165,6 +170,8 @@ export function SensitivityControls({
           onMaxSensXChange={onMaxSensXChange}
           onMaxSensYChange={onMaxSensYChange}
           onRollContributionChange={onRollContributionChange}
+          accelCurveLink={accelCurveLink}
+          onAccelCurveLinkChange={onAccelCurveLinkChange}
         />
       )}
       <SectionActions
