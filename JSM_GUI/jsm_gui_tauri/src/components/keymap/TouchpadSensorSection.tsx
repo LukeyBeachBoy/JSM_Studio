@@ -3,6 +3,7 @@ import { KeymapSection } from '../KeymapSection'
 import keymapStyles from '../Keymap.module.css'
 import styles from './Touchpad.module.css'
 import { SectionActions } from '../SectionActions'
+import { NumberField } from '../NumberField'
 
 type Props = {
   touchpadMinCutoff?: number
@@ -94,41 +95,40 @@ export function TouchpadSensorSection(props: Props) {
               'Smoothing cutoff is the floor, in Hz: how much smoothing survives when your finger is barely moving or resting. Lower is smoother but laggier at rest. Flick responsiveness lifts that cutoff once a flick is detected, letting a fast swipe escape the resting smoothing almost immediately — so a low cutoff no longer means a slow flick, only a stiller resting cursor. If the cursor looks jittery at rest or panning slowly, go one step heavier; if flicks still feel like they trail your finger, go one step lighter.'
             )}
           </p>
-            <label>
-              {t('keymap.touchpadMinCutoff', 'Smoothing cutoff (Hz)')}
-              <input
-                type="number" min="0" max="20" step="0.1"
-                value={cutoff}
-                onChange={e => props.onTouchpadMinCutoffChange?.(e.target.value)}
-              />
-            </label>
-            <label>
-              {t('keymap.touchpadSpeedCoeff', 'Flick responsiveness')}
-              <input
-                type="number" min="0" max="5" step="0.005"
-                value={speed}
-                onChange={e => props.onTouchpadSpeedCoeffChange?.(e.target.value)}
-              />
-            </label>
-
-          <label>
-            {t('keymap.touchpadTrackballDecay', 'Trackball glide decay')}
-            <input
-              type="range" min="0" max="60" step="1"
-              value={props.touchpadTrackballDecay ?? 0}
-              onChange={e => props.onTouchpadTrackballDecayChange?.(e.target.value)}
-            />
-            <span className={styles.settingReadout}>{props.touchpadTrackballDecay ?? 0}</span>
-          </label>
-          <label>
-            {t('keymap.touchpadTrackballMinVelocity', 'Minimum flick speed')}
-            <input
-              type="range" min="0" max="2000" step="25"
-              value={props.touchpadTrackballMinVelocity ?? 200}
-              onChange={e => props.onTouchpadTrackballMinVelocityChange?.(e.target.value)}
-            />
-            <span className={styles.settingReadout}>{props.touchpadTrackballMinVelocity ?? 200}</span>
-          </label>
+          <NumberField
+            label={t('keymap.touchpadMinCutoff', 'Smoothing cutoff')}
+            value={cutoff}
+            onChange={v => props.onTouchpadMinCutoffChange?.(v)}
+            min={0}
+            max={20}
+            step={0.1}
+            unit="Hz"
+          />
+          <NumberField
+            label={t('keymap.touchpadSpeedCoeff', 'Flick responsiveness')}
+            value={speed}
+            onChange={v => props.onTouchpadSpeedCoeffChange?.(v)}
+            min={0}
+            max={5}
+            step={0.05}
+          />
+          <NumberField
+            label={t('keymap.touchpadTrackballDecay', 'Trackball glide decay')}
+            value={props.touchpadTrackballDecay ?? 0}
+            onChange={v => props.onTouchpadTrackballDecayChange?.(v)}
+            min={0}
+            max={60}
+            step={1}
+          />
+          <NumberField
+            label={t('keymap.touchpadTrackballMinVelocity', 'Minimum flick speed')}
+            value={props.touchpadTrackballMinVelocity ?? 200}
+            onChange={v => props.onTouchpadTrackballMinVelocityChange?.(v)}
+            min={0}
+            max={2000}
+            step={25}
+            unit="px/s"
+          />
           <p className={styles.touchpadHint}>
             {t(
               'keymap.touchpadTrackballMinVelocityHint',

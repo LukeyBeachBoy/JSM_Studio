@@ -1,0 +1,187 @@
+import { useEffect, useId, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
+import styles from './NumberField.module.css'
+
+export type NumberFieldProps = {
+  label: ReactNode
+  /** Config text value. '' / undefined means "not set" (placeholder shows the default). */
+  value: string | number | undefined | null
+  onChange: (value: string) => void
+  min?: number
+  max?: number
+  /** Fine increment; the slider's default step and what arrow keys use in fine mode. */
+  step?: number
+  /** Coarse increment; defaults to 10x the fine step. */
+  coarseStep?: number
+  /** Where the slider sits while the value is unset. Falls back to min. */
+  defaultValue?: number
+  unit?: string
+  placeholder?: string
+  hint?: ReactNode
+  disabled?: boolean
+  /** 'stacked' (label row, then slider) or 'inline' (everything on one row, for dense lists). */
+  layout?: 'stacked' | 'inline'
+  className?: string
+  id?: string
+}
+
+const toNumber = (value: NumberFieldProps['value']) => {
+  if (value === undefined || value === null || value === '') return undefined
+  const parsed = typeof value === 'number' ? value : Number.parseFloat(String(value))
+  return Number.isFinite(parsed) ? parsed : undefined
+}
+
+const decimalsOf = (step: number) => {
+  const text = String(step)
+  const dot = text.indexOf('.')
+  return dot < 0 ? 0 : text.length - dot - 1
+}
+
+const clamp = (value: number, min?: number, max?: number) => {
+  let next = value
+  if (min !== undefined) next = Math.max(min, next)
+  if (max !== undefined) next = Math.min(max, next)
+  return next
+}
+
+/**
+ * The one numeric control: label + right-aligned inline value on the top row,
+ * a full-width slider beneath, and a coarse/fine toggle so the slider (and
+ * arrow keys) can move in big or small increments. Every numeric setting in
+ * the app goes through this so they all look and behave the same, and so a
+ * controller mapped to arrow keys can drive them.
+ */
+export function NumberField({
+  label,
+  value,
+  onChange,
+  min,
+  max,
+  step = 1,
+  coarseStep,
+  defaultValue,
+  unit,
+  placeholder,
+  hint,
+  disabled = false,
+  layout = 'stacked',
+  className = '',
+  id,
+}: NumberFieldProps) {
+  const { t } = useTranslation()
+  const autoId = useId()
+  const inputId = id ?? autoId
+  const [coarse, setCoarse] = useState(false)
+  const [draft, setDraft] = useState<string>(value === undefined || value === null ? '' : String(value))
+  const [editing, setEditing] = useState(false)
+
+  // Keep the text box in sync with upstream changes (slider, other controls),
+  // but never clobber what the user is mid-way through typing.
+  useEffect(() => {
+    if (!editing) setDraft(value === undefined || value === null ? '' : String(value))
+  }, [value, editing])
+
+  const fine = step
+  const big = coarseStep ?? fine * 10
+  const activeStep = coarse ? big : fine
+  const decimals = decimalsOf(fine)
+  const numeric = toNumber(value)
+  const sliderValue = numeric ?? defaultValue ?? min ?? 0
+  const sliderMin = min ?? Math.min(0, sliderValue)
+  const sliderMax = max ?? Math.max(sliderMin + fine * 100, sliderValue)
+
+  const commitNumber = (next: number) => {
+    const clamped = clamp(next, min, max)
+    onChange(clamped.toFixed(decimals).replace(/\.?0+$/, '') || '0')
+  }
+
+  const commitDraft = () => {
+    setEditing(false)
+    const trimmed = draft.trim()
+    if (trimmed === '') {
+      onChange('')
+      return
+    }
+    const parsed = Number.parseFloat(trimmed)
+    if (!Number.isFinite(parsed)) {
+      setDraft(value === undefined || value === null ? '' : String(value))
+      return
+    }
+    commitNumber(parsed)
+  }
+
+  const nudge = (direction: 1 | -1) => {
+    const base = numeric ?? defaultValue ?? min ?? 0
+    commitNumber(base + direction * activeStep)
+  }
+
+  const handleTextKey = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+      event.preventDefault()
+      nudge(event.key === 'ArrowUp' ? 1 : -1)
+    } else if (event.key === 'Enter') {
+      event.currentTarget.blur()
+    } else if (event.key === 'Escape') {
+      setDraft(value === undefined || value === null ? '' : String(value))
+      setEditing(false)
+      event.currentTarget.blur()
+    }
+  }
+
+  return (
+    <div
+      className={`${styles.field} ${layout === 'inline' ? styles.inline : ''} ${disabled ? styles.disabled : ''} ${className}`.trim()}
+      data-capture-ignore="true"
+    >
+      <div className={styles.head}>
+        <label className={styles.label} htmlFor={inputId}>
+          {label}
+        </label>
+        <span className={styles.valueWrap}>
+          <input
+            id={inputId}
+            className={styles.valueInput}
+            type="text"
+            inputMode="decimal"
+            value={draft}
+            placeholder={placeholder ?? (defaultValue !== undefined ? String(defaultValue) : undefined)}
+            disabled={disabled}
+            onFocus={(event) => {
+              setEditing(true)
+              requestAnimationFrame(() => event.target.select())
+            }}
+            onChange={(event) => setDraft(event.target.value)}
+            onBlur={commitDraft}
+            onKeyDown={handleTextKey}
+            aria-label={typeof label === 'string' ? label : undefined}
+          />
+          {unit && <span className={styles.unit}>{unit}</span>}
+        </span>
+      </div>
+      <div className={styles.track}>
+        <input
+          className={styles.slider}
+          type="range"
+          min={sliderMin}
+          max={sliderMax}
+          step={activeStep}
+          value={sliderValue}
+          disabled={disabled}
+          onChange={(event) => commitNumber(Number.parseFloat(event.target.value))}
+          aria-label={typeof label === 'string' ? label : undefined}
+        />
+        <button
+          type="button"
+          className={`${styles.stepToggle} ${coarse ? styles.stepToggleCoarse : ''}`}
+          onClick={() => setCoarse(prev => !prev)}
+          disabled={disabled}
+          title={coarse ? t('numberField.coarseTitle', { step: big }) : t('numberField.fineTitle', { step: fine })}
+          aria-pressed={coarse}
+        >
+          {coarse ? t('numberField.coarse') : t('numberField.fine')}
+        </button>
+      </div>
+      {hint && <div className={styles.hint}>{hint}</div>}
+    </div>
+  )
+}

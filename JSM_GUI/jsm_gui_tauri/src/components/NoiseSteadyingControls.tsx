@@ -3,6 +3,7 @@ import { SensitivityValues } from '../utils/keymap'
 import { Card } from './Card'
 import { SectionActions } from './SectionActions'
 import { TelemetryBanner } from './TelemetryBanner'
+import { NumberField } from './NumberField'
 import telemetryStyles from './Telemetry.module.css'
 
 type NoiseSteadyingControlsProps = {
@@ -66,28 +67,12 @@ export function NoiseSteadyingControls({
         <TelemetryBanner {...telemetry} />
       </div>
       <div className="flex-inputs">
-        <label>
-          {t('noise.deadzone')}
-          <input type="number" step="0.01" min="0" value={sensitivity.cutoffSpeed ?? ''} onChange={(e) => onCutoffSpeedChange(e.target.value)} />
-          <input type="range" min="0" max="5" step="0.01" value={sensitivity.cutoffSpeed ?? 0} onChange={(e) => onCutoffSpeedChange(e.target.value)} />
-        </label>
-        <label>
-          {t('noise.steadying')}
-          <input type="number" step="0.01" min="0" value={sensitivity.cutoffRecovery ?? ''} onChange={(e) => onCutoffRecoveryChange(e.target.value)} />
-          <input type="range" min="0" max="5" step="0.01" value={sensitivity.cutoffRecovery ?? 0} onChange={(e) => onCutoffRecoveryChange(e.target.value)} />
-        </label>
+        <NumberField label={t('noise.deadzone')} value={sensitivity.cutoffSpeed} onChange={onCutoffSpeedChange} min={0} max={5} step={0.01} unit="°/s" />
+        <NumberField label={t('noise.steadying')} value={sensitivity.cutoffRecovery} onChange={onCutoffRecoveryChange} min={0} max={5} step={0.01} unit="°/s" />
       </div>
       <div className="flex-inputs">
-        <label>
-          {t('noise.smoothTime')}
-          <input type="number" step="0.001" min="0" value={sensitivity.smoothTime ?? ''} onChange={(e) => onSmoothTimeChange(e.target.value)} />
-          <input type="range" min="0" max="0.03" step="0.001" value={sensitivity.smoothTime ?? 0} onChange={(e) => onSmoothTimeChange(e.target.value)} />
-        </label>
-        <label>
-          {t('noise.smoothThreshold')}
-          <input type="number" step="1" min="0" value={sensitivity.smoothThreshold ?? ''} onChange={(e) => onSmoothThresholdChange(e.target.value)} />
-          <input type="range" min="0" max="50" step="1" value={sensitivity.smoothThreshold ?? 0} onChange={(e) => onSmoothThresholdChange(e.target.value)} />
-        </label>
+        <NumberField label={t('noise.smoothTime')} value={sensitivity.smoothTime} onChange={onSmoothTimeChange} min={0} max={0.03} step={0.001} unit="s" />
+        <NumberField label={t('noise.smoothThreshold')} value={sensitivity.smoothThreshold} onChange={onSmoothThresholdChange} min={0} max={50} step={1} unit="°/s" />
       </div>
       <div className="flex-inputs">
         <label>
@@ -107,43 +92,23 @@ export function NoiseSteadyingControls({
       </div>
       {sensitivity.oneEuroFilter && (
         <div className="flex-inputs">
-          <label>
-            {t('noise.oneEuroMinCutoff')}
-            <input type="number" step="0.1" min="0" value={sensitivity.oneEuroMinCutoff ?? ''} onChange={(e) => onOneEuroMinCutoffChange(e.target.value)} />
-            <input type="range" min="0" max="20" step="0.1" value={sensitivity.oneEuroMinCutoff ?? 6} onChange={(e) => onOneEuroMinCutoffChange(e.target.value)} />
-          </label>
-          <label>
-            {t('noise.oneEuroSpeedCoeff')}
-            <input type="number" step="0.01" min="0" value={sensitivity.oneEuroSpeedCoeff ?? ''} onChange={(e) => onOneEuroSpeedCoeffChange(e.target.value)} />
-            <input type="range" min="0" max="2" step="0.01" value={sensitivity.oneEuroSpeedCoeff ?? 0.3} onChange={(e) => onOneEuroSpeedCoeffChange(e.target.value)} />
-          </label>
+          <NumberField label={t('noise.oneEuroMinCutoff')} value={sensitivity.oneEuroMinCutoff} onChange={onOneEuroMinCutoffChange} min={0} max={20} step={0.1} defaultValue={6} unit="Hz" />
+          <NumberField label={t('noise.oneEuroSpeedCoeff')} value={sensitivity.oneEuroSpeedCoeff} onChange={onOneEuroSpeedCoeffChange} min={0} max={2} step={0.01} defaultValue={0.3} />
         </div>
       )}
       <div className="flex-inputs">
-        <label>
-          {t('noise.angleSnapping')}
-          <input type="number" step="0.1" min="0" max="45" value={sensitivity.angleSnap ?? ''} onChange={(e) => onAngleSnapChange(e.target.value)} />
-          <input type="range" min="0" max="45" step="0.1" value={sensitivity.angleSnap ?? 0} onChange={(e) => onAngleSnapChange(e.target.value)} />
-        </label>
+        <NumberField label={t('noise.angleSnapping')} value={sensitivity.angleSnap} onChange={onAngleSnapChange} min={0} max={45} step={0.1} unit="°" />
         <label>
           {t('noise.easeAngleSnapping')}
-          <select value={sensitivity.angleSnapEase ?? 'OFF'} onChange={(e) => onAngleSnapSmoothChange(e.target.value)}>
+          <select className="app-select" value={sensitivity.angleSnapEase ?? 'OFF'} onChange={(e) => onAngleSnapSmoothChange(e.target.value)}>
             <option value="OFF">{t('common.off')}</option>
             <option value="ON">{t('common.on')}</option>
           </select>
         </label>
       </div>
       <div className="flex-inputs">
-        <label>
-          {t('noise.decelBrakeStrength')}
-          <input type="number" step="0.01" min="0" max="1" value={sensitivity.decelBrakeStrength ?? ''} onChange={(e) => onDecelBrakeStrengthChange(e.target.value)} />
-          <input type="range" min="0" max="1" step="0.01" value={sensitivity.decelBrakeStrength ?? 0} onChange={(e) => onDecelBrakeStrengthChange(e.target.value)} />
-        </label>
-        <label>
-          {t('noise.decelBrakeThreshold')}
-          <input type="number" step="0.1" min="1" max="60" value={sensitivity.decelBrakeThreshold ?? ''} onChange={(e) => onDecelBrakeThresholdChange(e.target.value)} />
-          <input type="range" min="1" max="60" step="0.5" value={sensitivity.decelBrakeThreshold ?? 25} onChange={(e) => onDecelBrakeThresholdChange(e.target.value)} />
-        </label>
+        <NumberField label={t('noise.decelBrakeStrength')} value={sensitivity.decelBrakeStrength} onChange={onDecelBrakeStrengthChange} min={0} max={1} step={0.01} />
+        <NumberField label={t('noise.decelBrakeThreshold')} value={sensitivity.decelBrakeThreshold} onChange={onDecelBrakeThresholdChange} min={1} max={60} step={0.5} defaultValue={25} unit="°/s" />
       </div>
       <SectionActions
         hasPendingChanges={hasPendingChanges}

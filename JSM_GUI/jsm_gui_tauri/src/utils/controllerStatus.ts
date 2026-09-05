@@ -140,8 +140,13 @@ const addIfPressed = (commands: Set<string>, buttons: number, command: string, b
   }
 }
 
-export const controllerButtonLabel = (button: ButtonDefinition) =>
+const genericButtonLabel = (button: ButtonDefinition) =>
   button.playstation === button.xbox ? button.playstation : `${button.playstation} / ${button.xbox}`
+
+// The Steam Controller is the first-class target, so its name leads; the
+// generic PlayStation / Xbox name stays as a secondary hint for other pads.
+export const controllerButtonLabel = (button: ButtonDefinition) =>
+  button.steam ? `${button.steam} · ${genericButtonLabel(button)}` : genericButtonLabel(button)
 
 export const controllerVisualFamily = (type?: number): ControllerVisualFamily => {
   switch (type) {

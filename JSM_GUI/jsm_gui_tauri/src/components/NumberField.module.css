@@ -1,0 +1,142 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+  flex: 1 1 200px;
+}
+
+.field.disabled {
+  opacity: 0.55;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.label {
+  color: var(--text-strong);
+  font-size: 0.82rem;
+  font-weight: 650;
+  line-height: 1.25;
+  min-width: 0;
+}
+
+.valueWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex: 0 0 auto;
+}
+
+.valueInput {
+  width: 4.6rem;
+  padding: 0.22rem 0.45rem;
+  text-align: right;
+  border-radius: 6px;
+  border: 1px solid var(--border-1);
+  background: var(--bg-input);
+  color: var(--text-strong);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.valueInput:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+.unit {
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.track {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.slider {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  height: 1.4rem;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.slider:focus-visible {
+  outline: none;
+  border-radius: 999px;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 34%, transparent);
+}
+
+.stepToggle {
+  flex: 0 0 auto;
+  min-width: 3.3rem;
+  padding: 0.14rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-1);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.stepToggle:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  color: var(--text-strong);
+}
+
+.stepToggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+.stepToggleCoarse {
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--border-1));
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--text-strong);
+}
+
+.hint {
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  line-height: 1.4;
+}
+
+/* Dense variant: everything on one row -- label, slider, value. */
+.inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.inline .head {
+  flex: 0 0 auto;
+  order: 0;
+  gap: 0.5rem;
+}
+
+.inline .track {
+  flex: 1 1 auto;
+  order: 1;
+}
+
+.inline .hint {
+  flex-basis: 100%;
+  order: 2;
+}

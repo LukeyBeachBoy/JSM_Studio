@@ -5,6 +5,7 @@ import styles from './Touchpad.module.css'
 import { SectionActions } from '../SectionActions'
 import { GRIP_FIRMWARE_DEFAULT } from '../../hooks/useGripConfig'
 import { HAPTIC_EFFECTS } from '../../utils/hapticBindings'
+import { NumberField } from '../NumberField'
 
 type Props = {
   gripSensorRange?: number
@@ -51,41 +52,41 @@ export function GripSettingsSection(props: Props) {
         )}
       >
         <div className={styles.touchpadSettings}>
-          <label>
-            {t('keymap.gripSensorRange', 'Grip sensor range')}
-            <input
-              type="number" min="-1" max="32767" step="1"
-              value={range}
-              onChange={e => props.onGripSensorRangeChange?.(e.target.value)}
-            />
-            <span className={styles.settingReadout}>{show(range)}</span>
-          </label>
-          <label>
-            {t('keymap.gripFlickerGuard', 'Flicker guard size')}
-            <input
-              type="number" min="-1" max="32767" step="1"
-              value={guard}
-              onChange={e => props.onGripFlickerGuardChange?.(e.target.value)}
-            />
-            <span className={styles.settingReadout}>{show(guard)}</span>
-          </label>
+          <NumberField
+            label={t('keymap.gripSensorRange', 'Grip sensor range')}
+            value={range}
+            onChange={v => props.onGripSensorRangeChange?.(v)}
+            min={-1}
+            max={32767}
+            step={1}
+            coarseStep={250}
+            hint={show(range)}
+          />
+          <NumberField
+            label={t('keymap.gripFlickerGuard', 'Flicker guard size')}
+            value={guard}
+            onChange={v => props.onGripFlickerGuardChange?.(v)}
+            min={-1}
+            max={32767}
+            step={1}
+            coarseStep={250}
+            hint={show(guard)}
+          />
           <p className={styles.touchpadHint}>
             {t(
               'keymap.gripSensorHint',
               'Range is how near your hand must come before the sensor trips; lower detects your hands sooner. Flicker guard is the extra distance it must move away again before releasing, so a hand resting at the edge of the range cannot chatter on and off. Raw firmware units, and -1 keeps the controller’s own value. This is one setting for both grips: the controller stores a single capacitive threshold, which is why Steam Input also shows one.'
             )}
           </p>
-          <label>
-            {t('keymap.gripHapticIntensity', 'Grip haptic')}
-            <input
-              type="range" min="0" max="100" step="1"
-              value={haptic}
-              onChange={e => props.onGripHapticIntensityChange?.(e.target.value)}
-            />
-            <span className={styles.settingReadout}>
-              {haptic === 0 ? t('keymap.gripHapticOff', 'Off') : String(haptic)}
-            </span>
-          </label>
+          <NumberField
+            label={t('keymap.gripHapticIntensity', 'Grip haptic')}
+            value={haptic}
+            onChange={v => props.onGripHapticIntensityChange?.(v)}
+            min={0}
+            max={100}
+            step={1}
+            hint={haptic === 0 ? t('keymap.gripHapticOff', 'Off') : undefined}
+          />
           <label>
             {t('keymap.gripHapticEffect', 'Grip haptic effect')}
             <select
@@ -105,17 +106,15 @@ export function GripSettingsSection(props: Props) {
               'A short pulse from the grip’s own actuator the moment that sensor detects your hand. Fires once on detection rather than buzzing for as long as you hold the controller. 0 turns it off. Click is the tap Steam Input plays while calibrating the grip sensors; the other effects are the controller’s own, and any of them can be bound to any input from the Buttons pages.'
             )}
           </p>
-          <label>
-            {t('keymap.gripReleaseHapticIntensity', 'Grip release haptic')}
-            <input
-              type="range" min="0" max="100" step="1"
-              value={releaseHaptic}
-              onChange={e => props.onGripReleaseHapticIntensityChange?.(e.target.value)}
-            />
-            <span className={styles.settingReadout}>
-              {releaseHaptic === 0 ? t('keymap.gripHapticOff', 'Off') : String(releaseHaptic)}
-            </span>
-          </label>
+          <NumberField
+            label={t('keymap.gripReleaseHapticIntensity', 'Grip release haptic')}
+            value={releaseHaptic}
+            onChange={v => props.onGripReleaseHapticIntensityChange?.(v)}
+            min={0}
+            max={100}
+            step={1}
+            hint={releaseHaptic === 0 ? t('keymap.gripHapticOff', 'Off') : undefined}
+          />
           <label>
             {t('keymap.gripReleaseHapticEffect', 'Grip release haptic effect')}
             <select

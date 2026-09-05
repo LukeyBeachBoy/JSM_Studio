@@ -54,13 +54,50 @@
   }
 }
 
-.touchpadSettings select,
-.touchpadSettings input {
+.touchpadSettings label > select,
+.touchpadSettings label > input {
   border-radius: 999px;
   border: 1px solid var(--border-1);
   background: var(--bg-input);
   color: var(--text-strong);
   padding: 0.45rem 0.8rem;
+}
+
+/* Rarely-touched settings fold away behind a disclosure, Steam-style. */
+.touchpadAdvanced {
+  border-top: 1px solid var(--border-1);
+  padding-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.touchpadAdvanced > summary {
+  cursor: pointer;
+  list-style: none;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.touchpadAdvanced > summary::-webkit-details-marker { display: none; }
+
+.touchpadAdvanced > summary::before {
+  content: '▸';
+  display: inline-block;
+  width: 1rem;
+  transition: transform 0.15s ease;
+}
+
+.touchpadAdvanced[open] > summary::before { transform: rotate(90deg); }
+
+.touchpadAdvanced > summary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 28%, transparent);
+  border-radius: 4px;
 }
 
 .gridSizeInputs {

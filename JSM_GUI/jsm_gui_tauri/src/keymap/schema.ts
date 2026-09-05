@@ -8,6 +8,8 @@ export type ButtonDefinition = {
   descriptionParams?: Record<string, number | string>
   playstation: string
   xbox: string
+  /** What the input is called on the Steam Controller, when that differs from the generic name. */
+  steam?: string
 }
 
 type KeyedOption = {
@@ -47,14 +49,14 @@ export const CENTER_BUTTONS: ButtonDefinition[] = [
   { command: '+', descriptionKey: 'buttons.descriptions.optionsMenuPlus', playstation: 'Options', xbox: 'Menu' },
   { command: '-', descriptionKey: 'buttons.descriptions.shareViewMinus', playstation: 'Share', xbox: 'View' },
   { command: 'MIC', descriptionKey: 'buttons.descriptions.microphoneButton', playstation: 'Mic', xbox: 'Mic' },
-  { command: 'HOME', descriptionKey: 'buttons.descriptions.homeGuide', playstation: 'PS', xbox: 'Guide' },
+  { command: 'HOME', descriptionKey: 'buttons.descriptions.homeGuide', playstation: 'PS', xbox: 'Guide', steam: 'Steam' },
 ]
 
 export const PADDLE_BUTTONS: ButtonDefinition[] = [
-  { command: 'LSL', descriptionKey: 'buttons.descriptions.primaryLeftBackPaddle', playstation: 'L Paddle 1', xbox: 'L SL' },
-  { command: 'RSR', descriptionKey: 'buttons.descriptions.primaryRightBackPaddle', playstation: 'R Paddle 1', xbox: 'R SR' },
-  { command: 'LSR', descriptionKey: 'buttons.descriptions.secondaryLeftBackPaddle', playstation: 'L Paddle 2', xbox: 'L SR' },
-  { command: 'RSL', descriptionKey: 'buttons.descriptions.secondaryRightBackPaddle', playstation: 'R Paddle 2', xbox: 'R SL' },
+  { command: 'LSL', descriptionKey: 'buttons.descriptions.primaryLeftBackPaddle', playstation: 'L Paddle 1', xbox: 'L SL', steam: 'L4' },
+  { command: 'RSR', descriptionKey: 'buttons.descriptions.primaryRightBackPaddle', playstation: 'R Paddle 1', xbox: 'R SR', steam: 'R4' },
+  { command: 'LSR', descriptionKey: 'buttons.descriptions.secondaryLeftBackPaddle', playstation: 'L Paddle 2', xbox: 'L SR', steam: 'L5' },
+  { command: 'RSL', descriptionKey: 'buttons.descriptions.secondaryRightBackPaddle', playstation: 'R Paddle 2', xbox: 'R SL', steam: 'R5' },
 ]
 
 export const MINI_BUTTONS: ButtonDefinition[] = [
@@ -96,12 +98,12 @@ export const RIGHT_STICK_BUTTONS: ButtonDefinition[] = [
 ]
 
 export const MISC_BUTTONS: ButtonDefinition[] = [
-  { command: 'MISC1', descriptionKey: 'buttons.descriptions.extraButton1', playstation: 'Misc 1', xbox: 'Misc 1' },
-  { command: 'MISC2', descriptionKey: 'buttons.descriptions.extraButton2', playstation: 'Misc 2', xbox: 'Misc 2' },
-  { command: 'MISC3', descriptionKey: 'buttons.descriptions.extraButton3', playstation: 'Misc 3', xbox: 'Misc 3' },
+  { command: 'MISC1', descriptionKey: 'buttons.descriptions.extraButton1', playstation: 'Misc 1', xbox: 'Misc 1', steam: 'Quick Access (…)' },
+  { command: 'MISC2', descriptionKey: 'buttons.descriptions.extraButton2', playstation: 'Misc 2', xbox: 'Misc 2', steam: 'Right pad click' },
+  { command: 'MISC3', descriptionKey: 'buttons.descriptions.extraButton3', playstation: 'Misc 3', xbox: 'Misc 3', steam: 'Left pad click' },
   { command: 'MISC4', descriptionKey: 'buttons.descriptions.extraButton4', playstation: 'Misc 4', xbox: 'Misc 4' },
-  { command: 'MISC5', descriptionKey: 'buttons.descriptions.extraButton5', playstation: 'Misc 5', xbox: 'Misc 5' },
-  { command: 'MISC6', descriptionKey: 'buttons.descriptions.extraButton6', playstation: 'Misc 6', xbox: 'Misc 6' },
+  { command: 'MISC5', descriptionKey: 'buttons.descriptions.extraButton5', playstation: 'Misc 5', xbox: 'Misc 5', steam: 'Right grip' },
+  { command: 'MISC6', descriptionKey: 'buttons.descriptions.extraButton6', playstation: 'Misc 6', xbox: 'Misc 6', steam: 'Left grip' },
 ]
 
 // Each pad addresses its own cells on a controller that has two of them: LT1..

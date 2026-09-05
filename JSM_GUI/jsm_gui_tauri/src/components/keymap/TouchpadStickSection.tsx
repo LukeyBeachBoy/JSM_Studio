@@ -5,6 +5,7 @@ import keymapStyles from '../Keymap.module.css'
 import styles from './Touchpad.module.css'
 import { SectionActions } from '../SectionActions'
 import { TOUCH_STICK_AXIS_VALUES } from '../../utils/touchpadConfig'
+import { NumberField } from '../NumberField'
 
 type TouchpadStickSectionProps = {
   touchStickMode: string
@@ -71,17 +72,15 @@ export function TouchpadStickSection({
               touchpad config is confusing". */}
           {touchStickMode && (
             <div className={styles.touchpadAdvancedGrid}>
-              <label>
-                {t('keymap.touchDeadzoneInner')}
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={touchDeadzoneInner}
-                  onChange={(event) => onTouchDeadzoneInnerChange?.(event.target.value)}
-                  placeholder={t('common.defaultPlaceholder')}
-                />
-              </label>
+              <NumberField
+                label={t('keymap.touchDeadzoneInner')}
+                value={touchDeadzoneInner}
+                onChange={v => onTouchDeadzoneInnerChange?.(v)}
+                min={0}
+                max={500}
+                step={1}
+                placeholder={t('common.defaultPlaceholder')}
+              />
               <label>
                 {t('stickModes.ringMode')}
                 <select className="app-select" value={touchRingMode} onChange={(event) => onTouchRingModeChange?.(event.target.value)}>
@@ -93,17 +92,15 @@ export function TouchpadStickSection({
                   )}
                 </select>
               </label>
-              <label>
-                {t('keymap.touchStickRadius')}
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={touchStickRadius}
-                  onChange={(event) => onTouchStickRadiusChange?.(event.target.value)}
-                  placeholder={t('common.defaultPlaceholder')}
-                />
-              </label>
+              <NumberField
+                label={t('keymap.touchStickRadius')}
+                value={touchStickRadius}
+                onChange={v => onTouchStickRadiusChange?.(v)}
+                min={0}
+                max={2000}
+                step={10}
+                placeholder={t('common.defaultPlaceholder')}
+              />
               <label>
                 {t('keymap.touchStickAxis')}
                 <select className="app-select" value={touchStickAxis} onChange={(event) => onTouchStickAxisChange?.(event.target.value)}>

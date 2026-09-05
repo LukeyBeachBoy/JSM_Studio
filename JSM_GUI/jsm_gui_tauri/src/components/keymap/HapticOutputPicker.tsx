@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import keymapStyles from '../Keymap.module.css'
+import { NumberField } from '../NumberField'
 import {
   DEFAULT_HAPTIC_BINDING,
   HAPTIC_EFFECTS,
@@ -58,21 +59,20 @@ export function HapticOutputPicker({ value, disabled, onChange }: HapticOutputPi
         </select>
       </label>
 
-      <label className={keymapStyles.hapticField}>
-        <span>{t('keymap.hapticGain')}</span>
-        <input
-          type="number"
-          min={HAPTIC_GAIN_MIN}
-          max={HAPTIC_GAIN_MAX}
-          step={1}
-          value={binding.gain}
-          disabled={disabled}
-          onChange={(event) => {
-            const next = Number(event.target.value)
-            update({ gain: Number.isFinite(next) ? next : 0 })
-          }}
-        />
-      </label>
+      <NumberField
+        className={keymapStyles.hapticField}
+        label={t('keymap.hapticGain')}
+        value={binding.gain}
+        onChange={(raw) => {
+          const next = Number(raw)
+          update({ gain: Number.isFinite(next) ? next : 0 })
+        }}
+        min={HAPTIC_GAIN_MIN}
+        max={HAPTIC_GAIN_MAX}
+        step={1}
+        coarseStep={5}
+        disabled={disabled}
+      />
 
       <p className={keymapStyles.hapticHint}>
         {t('keymap.hapticHint')} <code>{formatHapticBinding(binding)}</code>

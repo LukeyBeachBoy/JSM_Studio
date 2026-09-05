@@ -3,12 +3,210 @@ import { KeymapSection } from '../KeymapSection'
 import keymapStyles from '../Keymap.module.css'
 import styles from './Touchpad.module.css'
 import { SectionActions } from '../SectionActions'
+import { NumberField } from '../NumberField'
 
-type Card = { mode:string; dualStageMode:string; gridColumns:number; gridRows:number; sensitivity?:number; sensitivityY?:number; smoothing?:number; acceleration?:number; onModeChange?:(v:string)=>void; onGridSizeChange?:(c:number,r:number)=>void; onSensitivityChange?:(v:string)=>void; onSensitivityYChange?:(v:string)=>void; onDualStageModeChange?:(v:string)=>void; onSmoothingChange?:(v:string)=>void; onAccelerationChange?:(v:string)=>void }
-type Props = { left?:Card; right?:Card; touchpadMode:string; touchpadDualStageMode:string; gridColumns:number; gridRows:number; onTouchpadModeChange?:(v:string)=>void; onGridSizeChange?:(c:number,r:number)=>void; touchpadSensitivity?:number; touchpadSensitivityY?:number; onTouchpadSensitivityChange?:(v:string)=>void; onTouchpadSensitivityYChange?:(v:string)=>void; onTouchpadDualStageModeChange?:(v:string)=>void; touchpadSmoothing?:number; onTouchpadSmoothingChange?:(v:string)=>void; touchpadAcceleration?:number; onTouchpadAccelerationChange?:(v:string)=>void; warnings?:string[]; hasPendingChanges:boolean; statusMessage?:string|null; onApply:()=>void; onCancel:()=>void; applyDisabled?:boolean }
-const modes=['NO_FULL','NO_SKIP','NO_SKIP_EXCLUSIVE','MUST_SKIP','MAY_SKIP','MUST_SKIP_R','MAY_SKIP_R']
-function CardView({config,title}:{config:Card;title:string}) { const {t}=useTranslation(); return <div className={styles.touchpadCard}><h4>{title}</h4><label>{t('keymap.mode')}<select className="app-select" value={config.mode} onChange={e=>config.onModeChange?.(e.target.value)}><option value="">{t('common.noneSelected')}</option><option value="GRID_AND_STICK">{t('keymap.gridAndStick')}</option><option value="MOUSE">{t('keymap.mouse')}</option><option value="PS_TOUCHPAD">{t('keymap.psTouchpad')}</option></select></label><label>{t('keymap.touchpadDualStageMode')}<select className="app-select" value={config.dualStageMode||'NO_SKIP'} onChange={e=>config.onDualStageModeChange?.(e.target.value)}>{modes.map(v=><option key={v} value={v}>{v}</option>)}</select></label>{config.mode==='GRID_AND_STICK'&&<div className={styles.gridSizeInputs}><label>{t('keymap.columns')}<input type="number" min={1} max={5} value={config.gridColumns} onChange={e=>config.onGridSizeChange?.(Number(e.target.value)||1,config.gridRows)}/></label><label>{t('keymap.rows')}<input type="number" min={1} max={5} value={config.gridRows} onChange={e=>config.onGridSizeChange?.(config.gridColumns,Number(e.target.value)||1)}/></label></div>}{config.mode==='MOUSE'&&<><div className={styles.gridSizeInputs}><label>{t('keymap.touchpadSensitivityX','Horizontal sensitivity')}<input type="number" step="0.1" min="0" value={config.sensitivity??''} onChange={e=>config.onSensitivityChange?.(e.target.value)}/></label><label>{t('keymap.touchpadSensitivityY','Vertical sensitivity')}<input type="number" step="0.1" min="0" value={config.sensitivityY??''} placeholder={String(config.sensitivity??'')} onChange={e=>config.onSensitivityYChange?.(e.target.value)}/></label></div><label className={styles.touchpadDeprecated}>{t('keymap.touchpadSmoothingDeprecated','Smoothing (deprecated \u2014 use the smoothing cutoff above)')}<input type="range" min="0" max="1" step="0.05" value={config.smoothing??0} onChange={e=>config.onSmoothingChange?.(e.target.value)}/><span>{config.smoothing??0}</span></label><label>{t('keymap.touchpadAcceleration')}<input type="range" min="0" max="5" step="0.1" value={config.acceleration??0} onChange={e=>config.onAccelerationChange?.(e.target.value)}/><span>{config.acceleration??0}</span></label></>}</div> }
+export type TouchpadModeCardConfig = {
+  mode: string
+  dualStageMode: string
+  gridColumns: number
+  gridRows: number
+  sensitivity?: number
+  sensitivityY?: number
+  smoothing?: number
+  acceleration?: number
+  onModeChange?: (v: string) => void
+  onGridSizeChange?: (c: number, r: number) => void
+  onSensitivityChange?: (v: string) => void
+  onSensitivityYChange?: (v: string) => void
+  onDualStageModeChange?: (v: string) => void
+  onSmoothingChange?: (v: string) => void
+  onAccelerationChange?: (v: string) => void
+}
+
+type Props = {
+  left?: TouchpadModeCardConfig
+  right?: TouchpadModeCardConfig
+  touchpadMode: string
+  touchpadDualStageMode: string
+  gridColumns: number
+  gridRows: number
+  onTouchpadModeChange?: (v: string) => void
+  onGridSizeChange?: (c: number, r: number) => void
+  touchpadSensitivity?: number
+  touchpadSensitivityY?: number
+  onTouchpadSensitivityChange?: (v: string) => void
+  onTouchpadSensitivityYChange?: (v: string) => void
+  onTouchpadDualStageModeChange?: (v: string) => void
+  touchpadSmoothing?: number
+  onTouchpadSmoothingChange?: (v: string) => void
+  touchpadAcceleration?: number
+  onTouchpadAccelerationChange?: (v: string) => void
+  warnings?: string[]
+  hasPendingChanges: boolean
+  statusMessage?: string | null
+  onApply: () => void
+  onCancel: () => void
+  applyDisabled?: boolean
+}
+
+const DUAL_STAGE_MODES = ['NO_FULL', 'NO_SKIP', 'NO_SKIP_EXCLUSIVE', 'MUST_SKIP', 'MAY_SKIP', 'MUST_SKIP_R', 'MAY_SKIP_R']
+
+// One pad's mode and the settings that only mean anything for that mode. Exported
+// so the per-side Trackpads layout can place it inside a Left / Right column.
+export function TouchpadModeCard({ config, title }: { config: TouchpadModeCardConfig; title?: string }) {
+  const { t } = useTranslation()
+  return (
+    <div className={styles.touchpadCard}>
+      {title && <h4>{title}</h4>}
+      <label>
+        {t('keymap.mode')}
+        <select className="app-select" value={config.mode} onChange={e => config.onModeChange?.(e.target.value)}>
+          <option value="">{t('common.noneSelected')}</option>
+          <option value="GRID_AND_STICK">{t('keymap.gridAndStick')}</option>
+          <option value="MOUSE">{t('keymap.mouse')}</option>
+          <option value="PS_TOUCHPAD">{t('keymap.psTouchpad')}</option>
+        </select>
+      </label>
+      {config.mode === 'GRID_AND_STICK' && (
+        <div className={styles.gridSizeInputs}>
+          <NumberField
+            label={t('keymap.columns')}
+            value={config.gridColumns}
+            onChange={v => config.onGridSizeChange?.(Number(v) || 1, config.gridRows)}
+            min={1}
+            max={5}
+            step={1}
+          />
+          <NumberField
+            label={t('keymap.rows')}
+            value={config.gridRows}
+            onChange={v => config.onGridSizeChange?.(config.gridColumns, Number(v) || 1)}
+            min={1}
+            max={5}
+            step={1}
+          />
+        </div>
+      )}
+      {config.mode === 'MOUSE' && (
+        <>
+          <div className={styles.gridSizeInputs}>
+            <NumberField
+              label={t('keymap.touchpadSensitivityX', 'Horizontal sensitivity')}
+              value={config.sensitivity}
+              onChange={v => config.onSensitivityChange?.(v)}
+              min={0}
+              max={10}
+              step={0.1}
+              coarseStep={0.5}
+              placeholder="1"
+            />
+            <NumberField
+              label={t('keymap.touchpadSensitivityY', 'Vertical sensitivity')}
+              value={config.sensitivityY}
+              onChange={v => config.onSensitivityYChange?.(v)}
+              min={0}
+              max={10}
+              step={0.1}
+              coarseStep={0.5}
+              placeholder={config.sensitivity !== undefined ? String(config.sensitivity) : '1'}
+            />
+          </div>
+          <NumberField
+            label={t('keymap.touchpadAcceleration')}
+            value={config.acceleration ?? 0}
+            onChange={v => config.onAccelerationChange?.(v)}
+            min={0}
+            max={5}
+            step={0.1}
+            coarseStep={0.5}
+          />
+          <details className={styles.touchpadAdvanced}>
+            <summary>{t('keymap.advancedOptions', 'Advanced')}</summary>
+            <NumberField
+              className={styles.touchpadDeprecated}
+              label={t('keymap.touchpadSmoothingDeprecated', 'Legacy smoothing')}
+              value={config.smoothing ?? 0}
+              onChange={v => config.onSmoothingChange?.(v)}
+              min={0}
+              max={1}
+              step={0.01}
+              coarseStep={0.05}
+              hint={t('keymap.touchpadSmoothingDeprecatedHint', 'Deprecated — prefer the smoothing cutoff under Mouse output. Leave at 0.')}
+            />
+          </details>
+        </>
+      )}
+      {config.mode === 'GRID_AND_STICK' && (
+        <details className={styles.touchpadAdvanced}>
+          <summary>{t('keymap.advancedOptions', 'Advanced')}</summary>
+          <label>
+            {t('keymap.touchpadDualStageMode')}
+            <select
+              className="app-select"
+              value={config.dualStageMode || 'NO_SKIP'}
+              onChange={e => config.onDualStageModeChange?.(e.target.value)}
+            >
+              {DUAL_STAGE_MODES.map(v => (
+                <option key={v} value={v}>{v}</option>
+              ))}
+            </select>
+          </label>
+        </details>
+      )}
+    </div>
+  )
+}
+
 // Sensor thresholds and mouse smoothing live on their own page: they describe the
 // hardware, not what the pads are bound to, and mixing them into the binding
 // screen buried them. See TouchpadSensorSection.
-export function TouchpadSettingsSection(props:Props) { const {t}=useTranslation(); const {left,right}=props; return <><KeymapSection title={t('keymap.touchpadSettingsTitle')} description={t('keymap.touchpadSettingsDescription')}><div className={styles.touchpadSettings}>{left&&right?<div className={styles.touchpadSettings}><CardView config={left} title={t('keymap.leftTouchpad','Left touchpad')}/><CardView config={right} title={t('keymap.rightTouchpad','Right touchpad')}/></div>:<CardView config={{mode:props.touchpadMode,dualStageMode:props.touchpadDualStageMode,gridColumns:props.gridColumns,gridRows:props.gridRows,sensitivity:props.touchpadSensitivity,sensitivityY:props.touchpadSensitivityY,smoothing:props.touchpadSmoothing,acceleration:props.touchpadAcceleration,onModeChange:props.onTouchpadModeChange,onGridSizeChange:props.onGridSizeChange,onSensitivityChange:props.onTouchpadSensitivityChange,onSensitivityYChange:props.onTouchpadSensitivityYChange,onDualStageModeChange:props.onTouchpadDualStageModeChange,onSmoothingChange:props.onTouchpadSmoothingChange,onAccelerationChange:props.onTouchpadAccelerationChange}} title={t('keymap.touchpad','Touchpad')}/>} {props.warnings?.map((w,i)=><div key={i} className={styles.touchpadWarning}>{w}</div>)}</div></KeymapSection><SectionActions className={keymapStyles.keymapSectionActions} hasPendingChanges={props.hasPendingChanges} statusMessage={props.statusMessage} onApply={props.onApply} onCancel={props.onCancel} applyDisabled={props.applyDisabled}/></> }
+export function TouchpadSettingsSection(props: Props) {
+  const { t } = useTranslation()
+  const { left, right } = props
+  return (
+    <>
+      <KeymapSection title={t('keymap.touchpadSettingsTitle')} description={t('keymap.touchpadSettingsDescription')}>
+        <div className={styles.touchpadSettings}>
+          {left && right ? (
+            <div className={styles.touchpadSettings}>
+              <TouchpadModeCard config={left} title={t('keymap.leftTouchpad', 'Left touchpad')} />
+              <TouchpadModeCard config={right} title={t('keymap.rightTouchpad', 'Right touchpad')} />
+            </div>
+          ) : (
+            <TouchpadModeCard
+              config={{
+                mode: props.touchpadMode,
+                dualStageMode: props.touchpadDualStageMode,
+                gridColumns: props.gridColumns,
+                gridRows: props.gridRows,
+                sensitivity: props.touchpadSensitivity,
+                sensitivityY: props.touchpadSensitivityY,
+                smoothing: props.touchpadSmoothing,
+                acceleration: props.touchpadAcceleration,
+                onModeChange: props.onTouchpadModeChange,
+                onGridSizeChange: props.onGridSizeChange,
+                onSensitivityChange: props.onTouchpadSensitivityChange,
+                onSensitivityYChange: props.onTouchpadSensitivityYChange,
+                onDualStageModeChange: props.onTouchpadDualStageModeChange,
+                onSmoothingChange: props.onTouchpadSmoothingChange,
+                onAccelerationChange: props.onTouchpadAccelerationChange,
+              }}
+              title={t('keymap.touchpad', 'Touchpad')}
+            />
+          )}
+          {props.warnings?.map((w, i) => (
+            <div key={i} className={styles.touchpadWarning}>{w}</div>
+          ))}
+        </div>
+      </KeymapSection>
+      <SectionActions
+        className={keymapStyles.keymapSectionActions}
+        hasPendingChanges={props.hasPendingChanges}
+        statusMessage={props.statusMessage}
+        onApply={props.onApply}
+        onCancel={props.onCancel}
+        applyDisabled={props.applyDisabled}
+      />
+    </>
+  )
+}

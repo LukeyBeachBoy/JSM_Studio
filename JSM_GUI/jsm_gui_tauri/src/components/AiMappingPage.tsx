@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card } from './Card'
+import { NumberField } from './NumberField'
 import styles from './AiMappingPage.module.css'
 import {
   desktopBridge,
@@ -278,24 +279,22 @@ export function AiMappingPage({
             />
           </label>
 
-          <label className={`${styles.toolbarField} ${styles.temperatureField}`}>
-            <span>{t('ai.temperatureLabel')}</span>
-            <input
-              className={styles.compactInput}
-              type="number"
-              min="0"
-              max="2"
-              step="0.1"
-              value={settings.temperature}
-              onChange={event => {
-                const nextValue = Number.parseFloat(event.target.value)
-                setSettings(current => ({
-                  ...current,
-                  temperature: Number.isFinite(nextValue) ? nextValue : current.temperature,
-                }))
-              }}
-            />
-          </label>
+          <NumberField
+            className={`${styles.toolbarField} ${styles.temperatureField}`}
+            label={t('ai.temperatureLabel')}
+            value={settings.temperature}
+            onChange={raw => {
+              const nextValue = Number.parseFloat(raw)
+              setSettings(current => ({
+                ...current,
+                temperature: Number.isFinite(nextValue) ? nextValue : current.temperature,
+              }))
+            }}
+            min={0}
+            max={2}
+            step={0.1}
+            coarseStep={0.5}
+          />
 
           <button
             type="button"

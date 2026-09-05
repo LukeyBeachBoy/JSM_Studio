@@ -57,6 +57,7 @@ import {
 } from './NavIcons'
 import { resolveTouchpadGrids } from '../utils/touchpadGrids'
 import { StickSettingsCard } from './StickSettingsCard'
+import { NumberField } from './NumberField'
 import type { VirtualControllerType, VirtualControllerWarning } from '../utils/virtualController'
 import { normalizeTouchpadMode, type TouchpadWarning } from '../utils/touchpadConfig'
 
@@ -270,61 +271,63 @@ const StickAimSettings = ({ values, handlers, disabled }: StickAimSettingsProps)
     <div className={stickStyles.stickAimSettings} data-capture-ignore="true">
       <small>{t('keymap.stickAimNote')}</small>
       <div className={stickStyles.stickAimGrid}>
-        <label>
-          {t('keymap.stickSensitivityHorizontal')}
-          <input
-            type="number"
-            step="1"
-            value={sensXValue}
-            onChange={(event) => handlers.onSensXChange(event.target.value)}
-            placeholder={formatDefault(STICK_AIM_DEFAULTS.sens)}
-            disabled={disabled}
-          />
-        </label>
-        <label>
-          {t('keymap.stickSensitivityVertical')}
-          <input
-            type="number"
-            step="1"
-            value={sensYValue}
-            onChange={(event) => handlers.onSensYChange(event.target.value)}
-            placeholder={formatDefault(STICK_AIM_DEFAULTS.sens)}
-            disabled={disabled}
-          />
-        </label>
-        <label>
-          {t('keymap.stickPower')}
-          <input
-            type="number"
-            step="0.1"
-            value={powerValue}
-            onChange={(event) => handlers.onPowerChange(event.target.value)}
-            placeholder={formatDefault(STICK_AIM_DEFAULTS.power)}
-            disabled={disabled}
-          />
-        </label>
-        <label>
-          {t('keymap.accelerationRate')}
-          <input
-            type="number"
-            step="0.1"
-            value={accelRateValue}
-            onChange={(event) => handlers.onAccelerationRateChange(event.target.value)}
-            placeholder={formatDefault(STICK_AIM_DEFAULTS.accelerationRate)}
-            disabled={disabled}
-          />
-        </label>
-        <label>
-          {t('keymap.accelerationCap')}
-          <input
-            type="number"
-            step="0.1"
-            value={accelCapValue}
-            onChange={(event) => handlers.onAccelerationCapChange(event.target.value)}
-            placeholder={formatDefault(STICK_AIM_DEFAULTS.accelerationCap)}
-            disabled={disabled}
-          />
-        </label>
+        <NumberField
+          label={t('keymap.stickSensitivityHorizontal')}
+          value={sensXValue}
+          onChange={handlers.onSensXChange}
+          min={0}
+          max={1200}
+          step={1}
+          coarseStep={30}
+          unit="°/s"
+          placeholder={formatDefault(STICK_AIM_DEFAULTS.sens)}
+          disabled={disabled}
+        />
+        <NumberField
+          label={t('keymap.stickSensitivityVertical')}
+          value={sensYValue}
+          onChange={handlers.onSensYChange}
+          min={0}
+          max={1200}
+          step={1}
+          coarseStep={30}
+          unit="°/s"
+          placeholder={formatDefault(STICK_AIM_DEFAULTS.sens)}
+          disabled={disabled}
+        />
+        <NumberField
+          label={t('keymap.stickPower')}
+          value={powerValue}
+          onChange={handlers.onPowerChange}
+          min={0.1}
+          max={6}
+          step={0.1}
+          coarseStep={0.5}
+          placeholder={formatDefault(STICK_AIM_DEFAULTS.power)}
+          disabled={disabled}
+        />
+        <NumberField
+          label={t('keymap.accelerationRate')}
+          value={accelRateValue}
+          onChange={handlers.onAccelerationRateChange}
+          min={0}
+          max={50}
+          step={0.1}
+          coarseStep={1}
+          placeholder={formatDefault(STICK_AIM_DEFAULTS.accelerationRate)}
+          disabled={disabled}
+        />
+        <NumberField
+          label={t('keymap.accelerationCap')}
+          value={accelCapValue}
+          onChange={handlers.onAccelerationCapChange}
+          min={0}
+          max={10000}
+          step={1}
+          coarseStep={100}
+          placeholder={formatDefault(STICK_AIM_DEFAULTS.accelerationCap)}
+          disabled={disabled}
+        />
       </div>
     </div>
   )
@@ -345,28 +348,27 @@ const StickFlickSettings = ({ values, handlers, disabled }: StickFlickSettingsPr
     <div className="stick-flick-settings" data-capture-ignore="true">
       <small>{t('keymap.stickFlickNote')}</small>
       <div className={stickStyles.stickAimGrid}>
-        <label>
-          {t('keymap.flickTime')}
-          <input
-            type="number"
-            step="0.01"
-            value={values.flickTime}
-            onChange={(event) => handlers.onFlickTimeChange(event.target.value)}
-            placeholder={formatDefault('0.1')}
-            disabled={disabled}
-          />
-        </label>
-        <label>
-          {t('keymap.flickTimeExponent')}
-          <input
-            type="number"
-            step="0.1"
-            value={values.flickTimeExponent}
-            onChange={(event) => handlers.onFlickTimeExponentChange(event.target.value)}
-            placeholder={formatDefault('0.0')}
-            disabled={disabled}
-          />
-        </label>
+        <NumberField
+          label={t('keymap.flickTime')}
+          value={values.flickTime}
+          onChange={handlers.onFlickTimeChange}
+          min={0}
+          max={1}
+          step={0.01}
+          unit="s"
+          placeholder={formatDefault('0.1')}
+          disabled={disabled}
+        />
+        <NumberField
+          label={t('keymap.flickTimeExponent')}
+          value={values.flickTimeExponent}
+          onChange={handlers.onFlickTimeExponentChange}
+          min={0}
+          max={2}
+          step={0.1}
+          placeholder={formatDefault('0.0')}
+          disabled={disabled}
+        />
         <label>
           {t('keymap.snapMode')}
           <select className="app-select" value={snapMode} onChange={(event) => handlers.onSnapModeChange(event.target.value)} disabled={disabled}>
@@ -375,50 +377,29 @@ const StickFlickSettings = ({ values, handlers, disabled }: StickFlickSettingsPr
             <option value="8">{t('keymap.snapToEight')}</option>
           </select>
         </label>
-        <label>
-          {t('keymap.snapStrength')}
-          <input
-            type="number"
-            step="0.05"
-            min="0"
-            max="1"
-            value={values.snapStrength}
-            onChange={(event) => handlers.onSnapStrengthChange(event.target.value)}
-            placeholder={formatDefault('1.0')}
-            disabled={disabled}
-          />
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.01"
-            value={Number(values.snapStrength) || 0}
-            onChange={(event) => handlers.onSnapStrengthChange(event.target.value)}
-            disabled={disabled}
-          />
-        </label>
-        <label>
-          {t('keymap.forwardDeadzoneAngle')}
-          <input
-            type="number"
-            step="1"
-            min="0"
-            max="180"
-            value={values.deadzoneAngle}
-            onChange={(event) => handlers.onDeadzoneAngleChange(event.target.value)}
-            placeholder={formatDefault('0')}
-            disabled={disabled}
-          />
-          <input
-            type="range"
-            min="0"
-            max="180"
-            step="1"
-            value={Number(values.deadzoneAngle) || 0}
-            onChange={(event) => handlers.onDeadzoneAngleChange(event.target.value)}
-            disabled={disabled}
-          />
-        </label>
+        <NumberField
+          label={t('keymap.snapStrength')}
+          value={values.snapStrength}
+          onChange={handlers.onSnapStrengthChange}
+          min={0}
+          max={1}
+          step={0.01}
+          coarseStep={0.05}
+          placeholder={formatDefault('1.0')}
+          disabled={disabled}
+        />
+        <NumberField
+          label={t('keymap.forwardDeadzoneAngle')}
+          value={values.deadzoneAngle}
+          onChange={handlers.onDeadzoneAngleChange}
+          min={0}
+          max={180}
+          step={1}
+          coarseStep={5}
+          unit="°"
+          placeholder={formatDefault('0')}
+          disabled={disabled}
+        />
       </div>
     </div>
   )
@@ -994,18 +975,18 @@ export function KeymapControls({
         <div className={stickStyles.stickFlickSettings} data-capture-ignore="true">
           <small>{t('keymap.mouseAreaRadiusNote')}</small>
           <div className={stickStyles.stickAimGrid}>
-            <label>
-              {t('keymap.mouseAreaRadius')}
-              <input
-                type="number"
-                min="0"
-                step="10"
-                value={mouseRingRadius}
-                onChange={(event) => onMouseRingRadiusChange(event.target.value)}
-                placeholder={t('common.enterRadius')}
-                disabled={isCalibrating}
-              />
-            </label>
+            <NumberField
+              label={t('keymap.mouseAreaRadius')}
+              value={mouseRingRadius}
+              onChange={onMouseRingRadiusChange}
+              min={0}
+              max={2000}
+              step={10}
+              coarseStep={100}
+              unit="px"
+              placeholder={t('common.enterRadius')}
+              disabled={isCalibrating}
+            />
           </div>
         </div>
       )
@@ -1015,18 +996,18 @@ export function KeymapControls({
         <div className={stickStyles.stickFlickSettings} data-capture-ignore="true">
           <small>{t('keymap.scrollSensitivityNote')}</small>
           <div className={stickStyles.stickAimGrid}>
-            <label>
-              {t('keymap.scrollSensitivity')}
-              <input
-                type="number"
-                min="0"
-                step="1"
-                value={scrollSens}
-                onChange={(event) => onScrollSensChange(event.target.value)}
-                placeholder={t('common.enterDegrees')}
-                disabled={isCalibrating}
-              />
-            </label>
+            <NumberField
+              label={t('keymap.scrollSensitivity')}
+              value={scrollSens}
+              onChange={onScrollSensChange}
+              min={0}
+              max={180}
+              step={1}
+              coarseStep={10}
+              unit="°"
+              placeholder={t('common.enterDegrees')}
+              disabled={isCalibrating}
+            />
           </div>
         </div>
       )

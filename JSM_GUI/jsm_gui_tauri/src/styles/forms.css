@@ -63,7 +63,10 @@
   gap: 0.65rem;
 }
 
-.flex-inputs label {
+/* Plain label-over-control fields. NumberField brings its own layout and only
+   uses a label for the caption, so these rules target labels that are direct
+   children of the row and their own direct controls. */
+.flex-inputs > label {
   flex: 1;
   min-width: 120px;
   display: flex;
@@ -85,7 +88,7 @@
   line-height: 1;
 }
 
-.flex-inputs input:not([type='range']) {
+.flex-inputs > label > input:not([type='range']) {
   margin-top: 0.35rem;
   padding: 0.38rem 0.55rem;
   border-radius: 6px;
@@ -97,13 +100,13 @@
   box-sizing: border-box;
 }
 
-.flex-inputs input:not([type='range']):focus {
+.flex-inputs > label > input:not([type='range']):focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
   outline: none;
 }
 
-.flex-inputs select {
+.flex-inputs > label > select {
   margin-top: 0.35rem;
   padding: 0.38rem 0.55rem;
   border-radius: 6px;
@@ -115,7 +118,7 @@
   box-sizing: border-box;
 }
 
-.flex-inputs select.app-select {
+.flex-inputs > label > select.app-select {
   border-radius: 6px;
   border: 1px solid var(--border-1);
   background: var(--bg-input);
@@ -141,7 +144,7 @@
   gap: 0.35rem;
 }
 
-.flex-inputs select:focus {
+.flex-inputs > label > select:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
   outline: none;
@@ -157,7 +160,7 @@ input[type=number] {
   -moz-appearance: textfield;
 }
 
-.flex-inputs input[type=range] {
+.flex-inputs > label > input[type=range] {
   margin-top: 0.4rem;
   accent-color: var(--accent);
 }

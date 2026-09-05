@@ -5,6 +5,7 @@ import type { GyroActivationMode } from '../utils/gyroActivation'
 import { buildModifierOptions, resolveModifierOptionLabel } from '../utils/modifierOptions'
 import { Card } from './Card'
 import { SectionActions } from './SectionActions'
+import { NumberField } from './NumberField'
 import { controllerLabel, formatVidPid } from '../utils/controllers'
 import styles from './Gyro.module.css'
 
@@ -178,19 +179,24 @@ export function GyroBehaviorControls({
         </label>
       </div>
       <div className="flex-inputs">
-        <label>
-          {t('gyro.realWorldCalibration')}
-          <input
-            type="number"
-            step="0.1"
-            value={sensitivity.realWorldCalibration ?? ''}
-            onChange={(e) => onRealWorldCalibrationChange(e.target.value)}
-          />
-        </label>
-        <label>
-          {t('gyro.inGameSensitivity')}
-          <input type="number" step="0.1" value={sensitivity.inGameSens ?? ''} onChange={(e) => onInGameSensChange(e.target.value)} />
-        </label>
+        <NumberField
+          label={t('gyro.realWorldCalibration')}
+          value={sensitivity.realWorldCalibration}
+          onChange={onRealWorldCalibrationChange}
+          min={0}
+          max={500}
+          step={0.1}
+          coarseStep={5}
+        />
+        <NumberField
+          label={t('gyro.inGameSensitivity')}
+          value={sensitivity.inGameSens}
+          onChange={onInGameSensChange}
+          min={0}
+          max={100}
+          step={0.1}
+          defaultValue={1}
+        />
       </div>
       <div className="flex-inputs">
         <label>

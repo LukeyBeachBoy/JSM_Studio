@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { KeymapSection } from '../KeymapSection'
 import keymapStyles from '../Keymap.module.css'
 import { SectionActions } from '../SectionActions'
+import { NumberField } from '../NumberField'
 
 type GlobalControlsSectionProps = {
   holdPressTimeSeconds: number
@@ -60,14 +61,17 @@ export function GlobalControlsSection({
 
   const renderRow = (title: string, caption: string, value: number, onChange: (value: string) => void) => (
     <div className={keymapStyles.globalControlRow} data-capture-ignore="true">
-      <div className={keymapStyles.globalControlText}>
-        <span className={keymapStyles.globalControlTitle}>{title}</span>
-        <span className={keymapStyles.globalControlCaption}>{caption}</span>
-      </div>
-      <div className={keymapStyles.globalControlInputGroup}>
-        <input type="number" min="0" max="1" step="0.01" value={value} onChange={(event) => onChange(event.target.value)} />
-        <span className={keymapStyles.globalControlUnit}>{t('common.seconds')}</span>
-      </div>
+      <NumberField
+        label={title}
+        value={value}
+        onChange={onChange}
+        min={0}
+        max={1}
+        step={0.01}
+        unit={t('common.seconds')}
+        hint={caption}
+        disabled={applyDisabled}
+      />
     </div>
   )
 
@@ -139,25 +143,20 @@ export function GlobalControlsSection({
             </div>
           </div>
           <div className={keymapStyles.globalControlRow} data-capture-ignore="true">
-            <div className={keymapStyles.globalControlText}>
-              <span className={keymapStyles.globalControlTitle}>{t('keymap.triggerThreshold')}</span>
-              <span className={keymapStyles.globalControlCaption}>
-                {triggerThreshold > 0
+            <NumberField
+              label={t('keymap.triggerThreshold')}
+              value={triggerThreshold}
+              onChange={onTriggerThresholdChange}
+              min={0}
+              max={1}
+              step={0.01}
+              hint={
+                triggerThreshold > 0
                   ? t('keymap.triggerThresholdCustom', { value: triggerThreshold.toFixed(2) })
-                  : t('keymap.triggerThresholdDefault')}
-              </span>
-            </div>
-            <div className={keymapStyles.globalControlInputGroup}>
-              <input
-                type="number"
-                min="0"
-                max="1"
-                step="0.01"
-                value={triggerThreshold}
-                onChange={(event) => onTriggerThresholdChange(event.target.value)}
-                disabled={applyDisabled}
-              />
-            </div>
+                  : t('keymap.triggerThresholdDefault')
+              }
+              disabled={applyDisabled}
+            />
           </div>
         </div>
       </KeymapSection>

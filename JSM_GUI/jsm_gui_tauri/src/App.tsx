@@ -26,6 +26,7 @@ import { useTranslation } from 'react-i18next'
 import { useTelemetry } from './hooks/useTelemetry'
 import miscStyles from './components/Misc.module.css'
 import { SectionActions } from './components/SectionActions'
+import { NumberField } from './components/NumberField'
 import { DEFAULT_HOLD_PRESS_TIME } from './constants/defaults'
 import { ControllerStatusPage } from './components/ControllerStatusPage'
 import { OverviewPage } from './components/OverviewPage'
@@ -698,29 +699,6 @@ function App() {
     }
     window.addEventListener('focusin', handleFocusIn)
     return () => window.removeEventListener('focusin', handleFocusIn)
-  }, [])
-
-  useEffect(() => {
-    const applyRangeTabIndex = (root: ParentNode | undefined | null) => {
-      if (!root) return
-      root.querySelectorAll<HTMLInputElement>('input[type="range"]').forEach(el => {
-        if (el.tabIndex !== -1) {
-          el.tabIndex = -1
-        }
-      })
-    }
-    applyRangeTabIndex(document.body)
-    const observer = new MutationObserver(mutations => {
-      mutations.forEach(mutation => {
-        mutation.addedNodes.forEach(node => {
-          if (node instanceof HTMLElement || node instanceof DocumentFragment) {
-            applyRangeTabIndex(node)
-          }
-        })
-      })
-    })
-    observer.observe(document.body, { childList: true, subtree: true })
-    return () => observer.disconnect()
   }, [])
 
   useEffect(() => {
@@ -1572,18 +1550,18 @@ function App() {
               {t('app.calibrationModal.description')}
             </p>
             <div className="flex-inputs">
-              <label>
-                {t('app.calibrationModal.inGameSensitivity')}
-                <input
-                  type="number"
-                  step="0.1"
-                  value={calibrationInGameSens}
-                  onChange={(event) => {
-                    setCalibrationInGameSens(event.target.value)
-                    setCalibrationDirty(true)
-                  }}
-                />
-              </label>
+              <NumberField
+                label={t('app.calibrationModal.inGameSensitivity')}
+                value={calibrationInGameSens}
+                onChange={(value) => {
+                  setCalibrationInGameSens(value)
+                  setCalibrationDirty(true)
+                }}
+                min={0}
+                max={100}
+                step={0.1}
+                coarseStep={1}
+              />
             </div>
             <div className="flex-inputs">
               <label>
@@ -1603,16 +1581,15 @@ function App() {
               </label>
             </div>
             <div className="flex-inputs">
-              <label>
-                {t('app.calibrationModal.numberOfTurns')}
-                <input
-                  type="number"
-                  step="0.5"
-                  min="0.5"
-                  value={calibrationTurns}
-                  onChange={(e) => setCalibrationTurns(e.target.value)}
-                />
-              </label>
+              <NumberField
+                label={t('app.calibrationModal.numberOfTurns')}
+                value={calibrationTurns}
+                onChange={setCalibrationTurns}
+                min={0.5}
+                max={20}
+                step={0.5}
+                coarseStep={1}
+              />
             </div>
             <SectionActions
               hasPendingChanges={calibrationDirty}

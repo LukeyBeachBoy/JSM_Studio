@@ -34,6 +34,8 @@ import {
   type ButtonDefinition,
 } from '../../keymap/schema'
 import { BindingCommandCard } from './BindingCommandCard'
+import { NumberField } from '../NumberField'
+import { controllerButtonLabel } from '../../utils/controllerStatus'
 
 // A draft row is written into the config and deleted the moment it has a value,
 // so its card unmounts and a fresh one mounts in its place. An output kind that
@@ -175,7 +177,6 @@ export const ButtonBindingsCard = ({
   )
   const rowCapturing = rows.some(row => isCapturing(button.command, row.slot, row.id)) || commands.some(command => isCapturingValue(command.id))
   const buttonHasTrackball = commands.some(command => command.outputValue.toUpperCase().includes('TRACK'))
-  const trackballSliderValue = trackballDecay && !Number.isNaN(Number(trackballDecay)) ? Number(trackballDecay) : 1
   const defaultModifier = getDefaultModifierForButton(button.command, modifierOptions)
 
   const addCommandToBaseLine = (preset: BindingCommandPreset) => {
@@ -448,25 +449,15 @@ export const ButtonBindingsCard = ({
     <>
       {buttonHasTrackball && (
         <div className={keymapStyles.trackballInline} data-capture-ignore="true">
-          <label>
-            {t('keymap.trackballDecay')}
-            <input
-              type="number"
-              min="0"
-              max="5"
-              step="0.1"
-              value={trackballDecay}
-              onChange={(event) => onTrackballDecayChange(event.target.value)}
-              placeholder={t('common.defaultValue', { value: '1.0' })}
-            />
-          </label>
-          <input
-            type="range"
-            min="0"
-            max="10"
-            step="0.1"
-            value={trackballSliderValue}
-            onChange={(event) => onTrackballDecayChange(event.target.value)}
+          <NumberField
+            label={t('keymap.trackballDecay')}
+            value={trackballDecay}
+            onChange={onTrackballDecayChange}
+            min={0}
+            max={10}
+            step={0.1}
+            coarseStep={0.5}
+            placeholder={t('common.defaultValue', { value: '1.0' })}
           />
         </div>
       )}
@@ -475,7 +466,7 @@ export const ButtonBindingsCard = ({
 
   return (
     <ButtonMappingCard
-      title={button.playstation === button.xbox ? button.playstation : `${button.playstation} / ${button.xbox}`}
+      title={controllerButtonLabel(button)}
       description={getButtonDescription(button, t)}
       isCapturing={rowCapturing}
       addControl={addControl}
