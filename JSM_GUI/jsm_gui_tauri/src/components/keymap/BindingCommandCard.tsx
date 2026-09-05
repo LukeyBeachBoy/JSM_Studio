@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { BindingCommand, BindingCommandPatch } from '../../utils/bindingCommands'
 import keymapStyles from '../Keymap.module.css'
 import { BindingEditor } from './BindingEditor'
+import { AppSelect } from '../ui/AppSelect'
 import {
   getPreferredVirtualControllerDisplayType,
   getVirtualControllerLogicalOutput,
@@ -26,6 +27,7 @@ type BindingCommandCardProps = {
   onRemove: (command: BindingCommand) => void
   onDuplicate: (command: BindingCommand) => void
   onCapture: (command: BindingCommand) => void
+  onEnableVirtualController?: () => void
 }
 
 const TRIGGER_LABEL_KEYS: Record<BindingCommand['triggerKind'], string> = {
@@ -75,6 +77,7 @@ export function BindingCommandCard({
   onRemove,
   onDuplicate,
   onCapture,
+  onEnableVirtualController,
 }: BindingCommandCardProps) {
   const { t } = useTranslation()
   const isDraftCommand = command.source.kind === 'row' && command.source.isManual && !command.outputValue
@@ -113,17 +116,16 @@ export function BindingCommandCard({
     <div className={keymapStyles.commandCard}>
       <div className={keymapStyles.commandSummary}>
         {canRetargetTrigger ? (
-          <select
+          <AppSelect
             className={`${keymapStyles.commandTriggerBadge} ${keymapStyles.commandTriggerBadgeSelect}`}
             value={command.triggerKind}
             data-capture-ignore="true"
-            onClick={(event) => event.stopPropagation()}
             onChange={(event) => onUpdate(command, { triggerKind: event.target.value as BindingCommand['triggerKind'] })}
           >
             {triggerOptions.map(kind => (
               <option key={kind} value={kind}>{t(TRIGGER_LABEL_KEYS[kind])}</option>
             ))}
-          </select>
+          </AppSelect>
         ) : (
           <span className={keymapStyles.commandTriggerBadge}>{triggerLabel}</span>
         )}
@@ -154,6 +156,7 @@ export function BindingCommandCard({
           captureLabel={captureLabel}
           onChange={(patch) => onUpdate(command, patch)}
           onCapture={() => onCapture(command)}
+          onEnableVirtualController={onEnableVirtualController}
         />
       )}
     </div>

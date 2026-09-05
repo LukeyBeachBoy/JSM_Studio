@@ -6,6 +6,7 @@ import {
   BindingTokenKind,
 } from '../../utils/keymap'
 import keymapStyles from '../Keymap.module.css'
+import { AppSelect } from '../ui/AppSelect'
 
 type AdvancedBindingEditorProps = {
   tokens: BindingToken[]
@@ -91,7 +92,7 @@ export const AdvancedBindingEditor = ({
           return (
             <div key={`${token.raw || token.value || token.kind}-${index}`} className={keymapStyles.advancedTokenRow}>
               <div className={keymapStyles.advancedTokenToolbar}>
-                <select
+                <AppSelect
                   className="app-select"
                   value={token.kind}
                   onChange={(event) => onTokenKindChange(index, event.target.value as BindingTokenKind)}
@@ -101,9 +102,9 @@ export const AdvancedBindingEditor = ({
                       {t(option.labelKey)}
                     </option>
                   ))}
-                </select>
+                </AppSelect>
 
-                <select
+                <AppSelect
                   className="app-select"
                   value={token.actionModifier}
                   onChange={(event) => onTokenActionModifierChange(index, event.target.value as BindingActionModifier)}
@@ -113,9 +114,9 @@ export const AdvancedBindingEditor = ({
                       {t(option.labelKey, { defaultValue: option.fallback })}
                     </option>
                   ))}
-                </select>
+                </AppSelect>
 
-                <select
+                <AppSelect
                   className="app-select"
                   value={token.eventModifier}
                   onChange={(event) => onTokenEventModifierChange(index, event.target.value as BindingEventModifier)}
@@ -125,12 +126,12 @@ export const AdvancedBindingEditor = ({
                       {t(option.labelKey, { defaultValue: option.fallback })}
                     </option>
                   ))}
-                </select>
+                </AppSelect>
               </div>
 
               <div className={keymapStyles.advancedTokenValueRow}>
                 {token.kind === 'special' ? (
-                  <select
+                  <AppSelect
                     className="app-select"
                     value={token.value}
                     onChange={(event) => onTokenValueChange(index, event.target.value)}
@@ -140,9 +141,9 @@ export const AdvancedBindingEditor = ({
                         {option.label}
                       </option>
                     ))}
-                  </select>
+                  </AppSelect>
                 ) : token.kind === 'mouse' ? (
-                  <select
+                  <AppSelect
                     className="app-select"
                     value={token.value}
                     onChange={(event) => onTokenValueChange(index, event.target.value)}
@@ -152,9 +153,9 @@ export const AdvancedBindingEditor = ({
                         {value}
                       </option>
                     ))}
-                  </select>
+                  </AppSelect>
                 ) : token.kind === 'wheel' ? (
-                  <select
+                  <AppSelect
                     className="app-select"
                     value={token.value}
                     onChange={(event) => onTokenValueChange(index, event.target.value)}
@@ -164,7 +165,7 @@ export const AdvancedBindingEditor = ({
                         {value}
                       </option>
                     ))}
-                  </select>
+                  </AppSelect>
                 ) : (
                   <input
                     type="text"

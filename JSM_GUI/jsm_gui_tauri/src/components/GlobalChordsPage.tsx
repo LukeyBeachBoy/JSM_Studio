@@ -40,6 +40,7 @@ import {
   type ButtonDefinition,
 } from '../keymap/schema'
 import styles from './GlobalChordsPage.module.css'
+import { AppSelect } from './ui/AppSelect'
 
 // ---------------------------------------------------------------------------
 // Document model. GlobalChords.txt is a plain JoyShockMapper config restricted
@@ -319,14 +320,14 @@ export function GlobalChordsPage({ devices }: GlobalChordsPageProps) {
         {icon}
         {title}
       </span>
-      <select className="app-select" value={shiftValue(setting)} onChange={event => setShift(setting, event.target.value)}>
+      <AppSelect className="app-select" value={shiftValue(setting)} onChange={event => setShift(setting, event.target.value)}>
         <option value="">{t('globalChords.unchanged')}</option>
         {options.map(option => (
           <option key={option.value} value={option.value}>
             {option.label}
           </option>
         ))}
-      </select>
+      </AppSelect>
     </label>
   )
 
@@ -381,7 +382,7 @@ export function GlobalChordsPage({ devices }: GlobalChordsPageProps) {
         description={t('globalChords.chordsDescription')}
         action={
           <div className={styles.addBar}>
-            <select
+            <AppSelect
               className="app-select"
               value=""
               aria-label={t('globalChords.quickAdd')}
@@ -396,7 +397,7 @@ export function GlobalChordsPage({ devices }: GlobalChordsPageProps) {
                   {t(`globalChords.presets.${preset.key}`)}
                 </option>
               ))}
-            </select>
+            </AppSelect>
             <button type="button" className="secondary-btn" onClick={() => addChord()}>
               {t('globalChords.addChord')}
             </button>
@@ -419,7 +420,7 @@ export function GlobalChordsPage({ devices }: GlobalChordsPageProps) {
                     </div>
                     <label>
                       {t('globalChords.button')}
-                      <select value={chord.button} onChange={event => updateChord(chord.id, { button: event.target.value })}>
+                      <AppSelect value={chord.button} onChange={event => updateChord(chord.id, { button: event.target.value })}>
                         {BUTTON_GROUPS.map(group => (
                           <optgroup key={group.titleKey} label={t(group.titleKey)}>
                             {group.buttons
@@ -431,7 +432,7 @@ export function GlobalChordsPage({ devices }: GlobalChordsPageProps) {
                               ))}
                           </optgroup>
                         ))}
-                      </select>
+                      </AppSelect>
                     </label>
                     <label>
                       {t('globalChords.label')}

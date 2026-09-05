@@ -98,6 +98,7 @@ type ButtonBindingsCardProps = {
   virtualControllerType: VirtualControllerType
   /** Which controller's glyphs to draw beside the input's name. */
   controllerFamily?: ControllerVisualFamily
+  onEnableVirtualController?: () => void
   bindingLabel?: string
   onBindingLabelChange?: (command: string, label: string) => void
 }
@@ -151,6 +152,7 @@ export const ButtonBindingsCard = ({
   onTrackballDecayChange,
   virtualControllerType,
   controllerFamily = 'generic',
+  onEnableVirtualController,
   bindingLabel,
   onBindingLabelChange,
 }: ButtonBindingsCardProps) => {
@@ -492,7 +494,7 @@ export const ButtonBindingsCard = ({
   return (
     <ButtonMappingCard
       title={controllerButtonLabel(button)}
-      glyph={<InputGlyph command={button.command} family={controllerFamily} size={16} />}
+      glyph={<InputGlyph command={button.command} family={controllerFamily} size={19} />}
       description={getButtonDescription(button, t)}
       isCapturing={rowCapturing}
       addControl={addControl}
@@ -515,6 +517,7 @@ export const ButtonBindingsCard = ({
               onRemove={removeCommand}
               onDuplicate={duplicateCommand}
               onCapture={captureCommand}
+              onEnableVirtualController={onEnableVirtualController}
             />
           ))
         ) : (

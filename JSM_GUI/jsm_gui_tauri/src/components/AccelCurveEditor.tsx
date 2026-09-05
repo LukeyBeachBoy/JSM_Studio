@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NumberField } from './NumberField'
 import { AdvancedDisclosure } from './AdvancedDisclosure'
+import { AppSelect } from './ui/AppSelect'
 import {
   ACCEL_CURVE_TYPES,
   inheritsCurveShape,
@@ -176,13 +177,13 @@ export function AccelCurveEditor({
           <label>
             {t('accelCurve.linkLabel')}
             <p className="field-description">{t('accelCurve.linkHint')}</p>
-            <select className="app-select" value={activeLink} onChange={event => onLinkChange(event.target.value as AccelCurveLink)} disabled={disabled}>
+            <AppSelect className="app-select" value={activeLink} onChange={event => onLinkChange(event.target.value as AccelCurveLink)} disabled={disabled}>
               {linkOptions.map(option => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
               ))}
-            </select>
+            </AppSelect>
           </label>
         </div>
       )}
@@ -193,13 +194,13 @@ export function AccelCurveEditor({
         <div className="flex-inputs">
           <label>
             {t('sensitivity.accelerationCurveLabel')}
-            <select className="app-select" value={curve} onChange={event => onCurveChange(event.target.value)} disabled={disabled}>
+            <AppSelect className="app-select" value={curve} onChange={event => onCurveChange(event.target.value)} disabled={disabled}>
               {ACCEL_CURVE_TYPES.map(type => (
                 <option key={type} value={type}>
                   {t(`sensitivity.curves.${type.toLowerCase()}`)}
                 </option>
               ))}
-            </select>
+            </AppSelect>
           </label>
         </div>
       )}

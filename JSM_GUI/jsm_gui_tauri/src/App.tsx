@@ -44,6 +44,7 @@ import { showToast } from './utils/toast'
 import { LanguageSelect } from './components/LanguageSelect'
 import { useKeyboardNav } from './hooks/useKeyboardNav'
 import { ControllerGlyphBar } from './components/ControllerGlyphBar'
+import { AppSelect } from './components/ui/AppSelect'
 
 
 // One page per physical control, the way Steam Input splits them up, instead of
@@ -1027,7 +1028,7 @@ function App() {
       <div className="utility-profile-group">
         <div className="utility-title">{t('app.profileSummary.title')}</div>
         <label className="utility-profile-select">
-          <select
+          <AppSelect
             className="app-select"
             disabled={isCalibrating}
             value={currentLibraryProfile ?? ''}
@@ -1045,7 +1046,7 @@ function App() {
                 {name}
               </option>
             ))}
-          </select>
+          </AppSelect>
         </label>
       </div>
 
@@ -1715,7 +1716,7 @@ function App() {
               <label>
                 {t('app.calibrationModal.counterOsMouseSpeed')}
                 <p className="field-description">{t('app.calibrationModal.counterOsMouseSpeedHint')}</p>
-                <select
+                <AppSelect
                   className="app-select"
                   value={calibrationCounterOs ? 'ON' : 'OFF'}
                   onChange={(event) => {
@@ -1725,7 +1726,7 @@ function App() {
                 >
                   <option value="OFF">{t('common.offDefault')}</option>
                   <option value="ON">{t('common.on')}</option>
-                </select>
+                </AppSelect>
               </label>
             </div>
             <div className="flex-inputs">

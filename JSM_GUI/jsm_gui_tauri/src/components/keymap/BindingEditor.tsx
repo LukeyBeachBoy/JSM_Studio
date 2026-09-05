@@ -33,6 +33,8 @@ type BindingEditorProps = {
   captureLabel: string
   onChange: (patch: BindingCommandPatch) => void
   onCapture: () => void
+  /** Turns the virtual gamepad on when a binding asks for one. */
+  onEnableVirtualController?: () => void
 }
 
 // Steam Input resolves a choice with one dropdown showing the current value and
@@ -92,13 +94,16 @@ export function BindingEditor({
   captureLabel,
   onChange,
   onCapture,
+  onEnableVirtualController,
 }: BindingEditorProps) {
   const { t } = useTranslation()
   const locked = command.triggerKind === 'stickShift'
   const canCapture = COMMON_OUTPUTS.includes(command.outputKind)
   const showCondition = conditionTriggers.has(command.triggerKind)
-  const virtualDisplayType = getPreferredVirtualControllerDisplayType(virtualControllerType, command.outputValue)
-  const virtualOptions = virtualDisplayType ? getVirtualControllerOptions(virtualDisplayType, t) : []
+  // With no gamepad configured there is no scheme to read the options from, so
+  // fall back to the Xbox layout -- the same one selecting this output turns on.
+  const virtualDisplayType = getPreferredVirtualControllerDisplayType(virtualControllerType, command.outputValue) ?? 'XBOX'
+  const virtualOptions = getVirtualControllerOptions(virtualDisplayType, t)
   const virtualSelection = command.virtualControllerLogicalOutput ?? getVirtualControllerLogicalOutput(command.outputValue) ?? ''
 
   const triggerGroups: SelectGroup[] = [
@@ -110,10 +115,13 @@ export function BindingEditor({
     { options: COMMON_OUTPUTS.map(value => ({ value, label: t(OUTPUT_LABEL_KEYS[value]) })) },
     {
       label: t('keymap.advancedOptions'),
+      // Virtual controller stays selectable with no virtual gamepad configured:
+      // choosing it switches the gamepad on, which is what you meant. Greying it
+      // out left you with no way to find out why from here.
       options: RARE_OUTPUTS.map(value => ({
         value,
         label: t(OUTPUT_LABEL_KEYS[value]),
-        disabled: value === 'virtualController' && virtualControllerType === 'NONE' && command.outputKind !== 'virtualController',
+        hint: value === 'virtualController' && virtualControllerType === 'NONE' ? t('keymap.virtualControllerTurnsOn') : undefined,
       })),
     },
   ]
@@ -121,8 +129,12 @@ export function BindingEditor({
   const handleOutputKindChange = (nextOutputKind: BindingOutputKind) => {
     if (nextOutputKind === command.outputKind) return
     if (nextOutputKind === 'virtualController') {
-      const logical = getDefaultVirtualControllerLogicalOutput(virtualControllerType)
-      const token = logical ? toVirtualControllerToken(logical, virtualControllerType) ?? '' : ''
+      // With no gamepad configured there is nothing to emit into, so turn one on
+      // and bind against it rather than leaving the row inert.
+      const effectiveType = virtualControllerType === 'NONE' ? 'XBOX' : virtualControllerType
+      if (virtualControllerType === 'NONE') onEnableVirtualController?.()
+      const logical = getDefaultVirtualControllerLogicalOutput(effectiveType)
+      const token = logical ? toVirtualControllerToken(logical, effectiveType) ?? '' : ''
       onChange({ outputKind: nextOutputKind, outputValue: token, virtualControllerLogicalOutput: logical ?? undefined })
       return
     }
@@ -178,7 +190,7 @@ export function BindingEditor({
           }}
           options={virtualOptions.map(option => ({ value: option.value, label: option.label }))}
           placeholder={t('keymap.commandNoOutput')}
-          disabled={locked || virtualControllerType === 'NONE'}
+          disabled={locked}
           ariaLabel={t('keymap.commandOutputValue')}
         />
       )

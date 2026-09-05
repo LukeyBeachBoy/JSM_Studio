@@ -50,6 +50,9 @@ export const CENTER_BUTTONS: ButtonDefinition[] = [
   { command: '-', descriptionKey: 'buttons.descriptions.shareViewMinus', playstation: 'Share', xbox: 'View' },
   { command: 'MIC', descriptionKey: 'buttons.descriptions.microphoneButton', playstation: 'Mic', xbox: 'Mic' },
   { command: 'HOME', descriptionKey: 'buttons.descriptions.homeGuide', playstation: 'PS', xbox: 'Guide', steam: 'Steam' },
+  // Quick Access sits beside the Steam button on the controller, so it belongs
+  // with the other centre buttons rather than in the generic extras list.
+  { command: 'MISC1', descriptionKey: 'buttons.descriptions.extraButton1', playstation: 'Misc 1', xbox: 'Misc 1', steam: 'Quick Access (…)' },
 ]
 
 export const PADDLE_BUTTONS: ButtonDefinition[] = [
@@ -98,7 +101,6 @@ export const RIGHT_STICK_BUTTONS: ButtonDefinition[] = [
 ]
 
 export const MISC_BUTTONS: ButtonDefinition[] = [
-  { command: 'MISC1', descriptionKey: 'buttons.descriptions.extraButton1', playstation: 'Misc 1', xbox: 'Misc 1', steam: 'Quick Access (…)' },
   { command: 'MISC2', descriptionKey: 'buttons.descriptions.extraButton2', playstation: 'Misc 2', xbox: 'Misc 2', steam: 'Right pad click' },
   { command: 'MISC3', descriptionKey: 'buttons.descriptions.extraButton3', playstation: 'Misc 3', xbox: 'Misc 3', steam: 'Left pad click' },
   { command: 'MISC4', descriptionKey: 'buttons.descriptions.extraButton4', playstation: 'Misc 4', xbox: 'Misc 4' },

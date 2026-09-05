@@ -5,6 +5,7 @@ import styles from './Touchpad.module.css'
 import { SectionActions } from '../SectionActions'
 import { NumberField } from '../NumberField'
 import { AdvancedDisclosure } from '../AdvancedDisclosure'
+import { AppSelect } from '../ui/AppSelect'
 
 type Props = {
   touchpadMinCutoff?: number
@@ -76,7 +77,7 @@ export function TouchpadSensorSection(props: Props) {
         <div className={styles.touchpadSettings}>
           <label>
             {t('keymap.touchSmoothing', 'Mouse smoothing')}
-            <select
+            <AppSelect
               className="app-select"
               value={preset}
               onChange={e => applyPreset(e.target.value)}
@@ -88,7 +89,7 @@ export function TouchpadSensorSection(props: Props) {
               <option value="custom" disabled={preset !== 'custom'}>
                 {t('keymap.smoothingCustom', 'Custom')}
               </option>
-            </select>
+            </AppSelect>
           </label>
           <p className={styles.touchpadHint}>
             {t(
@@ -97,7 +98,7 @@ export function TouchpadSensorSection(props: Props) {
             )}
           </p>
           <AdvancedDisclosure summary={`${cutoff} Hz · ${speed}`}>
-            <NumberField
+            <NumberField layout="inline"
               label={t('keymap.touchpadMinCutoff', 'Smoothing cutoff')}
               value={cutoff}
               onChange={v => props.onTouchpadMinCutoffChange?.(v)}
@@ -106,7 +107,7 @@ export function TouchpadSensorSection(props: Props) {
               step={0.1}
               unit="Hz"
             />
-            <NumberField
+            <NumberField layout="inline"
               label={t('keymap.touchpadSpeedCoeff', 'Flick responsiveness')}
               value={speed}
               onChange={v => props.onTouchpadSpeedCoeffChange?.(v)}
@@ -115,7 +116,7 @@ export function TouchpadSensorSection(props: Props) {
               step={0.05}
             />
           </AdvancedDisclosure>
-          <NumberField
+          <NumberField layout="inline"
             label={t('keymap.touchpadTrackballDecay', 'Trackball glide decay')}
             value={props.touchpadTrackballDecay ?? 0}
             onChange={v => props.onTouchpadTrackballDecayChange?.(v)}
@@ -123,7 +124,7 @@ export function TouchpadSensorSection(props: Props) {
             max={60}
             step={1}
           />
-          <NumberField
+          <NumberField layout="inline"
             label={t('keymap.touchpadTrackballMinVelocity', 'Minimum flick speed')}
             value={props.touchpadTrackballMinVelocity ?? 200}
             onChange={v => props.onTouchpadTrackballMinVelocityChange?.(v)}

@@ -1,6 +1,7 @@
 import { Children, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import styles from './Keymap.module.css'
+import { AppSelect } from './ui/AppSelect'
 
 type SpecialOption = { value: string; label: string; disabled?: boolean }
 
@@ -80,13 +81,13 @@ export function BindingRow({
       {modifierOptions && modifierOptions.length > 0 && (
         <div className={styles.rowModifierSelect} data-capture-ignore="true">
           <label>{modifierLabel ?? t('keymap.modifierButton')}</label>
-          <select className="app-select" value={modifierValue ?? ''} onChange={(event) => onModifierChange?.(event.target.value)}>
+          <AppSelect className="app-select" value={modifierValue ?? ''} onChange={(event) => onModifierChange?.(event.target.value)}>
             {modifierOptions.map(option => (
               <option key={option.value} value={option.value} disabled={option.disabled}>
                 {option.label}
               </option>
             ))}
-          </select>
+          </AppSelect>
         </div>
       )}
       {hasCustomContent ? children : (
@@ -99,7 +100,7 @@ export function BindingRow({
             {buttonLabel}
           </button>
           {specialOptions && specialOptions.length > 0 && (
-            <select
+            <AppSelect
               className={`${styles.rowSpecialInlineSelect} ${specialValue ? styles.rowSpecialInlineSelectActive : ''} app-select`}
               value={specialValue ?? ''}
               onChange={(event) => onSpecialChange?.(event.target.value)}
@@ -112,7 +113,7 @@ export function BindingRow({
                   {option.label}
                 </option>
               ))}
-            </select>
+            </AppSelect>
           )}
           <button
             type="button"

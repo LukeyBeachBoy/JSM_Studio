@@ -734,7 +734,7 @@ export const en = {
     triggerVirtualPassthrough: 'Virtual Controller – Analog Trigger',
     triggerVirtualPassthroughHint: 'Sends this trigger’s real analog pull to the virtual controller’s trigger axis, full precision preserved, instead of a digital full-pull press. Requires Virtual Controller output to be enabled.',
     centerButtonsTitle: 'Center buttons',
-    centerButtonsDescription: 'Options, Share, and Mic bindings.',
+    centerButtonsDescription: 'Steam, Quick Access, Options, Share and Mic bindings.',
     paddlesTitle: 'Paddles',
     paddlesDescription: 'Back paddle and SL/SR button bindings.',
     paddlesNote:
@@ -950,6 +950,7 @@ export const en = {
     commandBehaviorToggle: 'Toggle',
     commandBehaviorReleaseOnly: 'Release only',
     commandNoOutput: 'No output',
+    virtualControllerTurnsOn: 'turns it on',
     commandOutputSystemKey: 'System key (volume, mute, screenshot, media)',
     commandOutputBuiltIn: 'Built-in command',
     turnOffControllerHint: 'Sends the controller’s own power-off command — the same one Steam Input\'s Guide+Y / QAM+Y shortcut uses. Bind this to a chord (e.g. hold the Guide or Quick Access Menu button, then press this input) to recreate that shortcut. Only takes effect on hardware that supports it.',

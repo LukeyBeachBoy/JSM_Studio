@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import keymapStyles from '../Keymap.module.css'
 import { NumberField } from '../NumberField'
+import { AppSelect } from '../ui/AppSelect'
 import {
   DEFAULT_HAPTIC_BINDING,
   HAPTIC_EFFECTS,
@@ -33,7 +34,7 @@ export function HapticOutputPicker({ value, disabled, onChange }: HapticOutputPi
     <div className={keymapStyles.hapticPicker} data-capture-ignore="true">
       <label className={keymapStyles.hapticField}>
         <span>{t('keymap.hapticSide')}</span>
-        <select
+        <AppSelect
           className="app-select"
           value={binding.side}
           disabled={disabled}
@@ -42,12 +43,12 @@ export function HapticOutputPicker({ value, disabled, onChange }: HapticOutputPi
           {HAPTIC_SIDES.map(side => (
             <option key={side} value={side}>{t(`keymap.hapticSide_${side}`)}</option>
           ))}
-        </select>
+        </AppSelect>
       </label>
 
       <label className={keymapStyles.hapticField}>
         <span>{t('keymap.hapticEffect')}</span>
-        <select
+        <AppSelect
           className="app-select"
           value={binding.effect}
           disabled={disabled}
@@ -56,7 +57,7 @@ export function HapticOutputPicker({ value, disabled, onChange }: HapticOutputPi
           {HAPTIC_EFFECTS.map(effect => (
             <option key={effect} value={effect}>{t(`keymap.hapticEffect_${effect}`)}</option>
           ))}
-        </select>
+        </AppSelect>
       </label>
 
       <NumberField

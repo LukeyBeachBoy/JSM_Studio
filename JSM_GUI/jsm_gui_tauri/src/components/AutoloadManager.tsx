@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { desktopBridge, type AutoloadRule } from '../platform/desktopBridge'
 import { showToast } from '../utils/toast'
 import styles from './AutoloadManager.module.css'
+import { AppSelect } from './ui/AppSelect'
 
 type AutoloadManagerProps = {
   libraryProfiles: string[]
@@ -172,7 +173,7 @@ export function AutoloadManager({
                       {rule.builtIn ? (
                         <span className={styles.advancedNote}>{t('autoload.builtInNote')}</span>
                       ) : rule.kind === 'profile' ? (
-                        <select
+                        <AppSelect
                           className="app-select"
                           value={selectedProfile}
                           disabled={!sortedProfiles.length || isBusy}
@@ -185,7 +186,7 @@ export function AutoloadManager({
                               {profile}
                             </option>
                           ))}
-                        </select>
+                        </AppSelect>
                       ) : (
                         <span className={styles.advancedNote}>{t('autoload.advancedNote')}</span>
                       )}
@@ -234,7 +235,7 @@ export function AutoloadManager({
             </label>
             <label>
               {t('autoload.profile')}
-              <select
+              <AppSelect
                 className="app-select"
                 value={profileName}
                 disabled={!sortedProfiles.length}
@@ -246,7 +247,7 @@ export function AutoloadManager({
                     {profile}
                   </option>
                 ))}
-              </select>
+              </AppSelect>
             </label>
             <button
               type="button"

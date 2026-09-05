@@ -27,6 +27,8 @@ type SelectProps = {
   disabled?: boolean
   className?: string
   ariaLabel?: string
+  /** Hover tooltip on the trigger, matching the native select's `title`. */
+  title?: string
   id?: string
 }
 
@@ -55,6 +57,7 @@ export function Select({
   disabled,
   className = '',
   ariaLabel,
+  title,
   id,
 }: SelectProps) {
   const resolved: SelectGroup[] = groups ?? [{ options: options ?? [] }]
@@ -63,7 +66,7 @@ export function Select({
 
   return (
     <RadixSelect.Root value={value} onValueChange={onValueChange} disabled={disabled}>
-      <RadixSelect.Trigger className={`${styles.trigger} ${className}`.trim()} aria-label={ariaLabel} id={id}>
+      <RadixSelect.Trigger className={`${styles.trigger} ${className}`.trim()} aria-label={ariaLabel} title={title} id={id}>
         <span className={styles.value}>
           {active?.icon && <span className={styles.icon}>{active.icon}</span>}
           <RadixSelect.Value placeholder={placeholder} />

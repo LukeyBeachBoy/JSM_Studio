@@ -25,26 +25,29 @@ const svgBase: SVGProps<SVGSVGElement> = {
   focusable: false,
 }
 
-/** A round button face with something drawn inside it. */
+/** A round button face with something drawn inside it. The soft currentColor
+ *  fill makes it read as a physical button at 16px, where a hairline outline
+ *  plus a letter just turns to mush -- and it works on any backdrop. */
 const Face = ({ children }: { children: ReactNode }) => (
   <>
-    <circle cx="8" cy="8" r="6.4" />
+    <circle cx="8" cy="8" r="6.7" fill="currentColor" fillOpacity="0.18" strokeWidth="1.35" />
     {children}
   </>
 )
 
 /** Centred letter, for the families that print letters on their face buttons. */
-const Letter = ({ char }: { char: string }) => (
+const Letter = ({ char, size = 8.6 }: { char: string; size?: number }) => (
   <text
     x="8"
-    y="8"
+    y="8.15"
     textAnchor="middle"
     dominantBaseline="central"
-    fontSize="7.4"
-    fontWeight="700"
+    fontSize={size}
+    fontWeight="800"
     fill="currentColor"
     stroke="none"
     fontFamily="inherit"
+    letterSpacing="-0.02em"
   >
     {char}
   </text>
@@ -52,19 +55,29 @@ const Letter = ({ char }: { char: string }) => (
 
 // PlayStation prints shapes rather than letters.
 const PS_SHAPES: Record<string, ReactNode> = {
-  N: <path d="M8 4.4 11 10H5z" />,
+  N: <path d="M8 4.3 10.9 9.9H5.1z" />,
   E: <circle cx="8" cy="8" r="2.9" />,
-  S: <path d="M5.8 5.8 10.2 10.2M10.2 5.8 5.8 10.2" />,
-  W: <rect x="5.4" y="5.4" width="5.2" height="5.2" rx="0.6" />,
+  S: <path d="M5.7 5.7 10.3 10.3M10.3 5.7 5.7 10.3" />,
+  W: <rect x="5.3" y="5.3" width="5.4" height="5.4" rx="0.7" />,
 }
 
-// Which letter each family prints on which physical position.
+// Which letter each family prints on which physical position. An unrecognised
+// controller gets the Xbox layout rather than N/E/S/W: those are JoyShockMapper
+// command names, not anything printed on a pad, and Steam falls back the same way.
 const FACE_LETTERS: Record<Exclude<ControllerVisualFamily, 'playstation'>, Record<string, string>> = {
   xbox: { N: 'Y', E: 'B', S: 'A', W: 'X' },
   steam: { N: 'Y', E: 'B', S: 'A', W: 'X' },
   nintendo: { N: 'X', E: 'A', S: 'B', W: 'Y' },
-  generic: { N: 'N', E: 'E', S: 'S', W: 'W' },
+  generic: { N: 'Y', E: 'B', S: 'A', W: 'X' },
 }
+
+/** The rounded-rect body the small centre buttons are printed on. */
+const Pill = ({ children }: { children: ReactNode }) => (
+  <>
+    <rect x="2.1" y="4.5" width="11.8" height="7" rx="3.5" fill="currentColor" fillOpacity="0.18" strokeWidth="1.35" />
+    {children}
+  </>
+)
 
 const DPAD_ROTATION: Record<string, number> = { UP: 0, RIGHT: 90, DOWN: 180, LEFT: 270 }
 
@@ -145,45 +158,76 @@ const GLYPHS: Record<string, (family: ControllerVisualFamily) => ReactNode> = {
   RSR: () => <Paddle side="right" />,
   RSL: () => <Paddle side="right" />,
 
-  // The Steam button: Valve's mark is a cog around a stylised valve stem, so
-  // ours is a ring with spokes -- the same silhouette at a glance, drawn rather
-  // than copied.
-  HOME: family =>
-    family === 'steam' ? (
-      <>
-        <circle cx="8" cy="8" r="5.8" />
-        <circle cx="8" cy="8" r="2.2" />
-        <path d="M8 2.2v1.6M8 12.2v1.6M2.2 8h1.6M12.2 8h1.6" />
-      </>
-    ) : (
+  // The Steam button: a ring with the valve stem through it, which is the
+  // silhouette Valve's mark reads as at this size -- drawn, not copied.
+  HOME: family => {
+    if (family === 'steam') {
+      return (
+        <>
+          <circle cx="8" cy="8" r="6.4" strokeWidth="1.5" />
+          <circle cx="9.6" cy="6.4" r="2" />
+          <path d="M4.1 9.9 7.8 8.2" />
+          <circle cx="5.3" cy="10.4" r="1.5" />
+        </>
+      )
+    }
+    if (family === 'playstation') {
+      return (
+        <Face>
+          <Letter char="PS" size={5.6} />
+        </Face>
+      )
+    }
+    if (family === 'nintendo') {
+      return (
+        <Face>
+          <path d="M5.4 8.2 8 5.8l2.6 2.4M6.4 7.6v2.9h3.2V7.6" />
+        </Face>
+      )
+    }
+    // Xbox nexus: the ring with the stylised X.
+    return (
       <Face>
-        <Letter char={family === 'playstation' ? 'P' : family === 'nintendo' ? '⌂' : 'G'} />
+        <path d="M5.6 11.2c.7-2 1.6-3.3 2.4-4.1.8.8 1.7 2.1 2.4 4.1M6.2 4.9C7 5.4 7.6 6 8 6.4c.4-.4 1-1 1.8-1.5" />
       </Face>
+    )
+  },
+
+  // Quick Access is the "..." button on a Steam Controller.
+  MISC1: () => (
+    <Pill>
+      <circle cx="5.2" cy="8" r="0.9" fill="currentColor" stroke="none" />
+      <circle cx="8" cy="8" r="0.9" fill="currentColor" stroke="none" />
+      <circle cx="10.8" cy="8" r="0.9" fill="currentColor" stroke="none" />
+    </Pill>
+  ),
+
+  // Menu / Options: three stacked lines on every family except Nintendo, which
+  // really does print a plus.
+  '+': family =>
+    family === 'nintendo' ? (
+      <Pill>
+        <path d="M8 5.9v4.2M5.9 8h4.2" />
+      </Pill>
+    ) : (
+      <Pill>
+        <path d="M5.2 6.4h5.6M5.2 8h5.6M5.2 9.6h5.6" strokeWidth="1.2" />
+      </Pill>
     ),
 
-  // Quick Access is the "..." button.
-  MISC1: () => (
-    <>
-      <rect x="2.2" y="4.6" width="11.6" height="6.8" rx="3.4" />
-      <circle cx="5.4" cy="8" r="0.85" fill="currentColor" stroke="none" />
-      <circle cx="8" cy="8" r="0.85" fill="currentColor" stroke="none" />
-      <circle cx="10.6" cy="8" r="0.85" fill="currentColor" stroke="none" />
-    </>
-  ),
-
-  '+': () => (
-    <>
-      <rect x="2.2" y="4.6" width="11.6" height="6.8" rx="3.4" />
-      <path d="M8 5.9v4.2M5.9 8h4.2" />
-    </>
-  ),
-
-  '-': () => (
-    <>
-      <rect x="2.2" y="4.6" width="11.6" height="6.8" rx="3.4" />
-      <path d="M5.9 8h4.2" />
-    </>
-  ),
+  // View / Share: two overlapping panes, the modern Xbox View glyph. Nintendo
+  // prints a minus.
+  '-': family =>
+    family === 'nintendo' ? (
+      <Pill>
+        <path d="M5.9 8h4.2" />
+      </Pill>
+    ) : (
+      <Pill>
+        <rect x="4.6" y="5.9" width="4" height="4.2" rx="0.7" strokeWidth="1.2" />
+        <path d="M9.1 6.7h2.3v3.4" strokeWidth="1.2" />
+      </Pill>
+    ),
 
   MIC: () => (
     <>
@@ -215,7 +259,7 @@ export function InputGlyph({ command, family = 'generic', size = 16, className, 
     // unmapped token still reads as a button rather than as raw config text.
     content = (
       <Face>
-        <Letter char={key.slice(0, 2)} />
+        <Letter char={key.slice(0, 2)} size={key.length > 1 ? 5.6 : 8.6} />
       </Face>
     )
   }

@@ -209,12 +209,11 @@ input[type=number] {
     opacity 0.18s ease;
 }
 
-:where(.primary-btn, .secondary-btn, .ghost-btn, .danger-btn):hover:not(:disabled) {
-  transform: translateY(-1px);
-}
-
+/* Steam Input's buttons are flat solids that brighten on hover -- they do not
+   lift off the page or carry a gradient, and that lift is most of what made
+   these read as a different app's controls. */
 :where(.primary-btn, .secondary-btn, .ghost-btn, .danger-btn):active:not(:disabled) {
-  transform: translateY(0);
+  filter: brightness(0.94);
 }
 
 :where(.primary-btn, .secondary-btn, .ghost-btn, .danger-btn):focus-visible {
@@ -223,36 +222,23 @@ input[type=number] {
 }
 
 .primary-btn {
-  border-color: color-mix(in srgb, var(--accent) 48%, #ffffff 16%);
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 88%, #ffffff 12%), color-mix(in srgb, var(--accent) 84%, #0b1016 16%));
+  border-color: transparent;
+  background: var(--accent-primary);
   color: var(--btn-primary-text);
-  box-shadow:
-    0 10px 22px color-mix(in srgb, var(--accent) 22%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 
 .primary-btn:hover:not(:disabled) {
-  box-shadow:
-    0 12px 26px color-mix(in srgb, var(--accent) 28%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.22);
-  filter: saturate(1.05) brightness(1.03);
+  background: color-mix(in srgb, var(--accent-primary) 86%, #ffffff 14%);
 }
 
 .secondary-btn {
-  border-color: color-mix(in srgb, var(--border-1) 88%, var(--accent) 12%);
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--bg-btn) 94%, #ffffff 6%), color-mix(in srgb, var(--bg-input) 96%, transparent));
+  border-color: transparent;
+  background: var(--bg-btn);
   color: var(--text-strong);
-  box-shadow: inset 0 1px 0 var(--inset-highlight);
 }
 
 .secondary-btn:hover:not(:disabled) {
-  border-color: var(--border-strong);
-  background: color-mix(in srgb, var(--bg-btn-hover) 88%, var(--accent) 12%);
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--accent) 14%, transparent),
-    inset 0 1px 0 var(--inset-highlight);
+  background: var(--bg-btn-hover);
 }
 
 .ghost-btn {

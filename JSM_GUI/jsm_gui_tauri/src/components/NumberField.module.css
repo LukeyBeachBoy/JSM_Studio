@@ -108,17 +108,26 @@
   line-height: 1.4;
 }
 
-/* Dense variant: everything on one row -- label, slider, value. */
+/* Dense variant: everything on one row -- label, slider, value. The label column
+   is fixed so a page of these lines up as a table rather than each row finding
+   its own width. */
 .inline {
   flex-direction: row;
   align-items: center;
-  gap: 0.7rem;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
 }
 
 .inline .head {
   flex: 0 0 auto;
   order: 0;
   gap: 0.5rem;
+  width: 17rem;
+  max-width: 100%;
+}
+
+.inline .label {
+  flex: 1 1 auto;
 }
 
 .inline .track {

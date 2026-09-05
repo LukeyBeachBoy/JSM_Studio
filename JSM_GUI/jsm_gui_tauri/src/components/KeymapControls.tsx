@@ -64,6 +64,7 @@ import { StickSettingsCard } from './StickSettingsCard'
 import { NumberField } from './NumberField'
 import type { VirtualControllerType, VirtualControllerWarning } from '../utils/virtualController'
 import { normalizeTouchpadMode, type TouchpadWarning } from '../utils/touchpadConfig'
+import { AppSelect } from './ui/AppSelect'
 
 type KeymapControlsProps = {
   configText: string
@@ -392,11 +393,11 @@ const StickFlickSettings = ({ values, handlers, disabled, part }: StickFlickSett
           />
           <label>
             {t('keymap.snapMode')}
-            <select className="app-select" value={snapMode} onChange={(event) => handlers.onSnapModeChange(event.target.value)} disabled={disabled}>
+            <AppSelect className="app-select" value={snapMode} onChange={(event) => handlers.onSnapModeChange(event.target.value)} disabled={disabled}>
               <option value="">{t('common.defaultValue', { value: 'NONE' })}</option>
               <option value="4">{t('keymap.snapToFour')}</option>
               <option value="8">{t('keymap.snapToEight')}</option>
-            </select>
+            </AppSelect>
           </label>
         </div>
       </div>
@@ -1013,6 +1014,7 @@ export function KeymapControls({
         onTrackballDecayChange={onTrackballDecayChange}
         virtualControllerType={virtualControllerType ?? 'NONE'}
         controllerFamily={controllerFamily}
+        onEnableVirtualController={onVirtualControllerTypeChange ? () => onVirtualControllerTypeChange('XBOX') : undefined}
         bindingLabel={bindingLabels?.[button.command.toUpperCase()]}
         onBindingLabelChange={onBindingLabelChange}
       />
@@ -1112,7 +1114,7 @@ export function KeymapControls({
     <div className={keymapStyles.triggerModeInline} data-capture-ignore="true">
       <label>
         {side === 'left' ? t('keymap.l2FullPullMode') : t('keymap.r2FullPullMode')}
-        <select
+        <AppSelect
           className="app-select"
           value={(side === 'left' ? zlModeValue : zrModeValue) || 'NO_FULL'}
           onChange={e => (side === 'left' ? onZlModeChange : onZrModeChange)(e.target.value)}
@@ -1124,7 +1126,7 @@ export function KeymapControls({
           <option value={side === 'left' ? 'X_LT' : 'X_RT'}>
             {t('keymap.triggerVirtualPassthrough')}
           </option>
-        </select>
+        </AppSelect>
       </label>
       {(side === 'left' ? zlModeValue : zrModeValue) === (side === 'left' ? 'X_LT' : 'X_RT') && (
         <div className={stickStyles.stickFlickSettings} data-capture-ignore="true">
@@ -1367,7 +1369,7 @@ export function KeymapControls({
               <div className={keymapStyles.virtualControllerControls} data-capture-ignore="true">
                 <label className={keymapStyles.quickComposerField}>
                   <span>{t('keymap.virtualControllerTypeLabel')}</span>
-                  <select
+                  <AppSelect
                     className="app-select"
                     value={virtualControllerType ?? 'NONE'}
                     onChange={(event) => onVirtualControllerTypeChange(event.target.value as VirtualControllerType)}
@@ -1376,7 +1378,7 @@ export function KeymapControls({
                     <option value="NONE">{t('keymap.virtualControllerType_NONE')}</option>
                     <option value="XBOX">{t('keymap.virtualControllerType_XBOX')}</option>
                     <option value="DS4">{t('keymap.virtualControllerType_DS4')}</option>
-                  </select>
+                  </AppSelect>
                 </label>
                 <p className={keymapStyles.virtualControllerHint}>{t('keymap.virtualControllerHint')}</p>
               </div>

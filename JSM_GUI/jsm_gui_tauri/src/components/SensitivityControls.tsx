@@ -9,6 +9,7 @@ import { CurvePreview } from './CurvePreview'
 import { SectionActions } from './SectionActions'
 import { SensitivityValues } from '../utils/keymap'
 import type { AccelCurveLink } from '../utils/accelCurve'
+import { AppSelect } from './ui/AppSelect'
 
 type SensitivityControlsProps = {
   sensitivity: SensitivityValues
@@ -128,13 +129,13 @@ export function SensitivityControls({
       </div>
       <div className="sensitivity-shift-row">
         <label>{t('sensitivity.modeShiftButton')}</label>
-        <select value={modeshiftButton ?? ''} onChange={(event) => onModeshiftButtonChange(event.target.value)} data-testid="sensitivity-shift-select">
+        <AppSelect value={modeshiftButton ?? ''} onChange={(event) => onModeshiftButtonChange(event.target.value)} data-testid="sensitivity-shift-select">
           {modeshiftOptions.map(option => (
             <option key={option.value || 'none'} value={option.value} disabled={option.disabled}>
               {option.label}
             </option>
           ))}
-        </select>
+        </AppSelect>
       </div>
       {modeshiftButton && (
         <div className="mode-toggle secondary">

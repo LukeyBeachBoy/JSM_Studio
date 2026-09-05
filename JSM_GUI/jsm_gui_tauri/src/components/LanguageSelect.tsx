@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useAppLanguage } from '../hooks/useAppLanguage'
 import { type AppLanguage } from '../i18n/language'
+import { AppSelect } from './ui/AppSelect'
 
 type LanguageSelectProps = {
   className?: string
@@ -24,7 +25,7 @@ export function LanguageSelect({ className = '' }: LanguageSelectProps) {
           <path d="M14.4 16h5.2" />
         </svg>
       </span>
-      <select
+      <AppSelect
         className="app-select"
         aria-label={t('language.label')}
         value={language}
@@ -37,7 +38,7 @@ export function LanguageSelect({ className = '' }: LanguageSelectProps) {
             {option === 'en' ? t('language.english') : t('language.simplifiedChinese')}
           </option>
         ))}
-      </select>
+      </AppSelect>
     </label>
   )
 }

@@ -5,6 +5,7 @@ import styles from './Touchpad.module.css'
 import { SectionActions } from '../SectionActions'
 import { NumberField } from '../NumberField'
 import { AdvancedDisclosure } from '../AdvancedDisclosure'
+import { AppSelect } from '../ui/AppSelect'
 
 export type TouchpadModeCardConfig = {
   mode: string
@@ -61,16 +62,17 @@ export function TouchpadModeCard({ config, title }: { config: TouchpadModeCardCo
       {title && <h4>{title}</h4>}
       <label>
         {t('keymap.mode')}
-        <select className="app-select" value={config.mode} onChange={e => config.onModeChange?.(e.target.value)}>
+        <AppSelect className="app-select" value={config.mode} onChange={e => config.onModeChange?.(e.target.value)}>
           <option value="">{t('common.noneSelected')}</option>
           <option value="GRID_AND_STICK">{t('keymap.gridAndStick')}</option>
           <option value="MOUSE">{t('keymap.mouse')}</option>
           <option value="PS_TOUCHPAD">{t('keymap.psTouchpad')}</option>
-        </select>
+        </AppSelect>
       </label>
       {config.mode === 'GRID_AND_STICK' && (
         <div className={styles.gridSizeInputs}>
           <NumberField
+            layout="inline"
             label={t('keymap.columns')}
             value={config.gridColumns}
             onChange={v => config.onGridSizeChange?.(Number(v) || 1, config.gridRows)}
@@ -79,6 +81,7 @@ export function TouchpadModeCard({ config, title }: { config: TouchpadModeCardCo
             step={1}
           />
           <NumberField
+            layout="inline"
             label={t('keymap.rows')}
             value={config.gridRows}
             onChange={v => config.onGridSizeChange?.(config.gridColumns, Number(v) || 1)}
@@ -92,6 +95,7 @@ export function TouchpadModeCard({ config, title }: { config: TouchpadModeCardCo
         <>
           <div className={styles.gridSizeInputs}>
             <NumberField
+            layout="inline"
               label={t('keymap.touchpadSensitivityX', 'Horizontal sensitivity')}
               value={config.sensitivity}
               onChange={v => config.onSensitivityChange?.(v)}
@@ -102,6 +106,7 @@ export function TouchpadModeCard({ config, title }: { config: TouchpadModeCardCo
               placeholder="1"
             />
             <NumberField
+            layout="inline"
               label={t('keymap.touchpadSensitivityY', 'Vertical sensitivity')}
               value={config.sensitivityY}
               onChange={v => config.onSensitivityYChange?.(v)}
@@ -113,6 +118,7 @@ export function TouchpadModeCard({ config, title }: { config: TouchpadModeCardCo
             />
           </div>
           <NumberField
+            layout="inline"
             label={t('keymap.touchpadAcceleration')}
             value={config.acceleration ?? 0}
             onChange={v => config.onAccelerationChange?.(v)}
@@ -123,6 +129,7 @@ export function TouchpadModeCard({ config, title }: { config: TouchpadModeCardCo
           />
           <AdvancedDisclosure>
             <NumberField
+            layout="inline"
               className={styles.touchpadDeprecated}
               label={t('keymap.touchpadSmoothingDeprecated', 'Legacy smoothing')}
               value={config.smoothing ?? 0}
@@ -140,7 +147,7 @@ export function TouchpadModeCard({ config, title }: { config: TouchpadModeCardCo
         <AdvancedDisclosure summary={config.dualStageMode || 'NO_SKIP'}>
           <label>
             {t('keymap.touchpadDualStageMode')}
-            <select
+            <AppSelect
               className="app-select"
               value={config.dualStageMode || 'NO_SKIP'}
               onChange={e => config.onDualStageModeChange?.(e.target.value)}
@@ -148,7 +155,7 @@ export function TouchpadModeCard({ config, title }: { config: TouchpadModeCardCo
               {DUAL_STAGE_MODES.map(v => (
                 <option key={v} value={v}>{v}</option>
               ))}
-            </select>
+            </AppSelect>
           </label>
         </AdvancedDisclosure>
       )}

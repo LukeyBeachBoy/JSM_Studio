@@ -5,6 +5,7 @@ import { SectionActions } from './SectionActions'
 import { TelemetryBanner } from './TelemetryBanner'
 import { NumberField } from './NumberField'
 import telemetryStyles from './Telemetry.module.css'
+import { AppSelect } from './ui/AppSelect'
 
 type NoiseSteadyingControlsProps = {
   sensitivity: SensitivityValues
@@ -77,17 +78,17 @@ export function NoiseSteadyingControls({
       <div className="flex-inputs">
         <label>
           {t('noise.smoothingDecay')}
-          <select value={sensitivity.smoothingDecay ?? 'OFF'} onChange={(e) => onSmoothingDecayChange(e.target.value)}>
+          <AppSelect value={sensitivity.smoothingDecay ?? 'OFF'} onChange={(e) => onSmoothingDecayChange(e.target.value)}>
             <option value="OFF">{t('common.off')}</option>
             <option value="ON">{t('common.on')}</option>
-          </select>
+          </AppSelect>
         </label>
         <label>
           {t('noise.oneEuroFilter')}
-          <select value={sensitivity.oneEuroFilter ? 'ON' : 'OFF'} onChange={(e) => onOneEuroFilterChange(e.target.value)}>
+          <AppSelect value={sensitivity.oneEuroFilter ? 'ON' : 'OFF'} onChange={(e) => onOneEuroFilterChange(e.target.value)}>
             <option value="OFF">{t('common.off')}</option>
             <option value="ON">{t('common.on')}</option>
-          </select>
+          </AppSelect>
         </label>
       </div>
       {sensitivity.oneEuroFilter && (
@@ -100,10 +101,10 @@ export function NoiseSteadyingControls({
         <NumberField label={t('noise.angleSnapping')} value={sensitivity.angleSnap} onChange={onAngleSnapChange} min={0} max={45} step={0.1} unit="°" />
         <label>
           {t('noise.easeAngleSnapping')}
-          <select className="app-select" value={sensitivity.angleSnapEase ?? 'OFF'} onChange={(e) => onAngleSnapSmoothChange(e.target.value)}>
+          <AppSelect className="app-select" value={sensitivity.angleSnapEase ?? 'OFF'} onChange={(e) => onAngleSnapSmoothChange(e.target.value)}>
             <option value="OFF">{t('common.off')}</option>
             <option value="ON">{t('common.on')}</option>
-          </select>
+          </AppSelect>
         </label>
       </div>
       <div className="flex-inputs">

@@ -4,6 +4,7 @@ import { formatStickModeLabel, STICK_MODE_VALUES } from '../constants/sticks'
 import { NumberField } from './NumberField'
 import { AdvancedDisclosure } from './AdvancedDisclosure'
 import styles from './Sticks.module.css'
+import { AppSelect } from './ui/AppSelect'
 
 type StickSettingsCardProps = {
   title: string
@@ -51,14 +52,14 @@ export function StickSettingsCard({
       {title && <h3>{title}</h3>}
       <label>
         {t('stickModes.stickMode')}
-        <select className="app-select" value={modeValue} onChange={(event) => onModeChange(event.target.value)} disabled={disabled}>
+        <AppSelect className="app-select" value={modeValue} onChange={(event) => onModeChange(event.target.value)} disabled={disabled}>
           <option value="">{t('common.defaultValue', { value: formatStickModeLabel('NO_MOUSE', t) })}</option>
           {selectableStickModes.map(mode => (
             <option key={mode} value={mode}>
               {formatStickModeLabel(mode, t)}
             </option>
           ))}
-        </select>
+        </AppSelect>
       </label>
       {modeExtras && <div className={styles.stickModeExtras}>{modeExtras}</div>}
       {/* The card's one and only Advanced disclosure: the deadzones and ring
@@ -89,11 +90,11 @@ export function StickSettingsCard({
           />
           <label>
             {t('stickModes.ringMode')}
-            <select className="app-select" value={ringValue} onChange={(event) => onRingChange(event.target.value)} disabled={disabled}>
+            <AppSelect className="app-select" value={ringValue} onChange={(event) => onRingChange(event.target.value)} disabled={disabled}>
               <option value="">{t('common.defaultValue', { value: t('stickModes.outer') })}</option>
               <option value="INNER">{t('stickModes.inner')}</option>
               <option value="OUTER">{t('stickModes.outer')}</option>
-            </select>
+            </AppSelect>
           </label>
         </div>
         {modeAdvancedExtras}

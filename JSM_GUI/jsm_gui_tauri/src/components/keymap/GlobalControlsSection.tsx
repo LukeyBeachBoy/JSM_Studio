@@ -3,6 +3,7 @@ import { KeymapSection } from '../KeymapSection'
 import keymapStyles from '../Keymap.module.css'
 import { SectionActions } from '../SectionActions'
 import { NumberField } from '../NumberField'
+import { AppSelect } from '../ui/AppSelect'
 
 type GlobalControlsSectionProps = {
   holdPressTimeSeconds: number
@@ -131,7 +132,7 @@ export function GlobalControlsSection({
               <span className={keymapStyles.globalControlTitle}>{t('keymap.adaptiveTriggers')}</span>
             </div>
             <div className={keymapStyles.globalControlInputGroup}>
-              <select
+              <AppSelect
                 className="app-select"
                 value={adaptiveTriggerValue}
                 onChange={(event) => onAdaptiveTriggerChange(event.target.value)}
@@ -139,7 +140,7 @@ export function GlobalControlsSection({
               >
                 <option value="">{t('common.defaultValue', { value: 'ON' })}</option>
                 <option value="OFF">{t('common.off')}</option>
-              </select>
+              </AppSelect>
             </div>
           </div>
           <div className={keymapStyles.globalControlRow} data-capture-ignore="true">

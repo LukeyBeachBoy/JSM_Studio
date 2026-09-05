@@ -7,6 +7,7 @@ import { SectionActions } from '../SectionActions'
 import { TOUCH_STICK_AXIS_VALUES } from '../../utils/touchpadConfig'
 import { NumberField } from '../NumberField'
 import { AdvancedDisclosure } from '../AdvancedDisclosure'
+import { AppSelect } from '../ui/AppSelect'
 
 type TouchpadStickSectionProps = {
   /** Overrides the generic "Touch stick" heading, e.g. "Left touch stick". */
@@ -57,7 +58,7 @@ export function TouchpadStickSection({
         <div className={styles.touchpadSettings}>
           <label>
             {t('keymap.touchStickMode')}
-            <select className="app-select" value={touchStickMode} onChange={(event) => onTouchStickModeChange?.(event.target.value)}>
+            <AppSelect className="app-select" value={touchStickMode} onChange={(event) => onTouchStickModeChange?.(event.target.value)}>
               <option value="">{t('common.noneSelected')}</option>
               {STICK_MODE_VALUES.map(mode => (
                 <option key={mode} value={mode}>
@@ -67,7 +68,7 @@ export function TouchpadStickSection({
               {hasCustomMode && (
                 <option value={touchStickMode}>{t('keymap.currentRawValue', { value: touchStickMode })}</option>
               )}
-            </select>
+            </AppSelect>
           </label>
           {/* Deadzone/ring/radius/axis only mean anything once the touch stick
               actually has a mode -- same reasoning as hiding a real stick's
@@ -88,14 +89,14 @@ export function TouchpadStickSection({
                 />
                 <label>
                   {t('stickModes.ringMode')}
-                  <select className="app-select" value={touchRingMode} onChange={(event) => onTouchRingModeChange?.(event.target.value)}>
+                  <AppSelect className="app-select" value={touchRingMode} onChange={(event) => onTouchRingModeChange?.(event.target.value)}>
                     <option value="">{t('common.defaultPlaceholder')}</option>
                     <option value="INNER">{t('stickModes.inner')}</option>
                     <option value="OUTER">{t('stickModes.outer')}</option>
                     {hasCustomRingMode && (
                       <option value={touchRingMode}>{t('keymap.currentRawValue', { value: touchRingMode })}</option>
                     )}
-                  </select>
+                  </AppSelect>
                 </label>
                 <NumberField
                   label={t('keymap.touchStickRadius')}
@@ -108,7 +109,7 @@ export function TouchpadStickSection({
                 />
                 <label>
                   {t('keymap.touchStickAxis')}
-                  <select className="app-select" value={touchStickAxis} onChange={(event) => onTouchStickAxisChange?.(event.target.value)}>
+                  <AppSelect className="app-select" value={touchStickAxis} onChange={(event) => onTouchStickAxisChange?.(event.target.value)}>
                     <option value="">{t('common.defaultValue', { value: 'STANDARD' })}</option>
                     {TOUCH_STICK_AXIS_VALUES.map(mode => (
                       <option key={mode} value={mode}>
@@ -118,7 +119,7 @@ export function TouchpadStickSection({
                     {hasCustomAxis && (
                       <option value={touchStickAxis}>{t('keymap.currentRawValue', { value: touchStickAxis })}</option>
                     )}
-                  </select>
+                  </AppSelect>
                 </label>
               </div>
             </AdvancedDisclosure>

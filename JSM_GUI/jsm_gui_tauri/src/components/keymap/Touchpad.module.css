@@ -21,7 +21,15 @@
 .touchpadSettings {
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
+  gap: var(--space-2);
+}
+
+/* NumberField carries `flex: 1 1 200px` so it can share a row inside
+   `.flex-inputs`. In this column that grow factor stretches every field over
+   the leftover height instead, which is what opened the large gaps between the
+   trackpad and grip sliders. Height here comes from content. */
+.touchpadSettings > * {
+  flex: 0 0 auto;
 }
 
 /* Settings rows read label-left / control-right with the value pinned to the
@@ -108,7 +116,7 @@
 
 .touchpadAdvancedGrid {
   display: grid;
-  gap: 0.8rem;
+  gap: var(--space-2) var(--space-4);
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 

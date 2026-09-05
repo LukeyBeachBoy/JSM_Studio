@@ -9,6 +9,7 @@ import { NumberField } from './NumberField'
 import { AdvancedDisclosure } from './AdvancedDisclosure'
 import { controllerLabel, formatVidPid } from '../utils/controllers'
 import styles from './Gyro.module.css'
+import { AppSelect } from './ui/AppSelect'
 
 const TICK_TIME_OPTIONS = [
   { value: '1', label: '1 ms' },
@@ -148,7 +149,7 @@ export function GyroBehaviorControls({
         <label>
           {t('gyro.activationMode')}
           <p className="field-description">{t('gyro.activationHint')}</p>
-          <select
+          <AppSelect
             className="app-select"
             value={gyroActivationMode}
             onChange={(event) =>
@@ -161,12 +162,12 @@ export function GyroBehaviorControls({
                 {t(option.labelKey)}
               </option>
             ))}
-          </select>
+          </AppSelect>
         </label>
         <label>
           {t('gyro.activationButton')}
           <p className="field-description">{t('gyro.activationButtonHint')}</p>
-          <select
+          <AppSelect
             className="app-select"
             value={selectedActivationButton}
             onChange={(event) => onGyroActivationButtonChange(event.target.value)}
@@ -177,18 +178,18 @@ export function GyroBehaviorControls({
                 {option.label}
               </option>
             ))}
-          </select>
+          </AppSelect>
         </label>
       </div>
       <div className="flex-inputs">
         <label>
           {t('gyro.gyroOutput')}
           <p className="field-description">{t('gyro.gyroOutputHint')}</p>
-          <select className="app-select" value={sensitivity.gyroOutput ?? ''} onChange={(e) => onGyroOutputChange(e.target.value)}>
+          <AppSelect className="app-select" value={sensitivity.gyroOutput ?? ''} onChange={(e) => onGyroOutputChange(e.target.value)}>
             <option value="">{t('gyro.gyroOutputMouse')} ({t('common.default')})</option>
             <option value="LEFT_STICK">{t('gyro.gyroOutputLeftStick')}</option>
             <option value="RIGHT_STICK">{t('gyro.gyroOutputRightStick')}</option>
-          </select>
+          </AppSelect>
         </label>
       </div>
       {/* Real-world calibration and in-game sensitivity scale the *mouse* the
@@ -225,41 +226,41 @@ export function GyroBehaviorControls({
               <span>{t('gyro.pollingTickTime')}</span>
               {appliedSampleHz && <span className="field-description inline-helper">{appliedSampleHz} Hz</span>}
             </div>
-            <select className="app-select" value={sensitivity.tickTime?.toString() ?? ''} onChange={(e) => onTickTimeChange(e.target.value)}>
+            <AppSelect className="app-select" value={sensitivity.tickTime?.toString() ?? ''} onChange={(e) => onTickTimeChange(e.target.value)}>
               <option value="">{t('common.useDefault')}</option>
               {TICK_TIME_OPTIONS.map(option => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
               ))}
-            </select>
+            </AppSelect>
           </label>
           <label>
             {t('gyro.gyroSpace')}
-            <select className="app-select" value={sensitivity.gyroSpace ?? ''} onChange={(e) => onGyroSpaceChange(e.target.value)}>
+            <AppSelect className="app-select" value={sensitivity.gyroSpace ?? ''} onChange={(e) => onGyroSpaceChange(e.target.value)}>
               <option value="">{t('common.useDefault')}</option>
               {GYRO_SPACE_OPTIONS.map(option => (
                 <option key={option.value} value={option.value}>
                   {t(option.labelKey)}
                 </option>
               ))}
-            </select>
+            </AppSelect>
           </label>
         </div>
         <div className="flex-inputs">
           <label>
             {t('gyro.gyroAxisX')}
-            <select className="app-select" value={sensitivity.gyroAxisX ?? ''} onChange={(e) => onGyroAxisXChange(e.target.value)}>
+            <AppSelect className="app-select" value={sensitivity.gyroAxisX ?? ''} onChange={(e) => onGyroAxisXChange(e.target.value)}>
               <option value="">{t('common.default')}</option>
               <option value="INVERTED">{t('gyro.inverted')}</option>
-            </select>
+            </AppSelect>
           </label>
           <label>
             {t('gyro.gyroAxisY')}
-            <select className="app-select" value={sensitivity.gyroAxisY ?? ''} onChange={(e) => onGyroAxisYChange(e.target.value)}>
+            <AppSelect className="app-select" value={sensitivity.gyroAxisY ?? ''} onChange={(e) => onGyroAxisYChange(e.target.value)}>
               <option value="">{t('common.default')}</option>
               <option value="INVERTED">{t('gyro.inverted')}</option>
-            </select>
+            </AppSelect>
           </label>
         </div>
         {gyroDrivesMouse && (
@@ -267,7 +268,7 @@ export function GyroBehaviorControls({
             <label>
               {t('gyro.counterOsMouseSpeed')}
               <p className="field-description">{t('gyro.counterOsMouseSpeedHint')}</p>
-              <select
+              <AppSelect
                 className="app-select"
                 value={counterOsMouseSpeed ? 'ON' : 'OFF'}
                 onChange={(event) => onCounterOsMouseSpeedChange(event.target.value === 'ON')}
@@ -275,7 +276,7 @@ export function GyroBehaviorControls({
               >
                 <option value="OFF">{t('common.offDefault')}</option>
                 <option value="ON">{t('common.on')}</option>
-              </select>
+              </AppSelect>
             </label>
           </div>
         )}

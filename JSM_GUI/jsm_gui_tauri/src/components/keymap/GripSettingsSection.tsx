@@ -6,6 +6,7 @@ import { SectionActions } from '../SectionActions'
 import { GRIP_FIRMWARE_DEFAULT } from '../../hooks/useGripConfig'
 import { HAPTIC_EFFECTS } from '../../utils/hapticBindings'
 import { NumberField } from '../NumberField'
+import { AppSelect } from '../ui/AppSelect'
 
 type Props = {
   gripSensorRange?: number
@@ -52,7 +53,7 @@ export function GripSettingsSection(props: Props) {
         )}
       >
         <div className={styles.touchpadSettings}>
-          <NumberField
+          <NumberField layout="inline"
             label={t('keymap.gripSensorRange', 'Grip sensor range')}
             value={range}
             onChange={v => props.onGripSensorRangeChange?.(v)}
@@ -62,7 +63,7 @@ export function GripSettingsSection(props: Props) {
             coarseStep={250}
             hint={show(range)}
           />
-          <NumberField
+          <NumberField layout="inline"
             label={t('keymap.gripFlickerGuard', 'Flicker guard size')}
             value={guard}
             onChange={v => props.onGripFlickerGuardChange?.(v)}
@@ -78,7 +79,7 @@ export function GripSettingsSection(props: Props) {
               'Range is how near your hand must come before the sensor trips; lower detects your hands sooner. Flicker guard is the extra distance it must move away again before releasing, so a hand resting at the edge of the range cannot chatter on and off. Raw firmware units, and -1 keeps the controller’s own value. This is one setting for both grips: the controller stores a single capacitive threshold, which is why Steam Input also shows one.'
             )}
           </p>
-          <NumberField
+          <NumberField layout="inline"
             label={t('keymap.gripHapticIntensity', 'Grip haptic')}
             value={haptic}
             onChange={v => props.onGripHapticIntensityChange?.(v)}
@@ -89,7 +90,7 @@ export function GripSettingsSection(props: Props) {
           />
           <label>
             {t('keymap.gripHapticEffect', 'Grip haptic effect')}
-            <select
+            <AppSelect
               className="app-select"
               value={hapticEffect}
               disabled={haptic === 0}
@@ -98,7 +99,7 @@ export function GripSettingsSection(props: Props) {
               {HAPTIC_EFFECTS.filter(effect => effect !== 'OFF').map(effect => (
                 <option key={effect} value={effect}>{t(`keymap.hapticEffect_${effect}`)}</option>
               ))}
-            </select>
+            </AppSelect>
           </label>
           <p className={styles.touchpadHint}>
             {t(
@@ -106,7 +107,7 @@ export function GripSettingsSection(props: Props) {
               'A short pulse from the grip’s own actuator the moment that sensor detects your hand. Fires once on detection rather than buzzing for as long as you hold the controller. 0 turns it off. Click is the tap Steam Input plays while calibrating the grip sensors; the other effects are the controller’s own, and any of them can be bound to any input from the Buttons pages.'
             )}
           </p>
-          <NumberField
+          <NumberField layout="inline"
             label={t('keymap.gripReleaseHapticIntensity', 'Grip release haptic')}
             value={releaseHaptic}
             onChange={v => props.onGripReleaseHapticIntensityChange?.(v)}
@@ -117,7 +118,7 @@ export function GripSettingsSection(props: Props) {
           />
           <label>
             {t('keymap.gripReleaseHapticEffect', 'Grip release haptic effect')}
-            <select
+            <AppSelect
               className="app-select"
               value={releaseHapticEffect}
               disabled={releaseHaptic === 0}
@@ -126,7 +127,7 @@ export function GripSettingsSection(props: Props) {
               {HAPTIC_EFFECTS.filter(effect => effect !== 'OFF').map(effect => (
                 <option key={effect} value={effect}>{t(`keymap.hapticEffect_${effect}`)}</option>
               ))}
-            </select>
+            </AppSelect>
           </label>
           <p className={styles.touchpadHint}>
             {t(

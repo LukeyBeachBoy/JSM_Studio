@@ -432,11 +432,16 @@
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
+/* Fixed width, not a minimum: a long description (the extra shoulder buttons
+   name two example controllers) used to stretch this column and push that
+   row's controls out of line with every other row in the group. */
 .keymapLabel {
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
-  min-width: 180px;
+  flex: 0 0 16rem;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .buttonNameRow {
@@ -450,11 +455,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.55rem;
-  height: 1.55rem;
-  border-radius: 999px;
-  background: var(--bg-2);
-  color: var(--text-strong);
+  width: 1.75rem;
+  height: 1.75rem;
+  color: var(--text-mid);
   flex: 0 0 auto;
 }
 
