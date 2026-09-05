@@ -722,42 +722,6 @@
   padding: 0.45rem 0.6rem;
 }
 
-.commandEditor {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-  gap: 0.65rem;
-  padding: 0.75rem;
-  border-top: 1px solid var(--border-1);
-  background: var(--bg-2);
-}
-
-.commandEditor label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  color: var(--text-mid);
-  font-size: 0.82rem;
-  font-weight: 600;
-}
-
-.commandOutputValue input {
-  padding: 0.5rem 0.65rem;
-  border-radius: 8px;
-  border: 1px solid var(--border-1);
-  background: var(--bg-input);
-  color: var(--text-strong);
-}
-
-.commandCaptureBtn {
-  align-self: end;
-  padding: 0.55rem 0.8rem;
-  border-radius: 999px;
-  border: 1px solid var(--border-1);
-  background: transparent;
-  color: var(--text-strong);
-  cursor: pointer;
-}
-
 .addCommandRow {
   display: flex;
   flex-direction: column;
@@ -765,111 +729,18 @@
   align-self: stretch;
 }
 
-.addCommandLabel {
-  color: var(--text-mid);
-  font-size: 0.82rem;
-  font-weight: 700;
-}
-
-.addCommandButtons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-}
-
-.addCommandButtons button {
-  padding: 0.45rem 0.7rem;
-}
-
-.addCommandAdvanced {
-  color: var(--text-mid);
-  font-size: 0.85rem;
-}
-
-.addCommandAdvanced summary {
-  cursor: pointer;
-  margin-bottom: 0.5rem;
-}
-
-.quickComposer {
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
-  padding: 0.8rem;
-  border-top: 1px solid var(--border-1);
-  background: color-mix(in srgb, var(--bg-2) 86%, var(--bg-input));
-}
-
-.quickComposerGroup,
+/* The virtual-controller panel still uses this field wrapper; the rest of the
+   quick composer's classes went with the composer itself. */
 .quickComposerField {
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
 }
 
-.quickComposerLabel,
 .quickComposerField span {
   color: var(--text-mid);
   font-size: 0.82rem;
   font-weight: 700;
-}
-
-.segmentedControl,
-.outputKindChips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-}
-
-.segmentButton,
-.outputKindChip {
-  border: 1px solid var(--border-1);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--bg-input) 92%, transparent);
-  color: var(--text-mid);
-  padding: 0.48rem 0.72rem;
-  cursor: pointer;
-  font-weight: 700;
-}
-
-.segmentButtonActive,
-.outputKindChipActive {
-  border-color: var(--accent);
-  color: var(--text-strong);
-  background: color-mix(in srgb, var(--accent) 18%, var(--bg-input));
-  box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 24%, transparent);
-}
-
-.quickComposerCaptureRow {
-  display: grid;
-  grid-template-columns: minmax(12rem, 1fr);
-  gap: 0.65rem;
-}
-
-.capturePad {
-  min-height: 5.8rem;
-  border: 1.5px dashed color-mix(in srgb, var(--accent) 45%, var(--border-strong));
-  border-radius: 16px;
-  background:
-    radial-gradient(circle at top, color-mix(in srgb, var(--accent) 14%, transparent), transparent 58%),
-    color-mix(in srgb, var(--bg-input) 86%, transparent);
-  color: var(--text-mid);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 0.4rem;
-  cursor: pointer;
-}
-
-.capturePad strong {
-  color: var(--text-strong);
-  font-size: 1.05rem;
-  letter-spacing: 0.04em;
-}
-
-.capturePad:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
 }
 
 .quickComposerField input {
@@ -878,11 +749,6 @@
   border: 1px solid var(--border-1);
   background: var(--bg-input);
   color: var(--text-strong);
-}
-
-.quickAdvanced {
-  display: flex;
-  justify-content: flex-end;
 }
 
 .hapticPicker {
@@ -1728,10 +1594,6 @@
 .rowModifierSelect select,
 .bindingInput,
 .addBindingRow select,
-.commandCaptureBtn,
-.segmentButton,
-.outputKindChip,
-.capturePad,
 .quickComposerField input,
 .advancedCaptureBtn,
 .advancedRemoveBtn,
@@ -1764,31 +1626,6 @@
 .commandRawBadge {
   border-radius: 4px;
   font-size: 0.72rem;
-}
-
-.commandEditor {
-  gap: 0.5rem;
-  padding: 0.6rem;
-}
-
-.quickComposer {
-  gap: 0.65rem;
-  padding: 0.65rem;
-}
-
-.segmentButton,
-.outputKindChip {
-  padding: 0.38rem 0.58rem;
-}
-
-.segmentButtonActive,
-.outputKindChipActive {
-  box-shadow: inset 0 -2px 0 var(--accent);
-}
-
-.capturePad {
-  min-height: 4.8rem;
-  background: var(--bg-input);
 }
 
 .globalControlsBlock {

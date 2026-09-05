@@ -35,6 +35,7 @@ import {
 } from '../../keymap/schema'
 import { BindingCommandCard } from './BindingCommandCard'
 import { NumberField } from '../NumberField'
+import { Menu, type MenuItem } from '../ui/Menu'
 import { controllerButtonLabel } from '../../utils/controllerStatus'
 
 // A draft row is written into the config and deleted the moment it has a value,
@@ -420,6 +421,30 @@ export const ButtonBindingsCard = ({
   // this row is for adding a *new* trigger, so there's nothing to choose among
   // before the first one exists. The full picker only reappears once there's
   // already a command to add an additional simultaneous trigger alongside.
+  // One button opening a menu, with the rare trigger kinds behind a submenu --
+  // Steam's own pattern. The nine buttons this replaces put every option on
+  // screen at once whether or not you wanted any of them.
+  const addMenuItems: MenuItem[] = [
+    { label: t('keymap.commandTriggerRegular'), onSelect: () => handleAddCommand('regular') },
+    { label: t('keymap.commandTriggerTap'), onSelect: () => handleAddCommand('tap') },
+    { label: t('keymap.commandTriggerHold'), onSelect: () => handleAddCommand('hold') },
+    { label: t('keymap.commandTriggerDouble'), onSelect: () => handleAddCommand('double') },
+    { label: t('keymap.commandTriggerChord'), onSelect: () => handleAddCommand('chord') },
+    { kind: 'separator' },
+    {
+      kind: 'submenu',
+      label: t('keymap.advancedOptions'),
+      items: [
+        { label: t('keymap.commandTriggerSimultaneous'), onSelect: () => handleAddCommand('simultaneous') },
+        { label: t('keymap.commandTriggerDiagonal'), onSelect: () => handleAddCommand('diagonal') },
+        ...(onStickModeShiftChange
+          ? [{ label: t('keymap.commandAddStickShift'), onSelect: () => handleAddCommand('stickShift') } as MenuItem]
+          : []),
+        { label: t('keymap.commandAddScript'), onSelect: () => handleAddCommand('script') },
+      ],
+    },
+  ]
+
   const addControl =
     commands.length === 0 ? (
       <div className={keymapStyles.addCommandRow} data-capture-ignore="true">
@@ -429,23 +454,15 @@ export const ButtonBindingsCard = ({
       </div>
     ) : (
       <div className={keymapStyles.addCommandRow} data-capture-ignore="true">
-        <div className={keymapStyles.addCommandLabel}>{t('keymap.addAnotherTrigger')}</div>
-        <div className={keymapStyles.addCommandButtons}>
-          <button type="button" className="secondary-btn" onClick={() => handleAddCommand('regular')}>{t('keymap.commandTriggerRegular')}</button>
-          <button type="button" className="secondary-btn" onClick={() => handleAddCommand('tap')}>{t('keymap.commandTriggerTap')}</button>
-          <button type="button" className="secondary-btn" onClick={() => handleAddCommand('hold')}>{t('keymap.commandTriggerHold')}</button>
-          <button type="button" className="secondary-btn" onClick={() => handleAddCommand('double')}>{t('keymap.commandTriggerDouble')}</button>
-          <button type="button" className="secondary-btn" onClick={() => handleAddCommand('chord')}>{t('keymap.commandTriggerChord')}</button>
-        </div>
-        <details className={keymapStyles.addCommandAdvanced}>
-          <summary>{t('keymap.quickShowAdvanced')}</summary>
-          <div className={keymapStyles.addCommandButtons}>
-            <button type="button" className="secondary-btn" onClick={() => handleAddCommand('simultaneous')}>{t('keymap.commandTriggerSimultaneous')}</button>
-            <button type="button" className="secondary-btn" onClick={() => handleAddCommand('diagonal')}>{t('keymap.commandTriggerDiagonal')}</button>
-            {onStickModeShiftChange && <button type="button" className="secondary-btn" onClick={() => handleAddCommand('stickShift')}>{t('keymap.commandAddStickShift')}</button>}
-            <button type="button" className="secondary-btn" onClick={() => handleAddCommand('script')}>{t('keymap.commandAddScript')}</button>
-          </div>
-        </details>
+        <Menu
+          ariaLabel={t('keymap.addAnotherTrigger')}
+          items={addMenuItems}
+          trigger={
+            <button type="button" className="secondary-btn">
+              {t('keymap.addAnotherTrigger')}
+            </button>
+          }
+        />
       </div>
     )
 

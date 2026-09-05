@@ -1,5 +1,6 @@
 import { useEffect, useId, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Slider } from './ui/Slider'
 import styles from './NumberField.module.css'
 
 export type NumberFieldProps = {
@@ -159,16 +160,15 @@ export function NumberField({
         </span>
       </div>
       <div className={styles.track}>
-        <input
+        <Slider
           className={styles.slider}
-          type="range"
+          value={sliderValue}
+          onValueChange={commitNumber}
           min={sliderMin}
           max={sliderMax}
           step={activeStep}
-          value={sliderValue}
           disabled={disabled}
-          onChange={(event) => commitNumber(Number.parseFloat(event.target.value))}
-          aria-label={typeof label === 'string' ? label : undefined}
+          ariaLabel={typeof label === 'string' ? label : undefined}
         />
         <button
           type="button"

@@ -5,7 +5,7 @@ import { desktopBridge } from '../platform/desktopBridge'
 import type { TelemetryDevice } from '../hooks/useTelemetry'
 import { KeymapSection } from './KeymapSection'
 import { SectionActions } from './SectionActions'
-import { BindingCommandEditor } from './keymap/BindingCommandEditor'
+import { BindingEditor } from './keymap/BindingEditor'
 import { useBindingCapture } from '../keymap/useBindingCapture'
 import { ChordIcon, JoystickIcon, TrackpadIcon } from './NavIcons'
 import { showToast } from '../utils/toast'
@@ -444,7 +444,7 @@ export function GlobalChordsPage({ devices }: GlobalChordsPageProps) {
                     </label>
                   </div>
                   <div className={styles.chordRowBody}>
-                    <BindingCommandEditor
+                    <BindingEditor
                       command={command}
                       modifierOptions={[]}
                       specialOptions={[]}

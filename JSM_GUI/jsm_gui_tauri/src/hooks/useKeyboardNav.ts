@@ -29,6 +29,12 @@ const topmostOverlay = () => {
   return overlays.length ? overlays[overlays.length - 1] : null
 }
 
+// Radix popovers (Select lists, dropdown menus and their submenus) run their own
+// roving focus, typeahead and Escape handling. While one is open this hook keeps
+// its hands off the keyboard entirely, or the two would fight over every arrow
+// press and focus would jump out of the open list.
+const radixPopoverOpen = () => Boolean(document.querySelector('[data-radix-popper-content-wrapper]'))
+
 const focusablesIn = (scope: ParentNode) =>
   Array.from(scope.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(isVisible)
 
@@ -67,12 +73,21 @@ export function useKeyboardNav({ onPageStep, onEscape }: Options) {
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return
+      if (radixPopoverOpen()) return
       const target = event.target as HTMLElement | null
       const tag = target?.tagName
       const inputType = tag === 'INPUT' ? (target as HTMLInputElement).type : ''
       const isTextEntry =
         (tag === 'INPUT' && TEXT_INPUT_TYPES.has(inputType)) || tag === 'TEXTAREA' || Boolean(target?.isContentEditable)
-      const usesArrowsNatively = tag === 'SELECT' || inputType === 'range' || inputType === 'radio'
+      // Radix triggers and sliders take arrows themselves: on a closed Select the
+      // arrows open the list, and on a slider they step the value.
+      const usesArrowsNatively =
+        tag === 'SELECT' ||
+        inputType === 'range' ||
+        inputType === 'radio' ||
+        target?.getAttribute('role') === 'combobox' ||
+        target?.getAttribute('role') === 'slider' ||
+        target?.hasAttribute('aria-haspopup')
 
       switch (event.key) {
         case 'Escape': {

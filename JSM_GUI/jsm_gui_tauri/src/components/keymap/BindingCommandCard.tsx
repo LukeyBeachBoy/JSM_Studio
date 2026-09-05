@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { BindingCommand, BindingCommandPatch } from '../../utils/bindingCommands'
 import keymapStyles from '../Keymap.module.css'
-import { BindingQuickComposer } from './BindingQuickComposer'
+import { BindingEditor } from './BindingEditor'
 import {
   getPreferredVirtualControllerDisplayType,
   getVirtualControllerLogicalOutput,
@@ -145,7 +145,7 @@ export function BindingCommandCard({
       {virtualWarning && <div className={keymapStyles.commandWarningText}>{virtualWarning}</div>}
 
       {expanded && (
-        <BindingQuickComposer
+        <BindingEditor
           command={command}
           modifierOptions={modifierOptions}
           specialOptions={specialOptions}

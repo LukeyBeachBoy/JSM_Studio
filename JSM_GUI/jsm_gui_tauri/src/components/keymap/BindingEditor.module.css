@@ -1,0 +1,64 @@
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-top: 1px solid var(--border-1);
+  background: var(--bg-2);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: var(--space-3);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.field > span {
+  color: var(--text-mid);
+  font-size: var(--font-hint);
+  font-weight: 700;
+}
+
+.valueRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.valueInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.38rem 0.6rem;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-1);
+  background: var(--bg-input);
+  color: var(--text-strong);
+  font: inherit;
+  font-size: var(--font-label);
+  font-weight: 600;
+}
+
+.valueInput:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+/* Only while a capture is actually running -- the old editor wore a permanent
+   dashed drop-zone whether or not it was listening for a key. */
+.valueInputCapturing {
+  border-style: dashed;
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-input));
+}
+
+.captureBtn {
+  flex: 0 0 auto;
+}
