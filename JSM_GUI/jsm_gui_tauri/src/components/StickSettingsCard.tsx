@@ -18,7 +18,11 @@ type StickSettingsCardProps = {
   disabled?: boolean
   onInnerChange: (value: string) => void
   onOuterChange: (value: string) => void
+  /** The selected mode's everyday settings, shown in the card body. */
   modeExtras?: ReactNode
+  /** The selected mode's rare settings. The card places these inside its own
+   *  Advanced disclosure so a stick card never shows two of them. */
+  modeAdvancedExtras?: ReactNode
   variant?: 'card' | 'inline'
 }
 
@@ -36,6 +40,7 @@ export function StickSettingsCard({
   onInnerChange,
   onOuterChange,
   modeExtras,
+  modeAdvancedExtras,
   variant = 'card',
 }: StickSettingsCardProps) {
   const { t } = useTranslation()
@@ -56,39 +61,42 @@ export function StickSettingsCard({
         </select>
       </label>
       {modeExtras && <div className={styles.stickModeExtras}>{modeExtras}</div>}
+      {/* The card's one and only Advanced disclosure: the deadzones and ring
+          mode it owns, plus whatever the selected mode handed up. */}
       <AdvancedDisclosure
         summary={`${t('stickModes.innerDeadzone')} ${innerValue || defaultInner} · ${t('stickModes.outerDeadzone')} ${outerValue || defaultOuter}`}
       >
-        <NumberField
-          label={t('stickModes.innerDeadzone')}
-          value={innerValue}
-          onChange={onInnerChange}
-          min={0}
-          max={1}
-          step={0.01}
-          placeholder={defaultInner}
-          hint={innerValue ? undefined : t('common.defaultValue', { value: defaultInner })}
-          disabled={disabled}
-        />
-        <NumberField
-          label={t('stickModes.outerDeadzone')}
-          value={outerValue}
-          onChange={onOuterChange}
-          min={0}
-          max={1}
-          step={0.01}
-          placeholder={defaultOuter}
-          hint={outerValue ? undefined : t('common.defaultValue', { value: defaultOuter })}
-          disabled={disabled}
-        />
-        <label>
-          {t('stickModes.ringMode')}
-          <select className="app-select" value={ringValue} onChange={(event) => onRingChange(event.target.value)} disabled={disabled}>
-            <option value="">{t('common.defaultValue', { value: t('stickModes.outer') })}</option>
-            <option value="INNER">{t('stickModes.inner')}</option>
-            <option value="OUTER">{t('stickModes.outer')}</option>
-          </select>
-        </label>
+        <div className={styles.deadzoneRow}>
+          <NumberField
+            label={t('stickModes.innerDeadzone')}
+            value={innerValue}
+            onChange={onInnerChange}
+            min={0}
+            max={1}
+            step={0.01}
+            placeholder={defaultInner}
+            disabled={disabled}
+          />
+          <NumberField
+            label={t('stickModes.outerDeadzone')}
+            value={outerValue}
+            onChange={onOuterChange}
+            min={0}
+            max={1}
+            step={0.01}
+            placeholder={defaultOuter}
+            disabled={disabled}
+          />
+          <label>
+            {t('stickModes.ringMode')}
+            <select className="app-select" value={ringValue} onChange={(event) => onRingChange(event.target.value)} disabled={disabled}>
+              <option value="">{t('common.defaultValue', { value: t('stickModes.outer') })}</option>
+              <option value="INNER">{t('stickModes.inner')}</option>
+              <option value="OUTER">{t('stickModes.outer')}</option>
+            </select>
+          </label>
+        </div>
+        {modeAdvancedExtras}
       </AdvancedDisclosure>
     </div>
   )

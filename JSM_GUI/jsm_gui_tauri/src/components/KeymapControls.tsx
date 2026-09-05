@@ -62,7 +62,6 @@ import {
 import { resolveTouchpadGrids } from '../utils/touchpadGrids'
 import { StickSettingsCard } from './StickSettingsCard'
 import { NumberField } from './NumberField'
-import { AdvancedDisclosure } from './AdvancedDisclosure'
 import type { VirtualControllerType, VirtualControllerWarning } from '../utils/virtualController'
 import { normalizeTouchpadMode, type TouchpadWarning } from '../utils/touchpadConfig'
 
@@ -266,13 +265,20 @@ type KeymapControlsProps = {
   onVirtualControllerTypeChange?: (value: VirtualControllerType) => void
 }
 
+// A stick's mode settings come in two halves. The primary half sits in the card
+// body; the advanced half is handed back to the card so it can go inside the
+// card's own Advanced disclosure. Rendering a second disclosure here is what
+// produced two "Advanced" toggles in a single stick card.
+type StickSettingsPart = 'primary' | 'advanced'
+
 type StickAimSettingsProps = {
   values: NonNullable<KeymapControlsProps['stickAimSettings']>
   handlers: NonNullable<KeymapControlsProps['stickAimHandlers']>
   disabled?: boolean
+  part: StickSettingsPart
 }
 
-const StickAimSettings = ({ values, handlers, disabled }: StickAimSettingsProps) => {
+const StickAimSettings = ({ values, handlers, disabled, part }: StickAimSettingsProps) => {
   const { t } = useTranslation()
   const sensXValue = values.displaySensX
   const sensYValue = values.displaySensY
@@ -281,36 +287,42 @@ const StickAimSettings = ({ values, handlers, disabled }: StickAimSettingsProps)
   const accelCapValue = values.accelerationCap ?? ''
   const formatDefault = (value: string) => t('common.defaultValue', { value })
 
+  if (part === 'primary') {
+    return (
+      <div className={stickStyles.stickAimSettings} data-capture-ignore="true">
+        <small>{t('keymap.stickAimNote')}</small>
+        <div className={stickStyles.stickAimGrid}>
+          <NumberField
+            label={t('keymap.stickSensitivityHorizontal')}
+            value={sensXValue}
+            onChange={handlers.onSensXChange}
+            min={0}
+            max={1200}
+            step={1}
+            coarseStep={30}
+            unit="°/s"
+            placeholder={formatDefault(STICK_AIM_DEFAULTS.sens)}
+            disabled={disabled}
+          />
+          <NumberField
+            label={t('keymap.stickSensitivityVertical')}
+            value={sensYValue}
+            onChange={handlers.onSensYChange}
+            min={0}
+            max={1200}
+            step={1}
+            coarseStep={30}
+            unit="°/s"
+            placeholder={formatDefault(STICK_AIM_DEFAULTS.sens)}
+            disabled={disabled}
+          />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className={stickStyles.stickAimSettings} data-capture-ignore="true">
-      <small>{t('keymap.stickAimNote')}</small>
-      <div className={stickStyles.stickAimGrid}>
-        <NumberField
-          label={t('keymap.stickSensitivityHorizontal')}
-          value={sensXValue}
-          onChange={handlers.onSensXChange}
-          min={0}
-          max={1200}
-          step={1}
-          coarseStep={30}
-          unit="°/s"
-          placeholder={formatDefault(STICK_AIM_DEFAULTS.sens)}
-          disabled={disabled}
-        />
-        <NumberField
-          label={t('keymap.stickSensitivityVertical')}
-          value={sensYValue}
-          onChange={handlers.onSensYChange}
-          min={0}
-          max={1200}
-          step={1}
-          coarseStep={30}
-          unit="°/s"
-          placeholder={formatDefault(STICK_AIM_DEFAULTS.sens)}
-          disabled={disabled}
-        />
-      </div>
-      <AdvancedDisclosure>
         <div className={stickStyles.stickAimGrid}>
           <NumberField
             label={t('keymap.stickPower')}
@@ -346,7 +358,6 @@ const StickAimSettings = ({ values, handlers, disabled }: StickAimSettingsProps)
             disabled={disabled}
           />
         </div>
-      </AdvancedDisclosure>
     </div>
   )
 }
@@ -355,38 +366,45 @@ type StickFlickSettingsProps = {
   values: NonNullable<KeymapControlsProps['stickFlickSettings']>
   handlers: NonNullable<KeymapControlsProps['stickFlickHandlers']>
   disabled?: boolean
+  part: StickSettingsPart
 }
 
-const StickFlickSettings = ({ values, handlers, disabled }: StickFlickSettingsProps) => {
+const StickFlickSettings = ({ values, handlers, disabled, part }: StickFlickSettingsProps) => {
   const { t } = useTranslation()
   const snapMode = values.snapMode || ''
   const formatDefault = (value: string) => t('common.defaultValue', { value })
 
+  if (part === 'primary') {
+    return (
+      <div className="stick-flick-settings" data-capture-ignore="true">
+        <small>{t('keymap.stickFlickNote')}</small>
+        <div className={stickStyles.stickAimGrid}>
+          <NumberField
+            label={t('keymap.flickTime')}
+            value={values.flickTime}
+            onChange={handlers.onFlickTimeChange}
+            min={0}
+            max={1}
+            step={0.01}
+            unit="s"
+            placeholder={formatDefault('0.1')}
+            disabled={disabled}
+          />
+          <label>
+            {t('keymap.snapMode')}
+            <select className="app-select" value={snapMode} onChange={(event) => handlers.onSnapModeChange(event.target.value)} disabled={disabled}>
+              <option value="">{t('common.defaultValue', { value: 'NONE' })}</option>
+              <option value="4">{t('keymap.snapToFour')}</option>
+              <option value="8">{t('keymap.snapToEight')}</option>
+            </select>
+          </label>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="stick-flick-settings" data-capture-ignore="true">
-      <small>{t('keymap.stickFlickNote')}</small>
-      <div className={stickStyles.stickAimGrid}>
-        <NumberField
-          label={t('keymap.flickTime')}
-          value={values.flickTime}
-          onChange={handlers.onFlickTimeChange}
-          min={0}
-          max={1}
-          step={0.01}
-          unit="s"
-          placeholder={formatDefault('0.1')}
-          disabled={disabled}
-        />
-        <label>
-          {t('keymap.snapMode')}
-          <select className="app-select" value={snapMode} onChange={(event) => handlers.onSnapModeChange(event.target.value)} disabled={disabled}>
-            <option value="">{t('common.defaultValue', { value: 'NONE' })}</option>
-            <option value="4">{t('keymap.snapToFour')}</option>
-            <option value="8">{t('keymap.snapToEight')}</option>
-          </select>
-        </label>
-      </div>
-      <AdvancedDisclosure>
         <div className={stickStyles.stickAimGrid}>
           <NumberField
             label={t('keymap.flickTimeExponent')}
@@ -422,10 +440,12 @@ const StickFlickSettings = ({ values, handlers, disabled }: StickFlickSettingsPr
             disabled={disabled}
           />
         </div>
-      </AdvancedDisclosure>
     </div>
   )
 }
+
+// Most stick modes have a handful of settings and nothing worth hiding.
+const withoutAdvanced = (primary: JSX.Element) => ({ primary, advanced: null })
 
 const MAPPING_BUTTON_GROUPS: Record<string, { titleKey: string; descriptionKey?: string; buttons: ButtonDefinition[]; icon: JSX.Element }> = {
   face: { titleKey: 'keymap.faceButtonsTitle', descriptionKey: 'keymap.faceButtonsDescription', buttons: FACE_BUTTONS, icon: <ButtonsIcon /> },
@@ -1157,16 +1177,24 @@ export function KeymapControls({
     )
   }
 
-  const stickModeExtras = (side: 'LEFT' | 'RIGHT') => {
+  // Returns the mode's settings split in two: what belongs in the card body,
+  // and what the card should tuck inside its own single Advanced disclosure.
+  const stickModeExtras = (side: 'LEFT' | 'RIGHT'): { primary: JSX.Element | null; advanced: JSX.Element | null } => {
     const mode = side === 'LEFT' ? stickModeSettings?.left.mode ?? '' : stickModeSettings?.right.mode ?? ''
     if ((mode === 'AIM' || (side === 'LEFT' && mode === 'HYBRID_AIM')) && stickAimSettings && stickAimHandlers) {
-      return <StickAimSettings values={stickAimSettings} handlers={stickAimHandlers} disabled={isCalibrating} />
+      return {
+        primary: <StickAimSettings values={stickAimSettings} handlers={stickAimHandlers} disabled={isCalibrating} part="primary" />,
+        advanced: <StickAimSettings values={stickAimSettings} handlers={stickAimHandlers} disabled={isCalibrating} part="advanced" />,
+      }
     }
     if ((mode === 'FLICK' || mode === 'FLICK_ONLY' || mode === 'ROTATE_ONLY') && stickFlickSettings && stickFlickHandlers) {
-      return <StickFlickSettings values={stickFlickSettings} handlers={stickFlickHandlers} disabled={isCalibrating} />
+      return {
+        primary: <StickFlickSettings values={stickFlickSettings} handlers={stickFlickHandlers} disabled={isCalibrating} part="primary" />,
+        advanced: <StickFlickSettings values={stickFlickSettings} handlers={stickFlickHandlers} disabled={isCalibrating} part="advanced" />,
+      }
     }
     if (mode === 'MOUSE_AREA' && mouseRingRadius !== undefined && onMouseRingRadiusChange) {
-      return (
+      return withoutAdvanced(
         <div className={stickStyles.stickFlickSettings} data-capture-ignore="true">
           <small>{t('keymap.mouseAreaRadiusNote')}</small>
           <div className={stickStyles.stickAimGrid}>
@@ -1187,7 +1215,7 @@ export function KeymapControls({
       )
     }
     if (mode === 'SCROLL_WHEEL' && scrollSens !== undefined && onScrollSensChange) {
-      return (
+      return withoutAdvanced(
         <div className={stickStyles.stickFlickSettings} data-capture-ignore="true">
           <small>{t('keymap.scrollSensitivityNote')}</small>
           <div className={stickStyles.stickAimGrid}>
@@ -1208,7 +1236,7 @@ export function KeymapControls({
       )
     }
     if (mode === 'LEFT_STICK' || mode === 'RIGHT_STICK') {
-      return (
+      return withoutAdvanced(
         <div className={stickStyles.stickFlickSettings} data-capture-ignore="true">
           <small>{t('stickModes.virtualStickHint')}</small>
           {virtualControllerType === 'NONE' && (
@@ -1219,7 +1247,7 @@ export function KeymapControls({
         </div>
       )
     }
-    return null
+    return { primary: null, advanced: null }
   }
 
   const renderSections = (sections: { key: string; shouldRender: boolean; node: JSX.Element }[]) =>
@@ -1384,7 +1412,8 @@ export function KeymapControls({
                               onInnerChange={(value) => onStickDeadzoneChange(groupKey === 'leftStick' ? 'LEFT' : 'RIGHT', 'INNER', value)}
                               onOuterChange={(value) => onStickDeadzoneChange(groupKey === 'leftStick' ? 'LEFT' : 'RIGHT', 'OUTER', value)}
                               disabled={isCalibrating}
-                              modeExtras={stickModeExtras(groupKey === 'leftStick' ? 'LEFT' : 'RIGHT')}
+                              modeExtras={stickModeExtras(groupKey === 'leftStick' ? 'LEFT' : 'RIGHT').primary}
+                              modeAdvancedExtras={stickModeExtras(groupKey === 'leftStick' ? 'LEFT' : 'RIGHT').advanced}
                             />
                           </div>
                           <div className={keymapStyles.keymapGrid}>
