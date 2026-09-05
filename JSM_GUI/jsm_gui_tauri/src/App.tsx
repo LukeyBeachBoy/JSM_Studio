@@ -464,7 +464,7 @@ function App() {
     }
     return false
   }, [isConfigDrawerOpen])
-  const { modalOpen } = useKeyboardNav({ onPageStep: stepPage, onEscape: closeFloatingWindows })
+  const { modalOpen } = useKeyboardNav({ onPageStep: stepPage, onEscape: closeFloatingWindows, activePage: primaryTab })
 
   useEffect(() => {
     const handler = (event: Event) => setControllerNavEnabled(Boolean((event as CustomEvent<boolean>).detail))

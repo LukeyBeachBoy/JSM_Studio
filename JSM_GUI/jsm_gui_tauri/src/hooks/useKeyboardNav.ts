@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 // Everything the controller can reach once AppNavigation.txt has turned it into
 // a keyboard: arrows move focus, Enter activates (native), Escape closes the
@@ -42,10 +42,38 @@ type Options = {
   onPageStep: (delta: 1 | -1) => void
   /** Called on Escape when no dialog is open. Return true if something was closed. */
   onEscape?: () => boolean
+  /**
+   * Identifies which primary page is showing. Sidebar buttons, the page's own
+   * tabs, and toolbar controls all come before the content in DOM order, so
+   * without this a controller that just switched page (a sidebar press, or
+   * ZL/ZR via onPageStep) is left focused wherever it was before -- often
+   * nowhere -- and the next D-pad press restarts the walk from the very first
+   * sidebar item instead of landing in the page just switched to. Changing
+   * this value moves focus into that page's content, the same way opening a
+   * dialog already does below.
+   */
+  activePage?: unknown
+  /** Content region to focus into on an activePage change. Defaults to '.main-pane'. */
+  contentSelector?: string
 }
 
-export function useKeyboardNav({ onPageStep, onEscape }: Options) {
+export function useKeyboardNav({ onPageStep, onEscape, activePage, contentSelector = '.main-pane' }: Options) {
   const [modalOpen, setModalOpen] = useState(false)
+  const skipNextPageFocus = useRef(true)
+
+  // Only react to CHANGES in activePage, not the initial mount -- a fresh
+  // launch shouldn't yank focus into the page before anyone has touched a
+  // controller.
+  useEffect(() => {
+    if (skipNextPageFocus.current) {
+      skipNextPageFocus.current = false
+      return
+    }
+    const content = document.querySelector<HTMLElement>(contentSelector)
+    if (!content) return
+    const first = focusablesIn(content)[0]
+    first?.focus({ preventScroll: true })
+  }, [activePage, contentSelector])
 
   // Track dialogs by watching the DOM rather than threading state through every
   // modal owner. When one opens, put focus inside it so the first D-pad press
