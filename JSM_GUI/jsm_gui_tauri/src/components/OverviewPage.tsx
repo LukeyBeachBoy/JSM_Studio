@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import type { TelemetryDevice } from '../hooks/useTelemetry'
+import { BatteryIndicator } from './BatteryIndicator'
 import { Card } from './Card'
 import { ControllerStatusSvg } from './ControllerStatusSvg'
 import {
@@ -43,6 +44,7 @@ export function OverviewPage({ devices, onNavigate }: OverviewPageProps) {
       <Card className={`${statusStyles.pageCard} ${statusStyles.visualPanel}`}>
         <div className={statusStyles.visualPanelHeader}>
           <div className={statusStyles.panelTitle}>{t('overview.diagramTitle')}</div>
+          {device && <BatteryIndicator percent={device.batteryPercent} state={device.batteryState} />}
         </div>
         {device ? (
           <ControllerStatusSvg device={device} />

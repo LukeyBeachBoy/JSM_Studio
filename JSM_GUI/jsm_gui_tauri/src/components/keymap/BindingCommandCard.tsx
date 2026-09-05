@@ -54,6 +54,15 @@ const conditionPrefixKeys: Partial<Record<BindingCommand['triggerKind'], string>
   diagonal: 'keymap.commandConditionDiagonal',
 }
 
+// The trigger kinds a binding can be switched directly to from this dropdown.
+// Chord/simultaneous/diagonal need a modifier button chosen alongside the
+// trigger change (nothing to chord *with* otherwise), which is a bigger flow
+// than a dropdown -- they stay reachable only through "add another trigger",
+// same as today. onUpdate already handles moving a binding between config
+// slots correctly (see ButtonBindingsCard's updateCommand), so this is purely
+// a UI gap, not a new capability.
+const RETARGETABLE_TRIGGER_KINDS: BindingCommand['triggerKind'][] = ['regular', 'tap', 'hold', 'double']
+
 export function BindingCommandCard({
   command,
   modifierOptions,
@@ -95,11 +104,30 @@ export function BindingCommandCard({
             })
           : ''
 
+  const canRetargetTrigger = command.source.kind === 'row' && RETARGETABLE_TRIGGER_KINDS.includes(command.triggerKind)
+  const triggerOptions = canRetargetTrigger
+    ? RETARGETABLE_TRIGGER_KINDS
+    : [command.triggerKind]
+
   return (
     <div className={keymapStyles.commandCard}>
       <div className={keymapStyles.commandSummary}>
-        <button type="button" className={keymapStyles.commandSummaryMain} onClick={() => setExpanded(value => !value)}>
+        {canRetargetTrigger ? (
+          <select
+            className={`${keymapStyles.commandTriggerBadge} ${keymapStyles.commandTriggerBadgeSelect}`}
+            value={command.triggerKind}
+            data-capture-ignore="true"
+            onClick={(event) => event.stopPropagation()}
+            onChange={(event) => onUpdate(command, { triggerKind: event.target.value as BindingCommand['triggerKind'] })}
+          >
+            {triggerOptions.map(kind => (
+              <option key={kind} value={kind}>{t(TRIGGER_LABEL_KEYS[kind])}</option>
+            ))}
+          </select>
+        ) : (
           <span className={keymapStyles.commandTriggerBadge}>{triggerLabel}</span>
+        )}
+        <button type="button" className={keymapStyles.commandSummaryMain} onClick={() => setExpanded(value => !value)}>
           {conditionLabel && <span className={keymapStyles.commandConditionBadge}>{conditionLabel}</span>}
           <span className={keymapStyles.commandArrow}>-&gt;</span>
           <span className={keymapStyles.commandOutputSummary}>{summaryOutput}</span>

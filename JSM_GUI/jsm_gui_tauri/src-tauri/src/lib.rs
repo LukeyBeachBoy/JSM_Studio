@@ -2,9 +2,16 @@ mod commands;
 mod runtime;
 mod services;
 
-use tauri::{Manager, RunEvent};
+use tauri::{
+    menu::{Menu, MenuItem, PredefinedMenuItem},
+    tray::{MouseButton, TrayIconBuilder, TrayIconEvent},
+    Manager, RunEvent, WindowEvent,
+};
 
 use services::{app_state::AppState, hidhide, input_debug, jsm_process, telemetry};
+
+const TRAY_SHOW_ID: &str = "show";
+const TRAY_QUIT_ID: &str = "quit";
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -25,6 +32,47 @@ pub fn run() {
             if let Err(error) = jsm_process::launch_jsm(&app.handle(), &state) {
                 eprintln!("Failed to auto-launch JoyShockMapper from Tauri: {error}");
             }
+
+            // Closing the window (see the on_window_event handler below) hides
+            // it rather than quitting -- JoyShockMapper keeps running and the
+            // controller keeps working, matching Steam Input's own background
+            // behavior. The tray icon is what makes that discoverable/reversible
+            // instead of the app just vanishing with no way back but the taskbar.
+            let show_item = MenuItem::with_id(app, TRAY_SHOW_ID, "Show JSM Studio", true, None::<&str>)?;
+            let quit_item = MenuItem::with_id(app, TRAY_QUIT_ID, "Quit", true, None::<&str>)?;
+            let separator = PredefinedMenuItem::separator(app)?;
+            let tray_menu = Menu::with_items(app, &[&show_item, &separator, &quit_item])?;
+
+            TrayIconBuilder::new()
+                .icon(app.default_window_icon().cloned().expect("bundled tray icon"))
+                .tooltip("JSM Studio")
+                .menu(&tray_menu)
+                .show_menu_on_left_click(false)
+                .on_menu_event(|app_handle, event| match event.id.as_ref() {
+                    TRAY_SHOW_ID => show_main_window(app_handle),
+                    TRAY_QUIT_ID => app_handle.exit(0),
+                    _ => {}
+                })
+                .on_tray_icon_event(|tray, event| {
+                    // Left-click restores the window, matching how every other
+                    // tray icon on Windows behaves; right-click's context menu
+                    // is handled by TrayIconBuilder itself (menu() above).
+                    if let TrayIconEvent::Click { button: MouseButton::Left, .. } = event {
+                        show_main_window(tray.app_handle());
+                    }
+                })
+                .build(app)?;
+
+            // The window starts hidden (tauri.conf.json) so an autostart launch
+            // never flashes it visible before this decides otherwise. Everything
+            // that makes the controller usable (JoyShockMapper, telemetry) has
+            // already started above regardless of this flag -- only the window's
+            // visibility depends on it.
+            let launched_at_autostart = std::env::args().any(|arg| arg == "--autostart");
+            if !launched_at_autostart {
+                show_main_window(&app.handle());
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -76,6 +124,16 @@ pub fn run() {
             commands::get_autostart_enabled,
             commands::set_autostart_enabled,
         ])
+        .on_window_event(|window, event| {
+            // Hide instead of destroying: JoyShockMapper and the telemetry
+            // socket keep running, so the controller never stops working just
+            // because the window closed. Only the tray's Quit item (or an
+            // explicit app_handle.exit()) tears anything down -- see below.
+            if let WindowEvent::CloseRequested { api, .. } = event {
+                api.prevent_close();
+                let _ = window.hide();
+            }
+        })
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
 
@@ -90,6 +148,14 @@ pub fn run() {
             }
         }
     });
+}
+
+fn show_main_window(app_handle: &tauri::AppHandle) {
+    if let Some(window) = app_handle.get_webview_window("main") {
+        let _ = window.show();
+        let _ = window.unminimize();
+        let _ = window.set_focus();
+    }
 }
 
 fn sync_hidhide_whitelist_if_available(app: &tauri::AppHandle) -> Result<(), String> {

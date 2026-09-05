@@ -45,6 +45,14 @@ pub fn set_autostart_enabled(enabled: bool) -> Result<(), String> {
         let exe_path = exe_path
             .to_str()
             .ok_or_else(|| "The executable path contains characters schtasks can't accept.".to_string())?;
+        // --autostart tells lib.rs's setup() to leave the window hidden (it
+        // starts hidden either way per tauri.conf.json) instead of showing it --
+        // "launch at startup" should mean the controller is ready, not that a
+        // window pops up over whatever the user just logged in to do.
+        // The whole thing needs to be one quoted string for /TR: schtasks treats
+        // an unquoted flag after the exe path as part of a literal command line,
+        // but only accepts that as a single /TR argument, not several argv entries.
+        let task_run_command = format!("\"{exe_path}\" --autostart");
         // /F overwrites a pre-existing task instead of erroring, so re-enabling
         // (or upgrading from an older exe path) is idempotent. /RL HIGHEST is
         // the whole point -- see module comment.
@@ -53,7 +61,7 @@ pub fn set_autostart_enabled(enabled: bool) -> Result<(), String> {
             "/TN",
             TASK_NAME,
             "/TR",
-            exe_path,
+            &task_run_command,
             "/SC",
             "ONLOGON",
             "/RL",

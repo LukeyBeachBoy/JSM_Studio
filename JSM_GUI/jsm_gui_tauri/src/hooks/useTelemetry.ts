@@ -36,6 +36,10 @@ export type TelemetryDevice = {
   split?: number
   vid?: number
   pid?: number
+  // -1 = unknown/unsupported. batteryState mirrors SDL_PowerState: -1 error,
+  // 0 unknown, 1 on battery, 2 no battery (wired), 3 charging, 4 charged.
+  batteryPercent?: number
+  batteryState?: number
   status?: TelemetryDeviceStatus
 }
 

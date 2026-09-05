@@ -77,6 +77,44 @@ export function TriggersIcon() {
   )
 }
 
+export function BumperIcon() {
+  return (
+    <svg {...base}>
+      <path d="M2.4 9.4V7.2c0-2.6 2.1-4.7 4.7-4.7h1.8c2.6 0 4.7 2.1 4.7 4.7v2.2" />
+      <path d="M2.4 9.4h11.2" />
+    </svg>
+  )
+}
+
+export function PaddleIcon() {
+  return (
+    <svg {...base}>
+      <path d="M4.8 2.4h4.8a2.4 2.4 0 0 1 2.4 2.4v6.4a2.4 2.4 0 0 1-2.4 2.4H6.4L4 11.4V4.8a2.4 2.4 0 0 1 .8-2.4Z" />
+    </svg>
+  )
+}
+
+export function CenterButtonsIcon() {
+  return (
+    <svg {...base}>
+      <rect x="3.2" y="6.6" width="3.6" height="2.8" rx="0.7" />
+      <rect x="9.2" y="6.6" width="3.6" height="2.8" rx="0.7" />
+      <path d="M8 6.6V5c0-.6.4-1.1 1-1.3" />
+    </svg>
+  )
+}
+
+export function ExtraButtonsIcon() {
+  return (
+    <svg {...base}>
+      <circle cx="5.4" cy="5.4" r="1.5" />
+      <circle cx="10.6" cy="5.4" r="1.5" />
+      <circle cx="5.4" cy="10.6" r="1.5" />
+      <circle cx="10.6" cy="10.6" r="1.5" />
+    </svg>
+  )
+}
+
 export function JoystickIcon() {
   return (
     <svg {...base}>
@@ -141,6 +179,28 @@ export function EyeIcon() {
     <svg {...base}>
       <path d="M1.6 8S3.8 3.4 8 3.4 14.4 8 14.4 8 12.2 12.6 8 12.6 1.6 8 1.6 8Z" />
       <circle cx="8" cy="8" r="2" />
+    </svg>
+  )
+}
+
+// fillFraction: 0-1, how much of the cell to fill. Distinct from the other
+// icons here in that it's parameterized -- used for a live battery level, not
+// a fixed nav glyph.
+export function BatteryIcon({ fillFraction = 1, charging = false }: { fillFraction?: number; charging?: boolean }) {
+  const clamped = Math.max(0, Math.min(1, fillFraction))
+  const cellX = 2.2
+  const cellWidth = 10.3
+  const fillWidth = cellWidth * clamped
+  return (
+    <svg {...base}>
+      <rect x={cellX} y="4.8" width={cellWidth} height="6.4" rx="1.2" />
+      <rect x="12.9" y="6.6" width="1.3" height="2.8" rx="0.5" fill="currentColor" stroke="none" />
+      {clamped > 0 && !charging && (
+        <rect x={cellX + 1} y="5.8" width={Math.max(0, fillWidth - 2)} height="4.4" rx="0.6" fill="currentColor" stroke="none" />
+      )}
+      {charging && (
+        <path d="M8.6 4.4 6.4 8.6h1.7L7.5 12.6l3.3-5.1H9.1L10.3 4.4Z" fill="var(--telemetry-green)" stroke="none" />
+      )}
     </svg>
   )
 }

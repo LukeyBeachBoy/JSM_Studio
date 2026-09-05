@@ -64,55 +64,62 @@ export function TouchpadStickSection({
               )}
             </select>
           </label>
-          <div className={styles.touchpadAdvancedGrid}>
-            <label>
-              {t('keymap.touchDeadzoneInner')}
-              <input
-                type="number"
-                min="0"
-                step="1"
-                value={touchDeadzoneInner}
-                onChange={(event) => onTouchDeadzoneInnerChange?.(event.target.value)}
-                placeholder={t('common.defaultPlaceholder')}
-              />
-            </label>
-            <label>
-              {t('stickModes.ringMode')}
-              <select className="app-select" value={touchRingMode} onChange={(event) => onTouchRingModeChange?.(event.target.value)}>
-                <option value="">{t('common.defaultPlaceholder')}</option>
-                <option value="INNER">{t('stickModes.inner')}</option>
-                <option value="OUTER">{t('stickModes.outer')}</option>
-                {hasCustomRingMode && (
-                  <option value={touchRingMode}>{t('keymap.currentRawValue', { value: touchRingMode })}</option>
-                )}
-              </select>
-            </label>
-            <label>
-              {t('keymap.touchStickRadius')}
-              <input
-                type="number"
-                min="0"
-                step="1"
-                value={touchStickRadius}
-                onChange={(event) => onTouchStickRadiusChange?.(event.target.value)}
-                placeholder={t('common.defaultPlaceholder')}
-              />
-            </label>
-            <label>
-              {t('keymap.touchStickAxis')}
-              <select className="app-select" value={touchStickAxis} onChange={(event) => onTouchStickAxisChange?.(event.target.value)}>
-                <option value="">{t('common.defaultValue', { value: 'STANDARD' })}</option>
-                {TOUCH_STICK_AXIS_VALUES.map(mode => (
-                  <option key={mode} value={mode}>
-                    {mode}
-                  </option>
-                ))}
-                {hasCustomAxis && (
-                  <option value={touchStickAxis}>{t('keymap.currentRawValue', { value: touchStickAxis })}</option>
-                )}
-              </select>
-            </label>
-          </div>
+          {/* Deadzone/ring/radius/axis only mean anything once the touch stick
+              actually has a mode -- same reasoning as hiding a real stick's
+              raw direction rows once it has one. Showing four settings that
+              do nothing for a mode-less touch stick was a real part of "the
+              touchpad config is confusing". */}
+          {touchStickMode && (
+            <div className={styles.touchpadAdvancedGrid}>
+              <label>
+                {t('keymap.touchDeadzoneInner')}
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={touchDeadzoneInner}
+                  onChange={(event) => onTouchDeadzoneInnerChange?.(event.target.value)}
+                  placeholder={t('common.defaultPlaceholder')}
+                />
+              </label>
+              <label>
+                {t('stickModes.ringMode')}
+                <select className="app-select" value={touchRingMode} onChange={(event) => onTouchRingModeChange?.(event.target.value)}>
+                  <option value="">{t('common.defaultPlaceholder')}</option>
+                  <option value="INNER">{t('stickModes.inner')}</option>
+                  <option value="OUTER">{t('stickModes.outer')}</option>
+                  {hasCustomRingMode && (
+                    <option value={touchRingMode}>{t('keymap.currentRawValue', { value: touchRingMode })}</option>
+                  )}
+                </select>
+              </label>
+              <label>
+                {t('keymap.touchStickRadius')}
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={touchStickRadius}
+                  onChange={(event) => onTouchStickRadiusChange?.(event.target.value)}
+                  placeholder={t('common.defaultPlaceholder')}
+                />
+              </label>
+              <label>
+                {t('keymap.touchStickAxis')}
+                <select className="app-select" value={touchStickAxis} onChange={(event) => onTouchStickAxisChange?.(event.target.value)}>
+                  <option value="">{t('common.defaultValue', { value: 'STANDARD' })}</option>
+                  {TOUCH_STICK_AXIS_VALUES.map(mode => (
+                    <option key={mode} value={mode}>
+                      {mode}
+                    </option>
+                  ))}
+                  {hasCustomAxis && (
+                    <option value={touchStickAxis}>{t('keymap.currentRawValue', { value: touchStickAxis })}</option>
+                  )}
+                </select>
+              </label>
+            </div>
+          )}
           <p className={styles.touchpadHint}>{t('keymap.touchStickHint')}</p>
         </div>
       </KeymapSection>

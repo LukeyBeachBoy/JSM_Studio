@@ -54,6 +54,19 @@
   font-size: 0.8rem;
 }
 
+.keymapSectionHeading {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
+.keymapSectionIcon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  color: var(--text-dim);
+  margin-top: 0.15rem;
+}
+
 .keymapGrid {
   display: flex;
   flex-direction: column;
@@ -627,6 +640,22 @@
   color: var(--text-mid);
   font-size: 0.78rem;
   font-weight: 700;
+}
+
+/* A <select> standing in for the badge when the trigger kind can be changed
+   in place -- same pill look, but interactive. Reset native select chrome so
+   it doesn't read as "just another form field" among the other badges. */
+.commandTriggerBadgeSelect {
+  align-self: center;
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--bg-input);
+  cursor: pointer;
+}
+
+.commandTriggerBadgeSelect:hover {
+  border-color: var(--border-strong);
+  color: var(--text-strong);
 }
 
 .commandConditionBadge {

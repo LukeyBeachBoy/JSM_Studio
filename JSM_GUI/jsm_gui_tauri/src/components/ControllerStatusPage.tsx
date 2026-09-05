@@ -5,6 +5,7 @@ import { desktopBridge } from '../platform/desktopBridge'
 import { controllerButtonLabel, getPressedControllerButtons } from '../utils/controllerStatus'
 import { controllerLabel, formatVidPid } from '../utils/controllers'
 import { showToast } from '../utils/toast'
+import { BatteryIndicator } from './BatteryIndicator'
 import { Card } from './Card'
 import { ControllerStatusSvg } from './ControllerStatusSvg'
 import styles from './ControllerStatusPage.module.css'
@@ -96,6 +97,7 @@ function ControllerStatusDeviceCard({ device, ignoredDevices }: ControllerStatus
           <div className={styles.deviceMeta}>
             <span>{t('controllerStatus.handleLabel', { handle: device.handle })}</span>
             {vidPid && <span>{t('controllerStatus.vidPidLabel', { value: vidPid })}</span>}
+            <BatteryIndicator percent={device.batteryPercent} state={device.batteryState} />
           </div>
         </div>
         <span className={`${styles.statusBadge} ${isIgnored ? styles.statusIgnored : styles.statusNormal}`}>
@@ -227,6 +229,9 @@ function ControllerConnectionStatusPanel({ connectedDevices, priority = false }:
         <span className={`${styles.cardMetric} ${styles.cardMetricSuccess}`}>
           {t('controllerStatus.connectionConnectedCount', { count: connectedCount })}
         </span>
+        {connectedCount === 1 && (
+          <BatteryIndicator percent={connectedDevices?.[0]?.batteryPercent} state={connectedDevices?.[0]?.batteryState} />
+        )}
         <button
           type="button"
           className="ghost-btn"

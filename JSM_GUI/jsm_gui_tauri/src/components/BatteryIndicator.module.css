@@ -1,0 +1,13 @@
+.battery {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--text-mid);
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.battery svg {
+  flex: 0 0 auto;
+  color: var(--text-dim);
+}

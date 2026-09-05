@@ -16,7 +16,8 @@
         "title": "JSM Studio",
         "width": 1440,
         "height": 900,
-        "resizable": true
+        "resizable": true,
+        "visible": false
       }
     ],
     "security": {

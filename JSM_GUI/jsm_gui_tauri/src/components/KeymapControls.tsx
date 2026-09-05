@@ -25,7 +25,6 @@ import {
   TOUCH_BUTTONS,
   TRIGGER_BUTTONS,
   buildTouchpadGridButton,
-  getButtonDescription,
   getSpecialOptionList,
   type ButtonDefinition,
 } from '../keymap/schema'
@@ -45,8 +44,17 @@ import { TouchpadSensorSection } from './keymap/TouchpadSensorSection'
 import { GripSettingsSection } from './keymap/GripSettingsSection'
 import { TouchpadStickSection } from './keymap/TouchpadStickSection'
 import { SectionActions } from './SectionActions'
-import { ControllerStatusSvg } from './ControllerStatusSvg'
-import { controllerButtonLabel, controllerHasTwoTrackpads } from '../utils/controllerStatus'
+import { controllerHasTwoTrackpads } from '../utils/controllerStatus'
+import {
+  BumperIcon,
+  ButtonsIcon,
+  CenterButtonsIcon,
+  DPadIcon,
+  ExtraButtonsIcon,
+  JoystickIcon,
+  PaddleIcon,
+  TriggersIcon,
+} from './NavIcons'
 import { resolveTouchpadGrids } from '../utils/touchpadGrids'
 import { StickSettingsCard } from './StickSettingsCard'
 import type { VirtualControllerType, VirtualControllerWarning } from '../utils/virtualController'
@@ -416,44 +424,36 @@ const StickFlickSettings = ({ values, handlers, disabled }: StickFlickSettingsPr
   )
 }
 
-const VIRTUAL_MAPPING_DEVICE: TelemetryDevice = {
-  handle: 0,
-  type: 6,
-  status: {
-    buttons: 0,
-    leftStick: { x: 0, y: 0 },
-    rightStick: { x: 0, y: 0 },
-    triggers: { left: 0, right: 0 },
-    gyro: { x: 0, y: 0, z: 0 },
-  },
-}
-
-const MAPPING_BUTTON_GROUPS: Record<string, { titleKey: string; descriptionKey?: string; buttons: ButtonDefinition[] }> = {
-  face: { titleKey: 'keymap.faceButtonsTitle', descriptionKey: 'keymap.faceButtonsDescription', buttons: FACE_BUTTONS },
-  dpad: { titleKey: 'keymap.dpadTitle', descriptionKey: 'keymap.dpadDescription', buttons: DPAD_BUTTONS },
+const MAPPING_BUTTON_GROUPS: Record<string, { titleKey: string; descriptionKey?: string; buttons: ButtonDefinition[]; icon: JSX.Element }> = {
+  face: { titleKey: 'keymap.faceButtonsTitle', descriptionKey: 'keymap.faceButtonsDescription', buttons: FACE_BUTTONS, icon: <ButtonsIcon /> },
+  dpad: { titleKey: 'keymap.dpadTitle', descriptionKey: 'keymap.dpadDescription', buttons: DPAD_BUTTONS, icon: <DPadIcon /> },
   bumpers: {
     titleKey: 'keymap.bumpersTitle',
     descriptionKey: 'keymap.bumpersDescription',
     buttons: [...BUMPER_BUTTONS, ...MINI_BUTTONS],
+    icon: <BumperIcon />,
   },
-  triggers: { titleKey: 'keymap.triggersTitle', descriptionKey: 'keymap.triggersDescription', buttons: TRIGGER_BUTTONS },
+  triggers: { titleKey: 'keymap.triggersTitle', descriptionKey: 'keymap.triggersDescription', buttons: TRIGGER_BUTTONS, icon: <TriggersIcon /> },
   center: {
     titleKey: 'keymap.centerButtonsTitle',
     descriptionKey: 'keymap.centerButtonsDescription',
     buttons: CENTER_BUTTONS,
+    icon: <CenterButtonsIcon />,
   },
-  paddles: { titleKey: 'keymap.paddlesTitle', descriptionKey: 'keymap.paddlesDescription', buttons: PADDLE_BUTTONS },
+  paddles: { titleKey: 'keymap.paddlesTitle', descriptionKey: 'keymap.paddlesDescription', buttons: PADDLE_BUTTONS, icon: <PaddleIcon /> },
   leftStick: {
     titleKey: 'keymap.leftStickTitle',
     descriptionKey: 'keymap.leftStickDescription',
     buttons: LEFT_STICK_BUTTONS,
+    icon: <JoystickIcon />,
   },
   rightStick: {
     titleKey: 'keymap.rightStickTitle',
     descriptionKey: 'keymap.rightStickDescription',
     buttons: RIGHT_STICK_BUTTONS,
+    icon: <JoystickIcon />,
   },
-  extra: { titleKey: 'keymap.extraButtonsTitle', descriptionKey: 'keymap.extraButtonsDescription', buttons: MISC_BUTTONS },
+  extra: { titleKey: 'keymap.extraButtonsTitle', descriptionKey: 'keymap.extraButtonsDescription', buttons: MISC_BUTTONS, icon: <ExtraButtonsIcon /> },
 }
 
 // Directional presses (Up/Down/Left/Right) only mean anything when the stick
@@ -491,9 +491,6 @@ const allMappingButtons = () => {
       return true
     })
 }
-
-const LEFT_STICK_COMMANDS = new Set(LEFT_STICK_BUTTONS.map(button => button.command.toUpperCase()))
-const RIGHT_STICK_COMMANDS = new Set(RIGHT_STICK_BUTTONS.map(button => button.command.toUpperCase()))
 
 export function KeymapControls({
   configText,
@@ -625,7 +622,6 @@ export function KeymapControls({
 }: KeymapControlsProps) {
   void (touchpadSmoothing && onTouchpadSmoothingChange && touchpadAcceleration && onTouchpadAccelerationChange)
   const { t } = useTranslation()
-  const [mappingLayoutMode, setMappingLayoutMode] = useState<'visual' | 'list'>('visual')
   const [mappingHelpOpen, setMappingHelpOpen] = useState(false)
   const [selectedTouchpadGridCommand, setSelectedTouchpadGridCommand] = useState<string | null>(null)
   const listSectionRefs = useRef<Record<string, HTMLDivElement | null>>({})
@@ -812,37 +808,12 @@ export function KeymapControls({
     return assignments
   }, [configText, t])
 
-  const boundCommandSet = useMemo(() => {
-    const commands = new Set<string>()
-    allMappingButtons().forEach(button => {
-      const key = button.command.toUpperCase()
-      const rows = bindingRowsByButton[button.command] ?? bindingRowsByButton[key] ?? []
-      if (rows.length > 0 || specialsByButton[button.command] || specialsByButton[key] || stickModeShiftAssignments?.[key]?.length) {
-        commands.add(key)
-      }
-    })
-    return commands
-  }, [bindingRowsByButton, specialsByButton, stickModeShiftAssignments])
-
   const selectedVisualCommand = selectedMappingCommand?.toUpperCase() ?? ''
   const selectedVisualButton =
     visualMappingButtons.find(button => button.command.toUpperCase() === selectedVisualCommand) ??
     visualMappingButtons[0] ??
     visualButtonByCommand[selectedVisualCommand] ??
     allMappingButtons()[0]
-  const selectedVisualCommandUpper = selectedVisualButton.command.toUpperCase()
-  const selectedTriggerModeSide = ['ZL', 'ZLF'].includes(selectedVisualCommandUpper)
-    ? 'left'
-    : ['ZR', 'ZRF'].includes(selectedVisualCommandUpper)
-      ? 'right'
-      : null
-  const selectedStickSide = LEFT_STICK_COMMANDS.has(selectedVisualCommandUpper)
-    ? 'LEFT'
-    : RIGHT_STICK_COMMANDS.has(selectedVisualCommandUpper)
-      ? 'RIGHT'
-      : null
-  const visualDevice = devices?.find(device => device.status) ?? devices?.[0] ?? VIRTUAL_MAPPING_DEVICE
-
   // Whichever pad is being touched drives the grid's live dot. The grid's
   // bindings are shared between the two pads, so showing one dot rather than two
   // matches what a press will actually do.
@@ -898,8 +869,6 @@ export function KeymapControls({
   // most of what made those pages feel like a wall of settings, so they only
   // appear where they belong now: on their own page.
   const showConfigWidePanels = showMappedLayout && (visibleSections ?? []).includes('global')
-  const showVisualMappingLayout = showMappedLayout && mappingLayoutMode === 'visual'
-  const showListMappingLayout = showMappedLayout && mappingLayoutMode === 'list'
   const deadzoneDefaults = stickDeadzoneSettings?.defaults ?? {
     inner: DEFAULT_STICK_DEADZONE_INNER,
     outer: DEFAULT_STICK_DEADZONE_OUTER,
@@ -1082,7 +1051,7 @@ export function KeymapControls({
 
   return (
     <Card
-      className={`control-panel ${showVisualMappingLayout ? keymapStyles.visualMappingShell : ''}`}
+      className="control-panel"
       lockable
       locked={isCalibrating}
       lockMessage={lockMessage ?? t('messages.lockMessage')}
@@ -1191,23 +1160,7 @@ export function KeymapControls({
 
       {showMappedLayout && (
         <>
-          <div className={keymapStyles.mappingLayoutTabs} data-capture-ignore="true">
-            <button
-              type="button"
-              className={`${keymapStyles.mappingLayoutTab} ${mappingLayoutMode === 'visual' ? keymapStyles.mappingLayoutTabActive : ''}`}
-              onClick={() => setMappingLayoutMode('visual')}
-            >
-              {t('keymap.mappingLayoutVisual')}
-            </button>
-            <button
-              type="button"
-              className={`${keymapStyles.mappingLayoutTab} ${mappingLayoutMode === 'list' ? keymapStyles.mappingLayoutTabActive : ''}`}
-              onClick={() => setMappingLayoutMode('list')}
-            >
-              {t('keymap.mappingLayoutList')}
-            </button>
-          </div>
-          {showListMappingLayout && (
+          {(
             <section className={keymapStyles.mappingListShell}>
               <aside className={keymapStyles.mappingListSidebar} data-capture-ignore="true">
                 <div className={keymapStyles.mappingListSidebarTitle}>{t('keymap.mappingLayoutList')}</div>
@@ -1236,7 +1189,58 @@ export function KeymapControls({
                     <KeymapSection
                       title={t(group.titleKey)}
                       description={group.descriptionKey ? t(group.descriptionKey) : undefined}
+                      icon={group.icon}
                     >
+                      {(groupKey === 'leftStick' || groupKey === 'rightStick') && stickModeSettings && onStickModeChange && onRingModeChange && onStickDeadzoneChange && (
+                        <div className={keymapStyles.stickSettingsInline}>
+                          <StickSettingsCard
+                            variant="inline"
+                            title={groupKey === 'leftStick' ? t('keymap.leftStickTitle') : t('keymap.rightStickTitle')}
+                            innerValue={groupKey === 'leftStick' ? leftDeadzoneValues.inner : rightDeadzoneValues.inner}
+                            outerValue={groupKey === 'leftStick' ? leftDeadzoneValues.outer : rightDeadzoneValues.outer}
+                            defaultInner={deadzoneDefaults.inner}
+                            defaultOuter={deadzoneDefaults.outer}
+                            modeValue={groupKey === 'leftStick' ? leftStickModes.mode : rightStickModes.mode}
+                            ringValue={groupKey === 'leftStick' ? leftStickModes.ring : rightStickModes.ring}
+                            onModeChange={(value) => onStickModeChange(groupKey === 'leftStick' ? 'LEFT' : 'RIGHT', value)}
+                            onRingChange={(value) => onRingModeChange(groupKey === 'leftStick' ? 'LEFT' : 'RIGHT', value)}
+                            onInnerChange={(value) => onStickDeadzoneChange(groupKey === 'leftStick' ? 'LEFT' : 'RIGHT', 'INNER', value)}
+                            onOuterChange={(value) => onStickDeadzoneChange(groupKey === 'leftStick' ? 'LEFT' : 'RIGHT', 'OUTER', value)}
+                            disabled={isCalibrating}
+                            modeExtras={stickModeExtras(groupKey === 'leftStick' ? 'LEFT' : 'RIGHT')}
+                          />
+                        </div>
+                      )}
+                      {groupKey === 'triggers' && (['left', 'right'] as const).map(side => (
+                        <div key={side} className={keymapStyles.triggerModeInline} data-capture-ignore="true">
+                          <label>
+                            {side === 'left' ? t('keymap.l2FullPullMode') : t('keymap.r2FullPullMode')}
+                            <select
+                              className="app-select"
+                              value={(side === 'left' ? zlModeValue : zrModeValue) || 'NO_FULL'}
+                              onChange={e => (side === 'left' ? onZlModeChange : onZrModeChange)(e.target.value)}
+                              disabled={actionsProps.applyDisabled}
+                            >
+                              {['NO_FULL', 'NO_SKIP', 'NO_SKIP_EXCLUSIVE', 'MUST_SKIP', 'MAY_SKIP', 'MUST_SKIP_R', 'MAY_SKIP_R'].map(mode => (
+                                <option key={mode} value={mode}>{mode === 'NO_FULL' ? t('common.defaultValue', { value: mode }) : mode}</option>
+                              ))}
+                              <option value={side === 'left' ? 'X_LT' : 'X_RT'}>
+                                {t('keymap.triggerVirtualPassthrough')}
+                              </option>
+                            </select>
+                          </label>
+                          {(side === 'left' ? zlModeValue : zrModeValue) === (side === 'left' ? 'X_LT' : 'X_RT') && (
+                            <div className={stickStyles.stickFlickSettings} data-capture-ignore="true">
+                              <small>{t('keymap.triggerVirtualPassthroughHint')}</small>
+                              {virtualControllerType === 'NONE' && (
+                                <div className={keymapStyles.virtualControllerWarning}>
+                                  {t('stickModes.virtualStickDisabledWarning')}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
                       <div className={keymapStyles.keymapGrid}>
                         {group.buttons.map(button => (
                           <div key={button.command}>{renderButtonCard(button)}</div>
@@ -1251,121 +1255,6 @@ export function KeymapControls({
                 />
               </div>
             </section>
-          )}
-          {showVisualMappingLayout && (
-          <section className={keymapStyles.mappingWorkbench}>
-            <div className={keymapStyles.mappingVisualPanel}>
-              <div className={keymapStyles.mappingVisualHeader}>
-                <div>
-                  <h3>{t('keymap.visualMappingTitle')}</h3>
-                  <p>{t('keymap.visualMappingDescription')}</p>
-                </div>
-                {!devices?.length && <span className={keymapStyles.mappingModeBadge}>{t('keymap.virtualControllerMode')}</span>}
-              </div>
-              <ControllerStatusSvg
-                device={visualDevice}
-                boundCommands={boundCommandSet}
-                selectedCommand={selectedVisualCommandUpper}
-                onSelectCommand={command => onSelectedMappingCommandChange?.(command.toUpperCase())}
-              />
-              <div className={keymapStyles.mappingButtonGroups} data-capture-ignore="true">
-                {visualMappingGroups.map(group => (
-                  <section key={group.titleKey} className={keymapStyles.mappingButtonGroup}>
-                    <div className={keymapStyles.mappingButtonGroupTitle}>{t(group.titleKey)}</div>
-                    <div className={keymapStyles.mappingButtonStrip}>
-                      {group.buttons.map(button => {
-                        const command = button.command.toUpperCase()
-                        const buttonLabel = controllerButtonLabel(button)
-                        return (
-                          <button
-                            key={command}
-                            type="button"
-                            title={`${getButtonDescription(button, t)} · ${command} · ${buttonLabel}`}
-                            className={`${keymapStyles.mappingButtonChip} ${selectedVisualCommandUpper === command ? keymapStyles.mappingButtonChipActive : ''} ${boundCommandSet.has(command) ? keymapStyles.mappingButtonChipBound : ''}`}
-                            onClick={() => onSelectedMappingCommandChange?.(command)}
-                          >
-                            <span className={keymapStyles.mappingButtonChipLabel}>{getButtonDescription(button, t)}</span>
-                            <span className={keymapStyles.mappingButtonChipMeta}>{command} · {buttonLabel}</span>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </section>
-                ))}
-              </div>
-            </div>
-            <aside className={keymapStyles.mappingDetailPanel}>
-              <div className={keymapStyles.mappingDetailHeader}>
-                <div>
-                  <span>{t('keymap.selectedButton')}</span>
-                  <strong>{controllerButtonLabel(selectedVisualButton)}</strong>
-                  <p>{getButtonDescription(selectedVisualButton, t)}</p>
-                </div>
-              </div>
-              {renderButtonCard(selectedVisualButton)}
-              {selectedTriggerModeSide && (
-                <div className={keymapStyles.triggerModeInline} data-capture-ignore="true">
-                  <label>
-                    {selectedTriggerModeSide === 'left' ? t('keymap.l2FullPullMode') : t('keymap.r2FullPullMode')}
-                    <select
-                      className="app-select"
-                      value={(selectedTriggerModeSide === 'left' ? zlModeValue : zrModeValue) || 'NO_FULL'}
-                      onChange={e => {
-                        if (selectedTriggerModeSide === 'left') {
-                          onZlModeChange(e.target.value)
-                        } else {
-                          onZrModeChange(e.target.value)
-                        }
-                      }}
-                      disabled={actionsProps.applyDisabled}
-                    >
-                      {['NO_FULL', 'NO_SKIP', 'NO_SKIP_EXCLUSIVE', 'MUST_SKIP', 'MAY_SKIP', 'MUST_SKIP_R', 'MAY_SKIP_R'].map(mode => (
-                        <option key={mode} value={mode}>{mode === 'NO_FULL' ? t('common.defaultValue', { value: mode }) : mode}</option>
-                      ))}
-                      <option value={selectedTriggerModeSide === 'left' ? 'X_LT' : 'X_RT'}>
-                        {t('keymap.triggerVirtualPassthrough')}
-                      </option>
-                    </select>
-                  </label>
-                  {(selectedTriggerModeSide === 'left' ? zlModeValue : zrModeValue) ===
-                    (selectedTriggerModeSide === 'left' ? 'X_LT' : 'X_RT') && (
-                    <div className={stickStyles.stickFlickSettings} data-capture-ignore="true">
-                      <small>{t('keymap.triggerVirtualPassthroughHint')}</small>
-                      {virtualControllerType === 'NONE' && (
-                        <div className={keymapStyles.virtualControllerWarning}>
-                          {t('stickModes.virtualStickDisabledWarning')}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-              {selectedStickSide && stickModeSettings && onStickModeChange && onRingModeChange && onStickDeadzoneChange && (
-                <div className={keymapStyles.stickSettingsInline}>
-                  <StickSettingsCard
-                    variant="inline"
-                    title={selectedStickSide === 'LEFT' ? t('keymap.leftStickTitle') : t('keymap.rightStickTitle')}
-                    innerValue={selectedStickSide === 'LEFT' ? leftDeadzoneValues.inner : rightDeadzoneValues.inner}
-                    outerValue={selectedStickSide === 'LEFT' ? leftDeadzoneValues.outer : rightDeadzoneValues.outer}
-                    defaultInner={deadzoneDefaults.inner}
-                    defaultOuter={deadzoneDefaults.outer}
-                    modeValue={selectedStickSide === 'LEFT' ? leftStickModes.mode : rightStickModes.mode}
-                    ringValue={selectedStickSide === 'LEFT' ? leftStickModes.ring : rightStickModes.ring}
-                    onModeChange={(value) => onStickModeChange(selectedStickSide, value)}
-                    onRingChange={(value) => onRingModeChange(selectedStickSide, value)}
-                    onInnerChange={(value) => onStickDeadzoneChange(selectedStickSide, 'INNER', value)}
-                    onOuterChange={(value) => onStickDeadzoneChange(selectedStickSide, 'OUTER', value)}
-                    disabled={isCalibrating}
-                    modeExtras={stickModeExtras(selectedStickSide)}
-                  />
-                </div>
-              )}
-              <SectionActions
-                className={`${keymapStyles.keymapSectionActions} ${keymapStyles.mappingDetailActions}`}
-                {...actionsProps}
-              />
-            </aside>
-          </section>
           )}
         </>
       )}
