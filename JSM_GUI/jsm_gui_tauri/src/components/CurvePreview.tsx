@@ -3,6 +3,7 @@ import { TelemetrySample } from '../hooks/useTelemetry'
 import { SensitivityValues } from '../utils/keymap'
 import graphStyles from './Graph.module.css'
 import { SensitivityGraph } from './SensitivityGraph'
+import { GYRO_ACCEL_DEFAULTS } from '../utils/accelCurve'
 
 type CurvePreviewProps = {
   sensitivity: SensitivityValues
@@ -16,6 +17,9 @@ type CurvePreviewProps = {
   }
 }
 
+// A configuration that names a curve without pinning its shape settings is
+// still valid -- JoyShockMapper fills them in from its own defaults -- so the
+// preview falls back to the same numbers instead of refusing to draw.
 export function CurvePreview({ sensitivity, sample, hasPendingChanges, telemetry }: CurvePreviewProps) {
   const { t } = useTranslation()
   const asNumber = (value: unknown) => (typeof value === 'number' ? value : undefined)
@@ -39,19 +43,19 @@ export function CurvePreview({ sensitivity, sample, hasPendingChanges, telemetry
         </span>
       </div>
       <SensitivityGraph
-        minThreshold={sensitivity.minThreshold}
-        maxThreshold={sensitivity.maxThreshold}
+        minThreshold={sensitivity.minThreshold ?? 0}
+        maxThreshold={sensitivity.maxThreshold ?? 0}
         minSensX={sensitivity.minSensX}
         minSensY={sensitivity.minSensY}
         maxSensX={sensitivity.maxSensX}
         maxSensY={sensitivity.maxSensY}
         curveType={curveType}
-        naturalVHalf={sensitivity.naturalVHalf}
-        powerVRef={sensitivity.powerVRef}
-        powerExponent={sensitivity.powerExponent}
-        sigmoidMid={sensitivity.sigmoidMid}
-        sigmoidWidth={sensitivity.sigmoidWidth}
-        jumpTau={sensitivity.jumpTau}
+        naturalVHalf={sensitivity.naturalVHalf ?? GYRO_ACCEL_DEFAULTS.naturalVHalf}
+        powerVRef={sensitivity.powerVRef ?? GYRO_ACCEL_DEFAULTS.powerVRef}
+        powerExponent={sensitivity.powerExponent ?? GYRO_ACCEL_DEFAULTS.powerExponent}
+        sigmoidMid={sensitivity.sigmoidMid ?? GYRO_ACCEL_DEFAULTS.sigmoidMid}
+        sigmoidWidth={sensitivity.sigmoidWidth ?? GYRO_ACCEL_DEFAULTS.sigmoidWidth}
+        jumpTau={sensitivity.jumpTau ?? GYRO_ACCEL_DEFAULTS.jumpTau}
         normalized={asNumber(sample?.t)}
         currentSensX={asNumber(sample?.sensX)}
         omega={asNumber(sample?.omega)}

@@ -48,10 +48,15 @@ export function AccelSensForm({
   const { t } = useTranslation()
   const showRollContribution = sensitivity.gyroSpace?.trim().toUpperCase() === 'YAW_PLUS_ROLL'
 
+  // The gyro keeps its curve type under `accelCurve`; the shared editor reads
+  // `curve`. Every field of both shapes is optional, so handing over the raw
+  // sensitivity object type-checks and then silently reads as LINEAR.
+  const curveShape = { ...sensitivity, curve: sensitivity.accelCurve }
+
   return (
     <AccelCurveEditor
       side="gyro"
-      values={sensitivity}
+      values={curveShape}
       inputUnit="°/s"
       inputMax={500}
       defaults={GYRO_ACCEL_DEFAULTS}
