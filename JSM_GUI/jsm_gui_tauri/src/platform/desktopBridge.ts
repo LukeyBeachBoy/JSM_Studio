@@ -326,7 +326,7 @@ const listenTauri = <T>(eventName: string, callback: (payload: T) => void): Unsu
 export const desktopBridge: DesktopBridge = {
   async launchJSM(calibrationSeconds = 5) {
     if (isTauriWindow()) {
-      await invokeTauri<void>('launch_jsm', { calibration_seconds: calibrationSeconds })
+      await invokeTauri<void>('launch_jsm', { calibrationSeconds })
       return
     }
     await getElectronAPI()?.launchJSM?.(calibrationSeconds)
@@ -347,7 +347,7 @@ export const desktopBridge: DesktopBridge = {
   },
   async applyProfile(profilePath, text) {
     if (isTauriWindow()) {
-      return invokeTauri<ApplyProfileResult>('apply_profile', { profile_path: profilePath, text })
+      return invokeTauri<ApplyProfileResult>('apply_profile', { profilePath, text })
     }
     const result = await getElectronAPI()?.applyProfile?.(profilePath, text)
     return result ?? { restarted: false }
@@ -402,13 +402,13 @@ export const desktopBridge: DesktopBridge = {
   },
   async saveAutoloadRule(processName, profileName) {
     if (isTauriWindow()) {
-      return invokeTauri<AutoloadRule>('save_autoload_rule', { process_name: processName, profile_name: profileName }).catch(() => null)
+      return invokeTauri<AutoloadRule>('save_autoload_rule', { processName, profileName }).catch(() => null)
     }
     return null
   },
   async deleteAutoloadRule(processName) {
     if (isTauriWindow()) {
-      return invokeTauri<{ success: boolean }>('delete_autoload_rule', { process_name: processName }).catch(() => ({ success: false }))
+      return invokeTauri<{ success: boolean }>('delete_autoload_rule', { processName }).catch(() => ({ success: false }))
     }
     return { success: true }
   },
@@ -481,7 +481,7 @@ export const desktopBridge: DesktopBridge = {
   },
   async createLibraryProfile(preferredBaseName) {
     if (isTauriWindow()) {
-      return invokeTauri<NamedProfile>('library_create_profile', { preferred_base_name: preferredBaseName }).catch(() => null)
+      return invokeTauri<NamedProfile>('library_create_profile', { preferredBaseName }).catch(() => null)
     }
     return (await getElectronAPI()?.createLibraryProfile?.(preferredBaseName)) ?? null
   },
@@ -493,7 +493,9 @@ export const desktopBridge: DesktopBridge = {
   },
   async renameLibraryProfile(oldName, newName) {
     if (isTauriWindow()) {
-      return invokeTauri<NamedProfile>('library_rename_profile', { old_name: oldName, new_name: newName }).catch(() => null)
+      // Deliberately not swallowed: the backend's message ("name in use",
+      // "permission denied", ...) is the only clue the user gets.
+      return invokeTauri<NamedProfile>('library_rename_profile', { oldName, newName })
     }
     return (await getElectronAPI()?.renameLibraryProfile?.(oldName, newName)) ?? null
   },

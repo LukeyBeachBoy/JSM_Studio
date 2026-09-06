@@ -127,10 +127,15 @@ pub fn ensure_required_files(app: &AppHandle) -> Result<(), String> {
     migrate_bundled_runtime_data(app, &backend)?;
     ensure_runtime_support_files(app, &backend)?;
 
-    ensure_file(
-        &absolute_profile_path(app, DEFAULT_PROFILE_RELATIVE)?,
-        &profile_template_text(),
-    )?;
+    // Seed a starter configuration only when the library is empty. Recreating
+    // it unconditionally resurrected "Profile 1" the moment anything called
+    // through here, so deleting it never stuck.
+    if list_library_profile_names(app)?.is_empty() {
+        ensure_file(
+            &absolute_profile_path(app, DEFAULT_PROFILE_RELATIVE)?,
+            &profile_template_text(),
+        )?;
+    }
     ensure_mapping_disabled_file(app)?;
     seed_default_chord_if_missing(app)?;
 
@@ -331,8 +336,15 @@ pub fn rename_library_profile(
     let new_absolute = absolute_profile_path(app, &new_relative)?;
 
     ensure_file(&old_absolute, "")?;
-    fs::rename(&old_absolute, &new_absolute)
-        .map_err(|error| format!("Failed to rename profile: {error}"))?;
+    // A plain rename can fail on Windows while something still holds the file
+    // open (the backend that just loaded it, a sync client, an indexer). Copy
+    // the contents across and drop the original in that case.
+    if let Err(rename_error) = fs::rename(&old_absolute, &new_absolute) {
+        fs::copy(&old_absolute, &new_absolute)
+            .map_err(|error| format!("Failed to rename profile: {rename_error} ({error})"))?;
+        fs::remove_file(&old_absolute)
+            .map_err(|error| format!("Failed to remove profile after rename: {error}"))?;
+    }
 
     let active = read_runtime_mapping_state(app)?.active_profile_path;
     if active.eq_ignore_ascii_case(&old_relative) {

@@ -96,8 +96,16 @@ export function useProfileLibrary({ configText, setConfigText, setAppliedConfig,
   const applyConfig = async (options?: Options) => {
     const text = serializeConfig(parseConfigText(ensureHeaderLines(options?.textOverride ?? configText)))
     try {
-      await desktopBridge.applyProfile(options?.profilePathOverride ?? activeProfilePath, text)
       const profileName = options?.profileNameOverride ?? currentLibraryProfile
+      // Apply the configuration being edited, by name. Falling back to
+      // activeProfilePath alone let a stale or empty path apply -- and keep
+      // the runtime pointed at -- whichever profile was active before, which
+      // is why the runtime kept reporting the previous configuration.
+      const path =
+        options?.profilePathOverride ||
+        (profileName ? `profiles-library/${profileName}.txt` : activeProfilePath)
+      await desktopBridge.applyProfile(path, text)
+      if (path) setActiveProfilePath(path)
       finishSave(profileName, text, options?.textOverride ?? configText)
       setAppliedProfileName(profileName)
       report(t('messages.profileApplied', { profileName: profileName ?? t('app.profileSummary.unsavedProfile') }))
@@ -111,7 +119,13 @@ export function useProfileLibrary({ configText, setConfigText, setAppliedConfig,
     await refreshLibraryProfiles()
   }
   const handleRenameProfile = async (name: string) => {
-    const result = await desktopBridge.renameLibraryProfile(name, editedLibraryNames[name] ?? name)
+    let result: Awaited<ReturnType<typeof desktopBridge.renameLibraryProfile>>
+    try {
+      result = await desktopBridge.renameLibraryProfile(name, editedLibraryNames[name] ?? name)
+    } catch (error) {
+      report(`${t('messages.renameProfileFailed')} ${String(error)}`.trim(), true)
+      return
+    }
     if (!result) { report(t('messages.renameProfileFailed'), true); return }
     const draft = drafts.current.get(name)
     if (draft !== undefined) { drafts.current.delete(name); drafts.current.set(result.name, draft) }
