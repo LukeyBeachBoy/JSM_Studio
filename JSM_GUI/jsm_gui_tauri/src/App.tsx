@@ -1880,11 +1880,12 @@ function App() {
             isOpen={isRwcGuideModalOpen}
             inGameSens={String(sensitivity.inGameSens ?? '')}
             onClose={() => setIsRwcGuideModalOpen(false)}
-            onApplyRwc={(rwc) => {
+            onApplyRwc={(rwc, sens) => {
               const baseText = finalizePendingValues ? finalizePendingValues() : configText
-              const rwcNum = parseFloat(rwc)
-              const textWithRwc = updateKeymapEntry(baseText, 'REAL_WORLD_CALIBRATION', [rwcNum])
-              applyConfig({ textOverride: textWithRwc })
+              const withRwc = updateKeymapEntry(baseText, 'REAL_WORLD_CALIBRATION', [parseFloat(rwc)])
+              const withSens = updateKeymapEntry(withRwc, 'IN_GAME_SENS', [parseFloat(sens)])
+              setConfigText(withSens)
+              applyConfig({ textOverride: withSens })
             }}
           />
         </Suspense>

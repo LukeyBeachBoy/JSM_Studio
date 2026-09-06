@@ -11,7 +11,7 @@ type RwcGuideModalProps = {
   isOpen: boolean
   inGameSens: string
   onClose: () => void
-  onApplyRwc: (rwc: string) => void
+  onApplyRwc: (rwc: string, inGameSens: string) => void
 }
 
 export function RwcGuideModal({ isOpen, inGameSens, onClose, onApplyRwc }: RwcGuideModalProps) {
@@ -28,7 +28,9 @@ export function RwcGuideModal({ isOpen, inGameSens, onClose, onApplyRwc }: RwcGu
 
   function handleApply() {
     if (computed !== null) {
-      onApplyRwc(computed.toFixed(4))
+      // The sensitivity is half the calibration: RWC only means anything
+      // paired with the in-game sens it was derived from, so write both.
+      onApplyRwc(computed.toFixed(4), String(sensNum))
       setCounts('')
       setSens('')
       onClose()
