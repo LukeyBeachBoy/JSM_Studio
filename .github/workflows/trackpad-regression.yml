@@ -1,0 +1,29 @@
+name: Trackpad regression checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  trackpad:
+    name: Release, retouch and mouse-axis recovery
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Compile and run numeric touch regression tests
+        run: python3 JoyShockMapper/tests/run_touch_harness.py
+
+      - name: Verify SDL contact patch and cached-source upgrades
+        run: python3 JoyShockMapper/tests/sdl_touch_patch_regression.py
+
+      - name: Verify touch pipeline integration
+        run: python3 JoyShockMapper/tests/touch_pipeline_regression.py

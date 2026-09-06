@@ -10,6 +10,8 @@ export type MenuItem =
 
 type MenuProps = {
   /** The control that opens the menu. Rendered as the trigger itself. */
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
   trigger: ReactNode
   items: MenuItem[]
   align?: 'start' | 'center' | 'end'
@@ -69,9 +71,9 @@ function renderItems(items: MenuItem[]) {
   })
 }
 
-export function Menu({ trigger, items, align = 'start', ariaLabel }: MenuProps) {
+export function Menu({ trigger, items, align = 'start', ariaLabel, open, onOpenChange }: MenuProps) {
   return (
-    <RadixMenu.Root>
+    <RadixMenu.Root open={open} onOpenChange={onOpenChange}>
       <RadixMenu.Trigger asChild aria-label={ariaLabel}>
         {trigger}
       </RadixMenu.Trigger>

@@ -59,13 +59,6 @@ pub struct SimpleSuccessResult {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct GlobalChordsDocument {
-    text: String,
-    default_text: String,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
 pub struct ReconnectControllersResult {
     success: bool,
     restarted: bool,
@@ -219,33 +212,21 @@ pub fn set_controller_nav_enabled(
 }
 
 #[tauri::command]
-pub fn read_global_chords(app: AppHandle) -> CommandResult<GlobalChordsDocument> {
-    Ok(GlobalChordsDocument {
-        text: runtime::read_global_chords(&app)?,
-        default_text: runtime::default_global_chords(&app)?,
-    })
+pub fn list_global_chords(app: AppHandle) -> CommandResult<Vec<runtime::GlobalChord>> {
+    runtime::list_global_chords(&app)
 }
 
-/// Saves the chord layer and re-applies the active configuration so the new
-/// layer takes effect immediately. Reloading the whole configuration (rather
-/// than just the chord file) is what lets a *removed* chord actually go away:
-/// its RESET_MAPPINGS wipes the old layer before OnReset.txt loads the new one.
 #[tauri::command]
-pub fn write_global_chords(
+pub fn save_global_chord(
     app: AppHandle,
-    state: State<'_, AppState>,
-    text: String,
-) -> CommandResult<SimpleSuccessResult> {
-    runtime::write_global_chords(&app, &text)?;
-    let runtime_state = runtime::get_runtime_mapping_state(&app)?;
-    let mut applied = false;
-    if runtime_state.mapping_enabled && jsm_process::is_running(state.inner())? {
-        applied = inject_profile_with_retry(&app, state.inner(), &runtime_state.active_profile_path)?;
-        if applied {
-            let _ = jsm_process::inject_console_command(&app, state.inner(), "AUTOCONNECT = ON")?;
-        }
-    }
-    Ok(SimpleSuccessResult { success: applied })
+    chord: runtime::GlobalChord,
+) -> CommandResult<Vec<runtime::GlobalChord>> {
+    runtime::save_global_chord(&app, chord)
+}
+
+#[tauri::command]
+pub fn delete_global_chord(app: AppHandle, id: String) -> CommandResult<Vec<runtime::GlobalChord>> {
+    runtime::delete_global_chord(&app, &id)
 }
 
 #[tauri::command]
@@ -304,6 +285,7 @@ fn apply_runtime_mapping_state(
 }
 
 fn inject_profile_with_retry(app: &AppHandle, state: &AppState, path: &str) -> CommandResult<bool> {
+    let _ = inject_console_command_with_retry(app, state, "STUDIO_CHORD_END")?;
     inject_console_command_with_retry(app, state, path)
 }
 

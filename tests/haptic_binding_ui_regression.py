@@ -22,7 +22,7 @@ ROOT = Path(__file__).parents[1]
 GUI = ROOT / 'JSM_GUI/jsm_gui_tauri/src'
 HAPTICS = (GUI / 'utils/hapticBindings.ts').read_text(encoding='utf-8')
 PICKER = (GUI / 'components/keymap/HapticOutputPicker.tsx').read_text(encoding='utf-8')
-COMPOSER = (GUI / 'components/keymap/BindingQuickComposer.tsx').read_text(encoding='utf-8')
+COMPOSER = (GUI / 'components/keymap/BindingEditor.tsx').read_text(encoding='utf-8')
 COMMANDS = (GUI / 'utils/bindingCommands.ts').read_text(encoding='utf-8')
 EN = (GUI / 'i18n/resources/en.ts').read_text(encoding='utf-8')
 ZH = (GUI / 'i18n/resources/zh-CN.ts').read_text(encoding='utf-8')
@@ -164,7 +164,7 @@ def test_every_effect_and_side_is_labelled():
 
 
 def test_haptics_are_offered_as_an_output_kind():
-    check("{ value: 'haptic'" in COMPOSER,
+    check("'haptic'" in COMPOSER and "<HapticOutputPicker" in COMPOSER,
           'the composer does not offer haptics as an output kind')
     check("'haptic'," in COMMANDS and "| 'haptic'" in COMMANDS,
           'BindingOutputKind does not include haptic')

@@ -48,7 +48,7 @@ import { TouchpadSensorSection } from './keymap/TouchpadSensorSection'
 import { GripSettingsSection } from './keymap/GripSettingsSection'
 import { TouchpadStickSection } from './keymap/TouchpadStickSection'
 import { SectionActions } from './SectionActions'
-import { controllerHasTwoTrackpads, controllerVisualFamily } from '../utils/controllerStatus'
+import { controllerHasTwoTrackpads, controllerSupportsInput, controllerVisualFamily } from '../utils/controllerStatus'
 import {
   BumperIcon,
   ButtonsIcon,
@@ -503,22 +503,13 @@ const STICK_DIRECTION_COMMANDS: Record<'leftStick' | 'rightStick', Set<string>> 
 // Wolverine's L5/R5) and on nothing else, so listing them for every controller
 // offered two inputs most people do not have. Anything already bound still
 // shows, so an existing config never hides a binding you cannot then find.
-const MINI_SHOULDER_COMMANDS = new Set(['LMINI', 'RMINI'])
 
 function visibleButtonsForGroup(
   groupKey: string,
   buttons: ButtonDefinition[],
   leftStickMode: string,
-  rightStickMode: string,
-  isBound: (command: string) => boolean,
-  hasConnectedController: boolean
+  rightStickMode: string
 ) {
-  if (groupKey === 'bumpers' && hasConnectedController) {
-    return buttons.filter(button => {
-      const key = button.command.toUpperCase()
-      return !MINI_SHOULDER_COMMANDS.has(key) || isBound(key)
-    })
-  }
   const directionCommands =
     groupKey === 'leftStick' ? STICK_DIRECTION_COMMANDS.leftStick :
     groupKey === 'rightStick' ? STICK_DIRECTION_COMMANDS.rightStick :
@@ -727,6 +718,9 @@ export function KeymapControls({
   })
 
   const isVisible = (section: string) => {
+    const device = devices?.[0]
+    if (device && section === 'grip-sensors' && device.type !== 24) return false
+    if (device && section.startsWith('touch') && ![4, 5, 24].includes(device.type)) return false
     if (!visibleSections || visibleSections.length === 0) return true
     return visibleSections.includes(section)
   }
@@ -855,9 +849,9 @@ export function KeymapControls({
       : Object.entries(MAPPING_BUTTON_GROUPS).filter(([key]) => focusedMappingGroups.includes(key))
     return entries.map(([key, group]) => ({
       ...group,
-      buttons: visibleButtonsForGroup(key, group.buttons, leftStickModeForVisibility, rightStickModeForVisibility, isCommandBound, hasConnectedController),
+      buttons: visibleButtonsForGroup(key, group.buttons.filter(button => controllerSupportsInput(devices?.[0], button.command) || isCommandBound(button.command)), leftStickModeForVisibility, rightStickModeForVisibility),
     }))
-  }, [focusedMappingGroups, leftStickModeForVisibility, rightStickModeForVisibility, isCommandBound, hasConnectedController])
+  }, [focusedMappingGroups, leftStickModeForVisibility, rightStickModeForVisibility, isCommandBound, devices])
 
   // The list layout walks the same set, so the jump bar and the page agree.
   const listMappingGroups = useMemo(() => {
@@ -866,9 +860,9 @@ export function KeymapControls({
       : Object.entries(MAPPING_BUTTON_GROUPS).filter(([key]) => focusedMappingGroups.includes(key))
     return entries.map(([key, group]) => [key, {
       ...group,
-      buttons: visibleButtonsForGroup(key, group.buttons, leftStickModeForVisibility, rightStickModeForVisibility, isCommandBound, hasConnectedController),
+      buttons: visibleButtonsForGroup(key, group.buttons.filter(button => controllerSupportsInput(devices?.[0], button.command) || isCommandBound(button.command)), leftStickModeForVisibility, rightStickModeForVisibility),
     }] as const)
-  }, [focusedMappingGroups, leftStickModeForVisibility, rightStickModeForVisibility, isCommandBound, hasConnectedController])
+  }, [focusedMappingGroups, leftStickModeForVisibility, rightStickModeForVisibility, isCommandBound, devices])
 
   const visualMappingButtons = useMemo(
     () => visualMappingGroups.flatMap(group => group.buttons),
@@ -994,6 +988,11 @@ export function KeymapControls({
   const doublePressInputValue = Number.isFinite(doublePressWindowSeconds) ? doublePressWindowSeconds : holdPressTimeDefault
   const simPressInputValue = Number.isFinite(simPressWindowSeconds) ? simPressWindowSeconds : holdPressTimeDefault
 
+  useEffect(() => {
+    const command = selectedMappingCommand?.toUpperCase()
+    if (command && /^(LT|RT|T)\d+$/.test(command)) setSelectedTouchpadGridCommand(command)
+  }, [selectedMappingCommand])
+
   const renderButtonCard = (button: ButtonDefinition) => {
     const rows = bindingRowsByButton[button.command] ?? []
     return (
@@ -1091,7 +1090,7 @@ export function KeymapControls({
   const confirmedTwoPadTouchpads = Boolean(devices?.some(device => controllerHasTwoTrackpads(device.type)))
   const legacyTouchButtons = confirmedTwoPadTouchpads
     ? TOUCH_BUTTONS.filter(button => isTouchpadButtonBound(button.command))
-    : TOUCH_BUTTONS
+    : TOUCH_BUTTONS.filter(button => controllerSupportsInput(devices?.[0], button.command))
   const touchpadButtonSectionButtons = showTouchStickButtons ? [...legacyTouchButtons, ...TOUCH_STICK_BUTTONS] : legacyTouchButtons
 
   // Per-pad cards for a two-pad controller. Each side gets its own mode, grid
@@ -1210,7 +1209,7 @@ export function KeymapControls({
         title={side === 'left' ? t('keymap.leftTrackpadSection', 'Left trackpad') : t('keymap.rightTrackpadSection', 'Right trackpad')}
         description={t('keymap.touchpadSettingsDescription')}
       >
-        <TouchpadModeCard config={card} />
+        <div data-input-command={side === 'left' ? 'LEFT_PAD' : 'RIGHT_PAD'}><TouchpadModeCard config={card} /></div>
         {gridMode && pad && isVisible('touch-grid') && (
           <TouchpadGridSection
             side={side}
@@ -1689,7 +1688,7 @@ export function KeymapControls({
             },
             {
               key: 'touch-bind',
-              shouldRender: isVisible('touch-bind'),
+              shouldRender: isVisible('touch-bind') && touchpadButtonSectionButtons.length > 0,
               node: (
                 <ButtonGridSection
                   title={t('keymap.touchButtonsTitle')}

@@ -79,3 +79,13 @@
     scrollbar-gutter: auto;
   }
 }
+
+/* Keep editing and applied state readable as the toolbar wraps. */
+.utility-profile-group {
+  display: grid;
+  grid-template-columns: auto minmax(12rem, 1fr);
+  gap: var(--space-2);
+  min-width: 20rem;
+}
+.utility-profile-group > div:nth-child(2) { grid-column: 1 / -1; grid-row: 2; font-size: var(--font-hint); }
+.utility-profile-group .utility-profile-select { grid-column: 2; grid-row: 1; }

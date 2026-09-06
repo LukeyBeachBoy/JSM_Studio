@@ -5,6 +5,9 @@ import { BatteryIndicator } from './BatteryIndicator'
 import { BindingLabelLegend } from './BindingLabelLegend'
 import { Card } from './Card'
 import { ControllerStatusSvg } from './ControllerStatusSvg'
+import { FACE_BUTTONS, DPAD_BUTTONS, BUMPER_BUTTONS, TRIGGER_BUTTONS, CENTER_BUTTONS, PADDLE_BUTTONS, MINI_BUTTONS, MISC_BUTTONS, LEFT_STICK_BUTTONS, RIGHT_STICK_BUTTONS, TOUCH_BUTTONS } from '../keymap/schema'
+import { controllerSupportsInput } from '../utils/controllerStatus'
+import { getButtonBindingRows, getKeymapValue } from '../utils/keymap'
 import { parseBindingLabels } from '../utils/bindingLabels'
 import {
   ButtonsIcon,
@@ -24,6 +27,7 @@ type OverviewPageProps = {
   onNavigate: (target: OverviewNavTarget) => void
   /** The active configuration, for the bound-input marks and action names. */
   configText?: string
+  onSelectCommand?: (command: string) => void
 }
 
 // Replaces the per-page Visual/List toggle that used to live on every Controls
@@ -40,12 +44,32 @@ const CATEGORIES: { target: OverviewNavTarget; icon: JSX.Element; titleKey: stri
   { target: 'gyro', icon: <GyroIcon />, titleKey: 'app.nav.gyro', descKey: 'overview.gyroDesc' },
 ]
 
-export function OverviewPage({ devices, onNavigate, configText }: OverviewPageProps) {
+export function OverviewPage({ devices, onNavigate, configText, onSelectCommand }: OverviewPageProps) {
   const { t } = useTranslation()
   const device = devices?.[0]
   const [hoveredCommand, setHoveredCommand] = useState<string | null>(null)
 
-  const labels = useMemo(() => parseBindingLabels(configText ?? ''), [configText])
+  const labels = useMemo(() => {
+    const text = configText ?? ''
+    const names = parseBindingLabels(text)
+    const result: Record<string, string> = {}
+    for (const button of [...FACE_BUTTONS, ...DPAD_BUTTONS, ...BUMPER_BUTTONS, ...TRIGGER_BUTTONS, ...CENTER_BUTTONS, ...PADDLE_BUTTONS, ...MINI_BUTTONS, ...MISC_BUTTONS, ...LEFT_STICK_BUTTONS, ...RIGHT_STICK_BUTTONS, ...TOUCH_BUTTONS]) {
+      const rows = getButtonBindingRows(text, button.command)
+      const outputs = rows.filter(row => row.binding).map(row => row.binding)
+      if (outputs.length || controllerSupportsInput(device, button.command)) result[button.command] = [names[button.command], outputs.join(' / ') || 'Unbound'].filter(Boolean).join(' · ')
+    }
+    const gridInputs = new Set(Array.from(text.matchAll(/^\s*(?:[^=\n]+[, +])?([LR]?T\d+)\s*=/gm), match => match[1]))
+    for (const command of gridInputs) {
+      const outputs = getButtonBindingRows(text, command).filter(row => row.binding).map(row => row.binding)
+      result[command] = [names[command], outputs.join(' / ') || 'Unbound'].filter(Boolean).join(' · ')
+    }
+    for (const [command, key] of [['L3', 'LEFT_STICK_MODE'], ['R3', 'RIGHT_STICK_MODE'], ['LEFT_PAD', 'LEFT_TOUCHPAD_MODE'], ['RIGHT_PAD', 'RIGHT_TOUCHPAD_MODE']] as const) {
+      if (command.endsWith('PAD') && device && ![4, 5, 24].includes(device.type)) continue
+      const mode = getKeymapValue(text, key) || (command.endsWith('PAD') ? getKeymapValue(text, 'TOUCHPAD_MODE') : '')
+      if (mode) result[command] = `${mode.replace(/_/g, ' ')}${result[command] && result[command] !== 'Unbound' ? ` / ${result[command]}` : ''}`
+    }
+    return result
+  }, [configText, device])
   const boundCommands = useMemo(() => {
     const bound = new Set<string>()
     ;(configText ?? '').split(/\r?\n/).forEach(line => {
@@ -76,10 +100,12 @@ export function OverviewPage({ devices, onNavigate, configText }: OverviewPagePr
               <ControllerStatusSvg
                 device={device}
                 boundCommands={boundCommands}
+                bindingLabels={labels}
                 selectedCommand={hoveredCommand}
+                onSelectCommand={onSelectCommand}
               />
             </div>
-            <BindingLabelLegend labels={labels} device={device} onHoverCommand={setHoveredCommand} />
+            <BindingLabelLegend labels={labels} device={device} onHoverCommand={setHoveredCommand} onSelectCommand={onSelectCommand} />
           </div>
         ) : (
           <p className={styles.noDevice}>{t('overview.noDevice')}</p>

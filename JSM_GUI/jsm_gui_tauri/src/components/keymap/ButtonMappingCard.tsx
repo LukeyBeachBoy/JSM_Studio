@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import keymapStyles from '../Keymap.module.css'
 
 type ButtonMappingCardProps = {
+  command?: string
   title: string
   description: string
   isCapturing: boolean
@@ -17,6 +18,7 @@ type ButtonMappingCardProps = {
 }
 
 export function ButtonMappingCard({
+  command,
   title,
   description,
   isCapturing,
@@ -36,7 +38,7 @@ export function ButtonMappingCard({
   }, [label, editing])
 
   return (
-    <div className={`${keymapStyles.keymapRow} ${isCapturing ? keymapStyles.keymapRowCapturing : ''}`}>
+    <div data-input-command={command} tabIndex={-1} className={`${keymapStyles.keymapRow} ${isCapturing ? keymapStyles.keymapRowCapturing : ''}`}>
       <div className={keymapStyles.keymapLabel}>
         <span className={keymapStyles.buttonNameRow}>
           {glyph && <span className={keymapStyles.buttonGlyph}>{glyph}</span>}

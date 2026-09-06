@@ -446,3 +446,14 @@ export const getPressedControllerButtons = (device?: TelemetryDevice) => {
   const commands = getPressedControllerCommandSet(device)
   return BUTTON_ORDER.filter(button => commands.has(button.command))
 }
+
+// Use the same model-specific input table as telemetry decoding. Unknown devices
+// retain the generic editor; confirmed devices expose only usable controls.
+export const controllerSupportsInput = (device: TelemetryDevice | undefined, command: string): boolean => {
+  if (!device || !device.type) return true
+  if (/^(ZL|ZR|LUP|LDOWN|LLEFT|LRIGHT|LRING|RUP|RDOWN|RLEFT|RRIGHT|RRING)/.test(command)) return true
+  if (device.type === 24 && ['LTOUCH', 'RTOUCH'].includes(command)) return true
+  if (command === 'TOUCH' && device.type === 24) return false
+  if (/^(TOUCH|TUP|TDOWN|TLEFT|TRIGHT|TRING|LT[0-9]|RT[0-9]|T[0-9])/.test(command)) return [4, 5, 24].includes(device.type)
+  return getPressedControllerCommandSet({ ...device, status: { ...device.status, buttons: device.supportedButtons ?? 2 ** 33 - 1 } as NonNullable<TelemetryDevice['status']> }).has(command)
+}

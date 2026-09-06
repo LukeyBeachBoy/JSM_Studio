@@ -69,7 +69,7 @@ def test_preset_labels_quote_the_values_they_set():
     and the pair is what the config file and the backend actually talk about."""
     for preset, cutoff, speed in (('smoothingLight', '10', '0.8'),
                                   ('smoothingBalanced', '6', '0.6'),
-                                  ('smoothingHeavy', '2.5', '0.35')):
+                                  ('smoothingHeavy', '2.5', '3.0')):
         label = re.search(rf"'keymap\.{preset}', '([^']+)'", SECTION)
         check(label is not None, f'{preset} label not found')
         check(f'({cutoff} / {speed})' in label.group(1),

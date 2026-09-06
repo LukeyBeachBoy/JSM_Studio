@@ -71,8 +71,15 @@ export function useKeyboardNav({ onPageStep, onEscape, activePage, contentSelect
     }
     const content = document.querySelector<HTMLElement>(contentSelector)
     if (!content) return
-    const first = focusablesIn(content)[0]
-    first?.focus({ preventScroll: true })
+    const focusContent = () => {
+      const first = focusablesIn(content)[0]
+      first?.focus({ preventScroll: true })
+      return Boolean(first)
+    }
+    if (focusContent()) return
+    const observer = new MutationObserver(() => { if (focusContent()) observer.disconnect() })
+    observer.observe(content, { childList: true, subtree: true })
+    return () => observer.disconnect()
   }, [activePage, contentSelector])
 
   // Track dialogs by watching the DOM rather than threading state through every
@@ -145,7 +152,7 @@ export function useKeyboardNav({ onPageStep, onEscape, activePage, contentSelect
         case 'ArrowDown':
         case 'ArrowLeft':
         case 'ArrowRight': {
-          if (isTextEntry || usesArrowsNatively) return
+          if ((isTextEntry && inputType !== 'number') || (usesArrowsNatively && (event.key === 'ArrowLeft' || event.key === 'ArrowRight'))) return
           const forward = event.key === 'ArrowDown' || event.key === 'ArrowRight'
           const scope: ParentNode = topmostOverlay() ?? document
           const focusables = focusablesIn(scope)

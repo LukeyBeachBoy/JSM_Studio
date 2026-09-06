@@ -30,9 +30,12 @@ export type AutoloadRule = {
   builtIn: boolean
 }
 
-export type GlobalChordsDocument = {
-  text: string
-  defaultText: string
+// One global chord: hold any button in `buttons`, the configuration at
+// `profilePath` swaps in live for as long as it's held.
+export type GlobalChord = {
+  id: string
+  buttons: string[]
+  profilePath: string
 }
 
 export type NamedProfile = {
@@ -109,6 +112,8 @@ export type HidHideStatus = {
   supported: boolean
   installed: boolean
   active: boolean
+  inverse: boolean
+  steamAllowed: boolean
   devices: HidHideDevice[]
   managedInstanceIds: string[]
   whitelistSynced: boolean
@@ -176,11 +181,9 @@ export interface DesktopBridge {
   listAutoloadRules: () => Promise<AutoloadRule[]>
   saveAutoloadRule: (processName: string, profileName: string) => Promise<AutoloadRule | null>
   deleteAutoloadRule: (processName: string) => Promise<{ success: boolean }>
-  // The Steam-button chord layer (GlobalChords.txt) that applies on top of
-  // every configuration. Writing re-applies the active configuration so the
-  // change is live immediately.
-  readGlobalChords: () => Promise<GlobalChordsDocument>
-  writeGlobalChords: (text: string) => Promise<{ success: boolean }>
+  listGlobalChords: () => Promise<GlobalChord[]>
+  saveGlobalChord: (chord: GlobalChord) => Promise<GlobalChord[]>
+  deleteGlobalChord: (id: string) => Promise<GlobalChord[]>
   recalibrateGyro: () => Promise<{ success: boolean }>
   getCalibrationSeconds: () => Promise<number | null>
   setCalibrationSeconds: (seconds: number) => Promise<number | null>
@@ -278,6 +281,8 @@ const unsupportedHidHideStatus = (): HidHideStatus => ({
   supported: typeof navigator !== 'undefined' ? navigator.platform.startsWith('Win') : false,
   installed: false,
   active: false,
+  inverse: false,
+  steamAllowed: false,
   devices: [],
   managedInstanceIds: [],
   whitelistSynced: false,
@@ -370,17 +375,23 @@ export const desktopBridge: DesktopBridge = {
     }
     return { activeProfilePath: 'profiles-library/Profile 1.txt', mappingEnabled: true, autoloadEnabled: true, controllerNavEnabled: enabled }
   },
-  async readGlobalChords() {
+  async listGlobalChords() {
     if (isTauriWindow()) {
-      return invokeTauri<GlobalChordsDocument>('read_global_chords')
+      return invokeTauri<GlobalChord[]>('list_global_chords').catch(() => [])
     }
-    return { text: '', defaultText: '' }
+    return []
   },
-  async writeGlobalChords(text) {
+  async saveGlobalChord(chord) {
     if (isTauriWindow()) {
-      return invokeTauri<{ success: boolean }>('write_global_chords', { text })
+      return invokeTauri<GlobalChord[]>('save_global_chord', { chord })
     }
-    return { success: false }
+    return []
+  },
+  async deleteGlobalChord(id) {
+    if (isTauriWindow()) {
+      return invokeTauri<GlobalChord[]>('delete_global_chord', { id })
+    }
+    return []
   },
   async listAutoloadRules() {
     if (isTauriWindow()) {

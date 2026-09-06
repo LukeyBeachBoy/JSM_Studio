@@ -13,9 +13,27 @@ use services::{app_state::AppState, hidhide, input_debug, jsm_process, telemetry
 const TRAY_SHOW_ID: &str = "show";
 const TRAY_QUIT_ID: &str = "quit";
 
+/// True when this invocation came from the logon scheduled task rather than a
+/// person opening the app. See `autostart.rs` and the setup hook below.
+fn launched_at_autostart<I: IntoIterator<Item = String>>(arguments: I) -> bool {
+    arguments.into_iter().any(|argument| argument == "--autostart")
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default()
+        // Registered before anything else so a second launch hands its arguments
+        // to the running app and exits here, rather than getting as far as
+        // spawning a second JoyShockMapper -- two mappers fight over the same
+        // controller and telemetry port, and the tray leaves the first window
+        // hidden, which is exactly how a duplicate goes unnoticed.
+        .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+            // A person re-opening the app expects the window back; the logon
+            // task firing while the app already runs must not pop one open.
+            if !launched_at_autostart(argv) {
+                show_main_window(app);
+            }
+        }))
         .plugin(tauri_plugin_process::init())
         .manage(AppState::default())
         .setup(|app| {
@@ -24,6 +42,7 @@ pub fn run() {
                 eprintln!("Failed to initialize Tauri runtime files: {error}");
             }
             telemetry::start(app.handle().clone(), state.clone());
+            services::global_chords::start(app.handle().clone(), state.clone());
             if let Err(error) = sync_hidhide_whitelist_if_available(&app.handle()) {
                 eprintln!(
                     "Failed to sync HidHide whitelist before launching JoyShockMapper: {error}"
@@ -68,8 +87,7 @@ pub fn run() {
             // that makes the controller usable (JoyShockMapper, telemetry) has
             // already started above regardless of this flag -- only the window's
             // visibility depends on it.
-            let launched_at_autostart = std::env::args().any(|arg| arg == "--autostart");
-            if !launched_at_autostart {
+            if !launched_at_autostart(std::env::args()) {
                 show_main_window(&app.handle());
             }
 
@@ -85,8 +103,9 @@ pub fn run() {
             commands::set_autoload_enabled,
             commands::list_autoload_rules,
             commands::set_controller_nav_enabled,
-            commands::read_global_chords,
-            commands::write_global_chords,
+            commands::list_global_chords,
+            commands::save_global_chord,
+            commands::delete_global_chord,
             commands::save_autoload_rule,
             commands::delete_autoload_rule,
             commands::recalibrate_gyro,
@@ -171,4 +190,18 @@ fn sync_hidhide_whitelist_if_available(app: &tauri::AppHandle) -> Result<(), Str
         let _ = hidhide::sync_whitelist(app, None)?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::launched_at_autostart;
+
+    #[test]
+    fn only_the_autostart_flag_suppresses_the_window() {
+        let exe = "JSM Studio.exe".to_string();
+        assert!(launched_at_autostart(vec![exe.clone(), "--autostart".into()]));
+        // A second launch from the shortcut must still restore the window.
+        assert!(!launched_at_autostart(vec![exe.clone()]));
+        assert!(!launched_at_autostart(vec![exe, "--autostarted".into()]));
+    }
 }

@@ -16,8 +16,12 @@ use crate::{
 
 #[cfg(target_os = "windows")]
 use std::{
+    ffi::OsString,
     iter,
-    os::windows::{ffi::OsStrExt, process::CommandExt},
+    os::windows::{
+        ffi::{OsStrExt, OsStringExt},
+        process::CommandExt,
+    },
 };
 
 #[cfg(target_os = "windows")]
@@ -27,14 +31,22 @@ const CREATE_NO_WINDOW: u32 = 0x08000000;
 use crate::services::app_state::{JobObject, ManagedProcess};
 #[cfg(target_os = "windows")]
 use windows_sys::Win32::{
-    Foundation::CloseHandle,
+    Foundation::{CloseHandle, INVALID_HANDLE_VALUE},
     System::{
+        Diagnostics::ToolHelp::{
+            CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W,
+            TH32CS_SNAPPROCESS,
+        },
         JobObjects::{
             AssignProcessToJobObject, CreateJobObjectW, JobObjectExtendedLimitInformation,
             SetInformationJobObject, JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
             JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
         },
-        Threading::{CreateProcessW, PROCESS_INFORMATION, STARTF_USESHOWWINDOW, STARTUPINFOW},
+        Threading::{
+            CreateProcessW, OpenProcess, QueryFullProcessImageNameW, TerminateProcess,
+            PROCESS_INFORMATION, PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_TERMINATE,
+            STARTF_USESHOWWINDOW, STARTUPINFOW,
+        },
     },
 };
 
@@ -60,6 +72,18 @@ pub fn launch_jsm(app: &AppHandle, state: &AppState) -> Result<(), String> {
 
     let mut process_state = lock_process_state(state)?;
     sync_child_state(&mut process_state)?;
+
+    // Anything running our mapper binary that we are not tracking is a leftover
+    // -- a previous run that outlived its job object, or a copy started by hand.
+    // Two mappers bind the same telemetry port and both write to the controller,
+    // so the second one to start looks like "the app stopped responding".
+    // Swept on every launch attempt, including the already-running path below,
+    // so the invariant holds even when we are not the one spawning.
+    terminate_stray_mappers(
+        &jsm_executable,
+        process_state.child.as_ref().map(|child| child.id()),
+    );
+
     if process_state.child.is_some() {
         return Ok(());
     }
@@ -115,6 +139,15 @@ pub fn terminate_jsm(app: &AppHandle, state: &AppState) -> Result<(), String> {
     if let Some(mut child) = child {
         let _ = child.kill();
         let _ = child.wait();
+    }
+
+    // Stopping has to mean stopping. A mapper we lost track of would otherwise
+    // keep remapping the controller with the toggle showing "off", which reads
+    // as the switch doing nothing at all.
+    if let Ok(backend) = runtime::read_backend_choice(app) {
+        if let Ok(executable) = runtime::jsm_executable_path(app, &backend) {
+            terminate_stray_mappers(&executable, None);
+        }
     }
 
     telemetry::broadcast_empty_devices(app, state)?;
@@ -222,6 +255,93 @@ pub fn run_console_command_with_output(
         output: combined,
     })
 }
+
+/// Kills every process running `executable` except `keep_pid`, so exactly one
+/// mapper can be alive. Matched on the full image path rather than the file
+/// name: a JoyShockMapper the user installed separately elsewhere is theirs to
+/// manage, and is not ours to kill.
+#[cfg(target_os = "windows")]
+fn terminate_stray_mappers(executable: &Path, keep_pid: Option<u32>) {
+    let target = executable.canonicalize().unwrap_or_else(|_| executable.to_path_buf());
+    let file_name = match executable.file_name() {
+        Some(name) => name.to_os_string(),
+        None => return,
+    };
+
+    let snapshot = unsafe { CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0) };
+    if snapshot == INVALID_HANDLE_VALUE {
+        return;
+    }
+
+    let mut entry = PROCESSENTRY32W {
+        dwSize: std::mem::size_of::<PROCESSENTRY32W>() as u32,
+        ..Default::default()
+    };
+
+    let mut has_entry = unsafe { Process32FirstW(snapshot, &mut entry) } != 0;
+    let own_pid = std::process::id();
+    while has_entry {
+        let pid = entry.th32ProcessID;
+        let name_matches = OsString::from_wide(&trim_wide(&entry.szExeFile)) == file_name;
+        if name_matches && pid != own_pid && Some(pid) != keep_pid {
+            if let Some(path) = process_image_path(pid) {
+                let same_binary = path.canonicalize().unwrap_or(path) == target;
+                if same_binary {
+                    terminate_process(pid);
+                }
+            }
+        }
+        has_entry = unsafe { Process32NextW(snapshot, &mut entry) } != 0;
+    }
+
+    unsafe {
+        let _ = CloseHandle(snapshot);
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn process_image_path(pid: u32) -> Option<std::path::PathBuf> {
+    let handle = unsafe { OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid) };
+    if handle.is_null() {
+        return None;
+    }
+
+    let mut buffer = vec![0u16; 32768];
+    let mut size = buffer.len() as u32;
+    let ok = unsafe { QueryFullProcessImageNameW(handle, 0, buffer.as_mut_ptr(), &mut size) };
+    unsafe {
+        let _ = CloseHandle(handle);
+    }
+
+    if ok == 0 {
+        return None;
+    }
+    Some(std::path::PathBuf::from(OsString::from_wide(
+        &buffer[..size as usize],
+    )))
+}
+
+#[cfg(target_os = "windows")]
+fn terminate_process(pid: u32) {
+    let handle = unsafe { OpenProcess(PROCESS_TERMINATE, 0, pid) };
+    if handle.is_null() {
+        return;
+    }
+    unsafe {
+        let _ = TerminateProcess(handle, 1);
+        let _ = CloseHandle(handle);
+    }
+}
+
+/// `szExeFile` is a fixed-size buffer padded with NULs.
+#[cfg(target_os = "windows")]
+fn trim_wide(buffer: &[u16]) -> &[u16] {
+    let end = buffer.iter().position(|value| *value == 0).unwrap_or(buffer.len());
+    &buffer[..end]
+}
+
+#[cfg(not(target_os = "windows"))]
+fn terminate_stray_mappers(_executable: &Path, _keep_pid: Option<u32>) {}
 
 fn current_pid(state: &AppState) -> Result<Option<u32>, String> {
     let mut process_state = lock_process_state(state)?;
@@ -416,4 +536,31 @@ fn quote_windows_argument(value: &OsStr) -> String {
     quoted.push_str(&"\\".repeat(backslashes * 2));
     quoted.push('"');
     quoted
+}
+
+#[cfg(all(test, target_os = "windows"))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn exe_name_comparison_ignores_the_nul_padding_toolhelp_returns() {
+        // PROCESSENTRY32W hands back a fixed 260-wide buffer, so comparing the
+        // whole thing would never match the name we are looking for.
+        let mut buffer = [0u16; 260];
+        for (slot, value) in buffer.iter_mut().zip("JoyShockMapper.exe".encode_utf16()) {
+            *slot = value;
+        }
+
+        assert_eq!(
+            OsString::from_wide(trim_wide(&buffer)),
+            OsString::from("JoyShockMapper.exe")
+        );
+    }
+
+    #[test]
+    fn trim_wide_handles_empty_and_unterminated_buffers() {
+        assert!(trim_wide(&[0u16; 8]).is_empty());
+        let full: Vec<u16> = "abc".encode_utf16().collect();
+        assert_eq!(trim_wide(&full).len(), 3);
+    }
 }

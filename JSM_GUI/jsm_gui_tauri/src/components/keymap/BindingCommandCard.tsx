@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { BindingCommand, BindingCommandPatch } from '../../utils/bindingCommands'
 import keymapStyles from '../Keymap.module.css'
+import { Menu } from '../ui/Menu'
 import { BindingEditor } from './BindingEditor'
 import { AppSelect } from '../ui/AppSelect'
 import {
@@ -26,6 +27,9 @@ type BindingCommandCardProps = {
   onDuplicate: (command: BindingCommand) => void
   onCapture: (command: BindingCommand) => void
   onEnableVirtualController?: () => void
+  onAddExtra?: () => void
+  onAddSub?: () => void
+  onRename?: () => void
 }
 
 const TRIGGER_LABEL_KEYS: Record<BindingCommand['triggerKind'], string> = {
@@ -75,6 +79,9 @@ export function BindingCommandCard({
   onDuplicate,
   onCapture,
   onEnableVirtualController,
+  onAddExtra,
+  onAddSub,
+  onRename,
 }: BindingCommandCardProps) {
   const { t } = useTranslation()
   // Open by default. Collapsing as soon as a binding had a value meant the only
@@ -83,6 +90,10 @@ export function BindingCommandCard({
   // clickable -- so a bound grid region (or any bound input) looked like it
   // could no longer be changed at all. The row still collapses on request.
   const [expanded, setExpanded] = useState(true)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const holdTimer = useRef<ReturnType<typeof setTimeout>>()
+  const cancelHold = () => { clearTimeout(holdTimer.current) }
+  useEffect(() => cancelHold, [])
   const triggerLabel = t(TRIGGER_LABEL_KEYS[command.triggerKind])
   const behaviorLabel = command.outputBehavior === 'normal' ? '' : t(BEHAVIOR_LABEL_KEYS[command.outputBehavior])
   const conditionLabel = command.conditionInput
@@ -114,7 +125,10 @@ export function BindingCommandCard({
     : [command.triggerKind]
 
   return (
-    <div className={keymapStyles.commandCard}>
+    <div className={keymapStyles.commandCard}
+      onContextMenu={event => { event.preventDefault(); setMenuOpen(true) }}
+      onPointerDown={event => { if (event.pointerType === 'touch') holdTimer.current = setTimeout(() => setMenuOpen(true), 600) }}
+      onPointerUp={cancelHold} onPointerCancel={cancelHold} onPointerMove={cancelHold}>
       <div className={keymapStyles.commandSummary}>
         {canRetargetTrigger ? (
           <AppSelect
@@ -137,6 +151,16 @@ export function BindingCommandCard({
           {!command.isRoundTripSafe && <span className={keymapStyles.commandRawBadge}>{t('keymap.commandRawSyntax')}</span>}
         </button>
         <div className={keymapStyles.commandActions} data-capture-ignore="true">
+          <Menu open={menuOpen} onOpenChange={setMenuOpen} ariaLabel={t('keymap.commandActionsAriaLabel')}
+            trigger={<button type="button" className="ghost-btn" aria-label={t('keymap.commandActionsAriaLabel')}>&#9881;</button>}
+            items={[
+              { label: t('keymap.commandMenuRegularPress'), disabled: !canRetargetTrigger, onSelect: () => onUpdate(command, { triggerKind: 'regular' }) },
+              { label: t('keymap.commandMenuSettings'), onSelect: () => setExpanded(true) },
+              { label: t('keymap.commandMenuRename'), disabled: !onRename, onSelect: () => { requestAnimationFrame(() => onRename?.()) } },
+              { label: t('keymap.commandMenuRemove'), onSelect: () => onRemove(command) },
+              { label: t('keymap.commandMenuAddExtra'), onSelect: () => onAddExtra?.() },
+              { label: t('keymap.commandMenuAddSub'), onSelect: () => onAddSub?.() },
+            ]} />
           <button type="button" className="link-btn" onClick={() => onDuplicate(command)}>
             {t('keymap.commandDuplicate')}
           </button>

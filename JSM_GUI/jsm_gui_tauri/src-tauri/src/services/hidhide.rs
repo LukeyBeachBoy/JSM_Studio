@@ -36,6 +36,8 @@ pub struct HidHideStatus {
     pub supported: bool,
     pub installed: bool,
     pub active: bool,
+    pub inverse: bool,
+    pub steam_allowed: bool,
     pub devices: Vec<HidHideDevice>,
     pub managed_instance_ids: Vec<String>,
     pub whitelist_synced: bool,
@@ -129,6 +131,9 @@ fn encode_multi_string(values: &[String]) -> Vec<u16> {
         encoded.push(0);
     }
     encoded.push(0);
+    if encoded.len() == 1 {
+        encoded.push(0);
+    }
     encoded
 }
 
@@ -255,6 +260,47 @@ fn whitelist_is_synced(live: &[String], required: &[String]) -> bool {
     required
         .iter()
         .all(|value| live.contains(&canonicalize_value(value)))
+}
+
+// In inverse mode this is a deny list. Never add JSM to it or flip the user's
+// global mode (which would change access for every unrelated application).
+fn application_list_with_access(
+    live: &[String],
+    required: &[String],
+    inverse: bool,
+) -> Vec<String> {
+    if !inverse {
+        return merge_whitelist(live, required);
+    }
+    let required = required
+        .iter()
+        .map(|v| canonicalize_value(v))
+        .collect::<HashSet<_>>();
+    live.iter()
+        .filter(|v| !required.contains(&canonicalize_value(v)))
+        .cloned()
+        .collect()
+}
+
+fn application_access_ready(live: &[String], required: &[String], inverse: bool) -> bool {
+    if !inverse {
+        return whitelist_is_synced(live, required);
+    }
+    !required.is_empty()
+        && required.iter().all(|r| {
+            !live
+                .iter()
+                .any(|v| canonicalize_value(v) == canonicalize_value(r))
+        })
+}
+
+fn steam_is_allowed(applications: &[String], inverse: bool) -> bool {
+    let listed = applications.iter().any(|v| {
+        canonicalize_value(v)
+            .replace('/', "\\")
+            .ends_with("\\steam.exe")
+    });
+    listed != inverse
 }
 
 fn parse_likely_pairs(latest_packet: Option<&Value>) -> HashSet<(u16, u16)> {
@@ -389,6 +435,12 @@ mod imp {
         FILE_READ_DATA,
     );
 
+    const IOCTL_GET_WLINVERSE: u32 = ctl_code(
+        IO_CONTROL_DEVICE_TYPE,
+        2054,
+        METHOD_BUFFERED,
+        FILE_READ_DATA,
+    );
     const METHOD_BUFFERED: u32 = 0;
     const FILE_READ_DATA: u32 = 0x0001;
     const INVALID_DEVICE_INFO_SET: HDEVINFO = -1isize;
@@ -423,6 +475,20 @@ mod imp {
     struct GroupedDevice {
         device: HidHideDevice,
         child_instance_ids: Vec<String>,
+    }
+
+    fn controller_interface_ids(groups: &[GroupedDevice], target: &str) -> Option<Vec<String>> {
+        let target = canonicalize_instance_id(target);
+        groups
+            .iter()
+            .find(|group| {
+                canonicalize_instance_id(&group.device.instance_id) == target
+                    || group
+                        .child_instance_ids
+                        .iter()
+                        .any(|id| canonicalize_instance_id(id) == target)
+            })
+            .map(|group| group.child_instance_ids.clone())
     }
 
     struct HandleGuard(HANDLE);
@@ -475,6 +541,8 @@ mod imp {
                     supported: true,
                     installed: false,
                     active: false,
+                    inverse: false,
+                    steam_allowed: false,
                     devices: stale_devices(&managed_instance_ids),
                     managed_instance_ids,
                     whitelist_synced: false,
@@ -486,6 +554,8 @@ mod imp {
                     supported: true,
                     installed: true,
                     active: false,
+                    inverse: false,
+                    steam_allowed: false,
                     devices: stale_devices(&managed_instance_ids),
                     managed_instance_ids,
                     whitelist_synced: false,
@@ -499,6 +569,7 @@ mod imp {
         let whitelist = get_whitelist()?;
         let required_whitelist_entries = required_whitelist_entries(app)?;
         let active = get_active()?;
+        let inverse = get_inverse()?;
         let likely_pairs = parse_likely_pairs(latest_packet);
         let grouped_devices = enumerate_devices(&managed_instance_ids, &blacklist, &likely_pairs)?;
 
@@ -506,9 +577,15 @@ mod imp {
             supported: true,
             installed: true,
             active,
+            inverse,
+            steam_allowed: steam_is_allowed(&whitelist, inverse),
             devices: build_devices(grouped_devices, &managed_instance_ids, &blacklist),
             managed_instance_ids,
-            whitelist_synced: whitelist_is_synced(&whitelist, &required_whitelist_entries),
+            whitelist_synced: application_access_ready(
+                &whitelist,
+                &required_whitelist_entries,
+                inverse,
+            ),
             requires_elevation: false,
         })
     }
@@ -547,23 +624,7 @@ mod imp {
         let likely_pairs = parse_likely_pairs(latest_packet);
         let grouped_devices = enumerate_devices(&previous_managed, &blacklist, &likely_pairs)?;
 
-        let canonical_target = canonicalize_instance_id(trimmed_instance_id);
-        let target_instance_ids = grouped_devices
-            .iter()
-            .find(|group| {
-                canonicalize_instance_id(&group.device.instance_id) == canonical_target
-                    || group
-                        .child_instance_ids
-                        .iter()
-                        .any(|child| canonicalize_instance_id(child) == canonical_target)
-            })
-            .map(|group| {
-                if hidden {
-                    vec![trimmed_instance_id.to_string()]
-                } else {
-                    group.child_instance_ids.clone()
-                }
-            });
+        let target_instance_ids = controller_interface_ids(&grouped_devices, trimmed_instance_id);
 
         let Some(target_instance_ids) = target_instance_ids.or_else(|| {
             if hidden {
@@ -1026,6 +1087,7 @@ mod imp {
             .to_string();
 
             let candidate = hid_details.gaming_device
+                || likely_current_controller
                 || hidden
                 || managed_by_app
                 || looks_like_game_controller(&display_hint, &vendor, &product);
@@ -1487,6 +1549,10 @@ mod imp {
         let backend = runtime::read_backend_choice(app)?;
         let active_jsm = runtime::jsm_executable_path(app, &backend)?;
         let mut executable_paths = vec![active_jsm];
+        // The UI queries device descriptors too, including when its controllers are hidden.
+        if let Ok(executable) = std::env::current_exe() {
+            executable_paths.push(executable);
+        }
         executable_paths.extend(runtime::bundled_jsm_executable_paths(app)?);
 
         let mut seen = HashSet::new();
@@ -1513,7 +1579,7 @@ mod imp {
         }
 
         let whitelist = get_whitelist()?;
-        let merged = merge_whitelist(&whitelist, &required);
+        let merged = application_list_with_access(&whitelist, &required, get_inverse()?);
         if merged != whitelist {
             set_whitelist(&merged)?;
         }
@@ -1561,6 +1627,14 @@ mod imp {
     }
 
     fn get_active() -> Result<bool, String> {
+        get_boolean(IOCTL_GET_ACTIVE)
+    }
+
+    fn get_inverse() -> Result<bool, String> {
+        get_boolean(IOCTL_GET_WLINVERSE)
+    }
+
+    fn get_boolean(ioctl: u32) -> Result<bool, String> {
         let handle =
             open_control_device(false)?.ok_or_else(|| "HidHide is not installed.".to_string())?;
         let _handle_guard = HandleGuard(handle);
@@ -1570,7 +1644,7 @@ mod imp {
         let success = unsafe {
             DeviceIoControl(
                 handle,
-                IOCTL_GET_ACTIVE,
+                ioctl,
                 null(),
                 0,
                 value.as_mut_ptr() as *mut _,
@@ -1581,11 +1655,14 @@ mod imp {
         };
         if success == 0 {
             return Err(format!(
-                "Failed to query HidHide active state: {}",
+                "Failed to query HidHide flag: {}",
                 std::io::Error::last_os_error()
             ));
         }
 
+        if bytes_returned != 1 {
+            return Err("Invalid HidHide boolean response.".to_string());
+        }
         Ok(value[0] != 0)
     }
 
@@ -1946,6 +2023,71 @@ mod imp {
             || (usage_page == 0x01 && (usage == 0x04 || usage == 0x05))
     }
 
+    #[test]
+    #[ignore = "Temporarily hides the physical device specified by JSM_HIDHIDE_TEST_PATH"]
+    fn live_controller_group_blocks_unapproved_access() {
+        let path =
+            std::env::var("JSM_HIDHIDE_TEST_PATH").expect("set the exact HID interface path");
+        let instance = std::env::var("JSM_HIDHIDE_TEST_INSTANCE").expect("set its instance ID");
+        assert!(
+            !get_inverse().unwrap(),
+            "live probe requires normal application mode"
+        );
+        struct Restore {
+            blacklist: Vec<String>,
+            active: bool,
+        }
+        impl Drop for Restore {
+            fn drop(&mut self) {
+                set_blacklist(&self.blacklist).expect("restore device blacklist");
+                set_active_flag(self.active).expect("restore hiding state");
+            }
+        }
+        let restore = Restore {
+            blacklist: get_blacklist().unwrap(),
+            active: get_active().unwrap(),
+        };
+        let groups =
+            enumerate_devices(&[], &restore.blacklist, &HashSet::from([(0x28de, 0x1304)])).unwrap();
+        let targets =
+            controller_interface_ids(&groups, &instance).expect("controller container found");
+        assert!(targets.len() > 1, "probe requires a multi-interface device");
+        drop(HandleGuard(
+            open_file_handle(&path).expect("probe process must initially have access"),
+        ));
+        let next = merge_blacklist(&restore.blacklist, &[], &targets);
+        set_blacklist(&next).unwrap();
+        set_active_flag(true).unwrap();
+        let actual = get_blacklist().unwrap();
+        assert!(targets
+            .iter()
+            .all(|id| actual.iter().any(|a| a.eq_ignore_ascii_case(id))));
+        let refreshed =
+            enumerate_devices(&[], &actual, &HashSet::from([(0x28de, 0x1304)])).unwrap();
+        let selected = refreshed
+            .iter()
+            .find(|g| {
+                g.child_instance_ids
+                    .iter()
+                    .any(|id| id.eq_ignore_ascii_case(&instance))
+            })
+            .unwrap();
+        assert!(selected.device.hidden && !selected.device.partially_hidden);
+        assert!(
+            open_file_handle(&path).is_none(),
+            "unapproved process still opens the hidden vendor interface"
+        );
+        assert_eq!(unsafe { GetLastError() }, ERROR_ACCESS_DENIED);
+        println!(
+            "HidHide blocked vendor-interface access; all {} container interfaces blacklisted",
+            targets.len()
+        );
+        drop(restore);
+        drop(HandleGuard(
+            open_file_handle(&path).expect("access restored after probe"),
+        ));
+    }
+
     fn first_non_empty<'a>(values: &[Option<&'a str>]) -> Option<&'a str> {
         values
             .iter()
@@ -1964,6 +2106,8 @@ mod imp {
             supported: false,
             installed: false,
             active: false,
+            inverse: false,
+            steam_allowed: false,
             devices: Vec::new(),
             managed_instance_ids: Vec::new(),
             whitelist_synced: false,
@@ -2021,6 +2165,27 @@ mod imp {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn empty_multi_string_is_double_terminated() {
+        assert_eq!(encode_multi_string(&[]), vec![0, 0]);
+    }
+
+    #[test]
+    fn inverse_list_repairs_access_without_changing_other_applications() {
+        let live = vec!["JSM.exe".into(), "Steam.exe".into()];
+        let required = vec!["jsm.exe".into()];
+        assert!(!application_access_ready(&live, &required, true));
+        let repaired = application_list_with_access(&live, &required, true);
+        assert_eq!(repaired, vec!["Steam.exe"]);
+        assert!(application_access_ready(&repaired, &required, true));
+        assert!(!application_access_ready(&repaired, &required, false));
+        assert!(steam_is_allowed(&[], true));
+        assert!(!steam_is_allowed(&[], false));
+        let steam = vec![r"\Device\Volume\Steam\steam.exe".into()];
+        assert!(steam_is_allowed(&steam, false));
+        assert!(!steam_is_allowed(&steam, true));
+    }
 
     #[test]
     fn multi_string_round_trip_preserves_values() {

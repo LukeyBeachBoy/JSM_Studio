@@ -52,10 +52,12 @@
 }
 
 .utility-profile-group {
-  display: flex;
+  display: grid;
   align-items: center;
-  gap: 0.85rem;
-  min-width: 0;
+  grid-template-columns: auto minmax(12rem, 1fr);
+  gap: var(--space-2);
+  min-width: 20rem;
+  flex-shrink: 0;
 }
 
 .utility-mapping-switch {

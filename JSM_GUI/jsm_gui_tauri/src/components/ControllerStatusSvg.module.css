@@ -244,3 +244,14 @@
   fill: #263746;
   stroke: color-mix(in srgb, var(--accent) 40%, var(--border-1));
 }
+
+/* Drawn button markings -- PlayStation's shapes, the Steam button, Quick Access
+   -- take the same colour as the typed labels they replace. */
+.controlMark {
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.controlMarkActive {
+  color: var(--accent);
+}

@@ -38,16 +38,36 @@ const MAPPING_DISABLED_LINES: [&str; 6] = [
     "AUTOLOAD = OFF",
     "VIRTUAL_CONTROLLER = NONE",
 ];
-const RESET_HOOK_FILE_NAME: &str = "OnReset.txt";
 const RECONNECT_HOOK_FILE_NAME: &str = "OnReconnect.txt";
-/// The Steam-button chord layer. Loaded by OnReset.txt so it sits on top of
-/// every configuration; copied into the runtime dir once and then user-owned.
-pub const GLOBAL_CHORDS_FILE_NAME: &str = "GlobalChords.txt";
 /// Maps the controller to keyboard/mouse while JSM Studio is in the foreground
 /// (via an AutoLoad rule named after our own executable). App-owned: refreshed
 /// on every launch so an update ships its improvements.
 pub const APP_NAVIGATION_FILE_NAME: &str = "AppNavigation.txt";
-const USER_OWNED_LAYER_FILES: [&str; 2] = [RECONNECT_HOOK_FILE_NAME, GLOBAL_CHORDS_FILE_NAME];
+const USER_OWNED_LAYER_FILES: [&str; 1] = [RECONNECT_HOOK_FILE_NAME];
+/// Registry of button(s) -> configuration for the global chord feature: hold
+/// the button(s), the whole configuration swaps in; release, the configuration
+/// that was active before the hold restores. Stored separately from the
+/// profile library since a chord is metadata *about* a profile, not a profile.
+const CHORDS_FILE_NAME: &str = "chords.json";
+/// Name of the configuration a fresh install ships bound to the default
+/// chord, and the chord's own default trigger button (Quick Access on Steam
+/// Controller; "extra button 1" generically -- see MISC1 in schema.ts).
+const DEFAULT_CHORD_PROFILE_NAME: &str = "Quick Access Chord";
+const DEFAULT_CHORD_BUTTON: &str = "MISC1";
+const DEFAULT_CHORD_PROFILE_LINES: [&str; 12] = [
+    "RESET_MAPPINGS",
+    "AUTOCONNECT = ON",
+    "TELEMETRY_ENABLED = ON",
+    "TELEMETRY_PORT = 8974",
+    "RIGHT_TOUCHPAD_MODE = MOUSE",
+    "MISC2 = LMOUSE",
+    "MISC3 = RMOUSE",
+    "N = \"TURN_OFF_CONTROLLER\"",
+    "L = LALT\\ !TAB\\",
+    "R = TAB",
+    "UP = VOLUME_UP",
+    "DOWN = VOLUME_DOWN",
+];
 
 fn default_true() -> bool {
     true
@@ -85,6 +105,16 @@ pub struct HidHideState {
     pub managed_instance_ids: Vec<String>,
 }
 
+/// One global chord: hold any button in `buttons`, the configuration at
+/// `profile_path` swaps in for as long as it's held.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GlobalChord {
+    pub id: String,
+    pub buttons: Vec<String>,
+    pub profile_path: String,
+}
+
 pub fn ensure_required_files(app: &AppHandle) -> Result<(), String> {
     migrate_legacy_app_data(app)?;
     let backend = read_backend_choice(app)?;
@@ -102,6 +132,7 @@ pub fn ensure_required_files(app: &AppHandle) -> Result<(), String> {
         &profile_template_text(),
     )?;
     ensure_mapping_disabled_file(app)?;
+    seed_default_chord_if_missing(app)?;
 
     let state = ensure_runtime_mapping_state(app)?;
     ensure_file(
@@ -252,7 +283,6 @@ pub fn create_library_profile(
     let absolute = absolute_profile_path(app, &relative)?;
     let content = profile_template_text();
     fs::write(&absolute, &content).map_err(|error| format!("Failed to create profile: {error}"))?;
-    set_active_profile_state(app, &relative)?;
     Ok((relative, content))
 }
 
@@ -301,6 +331,11 @@ pub fn rename_library_profile(
     }
 
     update_autoload_profile_references(app, &old_relative, &new_relative)?;
+    let mut chords = list_global_chords(app)?;
+    for chord in &mut chords {
+        if chord.profile_path.eq_ignore_ascii_case(&old_relative) { chord.profile_path = new_relative.clone(); }
+    }
+    write_global_chords_list(app, &chords)?;
 
     let content = fs::read_to_string(&new_absolute)
         .map_err(|error| format!("Failed to read renamed profile: {error}"))?;
@@ -316,7 +351,6 @@ pub fn copy_active_profile(app: &AppHandle) -> Result<(String, String), String> 
     let copy_absolute = absolute_profile_path(app, &copy_relative)?;
     fs::write(&copy_absolute, &content)
         .map_err(|error| format!("Failed to copy profile: {error}"))?;
-    set_active_profile_state(app, &copy_relative)?;
     Ok((copy_relative, content))
 }
 
@@ -328,7 +362,11 @@ pub fn delete_library_profile(
     let safe_name = sanitize_profile_name(name);
     let relative = relative_profile_path_from_name(&safe_name);
     let absolute = absolute_profile_path(app, &relative)?;
-    let _ = fs::remove_file(absolute);
+    let active = read_runtime_mapping_state(app)?.active_profile_path;
+    if active.eq_ignore_ascii_case(&relative) || list_global_chords(app)?.iter().any(|chord| chord.profile_path.eq_ignore_ascii_case(&relative)) {
+        return Err("Configuration is in use. Apply another configuration and remove chord references first.".into());
+    }
+    fs::remove_file(absolute).map_err(|error| format!("Failed to delete profile: {error}"))?;
 
     let active = read_runtime_mapping_state(app)?.active_profile_path;
     if active.eq_ignore_ascii_case(&relative) {
@@ -845,29 +883,18 @@ fn ensure_runtime_support_files(app: &AppHandle, backend: &str) -> Result<(), St
             .map_err(|error| format!("Failed to refresh {APP_NAVIGATION_FILE_NAME}: {error}"))?;
     }
 
-    // OnReset.txt is the one hook JoyShockMapper runs after *every*
-    // RESET_MAPPINGS -- the first line of every configuration, including the
-    // ones AutoLoad switches to on its own -- so it is where the global chord
-    // layer gets re-applied. Regenerated rather than copied-if-missing so the
-    // include line can never go stale; the stock file's only content was a
-    // HOME = CALIBRATE binding, which conflicts with HOME being the modifier.
-    fs::write(runtime_root.join(RESET_HOOK_FILE_NAME), reset_hook_text())
-        .map_err(|error| format!("Failed to write {RESET_HOOK_FILE_NAME}: {error}"))?;
+    // OnReset.txt used to be how the old overlay-based global chord layer got
+    // re-applied after every RESET_MAPPINGS. Chords are now full configuration
+    // swaps (see GlobalChord/chords.json) with nothing left to re-apply on
+    // reset, so an install that generated one before this version is cleaned
+    // up here -- it was always app-owned/regenerated, never user content.
+    let stale_reset_hook = runtime_root.join("OnReset.txt");
+    if stale_reset_hook.exists() {
+        fs::remove_file(&stale_reset_hook)
+            .map_err(|error| format!("Failed to remove stale OnReset.txt: {error}"))?;
+    }
 
     Ok(())
-}
-
-fn reset_hook_text() -> String {
-    [
-        "# Generated by JSM Studio on every launch -- edits here are overwritten.",
-        "# JoyShockMapper runs this file after every RESET_MAPPINGS, i.e. at the top",
-        "# of every configuration load, which makes it the place the global chord",
-        "# layer is applied. To change the chords, edit GlobalChords.txt or use the",
-        "# Global chords page in JSM Studio.",
-        GLOBAL_CHORDS_FILE_NAME,
-    ]
-    .join("\n")
-        + "\n"
 }
 
 /// The file stem of the running executable ("JSM Studio" for a packaged build).
@@ -910,33 +937,79 @@ pub fn set_controller_nav_enabled(
     Ok(state)
 }
 
-fn global_chords_file(app: &AppHandle) -> Result<PathBuf, String> {
-    Ok(runtime_dir(app)?.join(GLOBAL_CHORDS_FILE_NAME))
+fn chords_file(app: &AppHandle) -> Result<PathBuf, String> {
+    Ok(runtime_dir(app)?.join(CHORDS_FILE_NAME))
 }
 
-pub fn read_global_chords(app: &AppHandle) -> Result<String, String> {
+pub fn list_global_chords(app: &AppHandle) -> Result<Vec<GlobalChord>, String> {
     ensure_required_files(app)?;
-    let path = global_chords_file(app)?;
-    fs::read_to_string(&path)
-        .map_err(|error| format!("Failed to read {}: {error}", path.display()))
+    read_global_chords(app)
 }
 
-pub fn default_global_chords(app: &AppHandle) -> Result<String, String> {
-    let backend = read_backend_choice(app)?;
-    let path = backend_bin_dir(app, &backend)?.join(GLOBAL_CHORDS_FILE_NAME);
-    fs::read_to_string(&path)
-        .map_err(|error| format!("Failed to read {}: {error}", path.display()))
+pub(crate) fn read_global_chords(app: &AppHandle) -> Result<Vec<GlobalChord>, String> {
+    let path = chords_file(app)?;
+    let raw = match fs::read_to_string(&path) {
+        Ok(value) => value,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(error) => return Err(format!("Failed to read {}: {error}", path.display())),
+    };
+    serde_json::from_str(&raw).map_err(|error| format!("Failed to parse {}: {error}", path.display()))
 }
 
-pub fn write_global_chords(app: &AppHandle, text: &str) -> Result<(), String> {
-    ensure_required_files(app)?;
-    let path = global_chords_file(app)?;
-    let mut content = text.replace("\r\n", "\n");
-    if !content.ends_with('\n') {
-        content.push('\n');
+fn write_global_chords_list(app: &AppHandle, chords: &[GlobalChord]) -> Result<(), String> {
+    let path = chords_file(app)?;
+    ensure_parent_dir(&path)?;
+    let content = serde_json::to_string_pretty(chords)
+        .map_err(|error| format!("Failed to serialize chords: {error}"))?;
+    fs::write(&path, content).map_err(|error| format!("Failed to write {}: {error}", path.display()))
+}
+
+/// Creates or updates a chord (matched by id) and returns the full list.
+pub fn save_global_chord(app: &AppHandle, chord: GlobalChord) -> Result<Vec<GlobalChord>, String> {
+    if chord.id.trim().is_empty() || chord.profile_path.contains(['\n', '\r', '"']) {
+        return Err("Invalid chord configuration.".into());
     }
-    fs::write(&path, content)
-        .map_err(|error| format!("Failed to write {}: {error}", path.display()))
+    let relative = normalize_relative_profile_path(Some(&chord.profile_path)).ok_or("Invalid profile path")?;
+    if !absolute_profile_path(app, &relative)?.is_file() { return Err("Chord configuration is missing.".into()); }
+    let mut chords = list_global_chords(app)?;
+    match chords.iter_mut().find(|existing| existing.id == chord.id) {
+        Some(existing) => *existing = chord,
+        None => chords.push(chord),
+    }
+    write_global_chords_list(app, &chords)?;
+    Ok(chords)
+}
+
+pub fn delete_global_chord(app: &AppHandle, id: &str) -> Result<Vec<GlobalChord>, String> {
+    let mut chords = list_global_chords(app)?;
+    chords.retain(|existing| existing.id != id);
+    write_global_chords_list(app, &chords)?;
+    Ok(chords)
+}
+
+/// A fresh install (and anyone updating from before chords existed) gets one
+/// working example instead of an empty list: a configuration bound to the
+/// Quick Access button with a few sensible defaults, editable like any other
+/// configuration once created. Called from inside `ensure_required_files`
+/// itself (after it has already created the profile library directory), so
+/// this deliberately avoids `generate_unique_profile_name` / `create_library_profile`
+/// -- both re-enter `ensure_required_files` and would recurse forever here.
+fn seed_default_chord_if_missing(app: &AppHandle) -> Result<(), String> {
+    if chords_file(app)?.exists() {
+        return Ok(());
+    }
+    let name = sanitize_profile_name(DEFAULT_CHORD_PROFILE_NAME);
+    let relative = relative_profile_path_from_name(&name);
+    let absolute = absolute_profile_path(app, &relative)?;
+    ensure_file(&absolute, &(DEFAULT_CHORD_PROFILE_LINES.join("\n") + "\n"))?;
+    write_global_chords_list(
+        app,
+        &[GlobalChord {
+            id: "default".to_string(),
+            buttons: vec![DEFAULT_CHORD_BUTTON.to_string()],
+            profile_path: relative,
+        }],
+    )
 }
 
 fn profile_template_text() -> String {
@@ -1092,7 +1165,7 @@ fn default_runtime_mapping_state(app: &AppHandle) -> Result<RuntimeMappingState,
     })
 }
 
-fn read_runtime_mapping_state(app: &AppHandle) -> Result<RuntimeMappingState, String> {
+pub(crate) fn read_runtime_mapping_state(app: &AppHandle) -> Result<RuntimeMappingState, String> {
     let path = gui_state_file(app)?;
     let raw = match fs::read_to_string(path) {
         Ok(value) => value,

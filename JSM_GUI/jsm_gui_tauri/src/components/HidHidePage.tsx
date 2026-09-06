@@ -98,6 +98,9 @@ export function HidHidePage({ telemetryDevices }: HidHidePageProps) {
 
   useEffect(() => {
     void refreshStatus()
+    const onFocus = () => { void refreshStatus(false) }
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
   }, [])
 
   const runStatusAction = async (
@@ -286,6 +289,16 @@ export function HidHidePage({ telemetryDevices }: HidHidePageProps) {
           </div>
         )}
 
+        {status?.installed && !status.requiresElevation && (
+          <div className={`${styles.hidHideNotice} ${styles.hidHideNoticeMuted}`}>
+            <p>{t('controllerStatus.hidHideReconnectHint')}</p>
+            {status.inverse && <p>{t('controllerStatus.hidHideInverseHint')}</p>}
+            {status.active && status.steamAllowed && (
+              <p>{t('controllerStatus.hidHideSteamAllowed')}</p>
+            )}
+          </div>
+        )}
+
         {error && (
           <div className={`${styles.hidHideNotice} ${styles.hidHideNoticeError}`}>
             {t('controllerStatus.hidHideError', { error })}
@@ -356,7 +369,11 @@ export function HidHidePage({ telemetryDevices }: HidHidePageProps) {
                               }`}
                             >
                               {device.hidden
-                                ? t('controllerStatus.hidHideHidden')
+                                ? !status.active
+                                  ? t('controllerStatus.hidHideConfiguredInactive')
+                                  : status.inverse
+                                    ? t('controllerStatus.hidHideInverseHidden')
+                                    : t('controllerStatus.hidHideHidden')
                                 : device.partiallyHidden
                                   ? t('controllerStatus.hidHidePartiallyHidden')
                                   : t('controllerStatus.hidHideVisible')}

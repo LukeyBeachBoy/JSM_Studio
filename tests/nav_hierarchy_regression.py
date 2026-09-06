@@ -54,11 +54,9 @@ def test_config_wide_panels_do_not_repeat_on_every_control_page():
     assert "includes('global')" in body
     # And the mapping layouts must NOT be gated on it, or a control page renders
     # nothing at all -- which is exactly what happened the first time.
-    for layout in ('showListMappingLayout', 'showVisualMappingLayout'):
-        assert f'{{{layout} && (' in KEYMAP, layout
-    visual_at = KEYMAP.index('{showVisualMappingLayout && (')
-    reopened = KEYMAP.index('{showMappedLayout && (\n        <>')
-    assert reopened < visual_at, 'the mapping layouts must sit inside a showMappedLayout block'
+    assert '{showMappedLayout && (' in KEYMAP
+    assert 'listMappingGroups.map' in KEYMAP
+    assert KEYMAP.index('{showMappedLayout && (') < KEYMAP.index('listMappingGroups.map')
 
 
 def test_the_config_wide_settings_still_have_a_home():

@@ -1,14 +1,14 @@
 .page {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 
 .header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 1rem;
+  gap: var(--space-3);
   flex-wrap: wrap;
 }
 
@@ -44,166 +44,123 @@
   max-width: 62ch;
 }
 
-.headerActions {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  flex: 0 0 auto;
-}
-
-.modifierTabs {
-  display: inline-flex;
-  gap: 0.3rem;
-  padding: 0.25rem;
-  border-radius: 999px;
-  background: var(--bg-input);
-  border: 1px solid var(--border-1);
-  align-self: flex-start;
-}
-
-.modifierTab {
-  border: 0;
-  border-radius: 999px;
-  padding: 0.38rem 0.9rem;
-  background: transparent;
-  color: var(--text-mid);
-  font: inherit;
-  font-size: 0.8rem;
-  font-weight: 750;
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
-}
-
-.modifierTab:hover { color: var(--text-strong); }
-
-.modifierTab:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 34%, transparent);
-}
-
-.modifierTabActive {
-  background: color-mix(in srgb, var(--accent) 22%, var(--bg-elevated));
-  color: var(--text-strong);
-}
-
-.shiftGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 0.75rem;
-}
-
-.shiftCard {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-  padding: 0.8rem 0.9rem;
-  border-radius: 10px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-1);
-}
-
-.shiftCard > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  color: var(--text-strong);
-  font-size: 0.82rem;
-  font-weight: 700;
-}
-
-.shiftCard > span svg { color: var(--text-muted); }
-
 .chordList {
   display: flex;
   flex-direction: column;
-  gap: 0.7rem;
+  gap: var(--space-3);
 }
 
 .chordRow {
-  display: grid;
-  grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
-  gap: 0.8rem 1rem;
-  padding: 0.85rem 0.95rem;
-  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-card);
   background: var(--bg-elevated);
   border: 1px solid var(--border-1);
 }
 
 .chordRowHead {
   display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-  min-width: 0;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
 }
 
 .chordRowHead label {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.3rem;
+  color: var(--text-strong);
+  font-size: 0.78rem;
+  font-weight: 700;
+  min-width: 14rem;
+}
+
+.chordButtonPicker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.chordButtonPickerLabel {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.chordChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.chordChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid var(--border-1);
+  border-radius: 999px;
+  padding: 0.32rem 0.75rem 0.32rem 0.58rem;
+  background: var(--bg-input);
+  color: var(--text-mid);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.chordChip:hover {
+  border-color: var(--border-strong);
+  color: var(--text-strong);
+}
+
+.chordChip:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 34%, transparent);
+}
+
+.chordChipSelected {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 20%, var(--bg-input));
+  color: var(--text-strong);
+}
+
+.chordHint {
+  margin: 0;
+  color: var(--touchpad-grid-limit);
+  font-size: 0.8rem;
+}
+
+.addBar {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.addBar label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
   color: var(--text-strong);
   font-size: 0.78rem;
   font-weight: 700;
 }
 
-.chordRowHead label > input,
-.chordRowHead label > select {
-  font: inherit;
-  font-size: 0.82rem;
-  font-weight: 600;
-  padding: 0.36rem 0.55rem;
-  border-radius: 6px;
-  border: 1px solid var(--border-1);
-  background: var(--bg-input);
-  color: var(--text-strong);
-}
-
-.chordRowHead label > input:focus-visible,
-.chordRowHead label > select:focus-visible {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 28%, transparent);
-}
-
-.chordSummary {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  flex-wrap: wrap;
-  color: var(--text-muted);
-  font-size: 0.74rem;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-}
-
-.chordSummary code {
-  padding: 0.12rem 0.4rem;
-  border-radius: 6px;
-  background: var(--bg-input);
-  color: var(--text-strong);
-  font-size: 0.74rem;
-}
-
-.chordRowBody {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  min-width: 0;
-}
-
-.chordRowFooter {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.addBar {
-  display: flex;
-  gap: 0.6rem;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
 .addBar select {
   min-width: 14rem;
+}
+
+.chordFooterHint {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
 }
 
 .empty {
@@ -216,7 +173,8 @@
 }
 
 @media (max-width: 760px) {
-  .chordRow {
-    grid-template-columns: minmax(0, 1fr);
+  .chordRowHead {
+    flex-direction: column;
+    align-items: stretch;
   }
 }

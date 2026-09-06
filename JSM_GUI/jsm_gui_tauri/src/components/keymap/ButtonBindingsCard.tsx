@@ -485,6 +485,7 @@ export const ButtonBindingsCard = ({
 
   return (
     <ButtonMappingCard
+      command={button.command}
       title={controllerButtonLabel(button)}
       glyph={<InputGlyph command={button.command} family={controllerFamily} size={19} />}
       description={getButtonDescription(button, t)}
@@ -507,6 +508,9 @@ export const ButtonBindingsCard = ({
               onUpdate={updateCommand}
               onRemove={removeCommand}
               onDuplicate={duplicateCommand}
+              onAddExtra={() => handleAddCommand('regular')}
+              onAddSub={() => duplicateCommand(command)}
+              onRename={() => document.querySelector<HTMLInputElement>(`[data-input-command="${button.command}"] input[aria-label]`)?.focus()}
               onCapture={captureCommand}
               onEnableVirtualController={onEnableVirtualController}
             />

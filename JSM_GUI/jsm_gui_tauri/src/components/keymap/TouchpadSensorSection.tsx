@@ -41,7 +41,7 @@ type Props = {
 const SMOOTHING_PRESETS = [
   { id: 'off', cutoff: 0, speed: 0 },
   { id: 'light', cutoff: 10, speed: 0.8 },
-  { id: 'balanced', cutoff: 6, speed: 1.2 },
+  { id: 'balanced', cutoff: 6, speed: 0.6 },
   { id: 'heavy', cutoff: 2.5, speed: 3.0 },
 ] as const
 
@@ -84,7 +84,7 @@ export function TouchpadSensorSection(props: Props) {
             >
               <option value="off">{t('keymap.smoothingOff', 'Off — raw pad motion (0 / 0)')}</option>
               <option value="light">{t('keymap.smoothingLight', 'Light — sharpest, some jitter (10 / 0.8)')}</option>
-              <option value="balanced">{t('keymap.smoothingBalanced', 'Balanced — default (6 / 1.2)')}</option>
+              <option value="balanced">{t('keymap.smoothingBalanced', 'Balanced — default (6 / 0.6)')}</option>
               <option value="heavy">{t('keymap.smoothingHeavy', 'Heavy — smoothest at rest, flicks stay fast (2.5 / 3.0)')}</option>
               <option value="custom" disabled={preset !== 'custom'}>
                 {t('keymap.smoothingCustom', 'Custom')}

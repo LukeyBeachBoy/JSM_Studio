@@ -20,10 +20,10 @@ type KeyedOption = {
 }
 
 export const FACE_BUTTONS: ButtonDefinition[] = [
-  { command: 'N', descriptionKey: 'buttons.descriptions.northTop', playstation: '△', xbox: 'Y' },
-  { command: 'E', descriptionKey: 'buttons.descriptions.eastRight', playstation: '○', xbox: 'B' },
-  { command: 'S', descriptionKey: 'buttons.descriptions.southBottom', playstation: '✕', xbox: 'A' },
-  { command: 'W', descriptionKey: 'buttons.descriptions.westLeft', playstation: '□', xbox: 'X' },
+  { command: 'N', descriptionKey: 'buttons.descriptions.northTop', playstation: 'Triangle', xbox: 'Y' },
+  { command: 'E', descriptionKey: 'buttons.descriptions.eastRight', playstation: 'Circle', xbox: 'B' },
+  { command: 'S', descriptionKey: 'buttons.descriptions.southBottom', playstation: 'Cross', xbox: 'A' },
+  { command: 'W', descriptionKey: 'buttons.descriptions.westLeft', playstation: 'Square', xbox: 'X' },
 ]
 
 export const DPAD_BUTTONS: ButtonDefinition[] = [

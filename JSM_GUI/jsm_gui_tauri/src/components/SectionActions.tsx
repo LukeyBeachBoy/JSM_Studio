@@ -28,7 +28,7 @@ export function SectionActions({
   return (
     <div className={className}>
       <button className="primary-btn" onClick={onApply} disabled={applyDisabled}>
-        {applyLabel ?? t('common.applyChanges')}
+        {applyLabel ?? t('common.save')}
       </button>
       {hasPendingChanges ? (
         <>

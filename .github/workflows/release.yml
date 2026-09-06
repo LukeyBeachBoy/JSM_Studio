@@ -10,8 +10,12 @@ permissions:
   contents: write
 
 jobs:
+  trackpad-regressions:
+    uses: ./.github/workflows/trackpad-regression.yml
+
   publish-windows:
     name: Build and publish Windows installers
+    needs: trackpad-regressions
     runs-on: windows-latest
 
     steps:

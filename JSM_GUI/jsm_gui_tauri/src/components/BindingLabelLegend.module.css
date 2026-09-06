@@ -3,6 +3,9 @@
   flex-direction: column;
   gap: var(--space-2);
   min-width: 12rem;
+  flex: 0 1 24rem;
+  max-height: 38rem;
+  overflow: auto;
 }
 
 .title {
@@ -25,15 +28,19 @@
 .row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.28rem 0.4rem;
+  gap: var(--space-2);
+  padding: var(--space-2);
   border-radius: var(--radius-control);
-  cursor: default;
+  cursor: pointer;
   transition: background 0.15s ease;
 }
 
 .row:hover {
   background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.row:focus-visible {
+  outline: 2px solid var(--accent);
 }
 
 .glyph {
@@ -48,6 +55,13 @@
   flex: 0 0 auto;
 }
 
+.command {
+  color: var(--text-muted);
+  font-size: var(--font-hint);
+  font-weight: 650;
+  flex: 0 0 auto;
+}
+
 .label {
   color: var(--text-strong);
   font-size: var(--font-label);
@@ -55,5 +69,7 @@
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  margin-left: auto;
 }

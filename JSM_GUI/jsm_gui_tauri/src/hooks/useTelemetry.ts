@@ -33,6 +33,7 @@ export type TelemetryDeviceStatus = {
 export type TelemetryDevice = {
   handle: number
   type: number
+  supportedButtons?: number
   split?: number
   vid?: number
   pid?: number

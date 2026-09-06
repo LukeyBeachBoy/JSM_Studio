@@ -2,7 +2,8 @@ import { type CSSProperties, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TelemetryDevice } from '../hooks/useTelemetry'
 import { desktopBridge } from '../platform/desktopBridge'
-import { controllerButtonLabel, getPressedControllerButtons } from '../utils/controllerStatus'
+import { controllerButtonLabel, controllerVisualFamily, getPressedControllerButtons } from '../utils/controllerStatus'
+import { InputGlyph } from './glyphs/InputGlyph'
 import { controllerLabel, formatVidPid } from '../utils/controllers'
 import { showToast } from '../utils/toast'
 import { BatteryIndicator } from './BatteryIndicator'
@@ -13,11 +14,13 @@ import styles from './ControllerStatusPage.module.css'
 type ControllerStatusPageProps = {
   devices?: TelemetryDevice[]
   ignoredDevices?: string[]
+  onSelectCommand?: (command: string) => void
 }
 
 type ControllerStatusDeviceCardProps = {
   device: TelemetryDevice
   ignoredDevices?: string[]
+  onSelectCommand?: (command: string) => void
 }
 
 type ControllerConnectionPanelProps = {
@@ -79,10 +82,11 @@ function MeterRow({ label, value = 0, digits = 2, mode = 'signed', maxAbs = 1 }:
   )
 }
 
-function ControllerStatusDeviceCard({ device, ignoredDevices }: ControllerStatusDeviceCardProps) {
+function ControllerStatusDeviceCard({ device, ignoredDevices, onSelectCommand }: ControllerStatusDeviceCardProps) {
   const { t } = useTranslation()
 
   const vidPid = formatVidPid(device.vid, device.pid)
+  const family = controllerVisualFamily(device.type)
   const ignoreKey = vidPid.toLowerCase()
   const isIgnored = Boolean(vidPid) && ignoredDevices?.includes(ignoreKey)
   const pressedButtons = getPressedControllerButtons(device)
@@ -113,7 +117,7 @@ function ControllerStatusDeviceCard({ device, ignoredDevices }: ControllerStatus
             <div className={styles.visualPanelHeader}>
               <div className={styles.panelTitle}>{t('controllerStatus.title')}</div>
             </div>
-            <ControllerStatusSvg device={device} />
+            <ControllerStatusSvg device={device} onSelectCommand={onSelectCommand} />
           </section>
 
           <div className={styles.detailPanels}>
@@ -123,6 +127,7 @@ function ControllerStatusDeviceCard({ device, ignoredDevices }: ControllerStatus
                 <div className={styles.buttonList}>
                   {pressedButtons.map(button => (
                     <span key={button.command} className={styles.buttonChip}>
+                      <InputGlyph command={button.command} family={family} size={15} />
                       {controllerButtonLabel(button)}
                     </span>
                   ))}
@@ -300,6 +305,7 @@ function ControllerConnectionStatusPanel({ connectedDevices, priority = false }:
 export function ControllerStatusPage({
   devices,
   ignoredDevices,
+  onSelectCommand,
 }: ControllerStatusPageProps) {
   const hasConnectedDevices = Boolean(devices?.length)
 
@@ -320,7 +326,7 @@ export function ControllerStatusPage({
       </div>
 
       {devices?.map(device => (
-        <ControllerStatusDeviceCard key={device.handle} device={device} ignoredDevices={ignoredDevices} />
+        <ControllerStatusDeviceCard key={device.handle} onSelectCommand={onSelectCommand} device={device} ignoredDevices={ignoredDevices} />
       ))}
     </div>
   )

@@ -5,6 +5,7 @@ import styles from './ProfileManager.module.css'
 
 type ProfileManagerProps = {
   currentProfileName: string | null
+  appliedProfileName?: string | null
   hasPendingChanges: boolean
   isCalibrating: boolean
   profileApplied: boolean
@@ -23,6 +24,7 @@ type ProfileManagerProps = {
 
 export function ProfileManager({
   currentProfileName,
+  appliedProfileName,
   hasPendingChanges,
   isCalibrating,
   profileApplied,
@@ -78,7 +80,8 @@ export function ProfileManager({
                     value={editedProfileNames[profileName] ?? profileName}
                     onChange={(event) => onProfileNameChange(profileName, event.target.value)}
                   />
-                  {currentProfileName === profileName && <span className={styles.profileLibraryActiveBadge}>{t('profiles.active')}</span>}
+                  {currentProfileName === profileName && <span className={styles.profileLibraryActiveBadge}>{t('profiles.editing')}</span>}
+                  {appliedProfileName === profileName && <span className={styles.profileLibraryAppliedBadge}>{t('profiles.applied')}</span>}
                 </div>
                 <div className={styles.profileLibraryButtons}>
                   <button

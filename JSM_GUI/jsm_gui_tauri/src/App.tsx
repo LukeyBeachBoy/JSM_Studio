@@ -1,4 +1,5 @@
 import './App.css'
+import { inputPage, normalizePreviewInput } from './utils/inputNavigation'
 // The version people see must be the one on the installer they downloaded, and
 // tauri.conf.json is what the installer is built from.
 import tauriConf from '../src-tauri/tauri.conf.json'
@@ -258,13 +259,6 @@ const PrimaryNav = ({ primaryTab, setPrimaryTab, includeHelp = false }: PrimaryN
           <span className={sideNavStyles.navItemIcon}><GyroIcon /></span>
           {t('app.nav.gyro')}
         </button>
-        <button
-          className={`${sideNavStyles.navItem} ${primaryTab === 'globalChords' ? sideNavStyles.active : ''}`}
-          onClick={() => setPrimaryTab('globalChords')}
-        >
-          <span className={sideNavStyles.navItemIcon}><ChordIcon /></span>
-          {t('app.nav.globalChords')}
-        </button>
       </div>
       <div className={sideNavStyles.navSection}>
         <div className={sideNavStyles.navSectionLabel}>{t('app.nav.tuningGroup')}</div>
@@ -292,6 +286,14 @@ const PrimaryNav = ({ primaryTab, setPrimaryTab, includeHelp = false }: PrimaryN
       </div>
       <div className={sideNavStyles.navSection}>
         <div className={sideNavStyles.navSectionLabel}>{t('app.nav.settingsGroup')}</div>
+        <button
+          className={`${sideNavStyles.navItem} ${primaryTab === 'globalChords' ? sideNavStyles.active : ''}`}
+          onClick={() => setPrimaryTab('globalChords')}
+        >
+          <span className={sideNavStyles.navItemIcon}><ChordIcon /></span>
+          {t('app.nav.globalChords')}
+        </button>
+
         <button
           className={`${sideNavStyles.navItem} ${primaryTab === 'deviceVisibility' ? sideNavStyles.active : ''}`}
           onClick={() => setPrimaryTab('deviceVisibility')}
@@ -473,6 +475,31 @@ function App() {
   }, [])
   const [gyroSubTab, setGyroSubTab] = useState<GyroSubTab>('behavior')
   const [selectedMappingCommand, setSelectedMappingCommand] = useState<string | null>('N')
+  const [inputRequest, setInputRequest] = useState<{ command: string } | null>(null)
+  const navigateInput = (raw: string) => {
+    const command = normalizePreviewInput(raw)
+    setSelectedMappingCommand(command)
+    setPrimaryTab(inputPage(command))
+    setInputRequest({ command })
+  }
+  useEffect(() => {
+    if (!inputRequest) return
+    const pane = document.querySelector('.main-pane')
+    if (!pane) return
+    const focus = () => {
+      const target = pane.querySelector<HTMLElement>(`[data-input-command="${CSS.escape(inputRequest.command)}"]`)
+      if (!target) return false
+      target.scrollIntoView({ block: 'center' })
+      const control = target.querySelector<HTMLElement>('button:not([disabled]), input:not([disabled]), [role="combobox"]')
+      ;(control ?? target).focus({ preventScroll: true })
+      return true
+    }
+    if (focus()) return
+    const observer = new MutationObserver(() => { if (focus()) observer.disconnect() })
+    observer.observe(pane, { childList: true, subtree: true })
+    return () => observer.disconnect()
+  }, [inputRequest])
+
   const [showHidHideElevationModal, setShowHidHideElevationModal] = useState(false)
   const configWindowRef = useRef<HTMLDivElement | null>(null)
   const configWindowDragRef = useRef<{ pointerId: number; offsetX: number; offsetY: number } | null>(null)
@@ -707,6 +734,9 @@ function App() {
     editedLibraryNames,
     currentLibraryProfile,
     applyConfig,
+    saveConfig,
+    appliedProfileName,
+    refreshLibraryProfiles,
     handleLoadProfileFromLibrary,
     handleLibraryProfileNameChange,
     handleCreateProfile,
@@ -852,9 +882,9 @@ function App() {
   const handleApplyWithFinalize = () => {
     const nextText = finalizePendingValues ? finalizePendingValues() : undefined
     if (nextText !== undefined) {
-      applyConfig({ textOverride: nextText })
+      saveConfig({ textOverride: nextText })
     } else {
-      applyConfig()
+      saveConfig()
     }
   }
 
@@ -893,9 +923,6 @@ function App() {
     const nextEnabled = !mappingEnabled
     setRuntimeMappingBusy(true)
     try {
-      if (nextEnabled && hasPendingChanges) {
-        await applyConfig()
-      }
       const nextState = await desktopBridge.setMappingEnabled(nextEnabled)
       setMappingEnabled(nextState.mappingEnabled)
       setAutoloadEnabled(nextState.autoloadEnabled)
@@ -1032,7 +1059,17 @@ function App() {
       </div>
 
       <div className="utility-profile-group">
-        <div className="utility-title">{t('app.profileSummary.title')}</div>
+        <div className="utility-title">{t('app.profileSummary.editingTitle')}</div>
+        <div aria-live="polite">
+          {mappingEnabled
+            ? t('app.profileSummary.appliedLabel', {
+                name:
+                  (typeof sample?.activeProfile === 'string'
+                    ? sample.activeProfile.replace(/\\/g, '/').split('/').pop()?.replace(/\.txt$/i, '')
+                    : appliedProfileName) ?? t('app.profileSummary.unknownProfile'),
+              })
+            : t('app.profileSummary.mappingPausedShort')}
+        </div>
         <label className="utility-profile-select">
           <AppSelect
             className="app-select"
@@ -1061,6 +1098,12 @@ function App() {
           occasional escape hatches as quiet ghost buttons. Four equal-weight
           buttons in a row gave no clue which one you normally want. */}
       <div className="utility-actions">
+        <button className="primary-btn" disabled={isCalibrating} onClick={() => void applyConfig({ textOverride: finalizePendingValues?.() ?? configText })}>
+          {t('app.profileSummary.applyEditingConfiguration')}
+        </button>
+        <button className="secondary-btn" disabled={isCalibrating} onClick={() => void saveConfig({ textOverride: finalizePendingValues?.() ?? configText })}>
+          {t('app.profileSummary.saveConfiguration')}
+        </button>
         <button className="secondary-btn" onClick={() => setProfileModalOpen(true)}>
           {t('app.profileSummary.manageProfiles')}
         </button>
@@ -1404,6 +1447,7 @@ function App() {
         <Suspense fallback={<LazyPanelFallback title={t('app.nav.touchpad')} />}>
           <KeymapControls
             view="touchpad"
+            selectedMappingCommand={selectedMappingCommand}
             configText={configText}
             hasPendingChanges={hasPendingChanges}
             isCalibrating={isCalibrating}
@@ -1561,6 +1605,7 @@ function App() {
       return (
         <ControllerStatusPage
           devices={sample?.devices}
+          onSelectCommand={navigateInput}
           ignoredDevices={ignoredGyroDevices}
         />
       )
@@ -1571,6 +1616,7 @@ function App() {
         <OverviewPage
           devices={sample?.devices}
           onNavigate={(target) => setPrimaryTab(target)}
+          onSelectCommand={navigateInput}
           configText={configText}
         />
       )
@@ -1579,7 +1625,7 @@ function App() {
     if (primaryTab === 'globalChords') {
       return (
         <Suspense fallback={<LazyPanelFallback title={t('app.nav.globalChords')} />}>
-          <GlobalChordsPage devices={sample?.devices} />
+          <GlobalChordsPage devices={sample?.devices} onChordsChanged={() => { void refreshLibraryProfiles() }} />
         </Suspense>
       )
     }
@@ -1855,9 +1901,10 @@ function App() {
             <Suspense fallback={<LazyPanelFallback title={t('app.profilesModal.title')} compact />}>
               <ProfileManager
                 currentProfileName={currentLibraryProfile}
+                appliedProfileName={appliedProfileName}
                 hasPendingChanges={hasPendingChanges}
                 isCalibrating={isCalibrating}
-                profileApplied={configText === appliedConfig}
+                profileApplied={currentLibraryProfile === appliedProfileName && configText === appliedConfig}
                 onImportProfile={handleImportProfile}
                 libraryProfiles={libraryProfiles}
                 libraryLoading={isLibraryLoading}

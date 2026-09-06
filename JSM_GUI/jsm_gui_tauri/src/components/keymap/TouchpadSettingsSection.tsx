@@ -163,6 +163,16 @@ export function TouchpadModeCard({ config, title }: { config: TouchpadModeCardCo
         </>
       )}
       {config.mode === 'GRID_AND_STICK' && (
+        <>
+          <label className={styles.touchpadCheckbox}>
+            <input
+              type="checkbox"
+              checked={config.gridRequiresClick ?? false}
+              onChange={e => config.onGridRequiresClickChange?.(e.target.checked)}
+            />
+            {t('keymap.gridRequiresClick')}
+          </label>
+          <p className={styles.touchpadHint}>{t('keymap.gridRequiresClickHint')}</p>
         <AdvancedDisclosure summary={config.dualStageMode || 'NO_SKIP'}>
           <label>
             {t('keymap.touchpadDualStageMode')}
@@ -179,16 +189,9 @@ export function TouchpadModeCard({ config, title }: { config: TouchpadModeCardCo
           <p className={styles.touchpadHint}>
             {t(DUAL_STAGE_MODE_DESC_KEYS[config.dualStageMode || 'NO_SKIP'] ?? DUAL_STAGE_MODE_DESC_KEYS.NO_SKIP)}
           </p>
-          <label className={styles.touchpadCheckbox}>
-            <input
-              type="checkbox"
-              checked={config.gridRequiresClick ?? false}
-              onChange={e => config.onGridRequiresClickChange?.(e.target.checked)}
-            />
-            {t('keymap.gridRequiresClick')}
-          </label>
-          <p className={styles.touchpadHint}>{t('keymap.gridRequiresClickHint')}</p>
+
         </AdvancedDisclosure>
+        </>
       )}
     </div>
   )
