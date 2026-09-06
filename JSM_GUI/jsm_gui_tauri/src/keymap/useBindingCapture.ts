@@ -50,9 +50,16 @@ export const useBindingCapture = (
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (shouldIgnoreCapture(event)) return
+      // No capture-ignore check here: once a capture is armed, the next key
+      // press is the binding wherever focus happens to be. The Capture button
+      // and the output field both sit inside a capture-ignore region, so
+      // honouring it swallowed every key and keyboard capture never fired.
       event.preventDefault()
       event.stopPropagation()
+      if (event.key === 'Escape') {
+        setCaptureTarget(null)
+        return
+      }
       const binding = keyboardEventToBinding(event)
       handleBinding(binding, false)
     }

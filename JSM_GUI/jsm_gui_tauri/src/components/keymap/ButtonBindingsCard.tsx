@@ -311,6 +311,26 @@ export const ButtonBindingsCard = ({
     }
     if (command.source.kind === 'stickShift') return
 
+    // Emptying the output field used to fall through to the token serializer,
+    // which substitutes its default (SPACE) for an empty value -- so deleting
+    // the last character refilled the field. Drop the written binding and keep
+    // the card as an empty draft row instead, so the field stays empty until
+    // something is typed.
+    if (!(command.source.isManual && !command.source.expression) && !hasOutputValue(nextCommand)) {
+      const slot = commandSlot(nextCommand.triggerKind)
+      const modifier = MODIFIER_SLOT_TYPES.includes(slot) ? nextCommand.conditionInput || defaultModifier : nextCommand.conditionInput
+      // Config-backed rows keep their generated ids (`BUTTON-tap` and friends)
+      // whether or not they hold a binding, so only a manual row's id is free
+      // to reuse -- anything else has to become a new draft row.
+      const reusableRowId = command.source.isManual ? command.source.rowId : undefined
+      removeCommand(command)
+      ensureManualRow(button.command, slot, {
+        ...(reusableRowId ? { id: reusableRowId } : {}),
+        ...manualInfoForCommand({ ...nextCommand, conditionInput: modifier }, modifier),
+      })
+      return
+    }
+
     if (command.source.isManual && !command.source.expression) {
       if (!hasOutputValue(nextCommand)) {
         updateDraftCommand(command, nextCommand)

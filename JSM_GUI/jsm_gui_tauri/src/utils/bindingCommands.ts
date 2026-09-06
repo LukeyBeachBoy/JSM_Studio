@@ -266,7 +266,10 @@ const manualOutputBehavior = (row: ButtonBindingRow): BindingOutputBehavior => {
 function manualRowToCommand(row: ButtonBindingRow, physicalInput: string): BindingCommand {
   const outputKind = manualOutputKind(row)
   return {
-    id: `${physicalInput}-${row.id}-draft`,
+    // Same shape as the first token's id for this row (a row is either drafted
+    // or parsed into tokens, never both), so clearing a written binding back to
+    // a draft keeps the card mounted and the caret in the field.
+    id: `${physicalInput}-${row.id}-0`,
     physicalInput,
     triggerKind: manualTriggerKind(row),
     outputKind,

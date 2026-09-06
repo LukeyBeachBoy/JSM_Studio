@@ -1,0 +1,102 @@
+.modal {
+  width: min(920px, 94vw);
+}
+
+.intro {
+  margin: 0;
+  color: var(--text-mid);
+  font-size: var(--font-hint);
+  line-height: 1.4;
+}
+
+.keyboard {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  align-items: flex-start;
+}
+
+.mainBlock {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sideBlocks {
+  flex: 0 0 auto;
+  display: flex;
+  gap: var(--space-3);
+}
+
+.navBlock,
+.numpadBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  width: 8.5rem;
+}
+
+.keyRow {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.rowGap {
+  height: 0.5rem;
+}
+
+.key {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 2.1rem;
+  padding: 0 0.2rem;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-1);
+  background: var(--bg-input);
+  color: var(--text-strong);
+  font: inherit;
+  font-size: var(--font-hint);
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.key:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-input));
+}
+
+.key:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+.keySelected {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 28%, var(--bg-input));
+}
+
+.keyLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mediaSection {
+  margin-top: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.sectionLabel {
+  color: var(--text-mid);
+  font-size: var(--font-hint);
+  font-weight: 700;
+}

@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   BindingCommand,
@@ -11,6 +12,7 @@ import styles from './BindingEditor.module.css'
 import { Select, type SelectGroup } from '../ui/Select'
 import { AdvancedDisclosure } from '../AdvancedDisclosure'
 import { HapticOutputPicker } from './HapticOutputPicker'
+import { KeyboardBindingModal } from './KeyboardBindingModal'
 import { DEFAULT_HAPTIC_BINDING, formatHapticBinding } from '../../utils/hapticBindings'
 import {
   getDefaultVirtualControllerLogicalOutput,
@@ -97,6 +99,17 @@ export function BindingEditor({
   onEnableVirtualController,
 }: BindingEditorProps) {
   const { t } = useTranslation()
+  const [keyboardPickerOpen, setKeyboardPickerOpen] = useState(false)
+  const valueInputRef = useRef<HTMLInputElement>(null)
+  // Clearing a written binding turns the card back into an empty draft, which
+  // remounts this editor and drops the caret on the floor. Take it back only
+  // when nothing else has claimed focus, so this never steals it.
+  useEffect(() => {
+    if (command.outputValue) return
+    if (document.activeElement && document.activeElement !== document.body) return
+    valueInputRef.current?.focus()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const locked = command.triggerKind === 'stickShift'
   const canCapture = COMMON_OUTPUTS.includes(command.outputKind)
   const showCondition = conditionTriggers.has(command.triggerKind)
@@ -200,6 +213,7 @@ export function BindingEditor({
     return (
       <div className={styles.valueRow}>
         <input
+          ref={valueInputRef}
           className={`${styles.valueInput} ${isCapturing ? styles.valueInputCapturing : ''}`}
           type="text"
           value={command.outputValue}
@@ -225,6 +239,25 @@ export function BindingEditor({
             {isCapturing ? captureLabel : t('keymap.captureToken')}
           </button>
         )}
+        {command.outputKind === 'keyboard' && (
+          // Typing a binding needs you to already know the JSM token; the
+          // picker lets you point at the key on a drawn keyboard instead.
+          <button
+            type="button"
+            className={`secondary-btn ${styles.captureBtn}`}
+            onClick={() => setKeyboardPickerOpen(true)}
+            disabled={locked}
+            data-capture-ignore="true"
+          >
+            {t('keymap.keyboardPickerOpen')}
+          </button>
+        )}
+        <KeyboardBindingModal
+          isOpen={keyboardPickerOpen}
+          value={command.outputValue}
+          onSelect={token => onChange({ outputValue: token })}
+          onClose={() => setKeyboardPickerOpen(false)}
+        />
       </div>
     )
   }
