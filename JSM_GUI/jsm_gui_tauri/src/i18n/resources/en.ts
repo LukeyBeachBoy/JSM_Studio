@@ -225,7 +225,7 @@ export const en = {
       appliedLabel: 'Currently applied: {{name}}',
       mappingPausedShort: 'Mapping paused',
       unknownProfile: 'Unknown',
-      applyEditingConfiguration: 'Apply editing configuration',
+      applyEditingConfiguration: 'Apply',
       saveConfiguration: 'Save configuration',
       quickSwitch: 'Quick switch',
       selectProfile: 'Select configuration',
@@ -416,6 +416,9 @@ export const en = {
     realWorldCalibration: 'Real World Calibration',
     inGameSensitivity: 'In-Game Sensitivity',
     pollingTickTime: 'Polling Tick Time',
+    // The figure beside the tick-time dropdown is the CONTROLLER's own report
+    // rate, not the poll rate, and does not move when the tick time changes.
+    controllerReportRate: 'controller reports {{hz}} Hz',
     gyroSpace: 'Gyro Space',
     gyroAxisX: 'Gyro Axis X',
     gyroAxisY: 'Gyro Axis Y',
