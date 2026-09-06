@@ -54,20 +54,28 @@ export function useProfileLibrary({
     }
   }, [resetPendingSensitivityChanges, setAppliedConfig, setConfigText])
 
+  // Shared by the on-demand refresh and the main process's directory watcher, so
+  // a pushed list lands exactly like a fetched one -- in particular it keeps a
+  // rename the user is halfway through typing, rather than snapping the field
+  // back to the name on disk.
+  const applyLibraryProfileList = useCallback((entries: string[]) => {
+    const sorted = entries ?? []
+    setLibraryProfiles(sorted)
+    setEditedLibraryNames(prev => {
+      const next: Record<string, string> = {}
+      sorted.forEach(name => {
+        next[name] = prev[name] ?? name
+      })
+      return next
+    })
+    return sorted
+  }, [])
+
   const refreshLibraryProfiles = useCallback(async (): Promise<string[]> => {
     setIsLibraryLoading(true)
     try {
       const entries = await desktopBridge.listLibraryProfiles()
-      const sorted = entries ?? []
-      setLibraryProfiles(sorted)
-      setEditedLibraryNames(prev => {
-        const next: Record<string, string> = {}
-        sorted.forEach(name => {
-          next[name] = prev[name] ?? name
-        })
-        return next
-      })
-      return sorted
+      return applyLibraryProfileList(entries)
     } catch (err) {
       console.error('Failed to load profile library', err)
       setLibraryProfiles([])
@@ -76,11 +84,19 @@ export function useProfileLibrary({
     } finally {
       setIsLibraryLoading(false)
     }
-  }, [])
+  }, [applyLibraryProfileList])
 
   useEffect(() => {
     refreshLibraryProfiles()
   }, [refreshLibraryProfiles])
+
+  // Live updates for profiles that appear without the app's help: a .txt copied
+  // into the folder by hand, one removed outside the app, or a sync client.
+  useEffect(() => {
+    return desktopBridge.onLibraryProfilesChanged(profiles => {
+      applyLibraryProfileList(profiles)
+    })
+  }, [applyLibraryProfileList])
 
   useEffect(() => {
     refreshActiveProfile()

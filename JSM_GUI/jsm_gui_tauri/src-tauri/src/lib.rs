@@ -43,6 +43,7 @@ pub fn run() {
             }
             telemetry::start(app.handle().clone(), state.clone());
             services::global_chords::start(app.handle().clone(), state.clone());
+            services::profile_library::start(app.handle().clone());
             if let Err(error) = sync_hidhide_whitelist_if_available(&app.handle()) {
                 eprintln!(
                     "Failed to sync HidHide whitelist before launching JoyShockMapper: {error}"

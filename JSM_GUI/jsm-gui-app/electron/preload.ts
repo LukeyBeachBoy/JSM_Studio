@@ -48,6 +48,17 @@ ipcRenderer.on('calibration-status', (_event, payload) => {
   })
 })
 
+const libraryProfilesListeners = new Set<(profiles: string[]) => void>()
+ipcRenderer.on('library-profiles-changed', (_event, profiles: string[]) => {
+  libraryProfilesListeners.forEach(listener => {
+    try {
+      listener(profiles)
+    } catch (err) {
+      console.error('[library] renderer listener failed', err)
+    }
+  })
+})
+
 const updateAvailableListeners = new Set<(version: string) => void>()
 ipcRenderer.on('update-available', (_event, version: string) => {
   updateAvailableListeners.forEach(listener => {
@@ -99,6 +110,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }
     calibrationListeners.add(callback)
     return () => calibrationListeners.delete(callback)
+  },
+  onLibraryProfilesChanged: (callback: (profiles: string[]) => void) => {
+    if (typeof callback !== 'function') {
+      return () => {}
+    }
+    libraryProfilesListeners.add(callback)
+    return () => libraryProfilesListeners.delete(callback)
   },
   onUpdateAvailable: (callback: (version: string) => void) => {
     if (typeof callback !== 'function') {

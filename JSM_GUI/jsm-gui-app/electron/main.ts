@@ -3,6 +3,7 @@ import { autoUpdater } from 'electron-updater'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import fs from 'node:fs/promises'
+import { watch, type FSWatcher } from 'node:fs'
 import * as dgram from 'node:dgram'
 import { spawn, ChildProcess } from 'node:child_process'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -186,6 +187,93 @@ async function saveBackendChoice(choice: BackendChoice) {
 
 async function ensureLibraryDir() {
   await fs.mkdir(PROFILE_LIBRARY_DIR, { recursive: true })
+}
+
+// --- Profile library watcher -------------------------------------------------
+//
+// The library list used to be read only when the renderer asked for it, so a
+// .txt dropped into profiles-library by hand (or by another tool) stayed
+// invisible until the app was restarted. Watching the directory closes that
+// gap: any change is turned back into the same string[] the
+// 'library-list-profiles' handler returns, and pushed to the renderer.
+let libraryWatcher: FSWatcher | null = null
+let libraryWatchTimer: NodeJS.Timeout | null = null
+let libraryWatchRetryTimer: NodeJS.Timeout | null = null
+let lastBroadcastLibrary: string | null = null
+
+// fs.watch fires several times for one logical change (Windows reports the
+// rename and the write separately, and editors save via temp files), so
+// coalesce a burst into a single listing.
+const LIBRARY_WATCH_DEBOUNCE_MS = 200
+// The directory can go away entirely -- a sync client, or the user moving it.
+// Watching is re-established rather than silently lost for the session.
+const LIBRARY_WATCH_RETRY_MS = 2000
+
+async function broadcastLibraryProfiles() {
+  if (!win || win.isDestroyed()) {
+    return
+  }
+  try {
+    const profiles = await listLibraryProfiles()
+    // The app writes to this directory itself on every save, rename and
+    // create, so most events describe a change the renderer already made.
+    // Comparing against the last payload keeps those from churning the UI.
+    const serialized = JSON.stringify(profiles)
+    if (serialized === lastBroadcastLibrary) {
+      return
+    }
+    lastBroadcastLibrary = serialized
+    win.webContents.send('library-profiles-changed', profiles)
+  } catch (err) {
+    console.error('[library] failed to list profiles after a change', err)
+  }
+}
+
+function stopLibraryWatcher() {
+  libraryWatcher?.close()
+  libraryWatcher = null
+  if (libraryWatchTimer) {
+    clearTimeout(libraryWatchTimer)
+    libraryWatchTimer = null
+  }
+  if (libraryWatchRetryTimer) {
+    clearTimeout(libraryWatchRetryTimer)
+    libraryWatchRetryTimer = null
+  }
+}
+
+function scheduleLibraryWatchRetry() {
+  if (libraryWatchRetryTimer) {
+    return
+  }
+  libraryWatchRetryTimer = setTimeout(() => {
+    libraryWatchRetryTimer = null
+    startLibraryWatcher().catch(err => console.error('[library] watcher retry failed', err))
+  }, LIBRARY_WATCH_RETRY_MS)
+}
+
+async function startLibraryWatcher() {
+  stopLibraryWatcher()
+  await ensureLibraryDir()
+  try {
+    libraryWatcher = watch(PROFILE_LIBRARY_DIR, { persistent: false }, () => {
+      if (libraryWatchTimer) {
+        clearTimeout(libraryWatchTimer)
+      }
+      libraryWatchTimer = setTimeout(() => {
+        libraryWatchTimer = null
+        broadcastLibraryProfiles()
+      }, LIBRARY_WATCH_DEBOUNCE_MS)
+    })
+    libraryWatcher.on('error', err => {
+      console.error('[library] watcher error, will re-watch', err)
+      stopLibraryWatcher()
+      scheduleLibraryWatchRetry()
+    })
+  } catch (err) {
+    console.error('[library] could not watch the profile directory', err)
+    scheduleLibraryWatchRetry()
+  }
 }
 
 const sanitizeProfileName = (rawName: string) => {
@@ -754,6 +842,7 @@ async function createWindow() {
 // explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
+    stopLibraryWatcher()
     terminateJoyShockMapper().finally(() => {
       app.quit()
       win = null
@@ -776,6 +865,7 @@ app.whenReady().then(async () => {
   await loadCalibrationSecondsFromStartup()
   startTelemetryListener()
   await createWindow()
+  await startLibraryWatcher().catch(err => console.error('Failed to watch the profile library', err))
   setTimeout(() => {
     launchJoyShockMapper().catch(err => console.error('Auto-launch failed', err))
   }, 500)

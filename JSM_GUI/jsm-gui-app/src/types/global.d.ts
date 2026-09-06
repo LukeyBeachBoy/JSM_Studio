@@ -9,6 +9,7 @@ declare interface Window {
     setCalibrationSeconds?: (seconds: number) => Promise<number>
     onCalibrationStatus?: (callback: (payload: { calibrating: boolean; seconds?: number }) => void) => () => void
     listLibraryProfiles?: () => Promise<string[]>
+    onLibraryProfilesChanged?: (callback: (profiles: string[]) => void) => () => void
     saveLibraryProfile?: (name: string, content: string) => Promise<{ name: string }>
     loadLibraryProfile?: (name: string) => Promise<{ name: string; content: string }>
     deleteLibraryProfile?: (name: string) => Promise<{ success: boolean; fallback?: { path: string; name: string; content: string } }>

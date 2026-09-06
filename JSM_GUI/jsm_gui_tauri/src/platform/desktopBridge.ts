@@ -189,6 +189,7 @@ export interface DesktopBridge {
   setCalibrationSeconds: (seconds: number) => Promise<number | null>
   onCalibrationStatus: (callback: (payload: CalibrationStatus) => void) => Unsubscribe
   listLibraryProfiles: () => Promise<string[]>
+  onLibraryProfilesChanged: (callback: (profiles: string[]) => void) => Unsubscribe
   saveLibraryProfile: (name: string, content: string) => Promise<{ name: string } | null>
   loadLibraryProfile: (name: string) => Promise<{ name: string; content: string } | null>
   deleteLibraryProfile: (name: string) => Promise<DeleteProfileResult>
@@ -441,6 +442,12 @@ export const desktopBridge: DesktopBridge = {
       return invokeTauri<string[]>('library_list_profiles').catch(() => [])
     }
     return (await getElectronAPI()?.listLibraryProfiles?.()) ?? []
+  },
+  onLibraryProfilesChanged(callback) {
+    if (isTauriWindow()) {
+      return listenTauri<string[]>('library-profiles-changed', callback)
+    }
+    return noop
   },
   async saveLibraryProfile(name, content) {
     if (isTauriWindow()) {

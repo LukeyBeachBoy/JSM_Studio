@@ -7,3 +7,4 @@ pub mod jsm_process;
 pub mod telemetry;
 
 pub mod global_chords;
+pub mod profile_library;

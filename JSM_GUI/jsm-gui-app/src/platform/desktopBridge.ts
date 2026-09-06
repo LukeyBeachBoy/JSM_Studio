@@ -50,6 +50,7 @@ export interface DesktopBridge {
   setCalibrationSeconds: (seconds: number) => Promise<number | null>
   onCalibrationStatus: (callback: (payload: CalibrationStatus) => void) => Unsubscribe
   listLibraryProfiles: () => Promise<string[]>
+  onLibraryProfilesChanged: (callback: (profiles: string[]) => void) => Unsubscribe
   saveLibraryProfile: (name: string, content: string) => Promise<{ name: string } | null>
   loadLibraryProfile: (name: string) => Promise<{ name: string; content: string } | null>
   deleteLibraryProfile: (name: string) => Promise<DeleteProfileResult>
@@ -107,6 +108,9 @@ export const desktopBridge: DesktopBridge = {
   },
   async listLibraryProfiles() {
     return (await getElectronAPI()?.listLibraryProfiles?.()) ?? []
+  },
+  onLibraryProfilesChanged(callback) {
+    return getElectronAPI()?.onLibraryProfilesChanged?.(callback) ?? noop
   },
   async saveLibraryProfile(name, content) {
     return (await getElectronAPI()?.saveLibraryProfile?.(name, content)) ?? null

@@ -32,15 +32,23 @@ export function useProfileLibrary({ configText, setConfigText, setAppliedConfig,
     setStatusMessage(message)
     showToast(message, error ? 'error' : undefined)
   }
+  // Shared by the on-demand refresh and the watcher push, so a pushed list lands
+  // exactly like a fetched one -- in particular it keeps a rename the user is
+  // halfway through typing instead of snapping the field back to the name on disk.
+  const applyLibraryProfileList = useCallback((names: string[]) => {
+    setLibraryProfiles(names)
+    setEditedLibraryNames(prev => Object.fromEntries(names.map(name => [name, prev[name] ?? name])))
+    return names
+  }, [])
   const refreshLibraryProfiles = useCallback(async () => {
     setIsLibraryLoading(true)
     try {
-      const names = await desktopBridge.listLibraryProfiles()
-      setLibraryProfiles(names)
-      setEditedLibraryNames(prev => Object.fromEntries(names.map(name => [name, prev[name] ?? name])))
-      return names
+      return applyLibraryProfileList(await desktopBridge.listLibraryProfiles())
     } finally { setIsLibraryLoading(false) }
-  }, [])
+  }, [applyLibraryProfileList])
+  // Profiles that appear without the app's help: a .txt copied into the folder
+  // by hand, one deleted outside the app, or a sync client.
+  useEffect(() => desktopBridge.onLibraryProfilesChanged(applyLibraryProfileList), [applyLibraryProfileList])
   const selectProfile = useCallback((profile: NamedProfile) => {
     const previous = editor.current
     if (previous.currentLibraryProfile) drafts.current.set(previous.currentLibraryProfile, previous.configText)

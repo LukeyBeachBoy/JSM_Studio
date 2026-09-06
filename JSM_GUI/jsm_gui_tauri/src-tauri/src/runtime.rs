@@ -234,6 +234,15 @@ pub fn write_active_profile(
 
 pub fn list_library_profiles(app: &AppHandle) -> Result<Vec<String>, String> {
     ensure_required_files(app)?;
+    list_library_profile_names(app)
+}
+
+/// The listing on its own, without the `ensure_required_files` pass that
+/// `list_library_profiles` runs first. The profile watcher polls this once a
+/// second, and `ensure_required_files` *writes* -- the startup file, the
+/// calibration command file, the navigation rule -- which has no business
+/// repeating on a timer, or racing a save the user just made.
+pub fn list_library_profile_names(app: &AppHandle) -> Result<Vec<String>, String> {
     let mut names = Vec::new();
     let entries = fs::read_dir(profile_library_dir(app)?)
         .map_err(|error| format!("Failed to read profile library: {error}"))?;
