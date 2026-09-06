@@ -88,12 +88,18 @@ export function NumberField({
   const decimals = decimalsOf(fine)
   const numeric = toNumber(value)
   const sliderValue = numeric ?? defaultValue ?? min ?? 0
-  const sliderMin = min ?? Math.min(0, sliderValue)
-  const sliderMax = max ?? Math.max(sliderMin + fine * 100, sliderValue)
+  // Stretch the track to cover a value that came from outside our range (a
+  // config file, a calculator dialog). Otherwise the slider clamps it on mount
+  // and silently rewrites the user's setting.
+  const sliderMin = Math.min(min ?? Math.min(0, sliderValue), sliderValue)
+  const sliderMax = Math.max(max ?? Math.max((min ?? 0) + fine * 100, sliderValue), sliderValue)
 
   const commitNumber = (next: number) => {
-    const clamped = clamp(next, min, max)
-    onChange(clamped.toFixed(decimals).replace(/\.?0+$/, '') || '0')
+    const clamped = clamp(next, sliderMin, sliderMax)
+    // Trim a decimal tail ('1.5000' -> '1.5'), but never trailing zeros of a
+    // whole number ('18000' must not become '18').
+    const text = clamped.toFixed(decimals).replace(/\.(\d*?)0+$/, (_, keep: string) => (keep ? `.${keep}` : ''))
+    onChange(text || '0')
   }
 
   const commitDraft = () => {

@@ -202,9 +202,9 @@ export function GyroBehaviorControls({
             value={sensitivity.realWorldCalibration}
             onChange={onRealWorldCalibrationChange}
             min={0}
-            max={500}
+            max={10000}
             step={0.1}
-            coarseStep={5}
+            coarseStep={100}
           />
           <NumberField
             label={t('gyro.inGameSensitivity')}
@@ -224,7 +224,11 @@ export function GyroBehaviorControls({
           <label>
             <div className="label-row">
               <span>{t('gyro.pollingTickTime')}</span>
-              {appliedSampleHz && <span className="field-description inline-helper">{appliedSampleHz} Hz</span>}
+              {appliedSampleHz && (
+                <span className="field-description inline-helper">
+                  {t('gyro.controllerReportRate', { hz: appliedSampleHz })}
+                </span>
+              )}
             </div>
             <AppSelect className="app-select" value={sensitivity.tickTime?.toString() ?? ''} onChange={(e) => onTickTimeChange(e.target.value)}>
               <option value="">{t('common.useDefault')}</option>
