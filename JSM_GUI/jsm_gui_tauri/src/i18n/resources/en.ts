@@ -763,7 +763,7 @@ export const en = {
     touchButtonsDescriptionShared: 'Bindings for touch contact, pad click, and touch-stick directions. The controller reports one touch button, not one per pad.',
     touchButtonsDescription: 'Bindings for touch contact, pad click, and touch-stick directions.',
     touchButtonsDescriptionTwoPad:
-      'Touch stick directions still work here, but Touch and Click do not: this controller reports a separate click for each pad instead of one shared signal. Bind Right pad click and Left pad click on the Extra buttons page instead.',
+      'This controller reports a separate click for each pad instead of one shared Touch and Click signal, so bind Left pad click and Right pad click below. Touch stick directions work here as usual.',
     touchpadSettingsTitle: 'Touchpad mode and grid',
     touchpadSettingsDescription: 'Adjust mode, dual-stage behavior, grid size, and sensitivity for the touchpad.',
     touchpadGridTitleLeft: 'Left trackpad grid',

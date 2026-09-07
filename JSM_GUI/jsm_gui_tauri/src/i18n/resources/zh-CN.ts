@@ -752,7 +752,7 @@ export const zhCN = {
     touchButtonsDescriptionShared: '触摸接触、触摸板按下和触摸摇杆方向的映射。手柄只报告一个触摸按键，而非每块触摸板各一个。',
     touchButtonsDescription: '触摸接触、触摸板按下和触摸摇杆方向绑定。',
     touchButtonsDescriptionTwoPad:
-      '触摸摇杆方向在此手柄上仍然有效，但"触摸"和"点击"无效：该手柄为每块触摸板分别报告点击信号，而不是共用一个信号。请改到"额外按键"页面绑定"右触控板点击"和"左触控板点击"。',
+      '该手柄为每块触摸板分别报告点击信号，而不是共用一个"触摸"和"点击"信号，因此请在下方绑定"左触控板点击"和"右触控板点击"。触摸摇杆方向在此照常可用。',
     touchpadSettingsTitle: '触摸板模式与网格',
     touchpadSettingsDescription: '调整触摸板模式、双段触发、网格大小和灵敏度。',
     touchpadGridTitleLeft: '左触摸板网格',

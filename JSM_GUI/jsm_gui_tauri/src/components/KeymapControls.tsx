@@ -26,6 +26,7 @@ import {
   MINI_BUTTONS,
   MISC_BUTTONS,
   PADDLE_BUTTONS,
+  PAD_CLICK_BUTTONS,
   RIGHT_STICK_BUTTONS,
   TOUCH_STICK_BUTTONS,
   STICK_AIM_DEFAULTS,
@@ -1177,7 +1178,9 @@ export function KeymapControls({
   // JS_TYPE_STEAM_CONTROLLER_2026 button switch in main.cpp -- neither ever
   // calls handleButtonChange for ButtonID::TOUCH or ButtonID::CAPTURE there),
   // so binding either one on a Steam Controller does nothing. Its equivalents
-  // are per-pad: Right/Left pad click live on MISC2/MISC3 in Extra buttons.
+  // are per-pad -- MISC3/MISC2, labelled Left/Right pad click -- so those stand
+  // in for them here instead of living only on the Extra buttons page, which is
+  // what left this page with no way to bind a trackpad click at all.
   // Only hide once a two-pad controller is actually confirmed connected --
   // unlike showPerPadTouchpads, we deliberately do NOT default this true while
   // disconnected, since that would hide a working control for anyone whose
@@ -1187,7 +1190,14 @@ export function KeymapControls({
   const legacyTouchButtons = confirmedTwoPadTouchpads
     ? TOUCH_BUTTONS.filter(button => isTouchpadButtonBound(button.command))
     : TOUCH_BUTTONS.filter(button => controllerSupportsInput(devices?.[0], button.command))
-  const touchpadButtonSectionButtons = showTouchStickButtons ? [...legacyTouchButtons, ...TOUCH_STICK_BUTTONS] : legacyTouchButtons
+  const padClickButtons = confirmedTwoPadTouchpads
+    ? PAD_CLICK_BUTTONS.filter(button => controllerSupportsInput(devices?.[0], button.command) || isCommandBound(button.command))
+    : []
+  const touchpadButtonSectionButtons = [
+    ...legacyTouchButtons,
+    ...padClickButtons,
+    ...(showTouchStickButtons ? TOUCH_STICK_BUTTONS : []),
+  ]
 
   // Per-pad cards for a two-pad controller. Each side gets its own mode, grid
   // and touch stick, stacked left-then-right rather than interleaved.

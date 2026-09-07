@@ -108,6 +108,14 @@ export const MISC_BUTTONS: ButtonDefinition[] = [
   { command: 'MISC6', descriptionKey: 'buttons.descriptions.extraButton6', playstation: 'Misc 6', xbox: 'Misc 6', steam: 'Left grip' },
 ]
 
+// A two-pad controller reports a click per pad rather than the shared CAPTURE
+// signal, so these -- not TOUCH_BUTTONS -- are its real trackpad clicks. They
+// stay part of MISC_BUTTONS for config sectioning and the Extra buttons page;
+// this list only lets the Trackpads page surface them where they belong.
+export const PAD_CLICK_BUTTONS: ButtonDefinition[] = ['MISC3', 'MISC2']
+  .map(command => MISC_BUTTONS.find(button => button.command === command))
+  .filter((button): button is ButtonDefinition => Boolean(button))
+
 // Each pad addresses its own cells on a controller that has two of them: LT1..
 // on the left, RT1.. on the right. T1.. stays the single-pad controller's grid,
 // and is what a two-pad controller falls back to when only the shared
