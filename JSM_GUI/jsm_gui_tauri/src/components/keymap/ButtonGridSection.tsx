@@ -9,6 +9,8 @@ type ButtonGridSectionProps = {
   description: string
   buttons: ButtonDefinition[]
   renderButton: (button: ButtonDefinition) => ReactNode
+  /** Sits in the section header, beside the title. */
+  action?: ReactNode
   extraContent?: ReactNode
   hasPendingChanges: boolean
   statusMessage?: string | null
@@ -22,6 +24,7 @@ export function ButtonGridSection({
   description,
   buttons,
   renderButton,
+  action,
   extraContent,
   hasPendingChanges,
   statusMessage,
@@ -31,7 +34,7 @@ export function ButtonGridSection({
 }: ButtonGridSectionProps) {
   return (
     <>
-      <KeymapSection title={title} description={description}>
+      <KeymapSection title={title} description={description} action={action}>
         <div className={keymapStyles.keymapGrid}>
           {buttons.map(button => (
             <div key={button.command}>{renderButton(button)}</div>

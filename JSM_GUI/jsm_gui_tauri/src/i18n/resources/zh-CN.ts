@@ -93,6 +93,9 @@ export const zhCN = {
     autoloadRuleSaved: '自动切换规则已保存。',
     autoloadRuleDeleted: '自动切换规则已删除。',
     autoloadRuleFailed: '更新自动切换规则失败。',
+    gamepadPassthroughApplied: '已将手柄整体直通到虚拟 {{scheme}} 手柄。点击“保存”以保留该设置。',
+    bindWasdDone: '已将四个方向绑定到 W、A、S、D。点击“保存”以保留该设置。',
+    bindWasdWithStickMode: '已将四个方向绑定到 W、A、S、D，并将摇杆切换为数字方向模式，方向键才会生效。点击“保存”以保留该设置。',
     aiSettingsSaved: '\u5df2\u4fdd\u5b58 AI \u8bbe\u7f6e\u3002',
     aiSettingsFailed: '\u4fdd\u5b58 AI \u8bbe\u7f6e\u5931\u8d25\uff1a{{error}}',
     aiGenerationFailed: 'AI \u751f\u6210\u6620\u5c04\u5931\u8d25\uff1a{{error}}',
@@ -681,6 +684,11 @@ export const zhCN = {
     virtualControllerType_DS4: 'PlayStation 4 (DualShock 4)',
     virtualControllerHint:
       '如果游戏同时看到了物理手柄和虚拟手柄，请配合 HidHide 隐藏物理手柄，只让 JSM 的输出进入游戏。',
+    bindWholeController: '整体绑定手柄',
+    bindWholeControllerHint:
+      '把每个面板键、肩键、方向键、摇杆按下和中央按键都指向虚拟手柄上的对应输入，两个扳机改为模拟直通，两个摇杆改为虚拟摇杆。背键、触摸板和陀螺仪保持原有绑定。',
+    bindWasd: '绑定到 WASD',
+    bindWasdHint: '把上/左/下/右绑定到 W/A/S/D。斜向无需额外设置：同时按住两个方向会发送两个按键。',
     virtualControllerWarningModeRequired:
       '当前配置已经包含虚拟手柄输出，但还没有启用 VIRTUAL_CONTROLLER。',
     virtualControllerWarningSchemeMismatch:

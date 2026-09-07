@@ -21,6 +21,12 @@ import {
   normalizeVirtualControllerType,
   type VirtualControllerType,
 } from '../utils/virtualController'
+import {
+  applyGamepadPassthrough,
+  applyWasdBindings,
+  type DirectionalSetId,
+  type VirtualControllerScheme,
+} from '../utils/quickBind'
 
 const TOGGLE_SPECIALS = [keyName.GYRO_ON, keyName.GYRO_OFF] as const
 const SPECIAL_COMMANDS = bindingSpecialKeys.map(key => key.toUpperCase())
@@ -182,6 +188,17 @@ export function useBindingsConfig({ configText, setConfigText }: BindingArgs) {
     })
   }
 
+  // Two quick binds, each a single write rather than a button-at-a-time loop:
+  // the whole controller passed through to a virtual pad, and a four-way
+  // directional pointed at WASD.
+  const handleBindGamepadPassthrough = (scheme: VirtualControllerScheme) => {
+    setConfigText(prev => applyGamepadPassthrough(prev, scheme))
+  }
+
+  const handleBindDirectionsToWasd = (setId: DirectionalSetId) => {
+    setConfigText(prev => applyWasdBindings(prev, setId))
+  }
+
   const gyroActivation = useMemo(() => parseGyroActivation(configText), [configText])
 
   const handleGyroActivationModeChange = (mode: GyroActivationMode, fallbackButton = 'R3') => {
@@ -220,6 +237,8 @@ export function useBindingsConfig({ configText, setConfigText }: BindingArgs) {
     handleGyroActivationModeChange,
     handleGyroActivationButtonChange,
     handleTrackballDecayChange,
+    handleBindGamepadPassthrough,
+    handleBindDirectionsToWasd,
     trackballDecayValue,
     virtualControllerType: virtualControllerConfig.type,
     virtualControllerWarnings: virtualControllerConfig.warnings,

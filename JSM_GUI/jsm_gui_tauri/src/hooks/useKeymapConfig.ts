@@ -255,6 +255,8 @@ export function useKeymapConfig() {
     handleGyroActivationModeChange: bindingsConfig.handleGyroActivationModeChange,
     handleGyroActivationButtonChange: bindingsConfig.handleGyroActivationButtonChange,
     trackballDecayValue: bindingsConfig.trackballDecayValue,
+    handleBindGamepadPassthrough: bindingsConfig.handleBindGamepadPassthrough,
+    handleBindDirectionsToWasd: bindingsConfig.handleBindDirectionsToWasd,
     handleTrackballDecayChange: bindingsConfig.handleTrackballDecayChange,
     virtualControllerType: bindingsConfig.virtualControllerType,
     virtualControllerWarnings: bindingsConfig.virtualControllerWarnings,

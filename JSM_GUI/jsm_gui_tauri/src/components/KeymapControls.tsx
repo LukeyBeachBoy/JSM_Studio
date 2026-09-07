@@ -1,6 +1,13 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DEFAULT_STICK_DEADZONE_INNER, DEFAULT_STICK_DEADZONE_OUTER } from '../constants/defaults'
+import { isDirectionalStickMode } from '../constants/sticks'
+import {
+  wasdBindingChangesStickMode,
+  type DirectionalSetId,
+  type VirtualControllerScheme,
+} from '../utils/quickBind'
+import { showToast } from '../utils/toast'
 import type { TelemetryDevice } from '../hooks/useTelemetry'
 import {
   BindingSlot,
@@ -291,6 +298,10 @@ type KeymapControlsProps = {
   virtualControllerType?: VirtualControllerType
   virtualControllerWarnings?: VirtualControllerWarning[]
   onVirtualControllerTypeChange?: (value: VirtualControllerType) => void
+  /** Binds every standard input straight through to a virtual pad in one go. */
+  onBindGamepadPassthrough?: (scheme: VirtualControllerScheme) => void
+  /** Points one four-way directional's Up/Down/Left/Right at W/S/A/D. */
+  onBindDirectionsToWasd?: (setId: DirectionalSetId) => void
 }
 
 // A stick's mode settings come in two halves. The primary half sits in the card
@@ -507,14 +518,11 @@ const MAPPING_BUTTON_GROUPS: Record<string, { titleKey: string; descriptionKey?:
   extra: { titleKey: 'keymap.extraButtonsTitle', descriptionKey: 'keymap.extraButtonsDescription', buttons: MISC_BUTTONS, icon: <ExtraButtonsIcon /> },
 }
 
-// Directional presses (Up/Down/Left/Right) only mean anything when the stick
-// is in one of these digital-direction modes. Once it's in a whole-stick mode
-// (AIM, a mouse mode, LEFT_STICK/RIGHT_STICK passthrough, ...) those four
-// commands are never sent, so listing them as bindable is just noise -- Steam
-// Input folds them away the same way once a stick has a "mode" applied.
+// Directions a stick in a whole-stick mode never sends are just noise in the
+// list -- Steam Input folds them away the same way once a stick has a "mode"
+// applied. isDirectionalStickMode is what says which modes still send them.
 // Click/Ring/Touch stay visible in every mode: those fire independently of
 // which mode the stick's continuous output is in.
-const STICK_DIRECTIONAL_MODES = new Set(['', 'NO_MOUSE', 'INNER_RING', 'OUTER_RING'])
 const STICK_DIRECTION_COMMANDS: Record<'leftStick' | 'rightStick', Set<string>> = {
   leftStick: new Set(['LUP', 'LDOWN', 'LLEFT', 'LRIGHT']),
   rightStick: new Set(['RUP', 'RDOWN', 'RLEFT', 'RRIGHT']),
@@ -536,8 +544,8 @@ function visibleButtonsForGroup(
     groupKey === 'rightStick' ? STICK_DIRECTION_COMMANDS.rightStick :
     null
   if (!directionCommands) return buttons
-  const mode = (groupKey === 'leftStick' ? leftStickMode : rightStickMode).toUpperCase()
-  if (STICK_DIRECTIONAL_MODES.has(mode)) return buttons
+  const mode = groupKey === 'leftStick' ? leftStickMode : rightStickMode
+  if (isDirectionalStickMode(mode)) return buttons
   return buttons.filter(button => !directionCommands.has(button.command.toUpperCase()))
 }
 
@@ -558,6 +566,15 @@ function splitButtonsBySide(buttons: ButtonDefinition[]) {
     else rest.push(button)
   })
   return { left, right, rest }
+}
+
+// The button groups that are a four-way directional, and the set of inputs each
+// one covers. Face buttons are laid out as a diamond too, but nothing sends them
+// as a direction, so they are not offered the WASD quick bind.
+const DIRECTIONAL_GROUP_SETS: Record<string, DirectionalSetId> = {
+  dpad: 'dpad',
+  leftStick: 'leftStick',
+  rightStick: 'rightStick',
 }
 
 const allMappingButtons = () => {
@@ -730,6 +747,8 @@ export function KeymapControls({
   virtualControllerType = 'NONE',
   virtualControllerWarnings,
   onVirtualControllerTypeChange,
+  onBindGamepadPassthrough,
+  onBindDirectionsToWasd,
 }: KeymapControlsProps) {
   const { t } = useTranslation()
   const [mappingHelpOpen, setMappingHelpOpen] = useState(false)
@@ -1087,6 +1106,34 @@ export function KeymapControls({
     onApply,
     onCancel,
     applyDisabled: isCalibrating,
+  }
+
+  // With no virtual controller chosen yet, binding the pad through has to pick
+  // one; Xbox is the scheme nearly every game reads without extra setup.
+  const passthroughScheme: VirtualControllerScheme = virtualControllerType === 'NONE' ? 'XBOX' : virtualControllerType
+
+  // One click to point a four-way directional at WASD. Diagonals need nothing of
+  // their own: holding two directions sends both keys, which is the eight-way
+  // movement a game reads off WASD.
+  const renderWasdAction = (setId: DirectionalSetId) => {
+    if (!onBindDirectionsToWasd) return null
+    return (
+      <button
+        type="button"
+        className="ghost-btn"
+        data-capture-ignore="true"
+        disabled={isCalibrating}
+        title={t('keymap.bindWasdHint')}
+        onClick={() => {
+          // Read before the write: afterwards the stick is always digital.
+          const switchedStickMode = wasdBindingChangesStickMode(configText, setId)
+          onBindDirectionsToWasd(setId)
+          showToast(switchedStickMode ? t('messages.bindWasdWithStickMode') : t('messages.bindWasdDone'))
+        }}
+      >
+        {t('keymap.bindWasd')}
+      </button>
+    )
   }
 
   const renderVirtualControllerWarning = (warning: VirtualControllerWarning) => {
@@ -1462,6 +1509,26 @@ export function KeymapControls({
               </AppSelect>
             </label>
             <p className={keymapStyles.virtualControllerHint}>{t('keymap.virtualControllerHint')}</p>
+            {onBindGamepadPassthrough && (
+              <div className={keymapStyles.virtualControllerQuickBind}>
+                <button
+                  type="button"
+                  className="secondary-btn"
+                  disabled={isCalibrating}
+                  onClick={() => {
+                    onBindGamepadPassthrough(passthroughScheme)
+                    showToast(
+                      t('messages.gamepadPassthroughApplied', {
+                        scheme: t(`keymap.virtualControllerType_${passthroughScheme}`),
+                      })
+                    )
+                  }}
+                >
+                  {t('keymap.bindWholeController')}
+                </button>
+                <p className={keymapStyles.virtualControllerHint}>{t('keymap.bindWholeControllerHint')}</p>
+              </div>
+            )}
           </div>
           {virtualControllerWarnings && virtualControllerWarnings.length > 0 && (
             <div className={keymapStyles.virtualControllerWarnings}>
@@ -1506,6 +1573,7 @@ export function KeymapControls({
                       title={t(group.titleKey)}
                       description={group.descriptionKey ? t(group.descriptionKey) : undefined}
                       icon={group.icon}
+                      action={DIRECTIONAL_GROUP_SETS[groupKey] ? renderWasdAction(DIRECTIONAL_GROUP_SETS[groupKey]) : undefined}
                     >
                       {(groupKey === 'leftStick' || groupKey === 'rightStick') && stickModeSettings && onStickModeChange && onRingModeChange && onStickDeadzoneChange && (
                         <SideBlock side={groupKey === 'leftStick' ? 'left' : 'right'} title={groupKey === 'leftStick' ? t('keymap.leftStickTitle') : t('keymap.rightStickTitle')}>
@@ -1777,6 +1845,7 @@ export function KeymapControls({
                   }
                   buttons={touchpadButtonSectionButtons}
                   renderButton={renderButtonCard}
+                  action={showTouchStickButtons ? renderWasdAction('touchStick') : undefined}
                   {...actionsProps}
                 />
                 </div>

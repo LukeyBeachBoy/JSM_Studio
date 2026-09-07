@@ -93,6 +93,11 @@ export const en = {
     autoloadRuleSaved: 'AutoLoad rule saved.',
     autoloadRuleDeleted: 'AutoLoad rule deleted.',
     autoloadRuleFailed: 'Failed to update AutoLoad rule.',
+    gamepadPassthroughApplied:
+      'Bound the controller through to a virtual {{scheme}} pad. Click Save to keep it.',
+    bindWasdDone: 'Bound the four directions to W, A, S and D. Click Save to keep it.',
+    bindWasdWithStickMode:
+      'Bound the four directions to W, A, S and D, and switched the stick to digital directions so they fire. Click Save to keep it.',
     aiSettingsSaved: 'AI settings saved.',
     aiSettingsFailed: 'Failed to save AI settings: {{error}}',
     aiGenerationFailed: 'Failed to generate mapping with AI: {{error}}',
@@ -686,6 +691,12 @@ export const en = {
     virtualControllerType_DS4: 'PlayStation 4 (DualShock 4)',
     virtualControllerHint:
       'If the game sees both the physical controller and the virtual one, hide the physical controller with HidHide so only JSM output reaches the game.',
+    bindWholeController: 'Bind whole controller',
+    bindWholeControllerHint:
+      'Points every face button, bumper, d-pad direction, stick click and centre button at its counterpart on the virtual pad, puts both triggers on analog passthrough and both sticks on the virtual sticks. Paddles, trackpads and gyro keep whatever they are bound to.',
+    bindWasd: 'Bind to WASD',
+    bindWasdHint:
+      'Binds Up/Left/Down/Right to W/A/S/D. Diagonals need nothing extra: holding two directions sends both keys.',
     virtualControllerWarningModeRequired:
       'This config already contains virtual controller outputs, but VIRTUAL_CONTROLLER is not enabled.',
     virtualControllerWarningSchemeMismatch:

@@ -49,3 +49,12 @@ export const formatStickModeLabel = (mode: string, t: TFunction) => {
   const upper = mode?.toUpperCase()
   return upper ? upper.replace(/_/g, ' ') : ''
 }
+
+// Directional presses (Up/Down/Left/Right) only mean anything while the stick is
+// in one of these digital-direction modes. Once it is in a whole-stick mode (AIM,
+// a mouse mode, LEFT_STICK/RIGHT_STICK passthrough, ...) those four commands are
+// never sent. An unset mode is JSM's own default, which is directional.
+const STICK_DIRECTIONAL_MODES = new Set(['', 'NO_MOUSE', 'INNER_RING', 'OUTER_RING'])
+
+export const isDirectionalStickMode = (mode?: string | null) =>
+  STICK_DIRECTIONAL_MODES.has((mode ?? '').trim().toUpperCase())

@@ -47,3 +47,6 @@ jobs:
 
       - name: Verify grip slider conversions
         run: node tests/grip_calibration_regression.cjs
+
+      - name: Verify quick bind config writes
+        run: node tests/quick_bind_regression.cjs

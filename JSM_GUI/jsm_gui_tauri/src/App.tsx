@@ -698,6 +698,8 @@ function App() {
     handleGyroActivationButtonChange,
     trackballDecayValue,
     handleTrackballDecayChange,
+    handleBindGamepadPassthrough,
+    handleBindDirectionsToWasd,
     virtualControllerType,
     virtualControllerWarnings,
     handleVirtualControllerTypeChange,
@@ -1342,6 +1344,8 @@ function App() {
             virtualControllerType={virtualControllerType}
             virtualControllerWarnings={virtualControllerWarnings}
             onVirtualControllerTypeChange={handleVirtualControllerTypeChange}
+            onBindGamepadPassthrough={handleBindGamepadPassthrough}
+            onBindDirectionsToWasd={handleBindDirectionsToWasd}
             lockMessage={lockMessage}
           />
         </Suspense>
@@ -1479,6 +1483,8 @@ function App() {
             virtualControllerType={virtualControllerType}
             virtualControllerWarnings={virtualControllerWarnings}
             onVirtualControllerTypeChange={handleVirtualControllerTypeChange}
+            onBindGamepadPassthrough={handleBindGamepadPassthrough}
+            onBindDirectionsToWasd={handleBindDirectionsToWasd}
           />
         </Suspense>
       )
@@ -1665,6 +1671,7 @@ function App() {
             visibleSections={sections}
             bindingLabels={bindingLabels}
             onBindingLabelChange={handleBindingLabelChange}
+            onBindDirectionsToWasd={handleBindDirectionsToWasd}
           />
         </Suspense>
       )
