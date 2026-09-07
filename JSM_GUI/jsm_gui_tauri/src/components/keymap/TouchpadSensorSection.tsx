@@ -13,11 +13,15 @@ type Props = {
   touchpadTrackballDecay?: number
   touchpadTrackballMinVelocity?: number
   touchpadMovementThreshold?: number
+  touchpadClickDampen?: number
+  touchpadClickDampenThreshold?: number
   onTouchpadMinCutoffChange?: (v: string) => void
   onTouchpadSpeedCoeffChange?: (v: string) => void
   onTouchpadTrackballDecayChange?: (v: string) => void
   onTouchpadTrackballMinVelocityChange?: (v: string) => void
   onTouchpadMovementThresholdChange?: (v: string) => void
+  onTouchpadClickDampenChange?: (v: string) => void
+  onTouchpadClickDampenThresholdChange?: (v: string) => void
   hasPendingChanges: boolean
   statusMessage?: string | null
   onApply: () => void
@@ -137,6 +141,46 @@ export function TouchpadSensorSection(props: Props) {
             {t(
               'keymap.touchpadMovementThresholdHint',
               'How fast your finger has to be moving across the pad, in pad pixels per second, before the cursor moves at all. A thumb trying to hold still never quite does, and that drift otherwise reaches the cursor as a slow crawl. Raise it until a resting thumb holds the cursor still; too high and slow deliberate panning stops working too. 0 turns the filter off.'
+            )}
+          </p>
+          {/* Same family as Minimum movement: output you did not mean to make.
+              That one is about a finger trying to stay still, this one about a
+              finger pressing down. */}
+          <NumberField layout="inline"
+            label={t('keymap.touchpadClickDampen', 'Click damping')}
+            value={props.touchpadClickDampen ?? 0}
+            onChange={v => props.onTouchpadClickDampenChange?.(v)}
+            min={0}
+            max={1}
+            step={0.05}
+            coarseStep={0.25}
+            hint={
+              (props.touchpadClickDampen ?? 0) === 0
+                ? t('keymap.touchpadClickDampenOff', 'Off — clicking the pad can still drag the cursor')
+                : (props.touchpadClickDampen ?? 0) >= 1
+                  ? t('keymap.touchpadClickDampenFull', 'Cursor stops completely while the pad is clicked')
+                  : undefined
+            }
+          />
+          <NumberField layout="inline"
+            label={t('keymap.touchpadClickDampenThreshold', 'Damping pressure')}
+            value={props.touchpadClickDampenThreshold ?? 0}
+            onChange={v => props.onTouchpadClickDampenThresholdChange?.(v)}
+            min={0}
+            max={1}
+            step={0.01}
+            coarseStep={0.1}
+            disabled={(props.touchpadClickDampen ?? 0) === 0}
+            hint={
+              (props.touchpadClickDampenThreshold ?? 0) === 0
+                ? t('keymap.touchpadClickDampenThresholdOff', 'Damps only once the click actually registers')
+                : undefined
+            }
+          />
+          <p className={styles.touchpadHint}>
+            {t(
+              'keymap.touchpadClickDampenHint',
+              'For a pad you both aim with and click. Pressing hard enough to click rolls your finger across the pad, and in Mouse mode that roll moves the camera. Click damping is how much of the cursor movement the press takes away — 1 stops it completely, so clicking to interact cannot drag your aim. Damping pressure brings it in early, before the click registers, so the cursor is already settling rather than stopping dead: the pad reports how hard you are pressing on a 0 to 1 scale, and the live reading is on the Controller Status page. Leave it at 0 to damp only while the click is actually held.'
             )}
           </p>
           <NumberField layout="inline"

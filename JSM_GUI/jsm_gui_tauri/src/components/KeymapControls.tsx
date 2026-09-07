@@ -118,6 +118,8 @@ type KeymapControlsProps = {
   touchpadTrackballDecay?: number
   touchpadTrackballMinVelocity?: number
   touchpadMovementThreshold?: number
+  touchpadClickDampen?: number
+  touchpadClickDampenThreshold?: number
   touchpadHapticIntensity?: number
   touchpadHapticEffect?: string
   touchpadHapticInterval?: number
@@ -130,6 +132,8 @@ type KeymapControlsProps = {
   onTouchpadTrackballDecayChange?: (value: string) => void
   onTouchpadTrackballMinVelocityChange?: (value: string) => void
   onTouchpadMovementThresholdChange?: (value: string) => void
+  onTouchpadClickDampenChange?: (value: string) => void
+  onTouchpadClickDampenThresholdChange?: (value: string) => void
   onTouchpadHapticIntensityChange?: (value: string) => void
   onTouchpadHapticEffectChange?: (value: string) => void
   onTouchpadHapticIntervalChange?: (value: string) => void
@@ -604,6 +608,8 @@ export function KeymapControls({
   touchpadTrackballDecay,
   touchpadTrackballMinVelocity,
   touchpadMovementThreshold,
+  touchpadClickDampen,
+  touchpadClickDampenThreshold,
   touchpadHapticIntensity,
   touchpadHapticEffect,
   touchpadHapticInterval,
@@ -616,6 +622,8 @@ export function KeymapControls({
   onTouchpadTrackballDecayChange,
   onTouchpadTrackballMinVelocityChange,
   onTouchpadMovementThresholdChange,
+  onTouchpadClickDampenChange,
+  onTouchpadClickDampenThresholdChange,
   onTouchpadHapticIntensityChange,
   onTouchpadHapticEffectChange,
   onTouchpadHapticIntervalChange,
@@ -1654,11 +1662,15 @@ export function KeymapControls({
                   touchpadTrackballDecay={touchpadTrackballDecay}
                   touchpadTrackballMinVelocity={touchpadTrackballMinVelocity}
                   touchpadMovementThreshold={touchpadMovementThreshold}
+                  touchpadClickDampen={touchpadClickDampen}
+                  touchpadClickDampenThreshold={touchpadClickDampenThreshold}
                   onTouchpadMinCutoffChange={onTouchpadMinCutoffChange}
                   onTouchpadSpeedCoeffChange={onTouchpadSpeedCoeffChange}
                   onTouchpadTrackballDecayChange={onTouchpadTrackballDecayChange}
                   onTouchpadTrackballMinVelocityChange={onTouchpadTrackballMinVelocityChange}
                   onTouchpadMovementThresholdChange={onTouchpadMovementThresholdChange}
+                  onTouchpadClickDampenChange={onTouchpadClickDampenChange}
+                  onTouchpadClickDampenThresholdChange={onTouchpadClickDampenThresholdChange}
                   {...actionsProps}
                 />
               ),

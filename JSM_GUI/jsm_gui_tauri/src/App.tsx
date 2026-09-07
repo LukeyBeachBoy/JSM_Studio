@@ -544,6 +544,8 @@ function App() {
     touchpadTrackballDecayValue,
     touchpadTrackballMinVelocityValue,
     touchpadMovementThresholdValue,
+    touchpadClickDampenValue,
+    touchpadClickDampenThresholdValue,
     touchpadHapticIntensityValue,
     touchpadHapticEffectValue,
     touchpadHapticIntervalValue,
@@ -552,6 +554,8 @@ function App() {
     touchpadReleaseHapticIntensityValue,
     touchpadReleaseHapticEffectValue,
     handleTouchpadMovementThresholdChange,
+    handleTouchpadClickDampenChange,
+    handleTouchpadClickDampenThresholdChange,
     handleTouchpadHapticIntensityChange,
     handleTouchpadHapticEffectChange,
     handleTouchpadHapticIntervalChange,
@@ -1530,6 +1534,10 @@ function App() {
             onTouchpadTrackballMinVelocityChange={handleTouchpadTrackballMinVelocityChange}
             touchpadMovementThreshold={touchpadMovementThresholdValue}
             onTouchpadMovementThresholdChange={handleTouchpadMovementThresholdChange}
+            touchpadClickDampen={touchpadClickDampenValue}
+            touchpadClickDampenThreshold={touchpadClickDampenThresholdValue}
+            onTouchpadClickDampenChange={handleTouchpadClickDampenChange}
+            onTouchpadClickDampenThresholdChange={handleTouchpadClickDampenThresholdChange}
             touchpadHapticIntensity={touchpadHapticIntensityValue}
             touchpadHapticEffect={touchpadHapticEffectValue}
             touchpadHapticInterval={touchpadHapticIntervalValue}

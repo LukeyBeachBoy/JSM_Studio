@@ -828,6 +828,13 @@ export const zhCN = {
     touchpadMovementThresholdOff: '关闭 — 任何被上报的移动都会传给光标',
     touchpadMovementThresholdHint:
       '手指在触控板上必须达到的速度（触控板像素/秒），低于该速度光标完全不动。拇指想保持静止时其实一直在微动，这些漂移会让光标缓慢爬行。逐步调高直到静止的拇指不再移动光标；调得过高时，刻意的慢速平移也会失效。0 表示关闭该过滤。',
+    touchpadClickDampen: '点击抑制',
+    touchpadClickDampenOff: '关闭 — 按下触控板仍会带动光标',
+    touchpadClickDampenFull: '按住触控板期间光标完全静止',
+    touchpadClickDampenThreshold: '抑制触发压力',
+    touchpadClickDampenThresholdOff: '仅在点击真正触发后才抑制',
+    touchpadClickDampenHint:
+      '适用于既用来瞄准、又要点击的触控板。用力按到触发点击时手指会在板面上滚动，而在鼠标模式下这段滚动就会带动视角。「点击抑制」决定按压会抽走多少光标移动 —— 设为 1 时完全停止，于是点击交互不会拖动准心。「抑制触发压力」让抑制提前介入，在点击真正触发之前光标就已经在收住，而不是突然停死：触控板会以 0 到 1 的刻度上报按压力度，实时读数可在「控制器状态」页面查看。保持为 0 则仅在点击被按住时才抑制。',
     touchpadHapticTitle: '触控板振动反馈',
     touchpadHapticDescription: '手指划过触控板以及按下触控板时，该触控板自身的振动单元如何反应。两块触控板共用一套设置，各自为自己的手指发出振动。',
     touchpadHapticIntensity: '移动振动强度',
