@@ -667,7 +667,24 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  margin-bottom: 0.1rem;
+}
+
+.bindingsToolbar :global(.secondary-btn),
+.bindingsToolbar :global(.ghost-btn) {
+  padding: 0.32rem 0.7rem;
+  font-size: 0.8rem;
+}
+
+/* The trigger badge is a Radix Select, whose base .trigger sets width:100%.
+   In this flex summary row that eats the whole line and pushes the action
+   buttons past the card's clipped edge, so pin it back to its content width. */
+.commandSummary .commandTriggerBadgeSelect {
+  width: auto;
+  max-width: 11rem;
+  flex: 0 0 auto;
 }
 
 .commandSelectCheckbox {
@@ -680,7 +697,8 @@
 
 .commandSummary {
   display: flex;
-  align-items: stretch;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 0.5rem;
   padding: 0.55rem;
 }
@@ -749,6 +767,7 @@
 
 .commandActions {
   flex: 0 0 auto;
+  margin-left: auto;
   display: flex;
   align-items: center;
   gap: 0.45rem;

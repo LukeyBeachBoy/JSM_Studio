@@ -181,6 +181,11 @@ export function BindingCommandCard({
               { label: t('keymap.commandMenuAddExtra'), onSelect: () => onAddExtra?.() },
               { label: t('keymap.commandMenuAddSub'), onSelect: () => onAddSub?.() },
             ]} />
+          {onCopy && (
+            <button type="button" className="link-btn" onClick={() => onCopy(command)}>
+              {t('keymap.commandCopy')}
+            </button>
+          )}
           <button type="button" className="link-btn" onClick={() => onDuplicate(command)}>
             {t('keymap.commandDuplicate')}
           </button>

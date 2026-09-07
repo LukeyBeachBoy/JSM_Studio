@@ -566,7 +566,7 @@ export const ButtonBindingsCard = ({
     bindingClipboard.length > 0 || canSelect ? (
       <div className={keymapStyles.bindingsToolbar} data-capture-ignore="true">
         {canSelect && !selectionMode && (
-          <button type="button" className="link-btn" onClick={() => setSelectionMode(true)}>
+          <button type="button" className="ghost-btn" onClick={() => setSelectionMode(true)}>
             {t('keymap.bindingsSelect')}
           </button>
         )}
@@ -580,7 +580,7 @@ export const ButtonBindingsCard = ({
             >
               {t('keymap.bindingsCopySelected', { count: selectedCommands.length })}
             </button>
-            <button type="button" className="link-btn" onClick={exitSelection}>
+            <button type="button" className="ghost-btn" onClick={exitSelection}>
               {t('keymap.bindingsCancelSelect')}
             </button>
           </>
