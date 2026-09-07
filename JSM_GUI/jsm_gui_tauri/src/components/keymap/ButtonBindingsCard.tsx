@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   BindingCommand,
@@ -95,6 +95,10 @@ type ButtonBindingsCardProps = {
   onEnableVirtualController?: () => void
   bindingLabel?: string
   onBindingLabelChange?: (command: string, label: string) => void
+  /** Bindings on the shared clipboard, ready to paste onto this button. */
+  bindingClipboard?: BindingCommandPreset[]
+  /** Replace the shared clipboard with the given bindings (copy). */
+  onCopyBindings?: (presets: BindingCommandPreset[]) => void
 }
 
 const triggerToSlot = (trigger: BindingTriggerKind): BindingSlot => {
@@ -149,8 +153,12 @@ export const ButtonBindingsCard = ({
   onEnableVirtualController,
   bindingLabel,
   onBindingLabelChange,
+  bindingClipboard = [],
+  onCopyBindings,
 }: ButtonBindingsCardProps) => {
   const { t } = useTranslation()
+  const [selectionMode, setSelectionMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
   const buttonKey = button.command.toUpperCase()
   const specialKey = specialsByButton[button.command]
   const stickShiftEntries = useMemo(
@@ -396,14 +404,63 @@ export const ButtonBindingsCard = ({
     })
   }
 
+  const commandToPreset = (command: BindingCommand): BindingCommandPreset => ({
+    triggerKind: command.triggerKind,
+    outputKind: command.outputKind,
+    outputValue: command.outputValue,
+    outputBehavior: command.outputBehavior,
+    conditionInput: command.conditionInput,
+  })
+
   const duplicateCommand = (command: BindingCommand) => {
-    writeCommand({
-      triggerKind: command.triggerKind,
-      outputKind: command.outputKind,
-      outputValue: command.outputValue,
-      outputBehavior: command.outputBehavior,
-      conditionInput: command.conditionInput,
-    })
+    writeCommand(commandToPreset(command))
+  }
+
+  const exitSelection = () => {
+    setSelectionMode(false)
+    setSelectedIds([])
+  }
+
+  const toggleSelected = (command: BindingCommand) => {
+    setSelectedIds(prev =>
+      prev.includes(command.id) ? prev.filter(id => id !== command.id) : [...prev, command.id]
+    )
+  }
+
+  const copyCommands = (picked: BindingCommand[]) => {
+    if (picked.length === 0) return
+    onCopyBindings?.(picked.map(commandToPreset))
+    exitSelection()
+  }
+
+  // Base-line triggers (Press/Tap/Hold/...) all share one config line, so pasting
+  // several of them one-by-one would each re-read the same pre-paste line and
+  // clobber the last write. Merge those into a single expression, then let
+  // writeCommand handle the slot-based triggers (Double/Chord/...) individually.
+  const pasteBindings = () => {
+    if (bindingClipboard.length === 0) return
+    const baseLine = bindingClipboard.filter(
+      preset =>
+        hasOutputValue(preset) &&
+        triggerUsesBaseLine(preset.triggerKind) &&
+        !(preset.outputKind === 'special' && isGyroButtonSettingSpecial(preset.outputValue))
+    )
+    if (baseLine.length > 0) {
+      const baseRow = rows.find(row => row.slot === 'tap')
+      const existingTokens = baseRow?.expression?.tokens ?? []
+      const expression = createBindingExpression([
+        ...existingTokens,
+        ...baseLine.map(preset => bindingCommandToToken(preset)),
+      ])
+      onBindingChange(
+        button.command,
+        'tap',
+        baseRow?.id ?? `${button.command}-tap`,
+        serializeBindingExpression(expression),
+        { writeMode: 'line' }
+      )
+    }
+    bindingClipboard.filter(preset => !baseLine.includes(preset)).forEach(writeCommand)
   }
 
   const captureCommand = (command: BindingCommand) => {
@@ -503,6 +560,39 @@ export const ButtonBindingsCard = ({
     </>
   )
 
+  const canSelect = commands.length > 1 && !!onCopyBindings
+  const selectedCommands = commands.filter(command => selectedIds.includes(command.id))
+  const bindingsToolbar =
+    bindingClipboard.length > 0 || canSelect ? (
+      <div className={keymapStyles.bindingsToolbar} data-capture-ignore="true">
+        {canSelect && !selectionMode && (
+          <button type="button" className="link-btn" onClick={() => setSelectionMode(true)}>
+            {t('keymap.bindingsSelect')}
+          </button>
+        )}
+        {selectionMode && (
+          <>
+            <button
+              type="button"
+              className="secondary-btn"
+              disabled={selectedCommands.length === 0}
+              onClick={() => copyCommands(selectedCommands)}
+            >
+              {t('keymap.bindingsCopySelected', { count: selectedCommands.length })}
+            </button>
+            <button type="button" className="link-btn" onClick={exitSelection}>
+              {t('keymap.bindingsCancelSelect')}
+            </button>
+          </>
+        )}
+        {bindingClipboard.length > 0 && !selectionMode && (
+          <button type="button" className="secondary-btn" onClick={pasteBindings}>
+            {t('keymap.bindingsPaste', { count: bindingClipboard.length })}
+          </button>
+        )}
+      </div>
+    ) : null
+
   return (
     <ButtonMappingCard
       command={button.command}
@@ -510,6 +600,7 @@ export const ButtonBindingsCard = ({
       glyph={<InputGlyph command={button.command} family={controllerFamily} size={19} />}
       description={getButtonDescription(button, t)}
       isCapturing={rowCapturing}
+      toolbar={bindingsToolbar}
       addControl={addControl}
       extras={extras}
       label={bindingLabel}
@@ -528,6 +619,10 @@ export const ButtonBindingsCard = ({
               onUpdate={updateCommand}
               onRemove={removeCommand}
               onDuplicate={duplicateCommand}
+              onCopy={onCopyBindings ? (picked) => copyCommands([picked]) : undefined}
+              selectable={selectionMode}
+              selected={selectedIds.includes(command.id)}
+              onToggleSelected={toggleSelected}
               onAddExtra={() => handleAddCommand('regular')}
               onAddSub={() => duplicateCommand(command)}
               onRename={() => document.querySelector<HTMLInputElement>(`[data-input-command="${button.command}"] input[aria-label]`)?.focus()}

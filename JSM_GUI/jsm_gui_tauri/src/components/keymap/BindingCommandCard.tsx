@@ -25,6 +25,11 @@ type BindingCommandCardProps = {
   onUpdate: (command: BindingCommand, patch: BindingCommandPatch) => void
   onRemove: (command: BindingCommand) => void
   onDuplicate: (command: BindingCommand) => void
+  onCopy?: (command: BindingCommand) => void
+  /** Selection mode is on: show a checkbox instead of the normal actions. */
+  selectable?: boolean
+  selected?: boolean
+  onToggleSelected?: (command: BindingCommand) => void
   onCapture: (command: BindingCommand) => void
   onEnableVirtualController?: () => void
   onAddExtra?: () => void
@@ -77,6 +82,10 @@ export function BindingCommandCard({
   onUpdate,
   onRemove,
   onDuplicate,
+  onCopy,
+  selectable,
+  selected,
+  onToggleSelected,
   onCapture,
   onEnableVirtualController,
   onAddExtra,
@@ -130,6 +139,16 @@ export function BindingCommandCard({
       onPointerDown={event => { if (event.pointerType === 'touch') holdTimer.current = setTimeout(() => setMenuOpen(true), 600) }}
       onPointerUp={cancelHold} onPointerCancel={cancelHold} onPointerMove={cancelHold}>
       <div className={keymapStyles.commandSummary}>
+        {selectable && (
+          <input
+            type="checkbox"
+            className={keymapStyles.commandSelectCheckbox}
+            checked={!!selected}
+            data-capture-ignore="true"
+            aria-label={t('keymap.bindingsSelect')}
+            onChange={() => onToggleSelected?.(command)}
+          />
+        )}
         {canRetargetTrigger ? (
           <AppSelect
             className={`${keymapStyles.commandTriggerBadge} ${keymapStyles.commandTriggerBadgeSelect}`}
@@ -157,6 +176,7 @@ export function BindingCommandCard({
               { label: t('keymap.commandMenuRegularPress'), disabled: !canRetargetTrigger, onSelect: () => onUpdate(command, { triggerKind: 'regular' }) },
               { label: t('keymap.commandMenuSettings'), onSelect: () => setExpanded(true) },
               { label: t('keymap.commandMenuRename'), disabled: !onRename, onSelect: () => { requestAnimationFrame(() => onRename?.()) } },
+              { label: t('keymap.commandCopy'), disabled: !onCopy, onSelect: () => onCopy?.(command) },
               { label: t('keymap.commandMenuRemove'), onSelect: () => onRemove(command) },
               { label: t('keymap.commandMenuAddExtra'), onSelect: () => onAddExtra?.() },
               { label: t('keymap.commandMenuAddSub'), onSelect: () => onAddSub?.() },

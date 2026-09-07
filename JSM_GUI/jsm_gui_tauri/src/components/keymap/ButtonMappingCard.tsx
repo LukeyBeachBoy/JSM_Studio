@@ -8,6 +8,8 @@ type ButtonMappingCardProps = {
   description: string
   isCapturing: boolean
   commands: ReactNode
+  /** Row of binding-wide actions (select / copy / paste) shown above the list. */
+  toolbar?: ReactNode
   addControl: ReactNode
   extras?: ReactNode
   /** The input's drawn glyph, shown beside its name. */
@@ -23,6 +25,7 @@ export function ButtonMappingCard({
   description,
   isCapturing,
   commands,
+  toolbar,
   addControl,
   extras,
   glyph,
@@ -71,6 +74,7 @@ export function ButtonMappingCard({
         )}
       </div>
       <div className={keymapStyles.commandList}>
+        {toolbar}
         {commands}
         {addControl}
         {extras}

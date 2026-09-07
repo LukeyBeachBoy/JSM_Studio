@@ -44,6 +44,7 @@ import { SideBlock } from './keymap/SideBlock'
 import { TouchpadAccelSection } from './keymap/TouchpadAccelSection'
 import type { TouchpadAccelParamKey, TouchpadAccelValues } from '../hooks/useTouchpadConfig'
 import type { AccelCurveLink, AccelCurveShape } from '../utils/accelCurve'
+import type { BindingCommandPreset } from '../utils/bindingCommands'
 import { TouchpadSensorSection } from './keymap/TouchpadSensorSection'
 import { GripSettingsSection } from './keymap/GripSettingsSection'
 import { TouchpadStickSection } from './keymap/TouchpadStickSection'
@@ -696,6 +697,8 @@ export function KeymapControls({
   void (touchpadSmoothing && onTouchpadSmoothingChange && touchpadAcceleration && onTouchpadAccelerationChange)
   const { t } = useTranslation()
   const [mappingHelpOpen, setMappingHelpOpen] = useState(false)
+  // Bindings copied from one button, waiting to be pasted onto another.
+  const [bindingClipboard, setBindingClipboard] = useState<BindingCommandPreset[]>([])
   const [selectedTouchpadGridCommand, setSelectedTouchpadGridCommand] = useState<string | null>(null)
   const listSectionRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const {
@@ -1028,6 +1031,8 @@ export function KeymapControls({
         onEnableVirtualController={onVirtualControllerTypeChange ? () => onVirtualControllerTypeChange('XBOX') : undefined}
         bindingLabel={bindingLabels?.[button.command.toUpperCase()]}
         onBindingLabelChange={onBindingLabelChange}
+        bindingClipboard={bindingClipboard}
+        onCopyBindings={setBindingClipboard}
       />
     )
   }
