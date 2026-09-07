@@ -242,6 +242,7 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
   }
   const handleDecelBrakeStrengthChange = makeScalarHandler(keyName.DECEL_BRAKE_STRENGTH)
   const handleDecelBrakeThresholdChange = makeScalarHandler(keyName.DECEL_BRAKE_THRESHOLD)
+  const handleGyroClickDampenChange = makeScalarHandler(keyName.GYRO_CLICK_DAMPEN)
   const handleTickTimeChange = makeScalarHandler(keyName.TICK_TIME)
   const handleHoldPressTimeChange = makeScalarHandler(keyName.HOLD_PRESS_TIME)
   const makeWindowHandler = (key: typeof keyName.DBL_PRESS_WINDOW | typeof keyName.SIM_PRESS_WINDOW) => (value: string) => {
@@ -945,6 +946,7 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
     handleAngleSnapSmoothChange,
     handleDecelBrakeStrengthChange,
     handleDecelBrakeThresholdChange,
+    handleGyroClickDampenChange,
     handleTickTimeChange,
     handleHoldPressTimeChange,
     handleDoublePressWindowChange,

@@ -31,6 +31,7 @@ export interface SensitivityValues {
   angleSnapEase?: string
   decelBrakeStrength?: number
   decelBrakeThreshold?: number
+  gyroClickDampen?: number
   gyroSpace?: string
   gyroAxisX?: string
   gyroAxisY?: string
@@ -83,6 +84,7 @@ export function parseSensitivityValues(text: string, options?: { prefix?: string
   const oneEuroFilter = /^\s*ONE_EURO_FILTER\b/im.test(text)
   const decelBrakeStrength = single('DECEL_BRAKE_STRENGTH')
   const decelBrakeThreshold = single('DECEL_BRAKE_THRESHOLD')
+  const gyroClickDampen = single('GYRO_CLICK_DAMPEN')
 
   const result: SensitivityValues = {
     inGameSens: single('IN_GAME_SENS'),
@@ -108,6 +110,7 @@ export function parseSensitivityValues(text: string, options?: { prefix?: string
     angleSnapEase: angleSnapEaseRaw ? angleSnapEaseRaw.toUpperCase() : undefined,
     decelBrakeStrength,
     decelBrakeThreshold,
+    gyroClickDampen,
     gyroSpace: raw('GYRO_SPACE'),
     gyroAxisX: raw('GYRO_AXIS_X'),
     gyroAxisY: raw('GYRO_AXIS_Y'),

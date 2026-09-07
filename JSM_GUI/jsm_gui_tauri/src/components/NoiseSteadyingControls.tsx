@@ -27,6 +27,7 @@ type NoiseSteadyingControlsProps = {
   onAngleSnapSmoothChange: (value: string) => void
   onDecelBrakeStrengthChange: (value: string) => void
   onDecelBrakeThresholdChange: (value: string) => void
+  onGyroClickDampenChange: (value: string) => void
   telemetry: {
     omega: string
     timestamp: string
@@ -54,6 +55,7 @@ export function NoiseSteadyingControls({
   onAngleSnapSmoothChange,
   onDecelBrakeStrengthChange,
   onDecelBrakeThresholdChange,
+  onGyroClickDampenChange,
   telemetry,
 }: NoiseSteadyingControlsProps) {
   const { t } = useTranslation()
@@ -110,6 +112,23 @@ export function NoiseSteadyingControls({
       <div className="flex-inputs">
         <NumberField label={t('noise.decelBrakeStrength')} value={sensitivity.decelBrakeStrength} onChange={onDecelBrakeStrengthChange} min={0} max={1} step={0.01} />
         <NumberField label={t('noise.decelBrakeThreshold')} value={sensitivity.decelBrakeThreshold} onChange={onDecelBrakeThresholdChange} min={1} max={60} step={0.5} defaultValue={25} unit="°/s" />
+      </div>
+      {/* Not gyro noise as such -- the gyro is reporting a real movement. It just
+          isn't one you meant, which is what the rest of this page is about. */}
+      <div className="flex-inputs">
+        <NumberField
+          label={t('noise.gyroClickDampen', 'Trackpad press damping')}
+          value={sensitivity.gyroClickDampen}
+          onChange={onGyroClickDampenChange}
+          min={0}
+          max={1}
+          step={0.05}
+          coarseStep={0.25}
+          hint={t(
+            'noise.gyroClickDampenHint',
+            'Pressing a trackpad shoves the whole controller, and the gyro reports that shove as if you had aimed. If you pan with a pad and correct with the gyro, the jolt lands twice. This is how much gyro output the press takes away — 1 freezes the gyro while the pad is clicked. It shares the Damping pressure setting on the Trackpad tuning page, so it can start easing in before the click registers. 0 turns it off.'
+          )}
+        />
       </div>
       <SectionActions
         hasPendingChanges={hasPendingChanges}

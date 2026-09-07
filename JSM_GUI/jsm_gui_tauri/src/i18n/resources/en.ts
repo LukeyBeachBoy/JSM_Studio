@@ -652,6 +652,9 @@ export const en = {
     easeAngleSnapping: 'Ease Angle Snapping',
     decelBrakeStrength: 'Decel Brake Strength',
     decelBrakeThreshold: 'Decel Brake Threshold (°/s)',
+    gyroClickDampen: 'Trackpad press damping',
+    gyroClickDampenHint:
+      'Pressing a trackpad shoves the whole controller, and the gyro reports that shove as if you had aimed. If you pan with a pad and correct with the gyro, the jolt lands twice. This is how much gyro output the press takes away — 1 freezes the gyro while the pad is clicked. It shares the Damping pressure setting on the Trackpad tuning page, so it can start easing in before the click registers. 0 turns it off.',
   },
   rwcGuide: {
     title: 'Easy real world calibration method',

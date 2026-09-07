@@ -635,6 +635,7 @@ function App() {
     handleAngleSnapSmoothChange,
     handleDecelBrakeStrengthChange,
     handleDecelBrakeThresholdChange,
+    handleGyroClickDampenChange,
     handleTickTimeChange,
     handleHoldPressTimeChange,
     handleDoublePressWindowChange,
@@ -1292,6 +1293,7 @@ function App() {
                 onAngleSnapSmoothChange={handleAngleSnapSmoothChange}
                 onDecelBrakeStrengthChange={handleDecelBrakeStrengthChange}
                 onDecelBrakeThresholdChange={handleDecelBrakeThresholdChange}
+                onGyroClickDampenChange={handleGyroClickDampenChange}
                 telemetry={{
                   omega: telemetryValues.omega,
                   timestamp: telemetryValues.timestamp,

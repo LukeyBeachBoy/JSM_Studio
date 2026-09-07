@@ -649,6 +649,9 @@ export const zhCN = {
     easeAngleSnapping: '平滑角度吸附',
     decelBrakeStrength: '减速制动力度',
     decelBrakeThreshold: '减速制动阈值（°/s）',
+    gyroClickDampen: '触控板按压抑制',
+    gyroClickDampenHint:
+      '按压触控板会推动整个手柄，陀螺仪会把这段晃动当作瞄准如实上报。如果你用触控板大范围转视角、用陀螺仪做微调，这一下冲击就会被计入两次。此项决定按压会抽走多少陀螺仪输出 —— 设为 1 时，按住触控板期间陀螺仪完全静止。它与「触控板调校」页面的「抑制触发压力」共用同一设置，因此可以在点击真正触发之前就开始介入。0 表示关闭。',
   },
   rwcGuide: {
     title: '简易真实世界校准方法',

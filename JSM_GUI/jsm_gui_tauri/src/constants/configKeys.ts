@@ -23,6 +23,7 @@ export const noiseKeys = [
   'GYRO_ANGLE_SNAP_EASE',
   'DECEL_BRAKE_STRENGTH',
   'DECEL_BRAKE_THRESHOLD',
+  'GYRO_CLICK_DAMPEN',
 ] as const
 
 export const sensitivityKeys = [
@@ -189,6 +190,7 @@ export const keyName = {
   GYRO_ANGLE_SNAP_EASE: 'GYRO_ANGLE_SNAP_EASE',
   DECEL_BRAKE_STRENGTH: 'DECEL_BRAKE_STRENGTH',
   DECEL_BRAKE_THRESHOLD: 'DECEL_BRAKE_THRESHOLD',
+  GYRO_CLICK_DAMPEN: 'GYRO_CLICK_DAMPEN',
 
   // Sensitivity
   GYRO_SENS: 'GYRO_SENS',
