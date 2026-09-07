@@ -1,4 +1,4 @@
-name: Trackpad regression checks
+name: Controller regression checks
 
 on:
   push:
@@ -27,3 +27,23 @@ jobs:
 
       - name: Verify touch pipeline integration
         run: python3 JoyShockMapper/tests/touch_pipeline_regression.py
+
+      - name: Compile and run grip calibration tests
+        run: python3 JoyShockMapper/tests/run_grip_harness.py
+
+      - name: Verify grip settings integration
+        run: python3 JoyShockMapper/tests/firmware_threshold_regression.py
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: JSM_GUI/jsm_gui_tauri/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: JSM_GUI/jsm_gui_tauri
+        run: npm ci
+
+      - name: Verify grip slider conversions
+        run: node tests/grip_calibration_regression.cjs

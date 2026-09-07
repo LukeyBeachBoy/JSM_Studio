@@ -43,7 +43,7 @@ jobs:
         working-directory: JSM_GUI/jsm_gui_tauri
         run: npm run build:joyshockmapper
 
-      - name: Build Tauri MSI/NSIS installer
+      - name: Build Tauri NSIS installer with ViGEmBus
         uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

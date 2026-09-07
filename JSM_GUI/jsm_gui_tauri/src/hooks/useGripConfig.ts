@@ -19,7 +19,7 @@ type GripArgs = { configText: string; setConfigText: React.Dispatch<React.SetSta
 // -1 means "leave the controller's own value alone", which is the default: an
 // unset config never overwrites what the device (or Steam) already had.
 export const GRIP_FIRMWARE_DEFAULT = -1
-const GRIP_RANGE_MAX = 32767
+const GRIP_RANGE_MAX = 400
 
 export function useGripConfig({ configText, setConfigText }: GripArgs) {
   const read = useCallback((name: string) => getKeymapValue(configText, name), [configText])
@@ -61,7 +61,7 @@ export function useGripConfig({ configText, setConfigText }: GripArgs) {
     [writeClamped]
   )
   const handleGripFlickerGuardChange = useCallback(
-    (v: string) => writeClamped(keyName.GRIP_FLICKER_GUARD, v, GRIP_FIRMWARE_DEFAULT, GRIP_RANGE_MAX),
+    (v: string) => writeClamped(keyName.GRIP_FLICKER_GUARD, v, GRIP_FIRMWARE_DEFAULT, 100),
     [writeClamped]
   )
   const handleGripHapticIntensityChange = useCallback(

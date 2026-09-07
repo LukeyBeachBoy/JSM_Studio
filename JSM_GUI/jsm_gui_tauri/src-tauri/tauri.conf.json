@@ -7,7 +7,7 @@
   "build": {
     "beforeDevCommand": "npm run dev:web",
     "devUrl": "http://127.0.0.1:1420",
-    "beforeBuildCommand": "npm run build:joyshockmapper && npm run build:sidecars && npm run build:web",
+    "beforeBuildCommand": "npm run prepare:drivers && npm run build:joyshockmapper && npm run build:sidecars && npm run build:web",
     "frontendDist": "../dist"
   },
   "app": {
@@ -33,8 +33,15 @@
     ],
     "resources": {
       "bin": "bin",
-      "third_party/HidHide": "third_party/HidHide"
+      "third_party/HidHide": "third_party/HidHide",
+      "third_party/ViGEmBus/ViGEmBus_1.22.0_x64_x86_arm64.exe": "third_party/ViGEmBus/ViGEmBus_1.22.0_x64_x86_arm64.exe",
+      "third_party/ViGEmBus/README.md": "third_party/ViGEmBus/README.md"
     },
-    "targets": "all"
+    "targets": ["nsis"],
+    "windows": {
+      "nsis": {
+        "installerHooks": "installer-hooks.nsh"
+      }
+    }
   }
 }

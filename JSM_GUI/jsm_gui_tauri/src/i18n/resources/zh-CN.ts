@@ -678,7 +678,7 @@ export const zhCN = {
     virtualControllerTypeLabel: '虚拟手柄类型',
     virtualControllerType_NONE: '关闭',
     virtualControllerType_XBOX: 'Xbox 360',
-    virtualControllerType_DS4: 'DualShock 4',
+    virtualControllerType_DS4: 'PlayStation 4 (DualShock 4)',
     virtualControllerHint:
       '如果游戏同时看到了物理手柄和虚拟手柄，请配合 HidHide 隐藏物理手柄，只让 JSM 的输出进入游戏。',
     virtualControllerWarningModeRequired:
@@ -795,7 +795,8 @@ export const zhCN = {
     gripSettingsDescription: '手柄握把内部的电容感应条会检测你的手有多近。这两项与 Steam Input 的握把感应器校准设置相同，并保存在手柄固件中。',
     gripSensorRange: '握把感应范围',
     gripFlickerGuard: '防抖余量',
-    gripSensorHint: '“范围”指手靠近到多少距离时感应器触发，数值越低越早识别到手。“防抖余量”是松开前手需要额外远离的距离，避免手停在范围边缘时反复触发。均为固件原始数值，-1 表示保持手柄自身的数值。该设置对两侧握把统一生效：手柄只保存一个电容阈值，Steam Input 同样只显示一项。',
+    gripKeepCurrent: '保持手柄当前设置',
+    gripCalibrationHint: '范围越低，手指需要越靠近握把，因此轻微抬起手指就能松开感应。防抖余量越低，松开响应越快；如果感应闪烁，可略微调高。两项设置均作用于两侧握把。清空字段可保持手柄当前设置。保存并应用配置后测试效果。',
     gripHapticIntensity: '握把震动',
     gripHapticOff: '关闭',
     gripHapticEffect: '握把触感效果',

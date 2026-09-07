@@ -7,6 +7,7 @@ import { GRIP_FIRMWARE_DEFAULT } from '../../hooks/useGripConfig'
 import { HAPTIC_EFFECTS } from '../../utils/hapticBindings'
 import { NumberField } from '../NumberField'
 import { AppSelect } from '../ui/AppSelect'
+import { gripRangePercent, gripGuardPercent, gripRangeRaw, gripGuardRaw } from '../../utils/gripCalibration'
 
 type Props = {
   gripSensorRange?: number
@@ -40,8 +41,7 @@ export function GripSettingsSection(props: Props) {
   const hapticEffect = props.gripHapticEffect ?? 'CLICK'
   const releaseHaptic = props.gripReleaseHapticIntensity ?? 0
   const releaseHapticEffect = props.gripReleaseHapticEffect ?? 'CLICK'
-  const show = (v: number) =>
-    v < 0 ? t('keymap.firmwareDefault', 'Controller default') : String(Math.round(v))
+  const inherited = t('keymap.gripKeepCurrent', 'Keep controller setting')
 
   return (
     <>
@@ -55,28 +55,34 @@ export function GripSettingsSection(props: Props) {
         <div className={styles.touchpadSettings}>
           <NumberField layout="inline"
             label={t('keymap.gripSensorRange', 'Grip sensor range')}
-            value={range}
-            onChange={v => props.onGripSensorRangeChange?.(v)}
-            min={-1}
-            max={32767}
+            value={gripRangePercent(range)}
+            onChange={v => props.onGripSensorRangeChange?.(gripRangeRaw(v))}
+            min={0}
+            max={100}
             step={1}
-            coarseStep={250}
-            hint={show(range)}
+            coarseStep={10}
+            defaultValue={80}
+            unit="%"
+            placeholder={inherited}
+            hint={range < 0 ? inherited : undefined}
           />
           <NumberField layout="inline"
             label={t('keymap.gripFlickerGuard', 'Flicker guard size')}
-            value={guard}
-            onChange={v => props.onGripFlickerGuardChange?.(v)}
-            min={-1}
-            max={32767}
+            value={gripGuardPercent(guard)}
+            onChange={v => props.onGripFlickerGuardChange?.(gripGuardRaw(v))}
+            min={0}
+            max={100}
             step={1}
-            coarseStep={250}
-            hint={show(guard)}
+            coarseStep={10}
+            defaultValue={27}
+            unit="%"
+            placeholder={inherited}
+            hint={guard < 0 ? inherited : undefined}
           />
           <p className={styles.touchpadHint}>
             {t(
-              'keymap.gripSensorHint',
-              'Range is how near your hand must come before the sensor trips; lower detects your hands sooner. Flicker guard is the extra distance it must move away again before releasing, so a hand resting at the edge of the range cannot chatter on and off. Raw firmware units, and -1 keeps the controller’s own value. This is one setting for both grips: the controller stores a single capacitive threshold, which is why Steam Input also shows one.'
+              'keymap.gripCalibrationHint',
+              'Lower range requires closer contact, so a small finger lift can release the grip. Lower flicker guard releases sooner; raise it slightly if contact flickers. Both settings affect both grips. Clear a field to leave that controller setting unchanged. Save and Apply the configuration to test changes.'
             )}
           </p>
           <NumberField layout="inline"

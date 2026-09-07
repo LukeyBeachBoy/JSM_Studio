@@ -6,6 +6,7 @@
   "author": "Evan McLean",
   "type": "module",
   "scripts": {
+    "prepare:drivers": "powershell -ExecutionPolicy Bypass -File scripts/prepare-drivers.ps1",
     "dev": "tauri dev",
     "dev:web": "vite --host 127.0.0.1 --port 1420 --strictPort",
     "build": "tauri build",

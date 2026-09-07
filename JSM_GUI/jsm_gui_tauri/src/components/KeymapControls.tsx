@@ -999,7 +999,7 @@ export function KeymapControls({
   const showFullLayout = view === 'full'
   const showGlobalOnlyLayout = showFullLayout && visibleSections?.length === 1 && visibleSections[0] === 'global'
   const showMappedLayout = showFullLayout && !showGlobalOnlyLayout
-  // Press timing and virtual output apply to the whole config, not to whichever
+  // Press timing applies to the whole config, not to whichever
   // control you happen to be editing. Repeating them above every control page was
   // most of what made those pages feel like a wall of settings, so they only
   // appear where they belong now: on their own page.
@@ -1437,44 +1437,43 @@ export function KeymapControls({
             onOpenMappingHelp={() => setMappingHelpOpen(true)}
             {...actionsProps}
           />
-          {onVirtualControllerTypeChange && (
-            <section className={keymapStyles.virtualControllerPanel}>
-              <div className={keymapStyles.mappingVisualHeader}>
-                <div>
-                  <h3>{t('keymap.virtualControllerTitle')}</h3>
-                  <p>{t('keymap.virtualControllerDescription')}</p>
-                </div>
-              </div>
-              <div className={keymapStyles.virtualControllerControls} data-capture-ignore="true">
-                <label className={keymapStyles.quickComposerField}>
-                  <span>{t('keymap.virtualControllerTypeLabel')}</span>
-                  <AppSelect
-                    className="app-select"
-                    value={virtualControllerType ?? 'NONE'}
-                    onChange={(event) => onVirtualControllerTypeChange(event.target.value as VirtualControllerType)}
-                    disabled={isCalibrating}
-                  >
-                    <option value="NONE">{t('keymap.virtualControllerType_NONE')}</option>
-                    <option value="XBOX">{t('keymap.virtualControllerType_XBOX')}</option>
-                    <option value="DS4">{t('keymap.virtualControllerType_DS4')}</option>
-                  </AppSelect>
-                </label>
-                <p className={keymapStyles.virtualControllerHint}>{t('keymap.virtualControllerHint')}</p>
-              </div>
-              {virtualControllerWarnings && virtualControllerWarnings.length > 0 && (
-                <div className={keymapStyles.virtualControllerWarnings}>
-                  {virtualControllerWarnings.map((warning, index) => (
-                    <div key={`${warning.kind}-${index}`} className={keymapStyles.virtualControllerWarning}>
-                      {renderVirtualControllerWarning(warning)}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
-          )}
         </>
       )}
-
+      {showFullLayout && onVirtualControllerTypeChange && (
+        <section className={keymapStyles.virtualControllerPanel}>
+          <div className={keymapStyles.mappingVisualHeader}>
+            <div>
+              <h3>{t('keymap.virtualControllerTitle')}</h3>
+              <p>{t('keymap.virtualControllerDescription')}</p>
+            </div>
+          </div>
+          <div className={keymapStyles.virtualControllerControls} data-capture-ignore="true">
+            <label className={keymapStyles.quickComposerField}>
+              <span>{t('keymap.virtualControllerTypeLabel')}</span>
+              <AppSelect
+                className="app-select"
+                value={virtualControllerType ?? 'NONE'}
+                onChange={(event) => onVirtualControllerTypeChange(event.target.value as VirtualControllerType)}
+                disabled={isCalibrating}
+              >
+                <option value="NONE">{t('keymap.virtualControllerType_NONE')}</option>
+                <option value="XBOX">{t('keymap.virtualControllerType_XBOX')}</option>
+                <option value="DS4">{t('keymap.virtualControllerType_DS4')}</option>
+              </AppSelect>
+            </label>
+            <p className={keymapStyles.virtualControllerHint}>{t('keymap.virtualControllerHint')}</p>
+          </div>
+          {virtualControllerWarnings && virtualControllerWarnings.length > 0 && (
+            <div className={keymapStyles.virtualControllerWarnings}>
+              {virtualControllerWarnings.map((warning, index) => (
+                <div key={`${warning.kind}-${index}`} className={keymapStyles.virtualControllerWarning}>
+                  {renderVirtualControllerWarning(warning)}
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
       {showMappedLayout && (
         <>
           {(

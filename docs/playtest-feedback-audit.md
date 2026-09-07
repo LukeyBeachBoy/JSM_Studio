@@ -49,7 +49,7 @@ Backed up the seven newly arrived uncommitted native trackpad/test files before 
 
 ## Protocol investigation and hardware evidence
 
-Steam Input's proprietary client implementation was not available for inspection. The shutdown correction is based on the public controller protocol and a successful hardware test, rather than an inferred zero-argument message:
+The shutdown correction was based on the public controller protocol and a successful hardware test. A later read-only inspection of the installed Steam client uncovered a separate grip-calibration setting mismatch; see [grip-calibration-investigation.md](grip-calibration-investigation.md). The grip correction has compiled tests, but its physical calibration check remains pending.
 
 - [SC Controller shutdown implementation](https://github.com/kozec/sc-controller/blob/master/scc/drivers/sc_dongle.py#L354): command 0x9f, payload length 4, ASCII `off!`.
 - [SDL Triton driver at the build's pinned revision](https://github.com/libsdl-org/SDL/blob/5b98c1cc2f598115906c9c1f2758d3d256913468/src/joystick/hidapi/SDL_hidapi_steam_triton.c): 64-byte feature-report transport with leading report ID 1.
