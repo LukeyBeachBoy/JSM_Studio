@@ -12,10 +12,12 @@ type Props = {
   touchpadSpeedCoeff?: number
   touchpadTrackballDecay?: number
   touchpadTrackballMinVelocity?: number
+  touchpadMovementThreshold?: number
   onTouchpadMinCutoffChange?: (v: string) => void
   onTouchpadSpeedCoeffChange?: (v: string) => void
   onTouchpadTrackballDecayChange?: (v: string) => void
   onTouchpadTrackballMinVelocityChange?: (v: string) => void
+  onTouchpadMovementThresholdChange?: (v: string) => void
   hasPendingChanges: boolean
   statusMessage?: string | null
   onApply: () => void
@@ -116,6 +118,27 @@ export function TouchpadSensorSection(props: Props) {
               step={0.05}
             />
           </AdvancedDisclosure>
+          <NumberField layout="inline"
+            label={t('keymap.touchpadMovementThreshold', 'Minimum movement')}
+            value={props.touchpadMovementThreshold ?? 0}
+            onChange={v => props.onTouchpadMovementThresholdChange?.(v)}
+            min={0}
+            max={500}
+            step={1}
+            coarseStep={10}
+            unit="px/s"
+            hint={
+              (props.touchpadMovementThreshold ?? 0) === 0
+                ? t('keymap.touchpadMovementThresholdOff', 'Off — every reported movement reaches the cursor')
+                : undefined
+            }
+          />
+          <p className={styles.touchpadHint}>
+            {t(
+              'keymap.touchpadMovementThresholdHint',
+              'How fast your finger has to be moving across the pad, in pad pixels per second, before the cursor moves at all. A thumb trying to hold still never quite does, and that drift otherwise reaches the cursor as a slow crawl. Raise it until a resting thumb holds the cursor still; too high and slow deliberate panning stops working too. 0 turns the filter off.'
+            )}
+          </p>
           <NumberField layout="inline"
             label={t('keymap.touchpadTrackballDecay', 'Trackball glide decay')}
             value={props.touchpadTrackballDecay ?? 0}

@@ -46,6 +46,7 @@ import type { TouchpadAccelParamKey, TouchpadAccelValues } from '../hooks/useTou
 import type { AccelCurveLink, AccelCurveShape } from '../utils/accelCurve'
 import type { BindingCommandPreset } from '../utils/bindingCommands'
 import { TouchpadSensorSection } from './keymap/TouchpadSensorSection'
+import { TouchpadHapticSection } from './keymap/TouchpadHapticSection'
 import { GripSettingsSection } from './keymap/GripSettingsSection'
 import { TouchpadStickSection } from './keymap/TouchpadStickSection'
 import { SectionActions } from './SectionActions'
@@ -66,6 +67,7 @@ import { NumberField } from './NumberField'
 import type { VirtualControllerType, VirtualControllerWarning } from '../utils/virtualController'
 import { normalizeTouchpadMode, type TouchpadWarning } from '../utils/touchpadConfig'
 import { AppSelect } from './ui/AppSelect'
+import { TRACKPAD_ANCHORS } from '../constants/trackpadAnchors'
 
 type KeymapControlsProps = {
   configText: string
@@ -115,10 +117,22 @@ type KeymapControlsProps = {
   touchpadSpeedCoeff?: number
   touchpadTrackballDecay?: number
   touchpadTrackballMinVelocity?: number
+  touchpadMovementThreshold?: number
+  touchpadHapticIntensity?: number
+  touchpadHapticEffect?: string
+  touchpadHapticInterval?: number
+  touchpadClickHapticIntensity?: number
+  touchpadClickHapticEffect?: string
   onTouchpadMinCutoffChange?: (value: string) => void
   onTouchpadSpeedCoeffChange?: (value: string) => void
   onTouchpadTrackballDecayChange?: (value: string) => void
   onTouchpadTrackballMinVelocityChange?: (value: string) => void
+  onTouchpadMovementThresholdChange?: (value: string) => void
+  onTouchpadHapticIntensityChange?: (value: string) => void
+  onTouchpadHapticEffectChange?: (value: string) => void
+  onTouchpadHapticIntervalChange?: (value: string) => void
+  onTouchpadClickHapticIntensityChange?: (value: string) => void
+  onTouchpadClickHapticEffectChange?: (value: string) => void
   gripSensorRange?: number
   gripFlickerGuard?: number
   gripHapticIntensity?: number
@@ -169,10 +183,8 @@ type KeymapControlsProps = {
   onGridSizeChange?: (cols: number, rows: number) => void
   touchpadSensitivity?: number
   onTouchpadSensitivityChange?: (value: string) => void
-  touchpadSmoothing?: number
-  onTouchpadSmoothingChange?: (value: string) => void
-  touchpadAcceleration?: number
-  onTouchpadAccelerationChange?: (value: string) => void
+  /** Takes the user to the Trackpad tuning page, for the dials that are not per-pad. */
+  onOpenTuning?: () => void
   /** Your own names for what each input does, shown on the Overview diagram. */
   bindingLabels?: Record<string, string>
   onBindingLabelChange?: (command: string, label: string) => void
@@ -587,10 +599,22 @@ export function KeymapControls({
   touchpadSpeedCoeff,
   touchpadTrackballDecay,
   touchpadTrackballMinVelocity,
+  touchpadMovementThreshold,
+  touchpadHapticIntensity,
+  touchpadHapticEffect,
+  touchpadHapticInterval,
+  touchpadClickHapticIntensity,
+  touchpadClickHapticEffect,
   onTouchpadMinCutoffChange,
   onTouchpadSpeedCoeffChange,
   onTouchpadTrackballDecayChange,
   onTouchpadTrackballMinVelocityChange,
+  onTouchpadMovementThresholdChange,
+  onTouchpadHapticIntensityChange,
+  onTouchpadHapticEffectChange,
+  onTouchpadHapticIntervalChange,
+  onTouchpadClickHapticIntensityChange,
+  onTouchpadClickHapticEffectChange,
   gripSensorRange,
   gripFlickerGuard,
   gripHapticIntensity,
@@ -641,10 +665,7 @@ export function KeymapControls({
   onGridSizeChange,
   touchpadSensitivity,
   onTouchpadSensitivityChange,
-  touchpadSmoothing,
-    onTouchpadSmoothingChange,
-    touchpadAcceleration,
-    onTouchpadAccelerationChange,
+  onOpenTuning,
     bindingLabels,
     onBindingLabelChange,
     touchpadAccelValues,
@@ -694,7 +715,6 @@ export function KeymapControls({
   virtualControllerWarnings,
   onVirtualControllerTypeChange,
 }: KeymapControlsProps) {
-  void (touchpadSmoothing && onTouchpadSmoothingChange && touchpadAcceleration && onTouchpadAccelerationChange)
   const { t } = useTranslation()
   const [mappingHelpOpen, setMappingHelpOpen] = useState(false)
   // Bindings copied from one button, waiting to be pasted onto another.
@@ -1108,8 +1128,6 @@ export function KeymapControls({
         gridRows: leftGridRows ?? gridRows,
         sensitivity: leftTouchpadSensitivity,
         sensitivityY: leftTouchpadSensitivityY,
-        smoothing: touchpadSmoothing,
-        acceleration: touchpadAcceleration,
         onModeChange: onLeftTouchpadModeChange,
         onGridSizeChange: onLeftGridSizeChange,
         onSensitivityChange: onLeftTouchpadSensitivityChange,
@@ -1117,8 +1135,7 @@ export function KeymapControls({
         onDualStageModeChange: onLeftTouchpadDualStageModeChange,
         gridRequiresClick: leftGridRequiresClick,
         onGridRequiresClickChange: onLeftGridRequiresClickChange,
-        onSmoothingChange: onTouchpadSmoothingChange,
-        onAccelerationChange: onTouchpadAccelerationChange,
+        onOpenTuning,
       }
     : undefined
   const rightPadCard: TouchpadModeCardConfig | undefined = showPerPadTouchpads
@@ -1129,8 +1146,6 @@ export function KeymapControls({
         gridRows: rightGridRows ?? gridRows,
         sensitivity: rightTouchpadSensitivity,
         sensitivityY: rightTouchpadSensitivityY,
-        smoothing: touchpadSmoothing,
-        acceleration: touchpadAcceleration,
         onModeChange: onRightTouchpadModeChange,
         onGridSizeChange: onRightGridSizeChange,
         onSensitivityChange: onRightTouchpadSensitivityChange,
@@ -1138,8 +1153,7 @@ export function KeymapControls({
         onDualStageModeChange: onRightTouchpadDualStageModeChange,
         gridRequiresClick: rightGridRequiresClick,
         onGridRequiresClickChange: onRightGridRequiresClickChange,
-        onSmoothingChange: onTouchpadSmoothingChange,
-        onAccelerationChange: onTouchpadAccelerationChange,
+        onOpenTuning,
       }
     : undefined
   const padModeFor = (side: 'left' | 'right') =>
@@ -1211,6 +1225,7 @@ export function KeymapControls({
       <SideBlock
         key={side}
         side={side}
+        id={side === 'left' ? TRACKPAD_ANCHORS.left : TRACKPAD_ANCHORS.right}
         title={side === 'left' ? t('keymap.leftTrackpadSection', 'Left trackpad') : t('keymap.rightTrackpadSection', 'Right trackpad')}
         description={t('keymap.touchpadSettingsDescription')}
       >
@@ -1333,13 +1348,18 @@ export function KeymapControls({
         <div className={keymapStyles.keymapCardHeader}>
           <div className={keymapStyles.keymapTitleRow}>
             <h2>
-              {/* The touchpad view is used twice: once for the pads' bindings and
-                  once for the sensor tuning, which is a different page and needs
-                  its own name. */}
+              {/* The touchpad view backs three pages -- the pads' bindings, the
+                  mouse tuning and the grip sensors -- and each needs its own
+                  name rather than inheriting the bindings page's. */}
+              {/* Keyed off what the page asked for, not off isVisible: with an
+                  unsupported controller plugged in the section is hidden but the
+                  page still has to say which page it is. */}
               {view === 'touchpad'
-                ? (isVisible('touch-sensors')
-                    ? t('keymap.sensorControlsTitle', 'Trackpad & Grip Sensors')
-                    : t('keymap.touchpadControlsTitle'))
+                ? (visibleSections?.includes('touch-sensors')
+                    ? t('keymap.sensorControlsTitle', 'Trackpad tuning')
+                    : visibleSections?.includes('grip-sensors')
+                      ? t('keymap.gripControlsTitle', 'Grip sensors')
+                      : t('keymap.touchpadControlsTitle'))
                 : t('keymap.controlsTitle')}
             </h2>
           </div>
@@ -1581,10 +1601,7 @@ export function KeymapControls({
                     touchpadSensitivityY={touchpadSensitivityY}
                     onTouchpadSensitivityYChange={onTouchpadSensitivityYChange}
                     onTouchpadSensitivityChange={onTouchpadSensitivityChange}
-                    touchpadSmoothing={touchpadSmoothing}
-                    onTouchpadSmoothingChange={onTouchpadSmoothingChange}
-                    touchpadAcceleration={touchpadAcceleration}
-                    onTouchpadAccelerationChange={onTouchpadAccelerationChange}
+                    onOpenTuning={onOpenTuning}
                     warnings={touchpadWarnings?.map(renderTouchpadWarning)}
                     {...actionsProps}
                   />
@@ -1628,10 +1645,31 @@ export function KeymapControls({
                   touchpadSpeedCoeff={touchpadSpeedCoeff}
                   touchpadTrackballDecay={touchpadTrackballDecay}
                   touchpadTrackballMinVelocity={touchpadTrackballMinVelocity}
+                  touchpadMovementThreshold={touchpadMovementThreshold}
                   onTouchpadMinCutoffChange={onTouchpadMinCutoffChange}
                   onTouchpadSpeedCoeffChange={onTouchpadSpeedCoeffChange}
                   onTouchpadTrackballDecayChange={onTouchpadTrackballDecayChange}
                   onTouchpadTrackballMinVelocityChange={onTouchpadTrackballMinVelocityChange}
+                  onTouchpadMovementThresholdChange={onTouchpadMovementThresholdChange}
+                  {...actionsProps}
+                />
+              ),
+            },
+            {
+              key: 'touch-haptics',
+              shouldRender: isVisible('touch-sensors'),
+              node: (
+                <TouchpadHapticSection
+                  touchpadHapticIntensity={touchpadHapticIntensity}
+                  touchpadHapticEffect={touchpadHapticEffect}
+                  touchpadHapticInterval={touchpadHapticInterval}
+                  touchpadClickHapticIntensity={touchpadClickHapticIntensity}
+                  touchpadClickHapticEffect={touchpadClickHapticEffect}
+                  onTouchpadHapticIntensityChange={onTouchpadHapticIntensityChange}
+                  onTouchpadHapticEffectChange={onTouchpadHapticEffectChange}
+                  onTouchpadHapticIntervalChange={onTouchpadHapticIntervalChange}
+                  onTouchpadClickHapticIntensityChange={onTouchpadClickHapticIntensityChange}
+                  onTouchpadClickHapticEffectChange={onTouchpadClickHapticEffectChange}
                   {...actionsProps}
                 />
               ),
@@ -1695,6 +1733,7 @@ export function KeymapControls({
               key: 'touch-bind',
               shouldRender: isVisible('touch-bind') && touchpadButtonSectionButtons.length > 0,
               node: (
+                <div id={TRACKPAD_ANCHORS.buttons}>
                 <ButtonGridSection
                   title={t('keymap.touchButtonsTitle')}
                   description={
@@ -1708,6 +1747,7 @@ export function KeymapControls({
                   renderButton={renderButtonCard}
                   {...actionsProps}
                 />
+                </div>
               ),
             },
           ])}

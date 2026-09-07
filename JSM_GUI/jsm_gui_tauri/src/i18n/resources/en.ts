@@ -185,7 +185,8 @@ export const en = {
     controllerNav: 'Navigate with controller',
       tuningGroup: 'Tuning',
       gyroAndSensitivity: 'Gyro & Sensitivity',
-    sensors: 'Trackpad & grip sensors',
+    sensors: 'Trackpad tuning',
+    gripSensors: 'Grip sensors',
     timing: 'Press timing & output',
       settingsGroup: 'Settings',
       deviceVisibility: 'Device Visibility',
@@ -693,7 +694,8 @@ export const en = {
     mappingLayoutList: 'List',
     selectedButton: 'Selected button',
     touchpadControlsTitle: 'Touchpad Controls',
-    sensorControlsTitle: 'Trackpad & Grip Sensors',
+    sensorControlsTitle: 'Trackpad tuning',
+    gripControlsTitle: 'Grip sensors',
     stickBindingsTitle: 'Stick Bindings',
     bindings: 'Bindings',
     modesAndSettings: 'Modes & Settings',
@@ -831,6 +833,26 @@ export const en = {
     touchpadTrackballDecay: 'Trackball glide decay',
     touchpadTrackballDecayHint: '0 stops the cursor the instant your finger leaves the pad, matching Steam Input\u2019s Mouse style. Higher values coast briefly after a flick.',
     touchpadAcceleration: 'Acceleration',
+    touchpadTuningPointer:
+      'Acceleration, trackball glide and smoothing are tuned for both pads at once on the Trackpad tuning page.',
+    touchpadTuningPointerAction: 'Open trackpad tuning',
+    touchpadMovementThreshold: 'Minimum movement',
+    touchpadMovementThresholdOff: 'Off — every reported movement reaches the cursor',
+    touchpadMovementThresholdHint:
+      'How fast your finger has to be moving across the pad, in pad pixels per second, before the cursor moves at all. A thumb trying to hold still never quite does, and that drift otherwise reaches the cursor as a slow crawl. Raise it until a resting thumb holds the cursor still; too high and slow deliberate panning stops working too. 0 turns the filter off.',
+    touchpadHapticTitle: 'Trackpad haptics',
+    touchpadHapticDescription:
+      'What each pad’s own actuator does as you move across it and when you press it down. One setting for both pads; each pad pulses for its own finger.',
+    touchpadHapticIntensity: 'Movement haptic',
+    touchpadHapticEffect: 'Movement haptic effect',
+    touchpadHapticInterval: 'Tick spacing',
+    touchpadHapticOff: 'Off',
+    touchpadHapticHint:
+      'A short tick every time your finger has travelled the spacing distance across the pad, so a swipe feels like a notched wheel rather than a smooth surface. Spacing is measured on the pad, not on screen, so changing sensitivity does not change how the ticks feel. Lower spacing is a finer, busier detent. 0 intensity turns it off.',
+    touchpadClickHapticIntensity: 'Click haptic',
+    touchpadClickHapticEffect: 'Click haptic effect',
+    touchpadClickHapticHint:
+      'A single pulse the moment you press the pad down, fired on the pad you actually clicked. Independent of the movement ticks and of whatever the click is bound to, so you can have the feel without the ticks, or either on its own.',
     touchpadDualStageMode: 'Touch and click dual-stage mode',
     touchStickTitle: 'Drag-to-stick output',
     touchStickDescription:

@@ -1,0 +1,83 @@
+.rail {
+  position: sticky;
+  top: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  align-self: start;
+  width: 11rem;
+  flex: 0 0 auto;
+  padding: 0.35rem;
+  border: 1px solid var(--border-1);
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--bg-2) 62%, transparent);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.42rem 0.55rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 650;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.item:hover {
+  background: var(--bg-btn-hover);
+  color: var(--text-strong);
+}
+
+.item:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+.active {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--text-strong);
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: 0 0 auto;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--text-strong);
+  font-size: 0.68rem;
+  font-weight: 900;
+}
+
+.label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Below the shell's own breakpoint the page is a single narrow column, so the
+   rail lies down above the content rather than stealing width from it. */
+@media (max-width: 1060px) {
+  .rail {
+    position: static;
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .item {
+    width: auto;
+  }
+}

@@ -166,6 +166,19 @@ export function TuneIcon() {
   )
 }
 
+// The controller's silhouette narrowed to its two handles, which is what the
+// grip sensors actually are: a capacitive strip down the inside of each grip.
+export function GripIcon() {
+  return (
+    <svg {...base}>
+      <path d="M4.4 2.4v5.1c0 2.6-.7 4-1.5 5.1" />
+      <path d="M11.6 2.4v5.1c0 2.6.7 4 1.5 5.1" />
+      <path d="M4.4 5.2h7.2" />
+      <circle cx="8" cy="9.6" r="1.1" />
+    </svg>
+  )
+}
+
 export function TimingIcon() {
   return (
     <svg {...base}>

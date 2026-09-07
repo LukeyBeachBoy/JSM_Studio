@@ -7,6 +7,8 @@ type SideBlockProps = {
   /** Omit to show only the L / R strip (when the content carries its own heading). */
   title?: string
   description?: string
+  /** Anchor for a within-page nav to scroll to. */
+  id?: string
   children: ReactNode
 }
 
@@ -14,11 +16,11 @@ type SideBlockProps = {
 // SIDE: everything for the left hand first, then a clearly separated block for
 // the right. Interleaving left and right rows is what made those pages hard to
 // scan -- you had to read every label to know which hand it was about.
-export function SideBlock({ side, title, description, children }: SideBlockProps) {
+export function SideBlock({ side, title, description, id, children }: SideBlockProps) {
   const { t } = useTranslation()
   const sideLabel = side === 'left' ? t('keymap.sideLeft', 'Left') : t('keymap.sideRight', 'Right')
   return (
-    <section className={`${styles.block} ${side === 'left' ? styles.left : styles.right}`} aria-label={title ?? sideLabel}>
+    <section id={id} className={`${styles.block} ${side === 'left' ? styles.left : styles.right}`} aria-label={title ?? sideLabel}>
       <header className={styles.header}>
         <span className={styles.tag} aria-hidden="true">
           {side === 'left' ? 'L' : 'R'}

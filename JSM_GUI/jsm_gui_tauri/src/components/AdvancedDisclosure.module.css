@@ -70,3 +70,11 @@
   gap: 0.7rem;
   padding: 0.55rem 0.2rem 0.2rem;
 }
+
+/* NumberField carries `flex: 1 1 200px` so several of them can share a row. In
+   this column that basis is a 200px HEIGHT and the grow factor stretches each
+   field over whatever is left, which is what opened the huge gaps inside every
+   Advanced disclosure. Same defect, and same fix, as .touchpadSettings. */
+.body > * {
+  flex: 0 0 auto;
+}

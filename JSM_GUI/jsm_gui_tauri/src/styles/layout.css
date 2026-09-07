@@ -46,6 +46,20 @@
   margin-top: var(--space-4);
 }
 
+/* A page that carries its own within-page index down the left. The rail is
+   sticky and fixed-width; the panel takes the rest and must be allowed to
+   shrink, or a wide table inside it pushes the whole row sideways. */
+.page-with-rail {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.page-rail-content {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .main-pane {
   min-width: 0;
   width: 100%;
@@ -65,6 +79,14 @@
   }
 
   .main-pane {
+    width: 100%;
+  }
+
+  .page-with-rail {
+    flex-direction: column;
+  }
+
+  .page-rail-content {
     width: 100%;
   }
 

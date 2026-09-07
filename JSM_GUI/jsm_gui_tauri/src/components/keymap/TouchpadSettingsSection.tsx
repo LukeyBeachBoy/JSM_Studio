@@ -14,17 +14,15 @@ export type TouchpadModeCardConfig = {
   gridRows: number
   sensitivity?: number
   sensitivityY?: number
-  smoothing?: number
-  acceleration?: number
   onModeChange?: (v: string) => void
   onGridSizeChange?: (c: number, r: number) => void
   onSensitivityChange?: (v: string) => void
   onSensitivityYChange?: (v: string) => void
   onDualStageModeChange?: (v: string) => void
-  onSmoothingChange?: (v: string) => void
-  onAccelerationChange?: (v: string) => void
   gridRequiresClick?: boolean
   onGridRequiresClickChange?: (checked: boolean) => void
+  /** Takes the user to the Trackpad tuning page. Omitted, the pointer to it is hidden. */
+  onOpenTuning?: () => void
 }
 
 type Props = {
@@ -43,10 +41,7 @@ type Props = {
   onTouchpadDualStageModeChange?: (v: string) => void
   touchpadGridRequiresClick?: boolean
   onTouchpadGridRequiresClickChange?: (checked: boolean) => void
-  touchpadSmoothing?: number
-  onTouchpadSmoothingChange?: (v: string) => void
-  touchpadAcceleration?: number
-  onTouchpadAccelerationChange?: (v: string) => void
+  onOpenTuning?: () => void
   warnings?: string[]
   hasPendingChanges: boolean
   statusMessage?: string | null
@@ -136,30 +131,22 @@ export function TouchpadModeCard({ config, title }: { config: TouchpadModeCardCo
               placeholder={config.sensitivity !== undefined ? String(config.sensitivity) : '1'}
             />
           </div>
-          <NumberField
-            layout="inline"
-            label={t('keymap.touchpadAcceleration')}
-            value={config.acceleration ?? 0}
-            onChange={v => config.onAccelerationChange?.(v)}
-            min={0}
-            max={5}
-            step={0.1}
-            coarseStep={0.5}
-          />
-          <AdvancedDisclosure>
-            <NumberField
-            layout="inline"
-              className={styles.touchpadDeprecated}
-              label={t('keymap.touchpadSmoothingDeprecated', 'Legacy smoothing')}
-              value={config.smoothing ?? 0}
-              onChange={v => config.onSmoothingChange?.(v)}
-              min={0}
-              max={1}
-              step={0.01}
-              coarseStep={0.05}
-              hint={t('keymap.touchpadSmoothingDeprecatedHint', 'Deprecated — prefer the smoothing cutoff under Mouse output. Leave at 0.')}
-            />
-          </AdvancedDisclosure>
+          {/* Acceleration, trackball glide and smoothing are one global set of
+              dials shared by both pads, so they live on the tuning page rather
+              than being duplicated into each pad's card. This is the signpost. */}
+          {config.onOpenTuning && (
+            <div className={styles.tuningPointer}>
+              <p>
+                {t(
+                  'keymap.touchpadTuningPointer',
+                  'Acceleration, trackball glide and smoothing are tuned for both pads at once on the Trackpad tuning page.'
+                )}
+              </p>
+              <button type="button" className="ghost-btn" onClick={config.onOpenTuning}>
+                {t('keymap.touchpadTuningPointerAction', 'Open trackpad tuning')}
+              </button>
+            </div>
+          )}
         </>
       )}
       {config.mode === 'GRID_AND_STICK' && (
@@ -221,8 +208,6 @@ export function TouchpadSettingsSection(props: Props) {
                 gridRows: props.gridRows,
                 sensitivity: props.touchpadSensitivity,
                 sensitivityY: props.touchpadSensitivityY,
-                smoothing: props.touchpadSmoothing,
-                acceleration: props.touchpadAcceleration,
                 onModeChange: props.onTouchpadModeChange,
                 onGridSizeChange: props.onGridSizeChange,
                 onSensitivityChange: props.onTouchpadSensitivityChange,
@@ -230,8 +215,7 @@ export function TouchpadSettingsSection(props: Props) {
                 onDualStageModeChange: props.onTouchpadDualStageModeChange,
                 gridRequiresClick: props.touchpadGridRequiresClick,
                 onGridRequiresClickChange: props.onTouchpadGridRequiresClickChange,
-                onSmoothingChange: props.onTouchpadSmoothingChange,
-                onAccelerationChange: props.onTouchpadAccelerationChange,
+                onOpenTuning: props.onOpenTuning,
               }}
               title={t('keymap.touchpad', 'Touchpad')}
             />

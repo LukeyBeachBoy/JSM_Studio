@@ -15,6 +15,7 @@ import {
   TrackpadIcon,
   GyroIcon,
   TuneIcon,
+  GripIcon,
   TimingIcon,
   SparkleIcon,
   EyeIcon,
@@ -46,12 +47,15 @@ import { LanguageSelect } from './components/LanguageSelect'
 import { useKeyboardNav } from './hooks/useKeyboardNav'
 import { ControllerGlyphBar } from './components/ControllerGlyphBar'
 import { AppSelect } from './components/ui/AppSelect'
+import { PageSideNav } from './components/keymap/PageSideNav'
+import { TRACKPAD_ANCHORS } from './constants/trackpadAnchors'
+import { controllerHasTwoTrackpads } from './utils/controllerStatus'
 
 
 // One page per physical control, the way Steam Input splits them up, instead of
 // one page carrying every binding on the controller.
 type ControlTab = 'buttons' | 'dpad' | 'triggers' | 'joysticks'
-type PrimaryTab = ControlTab | 'gyro' | 'touchpad' | 'globalChords' | 'sensors' | 'timing' | 'controllerStatus' | 'debugConsole' | 'ai' | 'help' | 'deviceVisibility' | 'overview'
+type PrimaryTab = ControlTab | 'gyro' | 'touchpad' | 'globalChords' | 'sensors' | 'gripSensors' | 'timing' | 'controllerStatus' | 'debugConsole' | 'ai' | 'help' | 'deviceVisibility' | 'overview'
 
 // Which of KeymapControls' button groups each control page is about.
 const CONTROL_TAB_SECTIONS: Record<ControlTab, string[]> = {
@@ -63,7 +67,7 @@ const CONTROL_TAB_SECTIONS: Record<ControlTab, string[]> = {
 // Page Up / Page Down (controller triggers) walk this order.
 const PAGE_ORDER: PrimaryTab[] = [
   'overview', 'buttons', 'dpad', 'triggers', 'joysticks', 'touchpad', 'gyro', 'globalChords',
-  'sensors', 'timing', 'ai', 'controllerStatus', 'debugConsole', 'deviceVisibility', 'help',
+  'sensors', 'gripSensors', 'timing', 'ai', 'controllerStatus', 'debugConsole', 'deviceVisibility', 'help',
 ]
 type GyroSubTab = 'behavior' | 'sensitivity' | 'noise'
 
@@ -268,6 +272,13 @@ const PrimaryNav = ({ primaryTab, setPrimaryTab, includeHelp = false }: PrimaryN
         >
           <span className={sideNavStyles.navItemIcon}><TuneIcon /></span>
           {t('app.nav.sensors')}
+        </button>
+        <button
+          className={`${sideNavStyles.navItem} ${primaryTab === 'gripSensors' ? sideNavStyles.active : ''}`}
+          onClick={() => setPrimaryTab('gripSensors')}
+        >
+          <span className={sideNavStyles.navItemIcon}><GripIcon /></span>
+          {t('app.nav.gripSensors')}
         </button>
         <button
           className={`${sideNavStyles.navItem} ${primaryTab === 'timing' ? sideNavStyles.active : ''}`}
@@ -532,6 +543,18 @@ function App() {
     touchpadSpeedCoeffValue,
     touchpadTrackballDecayValue,
     touchpadTrackballMinVelocityValue,
+    touchpadMovementThresholdValue,
+    touchpadHapticIntensityValue,
+    touchpadHapticEffectValue,
+    touchpadHapticIntervalValue,
+    touchpadClickHapticIntensityValue,
+    touchpadClickHapticEffectValue,
+    handleTouchpadMovementThresholdChange,
+    handleTouchpadHapticIntensityChange,
+    handleTouchpadHapticEffectChange,
+    handleTouchpadHapticIntervalChange,
+    handleTouchpadClickHapticIntensityChange,
+    handleTouchpadClickHapticEffectChange,
     handleTouchpadMinCutoffChange,
     handleTouchpadSpeedCoeffChange,
     handleTouchpadTrackballDecayChange,
@@ -583,8 +606,6 @@ function App() {
     touchStickAxisValue,
     leftTouchStickAxisValue,
     rightTouchStickAxisValue,
-    touchpadAccelerationValue,
-    handleAcceleration,
     touchpadAccelValues,
     accelCurveLinkValue,
     handleTouchpadAccelCurveChange,
@@ -728,6 +749,24 @@ function App() {
       touchpadModeValue,
     ]
   )
+
+  // Mirrors KeymapControls' own showPerPadTouchpads: with nothing plugged in the
+  // page still shows both pads, so the side rail has to as well.
+  const hasTwoTrackpads = useMemo(() => {
+    const devices = sample?.devices
+    if (!devices || devices.length === 0) return true
+    return devices.some(device => controllerHasTwoTrackpads(device.type))
+  }, [sample?.devices])
+
+  const trackpadRailItems = useMemo(
+    () => [
+      { id: TRACKPAD_ANCHORS.left, tag: 'L', label: t('keymap.leftTrackpadSection', 'Left trackpad') },
+      { id: TRACKPAD_ANCHORS.right, tag: 'R', label: t('keymap.rightTrackpadSection', 'Right trackpad') },
+      { id: TRACKPAD_ANCHORS.buttons, label: t('keymap.touchButtonsTitle') },
+    ],
+    [t]
+  )
+
   const {
     libraryProfiles,
     isLibraryLoading,
@@ -1393,8 +1432,6 @@ function App() {
             touchStickRadius={touchStickRadiusValue}
             touchStickAxis={touchStickAxisValue}
             touchpadWarnings={touchpadWarnings}
-            touchpadAcceleration={touchpadAccelerationValue}
-            onTouchpadAccelerationChange={handleAcceleration}
             touchpadAccelValues={touchpadAccelValues}
             accelCurveLink={accelCurveLinkValue}
             gyroAccelShape={sensitivity}
@@ -1437,15 +1474,19 @@ function App() {
       )
     }
 
-    if (primaryTab === 'touchpad' || primaryTab === 'sensors') {
-      // Sensor thresholds and smoothing describe the hardware; the touchpad page
-      // is for what the pads are bound to. Same panel, two disjoint slices of it.
+    if (primaryTab === 'touchpad' || primaryTab === 'sensors' || primaryTab === 'gripSensors') {
+      // One panel, three disjoint slices of it. Mouse tuning describes the pads'
+      // output, the grip sensors are a different piece of hardware entirely, and
+      // the trackpads page is for what the pads are bound to.
       const sections = primaryTab === 'sensors'
-        ? ['touch-sensors', 'grip-sensors']
-        : ['touch-grid', 'touch-stick', 'touch-bind']
-      return (
+        ? ['touch-sensors']
+        : primaryTab === 'gripSensors'
+          ? ['grip-sensors']
+          : ['touch-grid', 'touch-stick', 'touch-bind']
+      const panel = (
         <Suspense fallback={<LazyPanelFallback title={t('app.nav.touchpad')} />}>
           <KeymapControls
+            onOpenTuning={() => setPrimaryTab('sensors')}
             view="touchpad"
             selectedMappingCommand={selectedMappingCommand}
             configText={configText}
@@ -1483,6 +1524,18 @@ function App() {
             onTouchpadSpeedCoeffChange={handleTouchpadSpeedCoeffChange}
             onTouchpadTrackballDecayChange={handleTouchpadTrackballDecayChange}
             onTouchpadTrackballMinVelocityChange={handleTouchpadTrackballMinVelocityChange}
+            touchpadMovementThreshold={touchpadMovementThresholdValue}
+            onTouchpadMovementThresholdChange={handleTouchpadMovementThresholdChange}
+            touchpadHapticIntensity={touchpadHapticIntensityValue}
+            touchpadHapticEffect={touchpadHapticEffectValue}
+            touchpadHapticInterval={touchpadHapticIntervalValue}
+            touchpadClickHapticIntensity={touchpadClickHapticIntensityValue}
+            touchpadClickHapticEffect={touchpadClickHapticEffectValue}
+            onTouchpadHapticIntensityChange={handleTouchpadHapticIntensityChange}
+            onTouchpadHapticEffectChange={handleTouchpadHapticEffectChange}
+            onTouchpadHapticIntervalChange={handleTouchpadHapticIntervalChange}
+            onTouchpadClickHapticIntensityChange={handleTouchpadClickHapticIntensityChange}
+            onTouchpadClickHapticEffectChange={handleTouchpadClickHapticEffectChange}
             gripSensorRange={gripSensorRangeValue}
             gripFlickerGuard={gripFlickerGuardValue}
             gripHapticIntensity={gripHapticIntensityValue}
@@ -1565,8 +1618,6 @@ function App() {
             onLeftTouchStickAxisChange={handleLeftTouchStickAxisChange}
             onRightTouchStickAxisChange={handleRightTouchStickAxisChange}
             touchpadWarnings={touchpadWarnings}
-            touchpadAcceleration={touchpadAccelerationValue}
-            onTouchpadAccelerationChange={handleAcceleration}
             touchpadAccelValues={touchpadAccelValues}
             accelCurveLink={accelCurveLinkValue}
             gyroAccelShape={sensitivity}
@@ -1598,6 +1649,17 @@ function App() {
             onBindingLabelChange={handleBindingLabelChange}
           />
         </Suspense>
+      )
+
+      // The trackpads page is one tall column of Left pad, Right pad and the
+      // shared buttons, so it gets its own index down the side. The two tuning
+      // pages are short enough not to need one.
+      if (primaryTab !== 'touchpad' || !hasTwoTrackpads) return panel
+      return (
+        <div className="page-with-rail">
+          <PageSideNav ariaLabel={t('app.nav.trackpads')} items={trackpadRailItems} />
+          <div className="page-rail-content">{panel}</div>
+        </div>
       )
     }
 
