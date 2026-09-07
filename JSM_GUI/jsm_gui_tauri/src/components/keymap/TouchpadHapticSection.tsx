@@ -13,11 +13,15 @@ type Props = {
   touchpadHapticInterval?: number
   touchpadClickHapticIntensity?: number
   touchpadClickHapticEffect?: string
+  touchpadReleaseHapticIntensity?: number
+  touchpadReleaseHapticEffect?: string
   onTouchpadHapticIntensityChange?: (v: string) => void
   onTouchpadHapticEffectChange?: (v: string) => void
   onTouchpadHapticIntervalChange?: (v: string) => void
   onTouchpadClickHapticIntensityChange?: (v: string) => void
   onTouchpadClickHapticEffectChange?: (v: string) => void
+  onTouchpadReleaseHapticIntensityChange?: (v: string) => void
+  onTouchpadReleaseHapticEffectChange?: (v: string) => void
   hasPendingChanges: boolean
   statusMessage?: string | null
   onApply: () => void
@@ -25,9 +29,9 @@ type Props = {
   applyDisabled?: boolean
 }
 
-// The pads have their own actuators, the same ones the grips do. Two independent
-// pulses: one that ticks as your finger travels, the way a scroll wheel detents,
-// and one for physically clicking the pad down. Both off by default -- an
+// The pads have their own actuators, the same ones the grips do. Three
+// independent pulses: one that ticks as your finger travels, the way a scroll
+// wheel detents, and one for each edge of a pad click. All off by default -- an
 // unasked-for buzz on every swipe would be worse than no feature at all.
 export function TouchpadHapticSection(props: Props) {
   const { t } = useTranslation()
@@ -36,6 +40,8 @@ export function TouchpadHapticSection(props: Props) {
   const interval = props.touchpadHapticInterval ?? 250
   const clickIntensity = props.touchpadClickHapticIntensity ?? 0
   const clickEffect = props.touchpadClickHapticEffect ?? 'CLICK'
+  const releaseIntensity = props.touchpadReleaseHapticIntensity ?? 0
+  const releaseEffect = props.touchpadReleaseHapticEffect ?? 'TICK'
 
   return (
     <>
@@ -114,6 +120,35 @@ export function TouchpadHapticSection(props: Props) {
             {t(
               'keymap.touchpadClickHapticHint',
               'A single pulse the moment you press the pad down, fired on the pad you actually clicked. Independent of the movement ticks and of whatever the click is bound to, so you can have the feel without the ticks, or either on its own.'
+            )}
+          </p>
+          <NumberField layout="inline"
+            label={t('keymap.touchpadReleaseHapticIntensity', 'Click release haptic')}
+            value={releaseIntensity}
+            onChange={v => props.onTouchpadReleaseHapticIntensityChange?.(v)}
+            min={0}
+            max={100}
+            step={1}
+            coarseStep={5}
+            hint={releaseIntensity === 0 ? t('keymap.touchpadHapticOff', 'Off') : undefined}
+          />
+          <label>
+            {t('keymap.touchpadReleaseHapticEffect', 'Click release haptic effect')}
+            <AppSelect
+              className="app-select"
+              value={releaseEffect}
+              disabled={releaseIntensity === 0}
+              onChange={e => props.onTouchpadReleaseHapticEffectChange?.(e.target.value)}
+            >
+              {HAPTIC_EFFECTS.filter(entry => entry !== 'OFF').map(entry => (
+                <option key={entry} value={entry}>{t(`keymap.hapticEffect_${entry}`)}</option>
+              ))}
+            </AppSelect>
+          </label>
+          <p className={styles.touchpadHint}>
+            {t(
+              'keymap.touchpadReleaseHapticHint',
+              'The same pulse for letting the click back up. The pad’s switch releases while your thumb is still resting on it, so without this there is nothing telling you the click binding has stopped firing. Independent from the press pulse above, so you can run one without the other, or make them feel different — a lighter Tick on release against a Click on press reads as one press-and-let-go rather than two identical taps.'
             )}
           </p>
         </div>

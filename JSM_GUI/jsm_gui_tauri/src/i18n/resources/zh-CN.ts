@@ -840,6 +840,10 @@ export const zhCN = {
     touchpadClickHapticEffect: '点击振动效果',
     touchpadClickHapticHint:
       '按下触控板的瞬间，在你实际点击的那一块触控板上发出一次振动。与移动振动以及点击所绑定的动作互不相干，因此可以只要手感而不要刻度，或只启用其中一项。',
+    touchpadReleaseHapticIntensity: '点击释放振动强度',
+    touchpadReleaseHapticEffect: '点击释放振动效果',
+    touchpadReleaseHapticHint:
+      '同样的振动，但用于点击弹起的时刻。触控板的开关会在拇指仍搭在上面时就已释放，若没有这次振动，就没有任何提示告诉你点击绑定已经停止触发。与上面的按下振动相互独立，可以只启用其中一项，也可以让两者手感不同 —— 按下用 Click、释放用较轻的 Tick，感觉像一次「按下再松开」，而不是两下相同的敲击。',
     touchpadDualStageMode: '触摸与点击双段模式',
     touchStickTitle: '拖动转摇杆输出',
     touchStickDescription:

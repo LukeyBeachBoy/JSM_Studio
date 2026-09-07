@@ -853,6 +853,10 @@ export const en = {
     touchpadClickHapticEffect: 'Click haptic effect',
     touchpadClickHapticHint:
       'A single pulse the moment you press the pad down, fired on the pad you actually clicked. Independent of the movement ticks and of whatever the click is bound to, so you can have the feel without the ticks, or either on its own.',
+    touchpadReleaseHapticIntensity: 'Click release haptic',
+    touchpadReleaseHapticEffect: 'Click release haptic effect',
+    touchpadReleaseHapticHint:
+      'The same pulse for letting the click back up. The pad’s switch releases while your thumb is still resting on it, so without this there is nothing telling you the click binding has stopped firing. Independent from the press pulse above, so you can run one without the other, or make them feel different — a lighter Tick on release against a Click on press reads as one press-and-let-go rather than two identical taps.',
     touchpadDualStageMode: 'Touch and click dual-stage mode',
     touchStickTitle: 'Drag-to-stick output',
     touchStickDescription:

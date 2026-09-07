@@ -549,12 +549,16 @@ function App() {
     touchpadHapticIntervalValue,
     touchpadClickHapticIntensityValue,
     touchpadClickHapticEffectValue,
+    touchpadReleaseHapticIntensityValue,
+    touchpadReleaseHapticEffectValue,
     handleTouchpadMovementThresholdChange,
     handleTouchpadHapticIntensityChange,
     handleTouchpadHapticEffectChange,
     handleTouchpadHapticIntervalChange,
     handleTouchpadClickHapticIntensityChange,
     handleTouchpadClickHapticEffectChange,
+    handleTouchpadReleaseHapticIntensityChange,
+    handleTouchpadReleaseHapticEffectChange,
     handleTouchpadMinCutoffChange,
     handleTouchpadSpeedCoeffChange,
     handleTouchpadTrackballDecayChange,
@@ -1531,11 +1535,15 @@ function App() {
             touchpadHapticInterval={touchpadHapticIntervalValue}
             touchpadClickHapticIntensity={touchpadClickHapticIntensityValue}
             touchpadClickHapticEffect={touchpadClickHapticEffectValue}
+            touchpadReleaseHapticIntensity={touchpadReleaseHapticIntensityValue}
+            touchpadReleaseHapticEffect={touchpadReleaseHapticEffectValue}
             onTouchpadHapticIntensityChange={handleTouchpadHapticIntensityChange}
             onTouchpadHapticEffectChange={handleTouchpadHapticEffectChange}
             onTouchpadHapticIntervalChange={handleTouchpadHapticIntervalChange}
             onTouchpadClickHapticIntensityChange={handleTouchpadClickHapticIntensityChange}
             onTouchpadClickHapticEffectChange={handleTouchpadClickHapticEffectChange}
+            onTouchpadReleaseHapticIntensityChange={handleTouchpadReleaseHapticIntensityChange}
+            onTouchpadReleaseHapticEffectChange={handleTouchpadReleaseHapticEffectChange}
             gripSensorRange={gripSensorRangeValue}
             gripFlickerGuard={gripFlickerGuardValue}
             gripHapticIntensity={gripHapticIntensityValue}

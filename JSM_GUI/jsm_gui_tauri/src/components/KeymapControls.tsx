@@ -123,6 +123,8 @@ type KeymapControlsProps = {
   touchpadHapticInterval?: number
   touchpadClickHapticIntensity?: number
   touchpadClickHapticEffect?: string
+  touchpadReleaseHapticIntensity?: number
+  touchpadReleaseHapticEffect?: string
   onTouchpadMinCutoffChange?: (value: string) => void
   onTouchpadSpeedCoeffChange?: (value: string) => void
   onTouchpadTrackballDecayChange?: (value: string) => void
@@ -133,6 +135,8 @@ type KeymapControlsProps = {
   onTouchpadHapticIntervalChange?: (value: string) => void
   onTouchpadClickHapticIntensityChange?: (value: string) => void
   onTouchpadClickHapticEffectChange?: (value: string) => void
+  onTouchpadReleaseHapticIntensityChange?: (value: string) => void
+  onTouchpadReleaseHapticEffectChange?: (value: string) => void
   gripSensorRange?: number
   gripFlickerGuard?: number
   gripHapticIntensity?: number
@@ -605,6 +609,8 @@ export function KeymapControls({
   touchpadHapticInterval,
   touchpadClickHapticIntensity,
   touchpadClickHapticEffect,
+  touchpadReleaseHapticIntensity,
+  touchpadReleaseHapticEffect,
   onTouchpadMinCutoffChange,
   onTouchpadSpeedCoeffChange,
   onTouchpadTrackballDecayChange,
@@ -615,6 +621,8 @@ export function KeymapControls({
   onTouchpadHapticIntervalChange,
   onTouchpadClickHapticIntensityChange,
   onTouchpadClickHapticEffectChange,
+  onTouchpadReleaseHapticIntensityChange,
+  onTouchpadReleaseHapticEffectChange,
   gripSensorRange,
   gripFlickerGuard,
   gripHapticIntensity,
@@ -1665,11 +1673,15 @@ export function KeymapControls({
                   touchpadHapticInterval={touchpadHapticInterval}
                   touchpadClickHapticIntensity={touchpadClickHapticIntensity}
                   touchpadClickHapticEffect={touchpadClickHapticEffect}
+                  touchpadReleaseHapticIntensity={touchpadReleaseHapticIntensity}
+                  touchpadReleaseHapticEffect={touchpadReleaseHapticEffect}
                   onTouchpadHapticIntensityChange={onTouchpadHapticIntensityChange}
                   onTouchpadHapticEffectChange={onTouchpadHapticEffectChange}
                   onTouchpadHapticIntervalChange={onTouchpadHapticIntervalChange}
                   onTouchpadClickHapticIntensityChange={onTouchpadClickHapticIntensityChange}
                   onTouchpadClickHapticEffectChange={onTouchpadClickHapticEffectChange}
+                  onTouchpadReleaseHapticIntensityChange={onTouchpadReleaseHapticIntensityChange}
+                  onTouchpadReleaseHapticEffectChange={onTouchpadReleaseHapticEffectChange}
                   {...actionsProps}
                 />
               ),
