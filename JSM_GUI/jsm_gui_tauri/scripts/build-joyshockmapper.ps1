@@ -28,6 +28,9 @@ if (-not $cmakePath) {
 }
 
 $sourceCommit = (& git -C $sourceDir rev-parse HEAD).Trim()
+if (& git -C $sourceDir status --porcelain) {
+  $sourceCommit += "-dirty"
+}
 & $cmakePath -S $sourceDir -B $buildDir -DSDL=ON
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
@@ -52,4 +55,4 @@ if (Test-Path -LiteralPath $builtSdl) {
 }
 
 $sourceCommit | Set-Content -LiteralPath (Join-Path $bundleDir "JoyShockMapper.commit") -NoNewline
-Write-Output "Bundled JoyShockMapper commit $sourceCommit"
+Write-Output "Bundled JoyShockMapper source $sourceCommit"
