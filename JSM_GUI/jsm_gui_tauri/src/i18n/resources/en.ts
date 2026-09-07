@@ -849,7 +849,9 @@ export const en = {
     touchpadClickDampenThreshold: 'Damping pressure',
     touchpadClickDampenThresholdOff: 'Damps only once the click actually registers',
     touchpadClickDampenHint:
-      'For a pad you both aim with and click. Pressing hard enough to click rolls your finger across the pad, and in Mouse mode that roll moves the camera. Click damping is how much of the cursor movement the press takes away — 1 stops it completely, so clicking to interact cannot drag your aim. Damping pressure brings it in early, before the click registers, so the cursor is already settling rather than stopping dead: the pad reports how hard you are pressing on a 0 to 1 scale, and the live reading is on the Controller Status page. Leave it at 0 to damp only while the click is actually held.',
+      'For a pad you both aim with and click. Pressing hard enough to click rolls your finger across the pad, and in Mouse mode that roll moves the camera. Click damping is how much of the cursor movement the press takes away — 1 stops it completely, so clicking to interact cannot drag your aim. Damping pressure is the force at which that damping is fully applied, easing in over the second half of the way there so the cursor settles rather than stopping dead; it lands before the click itself registers. The pads report force far down the 0 to 1 scale, so read a value off the live display rather than guessing. Leave it at 0 to damp only while the click is actually held.',
+    touchpadLivePressure: 'Pressure now',
+    touchpadLivePressureHint: 'press a pad and read the value you want the cursor already still at.',
     touchpadHapticTitle: 'Trackpad haptics',
     touchpadHapticDescription:
       'What each pad’s own actuator does as you move across it and when you press it down. One setting for both pads; each pad pulses for its own finger.',

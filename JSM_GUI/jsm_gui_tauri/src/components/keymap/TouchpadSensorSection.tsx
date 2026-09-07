@@ -15,6 +15,8 @@ type Props = {
   touchpadMovementThreshold?: number
   touchpadClickDampen?: number
   touchpadClickDampenThreshold?: number
+  /** Live force reading per pad, so the threshold can be dialled against it. */
+  livePadPressures?: { left?: number; right?: number }
   onTouchpadMinCutoffChange?: (v: string) => void
   onTouchpadSpeedCoeffChange?: (v: string) => void
   onTouchpadTrackballDecayChange?: (v: string) => void
@@ -50,6 +52,10 @@ const SMOOTHING_PRESETS = [
   { id: 'balanced', cutoff: 6, speed: 0.6 },
   { id: 'heavy', cutoff: 2.5, speed: 3.0 },
 ] as const
+
+// Four decimals because a resting finger and a click can differ in the third.
+const formatPressure = (value?: number) =>
+  typeof value === 'number' && Number.isFinite(value) ? value.toFixed(4) : '—'
 
 function matchPreset(cutoff: number, speed: number) {
   const hit = SMOOTHING_PRESETS.find(
@@ -168,8 +174,11 @@ export function TouchpadSensorSection(props: Props) {
             onChange={v => props.onTouchpadClickDampenThresholdChange?.(v)}
             min={0}
             max={1}
-            step={0.01}
-            coarseStep={0.1}
+            // The pads' force readings live far down the 0-1 scale SDL reports, so
+            // the useful part of this range is its bottom sliver. Fine enough to
+            // land on a value read off the live display below.
+            step={0.002}
+            coarseStep={0.02}
             disabled={(props.touchpadClickDampen ?? 0) === 0}
             hint={
               (props.touchpadClickDampenThreshold ?? 0) === 0
@@ -177,10 +186,26 @@ export function TouchpadSensorSection(props: Props) {
                 : undefined
             }
           />
+          {/* Without this the threshold is a blind setting: nothing on the page
+              says what a resting finger reads or what a click reads, and the two
+              are nowhere near the ends of the slider. */}
+          <p className={styles.touchpadHint}>
+            {t('keymap.touchpadLivePressure', 'Pressure now')}
+            {': '}
+            <strong>{formatPressure(props.livePadPressures?.left)}</strong>
+            {` ${t('keymap.sideLeft', 'Left')} · `}
+            <strong>{formatPressure(props.livePadPressures?.right)}</strong>
+            {` ${t('keymap.sideRight', 'Right')}`}
+            {' — '}
+            {t(
+              'keymap.touchpadLivePressureHint',
+              'press a pad and read the value you want the cursor already still at.'
+            )}
+          </p>
           <p className={styles.touchpadHint}>
             {t(
               'keymap.touchpadClickDampenHint',
-              'For a pad you both aim with and click. Pressing hard enough to click rolls your finger across the pad, and in Mouse mode that roll moves the camera. Click damping is how much of the cursor movement the press takes away — 1 stops it completely, so clicking to interact cannot drag your aim. Damping pressure brings it in early, before the click registers, so the cursor is already settling rather than stopping dead: the pad reports how hard you are pressing on a 0 to 1 scale, and the live reading is on the Controller Status page. Leave it at 0 to damp only while the click is actually held.'
+              'For a pad you both aim with and click. Pressing hard enough to click rolls your finger across the pad, and in Mouse mode that roll moves the camera. Click damping is how much of the cursor movement the press takes away — 1 stops it completely, so clicking to interact cannot drag your aim. Damping pressure is the force at which that damping is fully applied, easing in over the second half of the way there so the cursor settles rather than stopping dead; it lands before the click itself registers. The pads report force far down the 0 to 1 scale, so read a value off the live display rather than guessing. Leave it at 0 to damp only while the click is actually held.'
             )}
           </p>
           <NumberField layout="inline"

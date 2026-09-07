@@ -1857,7 +1857,7 @@ dependencies = [
 
 [[package]]
 name = "jsm-gui-app-tauri"
-version = "0.7.8"
+version = "0.7.9"
 dependencies = [
  "open",
  "reqwest 0.12.28",

@@ -971,6 +971,14 @@ export function KeymapControls({
   // point is that pad's.
   const livePadTouch = livePadTouches.left ?? livePadTouches.right
 
+  // Unlike livePadTouches this is not gated on contact: a pad reporting zero
+  // force while your finger rests on it is exactly what the click-damping
+  // threshold needs to show, since that is the value you are dialling against.
+  const livePadPressures = useMemo(() => {
+    const status = devices?.find(device => device.status)?.status
+    return { left: status?.leftPad?.pressure, right: status?.rightPad?.pressure }
+  }, [devices])
+
   useEffect(() => {
     if (view !== 'full') return
     if (!selectedVisualButton) return
@@ -1664,6 +1672,7 @@ export function KeymapControls({
                   touchpadMovementThreshold={touchpadMovementThreshold}
                   touchpadClickDampen={touchpadClickDampen}
                   touchpadClickDampenThreshold={touchpadClickDampenThreshold}
+                  livePadPressures={livePadPressures}
                   onTouchpadMinCutoffChange={onTouchpadMinCutoffChange}
                   onTouchpadSpeedCoeffChange={onTouchpadSpeedCoeffChange}
                   onTouchpadTrackballDecayChange={onTouchpadTrackballDecayChange}
