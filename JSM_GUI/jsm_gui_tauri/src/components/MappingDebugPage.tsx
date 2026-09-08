@@ -5,6 +5,7 @@ import styles from './MappingDebugPage.module.css'
 import { desktopBridge, type InputDebugEvent, type InputDebugHookStatus } from '../platform/desktopBridge'
 
 type MappingDebugPageProps = {
+  consoleText?: string
   configText: string
   appliedConfig: string
   hasPendingChanges: boolean
@@ -20,7 +21,7 @@ const fallbackStatus: InputDebugHookStatus = {
   platform: 'windows',
 }
 
-export function MappingDebugPage({ configText, appliedConfig, hasPendingChanges }: MappingDebugPageProps) {
+export function MappingDebugPage({ consoleText, configText, appliedConfig, hasPendingChanges }: MappingDebugPageProps) {
   const { t } = useTranslation()
   const [status, setStatus] = useState<InputDebugHookStatus>(fallbackStatus)
   const [events, setEvents] = useState<InputDebugEvent[]>([])
@@ -154,6 +155,11 @@ export function MappingDebugPage({ configText, appliedConfig, hasPendingChanges 
 
   return (
     <div className={styles.page}>
+      <Card className={styles.card}>
+        <h2>JoyShockMapper console</h2>
+        <p className="field-description">Live console output from the running mapper. The most recent 4 KB are retained.</p>
+        <pre className="live-console" tabIndex={0} aria-label="JoyShockMapper live console">{consoleText || 'Waiting for console output from JoyShockMapper…'}</pre>
+      </Card>
       <Card className={styles.card}>
         <div className={styles.header}>
           <div className={styles.titleBlock}>

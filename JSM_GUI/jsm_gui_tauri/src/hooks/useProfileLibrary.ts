@@ -8,6 +8,7 @@ import { showToast } from '../utils/toast'
 type Options = { textOverride?: string; profileNameOverride?: string; profilePathOverride?: string; normalize?: boolean }
 type Params = {
   configText: string
+  resetConfigHistory: (text: string) => void
   setConfigText: (text: string) => void
   setAppliedConfig: (text: string) => void
   setStatusMessage: (text: string | null) => void
@@ -15,13 +16,14 @@ type Params = {
 }
 
 // The editor baseline is the saved file. Only Apply changes the runtime.
-export function useProfileLibrary({ configText, setConfigText, setAppliedConfig, setStatusMessage, resetPendingSensitivityChanges }: Params) {
+export function useProfileLibrary({ resetConfigHistory, configText, setConfigText, setAppliedConfig, setStatusMessage, resetPendingSensitivityChanges }: Params) {
   const { t } = useTranslation()
   const [libraryProfiles, setLibraryProfiles] = useState<string[]>([])
   const [isLibraryLoading, setIsLibraryLoading] = useState(false)
   const [editedLibraryNames, setEditedLibraryNames] = useState<Record<string, string>>({})
   const [currentLibraryProfile, setCurrentLibraryProfile] = useState<string | null>(null)
   const [activeProfilePath, setActiveProfilePath] = useState('')
+  const [runtimeConfig, setRuntimeConfig] = useState<string | null>(null)
   const [appliedProfileName, setAppliedProfileName] = useState<string | null>(null)
   const drafts = useRef(new Map<string, string>())
   const selection = useRef(0)
@@ -55,9 +57,9 @@ export function useProfileLibrary({ configText, setConfigText, setAppliedConfig,
     resetPendingSensitivityChanges()
     setCurrentLibraryProfile(profile.name)
     setActiveProfilePath(profile.path)
-    setConfigText(drafts.current.get(profile.name) ?? profile.content)
+    resetConfigHistory(drafts.current.get(profile.name) ?? profile.content)
     setAppliedConfig(profile.content)
-  }, [resetPendingSensitivityChanges, setAppliedConfig, setConfigText])
+  }, [resetPendingSensitivityChanges, setAppliedConfig, resetConfigHistory])
   useEffect(() => {
     const request = selection.current
     void refreshLibraryProfiles()
@@ -106,7 +108,7 @@ export function useProfileLibrary({ configText, setConfigText, setAppliedConfig,
         (profileName ? `profiles-library/${profileName}.txt` : activeProfilePath)
       await desktopBridge.applyProfile(path, text)
       if (path) setActiveProfilePath(path)
-      finishSave(profileName, text, options?.textOverride ?? configText)
+      setRuntimeConfig(text)
       setAppliedProfileName(profileName)
       report(t('messages.profileApplied', { profileName: profileName ?? t('app.profileSummary.unsavedProfile') }))
     } catch { report(t('messages.applyKeymapFailed'), true) }
@@ -167,7 +169,7 @@ export function useProfileLibrary({ configText, setConfigText, setAppliedConfig,
   }
   return {
     libraryProfiles, isLibraryLoading, editedLibraryNames, currentLibraryProfile, activeProfilePath,
-    appliedProfileName, refreshLibraryProfiles, applyConfig, saveConfig, handleLoadProfileFromLibrary,
+    appliedProfileName, runtimeConfig, refreshLibraryProfiles, applyConfig, saveConfig, handleLoadProfileFromLibrary,
     handleLibraryProfileNameChange: (name: string, value: string) => setEditedLibraryNames(prev => ({ ...prev, [name]: value })),
     handleCreateProfile, handleRenameProfile, handleDeleteLibraryProfile, handleImportProfile, handleCopyActiveProfile,
   }

@@ -1,3 +1,4 @@
+import { HelpButton } from '../HelpButton'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import styles from './SideBlock.module.css'
@@ -26,8 +27,8 @@ export function SideBlock({ side, title, description, id, children }: SideBlockP
           {side === 'left' ? 'L' : 'R'}
         </span>
         <div className={styles.headerText}>
-          <span className={styles.title}>{title ?? sideLabel}</span>
-          {description && <span className={styles.description}>{description}</span>}
+          <span className={styles.title}>{title ?? sideLabel} {description && <HelpButton title={title ?? sideLabel}>{description}</HelpButton>}</span>
+
         </div>
       </header>
       <div className={styles.body}>{children}</div>

@@ -1,3 +1,8 @@
+import { flushSync } from 'react-dom'
+import { SaveApplyButton } from './components/SaveApplyButton'
+import { ConfigScope } from './components/ConfigScope'
+import { ConfigBaseline } from './hooks/configContext'
+import { TuningClipboard } from './components/TuningClipboard'
 import './App.css'
 import { inputPage, normalizePreviewInput } from './utils/inputNavigation'
 // The version people see must be the one on the installer they downloaded, and
@@ -6,7 +11,6 @@ import tauriConf from '../src-tauri/tauri.conf.json'
 import sideNavStyles from './components/SideNav.module.css'
 import {
   OverviewIcon,
-  ControllerIcon,
   ConsoleIcon,
   ButtonsIcon,
   DPadIcon,
@@ -31,7 +35,6 @@ import miscStyles from './components/Misc.module.css'
 import { SectionActions } from './components/SectionActions'
 import { NumberField } from './components/NumberField'
 import { DEFAULT_HOLD_PRESS_TIME } from './constants/defaults'
-import { ControllerStatusPage } from './components/ControllerStatusPage'
 import { OverviewPage } from './components/OverviewPage'
 import { HidHidePage } from './components/HidHidePage'
 import { useProfileLibrary } from './hooks/useProfileLibrary'
@@ -55,7 +58,7 @@ import { controllerHasTwoTrackpads } from './utils/controllerStatus'
 // One page per physical control, the way Steam Input splits them up, instead of
 // one page carrying every binding on the controller.
 type ControlTab = 'buttons' | 'dpad' | 'triggers' | 'joysticks'
-type PrimaryTab = ControlTab | 'gyro' | 'touchpad' | 'globalChords' | 'sensors' | 'gripSensors' | 'timing' | 'controllerStatus' | 'debugConsole' | 'ai' | 'help' | 'deviceVisibility' | 'overview'
+type PrimaryTab = ControlTab | 'gyro' | 'touchpad' | 'globalChords' | 'sensors' | 'gripSensors' | 'timing' | 'debugConsole' | 'ai' | 'help' | 'deviceVisibility' | 'overview'
 
 // Which of KeymapControls' button groups each control page is about.
 const CONTROL_TAB_SECTIONS: Record<ControlTab, string[]> = {
@@ -67,7 +70,7 @@ const CONTROL_TAB_SECTIONS: Record<ControlTab, string[]> = {
 // Page Up / Page Down (controller triggers) walk this order.
 const PAGE_ORDER: PrimaryTab[] = [
   'overview', 'buttons', 'dpad', 'triggers', 'joysticks', 'touchpad', 'gyro', 'globalChords',
-  'sensors', 'gripSensors', 'timing', 'ai', 'controllerStatus', 'debugConsole', 'deviceVisibility', 'help',
+  'sensors', 'gripSensors', 'timing', 'ai', 'debugConsole', 'deviceVisibility', 'help',
 ]
 type GyroSubTab = 'behavior' | 'sensitivity' | 'noise'
 
@@ -196,23 +199,6 @@ const PrimaryNav = ({ primaryTab, setPrimaryTab, includeHelp = false }: PrimaryN
   return (
     <div className={sideNavStyles.navGroup}>
       <div className={sideNavStyles.navSection}>
-        <div className={sideNavStyles.navSectionLabel}>{t('app.nav.dashboardGroup')}</div>
-        <button
-          className={`${sideNavStyles.navItem} ${primaryTab === 'controllerStatus' ? sideNavStyles.active : ''}`}
-          onClick={() => setPrimaryTab('controllerStatus')}
-        >
-          <span className={sideNavStyles.navItemIcon}><ControllerIcon /></span>
-          {t('app.nav.controllerStatus')}
-        </button>
-        <button
-          className={`${sideNavStyles.navItem} ${primaryTab === 'debugConsole' ? sideNavStyles.active : ''}`}
-          onClick={() => setPrimaryTab('debugConsole')}
-        >
-          <span className={sideNavStyles.navItemIcon}><ConsoleIcon /></span>
-          {t('app.nav.debugConsole')}
-        </button>
-      </div>
-      <div className={sideNavStyles.navSection}>
         <div className={sideNavStyles.navSectionLabel}>{t('app.nav.controlsGroup')}</div>
         <button
           className={`${sideNavStyles.navItem} ${primaryTab === 'overview' ? sideNavStyles.active : ''}`}
@@ -297,6 +283,9 @@ const PrimaryNav = ({ primaryTab, setPrimaryTab, includeHelp = false }: PrimaryN
       </div>
       <div className={sideNavStyles.navSection}>
         <div className={sideNavStyles.navSectionLabel}>{t('app.nav.settingsGroup')}</div>
+        <button className={`${sideNavStyles.navItem} ${primaryTab === 'debugConsole' ? sideNavStyles.active : ''}`} onClick={() => setPrimaryTab('debugConsole')}>
+          <span className={sideNavStyles.navItemIcon}><ConsoleIcon /></span>{t('app.nav.debugConsole')}
+        </button>
         <button
           className={`${sideNavStyles.navItem} ${primaryTab === 'globalChords' ? sideNavStyles.active : ''}`}
           onClick={() => setPrimaryTab('globalChords')}
@@ -462,7 +451,7 @@ function App() {
   const [controllerNavEnabled, setControllerNavEnabled] = useState(true)
   const [runtimeMappingBusy, setRuntimeMappingBusy] = useState(false)
   const [calibrationTurns, setCalibrationTurns] = useState('1')
-  const [primaryTab, setPrimaryTab] = useState<PrimaryTab>('controllerStatus')
+  const [primaryTab, setPrimaryTab] = useState<PrimaryTab>('overview')
 
   const stepPage = useCallback((delta: 1 | -1) => {
     setPrimaryTab(prev => {
@@ -517,6 +506,7 @@ function App() {
   const {
     configText,
     setConfigText,
+    resetConfigHistory, canUndo, canRedo, undo, redo,
     appliedConfig,
     setAppliedConfig,
     sensitivityView,
@@ -785,7 +775,7 @@ function App() {
     currentLibraryProfile,
     applyConfig,
     saveConfig,
-    appliedProfileName,
+    appliedProfileName, runtimeConfig,
     refreshLibraryProfiles,
     handleLoadProfileFromLibrary,
     handleLibraryProfileNameChange,
@@ -795,6 +785,7 @@ function App() {
     handleImportProfile,
     handleCopyActiveProfile,
   } = useProfileLibrary({
+    resetConfigHistory,
     configText,
     setConfigText,
     setAppliedConfig,
@@ -928,6 +919,38 @@ function App() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isConfigDrawerOpen])
+
+  const [editorBusy, setEditorBusy] = useState(false)
+  const editorActionRef = useRef<(action: 'both' | 'save' | 'apply') => Promise<void>>(async () => {})
+  const actionInFlight = useRef(false)
+  const runEditorAction = async (action: 'both' | 'save' | 'apply') => {
+    if (isCalibrating || actionInFlight.current) return
+    actionInFlight.current = true
+    setEditorBusy(true)
+    try {
+      const text = finalizePendingValues?.() ?? configText
+      const options = { textOverride: text, profileNameOverride: currentLibraryProfile ?? undefined }
+      if (action !== 'apply' && !await saveConfig(options)) return
+      if (action !== 'save') await applyConfig(options)
+    } finally { actionInFlight.current = false; setEditorBusy(false) }
+  }
+  editorActionRef.current = runEditorAction
+  const historyRef = useRef({ undo, redo, isCalibrating })
+  historyRef.current = { undo, redo, isCalibrating }
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.altKey || !(event.ctrlKey || event.metaKey) || event.repeat) return
+      const key = event.key.toLowerCase()
+      if (key !== 'z' && key !== 's' && !(key === 'a' && event.shiftKey)) return
+      if (historyRef.current.isCalibrating) return
+      event.preventDefault()
+      flushSync(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur() })
+      if (key === 'z') (event.shiftKey ? historyRef.current.redo : historyRef.current.undo)()
+      else void editorActionRef.current(key === 's' ? 'save' : 'apply')
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
 
   const handleApplyWithFinalize = () => {
     const nextText = finalizePendingValues ? finalizePendingValues() : undefined
@@ -1148,12 +1171,10 @@ function App() {
           occasional escape hatches as quiet ghost buttons. Four equal-weight
           buttons in a row gave no clue which one you normally want. */}
       <div className="utility-actions">
-        <button className="primary-btn" disabled={isCalibrating} onClick={() => void applyConfig({ textOverride: finalizePendingValues?.() ?? configText })}>
-          {t('app.profileSummary.applyEditingConfiguration')}
-        </button>
-        <button className="secondary-btn" disabled={isCalibrating} onClick={() => void saveConfig({ textOverride: finalizePendingValues?.() ?? configText })}>
-          {t('app.profileSummary.saveConfiguration')}
-        </button>
+        <button className="ghost-btn" disabled={!canUndo || isCalibrating} onClick={undo} title="Undo (Ctrl+Z)">Undo</button>
+        <button className="ghost-btn" disabled={!canRedo || isCalibrating} onClick={redo} title="Redo (Ctrl+Shift+Z)">Redo</button>
+        {hasPendingChanges && <span className="pill pill--warning">Unsaved changes</span>}
+        <SaveApplyButton disabled={isCalibrating || editorBusy || !currentLibraryProfile} onAction={action => void runEditorAction(action)} />
         <button className="secondary-btn" onClick={() => setProfileModalOpen(true)}>
           {t('app.profileSummary.manageProfiles')}
         </button>
@@ -1312,6 +1333,7 @@ function App() {
       return (
         <Suspense fallback={<LazyPanelFallback title={t('app.nav.timing')} />}>
           <KeymapControls
+            onConfigTextChange={setConfigText}
             visibleSections={['global']}
             configText={configText}
             onBindingChange={handleFaceButtonBindingChange}
@@ -1358,6 +1380,7 @@ function App() {
       return (
         <Suspense fallback={<LazyPanelFallback title={t(`app.nav.${controlTab}`)} />}>
           <KeymapControls
+            onConfigTextChange={setConfigText}
             visibleSections={sections}
             bindingLabels={bindingLabels}
             onBindingLabelChange={handleBindingLabelChange}
@@ -1502,6 +1525,7 @@ function App() {
       const panel = (
         <Suspense fallback={<LazyPanelFallback title={t('app.nav.touchpad')} />}>
           <KeymapControls
+            onConfigTextChange={setConfigText}
             onOpenTuning={() => setPrimaryTab('sensors')}
             view="touchpad"
             selectedMappingCommand={selectedMappingCommand}
@@ -1679,22 +1703,17 @@ function App() {
       // The trackpads page is one tall column of Left pad, Right pad and the
       // shared buttons, so it gets its own index down the side. The two tuning
       // pages are short enough not to need one.
+      if (primaryTab === 'sensors') return <div className="page-with-rail">
+        <PageSideNav ariaLabel="Trackpad tuning sections" items={[
+          { id: 'touch-smoothing', label: 'Motion' }, { id: 'touch-release', label: 'Press & release' },
+          { id: 'touch-glide', label: 'Trackball' }, { id: 'touch-haptics', label: 'Haptics' }, { id: 'touch-accel', label: 'Acceleration' },
+        ]} /><div className="page-rail-content">{panel}</div></div>
       if (primaryTab !== 'touchpad' || !hasTwoTrackpads) return panel
       return (
         <div className="page-with-rail">
           <PageSideNav ariaLabel={t('app.nav.trackpads')} items={trackpadRailItems} />
           <div className="page-rail-content">{panel}</div>
         </div>
-      )
-    }
-
-    if (primaryTab === 'controllerStatus') {
-      return (
-        <ControllerStatusPage
-          devices={sample?.devices}
-          onSelectCommand={navigateInput}
-          ignoredDevices={ignoredGyroDevices}
-        />
       )
     }
 
@@ -1725,6 +1744,7 @@ function App() {
       return (
         <Suspense fallback={<LazyPanelFallback title={t('app.nav.debugConsole')} />}>
           <MappingDebugPage
+            consoleText={typeof sample?.console === 'string' ? sample.console : undefined}
             configText={configText}
             appliedConfig={appliedConfig}
             hasPendingChanges={hasPendingChanges}
@@ -1788,7 +1808,10 @@ function App() {
       <div className="shell-main">
         {renderUtilityBar()}
         <div className="shell-scroll"><div className="content-grid">
-          <main className="main-pane">{renderPrimaryContent()}</main>
+          <main className="main-pane"><ConfigBaseline.Provider value={{ text: configText, saved: appliedConfig, onChange: text => { resetPendingSensitivityChanges(); setConfigText(text) } }}>
+            {(primaryTab === 'gyro' || primaryTab === 'sensors' || primaryTab === 'gripSensors') && <TuningClipboard kind={primaryTab === 'gyro' ? 'gyro' : primaryTab === 'sensors' ? 'trackpad' : 'grip'} text={configText} onChange={text => { resetPendingSensitivityChanges(); setConfigText(text) }} disabled={isCalibrating} />}
+            <ConfigScope match={primaryTab === 'gyro' ? /^(GYRO_|MIN_GYRO|MAX_GYRO|ACCEL_|SMOOTH_|CUTOFF_|ONE_EURO|ANGLE_|DECEL_|ROLL_|IN_GAME|REAL_WORLD|TICK_TIME)/ : /./}>{renderPrimaryContent()}</ConfigScope>
+          </ConfigBaseline.Provider></main>
         </div></div>
         <ControllerGlyphBar
           devices={sample?.devices}
@@ -1943,7 +1966,7 @@ function App() {
                 type="button"
                 className="primary-btn"
                 onClick={() => {
-                  setPrimaryTab('controllerStatus')
+                  setPrimaryTab('deviceVisibility')
                   setShowHidHideElevationModal(false)
                 }}
               >
@@ -1992,7 +2015,7 @@ function App() {
                 appliedProfileName={appliedProfileName}
                 hasPendingChanges={hasPendingChanges}
                 isCalibrating={isCalibrating}
-                profileApplied={currentLibraryProfile === appliedProfileName && configText === appliedConfig}
+                profileApplied={currentLibraryProfile === appliedProfileName && configText === runtimeConfig}
                 onImportProfile={handleImportProfile}
                 libraryProfiles={libraryProfiles}
                 libraryLoading={isLibraryLoading}

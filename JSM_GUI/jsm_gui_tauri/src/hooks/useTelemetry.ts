@@ -6,6 +6,7 @@ export type TelemetryPadState = {
   y: number
   touched: boolean
   pressure?: number
+  speed?: number
 }
 
 export type TelemetryGripState = {

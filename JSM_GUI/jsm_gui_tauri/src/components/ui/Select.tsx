@@ -1,4 +1,5 @@
-import { Fragment, type ReactNode } from 'react'
+import { OPTION_HELP } from '../../utils/optionHelp'
+import { Fragment, useState, type ReactNode } from 'react'
 import * as RadixSelect from '@radix-ui/react-select'
 import styles from './Select.module.css'
 
@@ -7,6 +8,7 @@ export type SelectOption = {
   label: string
   /** Optional glyph or icon rendered before the label, in the trigger and the list. */
   icon?: ReactNode
+  description?: string
   hint?: string
   disabled?: boolean
 }
@@ -63,9 +65,12 @@ export function Select({
   const resolved: SelectGroup[] = groups ?? [{ options: options ?? [] }]
   const flat = resolved.flatMap(group => group.options)
   const active = flat.find(option => option.value === value)
+  const [helpValue, setHelpValue] = useState(value)
+  const helpOption = flat.find(option => option.value === helpValue) ?? active
+  const description = helpOption?.description ?? OPTION_HELP[helpOption?.value ?? '']
 
   return (
-    <RadixSelect.Root value={value} onValueChange={onValueChange} disabled={disabled}>
+    <RadixSelect.Root value={value} onValueChange={onValueChange} disabled={disabled} onOpenChange={open => { if (open) setHelpValue(value) }}>
       <RadixSelect.Trigger className={`${styles.trigger} ${className}`.trim()} aria-label={ariaLabel} title={title} id={id}>
         <span className={styles.value}>
           {active?.icon && <span className={styles.icon}>{active.icon}</span>}
@@ -90,6 +95,8 @@ export function Select({
                     value={option.value}
                     disabled={option.disabled}
                     className={styles.item}
+                    onFocus={() => setHelpValue(option.value)}
+                    onPointerMove={() => setHelpValue(option.value)}
                   >
                     <span className={styles.itemIndicator}>
                       <RadixSelect.ItemIndicator>
@@ -104,6 +111,7 @@ export function Select({
               </Fragment>
             ))}
           </RadixSelect.Viewport>
+          {description && <div className={styles.description} aria-live="polite"><strong>{helpOption?.label}</strong><p>{description}</p></div>}
           <RadixSelect.ScrollDownButton className={styles.scrollButton}>▼</RadixSelect.ScrollDownButton>
         </RadixSelect.Content>
       </RadixSelect.Portal>

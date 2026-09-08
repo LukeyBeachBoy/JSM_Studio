@@ -148,3 +148,6 @@
   background: var(--bg-2);
   cursor: default;
 }
+
+.description { border-top: 1px solid var(--border-strong); padding: 12px 14px; width: min(380px, calc(100vw - 40px)); max-width: 100%; font-size: 13px; line-height: 1.5; color: var(--text-mid); background: var(--bg-input); }
+.description p { margin: 5px 0 0; white-space: normal; }

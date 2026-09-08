@@ -1,3 +1,4 @@
+import { HelpButton } from './HelpButton'
 import { ReactNode } from 'react'
 import styles from './Keymap.module.css'
 
@@ -16,8 +17,8 @@ export function KeymapSection({ title, description, icon, action, children }: Ke
         <div className={styles.keymapSectionHeading}>
           {icon && <span className={styles.keymapSectionIcon}>{icon}</span>}
           <div>
-            <h3>{title}</h3>
-            {description && <p>{description}</p>}
+            <h3>{title} {description && <HelpButton title={title}>{description}</HelpButton>}</h3>
+
           </div>
         </div>
         {action}

@@ -1,3 +1,4 @@
+import { HelpButton } from './HelpButton'
 import { useEffect, useId, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Slider } from './ui/Slider'
@@ -144,6 +145,7 @@ export function NumberField({
         <label className={styles.label} htmlFor={inputId}>
           {label}
         </label>
+        {hint && <HelpButton title={typeof label === 'string' ? label : 'Setting help'}>{hint}</HelpButton>}
         <span className={styles.valueWrap}>
           <input
             id={inputId}
@@ -187,7 +189,7 @@ export function NumberField({
           {coarse ? t('numberField.coarse') : t('numberField.fine')}
         </button>
       </div>
-      {hint && <div className={styles.hint}>{hint}</div>}
+
     </div>
   )
 }

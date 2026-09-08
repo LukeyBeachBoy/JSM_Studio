@@ -1,3 +1,4 @@
+import { HelpButton } from './HelpButton'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NumberField } from './NumberField'
@@ -177,7 +178,7 @@ export function AccelCurveEditor({
         <div className="flex-inputs">
           <label>
             {t('accelCurve.linkLabel')}
-            <p className="field-description">{t('accelCurve.linkHint')}</p>
+            <HelpButton title="Curve source">{t('accelCurve.linkHint')}</HelpButton>
             <AppSelect className="app-select" value={activeLink} onChange={event => onLinkChange(event.target.value as AccelCurveLink)} disabled={disabled}>
               {linkOptions.map(option => (
                 <option key={option.value} value={option.value}>

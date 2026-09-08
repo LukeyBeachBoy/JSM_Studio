@@ -1,3 +1,4 @@
+import { migrateVirtualBindings } from '../utils/virtualController'
 import { useMemo } from 'react'
 import {
   BindingSlot,
@@ -224,7 +225,7 @@ export function useBindingsConfig({ configText, setConfigText }: BindingArgs) {
     setConfigText(prev =>
       normalized === 'NONE'
         ? removeKeymapEntry(prev, keyName.VIRTUAL_CONTROLLER)
-        : updateKeymapEntry(prev, keyName.VIRTUAL_CONTROLLER, [normalized])
+        : updateKeymapEntry(migrateVirtualBindings(prev, normalized), keyName.VIRTUAL_CONTROLLER, [normalized])
     )
   }
 

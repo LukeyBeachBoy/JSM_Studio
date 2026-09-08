@@ -86,13 +86,8 @@ export function TouchpadHapticSection(props: Props) {
             coarseStep={50}
             unit="px"
             disabled={intensity === 0}
+            hint={t('keymap.touchpadHapticHint')}
           />
-          <p className={styles.touchpadHint}>
-            {t(
-              'keymap.touchpadHapticHint',
-              'A short tick every time your finger has travelled the spacing distance across the pad, so a swipe feels like a notched wheel rather than a smooth surface. Spacing is measured on the pad, not on screen, so changing sensitivity does not change how the ticks feel. Lower spacing is a finer, busier detent. 0 intensity turns it off.'
-            )}
-          </p>
           <NumberField layout="inline"
             label={t('keymap.touchpadClickHapticIntensity', 'Click haptic')}
             value={clickIntensity}
@@ -101,7 +96,7 @@ export function TouchpadHapticSection(props: Props) {
             max={100}
             step={1}
             coarseStep={5}
-            hint={clickIntensity === 0 ? t('keymap.touchpadHapticOff', 'Off') : undefined}
+            hint={t('keymap.touchpadClickHapticHint')}
           />
           <label>
             {t('keymap.touchpadClickHapticEffect', 'Click haptic effect')}
@@ -116,12 +111,6 @@ export function TouchpadHapticSection(props: Props) {
               ))}
             </AppSelect>
           </label>
-          <p className={styles.touchpadHint}>
-            {t(
-              'keymap.touchpadClickHapticHint',
-              'A single pulse the moment you press the pad down, fired on the pad you actually clicked. Independent of the movement ticks and of whatever the click is bound to, so you can have the feel without the ticks, or either on its own.'
-            )}
-          </p>
           <NumberField layout="inline"
             label={t('keymap.touchpadReleaseHapticIntensity', 'Click release haptic')}
             value={releaseIntensity}
@@ -130,7 +119,7 @@ export function TouchpadHapticSection(props: Props) {
             max={100}
             step={1}
             coarseStep={5}
-            hint={releaseIntensity === 0 ? t('keymap.touchpadHapticOff', 'Off') : undefined}
+            hint={t('keymap.touchpadReleaseHapticHint')}
           />
           <label>
             {t('keymap.touchpadReleaseHapticEffect', 'Click release haptic effect')}
@@ -145,12 +134,6 @@ export function TouchpadHapticSection(props: Props) {
               ))}
             </AppSelect>
           </label>
-          <p className={styles.touchpadHint}>
-            {t(
-              'keymap.touchpadReleaseHapticHint',
-              'The same pulse for letting the click back up. The pad’s switch releases while your thumb is still resting on it, so without this there is nothing telling you the click binding has stopped firing. Independent from the press pulse above, so you can run one without the other, or make them feel different — a lighter Tick on release against a Click on press reads as one press-and-let-go rather than two identical taps.'
-            )}
-          </p>
         </div>
       </KeymapSection>
       <SectionActions

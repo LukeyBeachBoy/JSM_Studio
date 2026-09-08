@@ -262,3 +262,28 @@
   font-size: 0.85rem;
   color: var(--text-muted);
 }
+
+.help-button { flex: 0 0 22px; display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; padding: 0; margin-left: 6px; border-radius: 50%; border: 1px solid var(--border-color, #53606c); color: inherit; background: transparent; font: bold 13px sans-serif; cursor: pointer; vertical-align: middle; }
+.help-button:hover { background: #347aaa44; }
+.help-overlay { position: fixed; inset: 0; background: #0009; z-index: 12000; }
+.help-dialog { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(540px, 90vw); max-height: 80vh; overflow: auto; padding: 28px; border: 1px solid #637585; border-radius: 16px; background: var(--bg-2, #232930); color: var(--text-strong, #edf1f5); z-index: 12001; box-shadow: 0 20px 80px #0008; }
+.help-description { line-height: 1.65; margin: 20px 0; white-space: pre-line; }
+.tuning-anchor { scroll-margin-top: 24px; margin-bottom: 28px; }
+.editor-tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+.save-split { display: inline-flex; position: relative; }
+.save-split > button:first-child { border-radius: 8px 0 0 8px; }
+.save-split > button:nth-child(2) { border-radius: 0 8px 8px 0; min-width: 32px; border-left: 1px solid #fff5; }
+
+.save-menu { z-index: 200; background: var(--bg-2); color: var(--text-strong); border: 1px solid var(--border-strong); padding: 6px; border-radius: 8px; min-width: 220px; box-shadow: 0 10px 35px #0006; }
+.save-menu [role="menuitem"] { padding: 10px; border-radius: 4px; cursor: pointer; display: flex; justify-content: space-between; gap: 18px; }
+.save-menu [data-highlighted] { outline: none; background: var(--bg-input); }
+
+.live-console { max-height: 320px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: 12px/1.5 monospace; background: var(--bg-input); padding: 16px; border-radius: 8px; }
+
+.tuning-group { padding: 18px; border: 1px solid var(--border-1); border-radius: 10px; background: var(--bg-elevated); display: flex; flex-direction: column; gap: 14px; }
+.tuning-group > * { flex: 0 0 auto; }
+.tuning-group h3, .tuning-group p { margin: 0; }
+.tuning-group > label { display: flex; align-items: center; gap: 8px; }
+.tuning-group > label > button[role="combobox"] { margin-left: auto; width: 64%; }
+
+.tuning-group > div { flex: 0 0 auto; }

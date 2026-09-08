@@ -17,6 +17,7 @@ import {
 import type { TouchpadAccelParamKey, TouchpadAccelValues } from '../../hooks/useTouchpadConfig'
 
 type Props = {
+  liveSpeed?: number
   values: TouchpadAccelValues
   /** The gyro's shape, so the preview can show what "use gyro's curve" means. */
   gyroShape?: AccelCurveShape
@@ -34,6 +35,7 @@ type Props = {
 // The trackpad mouse's acceleration curve: the same editor the gyro uses, with
 // the trackpad's outputs (a gain at slow and at fast finger speeds) slotted in.
 export function TouchpadAccelSection({
+  liveSpeed,
   values,
   gyroShape,
   accelCurveLink,
@@ -103,7 +105,7 @@ export function TouchpadAccelSection({
           outputs={
             <div className="flex-inputs">
               <NumberField
-                label={t('touchpadAccel.minGain')}
+                label="Min Sens"
                 value={values.minGain}
                 onChange={v => onParamChange('minGain', v)}
                 min={0.1}
@@ -116,7 +118,7 @@ export function TouchpadAccelSection({
                 disabled={applyDisabled}
               />
               <NumberField
-                label={t('touchpadAccel.maxGain')}
+                label="Max Sens"
                 value={values.maxGain}
                 onChange={v => onParamChange('maxGain', v)}
                 min={0.1}
@@ -132,6 +134,7 @@ export function TouchpadAccelSection({
           }
         />
         {!active && <p className="field-description">{t('touchpadAccel.inactiveNote')}</p>}
+        <div className="editor-tools"><span>Sensitivity</span><span>· Normalized output velocity</span></div>
         <div className={graphStyles.graphPanel}>
           <SensitivityGraph
             minThreshold={previewShape.minThreshold}
@@ -147,11 +150,12 @@ export function TouchpadAccelSection({
             sigmoidMid={previewShape.sigmoidMid}
             sigmoidWidth={previewShape.sigmoidWidth}
             jumpTau={previewShape.jumpTau}
-            disableLiveDot
+            omega={liveSpeed ?? 0}
             xAxisLabel={t('touchpadAccel.axisSpeed')}
-            yAxisLabel={t('touchpadAccel.axisGain')}
+            yAxisLabel="Sensitivity (×)"
           />
         </div>
+        <p>Finger Speed: <strong>{(liveSpeed ?? 0).toFixed(2)} px/s</strong></p>
       </KeymapSection>
       <SectionActions
         className={keymapStyles.keymapSectionActions}

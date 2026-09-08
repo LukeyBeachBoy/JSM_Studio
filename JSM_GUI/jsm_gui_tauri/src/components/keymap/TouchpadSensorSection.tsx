@@ -1,5 +1,6 @@
+import { ConfigScope } from '../ConfigScope'
+import { HelpButton } from '../HelpButton'
 import { useTranslation } from 'react-i18next'
-import { KeymapSection } from '../KeymapSection'
 import keymapStyles from '../Keymap.module.css'
 import styles from './Touchpad.module.css'
 import { SectionActions } from '../SectionActions'
@@ -8,6 +9,8 @@ import { AdvancedDisclosure } from '../AdvancedDisclosure'
 import { AppSelect } from '../ui/AppSelect'
 
 type Props = {
+  liftSpeed?: number
+  onLiftSpeedChange?: (value: string) => void
   touchpadMinCutoff?: number
   touchpadSpeedCoeff?: number
   touchpadTrackballDecay?: number
@@ -66,187 +69,49 @@ function matchPreset(cutoff: number, speed: number) {
 
 export function TouchpadSensorSection(props: Props) {
   const { t } = useTranslation()
-  const cutoff = props.touchpadMinCutoff ?? 6.0
+  const cutoff = props.touchpadMinCutoff ?? 6
   const speed = props.touchpadSpeedCoeff ?? 0.6
   const preset = matchPreset(cutoff, speed)
-
-  const applyPreset = (id: string) => {
-    const p = SMOOTHING_PRESETS.find(entry => entry.id === id)
-    if (!p) return
-    props.onTouchpadMinCutoffChange?.(String(p.cutoff))
-    props.onTouchpadSpeedCoeffChange?.(String(p.speed))
-  }
-
-  return (
-    <>
-      <KeymapSection
-        title={t('keymap.touchSensitivityTitle', 'Mouse output')}
-        description={t(
-          'keymap.touchSensitivityDescription',
-          'How the cursor is smoothed as you swipe, and what it does when you let go.'
-        )}
-      >
-        <div className={styles.touchpadSettings}>
-          <label>
-            {t('keymap.touchSmoothing', 'Mouse smoothing')}
-            <AppSelect
-              className="app-select"
-              value={preset}
-              onChange={e => applyPreset(e.target.value)}
-            >
-              <option value="off">{t('keymap.smoothingOff', 'Off — raw pad motion (0 / 0)')}</option>
-              <option value="light">{t('keymap.smoothingLight', 'Light — sharpest, some jitter (10 / 0.8)')}</option>
-              <option value="balanced">{t('keymap.smoothingBalanced', 'Balanced — default (6 / 0.6)')}</option>
-              <option value="heavy">{t('keymap.smoothingHeavy', 'Heavy — smoothest at rest, flicks stay fast (2.5 / 3.0)')}</option>
-              <option value="custom" disabled={preset !== 'custom'}>
-                {t('keymap.smoothingCustom', 'Custom')}
-              </option>
-            </AppSelect>
-          </label>
-          <p className={styles.touchpadHint}>
-            {t(
-              'keymap.touchSmoothingHint',
-              'Smoothing cutoff is the floor, in Hz: how much smoothing survives when your finger is barely moving or resting. Lower is smoother but laggier at rest. Flick responsiveness lifts that cutoff once a flick is detected, letting a fast swipe escape the resting smoothing almost immediately — so a low cutoff no longer means a slow flick, only a stiller resting cursor. If the cursor looks jittery at rest or panning slowly, go one step heavier; if flicks still feel like they trail your finger, go one step lighter.'
-            )}
-          </p>
-          <AdvancedDisclosure summary={`${cutoff} Hz · ${speed}`}>
-            <NumberField layout="inline"
-              label={t('keymap.touchpadMinCutoff', 'Smoothing cutoff')}
-              value={cutoff}
-              onChange={v => props.onTouchpadMinCutoffChange?.(v)}
-              min={0}
-              max={20}
-              step={0.1}
-              unit="Hz"
-            />
-            <NumberField layout="inline"
-              label={t('keymap.touchpadSpeedCoeff', 'Flick responsiveness')}
-              value={speed}
-              onChange={v => props.onTouchpadSpeedCoeffChange?.(v)}
-              min={0}
-              max={5}
-              step={0.05}
-            />
-          </AdvancedDisclosure>
-          <NumberField layout="inline"
-            label={t('keymap.touchpadMovementThreshold', 'Minimum movement')}
-            value={props.touchpadMovementThreshold ?? 0}
-            onChange={v => props.onTouchpadMovementThresholdChange?.(v)}
-            min={0}
-            max={500}
-            step={1}
-            coarseStep={10}
-            unit="px/s"
-            hint={
-              (props.touchpadMovementThreshold ?? 0) === 0
-                ? t('keymap.touchpadMovementThresholdOff', 'Off — every reported movement reaches the cursor')
-                : undefined
-            }
-          />
-          <p className={styles.touchpadHint}>
-            {t(
-              'keymap.touchpadMovementThresholdHint',
-              'How fast your finger has to be moving across the pad, in pad pixels per second, before the cursor moves at all. A thumb trying to hold still never quite does, and that drift otherwise reaches the cursor as a slow crawl. Raise it until a resting thumb holds the cursor still; too high and slow deliberate panning stops working too. 0 turns the filter off.'
-            )}
-          </p>
-          {/* Same family as Minimum movement: output you did not mean to make.
-              That one is about a finger trying to stay still, this one about a
-              finger pressing down. */}
-          <NumberField layout="inline"
-            label={t('keymap.touchpadClickDampen', 'Click damping')}
-            value={props.touchpadClickDampen ?? 0}
-            onChange={v => props.onTouchpadClickDampenChange?.(v)}
-            min={0}
-            max={1}
-            step={0.05}
-            coarseStep={0.25}
-            hint={
-              (props.touchpadClickDampen ?? 0) === 0
-                ? t('keymap.touchpadClickDampenOff', 'Off — clicking the pad can still drag the cursor')
-                : (props.touchpadClickDampen ?? 0) >= 1
-                  ? t('keymap.touchpadClickDampenFull', 'Cursor stops completely while the pad is clicked')
-                  : undefined
-            }
-          />
-          <NumberField layout="inline"
-            label={t('keymap.touchpadClickDampenThreshold', 'Damping pressure')}
-            value={props.touchpadClickDampenThreshold ?? 0}
-            onChange={v => props.onTouchpadClickDampenThresholdChange?.(v)}
-            min={0}
-            max={1}
-            // The pads' force readings live far down the 0-1 scale SDL reports, so
-            // the useful part of this range is its bottom sliver. Fine enough to
-            // land on a value read off the live display below.
-            step={0.002}
-            coarseStep={0.02}
-            disabled={(props.touchpadClickDampen ?? 0) === 0}
-            hint={
-              (props.touchpadClickDampenThreshold ?? 0) === 0
-                ? t('keymap.touchpadClickDampenThresholdOff', 'Damps only once the click actually registers')
-                : undefined
-            }
-          />
-          {/* Without this the threshold is a blind setting: nothing on the page
-              says what a resting finger reads or what a click reads, and the two
-              are nowhere near the ends of the slider. */}
-          <p className={styles.touchpadHint}>
-            {t('keymap.touchpadLivePressure', 'Pressure now')}
-            {': '}
-            <strong>{formatPressure(props.livePadPressures?.left)}</strong>
-            {` ${t('keymap.sideLeft', 'Left')} · `}
-            <strong>{formatPressure(props.livePadPressures?.right)}</strong>
-            {` ${t('keymap.sideRight', 'Right')}`}
-            {' — '}
-            {t(
-              'keymap.touchpadLivePressureHint',
-              'press a pad and read the value you want the cursor already still at.'
-            )}
-          </p>
-          <p className={styles.touchpadHint}>
-            {t(
-              'keymap.touchpadClickDampenHint',
-              'For a pad you both aim with and click. Pressing hard enough to click rolls your finger across the pad, and in Mouse mode that roll moves the camera. Click damping is how much of the cursor movement the press takes away — 1 stops it completely, so clicking to interact cannot drag your aim. Damping pressure is the force at which that damping is fully applied, easing in over the second half of the way there so the cursor settles rather than stopping dead; it lands before the click itself registers. The pads report force far down the 0 to 1 scale, so read a value off the live display rather than guessing. Leave it at 0 to damp only while the click is actually held.'
-            )}
-          </p>
-          <NumberField layout="inline"
-            label={t('keymap.touchpadTrackballDecay', 'Trackball glide decay')}
-            value={props.touchpadTrackballDecay ?? 0}
-            onChange={v => props.onTouchpadTrackballDecayChange?.(v)}
-            min={0}
-            max={60}
-            step={1}
-          />
-          <NumberField layout="inline"
-            label={t('keymap.touchpadTrackballMinVelocity', 'Minimum flick speed')}
-            value={props.touchpadTrackballMinVelocity ?? 200}
-            onChange={v => props.onTouchpadTrackballMinVelocityChange?.(v)}
-            min={0}
-            max={2000}
-            step={25}
-            unit="px/s"
-          />
-          <p className={styles.touchpadHint}>
-            {t(
-              'keymap.touchpadTrackballMinVelocityHint',
-              'How fast a swipe must still be moving as your finger leaves the pad before the trackball coasts, in pixels per second. Raise it if putting a finger down to stop a coast flicks the cursor instead; 0 coasts from any speed.'
-            )}
-          </p>
-          <p className={styles.touchpadHint}>
-            {t(
-              'keymap.touchpadTrackballDecayHint',
-              '0 stops the cursor the instant your finger leaves the pad, matching Steam Input’s Mouse style. Higher values coast briefly after a flick.'
-            )}
-          </p>
-        </div>
-      </KeymapSection>
-      <SectionActions
-        className={keymapStyles.keymapSectionActions}
-        hasPendingChanges={props.hasPendingChanges}
-        statusMessage={props.statusMessage}
-        onApply={props.onApply}
-        onCancel={props.onCancel}
-        applyDisabled={props.applyDisabled}
-      />
-    </>
-  )
+  const actions = <SectionActions className={keymapStyles.keymapSectionActions} hasPendingChanges={props.hasPendingChanges} onApply={props.onApply} onCancel={props.onCancel} applyDisabled={props.applyDisabled} />
+  return <div className={styles.touchpadSettings}>
+    <ConfigScope match={/^TOUCHPAD_(MIN_CUTOFF|SPEED_COEFF|D_CUTOFF|MOVEMENT_)/}>
+      <section id="touch-smoothing" className="tuning-group tuning-anchor">
+        <h3>Motion</h3>
+        <label>Mouse smoothing <HelpButton title="Mouse smoothing">{t('keymap.touchSmoothingHint')}</HelpButton>
+          <AppSelect value={preset} onChange={e => {
+            const next = SMOOTHING_PRESETS.find(p => p.id === e.target.value)
+            if (next) { props.onTouchpadMinCutoffChange?.(String(next.cutoff)); props.onTouchpadSpeedCoeffChange?.(String(next.speed)) }
+          }}>
+            <option value="off">Off</option><option value="light">Light</option><option value="balanced">Balanced</option><option value="heavy">Heavy</option><option value="custom" disabled={preset !== 'custom'}>Custom</option>
+          </AppSelect>
+        </label>
+        <AdvancedDisclosure summary={`${cutoff} Hz · ${speed}`}>
+          <NumberField layout="inline" label="Smoothing cutoff" value={cutoff} onChange={v => props.onTouchpadMinCutoffChange?.(v)} min={0} max={20} step={0.1} unit="Hz" hint="Lower values smooth resting and slow movement more strongly. Fast swipes escape that smoothing using Flick responsiveness." />
+          <NumberField layout="inline" label="Flick responsiveness" value={speed} onChange={v => props.onTouchpadSpeedCoeffChange?.(v)} min={0} max={5} step={0.05} hint="Higher values reduce smoothing sooner when your finger speeds up, keeping quick flicks responsive." />
+        </AdvancedDisclosure>
+        <NumberField layout="inline" label="Minimum movement" value={props.touchpadMovementThreshold ?? 0} onChange={v => props.onTouchpadMovementThresholdChange?.(v)} min={0} max={500} step={1} coarseStep={10} unit="px/s" hint={t('keymap.touchpadMovementThresholdHint')} />
+        {actions}
+      </section>
+    </ConfigScope>
+    <ConfigScope match={/^TOUCHPAD_(CLICK_DAMPEN|LIFT_)/}>
+      <section id="touch-release" className="tuning-group tuning-anchor">
+        <h3>Press & release</h3>
+        <NumberField layout="inline" label="Lift-off protection" value={props.liftSpeed ?? 150} onChange={v => props.onLiftSpeedChange?.(v)} min={0} max={1000} step={10} unit="px/s" hint="Below this finger speed, falling pressure reduces mouse output to suppress thumb lift motion. Small pressure fluctuations are ignored; releasing 35% of the resting pressure stops output. Faster swipes remain responsive. 0 disables. Requires a controller that reports analog pad pressure." />
+        <NumberField layout="inline" label="Click damping" value={props.touchpadClickDampen ?? 0} onChange={v => props.onTouchpadClickDampenChange?.(v)} min={0} max={1} step={0.05} hint={t('keymap.touchpadClickDampenHint')} />
+        <NumberField layout="inline" label="Damping pressure" value={props.touchpadClickDampenThreshold ?? 0} onChange={v => props.onTouchpadClickDampenThresholdChange?.(v)} min={0} max={1} step={0.002} coarseStep={0.02} disabled={(props.touchpadClickDampen ?? 0) === 0} hint="Pressure at which click damping is fully applied. Read the live pressure below while pressing the pad. 0 damps only while the physical click is held." />
+        <p className={styles.touchpadHint}>Pressure now: <strong>{formatPressure(props.livePadPressures?.left)}</strong> Left · <strong>{formatPressure(props.livePadPressures?.right)}</strong> Right
+          <HelpButton title="Live pad pressure">Readings use the driver’s normalized 0–1 scale and are shown to four decimals. Hardware precision varies by controller.</HelpButton>
+        </p>
+        {actions}
+      </section>
+    </ConfigScope>
+    <ConfigScope match={/^TOUCHPAD_TRACKBALL_/}>
+      <section id="touch-glide" className="tuning-group tuning-anchor">
+        <h3>Trackball</h3>
+        <NumberField layout="inline" label="Trackball glide decay" value={props.touchpadTrackballDecay ?? 0} onChange={v => props.onTouchpadTrackballDecayChange?.(v)} min={0} max={60} step={1} hint="0 stops when your finger leaves. Positive values enable coasting after a flick; larger values slow the coast faster." />
+        <NumberField layout="inline" label="Minimum flick speed" value={props.touchpadTrackballMinVelocity ?? 200} onChange={v => props.onTouchpadTrackballMinVelocityChange?.(v)} min={0} max={2000} step={25} unit="px/s" hint={t('keymap.touchpadTrackballMinVelocityHint')} />
+        {actions}
+      </section>
+    </ConfigScope>
+  </div>
 }

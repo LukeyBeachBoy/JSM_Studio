@@ -49,11 +49,13 @@ export const timingKeys = [
   'DBL_PRESS_WINDOW',
   'SIM_PRESS_WINDOW',
   'TRIGGER_THRESHOLD',
+  'TRIGGER_HYSTERESIS',
   'LIGHT_BAR',
 ] as const
 
 export const touchpadKeys = [
   'TOUCHPAD_MODE',
+  'TOUCHPAD_LIFT_SPEED',
   'GRID_SIZE',
   'TOUCHPAD_SENS',
   'TOUCHPAD_DUAL_STAGE_MODE',

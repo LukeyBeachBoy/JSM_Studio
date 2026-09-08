@@ -215,3 +215,19 @@ export const analyzeVirtualControllerConfig = (text: string) => {
     hasVirtualOutputs: detectedTypes.length > 0,
   }
 }
+
+/** Translate output tokens only: preserve commands, quoted text and comments. */
+export function migrateVirtualBindings(text: string, type: VirtualControllerType): string {
+  if (type === 'NONE') return text
+  return text.split('\n').map(line => {
+    const eq = line.indexOf('=')
+    if (eq < 0 || line.trimStart().startsWith('#')) return line
+    const key = line.slice(0, eq).trim().split(',').pop()?.trim()
+    // Trigger passthrough modes are backend enum names, always X_LT / X_RT.
+    if (key === 'ZL_MODE' || key === 'ZR_MODE') return line
+    return line.slice(0, eq + 1) + line.slice(eq + 1).replace(/"[^"\n]*"|#.*|\b(?:X_[A-Z0-9_]+|PS_[A-Z0-9_]+)\b/g, token => {
+      const logical = getVirtualControllerLogicalOutput(token)
+      return logical ? toVirtualControllerToken(logical, type) ?? token : token
+    })
+  }).join('\n')
+}

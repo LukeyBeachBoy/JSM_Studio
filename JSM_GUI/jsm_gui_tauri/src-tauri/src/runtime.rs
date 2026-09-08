@@ -77,6 +77,8 @@ fn default_true() -> bool {
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeMappingState {
     pub active_profile_path: String,
+    #[serde(default)]
+    pub applied_preview_path: Option<String>,
     pub mapping_enabled: bool,
     pub autoload_enabled: bool,
     /// Whether the built-in AutoLoad rule that lets the controller drive JSM
@@ -210,6 +212,7 @@ pub fn set_active_profile(app: &AppHandle, relative: &str) -> Result<(), String>
     let absolute = absolute_profile_path(app, relative)?;
     ensure_file(&absolute, "")?;
     let mut state = read_runtime_mapping_state(app)?;
+    state.applied_preview_path = None;
     state.active_profile_path = normalize_relative_profile_path(Some(relative))
         .ok_or_else(|| format!("Invalid profile path: {relative}"))?;
     persist_runtime_mapping_state(app, &state)?;
@@ -227,14 +230,16 @@ pub fn write_active_profile(
         Some(value) => value,
         None => read_runtime_mapping_state(app)?.active_profile_path,
     };
-    let absolute = absolute_profile_path(app, &resolved)?;
+    let preview = "applied-preview.txt";
+    let absolute = absolute_profile_path(app, preview)?;
     ensure_file(&absolute, "")?;
     fs::write(&absolute, content).map_err(|error| format!("Failed to write profile: {error}"))?;
     let mut state = read_runtime_mapping_state(app)?;
     state.active_profile_path = resolved.clone();
+    state.applied_preview_path = Some(preview.to_string());
     persist_runtime_mapping_state(app, &state)?;
     write_startup_file(app, &state)?;
-    Ok(resolved)
+    Ok(preview.to_string())
 }
 
 pub fn list_library_profiles(app: &AppHandle) -> Result<Vec<String>, String> {
@@ -462,7 +467,7 @@ pub fn set_autoload_enabled(app: &AppHandle, enabled: bool) -> Result<RuntimeMap
 
 pub fn effective_profile_for_state(state: &RuntimeMappingState) -> String {
     if state.mapping_enabled {
-        state.active_profile_path.clone()
+        state.applied_preview_path.clone().unwrap_or_else(|| state.active_profile_path.clone())
     } else {
         MAPPING_DISABLED_RELATIVE.to_string()
     }
@@ -1043,7 +1048,7 @@ fn startup_file_text(state: &RuntimeMappingState) -> String {
         .map(|line| (*line).to_string())
         .collect::<Vec<_>>();
     if state.mapping_enabled {
-        lines.push(state.active_profile_path.clone());
+        lines.push(effective_profile_for_state(state));
         lines.push("AUTOCONNECT = ON".to_string());
         lines.push(format!(
             "AUTOLOAD = {}",
@@ -1180,6 +1185,7 @@ fn default_runtime_mapping_state(app: &AppHandle) -> Result<RuntimeMappingState,
 
     Ok(RuntimeMappingState {
         active_profile_path,
+        applied_preview_path: None,
         mapping_enabled,
         autoload_enabled: get_startup_autoload_enabled(app)?.unwrap_or(true),
         controller_nav_enabled: true,
@@ -1219,6 +1225,7 @@ fn set_active_profile_state(app: &AppHandle, relative: &str) -> Result<(), Strin
         &profile_template_text(),
     )?;
     let mut state = read_runtime_mapping_state(app)?;
+    state.applied_preview_path = None;
     state.active_profile_path = normalized;
     persist_runtime_mapping_state(app, &state)?;
     write_startup_file(app, &state)

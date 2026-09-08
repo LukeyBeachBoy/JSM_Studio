@@ -1,3 +1,4 @@
+import { useScopedActions } from '../hooks/configContext'
 import { useTranslation } from 'react-i18next'
 
 type SectionActionsProps = {
@@ -24,6 +25,10 @@ export function SectionActions({
   pendingMessage,
 }: SectionActionsProps) {
   const { t } = useTranslation()
+  const scoped = useScopedActions(hasPendingChanges, onCancel)
+  hasPendingChanges = scoped.dirty
+  onCancel = scoped.cancel
+  if (!hasPendingChanges) return null
 
   return (
     <div className={className}>
@@ -37,7 +42,7 @@ export function SectionActions({
               {cancelLabel ?? t('common.cancel')}
             </button>
           )}
-          <span className="pill pill--warning">{pendingMessage ?? t('messages.pendingChanges')}</span>
+          <span className="pill pill--warning">{pendingMessage ?? 'Unsaved changes'}</span>
         </>
       ) : statusMessage ? (
         <span className="pill pill--success">{statusMessage}</span>

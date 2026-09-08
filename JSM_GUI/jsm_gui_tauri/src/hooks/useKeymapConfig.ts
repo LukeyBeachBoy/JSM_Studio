@@ -1,3 +1,4 @@
+import { useConfigHistory } from './useConfigHistory'
 import { useMemo, useState } from 'react'
 import { getKeymapValue } from '../utils/keymap'
 import { keyName } from '../constants/configKeys'
@@ -8,7 +9,8 @@ import { useStickConfig } from './useStickConfig'
 import { useBindingsConfig } from './useBindingsConfig'
 
 export function useKeymapConfig() {
-  const [configText, setConfigText] = useState('')
+  const history = useConfigHistory()
+  const { text: configText, setText: setConfigText } = history
   const [appliedConfig, setAppliedConfig] = useState('')
 
   const sensitivityConfig = useSensitivityConfig({ configText, setConfigText })
@@ -35,6 +37,11 @@ export function useKeymapConfig() {
   return {
     configText,
     setConfigText,
+    resetConfigHistory: history.reset,
+    canUndo: history.canUndo,
+    canRedo: history.canRedo,
+    undo: () => { sensitivityConfig.resetPendingSensitivityChanges(); history.undo() },
+    redo: () => { sensitivityConfig.resetPendingSensitivityChanges(); history.redo() },
     appliedConfig,
     setAppliedConfig,
     hasPendingChanges,

@@ -1,4 +1,6 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { TrackpadModeshift } from './keymap/TrackpadModeshift'
+import { ConfigScope } from './ConfigScope'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DEFAULT_STICK_DEADZONE_INNER, DEFAULT_STICK_DEADZONE_OUTER } from '../constants/defaults'
 import { isDirectionalStickMode } from '../constants/sticks'
@@ -15,6 +17,7 @@ import {
   ButtonBindingRow,
   getButtonBindingRows,
   getKeymapValue,
+  updateKeymapEntry,
 } from '../utils/keymap'
 import { buildModifierOptions, resolveModifierOptionLabel } from '../utils/modifierOptions'
 import {
@@ -77,7 +80,30 @@ import { normalizeTouchpadMode, type TouchpadWarning } from '../utils/touchpadCo
 import { AppSelect } from './ui/AppSelect'
 import { TRACKPAD_ANCHORS } from '../constants/trackpadAnchors'
 
+
+function sectionScope(section: string): RegExp {
+  const patterns: Record<string, RegExp> = {
+    'touch-sensors': /^TOUCHPAD_(MIN_CUTOFF|SPEED_COEFF|D_CUTOFF|MOVEMENT_|CLICK_DAMPEN|LIFT_|TRACKBALL_)/,
+    'touch-haptics': /^TOUCHPAD_(HAPTIC_|CLICK_HAPTIC_|RELEASE_HAPTIC_)/,
+    'touch-accel': /^(TOUCHPAD_ACCEL_|ACCEL_CURVE_LINK)/,
+    'grip-sensors': /^(LEFT_|RIGHT_)?GRIP_/,
+    'touch-bind': /^(MISC2|MISC3|CAPTURE|TOUCH|TUP|TDOWN|TLEFT|TRIGHT|TRING)$/,
+    face: /^(N|S|E|W)$/,
+    bumpers: /^(L|R)$/,
+    center: /^(HOME|CAPTURE|MIC|\+|-)$/,
+    dpad: /^(UP|DOWN|LEFT|RIGHT)$/,
+    triggers: /^(ZL|ZR|TRIGGER_)/,
+    leftStick: /^(L[LRUDSR]|LEFT_(STICK|RING)|STICK_|FLICK_|MOUSE_RING|SCROLL_)/,
+    rightStick: /^(R[LRUDSR]|RIGHT_(STICK|RING)|STICK_|FLICK_|MOUSE_RING|SCROLL_)/,
+    paddles: /^(LPAD|RPAD|P[1-4]|[LR][1-4])$/,
+    extra: /^(MISC|EXTRA)/,
+    global: /^(HOLD_PRESS|DOUBLE_PRESS|SIM_PRESS|TRIGGER_|ADAPTIVE_TRIGGER|LIGHT_BAR)/,
+  }
+  return patterns[section] ?? /^(TOUCH|LEFT_TOUCH|RIGHT_TOUCH|GRID|LEFT_GRID|RIGHT_GRID|LT\d|RT\d|T\d)/
+}
+
 type KeymapControlsProps = {
+  onConfigTextChange?: React.Dispatch<React.SetStateAction<string>>
   configText: string
   hasPendingChanges: boolean
   isCalibrating: boolean
@@ -592,6 +618,7 @@ const allMappingButtons = () => {
 
 export function KeymapControls({
   configText,
+  onConfigTextChange,
   hasPendingChanges,
   isCalibrating,
   statusMessage,
@@ -810,8 +837,8 @@ export function KeymapControls({
   const touchpadGridPads = useMemo(() => {
     const pads = resolveTouchpadGrids({
       touchpadMode: touchpadModeProp,
-      leftMode: leftTouchpadMode,
-      rightMode: rightTouchpadMode,
+      leftMode: /^\s*[^#,=]+,\s*LEFT_TOUCHPAD_MODE\s*=\s*GRID_AND_STICK/m.test(configText) ? 'GRID_AND_STICK' : leftTouchpadMode,
+      rightMode: /^\s*[^#,=]+,\s*RIGHT_TOUCHPAD_MODE\s*=\s*GRID_AND_STICK/m.test(configText) ? 'GRID_AND_STICK' : rightTouchpadMode,
       columns: gridColumns,
       rows: gridRows,
       leftColumns: leftGridColumns,
@@ -831,6 +858,7 @@ export function KeymapControls({
       ),
     }))
   }, [
+    configText,
     gridColumns,
     gridRows,
     leftGridColumns,
@@ -1258,6 +1286,10 @@ export function KeymapControls({
           </option>
         </AppSelect>
       </label>
+      {(side === 'left' ? zlModeValue : zrModeValue) !== (side === 'left' ? 'X_LT' : 'X_RT') && <>
+        <NumberField label="Soft press point" value={triggerThreshold} onChange={onTriggerThresholdChange} min={0} max={1} step={0.01} hint="Digital bindings press when trigger travel crosses this point. 0 is fully released and 1 is fully pulled. Raise it slightly if resting your finger activates ADS. Applies to both digital triggers; analog passthrough is unchanged." />
+        {onConfigTextChange && <NumberField label="Flicker guard" value={getKeymapValue(configText, 'TRIGGER_HYSTERESIS') ?? 0.02} onChange={v => onConfigTextChange(prev => updateKeymapEntry(prev, 'TRIGGER_HYSTERESIS', [v]))} min={0} max={0.25} step={0.005} hint="Release margin below the soft press point. For example, a 0.10 press point and 0.02 guard release at 0.08. Prevents rapid on/off toggling without adding a timer. 0 disables; analog and hair triggers are unaffected." />}
+      </>}
       {(side === 'left' ? zlModeValue : zrModeValue) === (side === 'left' ? 'X_LT' : 'X_RT') && (
         <div className={stickStyles.stickFlickSettings} data-capture-ignore="true">
           <small>{t('keymap.triggerVirtualPassthroughHint')}</small>
@@ -1275,7 +1307,8 @@ export function KeymapControls({
     const card = side === 'left' ? leftPadCard : rightPadCard
     if (!card) return null
     const pad = touchpadGridPads.find(candidate => candidate.side === side)
-    const gridMode = padModeFor(side) === 'GRID_AND_STICK'
+    const shiftedGrid = new RegExp(`^\\s*[^#,=]+,\\s*${side.toUpperCase()}_TOUCHPAD_MODE\\s*=\\s*GRID_AND_STICK`, 'm').test(configText)
+    const gridMode = padModeFor(side) === 'GRID_AND_STICK' || shiftedGrid
     const stickProps =
       side === 'left'
         ? {
@@ -1303,7 +1336,7 @@ export function KeymapControls({
             onTouchStickAxisChange: onRightTouchStickAxisChange ?? onTouchStickAxisChange,
           }
     return (
-      <SideBlock
+      <ConfigScope match={side === 'left' ? /^(LEFT_(TOUCH|GRID)|LT\d+)/ : /^(RIGHT_(TOUCH|GRID)|RT\d+)/}><SideBlock
         key={side}
         side={side}
         id={side === 'left' ? TRACKPAD_ANCHORS.left : TRACKPAD_ANCHORS.right}
@@ -1311,6 +1344,7 @@ export function KeymapControls({
         description={t('keymap.touchpadSettingsDescription')}
       >
         <div data-input-command={side === 'left' ? 'LEFT_PAD' : 'RIGHT_PAD'}><TouchpadModeCard config={card} /></div>
+        {onConfigTextChange && <TrackpadModeshift side={side} text={configText} onChange={onConfigTextChange} modifiers={modifierOptions} />}
         {gridMode && pad && isVisible('touch-grid') && (
           <TouchpadGridSection
             side={side}
@@ -1338,7 +1372,7 @@ export function KeymapControls({
         {!gridMode && (
           <SectionActions className={keymapStyles.keymapSectionActions} {...actionsProps} />
         )}
-      </SideBlock>
+      </SideBlock></ConfigScope>
     )
   }
 
@@ -1416,7 +1450,7 @@ export function KeymapControls({
   }
 
   const renderSections = (sections: { key: string; shouldRender: boolean; node: JSX.Element }[]) =>
-    sections.filter(section => section.shouldRender).map(section => <Fragment key={section.key}>{section.node}</Fragment>)
+    sections.filter(section => section.shouldRender).map(section => <ConfigScope key={section.key} match={sectionScope(section.key)}><div id={section.key} className="tuning-anchor">{section.node}</div></ConfigScope>)
 
   return (
     <Card
@@ -1572,7 +1606,7 @@ export function KeymapControls({
               </aside>
               <div className={keymapStyles.mappingListContent}>
                 {listMappingGroups.map(([groupKey, group]) => (
-                  <div
+                  <ConfigScope key={groupKey} match={sectionScope(groupKey)}><div
                     key={groupKey}
                     ref={element => {
                       listSectionRefs.current[groupKey] = element
@@ -1648,12 +1682,9 @@ export function KeymapControls({
                         )
                       })()}
                     </KeymapSection>
-                  </div>
+                    <SectionActions className={keymapStyles.keymapSectionActions} {...actionsProps} />
+                  </div></ConfigScope>
                 ))}
-                <SectionActions
-                  className={keymapStyles.keymapSectionActions}
-                  {...actionsProps}
-                />
               </div>
             </section>
           )}
@@ -1750,6 +1781,8 @@ export function KeymapControls({
                   touchpadClickDampen={touchpadClickDampen}
                   touchpadClickDampenThreshold={touchpadClickDampenThreshold}
                   livePadPressures={livePadPressures}
+                  liftSpeed={Number(getKeymapValue(configText, 'TOUCHPAD_LIFT_SPEED') ?? 150)}
+                  onLiftSpeedChange={v => onConfigTextChange?.(prev => updateKeymapEntry(prev, 'TOUCHPAD_LIFT_SPEED', [v]))}
                   onTouchpadMinCutoffChange={onTouchpadMinCutoffChange}
                   onTouchpadSpeedCoeffChange={onTouchpadSpeedCoeffChange}
                   onTouchpadTrackballDecayChange={onTouchpadTrackballDecayChange}
@@ -1789,6 +1822,7 @@ export function KeymapControls({
               shouldRender: isVisible('touch-sensors') && Boolean(touchpadAccelValues && onTouchpadAccelCurveChange && onTouchpadAccelParamChange && onAccelCurveLinkChange),
               node: (
                 <TouchpadAccelSection
+                  liveSpeed={Math.max(0, ...(devices ?? []).flatMap(d => [d.status?.leftPad?.speed ?? 0, d.status?.rightPad?.speed ?? 0]))}
                   values={touchpadAccelValues ?? {}}
                   gyroShape={gyroAccelShape}
                   accelCurveLink={accelCurveLink}

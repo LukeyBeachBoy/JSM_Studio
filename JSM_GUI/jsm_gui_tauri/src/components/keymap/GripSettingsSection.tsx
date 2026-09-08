@@ -64,7 +64,7 @@ export function GripSettingsSection(props: Props) {
             defaultValue={80}
             unit="%"
             placeholder={inherited}
-            hint={range < 0 ? inherited : undefined}
+            hint={t('keymap.gripCalibrationHint')}
           />
           <NumberField layout="inline"
             label={t('keymap.gripFlickerGuard', 'Flicker guard size')}
@@ -77,14 +77,8 @@ export function GripSettingsSection(props: Props) {
             defaultValue={27}
             unit="%"
             placeholder={inherited}
-            hint={guard < 0 ? inherited : undefined}
+            hint={t('keymap.gripCalibrationHint')}
           />
-          <p className={styles.touchpadHint}>
-            {t(
-              'keymap.gripCalibrationHint',
-              'Lower range requires closer contact, so a small finger lift can release the grip. Lower flicker guard releases sooner; raise it slightly if contact flickers. Both settings affect both grips. Clear a field to leave that controller setting unchanged. Save and Apply the configuration to test changes.'
-            )}
-          </p>
           <NumberField layout="inline"
             label={t('keymap.gripHapticIntensity', 'Grip haptic')}
             value={haptic}
@@ -92,7 +86,7 @@ export function GripSettingsSection(props: Props) {
             min={0}
             max={100}
             step={1}
-            hint={haptic === 0 ? t('keymap.gripHapticOff', 'Off') : undefined}
+            hint={t('keymap.gripHapticHint')}
           />
           <label>
             {t('keymap.gripHapticEffect', 'Grip haptic effect')}
@@ -107,12 +101,6 @@ export function GripSettingsSection(props: Props) {
               ))}
             </AppSelect>
           </label>
-          <p className={styles.touchpadHint}>
-            {t(
-              'keymap.gripHapticHint',
-              'A short pulse from the grip’s own actuator the moment that sensor detects your hand. Fires once on detection rather than buzzing for as long as you hold the controller. 0 turns it off. Click is the tap Steam Input plays while calibrating the grip sensors; the other effects are the controller’s own, and any of them can be bound to any input from the Buttons pages.'
-            )}
-          </p>
           <NumberField layout="inline"
             label={t('keymap.gripReleaseHapticIntensity', 'Grip release haptic')}
             value={releaseHaptic}
@@ -120,7 +108,7 @@ export function GripSettingsSection(props: Props) {
             min={0}
             max={100}
             step={1}
-            hint={releaseHaptic === 0 ? t('keymap.gripHapticOff', 'Off') : undefined}
+            hint={t('keymap.gripReleaseHapticHint')}
           />
           <label>
             {t('keymap.gripReleaseHapticEffect', 'Grip release haptic effect')}
@@ -135,12 +123,6 @@ export function GripSettingsSection(props: Props) {
               ))}
             </AppSelect>
           </label>
-          <p className={styles.touchpadHint}>
-            {t(
-              'keymap.gripReleaseHapticHint',
-              'The same kind of pulse, but for the moment your hand pulls away instead of the moment it arrives. Independent from the contact pulse above, so you can run one without the other, or tune them to feel different. Off by default.'
-            )}
-          </p>
         </div>
       </KeymapSection>
       <SectionActions
