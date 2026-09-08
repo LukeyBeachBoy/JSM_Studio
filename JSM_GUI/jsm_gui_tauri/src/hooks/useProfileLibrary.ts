@@ -111,7 +111,13 @@ export function useProfileLibrary({ resetConfigHistory, configText, setConfigTex
       setRuntimeConfig(text)
       setAppliedProfileName(profileName)
       report(t('messages.profileApplied', { profileName: profileName ?? t('app.profileSummary.unsavedProfile') }))
-    } catch { report(t('messages.applyKeymapFailed'), true) }
+    } catch (error) {
+      // The backend's own message named the failing path; swallowing it left
+      // "Failed to apply keymap." as the only clue that Apply was rejecting
+      // every write outright.
+      const reason = error instanceof Error ? error.message : String(error ?? '')
+      report(reason ? `${t('messages.applyKeymapFailed')} ${reason}` : t('messages.applyKeymapFailed'), true)
+    }
   }
   const handleCreateProfile = async () => {
     const request = ++selection.current

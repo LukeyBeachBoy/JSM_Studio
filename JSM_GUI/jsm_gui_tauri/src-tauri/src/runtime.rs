@@ -8,6 +8,14 @@ use tauri::{AppHandle, Manager};
 
 pub const DEFAULT_PROFILE_NAME: &str = "Profile 1";
 pub const PROFILE_LIBRARY_RELATIVE: &str = "profiles-library";
+
+/// Where Apply writes the configuration being tried out, so that applying does
+/// not overwrite the saved profile it was edited from. It has to live inside
+/// the profile library: every path here goes through
+/// `normalize_relative_profile_path`, which rejects anything outside it, so a
+/// bare file name made Apply fail outright.
+pub const APPLIED_PREVIEW_NAME: &str = "applied-preview";
+pub const APPLIED_PREVIEW_RELATIVE: &str = "profiles-library/applied-preview.txt";
 pub const DEFAULT_PROFILE_RELATIVE: &str = "profiles-library/Profile 1.txt";
 pub const CALIBRATION_PROFILE_RELATIVE: &str = "GyroConfigs/_3Dcalibrate.txt";
 pub const CALIBRATION_COMMAND: &str = "RecalibrateGyro.txt";
@@ -230,7 +238,7 @@ pub fn write_active_profile(
         Some(value) => value,
         None => read_runtime_mapping_state(app)?.active_profile_path,
     };
-    let preview = "applied-preview.txt";
+    let preview = APPLIED_PREVIEW_RELATIVE;
     let absolute = absolute_profile_path(app, preview)?;
     ensure_file(&absolute, "")?;
     fs::write(&absolute, content).map_err(|error| format!("Failed to write profile: {error}"))?;
@@ -264,6 +272,11 @@ pub fn list_library_profile_names(app: &AppHandle) -> Result<Vec<String>, String
             continue;
         }
         if let Some(stem) = path.file_stem().and_then(|value| value.to_str()) {
+            // The Apply preview is a real file in this directory, but it is not
+            // one of the user's configurations and must not appear as one.
+            if stem == APPLIED_PREVIEW_NAME {
+                continue;
+            }
             names.push(stem.to_string());
         }
     }
@@ -1487,5 +1500,34 @@ fn normalize_backend_choice(choice: &str) -> &'static str {
         "legacy"
     } else {
         "SDL"
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_apply_preview_path_is_a_valid_profile_path() {
+        // Apply writes here every time it runs. A path this rejects makes Apply
+        // fail outright, which is exactly what a bare file name did.
+        assert_eq!(
+            normalize_relative_profile_path(Some(APPLIED_PREVIEW_RELATIVE)).as_deref(),
+            Some(APPLIED_PREVIEW_RELATIVE)
+        );
+    }
+
+    #[test]
+    fn the_preview_name_and_path_agree() {
+        // list_library_profile_names hides the preview by file stem, so the two
+        // constants have to describe the same file.
+        assert!(APPLIED_PREVIEW_RELATIVE.ends_with(&format!("/{APPLIED_PREVIEW_NAME}.txt")));
+    }
+
+    #[test]
+    fn profile_paths_outside_the_library_are_rejected() {
+        assert_eq!(normalize_relative_profile_path(Some("applied-preview.txt")), None);
+        assert_eq!(normalize_relative_profile_path(Some("../secrets.txt")), None);
+        assert_eq!(normalize_relative_profile_path(Some("profiles-library/../x.txt")), None);
     }
 }
