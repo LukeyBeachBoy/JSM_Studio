@@ -1734,11 +1734,14 @@
 }
 
 .globalControls {
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: var(--space-2);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 21rem), 1fr));
+  gap: var(--space-3);
 }
 
 .globalControlRow {
-  min-height: 4.25rem;
-  padding: 0.6rem 0.65rem;
+  min-height: 6rem;
+  padding: 1rem;
+  align-items: center;
 }
+
+.globalControlRow > :only-child { grid-column: 1 / -1; }

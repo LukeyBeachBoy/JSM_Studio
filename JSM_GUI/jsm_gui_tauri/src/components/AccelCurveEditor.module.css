@@ -12,3 +12,14 @@
   flex-direction: column;
   gap: var(--space-3);
 }
+
+.fieldLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.fieldLabel :global(.help-button) {
+  margin: 0;
+  flex: 0 0 auto;
+}

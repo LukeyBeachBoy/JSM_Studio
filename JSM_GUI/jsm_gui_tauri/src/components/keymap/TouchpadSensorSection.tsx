@@ -77,19 +77,20 @@ export function TouchpadSensorSection(props: Props) {
     <ConfigScope match={/^TOUCHPAD_(MIN_CUTOFF|SPEED_COEFF|D_CUTOFF|MOVEMENT_)/}>
       <section id="touch-smoothing" className="tuning-group tuning-anchor">
         <h3>Motion</h3>
-        <label>Mouse smoothing <HelpButton title="Mouse smoothing">{t('keymap.touchSmoothingHint')}</HelpButton>
-          <AppSelect value={preset} onChange={e => {
+        <div className={styles.smoothingRow}>
+          <span className={styles.settingLabel}>Mouse smoothing <HelpButton title="Mouse smoothing">{t('keymap.touchSmoothingHint')}</HelpButton></span>
+          <AppSelect aria-label="Mouse smoothing" value={preset} onChange={e => {
             const next = SMOOTHING_PRESETS.find(p => p.id === e.target.value)
             if (next) { props.onTouchpadMinCutoffChange?.(String(next.cutoff)); props.onTouchpadSpeedCoeffChange?.(String(next.speed)) }
           }}>
             <option value="off">Off</option><option value="light">Light</option><option value="balanced">Balanced</option><option value="heavy">Heavy</option><option value="custom" disabled={preset !== 'custom'}>Custom</option>
           </AppSelect>
-        </label>
+        </div>
+        <NumberField layout="inline" label="Minimum movement" value={props.touchpadMovementThreshold ?? 0} onChange={v => props.onTouchpadMovementThresholdChange?.(v)} min={0} max={500} step={1} coarseStep={10} unit="px/s" hint={t('keymap.touchpadMovementThresholdHint')} />
         <AdvancedDisclosure summary={`${cutoff} Hz · ${speed}`}>
           <NumberField layout="inline" label="Smoothing cutoff" value={cutoff} onChange={v => props.onTouchpadMinCutoffChange?.(v)} min={0} max={20} step={0.1} unit="Hz" hint="Lower values smooth resting and slow movement more strongly. Fast swipes escape that smoothing using Flick responsiveness." />
           <NumberField layout="inline" label="Flick responsiveness" value={speed} onChange={v => props.onTouchpadSpeedCoeffChange?.(v)} min={0} max={5} step={0.05} hint="Higher values reduce smoothing sooner when your finger speeds up, keeping quick flicks responsive." />
         </AdvancedDisclosure>
-        <NumberField layout="inline" label="Minimum movement" value={props.touchpadMovementThreshold ?? 0} onChange={v => props.onTouchpadMovementThresholdChange?.(v)} min={0} max={500} step={1} coarseStep={10} unit="px/s" hint={t('keymap.touchpadMovementThresholdHint')} />
         {actions}
       </section>
     </ConfigScope>

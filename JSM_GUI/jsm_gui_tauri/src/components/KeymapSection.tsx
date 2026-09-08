@@ -3,6 +3,7 @@ import { ReactNode } from 'react'
 import styles from './Keymap.module.css'
 
 type KeymapSectionProps = {
+  className?: string
   title: string
   description?: string
   icon?: ReactNode
@@ -10,9 +11,9 @@ type KeymapSectionProps = {
   children: ReactNode
 }
 
-export function KeymapSection({ title, description, icon, action, children }: KeymapSectionProps) {
+export function KeymapSection({ className = '', title, description, icon, action, children }: KeymapSectionProps) {
   return (
-    <section className={styles.keymapSection}>
+    <section className={`${styles.keymapSection} ${className}`.trim()}>
       <div className={styles.keymapSectionHeader}>
         <div className={styles.keymapSectionHeading}>
           {icon && <span className={styles.keymapSectionIcon}>{icon}</span>}

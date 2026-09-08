@@ -197,38 +197,38 @@ type PrimaryNavProps = {
 const NAV_COLLAPSED_KEY = 'jsm.sidebarCollapsed'
 
 const editorIcon = {
-  width: 15, height: 15, viewBox: '0 0 16 16', 'aria-hidden': true, fill: 'none',
-  stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round',
+  width: 18, height: 18, viewBox: '0 0 24 24', 'aria-hidden': true, fill: 'none',
+  stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round',
 } as const
 
 const UndoIcon = () => (
-  <svg {...editorIcon}><path d="M6 4.5 2.5 8 6 11.5" /><path d="M2.5 8h6.2a4 4 0 0 1 0 8H7" /></svg>
+  <svg {...editorIcon}><path d="m8 4-5 5 5 5" /><path d="M3 9h11a6 6 0 0 1 0 12h-3" /></svg>
 )
 
 const RedoIcon = () => (
-  <svg {...editorIcon}><path d="M10 4.5 13.5 8 10 11.5" /><path d="M13.5 8H7.3a4 4 0 0 0 0 8H9" /></svg>
+  <svg {...editorIcon}><path d="m16 4 5 5-5 5" /><path d="M21 9H10a6 6 0 0 0 0 12h3" /></svg>
 )
 
 // A floppy disk: the outline, the shutter at the top and the label below.
 const SaveIcon = () => (
   <svg {...editorIcon}>
-    <path d="M2.4 3.3a.9.9 0 0 1 .9-.9h7.5l2.8 2.8v7.5a.9.9 0 0 1-.9.9H3.3a.9.9 0 0 1-.9-.9Z" />
-    <path d="M5.2 2.4v3.4h5V2.4" />
-    <path d="M4.8 13.6V9.4h6.4v4.2" />
+    <path d="M20 21H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h12l5 5v12a1 1 0 0 1-1 1Z" />
+    <path d="M7 3v6h9V3M7 21v-7h10v7M13 5v2" />
   </svg>
 )
 
 const ChevronDown = () => (
-  <svg {...editorIcon} width="12" height="12"><path d="M4 6.5 8 10.5l4-4" /></svg>
+  <svg {...editorIcon} width="12" height="12" viewBox="0 0 16 16"><path d="M4 6.5 8 10.5l4-4" /></svg>
 )
 
 // A chevron pointing the way the rail will move, which is the one thing the
 // button needs to say without a label.
 const CollapseIcon = ({ collapsed }: { collapsed: boolean }) => (
   <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor"
-    strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-    <path d={collapsed ? 'M6 3.5 10.5 8 6 12.5' : 'M10 3.5 5.5 8 10 12.5'} />
-    <path d={collapsed ? 'M2.5 3v10' : 'M13.5 3v10'} />
+    strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="1.5" y="2" width="13" height="12" rx="2" />
+    <path d="M5.5 2v12" />
+    <path d={collapsed ? 'm9 6 2 2-2 2' : 'm11 6-2 2 2 2'} />
   </svg>
 )
 
@@ -1147,8 +1147,7 @@ function App() {
       </div>
 
       <div className="utility-profile-group">
-        <div className="utility-title">{t('app.profileSummary.editingTitle')}</div>
-        <div aria-live="polite">
+        <div className="utility-applied" aria-live="polite">
           {mappingEnabled
             ? t('app.profileSummary.appliedLabel', {
                 name:
@@ -1165,6 +1164,8 @@ function App() {
         <button
           type="button"
           className="profile-chip"
+          title={`${t('app.profileSummary.editingTitle')}: ${currentLibraryProfile ?? t('app.profileSummary.selectProfile')}`}
+          aria-label={`${t('app.profileSummary.editingTitle')}: ${currentLibraryProfile ?? t('app.profileSummary.selectProfile')}`}
           disabled={isCalibrating}
           onClick={() => setProfileModalOpen(true)}
           aria-haspopup="dialog"

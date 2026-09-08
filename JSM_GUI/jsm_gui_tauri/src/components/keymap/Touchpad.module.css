@@ -25,7 +25,28 @@
 }
 
 .touchpadCard h4 { margin: 0; color: var(--text-strong); }
-.touchpadCard label { display: flex; flex-direction: column; gap: 0.3rem; color: var(--text-strong); }
+.touchpadCard > label { display: flex; flex-direction: column; gap: 0.3rem; color: var(--text-strong); }
+
+.settingLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.settingLabel :global(.help-button) { margin: 0; flex: 0 0 auto; }
+
+.smoothingRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(10rem, 18rem);
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.smoothingRow > :global(button[role='combobox']) { width: 100%; }
+
+@media (max-width: 600px) {
+  .smoothingRow { grid-template-columns: minmax(0, 1fr); }
+}
 
 .touchpadSettings {
   display: flex;
@@ -45,7 +66,7 @@
    end, the way Steam Input lays its own out. Stacking the label above a
    full-width input made every row look like a heading with a field under it and
    forced the eye to zig-zag down the page. */
-.touchpadSettings label {
+.touchpadSettings > label {
   display: grid;
   grid-template-columns: minmax(11rem, 18rem) minmax(0, 1fr) auto;
   align-items: center;
@@ -66,7 +87,7 @@
 }
 
 @media (max-width: 720px) {
-  .touchpadSettings label {
+  .touchpadSettings > label {
     grid-template-columns: minmax(0, 1fr);
   }
 }

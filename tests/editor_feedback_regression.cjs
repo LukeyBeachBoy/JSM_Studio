@@ -52,12 +52,13 @@ const fs = require('node:fs');
  await page.waitForFunction(()=>window.__calls.length===4);
  assert.deepEqual(await page.evaluate(()=>window.__calls),['apply','save','save','apply']);
  // Shifted grid must be editable even though the ordinary mode is mouse.
- await right.getByRole('combobox').filter({hasText:'No modeshift'}).click();
- await page.getByRole('option',{name:'Pad click',exact:true}).click();
+ await right.getByRole('button',{name:'Add modeshift'}).click();
+ await right.getByRole('combobox').filter({hasText:'Choose a trigger'}).click();
+ await page.getByRole('option',{name:/^L — top-left bumper/}).click();
  await right.getByRole('textbox',{name:'Columns',exact:true}).waitFor();
  await right.getByRole('button',{name:/Region 1|Cell 1|RT1/}).first().waitFor();
  await page.keyboard.press('Control+s');
- await page.waitForFunction(()=>window.__lastSaved.includes('MISC2,RIGHT_TOUCHPAD_MODE = GRID_AND_STICK') || window.__lastSaved.includes('MISC2, RIGHT_TOUCHPAD_MODE = GRID_AND_STICK'));
+ await page.waitForFunction(()=>/L\s*,\s*RIGHT_TOUCHPAD_MODE = GRID_AND_STICK/.test(window.__lastSaved));
  await page.getByRole('button',{name:'Trackpad tuning',exact:true}).click();
  await page.getByRole('navigation',{name:'Trackpad tuning sections'}).waitFor();
  await page.getByText('420.00 px/s',{exact:true}).waitFor();

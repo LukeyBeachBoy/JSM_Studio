@@ -1,4 +1,6 @@
-import { TrackpadModeshift } from './keymap/TrackpadModeshift'
+import { InputModeshifts } from './keymap/InputModeshifts'
+import type { ModeshiftTarget } from '../utils/modeshift'
+import { getButtonDescription } from '../keymap/schema'
 import { ConfigScope } from './ConfigScope'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -847,8 +849,8 @@ export function KeymapControls({
   const touchpadGridPads = useMemo(() => {
     const pads = resolveTouchpadGrids({
       touchpadMode: touchpadModeProp,
-      leftMode: /^\s*[^#,=]+,\s*LEFT_TOUCHPAD_MODE\s*=\s*GRID_AND_STICK/m.test(configText) ? 'GRID_AND_STICK' : leftTouchpadMode,
-      rightMode: /^\s*[^#,=]+,\s*RIGHT_TOUCHPAD_MODE\s*=\s*GRID_AND_STICK/m.test(configText) ? 'GRID_AND_STICK' : rightTouchpadMode,
+      leftMode: leftTouchpadMode,
+      rightMode: rightTouchpadMode,
       columns: gridColumns,
       rows: gridRows,
       leftColumns: leftGridColumns,
@@ -868,7 +870,6 @@ export function KeymapControls({
       ),
     }))
   }, [
-    configText,
     gridColumns,
     gridRows,
     leftGridColumns,
@@ -1099,7 +1100,12 @@ export function KeymapControls({
   }, [selectedMappingCommand])
 
   const renderButtonCard = (button: ButtonDefinition) => {
-    const rows = bindingRowsByButton[button.command] ?? []
+    const allRows = bindingRowsByButton[button.command] ?? []
+    // Chord bindings belong to this group's modeshift panel rather than the
+    // card. Where they are filtered out here, the card must not offer to make
+    // one either -- it would be written, hidden, and lost.
+    const chordsLiveInModeshifts = !!onConfigTextChange && (showMappedLayout || /^(LT|RT)\d+$/.test(button.command))
+    const rows = chordsLiveInModeshifts ? allRows.filter(row => row.slot !== 'chord') : allRows
     return (
       <ButtonBindingsCard
         button={button}
@@ -1133,6 +1139,7 @@ export function KeymapControls({
         onEnableVirtualController={onVirtualControllerTypeChange ? () => onVirtualControllerTypeChange('XBOX') : undefined}
         bindingLabel={bindingLabels?.[button.command.toUpperCase()]}
         onBindingLabelChange={onBindingLabelChange}
+        chordsLiveInModeshifts={chordsLiveInModeshifts}
         bindingClipboard={bindingClipboard}
         onCopyBindings={setBindingClipboard}
       />
@@ -1145,6 +1152,26 @@ export function KeymapControls({
     onApply,
     onCancel,
     applyDisabled: isCalibrating,
+  }
+
+  const renderModeshifts = (target: ModeshiftTarget, side?: 'left' | 'right') => onConfigTextChange && (
+    <InputModeshifts target={target} text={configText} onChange={onConfigTextChange} modifiers={modifierOptions}
+      virtualControllerType={virtualControllerType ?? 'NONE'}
+      onEnableVirtualController={onVirtualControllerTypeChange ? () => onVirtualControllerTypeChange('XBOX') : undefined}
+      beginValueCapture={beginValueCapture} isCapturingValue={isCapturingValue} captureLabel={captureLabel}
+      livePad={side === 'left' ? livePadTouches.left : side === 'right' ? livePadTouches.right : livePadTouch} />
+  )
+
+  const padModeshiftTarget = (side: 'left' | 'right'): ModeshiftTarget => {
+    const prefix = side.toUpperCase()
+    const buttonPrefix = side === 'left' ? 'LT' : 'RT'
+    return {
+      id: `${side}-pad`, title: side === 'left' ? 'Left trackpad' : 'Right trackpad',
+      buttons: Array.from({ length: 25 }, (_, i) => ({ command: `${buttonPrefix}${i + 1}`, label: `${buttonPrefix}${i + 1}` })),
+      settings: [`${prefix}_GRID_SIZE`, `${prefix}_GRID_REQUIRES_CLICK`, `${prefix}_TOUCH_STICK_MODE`, `${prefix}_TOUCHPAD_SENS`],
+      mode: { key: `${prefix}_TOUCHPAD_MODE`, defaultValue: 'GRID_AND_STICK', options: [{ value: 'GRID_AND_STICK', label: 'Button grid' }, { value: 'MOUSE', label: 'Mouse' }] },
+      grid: { sizeKey: `${prefix}_GRID_SIZE`, clickKey: `${prefix}_GRID_REQUIRES_CLICK`, stickKey: `${prefix}_TOUCH_STICK_MODE`, clickButton: side === 'left' ? 'MISC3' : 'MISC2', prefix: buttonPrefix },
+    }
   }
 
   // With no virtual controller chosen yet, binding the pad through has to pick
@@ -1317,8 +1344,7 @@ export function KeymapControls({
     const card = side === 'left' ? leftPadCard : rightPadCard
     if (!card) return null
     const pad = touchpadGridPads.find(candidate => candidate.side === side)
-    const shiftedGrid = new RegExp(`^\\s*[^#,=]+,\\s*${side.toUpperCase()}_TOUCHPAD_MODE\\s*=\\s*GRID_AND_STICK`, 'm').test(configText)
-    const gridMode = padModeFor(side) === 'GRID_AND_STICK' || shiftedGrid
+    const gridMode = padModeFor(side) === 'GRID_AND_STICK'
     const stickProps =
       side === 'left'
         ? {
@@ -1354,7 +1380,6 @@ export function KeymapControls({
         description={t('keymap.touchpadSettingsDescription')}
       >
         <div data-input-command={side === 'left' ? 'LEFT_PAD' : 'RIGHT_PAD'}><TouchpadModeCard config={card} /></div>
-        {onConfigTextChange && <TrackpadModeshift side={side} text={configText} onChange={onConfigTextChange} modifiers={modifierOptions} />}
         {gridMode && pad && isVisible('touch-grid') && (
           <TouchpadGridSection
             side={side}
@@ -1379,6 +1404,7 @@ export function KeymapControls({
             {...actionsProps}
           />
         )}
+        {renderModeshifts(padModeshiftTarget(side), side)}
         {!gridMode && (
           <SectionActions className={keymapStyles.keymapSectionActions} {...actionsProps} />
         )}
@@ -1481,7 +1507,7 @@ export function KeymapControls({
           </button>
         </div>
       )}
-      {!showMappedLayout && (
+      {!showMappedLayout && !visibleSections?.includes('grip-sensors') && (
         <div className={keymapStyles.keymapCardHeader}>
           <div className={keymapStyles.keymapTitleRow}>
             <h2>
@@ -1703,6 +1729,16 @@ export function KeymapControls({
                           </>
                         )
                       })()}
+                      {renderModeshifts({
+                        id: groupKey, title: t(group.titleKey),
+                        buttons: group.buttons.map(button => ({ command: button.command, label: getButtonDescription(button, t) })),
+                        ...((groupKey === 'leftStick' || groupKey === 'rightStick') ? {
+                          mode: {
+                            key: `${groupKey === 'leftStick' ? 'LEFT' : 'RIGHT'}_STICK_MODE`, defaultValue: 'NO_MOUSE',
+                            options: ['NO_MOUSE', 'AIM', 'FLICK', 'FLICK_ONLY', 'ROTATE_ONLY', 'MOUSE_AREA', 'SCROLL_WHEEL', 'LEFT_STICK', 'RIGHT_STICK'].map(value => ({ value, label: value === 'NO_MOUSE' ? 'Directional buttons' : value.replace(/_/g, ' ').toLowerCase() })),
+                          },
+                        } : {}),
+                      })}
                     </KeymapSection>
                     <SectionActions className={keymapStyles.keymapSectionActions} {...actionsProps} />
                   </div></ConfigScope>

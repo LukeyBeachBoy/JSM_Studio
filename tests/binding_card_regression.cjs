@@ -58,14 +58,19 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  await page.getByRole('option',{name:'Hold',exact:true}).click();
  await page.waitForFunction(() => document.querySelector('[class*=commandCard] [role=combobox]')?.textContent.includes('Hold'));
 
- // A fresh draft row is written from scratch, so it can still become a chord.
+ // A fresh draft row is written from scratch, so it offers the wider set -- but
+ // not chord, which this group's modeshift panel owns. A chord made here would
+ // be filtered straight back out of the card and lost.
  await page.getByRole('button',{name:'Add command'}).first().click();
  const draft = page.locator('[class*=commandCard]').last();
  await draft.getByRole('combobox',{name:'Trigger'}).click();
  const draftOptions = (await page.getByRole('option').allInnerTexts()).map(text => text.trim());
- assert.ok(draftOptions.includes('Chord'), `a draft row should still offer chord: ${draftOptions.join(', ')}`);
- await page.getByRole('option',{name:'Chord',exact:true}).click();
- await draft.getByRole('combobox',{name:'Condition'}).waitFor({timeout:5000});
+ assert.ok(draftOptions.includes('Turbo'), `a draft row should offer the wider set: ${draftOptions.join(', ')}`);
+ assert.ok(!draftOptions.includes('Chord'), 'the card offers a chord it cannot keep');
+ // An open Radix listbox hides the rest of the page from the role queries, so
+ // close it before looking for the panel that does own chords.
+ await page.keyboard.press('Escape');
+ assert.ok(await page.getByRole('button',{name:'Add modeshift'}).count() > 0, 'chords have nowhere else to be made');
 
  assert.deepEqual(errors,[]);
  console.log('PASS: one trigger picker offering only workable kinds, keycap output, menu without dead or duplicated actions');

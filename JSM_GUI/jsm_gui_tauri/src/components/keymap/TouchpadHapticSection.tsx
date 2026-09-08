@@ -4,6 +4,7 @@ import keymapStyles from '../Keymap.module.css'
 import styles from './Touchpad.module.css'
 import { SectionActions } from '../SectionActions'
 import { NumberField } from '../NumberField'
+import { AdvancedDisclosure } from '../AdvancedDisclosure'
 import { HAPTIC_EFFECTS } from '../../utils/hapticBindings'
 import { AppSelect } from '../ui/AppSelect'
 
@@ -45,7 +46,7 @@ export function TouchpadHapticSection(props: Props) {
 
   return (
     <>
-      <KeymapSection
+      <KeymapSection className="tuning-group"
         title={t('keymap.touchpadHapticTitle', 'Trackpad haptics')}
         description={t(
           'keymap.touchpadHapticDescription',
@@ -63,31 +64,6 @@ export function TouchpadHapticSection(props: Props) {
             coarseStep={5}
             hint={intensity === 0 ? t('keymap.touchpadHapticOff', 'Off') : undefined}
           />
-          <label>
-            {t('keymap.touchpadHapticEffect', 'Movement haptic effect')}
-            <AppSelect
-              className="app-select"
-              value={effect}
-              disabled={intensity === 0}
-              onChange={e => props.onTouchpadHapticEffectChange?.(e.target.value)}
-            >
-              {HAPTIC_EFFECTS.filter(entry => entry !== 'OFF').map(entry => (
-                <option key={entry} value={entry}>{t(`keymap.hapticEffect_${entry}`)}</option>
-              ))}
-            </AppSelect>
-          </label>
-          <NumberField layout="inline"
-            label={t('keymap.touchpadHapticInterval', 'Tick spacing')}
-            value={interval}
-            onChange={v => props.onTouchpadHapticIntervalChange?.(v)}
-            min={1}
-            max={2000}
-            step={5}
-            coarseStep={50}
-            unit="px"
-            disabled={intensity === 0}
-            hint={t('keymap.touchpadHapticHint')}
-          />
           <NumberField layout="inline"
             label={t('keymap.touchpadClickHapticIntensity', 'Click haptic')}
             value={clickIntensity}
@@ -98,19 +74,6 @@ export function TouchpadHapticSection(props: Props) {
             coarseStep={5}
             hint={t('keymap.touchpadClickHapticHint')}
           />
-          <label>
-            {t('keymap.touchpadClickHapticEffect', 'Click haptic effect')}
-            <AppSelect
-              className="app-select"
-              value={clickEffect}
-              disabled={clickIntensity === 0}
-              onChange={e => props.onTouchpadClickHapticEffectChange?.(e.target.value)}
-            >
-              {HAPTIC_EFFECTS.filter(entry => entry !== 'OFF').map(entry => (
-                <option key={entry} value={entry}>{t(`keymap.hapticEffect_${entry}`)}</option>
-              ))}
-            </AppSelect>
-          </label>
           <NumberField layout="inline"
             label={t('keymap.touchpadReleaseHapticIntensity', 'Click release haptic')}
             value={releaseIntensity}
@@ -121,19 +84,61 @@ export function TouchpadHapticSection(props: Props) {
             coarseStep={5}
             hint={t('keymap.touchpadReleaseHapticHint')}
           />
-          <label>
-            {t('keymap.touchpadReleaseHapticEffect', 'Click release haptic effect')}
-            <AppSelect
-              className="app-select"
-              value={releaseEffect}
-              disabled={releaseIntensity === 0}
-              onChange={e => props.onTouchpadReleaseHapticEffectChange?.(e.target.value)}
-            >
-              {HAPTIC_EFFECTS.filter(entry => entry !== 'OFF').map(entry => (
-                <option key={entry} value={entry}>{t(`keymap.hapticEffect_${entry}`)}</option>
-              ))}
-            </AppSelect>
-          </label>
+          <AdvancedDisclosure>
+            <div className={styles.touchpadSettings}>
+              <label>
+                {t('keymap.touchpadHapticEffect', 'Movement haptic effect')}
+                <AppSelect
+                  className="app-select"
+                  value={effect}
+                  disabled={intensity === 0}
+                  onChange={e => props.onTouchpadHapticEffectChange?.(e.target.value)}
+                >
+                  {HAPTIC_EFFECTS.filter(entry => entry !== 'OFF').map(entry => (
+                    <option key={entry} value={entry}>{t(`keymap.hapticEffect_${entry}`)}</option>
+                  ))}
+                </AppSelect>
+              </label>
+              <NumberField layout="inline"
+                label={t('keymap.touchpadHapticInterval', 'Tick spacing')}
+                value={interval}
+                onChange={v => props.onTouchpadHapticIntervalChange?.(v)}
+                min={1}
+                max={2000}
+                step={5}
+                coarseStep={50}
+                unit="px"
+                disabled={intensity === 0}
+                hint={t('keymap.touchpadHapticHint')}
+              />
+              <label>
+                {t('keymap.touchpadClickHapticEffect', 'Click haptic effect')}
+                <AppSelect
+                  className="app-select"
+                  value={clickEffect}
+                  disabled={clickIntensity === 0}
+                  onChange={e => props.onTouchpadClickHapticEffectChange?.(e.target.value)}
+                >
+                  {HAPTIC_EFFECTS.filter(entry => entry !== 'OFF').map(entry => (
+                    <option key={entry} value={entry}>{t(`keymap.hapticEffect_${entry}`)}</option>
+                  ))}
+                </AppSelect>
+              </label>
+              <label>
+                {t('keymap.touchpadReleaseHapticEffect', 'Click release haptic effect')}
+                <AppSelect
+                  className="app-select"
+                  value={releaseEffect}
+                  disabled={releaseIntensity === 0}
+                  onChange={e => props.onTouchpadReleaseHapticEffectChange?.(e.target.value)}
+                >
+                  {HAPTIC_EFFECTS.filter(entry => entry !== 'OFF').map(entry => (
+                    <option key={entry} value={entry}>{t(`keymap.hapticEffect_${entry}`)}</option>
+                  ))}
+                </AppSelect>
+              </label>
+            </div>
+          </AdvancedDisclosure>
         </div>
       </KeymapSection>
       <SectionActions

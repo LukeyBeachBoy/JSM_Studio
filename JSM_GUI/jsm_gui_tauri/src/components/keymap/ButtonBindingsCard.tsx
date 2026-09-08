@@ -99,6 +99,8 @@ type ButtonBindingsCardProps = {
   bindingClipboard?: BindingCommandPreset[]
   /** Replace the shared clipboard with the given bindings (copy). */
   onCopyBindings?: (presets: BindingCommandPreset[]) => void
+  /** Chord bindings are edited in this group's modeshift panel, not here. */
+  chordsLiveInModeshifts?: boolean
 }
 
 const triggerToSlot = (trigger: BindingTriggerKind): BindingSlot => {
@@ -155,6 +157,7 @@ export const ButtonBindingsCard = ({
   onBindingLabelChange,
   bindingClipboard = [],
   onCopyBindings,
+  chordsLiveInModeshifts,
 }: ButtonBindingsCardProps) => {
   const { t } = useTranslation()
   const [selectionMode, setSelectionMode] = useState(false)
@@ -618,6 +621,7 @@ export const ButtonBindingsCard = ({
               captureLabel={captureLabel}
               onUpdate={updateCommand}
               onRemove={removeCommand}
+              chordsLiveInModeshifts={chordsLiveInModeshifts}
               onDuplicate={duplicateCommand}
               onCopy={onCopyBindings ? (picked) => copyCommands([picked]) : undefined}
               selectable={selectionMode}

@@ -34,6 +34,8 @@ type BindingCommandCardProps = {
   onCapture: (command: BindingCommand) => void
   onEnableVirtualController?: () => void
   onRename?: () => void
+  /** Chords are edited in the group's modeshift panel, so this card cannot keep one. */
+  chordsLiveInModeshifts?: boolean
 }
 
 
@@ -67,6 +69,7 @@ export function BindingCommandCard({
   onCapture,
   onEnableVirtualController,
   onRename,
+  chordsLiveInModeshifts,
 }: BindingCommandCardProps) {
   const { t } = useTranslation()
   // Open by default. Collapsing as soon as a binding had a value meant the only
@@ -116,6 +119,10 @@ export function BindingCommandCard({
     command.source.kind === 'row' && (isDraftRow || RETARGETABLE_TRIGGER_KINDS.includes(command.triggerKind))
   const triggerGroups = isDraftRow
     ? buildTriggerGroups(t)
+        // Where the group's modeshift panel owns chords, a chord made here is
+        // filtered straight back out of the card and lost. Do not offer it.
+        .map(group => ({ ...group, options: group.options.filter(option => !(chordsLiveInModeshifts && option.value === 'chord')) }))
+        .filter(group => group.options.length > 0)
     : [{ options: RETARGETABLE_TRIGGER_KINDS.map(value => ({ value, label: t(TRIGGER_LABEL_KEYS[value]) })) }]
 
   return (

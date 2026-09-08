@@ -40,10 +40,11 @@
 .utility-bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
   margin: 0;
-  padding: var(--space-2) var(--space-5);
+  padding: 0.4rem 1rem;
   border: 1px solid var(--border-1);
   border-width: 0 0 1px;
   border-radius: 0;
@@ -52,22 +53,37 @@
 }
 
 .utility-profile-group {
-  display: grid;
+  display: flex;
   align-items: center;
-  grid-template-columns: auto minmax(12rem, 1fr);
-  gap: var(--space-2);
-  min-width: 20rem;
-  flex-shrink: 0;
+  gap: 0.6rem;
+  min-width: 0;
+  flex: 1 1 12rem;
+}
+
+.utility-applied {
+  min-width: 0;
+  max-width: 13rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: var(--font-hint);
+}
+
+.utility-profile-group .profile-chip {
+  order: -1;
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
 .utility-mapping-switch {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 138px;
+  flex: 0 0 auto;
   border: 1px solid var(--border-1);
   border-radius: 8px;
-  padding: 0.42rem 0.6rem;
+  padding: 0.25rem 0.4rem;
   background: var(--bg-input);
 }
 
@@ -102,8 +118,9 @@
 
 .mapping-toggle-slider {
   position: relative;
-  width: 42px;
-  height: 24px;
+  width: 34px;
+  height: 20px;
+  flex: 0 0 auto;
   border: 1px solid var(--border-1);
   border-radius: 999px;
   background: var(--pill-warn-bg);
@@ -114,10 +131,10 @@
 .mapping-toggle-slider::after {
   content: '';
   position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 16px;
-  height: 16px;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   background: var(--pill-warn-text);
   box-shadow: 0 1px 4px color-mix(in srgb, black 28%, transparent);
@@ -131,7 +148,7 @@
 }
 
 .mapping-toggle-control.is-enabled .mapping-toggle-slider::after {
-  transform: translateX(18px);
+  transform: translateX(14px);
   background: var(--bg-0);
 }
 
@@ -180,6 +197,7 @@
   justify-content: flex-end;
   gap: 0.35rem;
   flex-wrap: wrap;
+  margin-left: auto;
 }
 
 .utility-calibration-pill {
@@ -209,17 +227,7 @@
   }
 
   .utility-bar {
-    margin: 1rem 1.75rem 0;
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .utility-profile-group,
-  .utility-mapping-switch,
-  .utility-profile-select {
-    width: 100%;
-    align-items: stretch;
-    flex-direction: column;
+    margin: 0;
   }
 
   .utility-profile-select select {
@@ -229,6 +237,7 @@
 
   .utility-actions {
     justify-content: flex-start;
+    margin-left: 0;
   }
 }
 

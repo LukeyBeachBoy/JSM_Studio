@@ -81,6 +81,7 @@ export function TouchpadAccelSection({
   return (
     <>
       <KeymapSection
+        className="tuning-group"
         title={t('touchpadAccel.title')}
         description={t('touchpadAccel.description')}
       >

@@ -177,8 +177,10 @@ export function AccelCurveEditor({
       {onLinkChange && (
         <div className="flex-inputs">
           <label>
-            {t('accelCurve.linkLabel')}
-            <HelpButton title="Curve source">{t('accelCurve.linkHint')}</HelpButton>
+            <span className={styles.fieldLabel}>
+              {t('accelCurve.linkLabel')}
+              <HelpButton title={t('accelCurve.linkLabel')}>{t('accelCurve.linkHint')}</HelpButton>
+            </span>
             <AppSelect className="app-select" value={activeLink} onChange={event => onLinkChange(event.target.value as AccelCurveLink)} disabled={disabled}>
               {linkOptions.map(option => (
                 <option key={option.value} value={option.value}>
