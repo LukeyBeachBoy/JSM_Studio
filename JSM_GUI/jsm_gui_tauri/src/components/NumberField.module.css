@@ -17,6 +17,14 @@
   gap: 0.6rem;
 }
 
+.labelGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  margin-right: auto;
+}
+
 .label {
   color: var(--text-strong);
   font-size: 0.82rem;
@@ -126,7 +134,7 @@
   max-width: 100%;
 }
 
-.inline .label {
+.inline .labelGroup {
   flex: 1 1 auto;
 }
 

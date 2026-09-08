@@ -5,11 +5,11 @@ import {
   BindingCommandPatch,
   BindingOutputBehavior,
   BindingOutputKind,
-  BindingTriggerKind,
 } from '../../utils/bindingCommands'
 import keymapStyles from '../Keymap.module.css'
 import styles from './BindingEditor.module.css'
 import { Select, type SelectGroup } from '../ui/Select'
+import { conditionTriggers } from './triggerKinds'
 import { AdvancedDisclosure } from '../AdvancedDisclosure'
 import { HapticOutputPicker } from './HapticOutputPicker'
 import { KeyboardBindingModal } from './KeyboardBindingModal'
@@ -39,24 +39,8 @@ type BindingEditorProps = {
   onEnableVirtualController?: () => void
 }
 
-// Steam Input resolves a choice with one dropdown showing the current value and
-// the alternatives inside it. These two lists follow that: the everyday choices
-// first, the rare ones after a separator, all reachable but only one on screen.
-const COMMON_TRIGGERS: BindingTriggerKind[] = ['regular', 'tap', 'hold', 'double', 'chord']
-const RARE_TRIGGERS: BindingTriggerKind[] = ['release', 'turbo', 'simultaneous', 'diagonal']
 
-const TRIGGER_LABEL_KEYS: Record<BindingTriggerKind, string> = {
-  regular: 'keymap.commandTriggerRegular',
-  tap: 'keymap.commandTriggerTap',
-  hold: 'keymap.commandTriggerHold',
-  double: 'keymap.commandTriggerDouble',
-  release: 'keymap.commandTriggerRelease',
-  turbo: 'keymap.commandTriggerTurbo',
-  chord: 'keymap.commandTriggerChord',
-  simultaneous: 'keymap.commandTriggerSimultaneous',
-  diagonal: 'keymap.commandTriggerDiagonal',
-  stickShift: 'keymap.stickModeShifts',
-}
+
 
 const COMMON_OUTPUTS: BindingOutputKind[] = ['keyboard', 'mouse', 'wheel']
 const RARE_OUTPUTS: BindingOutputKind[] = ['virtualController', 'haptic', 'special', 'command', 'raw']
@@ -85,7 +69,6 @@ const wheelOptions = ['SCROLLUP', 'SCROLLDOWN']
 // without this quick-pick they are only reachable by typing the exact token.
 const systemKeyOptions = ['VOLUME_UP', 'VOLUME_DOWN', 'MUTE', 'SCREENSHOT', 'NEXT_TRACK', 'PREV_TRACK', 'PLAY_PAUSE']
 const builtInCommandOptions = ['TURN_OFF_CONTROLLER', 'RESTART_GYRO_CALIBRATION', 'FINISH_GYRO_CALIBRATION', 'CALIBRATE_TRIGGERS']
-const conditionTriggers = new Set<BindingTriggerKind>(['chord', 'simultaneous', 'diagonal'])
 
 export function BindingEditor({
   command,
@@ -118,11 +101,6 @@ export function BindingEditor({
   const virtualDisplayType = getPreferredVirtualControllerDisplayType(virtualControllerType, command.outputValue) ?? 'XBOX'
   const virtualOptions = getVirtualControllerOptions(virtualDisplayType, t)
   const virtualSelection = command.virtualControllerLogicalOutput ?? getVirtualControllerLogicalOutput(command.outputValue) ?? ''
-
-  const triggerGroups: SelectGroup[] = [
-    { options: COMMON_TRIGGERS.map(value => ({ value, label: t(TRIGGER_LABEL_KEYS[value]) })) },
-    { label: t('keymap.advancedOptions'), options: RARE_TRIGGERS.map(value => ({ value, label: t(TRIGGER_LABEL_KEYS[value]) })) },
-  ]
 
   const outputGroups: SelectGroup[] = [
     { options: COMMON_OUTPUTS.map(value => ({ value, label: t(OUTPUT_LABEL_KEYS[value]) })) },
@@ -265,20 +243,9 @@ export function BindingEditor({
   return (
     <div className={styles.editor} data-capture-ignore="true">
       <div className={styles.row}>
-        <label className={styles.field}>
-          <span>{t('keymap.commandTrigger')}</span>
-          <Select
-            value={command.triggerKind}
-            onValueChange={value => {
-              const next = value as BindingTriggerKind
-              onChange({ triggerKind: next, conditionInput: conditionTriggers.has(next) ? command.conditionInput : undefined })
-            }}
-            groups={triggerGroups}
-            disabled={locked}
-            ariaLabel={t('keymap.commandTrigger')}
-          />
-        </label>
-
+        {/* The trigger lives in the card header, where it stays readable with
+            the card collapsed. Editing it in two places let the two pickers
+            drift apart, offering different sets of the same choices. */}
         <label className={styles.field}>
           <span>{t('keymap.commandOutput')}</span>
           <Select

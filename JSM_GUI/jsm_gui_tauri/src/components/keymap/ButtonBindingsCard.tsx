@@ -623,8 +623,6 @@ export const ButtonBindingsCard = ({
               selectable={selectionMode}
               selected={selectedIds.includes(command.id)}
               onToggleSelected={toggleSelected}
-              onAddExtra={() => handleAddCommand('regular')}
-              onAddSub={() => duplicateCommand(command)}
               onRename={() => document.querySelector<HTMLInputElement>(`[data-input-command="${button.command}"] input[aria-label]`)?.focus()}
               onCapture={captureCommand}
               onEnableVirtualController={onEnableVirtualController}

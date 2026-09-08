@@ -4,7 +4,8 @@ import { BindingCommand, BindingCommandPatch } from '../../utils/bindingCommands
 import keymapStyles from '../Keymap.module.css'
 import { Menu } from '../ui/Menu'
 import { BindingEditor } from './BindingEditor'
-import { AppSelect } from '../ui/AppSelect'
+import { buildTriggerGroups, conditionTriggers, RETARGETABLE_TRIGGER_KINDS, TRIGGER_LABEL_KEYS } from './triggerKinds'
+import { Select } from '../ui/Select'
 import {
   getPreferredVirtualControllerDisplayType,
   getVirtualControllerLogicalOutput,
@@ -32,23 +33,9 @@ type BindingCommandCardProps = {
   onToggleSelected?: (command: BindingCommand) => void
   onCapture: (command: BindingCommand) => void
   onEnableVirtualController?: () => void
-  onAddExtra?: () => void
-  onAddSub?: () => void
   onRename?: () => void
 }
 
-const TRIGGER_LABEL_KEYS: Record<BindingCommand['triggerKind'], string> = {
-  regular: 'keymap.commandTriggerRegular',
-  tap: 'keymap.commandTriggerTap',
-  hold: 'keymap.commandTriggerHold',
-  double: 'keymap.commandTriggerDouble',
-  release: 'keymap.commandTriggerRelease',
-  turbo: 'keymap.commandTriggerTurbo',
-  chord: 'keymap.commandTriggerChord',
-  simultaneous: 'keymap.commandTriggerSimultaneous',
-  diagonal: 'keymap.commandTriggerDiagonal',
-  stickShift: 'keymap.stickModeShifts',
-}
 
 const BEHAVIOR_LABEL_KEYS: Record<BindingCommand['outputBehavior'], string> = {
   normal: 'keymap.commandBehaviorNormal',
@@ -62,15 +49,6 @@ const conditionPrefixKeys: Partial<Record<BindingCommand['triggerKind'], string>
   simultaneous: 'keymap.commandConditionSimultaneous',
   diagonal: 'keymap.commandConditionDiagonal',
 }
-
-// The trigger kinds a binding can be switched directly to from this dropdown.
-// Chord/simultaneous/diagonal need a modifier button chosen alongside the
-// trigger change (nothing to chord *with* otherwise), which is a bigger flow
-// than a dropdown -- they stay reachable only through "add another trigger",
-// same as today. onUpdate already handles moving a binding between config
-// slots correctly (see ButtonBindingsCard's updateCommand), so this is purely
-// a UI gap, not a new capability.
-const RETARGETABLE_TRIGGER_KINDS: BindingCommand['triggerKind'][] = ['regular', 'tap', 'hold', 'double']
 
 export function BindingCommandCard({
   command,
@@ -88,8 +66,6 @@ export function BindingCommandCard({
   onToggleSelected,
   onCapture,
   onEnableVirtualController,
-  onAddExtra,
-  onAddSub,
   onRename,
 }: BindingCommandCardProps) {
   const { t } = useTranslation()
@@ -128,10 +104,19 @@ export function BindingCommandCard({
             })
           : ''
 
-  const canRetargetTrigger = command.source.kind === 'row' && RETARGETABLE_TRIGGER_KINDS.includes(command.triggerKind)
-  const triggerOptions = canRetargetTrigger
-    ? RETARGETABLE_TRIGGER_KINDS
-    : [command.triggerKind]
+  // The one trigger picker in the card. A draft row is written from scratch on
+  // save, so it can become any kind, chords included. A binding that already
+  // exists in the config is edited in place, and updateCommandExpression cannot
+  // move a plain `BUTTON = OUTPUT` line to the `MODIFIER,BUTTON = OUTPUT` form a
+  // chord needs -- it returns nothing and the choice is silently dropped. The
+  // editor body used to offer all nine kinds here regardless, so five of them
+  // did nothing at all. Offer what this command can actually become.
+  const isDraftRow = command.source.kind === 'row' && command.source.isManual && !command.source.expression
+  const canRetargetTrigger =
+    command.source.kind === 'row' && (isDraftRow || RETARGETABLE_TRIGGER_KINDS.includes(command.triggerKind))
+  const triggerGroups = isDraftRow
+    ? buildTriggerGroups(t)
+    : [{ options: RETARGETABLE_TRIGGER_KINDS.map(value => ({ value, label: t(TRIGGER_LABEL_KEYS[value]) })) }]
 
   return (
     <div className={keymapStyles.commandCard}
@@ -150,45 +135,46 @@ export function BindingCommandCard({
           />
         )}
         {canRetargetTrigger ? (
-          <AppSelect
+          <Select
             className={`${keymapStyles.commandTriggerBadge} ${keymapStyles.commandTriggerBadgeSelect}`}
             value={command.triggerKind}
-            data-capture-ignore="true"
-            onChange={(event) => onUpdate(command, { triggerKind: event.target.value as BindingCommand['triggerKind'] })}
-          >
-            {triggerOptions.map(kind => (
-              <option key={kind} value={kind}>{t(TRIGGER_LABEL_KEYS[kind])}</option>
-            ))}
-          </AppSelect>
+            groups={triggerGroups}
+            ariaLabel={t('keymap.commandTrigger')}
+            onValueChange={value => {
+              const next = value as BindingCommand['triggerKind']
+              // Chord, simultaneous and diagonal need a second input picked, and
+              // that picker lives in the editor body -- so open it rather than
+              // leaving the choice half made and out of sight.
+              if (conditionTriggers.has(next)) setExpanded(true)
+              onUpdate(command, {
+                triggerKind: next,
+                // A chord with nothing to chord against is not a valid command
+                // and is dropped on write, so the choice appeared to do nothing
+                // at all. Seed the same default modifier that adding a chord
+                // command from scratch uses; the body picker changes it.
+                conditionInput: conditionTriggers.has(next)
+                  ? command.conditionInput ?? modifierOptions[0]?.value
+                  : undefined,
+              })
+            }}
+          />
         ) : (
           <span className={keymapStyles.commandTriggerBadge}>{triggerLabel}</span>
         )}
         <button type="button" className={keymapStyles.commandSummaryMain} onClick={() => setExpanded(value => !value)}>
           {conditionLabel && <span className={keymapStyles.commandConditionBadge}>{conditionLabel}</span>}
           <span className={keymapStyles.commandArrow}>-&gt;</span>
-          <span className={keymapStyles.commandOutputSummary}>{summaryOutput}</span>
+          <kbd className={keymapStyles.commandOutputSummary}>{summaryOutput}</kbd>
           {!command.isRoundTripSafe && <span className={keymapStyles.commandRawBadge}>{t('keymap.commandRawSyntax')}</span>}
         </button>
         <div className={keymapStyles.commandActions} data-capture-ignore="true">
           <Menu open={menuOpen} onOpenChange={setMenuOpen} ariaLabel={t('keymap.commandActionsAriaLabel')}
             trigger={<button type="button" className="ghost-btn" aria-label={t('keymap.commandActionsAriaLabel')}>&#9881;</button>}
             items={[
-              { label: t('keymap.commandMenuRegularPress'), disabled: !canRetargetTrigger, onSelect: () => onUpdate(command, { triggerKind: 'regular' }) },
-              { label: t('keymap.commandMenuSettings'), onSelect: () => setExpanded(true) },
               { label: t('keymap.commandMenuRename'), disabled: !onRename, onSelect: () => { requestAnimationFrame(() => onRename?.()) } },
               { label: t('keymap.commandCopy'), disabled: !onCopy, onSelect: () => onCopy?.(command) },
-              { label: t('keymap.commandMenuRemove'), onSelect: () => onRemove(command) },
-              { label: t('keymap.commandMenuAddExtra'), onSelect: () => onAddExtra?.() },
-              { label: t('keymap.commandMenuAddSub'), onSelect: () => onAddSub?.() },
+              { label: t('keymap.commandDuplicate'), onSelect: () => onDuplicate(command) },
             ]} />
-          {onCopy && (
-            <button type="button" className="link-btn" onClick={() => onCopy(command)}>
-              {t('keymap.commandCopy')}
-            </button>
-          )}
-          <button type="button" className="link-btn" onClick={() => onDuplicate(command)}>
-            {t('keymap.commandDuplicate')}
-          </button>
           <button type="button" className={keymapStyles.advancedRemoveBtn} onClick={() => onRemove(command)}>
             {t('keymap.removeBinding')}
           </button>

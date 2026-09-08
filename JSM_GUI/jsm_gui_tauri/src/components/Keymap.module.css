@@ -767,11 +767,23 @@
   color: var(--text-muted);
 }
 
+/* The output is a key or button the game receives, so it reads as one: keycap
+   styling separates it from the surrounding prose at a glance. */
 .commandOutputSummary {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--bg-input);
+  color: var(--text-strong);
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.45;
 }
 
 .commandActions {

@@ -142,10 +142,15 @@ export function NumberField({
       data-capture-ignore="true"
     >
       <div className={styles.head}>
-        <label className={styles.label} htmlFor={inputId}>
-          {label}
-        </label>
-        {hint && <HelpButton title={typeof label === 'string' ? label : 'Setting help'}>{hint}</HelpButton>}
+        {/* The help button belongs to the label, not to the row: left on its
+            own in a space-between row it drifts out to the middle, away from
+            the thing it explains. */}
+        <span className={styles.labelGroup}>
+          <label className={styles.label} htmlFor={inputId}>
+            {label}
+          </label>
+          {hint && <HelpButton title={typeof label === 'string' ? label : 'Setting help'}>{hint}</HelpButton>}
+        </span>
         <span className={styles.valueWrap}>
           <input
             id={inputId}
