@@ -25,7 +25,7 @@ const fs = require('node:fs');
  });
  await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
 
- await page.locator('.utility-profile-select').getByRole('combobox').filter({hasText:'Desktop'}).waitFor();
+ await page.locator('.profile-chip').filter({hasText:'Desktop'}).waitFor();
  assert.equal(await page.getByRole('button',{name:'Controller status',exact:true}).count(),0);
  await page.getByRole('button',{name:'Trackpads',exact:true}).click();
  const right=page.locator('#trackpad-right'), left=page.locator('#trackpad-left');
@@ -45,7 +45,10 @@ const fs = require('node:fs');
  await page.keyboard.press('Control+s');
  await page.waitForFunction(()=>window.__calls.includes('save'));
  assert.deepEqual(await page.evaluate(()=>window.__calls),['apply','save']);
- await page.getByRole('button',{name:'Save and apply',exact:true}).click();
+ // Save and Apply are separate buttons that each name what they act on.
+ await page.getByRole('button',{name:'Save configuration',exact:true}).click();
+ await page.waitForFunction(()=>window.__calls.length===3);
+ await page.getByRole('button',{name:'Apply',exact:true}).click();
  await page.waitForFunction(()=>window.__calls.length===4);
  assert.deepEqual(await page.evaluate(()=>window.__calls),['apply','save','save','apply']);
  // Shifted grid must be editable even though the ordinary mode is mouse.

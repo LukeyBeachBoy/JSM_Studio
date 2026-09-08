@@ -24,7 +24,7 @@ const fs = require('node:fs');
   }};
  });
  await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
- await page.locator('.utility-profile-select').getByRole('combobox').filter({hasText:'Desktop'}).waitFor();
+ await page.locator('.profile-chip').filter({hasText:'Desktop'}).waitFor();
  await page.getByRole('button',{name:'Buttons',exact:true}).click();
 
  // The press-type dropdown: its options carry help text of very different

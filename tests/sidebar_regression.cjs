@@ -21,7 +21,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
  const nav = page.locator('aside').first();
  await nav.waitFor();
- await page.locator('.utility-profile-select').getByRole('combobox').waitFor();
+ await page.locator('.profile-chip').waitFor();
 
  const sidewaysOverflow = () => nav.evaluate(node => node.scrollWidth - node.clientWidth);
 

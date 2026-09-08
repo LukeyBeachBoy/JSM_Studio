@@ -1,5 +1,4 @@
 import { flushSync } from 'react-dom'
-import { SaveApplyButton } from './components/SaveApplyButton'
 import { ConfigScope } from './components/ConfigScope'
 import { ConfigBaseline } from './hooks/configContext'
 import { TuningClipboard } from './components/TuningClipboard'
@@ -196,6 +195,32 @@ type PrimaryNavProps = {
 }
 
 const NAV_COLLAPSED_KEY = 'jsm.sidebarCollapsed'
+
+const editorIcon = {
+  width: 15, height: 15, viewBox: '0 0 16 16', 'aria-hidden': true, fill: 'none',
+  stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round',
+} as const
+
+const UndoIcon = () => (
+  <svg {...editorIcon}><path d="M6 4.5 2.5 8 6 11.5" /><path d="M2.5 8h6.2a4 4 0 0 1 0 8H7" /></svg>
+)
+
+const RedoIcon = () => (
+  <svg {...editorIcon}><path d="M10 4.5 13.5 8 10 11.5" /><path d="M13.5 8H7.3a4 4 0 0 0 0 8H9" /></svg>
+)
+
+// A floppy disk: the outline, the shutter at the top and the label below.
+const SaveIcon = () => (
+  <svg {...editorIcon}>
+    <path d="M2.4 3.3a.9.9 0 0 1 .9-.9h7.5l2.8 2.8v7.5a.9.9 0 0 1-.9.9H3.3a.9.9 0 0 1-.9-.9Z" />
+    <path d="M5.2 2.4v3.4h5V2.4" />
+    <path d="M4.8 13.6V9.4h6.4v4.2" />
+  </svg>
+)
+
+const ChevronDown = () => (
+  <svg {...editorIcon} width="12" height="12"><path d="M4 6.5 8 10.5l4-4" /></svg>
+)
 
 // A chevron pointing the way the rail will move, which is the one thing the
 // button needs to say without a label.
@@ -923,6 +948,25 @@ function App() {
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
+  // Switching configuration replaces the editor's contents, so edits that were
+  // never written to a file are simply gone. Ask first, and name the file they
+  // would be lost from.
+  const [pendingProfileSwitch, setPendingProfileSwitch] = useState<string | null>(null)
+  const requestLoadProfile = (name: string) => {
+    if (name === currentLibraryProfile) return
+    if (hasPendingChanges) { setPendingProfileSwitch(name); return }
+    void handleLoadProfileFromLibrary(name)
+  }
+  const resolveProfileSwitch = async (choice: 'save' | 'discard') => {
+    const name = pendingProfileSwitch
+    if (!name) return
+    setPendingProfileSwitch(null)
+    // Save what is on screen, including any value still being typed, before it
+    // is replaced -- the same finalize step the Save button runs.
+    if (choice === 'save' && !await saveConfig({ textOverride: finalizePendingValues?.() ?? configText })) return
+    void handleLoadProfileFromLibrary(name)
+  }
+
   const handleApplyWithFinalize = () => {
     const nextText = finalizePendingValues ? finalizePendingValues() : undefined
     if (nextText !== undefined) {
@@ -1114,27 +1158,21 @@ function App() {
               })
             : t('app.profileSummary.mappingPausedShort')}
         </div>
-        <label className="utility-profile-select">
-          <AppSelect
-            className="app-select"
-            disabled={isCalibrating}
-            value={currentLibraryProfile ?? ''}
-            onChange={event => {
-              const name = event.target.value
-              if (!name) return
-              handleLoadProfileFromLibrary(name)
-            }}
-          >
-            <option value="" disabled>
-              {t('app.profileSummary.selectProfile')}
-            </option>
-            {(libraryProfiles ?? []).map(name => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-          </AppSelect>
-        </label>
+        {/* One control, not two. The name is the quick-glance indicator of what
+            you are editing, and pressing it opens the one place that switches,
+            renames, creates and deletes configurations -- the dropdown beside a
+            separate Manage button was a second way to do the same thing. */}
+        <button
+          type="button"
+          className="profile-chip"
+          disabled={isCalibrating}
+          onClick={() => setProfileModalOpen(true)}
+          aria-haspopup="dialog"
+        >
+          <span className="profile-chip-name">{currentLibraryProfile ?? t('app.profileSummary.selectProfile')}</span>
+          {hasPendingChanges && <span className="profile-chip-dot" aria-hidden="true" />}
+          <ChevronDown />
+        </button>
       </div>
 
       {/* One toolbar with a clear order of importance: the configuration you
@@ -1142,12 +1180,26 @@ function App() {
           occasional escape hatches as quiet ghost buttons. Four equal-weight
           buttons in a row gave no clue which one you normally want. */}
       <div className="utility-actions">
-        <button className="ghost-btn" disabled={!canUndo || isCalibrating} onClick={undo} title="Undo (Ctrl+Z)">Undo</button>
-        <button className="ghost-btn" disabled={!canRedo || isCalibrating} onClick={redo} title="Redo (Ctrl+Shift+Z)">Redo</button>
-        {hasPendingChanges && <span className="pill pill--warning">Unsaved changes</span>}
-        <SaveApplyButton disabled={isCalibrating || editorBusy || !currentLibraryProfile} onAction={action => void runEditorAction(action)} />
-        <button className="secondary-btn" onClick={() => setProfileModalOpen(true)}>
-          {t('app.profileSummary.manageProfiles')}
+        <button className="icon-btn" disabled={!canUndo || isCalibrating} onClick={undo}
+          title={`${t('app.profileSummary.undo')} (Ctrl+Z)`} aria-label={t('app.profileSummary.undo')}><UndoIcon /></button>
+        <button className="icon-btn" disabled={!canRedo || isCalibrating} onClick={redo}
+          title={`${t('app.profileSummary.redo')} (Ctrl+Shift+Z)`} aria-label={t('app.profileSummary.redo')}><RedoIcon /></button>
+        {/* Save writes the configuration being edited back to its own file;
+            Apply sends it to the controller. Naming what each one acts on beats
+            one button that did both to something you had to infer. */}
+        <button className="icon-btn" disabled={isCalibrating || editorBusy || !currentLibraryProfile}
+          onClick={() => void runEditorAction('save')}
+          title={currentLibraryProfile
+            ? `${t('app.profileSummary.saveNamed', { name: currentLibraryProfile })} (Ctrl+S)`
+            : t('app.profileSummary.saveConfiguration')}
+          aria-label={t('app.profileSummary.saveConfiguration')}><SaveIcon /></button>
+        {hasPendingChanges && <span className="pill pill--warning">{t('app.profileSummary.unsavedChanges')}</span>}
+        <button className="primary-btn" disabled={isCalibrating || editorBusy || !currentLibraryProfile}
+          onClick={() => void runEditorAction('apply')}
+          title={currentLibraryProfile
+            ? `${t('app.profileSummary.applyNamed', { name: currentLibraryProfile })} (Ctrl+Shift+A)`
+            : t('app.profileSummary.applyEditingConfiguration')}>
+          {t('app.profileSummary.applyEditingConfiguration')}
         </button>
         <button className="ghost-btn" onClick={() => setAutoloadModalOpen(true)}>
           {t('app.profileSummary.autoloadManager')}
@@ -1983,6 +2035,32 @@ function App() {
           />
         </Suspense>
       )}
+      {pendingProfileSwitch && (
+        <div className="modal-overlay modal-overlay--over">
+          <div className="modal-card unsaved-modal" role="alertdialog" aria-modal="true" aria-labelledby="unsaved-switch-title">
+            <div className="modal-header">
+              <h3 id="unsaved-switch-title">{t('app.unsavedSwitch.title')}</h3>
+            </div>
+            <p className="unsaved-modal-body">
+              {t('app.unsavedSwitch.body', {
+                current: currentLibraryProfile ?? t('app.profileSummary.unsavedProfile'),
+                next: pendingProfileSwitch,
+              })}
+            </p>
+            <div className="unsaved-modal-actions">
+              <button className="ghost-btn" onClick={() => setPendingProfileSwitch(null)}>
+                {t('common.cancel')}
+              </button>
+              <button className="secondary-btn" onClick={() => void resolveProfileSwitch('discard')}>
+                {t('app.unsavedSwitch.discard')}
+              </button>
+              <button className="primary-btn" onClick={() => void resolveProfileSwitch('save')}>
+                {t('app.unsavedSwitch.saveAndSwitch')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {isProfileModalOpen && (
         <div className="modal-overlay">
           <div className="modal-card profile-modal">
@@ -2007,7 +2085,7 @@ function App() {
                 onRenameProfile={handleRenameProfile}
                 onDeleteProfile={handleDeleteLibraryProfile}
                 onAddProfile={handleCreateProfile}
-                onLoadLibraryProfile={handleLoadProfileFromLibrary}
+                onLoadLibraryProfile={requestLoadProfile}
                 onCopyActiveProfile={handleCopyActiveProfile}
               />
             </Suspense>

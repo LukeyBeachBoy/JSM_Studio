@@ -288,3 +288,25 @@
 .tuning-group > label > button[role="combobox"] { margin-left: auto; width: 64%; }
 
 .tuning-group > div { flex: 0 0 auto; }
+
+/* The one indicator of which configuration is being edited, and the way in to
+   managing them all. Named rather than a bare dropdown, since it is also the
+   thing you glance at to check where your edits are going. */
+.profile-chip { justify-self: start; display: inline-flex; align-items: center; gap: 0.45rem; max-width: 15rem; padding: 0.34rem 0.6rem; border: 1px solid var(--border-1); border-radius: 8px; background: var(--bg-input); color: var(--text-strong); font: inherit; font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: border-color 0.15s ease, background 0.15s ease; }
+.profile-chip:hover:not(:disabled) { border-color: var(--border-strong); background: var(--bg-btn-hover); }
+.profile-chip:disabled { opacity: 0.6; cursor: default; }
+.profile-chip-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.profile-chip-dot { flex: 0 0 auto; width: 6px; height: 6px; border-radius: 50%; background: var(--warning, #e0a33e); }
+
+.icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 0; border: 1px solid var(--border-1); border-radius: 8px; background: transparent; color: var(--text-mid); cursor: pointer; transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease; }
+.icon-btn:hover:not(:disabled) { border-color: var(--border-strong); background: var(--bg-btn-hover); color: var(--text-strong); }
+.icon-btn:disabled { opacity: 0.4; cursor: default; }
+
+.unsaved-modal { width: min(460px, 92vw); }
+.unsaved-modal-body { margin: 0 0 18px; line-height: 1.6; color: var(--text-mid); }
+.unsaved-modal-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+
+/* The unsaved-changes guard is raised by the configuration dialog and has to
+   sit above it: same class, same z-index left the dialog underneath swallowing
+   the clicks meant for the guard. */
+.modal-overlay.modal-overlay--over { z-index: 1000; }
