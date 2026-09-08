@@ -1,7 +1,11 @@
 import { OPTION_HELP } from '../../utils/optionHelp'
-import { Fragment, useState, type ReactNode } from 'react'
+import { Fragment, useCallback, useState, type ReactNode } from 'react'
 import * as RadixSelect from '@radix-ui/react-select'
 import styles from './Select.module.css'
+
+// Kept in step with .description in Select.module.css.
+const HELP_PANEL_WIDTH = 280
+const HELP_PANEL_GAP = 8
 
 export type SelectOption = {
   value: string
@@ -69,6 +73,18 @@ export function Select({
   const helpOption = flat.find(option => option.value === helpValue) ?? active
   const description = helpOption?.description ?? OPTION_HELP[helpOption?.value ?? '']
 
+  // The help panel is positioned out of the popup's flow, so a long description
+  // can never change the popup's height and shuffle the options out from under
+  // the pointer. Which side it sits on is decided once, when the list opens:
+  // the width is fixed, so nothing after that can change the answer.
+  const [helpSide, setHelpSide] = useState<'right' | 'left' | 'bottom'>('right')
+  const measureHelpSide = useCallback((node: HTMLDivElement | null) => {
+    if (!node) return
+    const { left, right } = node.getBoundingClientRect()
+    const needed = HELP_PANEL_WIDTH + HELP_PANEL_GAP
+    setHelpSide(window.innerWidth - right >= needed ? 'right' : left >= needed ? 'left' : 'bottom')
+  }, [])
+
   return (
     <RadixSelect.Root value={value} onValueChange={onValueChange} disabled={disabled} onOpenChange={open => { if (open) setHelpValue(value) }}>
       <RadixSelect.Trigger className={`${styles.trigger} ${className}`.trim()} aria-label={ariaLabel} title={title} id={id}>
@@ -82,7 +98,7 @@ export function Select({
       </RadixSelect.Trigger>
 
       <RadixSelect.Portal>
-        <RadixSelect.Content className={styles.content} position="popper" sideOffset={4}>
+        <RadixSelect.Content ref={measureHelpSide} className={styles.content} position="popper" sideOffset={4}>
           <RadixSelect.ScrollUpButton className={styles.scrollButton}>▲</RadixSelect.ScrollUpButton>
           <RadixSelect.Viewport className={styles.viewport}>
             {resolved.map((group, index) => (
@@ -111,7 +127,12 @@ export function Select({
               </Fragment>
             ))}
           </RadixSelect.Viewport>
-          {description && <div className={styles.description} aria-live="polite"><strong>{helpOption?.label}</strong><p>{description}</p></div>}
+          {description && (
+            <div className={`${styles.description} ${styles[helpSide]}`} aria-live="polite">
+              <strong>{helpOption?.label}</strong>
+              <p>{description}</p>
+            </div>
+          )}
           <RadixSelect.ScrollDownButton className={styles.scrollButton}>▼</RadixSelect.ScrollDownButton>
         </RadixSelect.Content>
       </RadixSelect.Portal>
