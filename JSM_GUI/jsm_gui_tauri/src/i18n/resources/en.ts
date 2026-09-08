@@ -1033,6 +1033,8 @@ export const en = {
     bindingsCopySelected: 'Copy selected ({{count}})',
     bindingsCancelSelect: 'Cancel',
     bindingsPaste: 'Paste {{count}} binding(s)',
+    bindingsClipboardActive: '{{count}} binding(s) copied. Paste onto any input, or clear when you are done.',
+    bindingsClipboardClear: 'Clear',
     commandActionsAriaLabel: 'Command actions',
     commandMenuRename: 'Rename command',
     commandTokenPreview: 'Token preview',

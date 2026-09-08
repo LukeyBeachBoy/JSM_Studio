@@ -586,7 +586,7 @@ export const ButtonBindingsCard = ({
           </>
         )}
         {bindingClipboard.length > 0 && !selectionMode && (
-          <button type="button" className="secondary-btn" onClick={pasteBindings}>
+          <button type="button" className="link-btn" onClick={pasteBindings}>
             {t('keymap.bindingsPaste', { count: bindingClipboard.length })}
           </button>
         )}

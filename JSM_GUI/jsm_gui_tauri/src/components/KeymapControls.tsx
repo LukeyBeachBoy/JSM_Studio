@@ -780,8 +780,18 @@ export function KeymapControls({
 }: KeymapControlsProps) {
   const { t } = useTranslation()
   const [mappingHelpOpen, setMappingHelpOpen] = useState(false)
-  // Bindings copied from one button, waiting to be pasted onto another.
+  // Bindings copied from one button, waiting to be pasted onto another. It
+  // survives pasting, so one binding can go to several inputs; Escape and the
+  // clipboard bar's Clear are how you put it down.
   const [bindingClipboard, setBindingClipboard] = useState<BindingCommandPreset[]>([])
+  useEffect(() => {
+    if (bindingClipboard.length === 0) return
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !event.defaultPrevented) setBindingClipboard([])
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [bindingClipboard.length])
   const [selectedTouchpadGridCommand, setSelectedTouchpadGridCommand] = useState<string | null>(null)
   const listSectionRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const {
@@ -1459,6 +1469,18 @@ export function KeymapControls({
       locked={isCalibrating}
       lockMessage={lockMessage ?? t('messages.lockMessage')}
     >
+      {/* A filled Paste button on every input was the only sign the clipboard
+          held anything, and the only way to act on it -- so it shouted from
+          every row and could never be put away. One bar says what is held and
+          clears it; the per-input buttons are quiet now. */}
+      {bindingClipboard.length > 0 && (
+        <div className={keymapStyles.clipboardBar} data-capture-ignore="true" role="status">
+          <span>{t('keymap.bindingsClipboardActive', { count: bindingClipboard.length })}</span>
+          <button type="button" className="ghost-btn" onClick={() => setBindingClipboard([])}>
+            {t('keymap.bindingsClipboardClear')}
+          </button>
+        </div>
+      )}
       {!showMappedLayout && (
         <div className={keymapStyles.keymapCardHeader}>
           <div className={keymapStyles.keymapTitleRow}>

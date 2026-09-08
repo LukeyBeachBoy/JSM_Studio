@@ -1017,6 +1017,8 @@ export const zhCN = {
     bindingsCopySelected: '复制所选（{{count}}）',
     bindingsCancelSelect: '取消',
     bindingsPaste: '粘贴 {{count}} 个绑定',
+    bindingsClipboardActive: '已复制 {{count}} 个绑定。可粘贴到任意输入，完成后请清除。',
+    bindingsClipboardClear: '清除',
     commandActionsAriaLabel: '命令操作',
     commandMenuRename: '重命名命令',
     commandTokenPreview: 'Token 预览',

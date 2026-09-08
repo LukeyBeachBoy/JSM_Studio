@@ -672,6 +672,26 @@
   overflow: hidden;
 }
 
+/* Sticky, because the inputs you might paste onto run well past one screen and
+   the way to put the clipboard down should not scroll away with them. */
+.clipboardBar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--accent-soft, var(--border-strong));
+  border-radius: 8px;
+  background: var(--bg-2);
+  color: var(--text-mid);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
 .bindingsToolbar {
   display: flex;
   flex-wrap: wrap;
