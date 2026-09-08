@@ -1,5 +1,9 @@
 .themeToggle {
   display: inline-flex;
+  /* Inside the fixed-width sidebar this row has less space than its content
+     wants; without these it simply overhung the rail and gave the whole pane
+     a horizontal scrollbar. The label gives way, the switch never does. */
+  max-width: 100%;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
@@ -23,6 +27,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
+  min-width: 0;
 }
 
 .switch {
@@ -73,6 +78,9 @@
 
 .text {
   white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .compact {

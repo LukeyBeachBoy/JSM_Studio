@@ -199,6 +199,8 @@ export const zhCN = {
       controllerStatus: '手柄状态',
       debugConsole: '调试台',
       documentation: 'JSM 文档',
+      collapseSidebar: '收起侧边栏',
+      expandSidebar: '展开侧边栏',
       startWithWindows: '开机启动',
     },
     tabs: {

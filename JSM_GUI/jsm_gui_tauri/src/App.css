@@ -266,8 +266,9 @@
 .help-button { flex: 0 0 22px; display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; padding: 0; margin-left: 6px; border-radius: 50%; border: 1px solid var(--border-color, #53606c); color: inherit; background: transparent; font: bold 13px sans-serif; cursor: pointer; vertical-align: middle; }
 .help-button:hover { background: #347aaa44; }
 .help-overlay { position: fixed; inset: 0; background: #0009; z-index: 12000; }
-.help-dialog { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(540px, 90vw); max-height: 80vh; overflow: auto; padding: 28px; border: 1px solid #637585; border-radius: 16px; background: var(--bg-2, #232930); color: var(--text-strong, #edf1f5); z-index: 12001; box-shadow: 0 20px 80px #0008; }
-.help-description { line-height: 1.65; margin: 20px 0; white-space: pre-line; }
+.help-dialog { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(540px, 90vw); max-height: 80vh; overflow: auto; padding: 20px 24px 22px; border: 1px solid #637585; border-radius: 16px; background: var(--bg-2, #232930); color: var(--text-strong, #edf1f5); z-index: 12001; box-shadow: 0 20px 80px #0008; }
+.help-dialog > h2, .help-dialog > [data-radix-dialog-title] { margin: 0; font-size: 1.02rem; line-height: 1.3; }
+.help-description { line-height: 1.65; margin: 12px 0 20px; white-space: pre-line; }
 .tuning-anchor { scroll-margin-top: 24px; margin-bottom: 28px; }
 .editor-tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
 .save-split { display: inline-flex; position: relative; }

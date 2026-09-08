@@ -62,11 +62,16 @@ export function ConsoleIcon() {
   )
 }
 
+// The four-button diamond, not a single button: one ringed dot was very nearly
+// the joystick icon, and at rail size, with the label hidden, the two were hard
+// to tell apart. The cluster is also what the page is actually about.
 export function ButtonsIcon() {
   return (
     <svg {...base}>
-      <circle cx="8" cy="8" r="5.6" />
-      <circle cx="8" cy="8" r="1.7" fill="currentColor" stroke="none" />
+      <circle cx="8" cy="2.9" r="2.05" />
+      <circle cx="13.1" cy="8" r="2.05" />
+      <circle cx="8" cy="13.1" r="2.05" />
+      <circle cx="2.9" cy="8" r="2.05" />
     </svg>
   )
 }

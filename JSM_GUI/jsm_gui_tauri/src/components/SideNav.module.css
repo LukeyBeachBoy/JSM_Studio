@@ -9,6 +9,80 @@
   top: 0;
   height: 100vh;
   overflow-y: auto;
+  /* A pane whose one axis is `auto` computes the other to `auto` as well, so
+     anything a pixel too wide got its own horizontal scrollbar. Nothing here
+     should ever scroll sideways: the items wrap instead. */
+  overflow-x: hidden;
+  min-width: 0;
+}
+
+.collapsed {
+  padding: 0.9rem 0.5rem;
+  align-items: stretch;
+}
+
+.navBrandRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.15rem 0.7rem;
+  border-bottom: 1px solid var(--border-1);
+}
+
+.collapsed .navBrandRow {
+  justify-content: center;
+  padding-inline: 0;
+}
+
+.navBrandRow .navBrand {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0;
+  border-bottom: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.navCollapseToggle {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--border-1);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-mid);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.navCollapseToggle:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-btn-hover);
+  color: var(--text-strong);
+}
+
+/* Stands in for the group heading once the headings are gone, so the rail
+   still reads as three sets of icons rather than one long column. */
+.navSectionRule {
+  height: 1px;
+  margin: 0.35rem 0.5rem 0.15rem;
+  background: var(--border-1);
+}
+
+.navSection:first-child .navSectionRule {
+  display: none;
+}
+
+.collapsed .navItem {
+  justify-content: center;
+  gap: 0;
+  padding: 0.52rem 0;
+  border-radius: 9px;
 }
 
 .navBrand {
@@ -205,6 +279,11 @@
   font-size: var(--font-label);
   font-weight: 650;
   transition: color 0.15s ease, background 0.15s ease;
+}
+
+.navItemLabel {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .navItemIcon {

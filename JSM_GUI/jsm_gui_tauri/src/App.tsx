@@ -191,126 +191,89 @@ type PrimaryNavProps = {
   primaryTab: PrimaryTab
   setPrimaryTab: (tab: PrimaryTab) => void
   includeHelp?: boolean
+  /** Icon-only rail: labels move to the tooltip and accessible name. */
+  collapsed?: boolean
 }
 
-const PrimaryNav = ({ primaryTab, setPrimaryTab, includeHelp = false }: PrimaryNavProps) => {
+const NAV_COLLAPSED_KEY = 'jsm.sidebarCollapsed'
+
+// A chevron pointing the way the rail will move, which is the one thing the
+// button needs to say without a label.
+const CollapseIcon = ({ collapsed }: { collapsed: boolean }) => (
+  <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor"
+    strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <path d={collapsed ? 'M6 3.5 10.5 8 6 12.5' : 'M10 3.5 5.5 8 10 12.5'} />
+    <path d={collapsed ? 'M2.5 3v10' : 'M13.5 3v10'} />
+  </svg>
+)
+
+// One list, rather than fifteen near-identical buttons: the collapsed rail is
+// then a rendering choice rather than fifteen more places to keep in step.
+const NAV_SECTIONS: { groupKey: string; items: { tab: PrimaryTab; labelKey: string; Icon: () => JSX.Element }[] }[] = [
+  {
+    groupKey: 'app.nav.controlsGroup',
+    items: [
+      { tab: 'overview', labelKey: 'app.nav.overview', Icon: OverviewIcon },
+      { tab: 'buttons', labelKey: 'app.nav.buttons', Icon: ButtonsIcon },
+      { tab: 'dpad', labelKey: 'app.nav.dpad', Icon: DPadIcon },
+      { tab: 'triggers', labelKey: 'app.nav.triggers', Icon: TriggersIcon },
+      { tab: 'joysticks', labelKey: 'app.nav.joysticks', Icon: JoystickIcon },
+      { tab: 'touchpad', labelKey: 'app.nav.trackpads', Icon: TrackpadIcon },
+      { tab: 'gyro', labelKey: 'app.nav.gyro', Icon: GyroIcon },
+    ],
+  },
+  {
+    groupKey: 'app.nav.tuningGroup',
+    items: [
+      { tab: 'sensors', labelKey: 'app.nav.sensors', Icon: TuneIcon },
+      { tab: 'gripSensors', labelKey: 'app.nav.gripSensors', Icon: GripIcon },
+      { tab: 'timing', labelKey: 'app.nav.timing', Icon: TimingIcon },
+      { tab: 'ai', labelKey: 'app.nav.aiAssistant', Icon: SparkleIcon },
+    ],
+  },
+  {
+    groupKey: 'app.nav.settingsGroup',
+    items: [
+      { tab: 'debugConsole', labelKey: 'app.nav.debugConsole', Icon: ConsoleIcon },
+      { tab: 'globalChords', labelKey: 'app.nav.globalChords', Icon: ChordIcon },
+      { tab: 'deviceVisibility', labelKey: 'app.nav.deviceVisibility', Icon: EyeIcon },
+    ],
+  },
+]
+
+const PrimaryNav = ({ primaryTab, setPrimaryTab, includeHelp = false, collapsed = false }: PrimaryNavProps) => {
   const { t } = useTranslation()
+
+  // Collapsed, the label is gone from the screen but not from the button: it
+  // stays the accessible name and the hover tooltip, so an icon that reads
+  // ambiguously is still identifiable without expanding the rail.
+  const renderItem = ({ tab, labelKey, Icon }: { tab: PrimaryTab; labelKey: string; Icon: () => JSX.Element }) => (
+    <button
+      key={tab}
+      className={`${sideNavStyles.navItem} ${primaryTab === tab ? sideNavStyles.active : ''}`}
+      onClick={() => setPrimaryTab(tab)}
+      title={collapsed ? t(labelKey) : undefined}
+      aria-label={collapsed ? t(labelKey) : undefined}
+    >
+      <span className={sideNavStyles.navItemIcon}><Icon /></span>
+      {!collapsed && <span className={sideNavStyles.navItemLabel}>{t(labelKey)}</span>}
+    </button>
+  )
 
   return (
     <div className={sideNavStyles.navGroup}>
-      <div className={sideNavStyles.navSection}>
-        <div className={sideNavStyles.navSectionLabel}>{t('app.nav.controlsGroup')}</div>
-        <button
-          className={`${sideNavStyles.navItem} ${primaryTab === 'overview' ? sideNavStyles.active : ''}`}
-          onClick={() => setPrimaryTab('overview')}
-        >
-          <span className={sideNavStyles.navItemIcon}><OverviewIcon /></span>
-          {t('app.nav.overview')}
-        </button>
-        <button
-          className={`${sideNavStyles.navItem} ${primaryTab === 'buttons' ? sideNavStyles.active : ''}`}
-          onClick={() => setPrimaryTab('buttons')}
-        >
-          <span className={sideNavStyles.navItemIcon}><ButtonsIcon /></span>
-          {t('app.nav.buttons')}
-        </button>
-        <button
-          className={`${sideNavStyles.navItem} ${primaryTab === 'dpad' ? sideNavStyles.active : ''}`}
-          onClick={() => setPrimaryTab('dpad')}
-        >
-          <span className={sideNavStyles.navItemIcon}><DPadIcon /></span>
-          {t('app.nav.dpad')}
-        </button>
-        <button
-          className={`${sideNavStyles.navItem} ${primaryTab === 'triggers' ? sideNavStyles.active : ''}`}
-          onClick={() => setPrimaryTab('triggers')}
-        >
-          <span className={sideNavStyles.navItemIcon}><TriggersIcon /></span>
-          {t('app.nav.triggers')}
-        </button>
-        <button
-          className={`${sideNavStyles.navItem} ${primaryTab === 'joysticks' ? sideNavStyles.active : ''}`}
-          onClick={() => setPrimaryTab('joysticks')}
-        >
-          <span className={sideNavStyles.navItemIcon}><JoystickIcon /></span>
-          {t('app.nav.joysticks')}
-        </button>
-        <button
-          className={`${sideNavStyles.navItem} ${primaryTab === 'touchpad' ? sideNavStyles.active : ''}`}
-          onClick={() => setPrimaryTab('touchpad')}
-        >
-          <span className={sideNavStyles.navItemIcon}><TrackpadIcon /></span>
-          {t('app.nav.trackpads')}
-        </button>
-        <button
-          className={`${sideNavStyles.navItem} ${primaryTab === 'gyro' ? sideNavStyles.active : ''}`}
-          onClick={() => setPrimaryTab('gyro')}
-        >
-          <span className={sideNavStyles.navItemIcon}><GyroIcon /></span>
-          {t('app.nav.gyro')}
-        </button>
-      </div>
-      <div className={sideNavStyles.navSection}>
-        <div className={sideNavStyles.navSectionLabel}>{t('app.nav.tuningGroup')}</div>
-        <button
-          className={`${sideNavStyles.navItem} ${primaryTab === 'sensors' ? sideNavStyles.active : ''}`}
-          onClick={() => setPrimaryTab('sensors')}
-        >
-          <span className={sideNavStyles.navItemIcon}><TuneIcon /></span>
-          {t('app.nav.sensors')}
-        </button>
-        <button
-          className={`${sideNavStyles.navItem} ${primaryTab === 'gripSensors' ? sideNavStyles.active : ''}`}
-          onClick={() => setPrimaryTab('gripSensors')}
-        >
-          <span className={sideNavStyles.navItemIcon}><GripIcon /></span>
-          {t('app.nav.gripSensors')}
-        </button>
-        <button
-          className={`${sideNavStyles.navItem} ${primaryTab === 'timing' ? sideNavStyles.active : ''}`}
-          onClick={() => setPrimaryTab('timing')}
-        >
-          <span className={sideNavStyles.navItemIcon}><TimingIcon /></span>
-          {t('app.nav.timing')}
-        </button>
-        <button
-          className={`${sideNavStyles.navItem} ${primaryTab === 'ai' ? sideNavStyles.active : ''}`}
-          onClick={() => setPrimaryTab('ai')}
-        >
-          <span className={sideNavStyles.navItemIcon}><SparkleIcon /></span>
-          {t('app.nav.aiAssistant')}
-        </button>
-      </div>
-      <div className={sideNavStyles.navSection}>
-        <div className={sideNavStyles.navSectionLabel}>{t('app.nav.settingsGroup')}</div>
-        <button className={`${sideNavStyles.navItem} ${primaryTab === 'debugConsole' ? sideNavStyles.active : ''}`} onClick={() => setPrimaryTab('debugConsole')}>
-          <span className={sideNavStyles.navItemIcon}><ConsoleIcon /></span>{t('app.nav.debugConsole')}
-        </button>
-        <button
-          className={`${sideNavStyles.navItem} ${primaryTab === 'globalChords' ? sideNavStyles.active : ''}`}
-          onClick={() => setPrimaryTab('globalChords')}
-        >
-          <span className={sideNavStyles.navItemIcon}><ChordIcon /></span>
-          {t('app.nav.globalChords')}
-        </button>
-
-        <button
-          className={`${sideNavStyles.navItem} ${primaryTab === 'deviceVisibility' ? sideNavStyles.active : ''}`}
-          onClick={() => setPrimaryTab('deviceVisibility')}
-        >
-          <span className={sideNavStyles.navItemIcon}><EyeIcon /></span>
-          {t('app.nav.deviceVisibility')}
-        </button>
-      </div>
-      {includeHelp && (
-        <button
-          className={`${sideNavStyles.navItem} ${primaryTab === 'help' ? sideNavStyles.active : ''}`}
-          onClick={() => setPrimaryTab('help')}
-        >
-          <span className={sideNavStyles.navItemIcon}><DocumentIcon /></span>
-          {t('app.nav.documentation')}
-        </button>
-      )}
+      {NAV_SECTIONS.map(section => (
+        <div className={sideNavStyles.navSection} key={section.groupKey}>
+          {/* The grouping survives collapsing -- the rule stands in for the
+              heading, so the rail still reads as three sets rather than one
+              undifferentiated column of icons. */}
+          {collapsed
+            ? <div className={sideNavStyles.navSectionRule} aria-hidden="true" />
+            : <div className={sideNavStyles.navSectionLabel}>{t(section.groupKey)}</div>}
+          {section.items.map(renderItem)}
+        </div>
+      ))}
+      {includeHelp && renderItem({ tab: 'help', labelKey: 'app.nav.documentation', Icon: DocumentIcon })}
     </div>
   )
 }
@@ -452,6 +415,14 @@ function App() {
   const [runtimeMappingBusy, setRuntimeMappingBusy] = useState(false)
   const [calibrationTurns, setCalibrationTurns] = useState('1')
   const [primaryTab, setPrimaryTab] = useState<PrimaryTab>('overview')
+  // Remembered per machine. Reading storage can throw outright in a locked-down
+  // webview, so a failure just means the rail starts open.
+  const [navCollapsed, setNavCollapsed] = useState(() => {
+    try { return localStorage.getItem(NAV_COLLAPSED_KEY) === '1' } catch { return false }
+  })
+  useEffect(() => {
+    try { localStorage.setItem(NAV_COLLAPSED_KEY, navCollapsed ? '1' : '0') } catch { /* preference is not worth failing over */ }
+  }, [navCollapsed])
 
   const stepPage = useCallback((delta: 1 | -1) => {
     setPrimaryTab(prev => {
@@ -1781,18 +1752,30 @@ function App() {
   }
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${navCollapsed ? 'nav-collapsed' : ''}`}>
       <ToastHost />
       <Suspense fallback={null}>
         <UpdateBanner />
       </Suspense>
       {/* Desktop sidebar */}
-      <aside className={sideNavStyles.sideNav}>
-        <div className={sideNavStyles.navBrand}>{t('common.appName')}</div>
-        <PrimaryNav primaryTab={primaryTab} setPrimaryTab={setPrimaryTab} includeHelp />
+      <aside className={`${sideNavStyles.sideNav} ${navCollapsed ? sideNavStyles.collapsed : ''}`}>
+        <div className={sideNavStyles.navBrandRow}>
+          {!navCollapsed && <div className={sideNavStyles.navBrand}>{t('common.appName')}</div>}
+          <button
+            type="button"
+            className={sideNavStyles.navCollapseToggle}
+            onClick={() => setNavCollapsed(value => !value)}
+            title={t(navCollapsed ? 'app.nav.expandSidebar' : 'app.nav.collapseSidebar')}
+            aria-label={t(navCollapsed ? 'app.nav.expandSidebar' : 'app.nav.collapseSidebar')}
+            aria-expanded={!navCollapsed}
+          >
+            <CollapseIcon collapsed={navCollapsed} />
+          </button>
+        </div>
+        <PrimaryNav primaryTab={primaryTab} setPrimaryTab={setPrimaryTab} includeHelp collapsed={navCollapsed} />
         <div className={sideNavStyles.navFooter}>
-          <NavSettings />
-          <div className={sideNavStyles.navVersion}>v{tauriConf.version}</div>
+          {!navCollapsed && <NavSettings />}
+          {!navCollapsed && <div className={sideNavStyles.navVersion}>v{tauriConf.version}</div>}
         </div>
       </aside>
       {/* Narrow-width sticky header */}

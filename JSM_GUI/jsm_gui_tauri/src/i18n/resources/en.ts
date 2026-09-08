@@ -202,6 +202,8 @@ export const en = {
       controllerStatus: 'Controller Status',
       debugConsole: 'Debug Console',
       documentation: 'JSM Documentation',
+      collapseSidebar: 'Collapse sidebar',
+      expandSidebar: 'Expand sidebar',
       startWithWindows: 'Start with Windows',
     },
     tabs: {
