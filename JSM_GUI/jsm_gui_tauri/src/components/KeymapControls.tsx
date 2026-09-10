@@ -177,6 +177,10 @@ type KeymapControlsProps = {
   onTouchpadClickHapticEffectChange?: (value: string) => void
   onTouchpadReleaseHapticIntensityChange?: (value: string) => void
   onTouchpadReleaseHapticEffectChange?: (value: string) => void
+  leftGripHaptics?: boolean
+  rightGripHaptics?: boolean
+  onLeftGripHapticsChange?: (enabled: boolean) => void
+  onRightGripHapticsChange?: (enabled: boolean) => void
   gripSensorRange?: number
   gripFlickerGuard?: number
   gripHapticIntensity?: number
@@ -678,6 +682,10 @@ export function KeymapControls({
   onTouchpadClickHapticEffectChange,
   onTouchpadReleaseHapticIntensityChange,
   onTouchpadReleaseHapticEffectChange,
+  leftGripHaptics,
+  rightGripHaptics,
+  onLeftGripHapticsChange,
+  onRightGripHapticsChange,
   gripSensorRange,
   gripFlickerGuard,
   gripHapticIntensity,
@@ -1896,6 +1904,10 @@ export function KeymapControls({
               shouldRender: isVisible('grip-sensors'),
               node: (
                 <GripSettingsSection
+                  leftGripHaptics={leftGripHaptics}
+                  rightGripHaptics={rightGripHaptics}
+                  onLeftGripHapticsChange={onLeftGripHapticsChange}
+                  onRightGripHapticsChange={onRightGripHapticsChange}
                   gripSensorRange={gripSensorRange}
                   gripFlickerGuard={gripFlickerGuard}
                   gripHapticIntensity={gripHapticIntensity}

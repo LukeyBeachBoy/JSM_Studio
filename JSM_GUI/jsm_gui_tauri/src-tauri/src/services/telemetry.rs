@@ -100,13 +100,22 @@ pub fn start(app: AppHandle, state: AppState) {
         silence_udp_connection_reset(&socket);
         let _ = socket.set_read_timeout(Some(Duration::from_millis(TELEMETRY_HEALTH_CHECK_MS)));
         let mut buffer = [0_u8; 65535];
+        let mut last_ui_emit = Instant::now() - Duration::from_secs(1);
 
         loop {
             match socket.recv_from(&mut buffer) {
                 Ok((size, _)) => match serde_json::from_slice::<Value>(&buffer[..size]) {
                     Ok(packet) => {
-                        update_latest_packet(&state, packet.clone());
-                        let _ = emit_telemetry_packet(&app, packet);
+                        // Global chords and connection health still receive every
+                        // packet. Only the expensive WebView IPC/rendering stops
+                        // when another app (such as a game) has focus.
+                        if state.telemetry_ui_active.load(Ordering::Relaxed)
+                            && last_ui_emit.elapsed() >= Duration::from_micros(16_667)
+                        {
+                            let _ = emit_telemetry_packet(&app, &packet);
+                            last_ui_emit = Instant::now();
+                        }
+                        update_latest_packet(&state, packet);
                     }
                     Err(error) => {
                         eprintln!("Failed to parse telemetry packet: {error}");
@@ -222,10 +231,10 @@ pub fn broadcast_empty_devices(app: &AppHandle, state: &AppState) -> Result<(), 
         cleared
     };
 
-    emit_telemetry_packet(app, packet)
+    emit_telemetry_packet(app, &packet)
 }
 
-fn emit_telemetry_packet(app: &AppHandle, packet: Value) -> Result<(), String> {
+fn emit_telemetry_packet(app: &AppHandle, packet: &Value) -> Result<(), String> {
     app.emit("telemetry-sample", packet)
         .map_err(|error| format!("Failed to emit telemetry packet: {error}"))
 }
@@ -283,7 +292,7 @@ fn handle_health(app: &AppHandle, state: &AppState) -> Result<(), String> {
     }
 
     if let Some(packet) = stale_packet_to_emit {
-        emit_telemetry_packet(app, packet)?;
+        emit_telemetry_packet(app, &packet)?;
     }
 
     Ok(())

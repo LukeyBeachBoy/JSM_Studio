@@ -1,4 +1,4 @@
-use std::{thread, time::Duration};
+use std::{thread, time::{Duration, Instant}};
 use serde_json::Value;
 use tauri::AppHandle;
 use crate::{runtime, services::{app_state::AppState, jsm_process, telemetry}};
@@ -10,13 +10,19 @@ pub fn start(app: AppHandle, state: AppState) {
         let mut active: Option<String> = None;
         let mut chords = Vec::new();
         let mut enabled = false;
-        let mut ticks = 0;
+        let mut next_reload = Instant::now();
         loop {
-            if ticks % 30 == 0 {
+            if Instant::now() >= next_reload {
                 if let Ok(next) = runtime::read_global_chords(&app) { chords = next; }
                 enabled = runtime::read_runtime_mapping_state(&app).map(|s| s.mapping_enabled).unwrap_or(false);
+                next_reload = Instant::now() + Duration::from_millis(480);
             }
-            ticks = (ticks + 1) % 30;
+            // No active chord to release and none to detect: avoid cloning a
+            // full controller/console packet and waking 60 times per second.
+            if active.is_none() && (!enabled || chords.is_empty()) {
+                thread::sleep(Duration::from_millis(480));
+                continue;
+            }
             let packet = telemetry::latest_packet(&state).ok().flatten();
             let devices = packet.as_ref().and_then(|p| p.get("devices")).and_then(Value::as_array);
             let desired = if enabled {

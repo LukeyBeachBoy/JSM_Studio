@@ -334,3 +334,7 @@ install/
 project.md
 testing/
 SDL/
+
+# Scratch and package-manager caches, never part of a build:
+tmp/
+.pnpm-store/

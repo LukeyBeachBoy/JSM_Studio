@@ -148,6 +148,16 @@ pub fn run() {
             commands::set_autostart_enabled,
         ])
         .on_window_event(|window, event| {
+            if window.label() == "main" {
+                let state = window.state::<AppState>();
+                match event {
+                    WindowEvent::Focused(focused) => state.telemetry_ui_active.store(
+                        *focused, std::sync::atomic::Ordering::Relaxed),
+                    WindowEvent::CloseRequested { .. } => state.telemetry_ui_active.store(
+                        false, std::sync::atomic::Ordering::Relaxed),
+                    _ => {}
+                }
+            }
             // Hide instead of destroying: JoyShockMapper and the telemetry
             // socket keep running, so the controller never stops working just
             // because the window closed. Only the tray's Quit item (or an

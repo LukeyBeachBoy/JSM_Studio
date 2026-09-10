@@ -7,9 +7,14 @@ import { GRIP_FIRMWARE_DEFAULT } from '../../hooks/useGripConfig'
 import { HAPTIC_EFFECTS } from '../../utils/hapticBindings'
 import { NumberField } from '../NumberField'
 import { AppSelect } from '../ui/AppSelect'
+import { HelpButton } from '../HelpButton'
 import { gripRangePercent, gripGuardPercent, gripRangeRaw, gripGuardRaw } from '../../utils/gripCalibration'
 
 type Props = {
+  leftGripHaptics?: boolean
+  rightGripHaptics?: boolean
+  onLeftGripHapticsChange?: (enabled: boolean) => void
+  onRightGripHapticsChange?: (enabled: boolean) => void
   gripSensorRange?: number
   gripFlickerGuard?: number
   gripHapticIntensity?: number
@@ -30,9 +35,8 @@ type Props = {
 }
 
 // Mirrors Steam Input's Grip Sensor Calibration page: a Range and a Flicker
-// Guard, both written to the controller. One pair rather than one per side --
-// the firmware has a single capacitive threshold pair, which is why Steam Input
-// shows a single pair too.
+// Guard, both written to the controller. The verified firmware settings path
+// applies this pair to both sensors; automatic haptics can be gated per side.
 export function GripSettingsSection(props: Props) {
   const { t } = useTranslation()
   const range = props.gripSensorRange ?? GRIP_FIRMWARE_DEFAULT
@@ -79,6 +83,24 @@ export function GripSettingsSection(props: Props) {
             placeholder={inherited}
             hint={t('keymap.gripCalibrationHint')}
           />
+          <div className={styles.gripHapticSides}>
+            <span className={styles.settingLabel}>
+              {t('keymap.gripHapticSensors', 'Haptic feedback')}
+              <HelpButton title={t('keymap.gripHapticSensors', 'Haptic feedback')}>
+                {t('keymap.gripHapticSensorsHint')}
+              </HelpButton>
+            </span>
+            <label>
+              <input type="checkbox" checked={props.leftGripHaptics ?? true}
+                onChange={e => props.onLeftGripHapticsChange?.(e.target.checked)} />
+              {t('keymap.leftGripHaptics', 'Left grip')}
+            </label>
+            <label>
+              <input type="checkbox" checked={props.rightGripHaptics ?? true}
+                onChange={e => props.onRightGripHapticsChange?.(e.target.checked)} />
+              {t('keymap.rightGripHaptics', 'Right grip')}
+            </label>
+          </div>
           <NumberField layout="inline"
             label={t('keymap.gripHapticIntensity', 'Grip haptic')}
             value={haptic}

@@ -1,5 +1,5 @@
 use std::{
-    sync::{atomic::AtomicU64, Arc, Mutex},
+    sync::{atomic::{AtomicBool, AtomicU64}, Arc, Mutex},
     time::Instant,
 };
 
@@ -161,6 +161,7 @@ pub struct AppState {
     pub process: Arc<Mutex<ProcessState>>,
     pub telemetry: Arc<Mutex<TelemetryState>>,
     pub calibration_generation: Arc<AtomicU64>,
+    pub telemetry_ui_active: Arc<AtomicBool>,
 }
 
 impl Default for AppState {
@@ -169,6 +170,7 @@ impl Default for AppState {
             process: Arc::new(Mutex::new(ProcessState::default())),
             telemetry: Arc::new(Mutex::new(TelemetryState::default())),
             calibration_generation: Arc::new(AtomicU64::new(0)),
+            telemetry_ui_active: Arc::new(AtomicBool::new(false)),
         }
     }
 }

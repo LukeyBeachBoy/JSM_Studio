@@ -48,5 +48,14 @@ jobs:
       - name: Verify grip slider conversions
         run: node tests/grip_calibration_regression.cjs
 
+      - name: Verify per-grip haptic configuration
+        run: node tests/grip_haptics_regression.cjs
+
       - name: Verify quick bind config writes
         run: node tests/quick_bind_regression.cjs
+
+      - name: Verify applied profile naming
+        run: node tests/applied_profile_regression.cjs
+
+      - name: Verify telemetry preview throttling
+        run: node tests/telemetry_performance_regression.cjs

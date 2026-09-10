@@ -29,3 +29,87 @@ Native compilation, frontend TypeScript/production build, focused ESLint, grip t
 Physical calibration is pending: the receiver is present, but the read-only feature queries failed in this session. Hardware readback must confirm the new values and a finger-lift test must confirm the desired behavior. The earlier source tests asserted the incorrect TIMP assumptions; they were corrected and supplemented with compiled tests.
 
 Other uncommitted trackpad changes in the shared fork have been preserved. This correction does not claim to validate those changes on hardware.
+
+## Per-grip follow-up — 2026-09-10
+
+Requested behavior: right grip for responsive gyro activation, with a much larger
+left sensing range so a deliberate hand lift can switch the controller layout.
+
+### Confirmed observations
+
+- Re-read the installed Steam UI. It still exposes `nAuxCapSenseThreshold` and
+  `nAuxCapSenseHysteresis` without a left/right field or argument. Left/right
+  indicators are separate booleans. The calibration component also calls
+  `SetEditingTritonCapSenseSettings` while open; that is not evidence of separate
+  distance controls.
+- Re-disassembled the installed `steamclient64.dll`. Its SHA-256 still matches
+  the earlier investigation above. The personalization path at
+  `0x13860795b..0x1386079c7` still emits one setting `0x22` and one setting `0x23`.
+- Inspected the locally bundled firmware `IBEX_FW_6A628345.fw` read-only.
+  SHA-256: `865B4A7B1786C4A9990375759548331D313170C3E3B4C5897E16DC01B9AB12A8`.
+  After removing the 32-byte header, addresses below use base `0x8000` and Thumb
+  instructions. This is a bundled image, not a readback of the connected device.
+- The settings callback at `0x1cae8` dispatches setting `0x22` to `0x1cb42`
+  (sensor attribute 4) and `0x23` to `0x1cb4a` (sensor attribute 5). Both call
+  `0x1cab0`. That function loads the two sensor instances from `0x20002278` and
+  `0x20002144`, invokes the same attribute setter `0x4a7ba` for each with the same
+  value, and marks both instances for refresh. There is no side selector in this
+  path. The setter stores attributes 4/5 at offsets `0x0e`/`0x10` of its state.
+- The firmware's grip touch/de-touch threshold queries (attributes 6/7 in
+  `0x4a802`) use the conversion at `0x3be44`, which reads those two fields.
+  This ties the shared writes to actual grip threshold calculations, rather
+  than merely to UI names.
+- Current [SDL Triton input code](https://github.com/libsdl-org/SDL/blob/main/src/joystick/hidapi/SDL_hidapi_steam_triton.c)
+  reads two grip-touch bits and publishes boolean cap-sense states. Its normal
+  input path does not expose analog grip distance/capacitance for Studio to
+  threshold independently. The [report structures](https://github.com/libsdl-org/SDL/blob/main/src/joystick/hidapi/steam/controller_structs.h)
+  and [OpenPuck protocol implementation notes](https://github.com/safijari/openpuck/blob/main/docs/PROTOCOL.md)
+  corroborate the ordinary grip-touch bits.
+- [Valve's Grip Sense guide](https://steamcommunity.com/groups/steam_hardware)
+  describes a single range slider and a single flicker-guard slider. It does not
+  document separate calibration for each grip.
+
+### Conclusion and limits
+
+The known host command path actively writes the same calibration to both grips.
+Adding two range sliders in Studio would not create two independent ranges with
+these commands. No usable per-grip distance or hysteresis control was found.
+
+This is strong evidence for a limitation of the currently understood interface,
+not proof that independent calibration is physically impossible. An undocumented
+sensor command, diagnostic raw-data stream, or changed firmware could provide a
+different route. The investigation did not exhaustively reverse-engineer every
+firmware handler or confirm the connected controller's installed firmware version.
+No speculative setting IDs were sent, and no firmware was flashed or patched.
+
+A host-side release delay could independently ignore brief left-grip dropouts and
+require a sustained release to change layouts while keeping right-grip response
+immediate. It would measure time, not hand distance, and would introduce deliberate
+left release latency. It is not implemented or presented as a distance control.
+
+### Per-grip automatic haptics
+
+Studio now has separate **Left grip** and **Right grip** checkboxes under
+**Grip sensors → Haptic feedback**. They control both automatic contact and release
+pulses. Shared strength/effect controls and explicitly bound haptic effects retain
+their behavior; the sensor inputs and bindings are unaffected.
+
+For right-only feedback, with existing nonzero contact/release strengths:
+
+```text
+LEFT_GRIP_HAPTICS = OFF
+RIGHT_GRIP_HAPTICS = ON
+```
+
+Both switches default to ON to preserve existing profiles. The shared contact and
+release intensities still default to 0, so fresh profiles remain silent.
+
+Validation: frontend production build, native Release build, focused ESLint,
+compiled production haptic-routing tests, existing calibration/integration checks,
+and frontend config round-trip tests passed. Browser checks confirmed independent
+checkbox state, scoped unsaved feedback, and Cancel restoring the previous values;
+the layout was visually reviewed. The routing test covers all four side
+combinations, independent noisy transitions, simultaneous transitions, contact and
+release strengths/effects, live enable, and independent devices. The updated native
+binary was copied into Studio's bundle by the normal build script. No installer
+was produced or installed, and physical haptic feel remains untested.

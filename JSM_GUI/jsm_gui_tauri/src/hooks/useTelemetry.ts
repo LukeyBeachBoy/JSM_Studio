@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { desktopBridge, type CalibrationStatus } from '../platform/desktopBridge'
 
 export type TelemetryPadState = {
@@ -57,65 +57,57 @@ export type TelemetrySample = {
   [key: string]: unknown
 }
 
-const clampPad = (value: number) => Math.min(1, Math.max(-1, value))
-
-// Keep the latest packet visible immediately, then project touch coordinates to
-// the next paint. This removes the packet-to-paint gap without changing packet
-// fields or waiting for another telemetry event.
-function extrapolatePads(sample: TelemetrySample, elapsedMs: number, previous: TelemetrySample | null) {
-  if (!previous || !sample.devices) return sample
-  const dt = Math.min(elapsedMs, 20) / 1000
-  const previousDevices = new Map((previous.devices ?? []).map(device => [device.handle, device]))
-  return {
-    ...sample,
-    devices: sample.devices.map(device => {
-      const before = previousDevices.get(device.handle)
-      const status = device.status
-      const beforeStatus = before?.status
-      if (!status || !beforeStatus) return device
-      const project = (pad: TelemetryPadState | undefined, oldPad: TelemetryPadState | undefined) => {
-        if (!pad || !oldPad || !pad.touched || !oldPad.touched) return pad
-        const vx = (pad.x - oldPad.x) / 0.016
-        const vy = (pad.y - oldPad.y) / 0.016
-        return { ...pad, x: clampPad(pad.x + vx * dt), y: clampPad(pad.y + vy * dt) }
-      }
-      return { ...device, status: {
-        ...status,
-        leftPad: project(status.leftPad, beforeStatus.leftPad),
-        rightPad: project(status.rightPad, beforeStatus.rightPad),
-      }}
-    }),
-  }
-}
-
+// Telemetry is a preview, not the controller input clock. Publish at most
+// once per 60 Hz frame and do no rendering work while another app has focus.
 export function useTelemetry() {
   const [sample, setSample] = useState<TelemetrySample | null>(null)
-  const latestRef = useRef<TelemetrySample | null>(null)
-  const previousRef = useRef<TelemetrySample | null>(null)
-  const receivedAtRef = useRef(0)
   const [isCalibrating, setIsCalibrating] = useState(false)
   const [countdown, setCountdown] = useState<number | null>(null)
 
   useEffect(() => {
-    let frame = 0
-    const render = () => {
-      const latest = latestRef.current
-      if (latest) setSample(extrapolatePads(latest, performance.now() - receivedAtRef.current, previousRef.current))
-      frame = requestAnimationFrame(render)
+    let latest: TelemetrySample | null = null
+    let timer: ReturnType<typeof setTimeout> | undefined
+    let lastPublishedAt = -Infinity
+    let focused = document.hasFocus()
+    const active = () => focused && !document.hidden
+    const publish = () => {
+      timer = undefined
+      if (!active() || !latest) return
+      lastPublishedAt = performance.now()
+      setSample(latest)
     }
-    frame = requestAnimationFrame(render)
+    const schedule = () => {
+      if (!active() || !latest || timer !== undefined) return
+      const delay = Math.max(0, 1000 / 60 - (performance.now() - lastPublishedAt))
+      if (delay === 0) publish()
+      else timer = setTimeout(publish, delay)
+    }
+    const pause = () => {
+      if (timer !== undefined) clearTimeout(timer)
+      timer = undefined
+    }
+    const onFocus = () => { focused = true; schedule() }
+    const onBlur = () => { focused = false; pause() }
+    const onVisibility = () => { if (active()) schedule(); else pause() }
+    window.addEventListener('focus', onFocus)
+    window.addEventListener('blur', onBlur)
+    document.addEventListener('visibilitychange', onVisibility)
     const dispose = desktopBridge.onTelemetrySample(payload => {
-      const next = payload as TelemetrySample
-      previousRef.current = latestRef.current
-      latestRef.current = next
-      receivedAtRef.current = performance.now()
-      setSample(next)
+      latest = payload as TelemetrySample
+      schedule()
     })
     const statusDispose = desktopBridge.onCalibrationStatus((state: CalibrationStatus) => {
       setIsCalibrating(state.calibrating)
       setCountdown(state.calibrating && state.seconds ? state.seconds : null)
     })
-    return () => { cancelAnimationFrame(frame); dispose?.(); statusDispose?.() }
+    return () => {
+      pause()
+      window.removeEventListener('focus', onFocus)
+      window.removeEventListener('blur', onBlur)
+      document.removeEventListener('visibilitychange', onVisibility)
+      dispose?.()
+      statusDispose?.()
+    }
   }, [])
 
   return { sample, isCalibrating, countdown }

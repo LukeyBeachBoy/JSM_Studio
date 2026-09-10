@@ -1,4 +1,5 @@
 import { flushSync } from 'react-dom'
+import { appliedProfileLabel } from './utils/appliedProfile'
 import { ConfigScope } from './components/ConfigScope'
 import { ConfigBaseline } from './hooks/configContext'
 import { TuningClipboard } from './components/TuningClipboard'
@@ -553,6 +554,10 @@ function App() {
     handleTouchpadSpeedCoeffChange,
     handleTouchpadTrackballDecayChange,
     handleTouchpadTrackballMinVelocityChange,
+    leftGripHapticsValue,
+    rightGripHapticsValue,
+    handleLeftGripHapticsChange,
+    handleRightGripHapticsChange,
     gripSensorRangeValue,
     gripFlickerGuardValue,
     gripHapticIntensityValue,
@@ -1151,9 +1156,7 @@ function App() {
           {mappingEnabled
             ? t('app.profileSummary.appliedLabel', {
                 name:
-                  (typeof sample?.activeProfile === 'string'
-                    ? sample.activeProfile.replace(/\\/g, '/').split('/').pop()?.replace(/\.txt$/i, '')
-                    : appliedProfileName) ?? t('app.profileSummary.unknownProfile'),
+                  appliedProfileLabel(sample?.activeProfile, appliedProfileName) ?? t('app.profileSummary.unknownProfile'),
               })
             : t('app.profileSummary.mappingPausedShort')}
         </div>
@@ -1443,6 +1446,10 @@ function App() {
             onTouchpadSpeedCoeffChange={handleTouchpadSpeedCoeffChange}
             onTouchpadTrackballDecayChange={handleTouchpadTrackballDecayChange}
             onTouchpadTrackballMinVelocityChange={handleTouchpadTrackballMinVelocityChange}
+            leftGripHaptics={leftGripHapticsValue}
+            rightGripHaptics={rightGripHapticsValue}
+            onLeftGripHapticsChange={handleLeftGripHapticsChange}
+            onRightGripHapticsChange={handleRightGripHapticsChange}
             gripSensorRange={gripSensorRangeValue}
             gripFlickerGuard={gripFlickerGuardValue}
             gripHapticIntensity={gripHapticIntensityValue}
@@ -1608,6 +1615,10 @@ function App() {
             onTouchpadClickHapticEffectChange={handleTouchpadClickHapticEffectChange}
             onTouchpadReleaseHapticIntensityChange={handleTouchpadReleaseHapticIntensityChange}
             onTouchpadReleaseHapticEffectChange={handleTouchpadReleaseHapticEffectChange}
+            leftGripHaptics={leftGripHapticsValue}
+            rightGripHaptics={rightGripHapticsValue}
+            onLeftGripHapticsChange={handleLeftGripHapticsChange}
+            onRightGripHapticsChange={handleRightGripHapticsChange}
             gripSensorRange={gripSensorRangeValue}
             gripFlickerGuard={gripFlickerGuardValue}
             gripHapticIntensity={gripHapticIntensityValue}

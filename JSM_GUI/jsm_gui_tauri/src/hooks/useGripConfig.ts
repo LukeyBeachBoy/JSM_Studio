@@ -12,9 +12,8 @@ type GripArgs = { configText: string; setConfigText: React.Dispatch<React.SetSta
 // Both knobs live in the controller's firmware, which is the only place a
 // threshold on a capacitive signal can act -- by the time the host sees it, it is
 // one bit. They are the pair behind Steam Input's Grip Sensor Calibration page.
-// The firmware carries a single capacitive threshold pair rather than one per
-// side, which is also why Steam Input shows a single Range and a single Flicker
-// Guard.
+// The verified Triton settings path applies the same threshold and hysteresis
+// to both sensors. No supported per-side calibration command is known.
 //
 // -1 means "leave the controller's own value alone", which is the default: an
 // unset config never overwrites what the device (or Steam) already had.
@@ -30,6 +29,9 @@ export function useGripConfig({ configText, setConfigText }: GripArgs) {
 
   const gripSensorRangeValue = num(keyName.GRIP_SENSOR_RANGE, GRIP_FIRMWARE_DEFAULT)
   const gripFlickerGuardValue = num(keyName.GRIP_FLICKER_GUARD, GRIP_FIRMWARE_DEFAULT)
+  // Missing side gates preserve the behavior of existing profiles.
+  const leftGripHapticsValue = read(keyName.LEFT_GRIP_HAPTICS)?.trim().toUpperCase() !== 'OFF'
+  const rightGripHapticsValue = read(keyName.RIGHT_GRIP_HAPTICS)?.trim().toUpperCase() !== 'OFF'
   // Haptics are a plain 0-100 intensity, not a firmware threshold: 0 is off, not
   // "leave it alone", because there is nothing on the device to leave alone.
   const gripHapticIntensityValue = num(keyName.GRIP_HAPTIC_INTENSITY, 0)
@@ -68,6 +70,14 @@ export function useGripConfig({ configText, setConfigText }: GripArgs) {
     (v: string) => writeClamped(keyName.GRIP_HAPTIC_INTENSITY, v, 0, 100),
     [writeClamped]
   )
+  const handleLeftGripHapticsChange = useCallback(
+    (enabled: boolean) => setConfigText(prev => updateKeymapEntry(prev, keyName.LEFT_GRIP_HAPTICS, [enabled ? 'ON' : 'OFF'])),
+    [setConfigText]
+  )
+  const handleRightGripHapticsChange = useCallback(
+    (enabled: boolean) => setConfigText(prev => updateKeymapEntry(prev, keyName.RIGHT_GRIP_HAPTICS, [enabled ? 'ON' : 'OFF'])),
+    [setConfigText]
+  )
   const handleGripHapticEffectChange = useCallback(
     (v: string) => {
       const next = v.trim().toUpperCase()
@@ -90,6 +100,10 @@ export function useGripConfig({ configText, setConfigText }: GripArgs) {
   )
 
   return {
+    leftGripHapticsValue,
+    rightGripHapticsValue,
+    handleLeftGripHapticsChange,
+    handleRightGripHapticsChange,
     gripSensorRangeValue,
     gripFlickerGuardValue,
     gripHapticIntensityValue,
