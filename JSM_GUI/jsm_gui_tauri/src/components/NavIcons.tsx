@@ -132,13 +132,7 @@ export function ExtraButtonsIcon() {
 }
 
 export function JoystickIcon() {
-  return (
-    <svg {...base}>
-      <circle cx="8" cy="7" r="4" />
-      <circle cx="8" cy="7" r="1.5" fill="currentColor" stroke="none" />
-      <path d="M6 13.3h4" />
-    </svg>
-  )
+ return <svg {...base}><ellipse cx="8" cy="4" rx="3.5" ry="2" /><path d="M6.5 5.8v4.4h3V5.8M3 10l-1 3h12l-1-3M4 10h2M10 10h2" /></svg>
 }
 
 export function TrackpadIcon() {

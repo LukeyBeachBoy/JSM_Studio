@@ -79,3 +79,16 @@
   font-size: 0.78rem;
   line-height: 1.4;
 }
+
+.diagramRow { display: grid; grid-template-columns: minmax(130px, 1fr) minmax(260px, 2.4fr) minmax(130px, 1fr); align-items: center; gap: 16px; }
+.callouts { display: flex; flex-direction: column; gap: 6px; }
+.callout { display: flex; align-items: center; gap: 10px; min-height: 40px; width: 100%; padding: 8px 10px; border: 1px solid var(--border-1); border-radius: 8px; background: var(--bg-1); color: var(--text-strong); text-align: left; font: inherit; font-size: .8rem; cursor: pointer; }
+.callout svg { flex-shrink: 0; }
+.callout span { overflow-wrap: anywhere; }
+.callout:hover { border-color: var(--accent); }
+.diagram { position: sticky; top: 16px; }
+@media(max-width: 1000px) { .diagramRow { grid-template-columns: 1fr 1fr; } .diagram { grid-column: 1 / -1; grid-row: 1; max-width: 560px; justify-self: center; position: static; } }
+
+.diagram { position: static; align-self: center; }
+.diagramRow { min-height: 420px; }
+.callouts { max-height: 560px; overflow-y: auto; }

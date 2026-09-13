@@ -27,10 +27,10 @@ export function BindingLabelLegend({ labels, device, onHoverCommand, onSelectCom
     return Object.entries(labels)
       .map(([command, label]) => {
         const definition = byCommand.get(command)
-        return { command, label, name: definition ? controllerButtonLabel(definition) : command }
+        return { command, label, name: definition ? controllerButtonLabel(definition, family) : command }
       })
       .sort((left, right) => Number(left.label === 'Unbound') - Number(right.label === 'Unbound') || (order.get(left.command) ?? 999) - (order.get(right.command) ?? 999))
-  }, [labels])
+  }, [family, labels])
 
   if (rows.length === 0) return null
 

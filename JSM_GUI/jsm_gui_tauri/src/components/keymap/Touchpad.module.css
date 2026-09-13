@@ -250,9 +250,16 @@
   line-height: 1.45;
 }
 
-/* Wraps the grid so the live finger dot can be positioned over it. */
+/* Wraps the grid so the live finger dot can be positioned over it. The dot is
+   placed as a percentage of THIS box, so the shape and centring live here and
+   the pad fills it -- otherwise a square pad centred inside a wider wrapper
+   would put the dot somewhere the finger is not. */
 .touchpadGridPreviewWrap {
   position: relative;
+  width: 100%;
+  max-width: min(100%, calc(340px * var(--pad-aspect, 1)));
+  aspect-ratio: var(--pad-aspect, 1);
+  margin-inline: auto;
 }
 
 /* Where the finger is right now. Deliberately the same green as every other
@@ -274,12 +281,18 @@
   background: color-mix(in srgb, var(--telemetry-green) 16%, var(--touchpad-grid-cell-bg));
 }
 
+/* The preview is a picture of a physical pad, so it has to be that pad's shape.
+   --pad-aspect is the real width/height the driver reports (square on a Steam
+   Controller, about 2:1 on a DualSense); stretching it to the panel width made
+   the editor disagree with both the hardware and the overlay about where a
+   region boundary falls. Capped so a square pad does not become a huge block on
+   a wide screen, and centred once capped. */
 .touchpadGridPreview {
   display: grid;
   gap: 0.4rem;
-  margin-bottom: 0.5rem;
   width: 100%;
-  min-height: 220px;
+  height: 100%;
+  box-sizing: border-box;
   border-radius: 16px;
   border: 1px solid var(--touchpad-grid-border);
   padding: 0.4rem;
@@ -329,6 +342,78 @@
   font-size: 0.8rem;
 }
 
+/* The action is the headline; the region id drops to a caption above it. A long
+   label wraps to two lines and then truncates rather than stretching the tile,
+   so a 2x2 and a 4x4 grid keep the same cell proportions. */
+.touchpadGridCell .touchpadGridCellId {
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+.touchpadGridCell .touchpadGridCellAction {
+  font-weight: 700;
+  color: var(--text-strong);
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.touchpadGridCell .touchpadGridCellBinding {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.touchpadGridCell .touchpadGridCellEmpty {
+  font-weight: 500;
+  font-style: italic;
+  color: var(--touchpad-grid-muted);
+}
+
+.touchpadGridCell .touchpadGridCellMore {
+  font-size: 0.7rem;
+  opacity: 0.8;
+}
+
+/* Four wedges occupy the same square and are cut apart by clip-path, so they
+   all sit in one grid area rather than in a row of four. The pad is square here
+   because the diagonals only bisect the corners when it is: on a wide preview
+   the boundary would not match where the backend actually splits. */
+.touchpadGridPreviewWedges {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+  gap: 0;
+}
+
+.touchpadGridPreviewWedges > .touchpadGridCell {
+  grid-area: 1 / 1;
+  border-radius: 0;
+  /* The clip cuts the border off with everything else, so the separation between
+     wedges comes from an inset outline instead. */
+  border: none;
+  box-shadow: inset 0 0 0 1px var(--touchpad-grid-cell-border);
+}
+
+/* Text sits in the wedge's own half rather than at the square's centre, where
+   all four labels would pile on top of each other. */
+.touchpadGridCellWedge {
+  justify-content: flex-start;
+  padding: 0.5rem 0.4rem;
+}
+
+.touchpadGridPreviewWedges > .touchpadGridCell:nth-child(2) { justify-content: center; align-items: flex-end; text-align: right; }
+.touchpadGridPreviewWedges > .touchpadGridCell:nth-child(3) { justify-content: flex-end; }
+.touchpadGridPreviewWedges > .touchpadGridCell:nth-child(4) { justify-content: center; align-items: flex-start; text-align: left; }
+
+.touchpadGridPreviewWedges > .touchpadGridCell > * {
+  max-width: 45%;
+}
+
 .touchpadGridHint {
   color: var(--touchpad-grid-hint);
   font-size: 0.9rem;
@@ -336,16 +421,10 @@
   margin-bottom: 0.8rem;
 }
 
-.touchpadRegionEditor {
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-  margin-top: 0.65rem;
-  border: 1px solid var(--border-1);
-  border-radius: 10px;
-  background: var(--bg-input);
-  overflow: hidden;
-}
+/* Just spacing now. The border and inset background made the card inside it
+   read as a panel within a panel, which with the card's own frame was three
+   nested boxes around one binding. */
+.touchpadRegionEditor { margin-top: 0.9rem; }
 
 .touchpadRegionHeader {
   display: flex;
@@ -407,3 +486,88 @@
   gap: var(--space-2);
 }
 .touchpadCard label.touchpadCheckbox input { width: auto; flex: 0 0 auto; }
+
+/* A wheel: every segment is clipped out of the same full-size box, so they all
+   share one grid cell and the clip decides what is visible. Round, and hiding
+   the overshoot the segments use to fill a square pad's corners. */
+.touchpadGridPreviewRadial {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+  gap: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  /* The boundary layer is positioned against this box, and the segments fill
+     its CONTENT box -- so the padding has to go or the two are offset by it,
+     and the wheel would be drawn smaller than the box the hit test uses. */
+  position: relative;
+  padding: 0;
+}
+
+.touchpadGridPreviewRadial > .touchpadGridCell {
+  grid-area: 1 / 1;
+  border-radius: 0;
+  padding: 0;
+  border: none;
+  /* No inset shadow here. Every segment's box is the whole wheel, so an inset
+     shadow traces the wheel's RECTANGLE clipped to the segment, not the
+     segment's own edges -- it drew four corner fragments and nothing where the
+     segments actually meet. The boundaries are their own layer below. */
+  position: relative;
+}
+
+.touchpadGridCellSegmentLabel {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+  pointer-events: none;
+  /* width, margin and transform come from radialLabelPosition, which sizes them
+     from the dead zone so a label stays inside the ring it belongs to. */
+}
+
+.touchpadGridCell .touchpadGridCellIcon {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+  flex: 0 0 auto;
+}
+
+/* See the overlay's note: a 1fr track is only honoured if the item inside it is
+   allowed to be smaller than its content. Without this an icon makes a cell
+   overflow its row and the preview stops matching where a touch actually lands. */
+.touchpadGridPreview > .touchpadGridCell {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* The wheel's boundaries, matching the overlay. Decoration on its own layer:
+   see radialDividerStyle for why these cannot be borders on the segments. */
+.touchpadGridSpokes {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  --menu-divider: var(--touchpad-grid-cell-border);
+}
+
+.touchpadGridSpoke {
+  position: absolute;
+  left: 50%;
+  bottom: 50%;
+  width: 1px;
+  height: 50%;
+  margin-left: -0.5px;
+  transform-origin: 50% 100%;
+}
+
+.touchpadGridHub {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 1px solid var(--touchpad-grid-cell-border);
+  box-sizing: border-box;
+}

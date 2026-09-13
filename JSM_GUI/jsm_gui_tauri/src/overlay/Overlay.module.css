@@ -1,0 +1,231 @@
+/* The overlay is read at a glance, over whatever the game is drawing. High
+   contrast and a heavy scrim, because it has to survive a bright scene. */
+
+.root {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  /* Opacity rather than showing/hiding the window: a window-manager round trip
+     on every touch adds latency to the one thing that must feel instant, and a
+     transparent click-through window costs nothing while it is invisible. */
+  opacity: 0;
+  transition: opacity 90ms ease-out;
+  pointer-events: none;
+  font: 600 var(--overlay-font, 14px)/1.25 "Segoe UI", system-ui, sans-serif;
+}
+
+.root[data-visible='true'] {
+  opacity: 1;
+  transition-duration: 40ms;
+}
+
+.pad {
+  container-type: size;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  gap: 4px;
+  padding: 4px;
+  box-sizing: border-box;
+  border-radius: 18px;
+  background: rgba(8, 12, 18, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+/* Four wedges share one cell and are cut apart by clip-path, so the diagonals
+   land where the backend actually splits. */
+.wedges {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+  gap: 0;
+}
+
+.region {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px;
+  min-width: 0;
+  text-align: center;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.62);
+  transition: background-color 60ms linear, color 60ms linear;
+}
+
+.region[data-bound='false'] { opacity: 0.35; }
+
+.wedge {
+  grid-area: 1 / 1;
+  border-radius: 0;
+  justify-content: flex-start;
+  padding-top: 8%;
+}
+
+.wedges > .region:nth-child(2) { justify-content: center; align-items: flex-end; padding: 0 8% 0 0; }
+.wedges > .region:nth-child(3) { justify-content: flex-end; padding: 0 0 8% 0; }
+.wedges > .region:nth-child(4) { justify-content: center; align-items: flex-start; padding: 0 0 0 8%; }
+.wedges > .region > * { max-width: 44%; }
+
+/* The wedge's align-items places this block against its own side of the pad;
+   this centres what is inside it. Up and down never needed it because their
+   block is already centred horizontally, but they use it too so all four
+   wedges stack their icon, label and key identically. */
+.wedgeContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  text-align: center;
+}
+
+/* The whole point: what you are about to fire, before you fire it. */
+.region[data-selected='true'] {
+  background: rgba(96, 177, 255, 0.9);
+  color: #06121f;
+  text-shadow: none;
+}
+
+.label {
+  color: inherit;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.binding {
+  font: 500 calc(var(--overlay-font, 14px) * 0.78)/1 ui-monospace, "Cascadia Mono", monospace;
+  opacity: 0.72;
+}
+
+/* Where the thumb is. Positioned in container units so it tracks the pad box
+   exactly, and moved by transform alone so each frame is compositor-only. */
+.dot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border-radius: 50%;
+  background: #7dffb0;
+  box-shadow: 0 0 12px rgba(125, 255, 176, 0.8);
+  will-change: transform;
+  pointer-events: none;
+}
+
+.hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -22px;
+  text-align: center;
+  font: 500 11px/1 "Segoe UI", system-ui, sans-serif;
+  color: rgba(255, 255, 255, 0.7);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+/* A wheel: every segment is clipped out of the same full-size box, so they all
+   share one grid cell and the clip decides what is visible. */
+.segment {
+  grid-area: 1 / 1;
+  border-radius: 0;
+  padding: 0;
+  /* So a label's percentages resolve against the WHEEL rather than whatever
+     happens to be the nearest positioned ancestor. Same box either way today,
+     but only by accident. */
+  position: relative;
+}
+
+/* The text belongs inside its own slice, not in the middle of the wheel where
+   every segment's box centre happens to be. */
+.segmentLabel {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+  pointer-events: none;
+  /* width, margin and transform come from radialLabelPosition: they depend on
+     the dead zone, which CSS cannot see. */
+}
+
+/* Round, and clipping the segments that deliberately overshoot the corners.
+   The single 1fr track is not decoration: every segment sits in cell 1/1 and is
+   cut out of it by clip-path, so the cell has to BE the whole wheel. Given real
+   column tracks instead, each segment was clipped inside a quarter-width sliver
+   and the wheel arrived as a stack of slivers down the left-hand edge.
+   A class rather than :has(), so the rule that decides the track and the code
+   that decides the shape sit in the same place. */
+.radial {
+  --menu-divider: rgba(255, 255, 255, 0.22);
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+  border-radius: 50%;
+  overflow: hidden;
+  gap: 0;
+  /* No inset: the clip already keeps the segments inside the circle, and the
+     padding would leave the wheel smaller than the box the hit test uses. */
+  padding: 0;
+}
+
+/* Sized from the same variable as the text, so one font control scales the
+   whole region together. currentColor so a selected segment inverts with it. */
+.icon {
+  width: calc(var(--overlay-font, 14px) * 1.9);
+  height: calc(var(--overlay-font, 14px) * 1.9);
+  fill: currentColor;
+  flex: 0 0 auto;
+}
+
+/* A grid item defaults to `min-height: auto`, which means its CONTENT can still
+   force a 1fr track taller than its share -- the same bug as an `auto` row,
+   just harder to spot. Pinning both to 0 and clipping keeps every region
+   exactly the size the hit test believes it is. Clipped text is a cosmetic
+   problem; a region that fires the action below it is not. */
+.pad > .region {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* The wheel's boundaries and the ring around its hole. Decoration only: it sits
+   above the segments, takes no pointer events, and is not a .region, so nothing
+   here can affect which segment a stick selects. */
+.spokes {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Pinned at the wheel's centre, pointing up, then rotated onto its boundary --
+   so a spoke is a constant width line however wide the segment is, which an
+   angular slice of a conic gradient would not be. */
+.spoke {
+  position: absolute;
+  left: 50%;
+  bottom: 50%;
+  width: 1px;
+  height: 50%;
+  margin-left: -0.5px;
+  transform-origin: 50% 100%;
+}
+
+.hub {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 1px solid var(--menu-divider);
+  box-sizing: border-box;
+}

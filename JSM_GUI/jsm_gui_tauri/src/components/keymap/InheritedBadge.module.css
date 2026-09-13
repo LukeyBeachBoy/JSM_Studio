@@ -1,0 +1,45 @@
+/* Deliberately quiet. An inherited value is normal, not a problem, so the badge
+   reads as a note rather than a warning -- it must not compete with the
+   binding it annotates. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28em;
+  padding: 0.05em 0.45em;
+  border: 1px solid var(--border-subtle, rgba(127, 127, 127, 0.35));
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted, #8a8f98);
+  font-size: 0.72em;
+  font-weight: 500;
+  line-height: 1.5;
+  white-space: nowrap;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.badge:hover,
+.badge:focus-visible {
+  color: var(--text-primary, inherit);
+  border-color: var(--border-strong, rgba(127, 127, 127, 0.7));
+}
+
+.badge:disabled {
+  cursor: default;
+}
+
+.badge:disabled:hover {
+  color: var(--text-muted, #8a8f98);
+  border-color: var(--border-subtle, rgba(127, 127, 127, 0.35));
+}
+
+.mark {
+  font-size: 0.9em;
+  opacity: 0.8;
+}
+
+.source {
+  max-width: 12em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

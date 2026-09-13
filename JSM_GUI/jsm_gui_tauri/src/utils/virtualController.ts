@@ -1,6 +1,8 @@
 import type { TFunction } from 'i18next'
 import { keyName } from '../constants/configKeys'
 import { getKeymapValue } from './keymap'
+import { loadConfigBindingName } from './loadConfigBinding'
+import { keyDisplayName } from './keyNames'
 
 export type VirtualControllerType = 'NONE' | 'XBOX' | 'DS4'
 
@@ -30,40 +32,46 @@ export type VirtualControllerWarning =
 
 type VirtualBindingDefinition = {
   logical: VirtualControllerLogicalOutput
+  /** Positional name -- "North face button" -- for choosing an output. */
   labelKey: string
   xbox?: string
   ds4?: string
+  /**
+   * What the game will call it. A binding reads as the thing it produces, so
+   * a written output shows this rather than the raw token: `X_Y` is a Y
+   * button to everyone except the configuration file.
+   */
+  xboxName?: string
+  ds4Name?: string
 }
 
 const VIRTUAL_BINDINGS: VirtualBindingDefinition[] = [
-  { logical: 'faceSouth', labelKey: 'keymap.virtualOutputFaceSouth', xbox: 'X_A', ds4: 'PS_CROSS' },
-  { logical: 'faceEast', labelKey: 'keymap.virtualOutputFaceEast', xbox: 'X_B', ds4: 'PS_CIRCLE' },
-  { logical: 'faceWest', labelKey: 'keymap.virtualOutputFaceWest', xbox: 'X_X', ds4: 'PS_SQUARE' },
-  { logical: 'faceNorth', labelKey: 'keymap.virtualOutputFaceNorth', xbox: 'X_Y', ds4: 'PS_TRIANGLE' },
-  { logical: 'leftBumper', labelKey: 'keymap.virtualOutputLeftBumper', xbox: 'X_LB', ds4: 'PS_L1' },
-  { logical: 'rightBumper', labelKey: 'keymap.virtualOutputRightBumper', xbox: 'X_RB', ds4: 'PS_R1' },
-  { logical: 'leftStickClick', labelKey: 'keymap.virtualOutputLeftStickClick', xbox: 'X_LS', ds4: 'PS_L3' },
-  { logical: 'rightStickClick', labelKey: 'keymap.virtualOutputRightStickClick', xbox: 'X_RS', ds4: 'PS_R3' },
-  { logical: 'back', labelKey: 'keymap.virtualOutputBack', xbox: 'X_BACK', ds4: 'PS_SHARE' },
-  { logical: 'start', labelKey: 'keymap.virtualOutputStart', xbox: 'X_START', ds4: 'PS_OPTIONS' },
-  { logical: 'home', labelKey: 'keymap.virtualOutputHome', xbox: 'X_GUIDE', ds4: 'PS_HOME' },
-  { logical: 'dpadUp', labelKey: 'keymap.virtualOutputDpadUp', xbox: 'X_UP', ds4: 'PS_UP' },
-  { logical: 'dpadDown', labelKey: 'keymap.virtualOutputDpadDown', xbox: 'X_DOWN', ds4: 'PS_DOWN' },
-  { logical: 'dpadLeft', labelKey: 'keymap.virtualOutputDpadLeft', xbox: 'X_LEFT', ds4: 'PS_LEFT' },
-  { logical: 'dpadRight', labelKey: 'keymap.virtualOutputDpadRight', xbox: 'X_RIGHT', ds4: 'PS_RIGHT' },
+  { logical: 'faceSouth', labelKey: 'keymap.virtualOutputFaceSouth', xbox: 'X_A', ds4: 'PS_CROSS', xboxName: 'A Button', ds4Name: 'Cross' },
+  { logical: 'faceEast', labelKey: 'keymap.virtualOutputFaceEast', xbox: 'X_B', ds4: 'PS_CIRCLE', xboxName: 'B Button', ds4Name: 'Circle' },
+  { logical: 'faceWest', labelKey: 'keymap.virtualOutputFaceWest', xbox: 'X_X', ds4: 'PS_SQUARE', xboxName: 'X Button', ds4Name: 'Square' },
+  { logical: 'faceNorth', labelKey: 'keymap.virtualOutputFaceNorth', xbox: 'X_Y', ds4: 'PS_TRIANGLE', xboxName: 'Y Button', ds4Name: 'Triangle' },
+  { logical: 'leftBumper', labelKey: 'keymap.virtualOutputLeftBumper', xbox: 'X_LB', ds4: 'PS_L1', xboxName: 'Left Bumper', ds4Name: 'L1' },
+  { logical: 'rightBumper', labelKey: 'keymap.virtualOutputRightBumper', xbox: 'X_RB', ds4: 'PS_R1', xboxName: 'Right Bumper', ds4Name: 'R1' },
+  { logical: 'leftStickClick', labelKey: 'keymap.virtualOutputLeftStickClick', xbox: 'X_LS', ds4: 'PS_L3', xboxName: 'Left Stick Click', ds4Name: 'L3' },
+  { logical: 'rightStickClick', labelKey: 'keymap.virtualOutputRightStickClick', xbox: 'X_RS', ds4: 'PS_R3', xboxName: 'Right Stick Click', ds4Name: 'R3' },
+  { logical: 'back', labelKey: 'keymap.virtualOutputBack', xbox: 'X_BACK', ds4: 'PS_SHARE', xboxName: 'View Button', ds4Name: 'Share' },
+  { logical: 'start', labelKey: 'keymap.virtualOutputStart', xbox: 'X_START', ds4: 'PS_OPTIONS', xboxName: 'Menu Button', ds4Name: 'Options' },
+  { logical: 'home', labelKey: 'keymap.virtualOutputHome', xbox: 'X_GUIDE', ds4: 'PS_HOME', xboxName: 'Guide Button', ds4Name: 'PS Button' },
+  { logical: 'dpadUp', labelKey: 'keymap.virtualOutputDpadUp', xbox: 'X_UP', ds4: 'PS_UP', xboxName: 'D-Pad Up', ds4Name: 'D-Pad Up' },
+  { logical: 'dpadDown', labelKey: 'keymap.virtualOutputDpadDown', xbox: 'X_DOWN', ds4: 'PS_DOWN', xboxName: 'D-Pad Down', ds4Name: 'D-Pad Down' },
+  { logical: 'dpadLeft', labelKey: 'keymap.virtualOutputDpadLeft', xbox: 'X_LEFT', ds4: 'PS_LEFT', xboxName: 'D-Pad Left', ds4Name: 'D-Pad Left' },
+  { logical: 'dpadRight', labelKey: 'keymap.virtualOutputDpadRight', xbox: 'X_RIGHT', ds4: 'PS_RIGHT', xboxName: 'D-Pad Right', ds4Name: 'D-Pad Right' },
   {
     logical: 'leftTriggerDigital',
     labelKey: 'keymap.virtualOutputLeftTriggerDigital',
     xbox: 'X_LT',
-    ds4: 'PS_L2',
-  },
+    ds4: 'PS_L2', xboxName: 'Left Trigger', ds4Name: 'L2' },
   {
     logical: 'rightTriggerDigital',
     labelKey: 'keymap.virtualOutputRightTriggerDigital',
     xbox: 'X_RT',
-    ds4: 'PS_R2',
-  },
-  { logical: 'padClick', labelKey: 'keymap.virtualOutputPadClick', ds4: 'PS_PAD_CLICK' },
+    ds4: 'PS_R2', xboxName: 'Right Trigger', ds4Name: 'R2' },
+  { logical: 'padClick', labelKey: 'keymap.virtualOutputPadClick', ds4: 'PS_PAD_CLICK', ds4Name: 'Touchpad Click' },
 ]
 
 const isString = (value: string | undefined): value is string => typeof value === 'string' && value.length > 0
@@ -163,9 +171,10 @@ export const getVirtualControllerOutputLabel = (
 ) => {
   const binding = VIRTUAL_BINDINGS.find(item => item.logical === logical)
   if (!binding) return logical
-  const token = type === 'XBOX' ? binding.xbox : binding.ds4
-  const base = t(binding.labelKey)
-  return token ? `${base} (${token})` : base
+  // The name the game uses, where there is one. The positional name and the
+  // raw token are what this used to read as -- "North face button (X_Y)" --
+  // which describes where the button is rather than which button it is.
+  return (type === 'XBOX' ? binding.xboxName : binding.ds4Name) ?? t(binding.labelKey)
 }
 
 export const getVirtualControllerOptions = (
@@ -230,4 +239,32 @@ export function migrateVirtualBindings(text: string, type: VirtualControllerType
       return logical ? toVirtualControllerToken(logical, type) ?? token : token
     })
   }).join('\n')
+}
+
+/**
+ * What a written output is called, rather than what it is spelled.
+ *
+ * `X_Y` is a Y button and `PS_TRIANGLE` is a triangle; the token is the
+ * configuration file's business. The type comes from the token itself rather
+ * than from the profile's setting, so a binding always reads as the thing the
+ * game will actually receive -- including in a profile whose tokens have not
+ * been migrated to its current output type.
+ */
+export const describeVirtualControllerToken = (token: string): string | null => {
+  const type = getVirtualControllerTokenType(token)
+  if (!type) return null
+  const upper = token.trim().toUpperCase()
+  const binding = VIRTUAL_BINDINGS.find(item => (type === 'XBOX' ? item.xbox : item.ds4) === upper)
+  return (type === 'XBOX' ? binding?.xboxName : binding?.ds4Name) ?? null
+}
+
+/** The same, falling through to the raw value for everything that is not one. */
+/** The same, plus the one other output that is a path rather than a name. */
+export const describeOutputValue = (value: string) => {
+  const virtual = describeVirtualControllerToken(value)
+  if (virtual) return virtual
+  const config = loadConfigBindingName(value)
+  if (config) return `Load ${config}`
+  // A key is called what the legend on it says, not what the parser calls it.
+  return keyDisplayName(value)
 }

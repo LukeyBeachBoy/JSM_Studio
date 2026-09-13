@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Default capability for the main application window.",
-  "windows": ["main"],
+  "description": "Default capability for the main application window and the trackpad overlay. The overlay needs core:event so it can listen for overlay-telemetry; with the window omitted here it would have no permissions at all and would silently never receive a frame.",
+  "windows": ["main", "overlay"],
   "permissions": ["core:default", "process:default"]
 }

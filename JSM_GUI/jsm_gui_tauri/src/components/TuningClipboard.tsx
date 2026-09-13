@@ -6,7 +6,7 @@ import { showToast } from '../utils/toast'
 const TUNING_KEYS = {
   trackpad: /^(?:(?:LEFT_|RIGHT_)?TOUCHPAD_(?:SENS|MIN_CUTOFF|SPEED_COEFF|D_CUTOFF|TRACKBALL_|MOVEMENT_|CLICK_DAMPEN|LIFT_|RELEASE_|HAPTIC_|CLICK_HAPTIC_|ACCEL)|ACCEL_CURVE_LINK)/,
   grip: /^(?:(?:LEFT_|RIGHT_)?GRIP_)/,
-  gyro: /^(?:(?:MIN_|MAX_)?GYRO_|ACCEL_|ROLL_CONTRIBUTION|IN_GAME_SENS|REAL_WORLD_CALIBRATION|CUTOFF_|SMOOTH_|ONE_EURO_|ANGLE_SNAP|DECEL_BRAKE|TICK_TIME)/,
+  gyro: /^(?:(?:MIN_|MAX_)?GYRO_|ACCEL_|ROLL_CONTRIBUTION|IN_GAME_SENS|REAL_WORLD_CALIBRATION|CUTOFF_|SMOOTH_|ONE_EURO_|ANGLE_SNAP|DECEL_BRAKE)/,
 }
 type Kind = keyof typeof TUNING_KEYS
 export function TuningClipboard({ kind, text, onChange, disabled }: { kind: Kind; text: string; onChange: (text: string) => void; disabled?: boolean }) {

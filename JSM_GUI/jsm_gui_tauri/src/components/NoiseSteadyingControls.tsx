@@ -1,3 +1,4 @@
+import { HelpButton } from './HelpButton'
 import { useTranslation } from 'react-i18next'
 import { SensitivityValues } from '../utils/keymap'
 import { Card } from './Card'
@@ -79,14 +80,16 @@ export function NoiseSteadyingControls({
       </div>
       <div className="flex-inputs">
         <label>
-          {t('noise.smoothingDecay')}
+          <span className="field-caption">{t('noise.smoothingDecay')}
+          <HelpButton title="Gyro Smoothing Decay">Chooses how smoothing is applied. Off averages a fixed number of recent samples; on decays the old value continuously, which does not depend on the polling interval and so behaves the same whatever it is set to. Both use the same smooth time and threshold.</HelpButton></span>
           <AppSelect value={sensitivity.smoothingDecay ?? 'OFF'} onChange={(e) => onSmoothingDecayChange(e.target.value)}>
             <option value="OFF">{t('common.off')}</option>
             <option value="ON">{t('common.on')}</option>
           </AppSelect>
         </label>
         <label>
-          {t('noise.oneEuroFilter')}
+          <span className="field-caption">{t('noise.oneEuroFilter')}
+          <HelpButton title="One Euro Filter">An adaptive low-pass filter: it smooths heavily while you are moving slowly and gets out of the way as you speed up, so resting jitter is damped without adding lag to a flick. Turning it on reveals its two controls.</HelpButton></span>
           <AppSelect value={sensitivity.oneEuroFilter ? 'ON' : 'OFF'} onChange={(e) => onOneEuroFilterChange(e.target.value)}>
             <option value="OFF">{t('common.off')}</option>
             <option value="ON">{t('common.on')}</option>
@@ -102,7 +105,8 @@ export function NoiseSteadyingControls({
       <div className="flex-inputs">
         <NumberField label={t('noise.angleSnapping')} value={sensitivity.angleSnap} onChange={onAngleSnapChange} min={0} max={45} step={0.1} unit="°" />
         <label>
-          {t('noise.easeAngleSnapping')}
+          <span className="field-caption">{t('noise.easeAngleSnapping')}
+          <HelpButton title="Ease Angle Snapping">How angle snapping takes hold. Off snaps as soon as you are inside the angle; on fades the snap in across it, so aim is pulled level gradually rather than jumping.</HelpButton></span>
           <AppSelect className="app-select" value={sensitivity.angleSnapEase ?? 'OFF'} onChange={(e) => onAngleSnapSmoothChange(e.target.value)}>
             <option value="OFF">{t('common.off')}</option>
             <option value="ON">{t('common.on')}</option>

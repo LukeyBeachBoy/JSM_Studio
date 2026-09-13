@@ -43,6 +43,24 @@ pub fn run() {
             }
             telemetry::start(app.handle().clone(), state.clone());
             services::global_chords::start(app.handle().clone(), state.clone());
+            // Built hidden and click-through up front: creating a WebView window
+            // costs around 100ms, which is not something to spend on the first
+            // touch of a pad menu. It draws nothing and receives nothing until
+            // overlay_set_enabled turns the emitter on.
+            if let Err(error) = services::overlay::ensure(&app.handle()) {
+                eprintln!("Failed to prepare the trackpad overlay: {error}");
+            }
+            // ... and put it back on if that is how it was left. Without this
+            // the overlay silently defaults to off on every launch, which reads
+            // as the feature having broken rather than as a setting.
+            if runtime::read_runtime_mapping_state(&app.handle())
+                .map(|s| s.trackpad_overlay_enabled)
+                .unwrap_or(false)
+            {
+                if let Err(error) = services::overlay::set_enabled(&app.handle(), &state, true) {
+                    eprintln!("Failed to restore the trackpad overlay: {error}");
+                }
+            }
             services::profile_library::start(app.handle().clone());
             if let Err(error) = sync_hidhide_whitelist_if_available(&app.handle()) {
                 eprintln!(
@@ -96,6 +114,10 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::launch_jsm,
+            commands::overlay_set_enabled,
+            commands::overlay_set_refresh_hz,
+            commands::overlay_set_bounds,
+            commands::overlay_workarea,
             commands::terminate_jsm,
             commands::minimize_temporarily,
             commands::apply_profile,
@@ -104,6 +126,7 @@ pub fn run() {
             commands::set_autoload_enabled,
             commands::list_autoload_rules,
             commands::set_controller_nav_enabled,
+            commands::set_default_polling_ms,
             commands::list_global_chords,
             commands::save_global_chord,
             commands::delete_global_chord,
@@ -138,6 +161,7 @@ pub fn run() {
             commands::open_hidhide_client,
             commands::open_external,
             commands::open_config_directory,
+            commands::read_config_file,
             commands::start_input_debug_hook,
             commands::stop_input_debug_hook,
             commands::get_input_debug_hook_status,

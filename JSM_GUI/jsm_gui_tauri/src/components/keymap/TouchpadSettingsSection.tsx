@@ -12,10 +12,16 @@ export type TouchpadModeCardConfig = {
   dualStageMode: string
   gridColumns: number
   gridRows: number
+  /** RECTANGLE (rows x columns) or FOUR_WAY (cardinal wedges). */
+  gridShape?: string
+  /** Fraction of the pad, centre to edge, that presses nothing in FOUR_WAY. */
+  gridDeadzone?: number
   sensitivity?: number
   sensitivityY?: number
   onModeChange?: (v: string) => void
   onGridSizeChange?: (c: number, r: number) => void
+  onGridShapeChange?: (v: string) => void
+  onGridDeadzoneChange?: (v: string) => void
   onSensitivityChange?: (v: string) => void
   onSensitivityYChange?: (v: string) => void
   onDualStageModeChange?: (v: string) => void
@@ -34,6 +40,10 @@ type Props = {
   gridRows: number
   onTouchpadModeChange?: (v: string) => void
   onGridSizeChange?: (c: number, r: number) => void
+  gridShape?: string
+  gridDeadzone?: number
+  onGridShapeChange?: (v: string) => void
+  onGridDeadzoneChange?: (v: string) => void
   touchpadSensitivity?: number
   touchpadSensitivityY?: number
   onTouchpadSensitivityChange?: (v: string) => void
@@ -84,26 +94,84 @@ export function TouchpadModeCard({ config, title }: { config: TouchpadModeCardCo
         </AppSelect>
       </label>
       {config.mode === 'GRID_AND_STICK' && (
-        <div className={styles.gridSizeInputs}>
-          <NumberField
-            layout="inline"
-            label={t('keymap.columns')}
-            value={config.gridColumns}
-            onChange={v => config.onGridSizeChange?.(Number(v) || 1, config.gridRows)}
-            min={1}
-            max={5}
-            step={1}
-          />
-          <NumberField
-            layout="inline"
-            label={t('keymap.rows')}
-            value={config.gridRows}
-            onChange={v => config.onGridSizeChange?.(config.gridColumns, Number(v) || 1)}
-            min={1}
-            max={5}
-            step={1}
-          />
-        </div>
+        <>
+          <label>
+            {t('keymap.gridShape', 'Regions')}
+            <AppSelect
+              className="app-select"
+              value={config.gridShape || 'RECTANGLE'}
+              onChange={e => config.onGridShapeChange?.(e.target.value)}
+            >
+              <option value="RECTANGLE">{t('keymap.gridShapeRectangle', 'Grid (rows and columns)')}</option>
+              <option value="FOUR_WAY">{t('keymap.gridShapeFourWay', '4-way button pad')}</option>
+              <option value="RADIAL">{t('keymap.gridShapeRadial', 'Radial menu (wheel)')}</option>
+            </AppSelect>
+          </label>
+          {/* Each shape exposes only the dials that mean something to it: a
+              wedge layout has four regions by definition, a wheel's rows and
+              columns multiply into a segment count, and only the two round
+              shapes have a hole in the middle. */}
+          {config.gridShape === 'FOUR_WAY' && (
+            <p className={styles.touchpadHint}>
+              {t(
+                'keymap.gridShapeFourWayHint',
+                'The pad splits into four wedges about its centre, divided on the diagonals, so anywhere in the top quarter presses up. Regions 1 to 4 are up, right, down and left.'
+              )}
+            </p>
+          )}
+          {config.gridShape === 'RADIAL' && (
+            <p className={styles.touchpadHint}>
+              {t('keymap.gridShapeRadialHint', {
+                defaultValue:
+                  'A weapon wheel of {{count}} segments, numbered clockwise from the top. Rows multiply by columns, so 8 x 1 and 4 x 2 both give eight. The deadzone is the hole in the middle, where nothing is selected.',
+                count: Math.max(0, (config.gridColumns || 0) * (config.gridRows || 0)),
+              })}
+            </p>
+          )}
+          {config.gridShape !== 'FOUR_WAY' && (
+            <div className={styles.gridSizeInputs}>
+              <NumberField
+                layout="inline"
+                label={t('keymap.columns')}
+                value={config.gridColumns}
+                onChange={v => config.onGridSizeChange?.(Number(v) || 1, config.gridRows)}
+                min={1}
+                max={5}
+                step={1}
+              />
+              <NumberField
+                layout="inline"
+                label={t('keymap.rows')}
+                value={config.gridRows}
+                onChange={v => config.onGridSizeChange?.(config.gridColumns, Number(v) || 1)}
+                min={1}
+                max={5}
+                step={1}
+              />
+            </div>
+          )}
+          {(config.gridShape === 'FOUR_WAY' || config.gridShape === 'RADIAL') && (
+            <>
+              <div className={styles.gridSizeInputs}>
+                <NumberField
+                  layout="inline"
+                  label={t('keymap.gridDeadzone', 'Centre deadzone')}
+                  value={config.gridDeadzone}
+                  onChange={v => config.onGridDeadzoneChange?.(v)}
+                  min={0}
+                  max={1}
+                  step={0.05}
+                />
+              </div>
+              <p className={styles.touchpadHint}>
+                {t(
+                  'keymap.gridDeadzoneHint',
+                  'How much of the middle presses nothing, as a fraction of the pad from centre to edge. Stops a thumb resting at dead centre from flickering between two directions. 0 turns it off.'
+                )}
+              </p>
+            </>
+          )}
+        </>
       )}
       {config.mode === 'MOUSE' && (
         <>
@@ -210,6 +278,10 @@ export function TouchpadSettingsSection(props: Props) {
                 sensitivityY: props.touchpadSensitivityY,
                 onModeChange: props.onTouchpadModeChange,
                 onGridSizeChange: props.onGridSizeChange,
+                gridShape: props.gridShape,
+                gridDeadzone: props.gridDeadzone,
+                onGridShapeChange: props.onGridShapeChange,
+                onGridDeadzoneChange: props.onGridDeadzoneChange,
                 onSensitivityChange: props.onTouchpadSensitivityChange,
                 onSensitivityYChange: props.onTouchpadSensitivityYChange,
                 onDualStageModeChange: props.onTouchpadDualStageModeChange,

@@ -7,26 +7,35 @@ import { useTouchpadConfig } from './useTouchpadConfig'
 import { useGripConfig } from './useGripConfig'
 import { useStickConfig } from './useStickConfig'
 import { useBindingsConfig } from './useBindingsConfig'
+import { useConfigIncludes } from './useConfigIncludes'
+import { INCLUDE_ROOT } from '../utils/configIncludes'
 
 export function useKeymapConfig() {
   const history = useConfigHistory()
   const { text: configText, setText: setConfigText } = history
   const [appliedConfig, setAppliedConfig] = useState('')
 
-  const sensitivityConfig = useSensitivityConfig({ configText, setConfigText })
-  const touchpadConfig = useTouchpadConfig({ configText, setConfigText })
-  const gripConfig = useGripConfig({ configText, setConfigText })
-  const stickConfig = useStickConfig({ configText, setConfigText })
-  const bindingsConfig = useBindingsConfig({ configText, setConfigText })
+  // A profile that imports a template is not the same thing as the text in its
+  // file. Every read below goes through the resolved text so inherited settings
+  // show up; writes still go to configText, so changing an inherited value
+  // writes an override into this profile rather than editing the template.
+  const includes = useConfigIncludes(configText, INCLUDE_ROOT)
+  const readText = includes.effectiveText
+
+  const sensitivityConfig = useSensitivityConfig({ configText, readText, setConfigText })
+  const touchpadConfig = useTouchpadConfig({ configText, readText, setConfigText })
+  const gripConfig = useGripConfig({ configText, readText, setConfigText })
+  const stickConfig = useStickConfig({ configText, readText, setConfigText })
+  const bindingsConfig = useBindingsConfig({ configText, readText, setConfigText })
 
   const ignoredGyroDevices = useMemo(() => {
-    const raw = getKeymapValue(configText, keyName.IGNORE_GYRO_DEVICES) ?? ''
+    const raw = getKeymapValue(readText, keyName.IGNORE_GYRO_DEVICES) ?? ''
     return raw
       .split(/\s+/)
       .map(token => token.trim())
       .filter(Boolean)
       .map(token => token.toLowerCase())
-  }, [configText])
+  }, [readText])
 
   const hasPendingChanges = configText !== appliedConfig || sensitivityConfig.hasPendingSensitivityChanges
   const handleCancel = () => {
@@ -36,6 +45,10 @@ export function useKeymapConfig() {
 
   return {
     configText,
+    // The text the runtime would execute: this profile with its imports
+    // resolved in place. Read-only -- never save it over a profile.
+    effectiveConfigText: readText,
+    configIncludes: includes,
     setConfigText,
     resetConfigHistory: history.reset,
     canUndo: history.canUndo,
@@ -190,6 +203,18 @@ export function useKeymapConfig() {
     handleLeftTouchpadModeChange: touchpadConfig.handleLeftTouchpadModeChange,
     handleRightTouchpadModeChange: touchpadConfig.handleRightTouchpadModeChange,
     handleGridSizeChange: touchpadConfig.handleGridSizeChange,
+    gridShapeValue: touchpadConfig.gridShapeValue,
+    leftGridShapeValue: touchpadConfig.leftGridShapeValue,
+    rightGridShapeValue: touchpadConfig.rightGridShapeValue,
+    gridDeadzoneValue: touchpadConfig.gridDeadzoneValue,
+    leftGridDeadzoneValue: touchpadConfig.leftGridDeadzoneValue,
+    rightGridDeadzoneValue: touchpadConfig.rightGridDeadzoneValue,
+    handleGridShapeChange: touchpadConfig.handleGridShapeChange,
+    handleLeftGridShapeChange: touchpadConfig.handleLeftGridShapeChange,
+    handleRightGridShapeChange: touchpadConfig.handleRightGridShapeChange,
+    handleGridDeadzoneChange: touchpadConfig.handleGridDeadzoneChange,
+    handleLeftGridDeadzoneChange: touchpadConfig.handleLeftGridDeadzoneChange,
+    handleRightGridDeadzoneChange: touchpadConfig.handleRightGridDeadzoneChange,
     handleLeftGridSizeChange: touchpadConfig.handleLeftGridSizeChange,
     handleRightGridSizeChange: touchpadConfig.handleRightGridSizeChange,
     handleTouchpadSensitivityChange: touchpadConfig.handleTouchpadSensitivityChange,

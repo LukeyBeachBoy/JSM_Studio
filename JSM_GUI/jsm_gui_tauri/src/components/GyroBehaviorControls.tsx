@@ -1,8 +1,10 @@
+import { HelpButton } from './HelpButton'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SensitivityValues } from '../utils/keymap'
 import type { GyroActivationMode } from '../utils/gyroActivation'
 import { buildModifierOptions, resolveModifierOptionLabel } from '../utils/modifierOptions'
+import { controllerVisualFamily } from '../utils/controllerStatus'
 import { Card } from './Card'
 import { SectionActions } from './SectionActions'
 import { NumberField } from './NumberField'
@@ -10,12 +12,6 @@ import { AdvancedDisclosure } from './AdvancedDisclosure'
 import { controllerLabel, formatVidPid } from '../utils/controllers'
 import styles from './Gyro.module.css'
 import { AppSelect } from './ui/AppSelect'
-
-const TICK_TIME_OPTIONS = [
-  { value: '1', label: '1 ms' },
-  { value: '2', label: '2 ms' },
-  { value: '3', label: '3 ms' },
-]
 
 const GYRO_SPACE_OPTIONS = [
   { value: 'LOCAL', labelKey: 'gyro.spaces.local' },
@@ -83,7 +79,6 @@ export function GyroBehaviorControls({
   onToggleIgnoreDevice,
   onInGameSensChange,
   onRealWorldCalibrationChange,
-  onTickTimeChange,
   onGyroSpaceChange,
   onGyroAxisXChange,
   onGyroAxisYChange,
@@ -98,7 +93,6 @@ export function GyroBehaviorControls({
   onApply,
   onCancel,
   lockMessage,
-  appliedSampleHz,
 }: GyroBehaviorControlsProps) {
   const { t } = useTranslation()
   // A pad in grid mode is what makes its cells bindable, and on a two-pad
@@ -112,7 +106,7 @@ export function GyroBehaviorControls({
       touchpadGridCommands
     ).map(option => ({
       value: option.value,
-      label: resolveModifierOptionLabel(option, t),
+      label: resolveModifierOptionLabel(option, t, controllerVisualFamily(devices?.[0]?.type)),
       disabled: option.disabled,
     }))
     if (gyroActivationButton && !options.some(option => option.value === gyroActivationButton)) {
@@ -147,8 +141,8 @@ export function GyroBehaviorControls({
       )}
       <div className="flex-inputs">
         <label>
-          {t('gyro.activationMode')}
-          <p className="field-description">{t('gyro.activationHint')}</p>
+          <span className="field-caption">{t('gyro.activationMode')}
+          <HelpButton title="Gyro Activation">{t('gyro.activationHint')}</HelpButton></span>
           <AppSelect
             className="app-select"
             value={gyroActivationMode}
@@ -165,8 +159,8 @@ export function GyroBehaviorControls({
           </AppSelect>
         </label>
         <label>
-          {t('gyro.activationButton')}
-          <p className="field-description">{t('gyro.activationButtonHint')}</p>
+          <span className="field-caption">{t('gyro.activationButton')}
+          <HelpButton title="Activation Button">{t('gyro.activationButtonHint')}</HelpButton></span>
           <AppSelect
             className="app-select"
             value={selectedActivationButton}
@@ -183,8 +177,8 @@ export function GyroBehaviorControls({
       </div>
       <div className="flex-inputs">
         <label>
-          {t('gyro.gyroOutput')}
-          <p className="field-description">{t('gyro.gyroOutputHint')}</p>
+          <span className="field-caption">{t('gyro.gyroOutput')}
+          <HelpButton title="Gyro Output">{t('gyro.gyroOutputHint')}</HelpButton></span>
           <AppSelect className="app-select" value={sensitivity.gyroOutput ?? ''} onChange={(e) => onGyroOutputChange(e.target.value)}>
             <option value="">{t('gyro.gyroOutputMouse')} ({t('common.default')})</option>
             <option value="LEFT_STICK">{t('gyro.gyroOutputLeftStick')}</option>
@@ -222,25 +216,7 @@ export function GyroBehaviorControls({
       <AdvancedDisclosure>
         <div className="flex-inputs">
           <label>
-            <div className="label-row">
-              <span>{t('gyro.pollingTickTime')}</span>
-              {appliedSampleHz && (
-                <span className="field-description inline-helper">
-                  {t('gyro.controllerReportRate', { hz: appliedSampleHz })}
-                </span>
-              )}
-            </div>
-            <AppSelect className="app-select" value={sensitivity.tickTime?.toString() ?? ''} onChange={(e) => onTickTimeChange(e.target.value)}>
-              <option value="">{t('common.useDefault')}</option>
-              {TICK_TIME_OPTIONS.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </AppSelect>
-          </label>
-          <label>
-            {t('gyro.gyroSpace')}
+            {t('gyro.gyroSpace')} <HelpButton title="Gyro Space">Local uses the controller’s own axes. Player Turn combines yaw and roll relative to your grip; World Turn turns around gravity’s vertical axis. Choose a space that keeps turning natural as you tilt the controller.</HelpButton>
             <AppSelect className="app-select" value={sensitivity.gyroSpace ?? ''} onChange={(e) => onGyroSpaceChange(e.target.value)}>
               <option value="">{t('common.useDefault')}</option>
               {GYRO_SPACE_OPTIONS.map(option => (

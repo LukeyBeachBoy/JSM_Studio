@@ -12,6 +12,7 @@ declare interface Window {
     listLibraryProfiles?: () => Promise<string[]>
     saveLibraryProfile?: (name: string, content: string) => Promise<{ name: string }>
     loadLibraryProfile?: (name: string) => Promise<{ name: string; content: string }>
+    readConfigFile?: (path: string) => Promise<string | null>
     deleteLibraryProfile?: (name: string) => Promise<{ success: boolean; fallback?: { path: string; name: string; content: string } }>
     getActiveProfile?: () => Promise<{ path: string; name: string; content: string }>
     activateLibraryProfile?: (name: string) => Promise<{ path: string; name: string; content: string }>

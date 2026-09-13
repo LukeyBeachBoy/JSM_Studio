@@ -43,7 +43,7 @@
 
 .gripSenseText {
   fill: var(--text-muted);
-  font: 700 22px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font: 700 22px system-ui, sans-serif;
   text-anchor: middle;
   dominant-baseline: central;
   pointer-events: none;
@@ -111,7 +111,7 @@
   font-size: 28px;
   font-weight: 700;
   fill: var(--text-muted);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: system-ui, sans-serif;
   text-anchor: middle;
   dominant-baseline: central;
   user-select: none;

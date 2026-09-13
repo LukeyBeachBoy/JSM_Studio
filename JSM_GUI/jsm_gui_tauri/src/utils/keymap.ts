@@ -40,7 +40,21 @@ export interface SensitivityValues {
 }
 
 const escapeKey = (key: string) => key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-const LINE_REGEX = (key: string) => new RegExp(`^\\s*${escapeKey(key)}\\s*=\\s*(.+)$`, 'im')
+const LINE_REGEX = (key: string) => new RegExp(`^\\s*${escapeKey(key)}\\s*=\\s*(.+)$`, 'gim')
+
+// JSM applies assignments top to bottom and the last one wins, so a key set
+// more than once must read as its LAST value, not its first. A GUI-written
+// profile only ever holds one line per key, but a hand-edited file can repeat
+// one, and a profile that imports a template repeats every key it overrides --
+// reading the first match there would show the template's value and hide the
+// override. The regex is global, so it is exec'd to exhaustion rather than
+// matched: `(.+)` cannot match empty, so the cursor always advances.
+const matchKeyLine = (text: string, key: string) => {
+  const pattern = LINE_REGEX(key)
+  let last: RegExpExecArray | null = null
+  for (let match = pattern.exec(text); match; match = pattern.exec(text)) last = match
+  return last
+}
 
 function parseNumbers(value?: string, limit = Infinity) {
   if (!value) return []
@@ -58,12 +72,12 @@ export function parseSensitivityValues(text: string, options?: { prefix?: string
     return `${options.prefix}${key}`
   }
   const get = (key: string, limit = Infinity) => {
-    const match = text.match(LINE_REGEX(keyWithPrefix(key)))
+    const match = matchKeyLine(text, keyWithPrefix(key))
     return parseNumbers(match?.[1], limit)
   }
   const single = (key: string) => get(key, 1)[0]
   const raw = (key: string) => {
-    const match = text.match(LINE_REGEX(keyWithPrefix(key)))
+    const match = matchKeyLine(text, keyWithPrefix(key))
     return match?.[1]?.trim()
   }
   const accelCurveRaw = raw('ACCEL_CURVE')
@@ -192,7 +206,7 @@ function stripInlineComment(value?: string) {
 }
 
 export function getKeymapValue(text: string, key: string) {
-  const match = text.match(LINE_REGEX(key))
+  const match = matchKeyLine(text, key)
   const value = stripInlineComment(match?.[1])
   return value || undefined
 }
@@ -299,7 +313,9 @@ const classifyBindingTokenKind = (value: string): BindingTokenKind => {
   if (MOUSE_BINDINGS.has(normalized)) return 'mouse'
   if (WHEEL_BINDINGS.has(normalized)) return 'wheel'
   if (SPECIAL_BINDINGS.has(normalized)) return 'special'
-  if (/^[A-Z0-9_[\]`=;'",./\\-]+$/i.test(normalized)) return 'input'
+  // The punctuation JoyShockMapper accepts as a key name -- see nameToKey's
+  // own list: ; ' , . / \ [ ] + - `, plus = and " which it also maps.
+  if (/^[A-Z0-9_[\]`=;'",./\\+-]+$/i.test(normalized)) return 'input'
   return 'raw_literal'
 }
 
@@ -334,19 +350,53 @@ const tokenizeBindingExpression = (value?: string) => {
   return tokens
 }
 
-const parseBindingToken = (rawToken: string): BindingToken => {
-  let actionModifier: BindingActionModifier = ''
-  let eventModifier: BindingEventModifier = ''
-  let remaining = rawToken.trim()
+/**
+ * Whether text is something JoyShockMapper's pattern accepts as a key.
+ *
+ * Its key group is `(".*?")|\w*[0-9A-Z]|\W` -- a quoted command, a word
+ * ending in an alphanumeric, or a single non-word character. `_` matches
+ * none of them on its own, which is why `-_` is a hyphen held rather than a
+ * release-modified underscore.
+ */
+const isKeyGroup = (text: string) =>
+  (text.length >= 2 && text.startsWith('"') && text.endsWith('"')) ||
+  /^\w*[0-9A-Z]$/i.test(text) ||
+  /^\W$/.test(text)
 
-  if (remaining && ACTION_MODIFIER_SET.has(remaining[0] as BindingActionModifier)) {
-    actionModifier = remaining[0] as BindingActionModifier
-    remaining = remaining.slice(1)
+/**
+ * Split a token into modifiers and key the way the backend does.
+ *
+ * Every modifier character is also a key you can send, so which is which
+ * cannot be decided by position alone. JoyShockMapper's pattern makes both
+ * modifier groups optional and lets the engine backtrack: it prefers to read
+ * a leading character as an action modifier and a trailing one as an event
+ * modifier, but only where what is left between them is a key it accepts.
+ * Stripping them unconditionally read `-` as a release with nothing attached
+ * and `-_` as a release on an underscore; this reads both as the hyphen.
+ */
+const splitBindingToken = (text: string) => {
+  for (const action of [1, 0]) {
+    for (const event of [1, 0]) {
+      if (action && !ACTION_MODIFIER_SET.has(text[0] as BindingActionModifier)) continue
+      const keyEnd = text.length - event
+      if (event && !EVENT_MODIFIER_SET.has(text[keyEnd] as BindingEventModifier)) continue
+      const key = text.slice(action, keyEnd)
+      if (!isKeyGroup(key)) continue
+      return {
+        actionModifier: (action ? text[0] : '') as BindingActionModifier,
+        eventModifier: (event ? text[keyEnd] : '') as BindingEventModifier,
+        key,
+      }
+    }
   }
-  if (remaining && EVENT_MODIFIER_SET.has(remaining[remaining.length - 1] as BindingEventModifier)) {
-    eventModifier = remaining[remaining.length - 1] as BindingEventModifier
-    remaining = remaining.slice(0, -1)
-  }
+  // Not something the backend would accept either; keep it whole so the raw
+  // editor can still show it rather than inventing modifiers for it.
+  return { actionModifier: '' as BindingActionModifier, eventModifier: '' as BindingEventModifier, key: text }
+}
+
+const parseBindingToken = (rawToken: string): BindingToken => {
+  const { actionModifier, eventModifier, key } = splitBindingToken(rawToken.trim())
+  const remaining = key
 
   const trimmedValue = remaining.trim()
   if (trimmedValue.startsWith('"') && trimmedValue.endsWith('"') && trimmedValue.length >= 2) {
@@ -390,12 +440,86 @@ export function serializeBindingToken(token: BindingToken) {
   return `${token.actionModifier}${baseValue}${token.eventModifier}`.trim()
 }
 
+/**
+ * The event modifier JoyShockMapper infers for a token that carries none.
+ *
+ * Its own rule: the first of several tokens is a tap, the second a hold, and
+ * a token on its own fires on press. Mirrored by defaultFallbackTrigger in
+ * bindingCommands, which is how this editor reads a line back.
+ */
+const impliedEventModifier = (index: number, count: number): BindingEventModifier =>
+  count === 2 ? (index === 0 ? "'" : '_') : ''
+
+/** What a token actually does, whether it says so or leans on the position. */
+const effectiveEventModifier = (token: BindingToken, index: number, count: number) =>
+  token.eventModifier || impliedEventModifier(index, count)
+
+/** Whether `text` at least still sends the same outputs, whatever it triggers on. */
+const preservesValues = (tokens: BindingToken[], text: string) => {
+  const parsed = tokenizeBindingExpression(text).map(parseBindingToken)
+  if (parsed.length !== tokens.length) return false
+  return tokens.every((token, index) =>
+    parsed[index].value === token.value.trim() && parsed[index].actionModifier === token.actionModifier
+  )
+}
+
+/** Whether writing `text` would be read back as the tokens it was written from. */
+const survivesReparse = (tokens: BindingToken[], text: string) => {
+  const parsed = tokenizeBindingExpression(text).map(parseBindingToken)
+  if (parsed.length !== tokens.length) return false
+  return tokens.every((token, index) =>
+    parsed[index].value === token.value.trim() &&
+    parsed[index].actionModifier === token.actionModifier &&
+    effectiveEventModifier(parsed[index], index, parsed.length) ===
+      effectiveEventModifier(token, index, tokens.length)
+  )
+}
+
+/**
+ * Write an expression, refusing to write one that means something else.
+ *
+ * The modifier characters are also keys, so a modifier stuck to one of them
+ * can be read as a different binding entirely: `-` tapped serializes to `-'`,
+ * which the grammar reads as a release-modified apostrophe -- JoyShockMapper's
+ * action-modifier group is greedy and takes the hyphen. The hyphen is simply
+ * gone, and nothing reports it.
+ *
+ * There is no escape syntax to reach for. What there is, is position: a
+ * modifier the grammar already implies does not need writing, and dropping it
+ * removes the ambiguity. Only expressions that would otherwise be misread are
+ * written this way, so every profile that round-trips today still saves
+ * byte-for-byte as it did.
+ */
 export function serializeBindingExpression(expression: BindingExpression) {
-  return expression.tokens
-    .map(serializeBindingToken)
+  const { tokens } = expression
+  const direct = tokens.map(serializeBindingToken).filter(Boolean).join(' ').trim()
+  if (survivesReparse(tokens, direct)) return direct
+
+  const implied = tokens
+    .map((token, index) =>
+      serializeBindingToken(
+        token.eventModifier === impliedEventModifier(index, tokens.length)
+          ? { ...token, eventModifier: '' }
+          : token
+      )
+    )
     .filter(Boolean)
     .join(' ')
     .trim()
+  if (survivesReparse(tokens, implied)) return implied
+
+  // Nothing expressible is left: a lone `-` cannot carry a tap, because any
+  // modifier stuck to it gets read as the modifier instead. Drop the modifier
+  // rather than the key. The binding then sits visibly on Press, which the
+  // reader can see and correct -- where writing it changes which key is sent,
+  // and nothing shows that at all. Adding a second command makes it a tap by
+  // position anyway, which is how the grammar expects this to be written.
+  const plain = tokens
+    .map(token => serializeBindingToken({ ...token, eventModifier: '' }))
+    .filter(Boolean)
+    .join(' ')
+    .trim()
+  return preservesValues(tokens, plain) ? plain : direct
 }
 
 export function createBindingToken(kind: BindingTokenKind = 'input'): BindingToken {

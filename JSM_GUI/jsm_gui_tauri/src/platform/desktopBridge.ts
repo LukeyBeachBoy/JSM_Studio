@@ -16,7 +16,9 @@ export type RuntimeMappingState = {
   mappingEnabled: boolean
   autoloadEnabled: boolean
   /** Built-in AutoLoad rule that lets the controller drive JSM Studio itself. */
+  defaultPollingMs?: number
   controllerNavEnabled: boolean
+  trackpadOverlayEnabled?: boolean
 }
 
 export type AutoloadRule = {
@@ -177,7 +179,9 @@ export interface DesktopBridge {
   getRuntimeMappingState: () => Promise<RuntimeMappingState>
   setMappingEnabled: (enabled: boolean) => Promise<RuntimeMappingState>
   setAutoloadEnabled: (enabled: boolean) => Promise<RuntimeMappingState>
+  setDefaultPollingMs: (value: number) => Promise<RuntimeMappingState>
   setControllerNavEnabled: (enabled: boolean) => Promise<RuntimeMappingState>
+  setTrackpadOverlayEnabled: (enabled: boolean) => Promise<void>
   listAutoloadRules: () => Promise<AutoloadRule[]>
   saveAutoloadRule: (processName: string, profileName: string) => Promise<AutoloadRule | null>
   deleteAutoloadRule: (processName: string) => Promise<{ success: boolean }>
@@ -192,6 +196,7 @@ export interface DesktopBridge {
   onLibraryProfilesChanged: (callback: (profiles: string[]) => void) => Unsubscribe
   saveLibraryProfile: (name: string, content: string) => Promise<{ name: string } | null>
   loadLibraryProfile: (name: string) => Promise<{ name: string; content: string } | null>
+  readConfigFile: (path: string) => Promise<string | null>
   deleteLibraryProfile: (name: string) => Promise<DeleteProfileResult>
   getActiveProfile: () => Promise<NamedProfile | null>
   activateLibraryProfile: (name: string) => Promise<NamedProfile | null>
@@ -356,7 +361,7 @@ export const desktopBridge: DesktopBridge = {
     if (isTauriWindow()) {
       return invokeTauri<RuntimeMappingState>('get_runtime_mapping_state')
     }
-    return { activeProfilePath: 'profiles-library/Profile 1.txt', mappingEnabled: true, autoloadEnabled: true, controllerNavEnabled: true }
+    return { activeProfilePath: 'profiles-library/Profile 1.txt', mappingEnabled: true, autoloadEnabled: true, controllerNavEnabled: true, trackpadOverlayEnabled: false }
   },
   async setMappingEnabled(enabled) {
     if (isTauriWindow()) {
@@ -369,6 +374,14 @@ export const desktopBridge: DesktopBridge = {
       return invokeTauri<RuntimeMappingState>('set_autoload_enabled', { enabled })
     }
     return { activeProfilePath: 'profiles-library/Profile 1.txt', mappingEnabled: true, autoloadEnabled: enabled, controllerNavEnabled: true }
+  },
+  async setTrackpadOverlayEnabled(enabled) {
+    if (isTauriWindow()) await invokeTauri<void>('overlay_set_enabled', { enabled })
+  },
+
+  async setDefaultPollingMs(value: number): Promise<RuntimeMappingState> {
+    if (isTauriWindow()) return invokeTauri<RuntimeMappingState>('set_default_polling_ms', { value })
+    return { activeProfilePath: 'profiles-library/Profile 1.txt', mappingEnabled: true, autoloadEnabled: true, controllerNavEnabled: true, defaultPollingMs: value }
   },
   async setControllerNavEnabled(enabled) {
     if (isTauriWindow()) {
@@ -460,6 +473,14 @@ export const desktopBridge: DesktopBridge = {
       return invokeTauri<{ name: string; content: string }>('library_load_profile', { name }).catch(() => null)
     }
     return (await getElectronAPI()?.loadLibraryProfile?.(name)) ?? null
+  },
+  // A file a profile imports, resolved against the runtime directory -- the
+  // same place the mapper looks. Null means it is not there.
+  async readConfigFile(path) {
+    if (isTauriWindow()) {
+      return invokeTauri<string | null>('read_config_file', { path }).catch(() => null)
+    }
+    return (await getElectronAPI()?.readConfigFile?.(path)) ?? null
   },
   async deleteLibraryProfile(name) {
     if (isTauriWindow()) {

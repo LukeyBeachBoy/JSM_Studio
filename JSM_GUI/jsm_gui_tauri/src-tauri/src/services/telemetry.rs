@@ -101,6 +101,7 @@ pub fn start(app: AppHandle, state: AppState) {
         let _ = socket.set_read_timeout(Some(Duration::from_millis(TELEMETRY_HEALTH_CHECK_MS)));
         let mut buffer = [0_u8; 65535];
         let mut last_ui_emit = Instant::now() - Duration::from_secs(1);
+        let mut last_overlay_emit = Instant::now() - Duration::from_secs(1);
 
         loop {
             match socket.recv_from(&mut buffer) {
@@ -114,6 +115,18 @@ pub fn start(app: AppHandle, state: AppState) {
                         {
                             let _ = emit_telemetry_packet(&app, &packet);
                             last_ui_emit = Instant::now();
+                        }
+                        // The overlay runs on its own clock, at the refresh rate
+                        // of the display showing it, and is NOT gated on the main
+                        // UI being focused: it is read while a game is focused.
+                        if state.overlay_active.load(Ordering::Relaxed) {
+                            let interval = Duration::from_micros(
+                                state.overlay_interval_us.load(Ordering::Relaxed).max(1_000),
+                            );
+                            if last_overlay_emit.elapsed() >= interval {
+                                let _ = emit_overlay_packet(&app, &packet);
+                                last_overlay_emit = Instant::now();
+                            }
                         }
                         update_latest_packet(&state, packet);
                     }
@@ -237,6 +250,62 @@ pub fn broadcast_empty_devices(app: &AppHandle, state: &AppState) -> Result<(), 
 fn emit_telemetry_packet(app: &AppHandle, packet: &Value) -> Result<(), String> {
     app.emit("telemetry-sample", packet)
         .map_err(|error| format!("Failed to emit telemetry packet: {error}"))
+}
+
+/// The overlay needs three things: where each thumb is, whether it is touching,
+/// and which buttons are held (so it can pick the layer whose menu is live).
+/// Everything else in a packet -- gyro, sticks, triggers, battery, device
+/// metadata -- is dead weight to serialize several hundred times a second, so
+/// this trims rather than forwarding the packet wholesale. Emitted only to the
+/// overlay window, so the main WebView is not woken at the overlay's rate.
+fn emit_overlay_packet(app: &AppHandle, packet: &Value) -> Result<(), String> {
+    let device = packet
+        .get("devices")
+        .and_then(Value::as_array)
+        .and_then(|devices| devices.iter().find(|device| device.get("status").is_some()));
+    let Some(device) = device else { return Ok(()) };
+    let Some(status) = device.get("status") else { return Ok(()) };
+    // Static per device, but carried per packet rather than emitted once: a
+    // controller can be unplugged and replaced by one with a differently shaped
+    // pad, and two integers are nothing beside the floats already here.
+    let dimension = |name: &str| device.get(name).and_then(Value::as_i64).unwrap_or(0);
+
+    let pad = |name: &str| {
+        status.get(name).map(|pad| {
+            json!({
+                "x": pad.get("x").and_then(Value::as_f64).unwrap_or(0.0),
+                "y": pad.get("y").and_then(Value::as_f64).unwrap_or(0.0),
+                "touched": pad.get("touched").and_then(Value::as_bool).unwrap_or(false),
+            })
+        })
+    };
+    // A stick can drive a radial menu too. It has no "touched" of its own that
+    // means the same thing, so the overlay decides a stick menu is live from
+    // deflection against the menu's deadzone -- which is also how the backend
+    // decides, so the two agree about when a wheel is up.
+    let stick = |name: &str| {
+        status.get(name).map(|stick| {
+            json!({
+                "x": stick.get("x").and_then(Value::as_f64).unwrap_or(0.0),
+                "y": stick.get("y").and_then(Value::as_f64).unwrap_or(0.0),
+            })
+        })
+    };
+
+    app.emit_to(
+        "overlay",
+        "overlay-telemetry",
+        json!({
+            "buttons": status.get("buttons").and_then(Value::as_u64).unwrap_or(0),
+            "leftPad": pad("leftPad"),
+            "rightPad": pad("rightPad"),
+            "leftStick": stick("leftStick"),
+            "rightStick": stick("rightStick"),
+            "touchpadWidth": dimension("touchpadWidth"),
+            "touchpadHeight": dimension("touchpadHeight"),
+        }),
+    )
+    .map_err(|error| format!("Failed to emit overlay packet: {error}"))
 }
 
 fn update_latest_packet(state: &AppState, packet: Value) {

@@ -1,9 +1,13 @@
+import { Menu } from './components/ui/Menu'
+import { PollingSettings } from './components/PollingSettings'
 import { flushSync } from 'react-dom'
 import { appliedProfileLabel } from './utils/appliedProfile'
 import { ConfigScope } from './components/ConfigScope'
 import { ConfigBaseline } from './hooks/configContext'
 import { TuningClipboard } from './components/TuningClipboard'
 import './App.css'
+import { OverlayLayoutSection } from './components/keymap/OverlayLayoutSection'
+import { padAspectFromDevices } from './utils/padGeometry'
 import { inputPage, normalizePreviewInput } from './utils/inputNavigation'
 // The version people see must be the one on the installer they downloaded, and
 // tauri.conf.json is what the installer is built from.
@@ -44,8 +48,10 @@ import { ToastHost } from './components/ToastHost'
 import { desktopBridge } from './platform/desktopBridge'
 import { updateKeymapEntry } from './utils/keymap'
 import { parseBindingLabels, setBindingLabel } from './utils/bindingLabels'
+import { parseBindingIcons, setBindingIcon } from './utils/bindingIcons'
 import { resolveTouchpadGrids, touchpadGridCommands } from './utils/touchpadGrids'
 import { showToast } from './utils/toast'
+import { includeDisplayName } from './utils/configIncludes'
 import { LanguageSelect } from './components/LanguageSelect'
 import { useKeyboardNav } from './hooks/useKeyboardNav'
 import { ControllerGlyphBar } from './components/ControllerGlyphBar'
@@ -58,7 +64,7 @@ import { controllerHasTwoTrackpads } from './utils/controllerStatus'
 // One page per physical control, the way Steam Input splits them up, instead of
 // one page carrying every binding on the controller.
 type ControlTab = 'buttons' | 'dpad' | 'triggers' | 'joysticks'
-type PrimaryTab = ControlTab | 'gyro' | 'touchpad' | 'globalChords' | 'sensors' | 'gripSensors' | 'timing' | 'debugConsole' | 'ai' | 'help' | 'deviceVisibility' | 'overview'
+type PrimaryTab = ControlTab | 'gyro' | 'touchpad' | 'globalChords' | 'sensors' | 'gripSensors' | 'timing' | 'debugConsole' | 'ai' | 'help' | 'deviceVisibility' | 'overview' | 'settings' | 'menuLayout'
 
 // Which of KeymapControls' button groups each control page is about.
 const CONTROL_TAB_SECTIONS: Record<ControlTab, string[]> = {
@@ -70,7 +76,7 @@ const CONTROL_TAB_SECTIONS: Record<ControlTab, string[]> = {
 // Page Up / Page Down (controller triggers) walk this order.
 const PAGE_ORDER: PrimaryTab[] = [
   'overview', 'buttons', 'dpad', 'triggers', 'joysticks', 'touchpad', 'gyro', 'globalChords',
-  'sensors', 'gripSensors', 'timing', 'ai', 'debugConsole', 'deviceVisibility', 'help',
+  'sensors', 'gripSensors', 'timing', 'ai', 'debugConsole', 'deviceVisibility', 'settings', 'menuLayout', 'help',
 ]
 type GyroSubTab = 'behavior' | 'sensitivity' | 'noise'
 
@@ -195,6 +201,8 @@ type PrimaryNavProps = {
   collapsed?: boolean
 }
 
+const VIRTUAL_OUTPUT_LABELS = { NONE: 'Disabled', XBOX: 'Xbox', DS4: 'DualShock 4' } as const
+
 const NAV_COLLAPSED_KEY = 'jsm.sidebarCollapsed'
 
 const editorIcon = {
@@ -253,6 +261,7 @@ const NAV_SECTIONS: { groupKey: string; items: { tab: PrimaryTab; labelKey: stri
     items: [
       { tab: 'sensors', labelKey: 'app.nav.sensors', Icon: TuneIcon },
       { tab: 'gripSensors', labelKey: 'app.nav.gripSensors', Icon: GripIcon },
+      { tab: 'menuLayout', labelKey: 'app.nav.menuLayout', Icon: TrackpadIcon },
       { tab: 'timing', labelKey: 'app.nav.timing', Icon: TimingIcon },
       { tab: 'ai', labelKey: 'app.nav.aiAssistant', Icon: SparkleIcon },
     ],
@@ -260,6 +269,7 @@ const NAV_SECTIONS: { groupKey: string; items: { tab: PrimaryTab; labelKey: stri
   {
     groupKey: 'app.nav.settingsGroup',
     items: [
+      { tab: 'settings', labelKey: 'app.nav.preferences', Icon: TuneIcon },
       { tab: 'debugConsole', labelKey: 'app.nav.debugConsole', Icon: ConsoleIcon },
       { tab: 'globalChords', labelKey: 'app.nav.globalChords', Icon: ChordIcon },
       { tab: 'deviceVisibility', labelKey: 'app.nav.deviceVisibility', Icon: EyeIcon },
@@ -312,6 +322,55 @@ type NavSettingsProps = {
 // desktopBridge.getAutostartEnabled/setAutostartEnabled and
 // src-tauri/src/services/autostart.rs for why that's the version that
 // actually launches without a UAC prompt at every logon.
+
+// Opens or closes the trackpad overlay: a separate always-on-top window that
+// draws the live pad menu over the game. It is a plain window, not a hook into
+// anything, so it can only be composited over a game running BORDERLESS
+// windowed -- exclusive fullscreen will hide it.
+function TrackpadOverlayToggle() {
+  const { t } = useTranslation()
+  const [enabled, setEnabled] = useState(false)
+  const [pending, setPending] = useState(false)
+
+  // Read the persisted state back, or the switch would say "off" while the
+  // overlay is actually up.
+  useEffect(() => {
+    let cancelled = false
+    desktopBridge.getRuntimeMappingState()
+      .then(s => { if (!cancelled) setEnabled(Boolean(s?.trackpadOverlayEnabled)) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
+
+  const handleChange = async (next: boolean) => {
+    setPending(true)
+    setEnabled(next)
+    try {
+      await desktopBridge.setTrackpadOverlayEnabled(next)
+    } catch {
+      setEnabled(!next)
+    }
+    setPending(false)
+  }
+
+  return (
+    <button
+      type="button"
+      className={`${themeToggleStyles.themeToggle} ${enabled ? themeToggleStyles.on : ''} ${sideNavStyles.navThemeToggle}`}
+      aria-pressed={enabled}
+      aria-label={t('app.nav.trackpadOverlay', 'Trackpad overlay')}
+      disabled={pending}
+      onClick={() => handleChange(!enabled)}
+    >
+      <span className={themeToggleStyles.labelGroup}>
+        <span className={themeToggleStyles.text}>{t('app.nav.trackpadOverlay', 'Trackpad overlay')}</span>
+      </span>
+      <span className={themeToggleStyles.switch} aria-hidden="true">
+        <span className={themeToggleStyles.thumb} />
+      </span>
+    </button>
+  )
+}
 function AutostartToggle() {
   const { t } = useTranslation()
   const [enabled, setEnabled] = useState(false)
@@ -420,6 +479,7 @@ const NavSettings = ({ compactThemeToggle = false }: NavSettingsProps) => (
     <LanguageSelect className={sideNavStyles.navLanguageSelect} />
     <ThemeToggle compact={compactThemeToggle} className={sideNavStyles.navThemeToggle} />
     <ControllerNavToggle />
+    <TrackpadOverlayToggle />
     <AutostartToggle />
   </div>
 )
@@ -440,6 +500,12 @@ function App() {
   const [controllerNavEnabled, setControllerNavEnabled] = useState(true)
   const [runtimeMappingBusy, setRuntimeMappingBusy] = useState(false)
   const [calibrationTurns, setCalibrationTurns] = useState('1')
+  const [selectedMenu, setSelectedMenu] = useState<string | undefined>()
+  useEffect(() => {
+    const open = (event: Event) => { setSelectedMenu((event as CustomEvent<string>).detail); setPrimaryTab('menuLayout') }
+    window.addEventListener('jsm:menu-layout', open)
+    return () => window.removeEventListener('jsm:menu-layout', open)
+  }, [])
   const [primaryTab, setPrimaryTab] = useState<PrimaryTab>('overview')
   // Remembered per machine. Reading storage can throw outright in a locked-down
   // webview, so a failure just means the rail starts open.
@@ -486,6 +552,8 @@ function App() {
     const focus = () => {
       const target = pane.querySelector<HTMLElement>(`[data-input-command="${CSS.escape(inputRequest.command)}"]`)
       if (!target) return false
+      let ancestor: HTMLElement | null = target
+      while (ancestor) { if (ancestor instanceof HTMLDetailsElement) ancestor.open = true; ancestor = ancestor.parentElement }
       target.scrollIntoView({ block: 'center' })
       const control = target.querySelector<HTMLElement>('button:not([disabled]), input:not([disabled]), [role="combobox"]')
       ;(control ?? target).focus({ preventScroll: true })
@@ -502,6 +570,8 @@ function App() {
   const configWindowDragRef = useRef<{ pointerId: number; offsetX: number; offsetY: number } | null>(null)
   const {
     configText,
+    effectiveConfigText,
+    configIncludes,
     setConfigText,
     resetConfigHistory, canUndo, canRedo, undo, redo,
     appliedConfig,
@@ -645,6 +715,18 @@ function App() {
     handleGridSizeChange,
     handleLeftGridSizeChange,
     handleRightGridSizeChange,
+    gridShapeValue,
+    leftGridShapeValue,
+    rightGridShapeValue,
+    gridDeadzoneValue,
+    leftGridDeadzoneValue,
+    rightGridDeadzoneValue,
+    handleGridShapeChange,
+    handleLeftGridShapeChange,
+    handleRightGridShapeChange,
+    handleGridDeadzoneChange,
+    handleLeftGridDeadzoneChange,
+    handleRightGridDeadzoneChange,
     handleTouchpadSensitivityChange,
     handleLeftTouchpadSensitivityChange,
     handleRightTouchpadSensitivityChange,
@@ -740,6 +822,9 @@ function App() {
           leftRows: leftGridSizeValue.rows,
           rightColumns: rightGridSizeValue.columns,
           rightRows: rightGridSizeValue.rows,
+          shape: gridShapeValue,
+          leftShape: leftGridShapeValue,
+          rightShape: rightGridShapeValue,
         })
       ),
     [
@@ -749,6 +834,9 @@ function App() {
       rightGridSizeValue,
       rightTouchpadModeValue,
       touchpadModeValue,
+      gridShapeValue,
+      leftGridShapeValue,
+      rightGridShapeValue,
     ]
   )
 
@@ -1061,6 +1149,11 @@ function App() {
   const handleBindingLabelChange = useCallback((command: string, label: string) => {
     setConfigText(prev => setBindingLabel(prev, command, label))
   }, [setConfigText])
+  // Icons ride alongside labels on their own comment lines, same contract.
+  const bindingIcons = useMemo(() => parseBindingIcons(configText), [configText])
+  const handleBindingIconChange = useCallback((command: string, icon: string) => {
+    setConfigText(prev => setBindingIcon(prev, command, icon))
+  }, [setConfigText])
 
   const handleOpenConfigDirectory = async () => {
     try {
@@ -1152,13 +1245,48 @@ function App() {
       </div>
 
       <div className="utility-profile-group">
-        <div className="utility-applied" aria-live="polite">
+        <button type="button" className="utility-applied" aria-live="polite" disabled={!mappingEnabled}
+          title="Edit the Currently Applied Profile" onClick={() => {
+            const name = appliedProfileLabel(sample?.activeProfile, appliedProfileName)
+            if (name) requestLoadProfile(name.replace(/\.txt$/i, ''))
+            else showToast('The applied profile source is unavailable.', 'error')
+          }}>
           {mappingEnabled
             ? t('app.profileSummary.appliedLabel', {
                 name:
                   appliedProfileLabel(sample?.activeProfile, appliedProfileName) ?? t('app.profileSummary.unknownProfile'),
               })
             : t('app.profileSummary.mappingPausedShort')}
+        </button>
+        {/* One profile-wide control for what the whole configuration outputs,
+            with the one action that rewrites every binding for it living in
+            the same menu -- it is a thing you do to this setting, not a fourth
+            choice of setting. */}
+        <div className="utility-output">
+          <span id="virtual-output-label">Output</span>
+          <Menu
+            ariaLabel="Virtual Controller Output"
+            align="start"
+            trigger={
+              <button type="button" className="app-select utility-output-trigger" aria-labelledby="virtual-output-label">
+                {VIRTUAL_OUTPUT_LABELS[virtualControllerType] ?? VIRTUAL_OUTPUT_LABELS.NONE}
+              </button>
+            }
+            items={[
+              ...(Object.keys(VIRTUAL_OUTPUT_LABELS) as (keyof typeof VIRTUAL_OUTPUT_LABELS)[]).map(value => ({
+                label: VIRTUAL_OUTPUT_LABELS[value],
+                hint: value === virtualControllerType ? "Current" : undefined,
+                onSelect: () => handleVirtualControllerTypeChange(value),
+              })),
+              { kind: "separator" as const },
+              {
+                label: "Bind Whole Controller",
+                hint: "Replace the standard bindings with their virtual gamepad equivalents",
+                disabled: virtualControllerType === "NONE",
+                onSelect: () => handleBindGamepadPassthrough(virtualControllerType === "DS4" ? "DS4" : "XBOX"),
+              },
+            ]}
+          />
         </div>
         {/* One control, not two. The name is the quick-glance indicator of what
             you are editing, and pressing it opens the one place that switches,
@@ -1234,6 +1362,17 @@ function App() {
   )
 
   const renderPrimaryContent = () => {
+    if (primaryTab === 'settings') return <div className="settings-page">
+      <h2>Settings</h2><PollingSettings global text={configText} effectiveText={configIncludes.effectiveText} onChange={setConfigText} /><section><h3>App Preferences</h3><NavSettings /></section>
+      {/* The control and the action that goes with it both live in the profile
+          header now, so this says where rather than carrying a second copy. */}
+      <section><h3>Controller Output</h3><p>Choose the virtual controller, and bind the whole controller to it, from the Output menu in the profile header. Mouse and keyboard bindings can be used alongside gamepad output.</p></section></div>
+    if (primaryTab === 'menuLayout') return <div className="settings-page"><h2>Menu Layout</h2>
+      <OverlayLayoutSection selectedMenu={selectedMenu} readText={configIncludes.effectiveText} onChange={setConfigText}
+        padAspect={padAspectFromDevices(sample?.devices)} hasPendingChanges={hasPendingChanges}
+        onApply={handleApplyWithFinalize} onCancel={handleCancel} />
+    </div>
+
     if (primaryTab === 'gyro') {
       return (
         <div className="page-with-subnav">
@@ -1363,6 +1502,11 @@ function App() {
             onConfigTextChange={setConfigText}
             visibleSections={['global']}
             configText={configText}
+            effectiveConfigText={effectiveConfigText}
+            configIncludes={configIncludes.resolution}
+            libraryProfiles={libraryProfiles}
+            currentProfileName={currentLibraryProfile}
+            onOpenConfigEditor={() => setConfigDrawerOpen(true)}
             onBindingChange={handleFaceButtonBindingChange}
             onAssignSpecialAction={handleSpecialActionAssignment}
             onClearSpecialAction={handleClearSpecialAction}
@@ -1411,7 +1555,14 @@ function App() {
             visibleSections={sections}
             bindingLabels={bindingLabels}
             onBindingLabelChange={handleBindingLabelChange}
+            bindingIcons={bindingIcons}
+            onBindingIconChange={handleBindingIconChange}
             configText={configText}
+            effectiveConfigText={effectiveConfigText}
+            configIncludes={configIncludes.resolution}
+            libraryProfiles={libraryProfiles}
+            currentProfileName={currentLibraryProfile}
+            onOpenConfigEditor={() => setConfigDrawerOpen(true)}
             hasPendingChanges={hasPendingChanges}
             isCalibrating={isCalibrating}
             statusMessage={statusMessage}
@@ -1483,6 +1634,18 @@ function App() {
             rightGridRows={rightGridSizeValue.rows}
             onLeftGridSizeChange={handleLeftGridSizeChange}
             onRightGridSizeChange={handleRightGridSizeChange}
+            gridShape={gridShapeValue}
+            leftGridShape={leftGridShapeValue}
+            rightGridShape={rightGridShapeValue}
+            gridDeadzone={gridDeadzoneValue}
+            leftGridDeadzone={leftGridDeadzoneValue}
+            rightGridDeadzone={rightGridDeadzoneValue}
+            onGridShapeChange={handleGridShapeChange}
+            onLeftGridShapeChange={handleLeftGridShapeChange}
+            onRightGridShapeChange={handleRightGridShapeChange}
+            onGridDeadzoneChange={handleGridDeadzoneChange}
+            onLeftGridDeadzoneChange={handleLeftGridDeadzoneChange}
+            onRightGridDeadzoneChange={handleRightGridDeadzoneChange}
             devices={sample?.devices}
             leftTouchpadSensitivity={leftTouchpadSensitivityValue}
             rightTouchpadSensitivity={rightTouchpadSensitivityValue}
@@ -1561,6 +1724,11 @@ function App() {
             view="touchpad"
             selectedMappingCommand={selectedMappingCommand}
             configText={configText}
+            effectiveConfigText={effectiveConfigText}
+            configIncludes={configIncludes.resolution}
+            libraryProfiles={libraryProfiles}
+            currentProfileName={currentLibraryProfile}
+            onOpenConfigEditor={() => setConfigDrawerOpen(true)}
             hasPendingChanges={hasPendingChanges}
             isCalibrating={isCalibrating}
             statusMessage={statusMessage}
@@ -1652,6 +1820,18 @@ function App() {
             rightGridRows={rightGridSizeValue.rows}
             onLeftGridSizeChange={handleLeftGridSizeChange}
             onRightGridSizeChange={handleRightGridSizeChange}
+            gridShape={gridShapeValue}
+            leftGridShape={leftGridShapeValue}
+            rightGridShape={rightGridShapeValue}
+            gridDeadzone={gridDeadzoneValue}
+            leftGridDeadzone={leftGridDeadzoneValue}
+            rightGridDeadzone={rightGridDeadzoneValue}
+            onGridShapeChange={handleGridShapeChange}
+            onLeftGridShapeChange={handleLeftGridShapeChange}
+            onRightGridShapeChange={handleRightGridShapeChange}
+            onGridDeadzoneChange={handleGridDeadzoneChange}
+            onLeftGridDeadzoneChange={handleLeftGridDeadzoneChange}
+            onRightGridDeadzoneChange={handleRightGridDeadzoneChange}
             devices={sample?.devices}
             leftTouchpadSensitivity={leftTouchpadSensitivityValue}
             rightTouchpadSensitivity={rightTouchpadSensitivityValue}
@@ -1730,6 +1910,8 @@ function App() {
             visibleSections={sections}
             bindingLabels={bindingLabels}
             onBindingLabelChange={handleBindingLabelChange}
+            bindingIcons={bindingIcons}
+            onBindingIconChange={handleBindingIconChange}
             onBindDirectionsToWasd={handleBindDirectionsToWasd}
           />
         </Suspense>
@@ -1758,7 +1940,9 @@ function App() {
           devices={sample?.devices}
           onNavigate={(target) => setPrimaryTab(target)}
           onSelectCommand={navigateInput}
-          configText={configText}
+          // The diagram is read-only and should show what the controller
+          // actually does, imported bindings included.
+          configText={effectiveConfigText}
         />
       )
     }
@@ -1838,7 +2022,7 @@ function App() {
         </div>
         <PrimaryNav primaryTab={primaryTab} setPrimaryTab={setPrimaryTab} includeHelp collapsed={navCollapsed} />
         <div className={sideNavStyles.navFooter}>
-          {!navCollapsed && <NavSettings />}
+          <button type="button" className="ghost-btn" onClick={() => setPrimaryTab('settings')} aria-label="Settings"><TuneIcon />{!navCollapsed && ' Settings'}</button>
           {!navCollapsed && <div className={sideNavStyles.navVersion}>v{tauriConf.version}</div>}
         </div>
       </aside>
@@ -1849,7 +2033,7 @@ function App() {
             <div className={sideNavStyles.navBrand}>{t('common.appName')}</div>
             <PrimaryNav primaryTab={primaryTab} setPrimaryTab={setPrimaryTab} includeHelp />
           </div>
-          <NavSettings compactThemeToggle />
+          <button type="button" className="ghost-btn" onClick={() => setPrimaryTab('settings')}>Settings</button>
         </div>
       </div>
       <div className="shell-main">
@@ -1857,7 +2041,8 @@ function App() {
         <div className="shell-scroll"><div className="content-grid">
           <main className="main-pane"><ConfigBaseline.Provider value={{ text: configText, saved: appliedConfig, onChange: text => { resetPendingSensitivityChanges(); setConfigText(text) } }}>
             {(primaryTab === 'gyro' || primaryTab === 'sensors' || primaryTab === 'gripSensors') && <TuningClipboard kind={primaryTab === 'gyro' ? 'gyro' : primaryTab === 'sensors' ? 'trackpad' : 'grip'} text={configText} onChange={text => { resetPendingSensitivityChanges(); setConfigText(text) }} disabled={isCalibrating} />}
-            <ConfigScope match={primaryTab === 'gyro' ? /^(GYRO_|MIN_GYRO|MAX_GYRO|ACCEL_|SMOOTH_|CUTOFF_|ONE_EURO|ANGLE_|DECEL_|ROLL_|IN_GAME|REAL_WORLD|TICK_TIME)/ : /./}>{renderPrimaryContent()}</ConfigScope>
+            {primaryTab === 'timing' && <PollingSettings text={configText} effectiveText={configIncludes.effectiveText} onChange={setConfigText} />}
+            <ConfigScope match={primaryTab === 'gyro' ? /^(GYRO_|MIN_GYRO|MAX_GYRO|ACCEL_|SMOOTH_|CUTOFF_|ONE_EURO|ANGLE_|DECEL_|ROLL_|IN_GAME|REAL_WORLD)/ : /./}>{renderPrimaryContent()}</ConfigScope>
           </ConfigBaseline.Provider></main>
         </div></div>
         <ControllerGlyphBar
@@ -1887,6 +2072,27 @@ function App() {
               <div>
                 <h3>{t('app.profileSummary.sourceConfigTitle')}</h3>
                 <p className="modal-description">{t('app.profileSummary.sourceConfigDescription')}</p>
+                {/* The editor shows this profile's own text, so a reader who
+                    followed an "inherited" badge here needs to be told what it
+                    imports -- and told when an import is broken, which is
+                    otherwise silent: the settings simply do not appear. */}
+                {configIncludes.imports.length > 0 && (
+                  <p className="modal-description">
+                    Imports {configIncludes.imports.map(includeDisplayName).join(', ')}. Settings from those files apply
+                    first; lines here override them.
+                  </p>
+                )}
+                {configIncludes.missingImports.length > 0 && (
+                  <p className="modal-description" role="alert">
+                    Missing import: {configIncludes.missingImports.join(', ')} — nothing from it is being applied.
+                  </p>
+                )}
+                {configIncludes.cyclicImports.length > 0 && (
+                  <p className="modal-description" role="alert">
+                    Circular import involving {configIncludes.cyclicImports.map(includeDisplayName).join(', ')} — it was
+                    loaded once and not re-entered.
+                  </p>
+                )}
               </div>
             </div>
             <button type="button" className="ghost-btn" onClick={() => setConfigDrawerOpen(false)}>

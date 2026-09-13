@@ -72,7 +72,7 @@ const TWO_PADDLE_CONTROLLER_TYPES = new Set<number>([
   CONTROLLER_TYPES.SWITCH2_PRO_CONTROLLER,
 ])
 
-const RAW_BUTTONS = {
+export const RAW_BUTTONS = {
   UP: 0,
   DOWN: 1,
   LEFT: 2,
@@ -146,10 +146,37 @@ const addIfPressed = (commands: Set<string>, buttons: number, command: string, b
 const genericButtonLabel = (button: ButtonDefinition) =>
   button.playstation === button.xbox ? button.playstation : `${button.playstation} / ${button.xbox}`
 
-// The Steam Controller is the first-class target, so its name leads; the
-// generic PlayStation / Xbox name stays as a secondary hint for other pads.
-export const controllerButtonLabel = (button: ButtonDefinition) =>
-  button.steam ? `${button.steam} · ${genericButtonLabel(button)}` : genericButtonLabel(button)
+// Face buttons are the one place where a pad's own lettering does not follow
+// from the Xbox or PlayStation name: Nintendo puts A and B where Xbox puts B
+// and A. Everything else a family renames -- bumpers, triggers, the centre
+// buttons -- is close enough to one of the two to borrow it.
+const NINTENDO_FACE_NAMES: Record<string, string> = { N: 'X', E: 'A', S: 'B', W: 'Y' }
+const NINTENDO_NAMES: Record<string, string> = { ...NINTENDO_FACE_NAMES, L: 'L', R: 'R', ZL: 'ZL', ZR: 'ZR', HOME: 'Home', '+': '+', '-': '-' }
+
+/**
+ * What this input is called on the controller in front of you.
+ *
+ * With a pad connected there is one right answer, and printing both -- "Triangle
+ * / Y" on a Steam Controller, which has neither -- makes the reader do the
+ * translating. The dual form is kept only for the generic case, where we
+ * genuinely do not know which pad this configuration is for.
+ */
+export const controllerButtonLabel = (button: ButtonDefinition, family: ControllerVisualFamily = 'generic') => {
+  switch (family) {
+    case 'playstation':
+      return button.playstation
+    // The Steam Controller is lettered like an Xbox pad, so its own names are
+    // only the parts it does not share -- the paddles, the pad clicks, Steam.
+    case 'steam':
+      return button.steam ?? button.xbox
+    case 'xbox':
+      return button.xbox
+    case 'nintendo':
+      return NINTENDO_NAMES[button.command] ?? button.xbox
+    default:
+      return button.steam ? `${button.steam} · ${genericButtonLabel(button)}` : genericButtonLabel(button)
+  }
+}
 
 export const controllerVisualFamily = (type?: number): ControllerVisualFamily => {
   switch (type) {

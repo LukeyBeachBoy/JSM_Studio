@@ -42,6 +42,10 @@ export type TelemetryDevice = {
   // 0 unknown, 1 on battery, 2 no battery (wired), 3 charging, 4 charged.
   batteryPercent?: number
   batteryState?: number
+  // Physical touchpad dimensions from the driver. 0 = no pad, or the driver
+  // would not say. Only the ratio is meaningful; see utils/padGeometry.
+  touchpadWidth?: number
+  touchpadHeight?: number
   status?: TelemetryDeviceStatus
 }
 

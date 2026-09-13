@@ -99,6 +99,11 @@
   color: var(--text-strong);
 }
 
+/* A caption and the Help button that explains it are one thing and share a
+   line. The label stacks caption over control, so a button placed after the
+   text otherwise lands on a line of its own underneath it. */
+.field-caption { display: flex; align-items: center; gap: 6px; }
+
 .label-row {
   display: flex;
   justify-content: space-between;

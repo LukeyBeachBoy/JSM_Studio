@@ -11,6 +11,9 @@ import { keyName } from '../constants/configKeys'
 
 type StickArgs = {
   configText: string
+  // Import-resolved text to read from. Falls back to configText when the
+  // profile imports nothing.
+  readText?: string
   setConfigText: React.Dispatch<React.SetStateAction<string>>
 }
 
@@ -31,7 +34,10 @@ const hasFlagCommand = (text: string, key: string) => {
   return pattern.test(text)
 }
 
-export function useStickConfig({ configText, setConfigText }: StickArgs) {
+export function useStickConfig({ configText, readText, setConfigText }: StickArgs) {
+  // Reads resolve through the imported baseline; writes still land in the
+  // profile's own text, so editing an inherited value creates an override.
+  const readSource = readText ?? configText
   const handleStickDeadzoneChange = useCallback(
     (side: 'LEFT' | 'RIGHT', type: 'INNER' | 'OUTER', rawValue: string) => {
       const key = `${side}_STICK_DEADZONE_${type}`
@@ -187,7 +193,7 @@ export function useStickConfig({ configText, setConfigText }: StickArgs) {
   )
 
   const stickFlickSettings = useMemo(() => {
-    const getRaw = (key: string) => getKeymapValue(configText, key) ?? ''
+    const getRaw = (key: string) => getKeymapValue(readSource, key) ?? ''
     const formatNumber = (raw: string, fallback: string) => {
       if (!raw.trim()) return ''
       const parsed = Number(raw)
@@ -200,7 +206,7 @@ export function useStickConfig({ configText, setConfigText }: StickArgs) {
       snapStrength: formatNumber(getRaw(keyName.FLICK_SNAP_STRENGTH), ''),
       deadzoneAngle: formatNumber(getRaw(keyName.FLICK_DEADZONE_ANGLE), ''),
     }
-  }, [configText])
+  }, [readSource])
 
   const handleFlickSettingChange = useCallback((key: string, value: string) => {
     setConfigText(prev => {
@@ -229,10 +235,10 @@ export function useStickConfig({ configText, setConfigText }: StickArgs) {
   )
 
   const mouseRingRadiusValue = useMemo(() => {
-    const raw = getKeymapValue(configText, keyName.MOUSE_RING_RADIUS)
+    const raw = getKeymapValue(readSource, keyName.MOUSE_RING_RADIUS)
     if (!raw) return ''
     return raw.trim()
-  }, [configText])
+  }, [readSource])
 
   const handleMouseRingRadiusChange = useCallback((value: string) => {
     const trimmed = value.trim()
@@ -248,7 +254,7 @@ export function useStickConfig({ configText, setConfigText }: StickArgs) {
     })
   }, [setConfigText])
 
-  const counterOsMouseSpeedEnabled = useMemo(() => hasFlagCommand(configText, keyName.COUNTER_OS_MOUSE_SPEED), [configText])
+  const counterOsMouseSpeedEnabled = useMemo(() => hasFlagCommand(readSource, keyName.COUNTER_OS_MOUSE_SPEED), [readSource])
 
   const handleCounterOsMouseSpeedChange = useCallback((enabled: boolean) => {
     setConfigText(prev => upsertFlagCommand(prev, keyName.COUNTER_OS_MOUSE_SPEED, enabled))
@@ -256,37 +262,37 @@ export function useStickConfig({ configText, setConfigText }: StickArgs) {
 
   const stickDeadzoneDefaults = useMemo(() => {
     return {
-      inner: getKeymapValue(configText, keyName.STICK_DEADZONE_INNER) ?? DEFAULT_STICK_DEADZONE_INNER,
-      outer: getKeymapValue(configText, keyName.STICK_DEADZONE_OUTER) ?? DEFAULT_STICK_DEADZONE_OUTER,
+      inner: getKeymapValue(readSource, keyName.STICK_DEADZONE_INNER) ?? DEFAULT_STICK_DEADZONE_INNER,
+      outer: getKeymapValue(readSource, keyName.STICK_DEADZONE_OUTER) ?? DEFAULT_STICK_DEADZONE_OUTER,
     }
-  }, [configText])
+  }, [readSource])
   const leftStickDeadzone = useMemo(() => {
     return {
-      inner: getKeymapValue(configText, keyName.LEFT_STICK_DEADZONE_INNER) ?? '',
-      outer: getKeymapValue(configText, keyName.LEFT_STICK_DEADZONE_OUTER) ?? '',
+      inner: getKeymapValue(readSource, keyName.LEFT_STICK_DEADZONE_INNER) ?? '',
+      outer: getKeymapValue(readSource, keyName.LEFT_STICK_DEADZONE_OUTER) ?? '',
     }
-  }, [configText])
+  }, [readSource])
   const rightStickDeadzone = useMemo(() => {
     return {
-      inner: getKeymapValue(configText, keyName.RIGHT_STICK_DEADZONE_INNER) ?? '',
-      outer: getKeymapValue(configText, keyName.RIGHT_STICK_DEADZONE_OUTER) ?? '',
+      inner: getKeymapValue(readSource, keyName.RIGHT_STICK_DEADZONE_INNER) ?? '',
+      outer: getKeymapValue(readSource, keyName.RIGHT_STICK_DEADZONE_OUTER) ?? '',
     }
-  }, [configText])
+  }, [readSource])
   const stickModes = useMemo(() => {
     return {
       left: {
-        mode: getKeymapValue(configText, keyName.LEFT_STICK_MODE) ?? '',
-        ring: getKeymapValue(configText, keyName.LEFT_RING_MODE) ?? '',
+        mode: getKeymapValue(readSource, keyName.LEFT_STICK_MODE) ?? '',
+        ring: getKeymapValue(readSource, keyName.LEFT_RING_MODE) ?? '',
       },
       right: {
-        mode: getKeymapValue(configText, keyName.RIGHT_STICK_MODE) ?? '',
-        ring: getKeymapValue(configText, keyName.RIGHT_RING_MODE) ?? '',
+        mode: getKeymapValue(readSource, keyName.RIGHT_STICK_MODE) ?? '',
+        ring: getKeymapValue(readSource, keyName.RIGHT_RING_MODE) ?? '',
       },
     }
-  }, [configText])
-  const stickModeShiftAssignments = useMemo(() => getStickModeShiftAssignmentMap(configText), [configText])
+  }, [readSource])
+  const stickModeShiftAssignments = useMemo(() => getStickModeShiftAssignmentMap(readSource), [readSource])
   const stickAimSettings = useMemo(() => {
-    const rawSens = getKeymapValue(configText, keyName.STICK_SENS)
+    const rawSens = getKeymapValue(readSource, keyName.STICK_SENS)
     const tokens = rawSens ? rawSens.trim().split(/\s+/).filter(Boolean) : []
     const sensX = tokens[0] ?? ''
     const sensY = tokens[1] ?? ''
@@ -306,19 +312,19 @@ export function useStickConfig({ configText, setConfigText }: StickArgs) {
       displaySensY,
       sensXNumber,
       sensYNumber,
-      power: getKeymapValue(configText, keyName.STICK_POWER) ?? '',
-      accelerationRate: getKeymapValue(configText, keyName.STICK_ACCELERATION_RATE) ?? '',
-      accelerationCap: getKeymapValue(configText, keyName.STICK_ACCELERATION_CAP) ?? '',
+      power: getKeymapValue(readSource, keyName.STICK_POWER) ?? '',
+      accelerationRate: getKeymapValue(readSource, keyName.STICK_ACCELERATION_RATE) ?? '',
+      accelerationCap: getKeymapValue(readSource, keyName.STICK_ACCELERATION_CAP) ?? '',
     }
-  }, [configText])
+  }, [readSource])
 
   const zlModeValue = useMemo(() => {
-    return getKeymapValue(configText, keyName.ZL_MODE)?.trim().toUpperCase() ?? ''
-  }, [configText])
+    return getKeymapValue(readSource, keyName.ZL_MODE)?.trim().toUpperCase() ?? ''
+  }, [readSource])
 
   const zrModeValue = useMemo(() => {
-    return getKeymapValue(configText, keyName.ZR_MODE)?.trim().toUpperCase() ?? ''
-  }, [configText])
+    return getKeymapValue(readSource, keyName.ZR_MODE)?.trim().toUpperCase() ?? ''
+  }, [readSource])
 
   const handleZlModeChange = useCallback((value: string) => {
     const trimmed = value.trim().toUpperCase()
@@ -339,10 +345,10 @@ export function useStickConfig({ configText, setConfigText }: StickArgs) {
   }, [setConfigText])
 
   const adaptiveTriggerValue = useMemo(() => {
-    const value = getKeymapValue(configText, keyName.ADAPTIVE_TRIGGER)
+    const value = getKeymapValue(readSource, keyName.ADAPTIVE_TRIGGER)
     if (!value) return ''
     return value.trim().toUpperCase() === 'OFF' ? 'OFF' : 'ON'
-  }, [configText])
+  }, [readSource])
 
   const handleToggleIgnoreGyroDevice = useCallback((vid: number, pid: number, ignore: boolean) => {
     const id = formatVidPid(vid, pid).toLowerCase()
@@ -368,10 +374,10 @@ export function useStickConfig({ configText, setConfigText }: StickArgs) {
   }, [setConfigText])
 
   const scrollSensValue = useMemo(() => {
-    const raw = getKeymapValue(configText, keyName.SCROLL_SENS)
+    const raw = getKeymapValue(readSource, keyName.SCROLL_SENS)
     if (!raw) return ''
     return raw.trim()
-  }, [configText])
+  }, [readSource])
 
   const handleScrollSensChange = useCallback((value: string) => {
     const trimmed = value.trim()

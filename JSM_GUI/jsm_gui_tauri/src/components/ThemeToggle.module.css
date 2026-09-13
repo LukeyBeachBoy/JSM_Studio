@@ -91,3 +91,8 @@
 .compact .text {
   display: none;
 }
+
+.themeToggle { border-radius: 8px; padding: 10px 12px; min-height: 44px; }
+.text { white-space: normal; overflow: visible; text-overflow: clip; }
+.on .switch { background: var(--accent); }
+.thumb { background: var(--text-strong); border: 0; box-shadow: none; }

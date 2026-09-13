@@ -16,6 +16,13 @@ type ControllerStatusSvgProps = {
   device: TelemetryDevice
   selectedCommand?: string | null
   onSelectCommand?: (command: string) => void
+  /**
+   * Draw the raw sensor numbers on the diagram. Off by default: the diagram
+   * is for reading your bindings, and a pad labelled `p=0.0000` reads as a
+   * debugging instrument rather than a picture of your controller. The live
+   * feedback that shows where your thumb is stays on either way.
+   */
+  showRawTelemetry?: boolean
 }
 
 type SharedControlProps = {
@@ -598,6 +605,7 @@ export function ControllerStatusSvg({ bindingLabels,
   device,
   selectedCommand,
   onSelectCommand,
+  showRawTelemetry = false,
 }: ControllerStatusSvgProps) {
   const family = controllerVisualFamily(device.type)
   const isSteam = family === 'steam'
@@ -683,7 +691,7 @@ export function ControllerStatusSvg({ bindingLabels,
                 width={STEAM_PAD.left.half * 2} height={STEAM_PAD.left.half * 2} rx="48" ry="48"
                 transform={`rotate(${STEAM_PAD.left.rot} ${STEAM_PAD.left.cx} ${STEAM_PAD.left.cy})`} />
               <text className={styles.controlText} x={STEAM_PAD.left.cx} y={STEAM_PAD.left.cy}>{bindingLabels?.LEFT_PAD ?? 'LPad'}</text>
-              {leftPad && <text className={styles.gripSenseText} x={STEAM_PAD.left.cx} y={STEAM_PAD.left.cy + 24}>{`p=${(leftPad.pressure ?? 0).toFixed(4)}`}</text>}
+              {showRawTelemetry && leftPad && <text className={styles.gripSenseText} x={STEAM_PAD.left.cx} y={STEAM_PAD.left.cy + 24}>{`p=${(leftPad.pressure ?? 0).toFixed(4)}`}</text>}
               {leftPad?.touched && (() => {
                 const pt = padPoint(STEAM_PAD.left, leftPad.x, leftPad.y)
                 return <circle cx={pt.x} cy={pt.y} r={12} className={styles.stickKnob} />
@@ -697,7 +705,7 @@ export function ControllerStatusSvg({ bindingLabels,
                 width={STEAM_PAD.right.half * 2} height={STEAM_PAD.right.half * 2} rx="48" ry="48"
                 transform={`rotate(${STEAM_PAD.right.rot} ${STEAM_PAD.right.cx} ${STEAM_PAD.right.cy})`} />
               <text className={styles.controlText} x={STEAM_PAD.right.cx} y={STEAM_PAD.right.cy}>{bindingLabels?.RIGHT_PAD ?? 'RPad'}</text>
-              {rightPad && <text className={styles.gripSenseText} x={STEAM_PAD.right.cx} y={STEAM_PAD.right.cy + 24}>{`p=${(rightPad.pressure ?? 0).toFixed(4)}`}</text>}
+              {showRawTelemetry && rightPad && <text className={styles.gripSenseText} x={STEAM_PAD.right.cx} y={STEAM_PAD.right.cy + 24}>{`p=${(rightPad.pressure ?? 0).toFixed(4)}`}</text>}
               {rightPad?.touched && (() => {
                 const pt = padPoint(STEAM_PAD.right, rightPad.x, rightPad.y)
                 return <circle cx={pt.x} cy={pt.y} r={12} className={styles.stickKnob} />

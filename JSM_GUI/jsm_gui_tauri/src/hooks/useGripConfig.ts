@@ -3,7 +3,7 @@ import { getKeymapValue, removeKeymapEntry, updateKeymapEntry } from '../utils/k
 import { HAPTIC_EFFECTS } from '../utils/hapticBindings'
 import { keyName } from '../constants/configKeys'
 
-type GripArgs = { configText: string; setConfigText: React.Dispatch<React.SetStateAction<string>> }
+type GripArgs = { configText: string; readText?: string; setConfigText: React.Dispatch<React.SetStateAction<string>> }
 
 // The grip sensors are the capacitive strips inside the handles: they sense how
 // near your hands are, not how hard you squeeze. The physical back buttons
@@ -20,8 +20,11 @@ type GripArgs = { configText: string; setConfigText: React.Dispatch<React.SetSta
 export const GRIP_FIRMWARE_DEFAULT = -1
 const GRIP_RANGE_MAX = 400
 
-export function useGripConfig({ configText, setConfigText }: GripArgs) {
-  const read = useCallback((name: string) => getKeymapValue(configText, name), [configText])
+export function useGripConfig({ configText, readText, setConfigText }: GripArgs) {
+  // Reads resolve through the imported baseline; writes still land in the
+  // profile's own text, so editing an inherited value creates an override.
+  const readSource = readText ?? configText
+  const read = useCallback((name: string) => getKeymapValue(readSource, name), [readSource])
   const num = (name: string, fallback: number) => {
     const n = Number.parseFloat(read(name) ?? '')
     return Number.isFinite(n) ? n : fallback

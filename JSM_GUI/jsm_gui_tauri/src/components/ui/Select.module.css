@@ -59,7 +59,12 @@
 
 .content {
   z-index: 60;
-  min-width: var(--radix-select-trigger-width);
+  /* Match the trigger so a normal control's list lines up under it -- but only
+     up to a point. These triggers stretch to their settings column, and a list
+     of words like NO_SKIP has no reason to be 850px wide; it also left no room
+     beside it for the help panel, which then hung off the edge of the window. */
+  min-width: min(var(--radix-select-trigger-width), 22rem);
+  max-width: min(92vw, 30rem);
   max-height: var(--radix-select-content-available-height);
   border-radius: 10px;
   border: 1px solid var(--border-strong);
@@ -159,3 +164,5 @@
 .right { top: 0; left: calc(100% + 8px); }
 .left { top: 0; right: calc(100% + 8px); }
 .bottom { top: calc(100% + 6px); left: 0; width: max(280px, 100%); }
+
+.trigger { min-height: 38px; padding: 8px 12px; border-radius: 8px; font-weight: 500; }

@@ -57,6 +57,7 @@ export function GripSettingsSection(props: Props) {
         )}
       >
         <div className={styles.touchpadSettings}>
+          <details><summary className="binding-summary">Advanced Calibration</summary>
           <NumberField layout="inline"
             label={t('keymap.gripSensorRange', 'Grip sensor range')}
             value={gripRangePercent(range)}
@@ -83,6 +84,8 @@ export function GripSettingsSection(props: Props) {
             placeholder={inherited}
             hint={t('keymap.gripCalibrationHint')}
           />
+          </details>
+          <h3>Feedback</h3>
           <div className={styles.gripHapticSides}>
             <span className={styles.settingLabel}>
               {t('keymap.gripHapticSensors', 'Haptic feedback')}

@@ -424,3 +424,6 @@
     width: auto;
   }
 }
+
+.navItem { min-height: 38px; }
+.navFooter { flex-shrink: 0; }

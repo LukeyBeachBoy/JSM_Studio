@@ -162,7 +162,21 @@ pub struct AppState {
     pub telemetry: Arc<Mutex<TelemetryState>>,
     pub calibration_generation: Arc<AtomicU64>,
     pub telemetry_ui_active: Arc<AtomicBool>,
+    /// The trackpad overlay is a separate always-on-top window that exists to be
+    /// read WHILE A GAME HAS FOCUS, so it deliberately does not share
+    /// `telemetry_ui_active` -- that flag exists to stop WebView work when the
+    /// user is elsewhere, which is exactly when the overlay matters most.
+    pub overlay_active: Arc<AtomicBool>,
+    /// Minimum gap between overlay frames, in microseconds. Set from the refresh
+    /// rate the overlay window actually measures, so a 240 Hz display gets 240 Hz
+    /// instead of the 60 Hz the main UI is intentionally capped to. Rendering
+    /// faster than the panel is wasted work, so this is a cap, not a target.
+    pub overlay_interval_us: Arc<AtomicU64>,
 }
+
+/// 240 Hz until the overlay reports what its display actually does. Chosen over
+/// 60 so a high-refresh panel is never throttled during the first touch.
+pub const DEFAULT_OVERLAY_INTERVAL_US: u64 = 4_167;
 
 impl Default for AppState {
     fn default() -> Self {
@@ -171,6 +185,8 @@ impl Default for AppState {
             telemetry: Arc::new(Mutex::new(TelemetryState::default())),
             calibration_generation: Arc::new(AtomicU64::new(0)),
             telemetry_ui_active: Arc::new(AtomicBool::new(false)),
+            overlay_active: Arc::new(AtomicBool::new(false)),
+            overlay_interval_us: Arc::new(AtomicU64::new(DEFAULT_OVERLAY_INTERVAL_US)),
         }
     }
 }

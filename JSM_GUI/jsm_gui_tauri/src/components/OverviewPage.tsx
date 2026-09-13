@@ -1,8 +1,10 @@
+import { describeOutputValue } from '../utils/virtualController'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TelemetryDevice } from '../hooks/useTelemetry'
 import { BatteryIndicator } from './BatteryIndicator'
-import { BindingLabelLegend } from './BindingLabelLegend'
+import { InputGlyph } from './glyphs/InputGlyph'
+import { controllerVisualFamily } from '../utils/controllerStatus'
 import { Card } from './Card'
 import { ControllerStatusSvg } from './ControllerStatusSvg'
 import { FACE_BUTTONS, DPAD_BUTTONS, BUMPER_BUTTONS, TRIGGER_BUTTONS, CENTER_BUTTONS, PADDLE_BUTTONS, MINI_BUTTONS, MISC_BUTTONS, LEFT_STICK_BUTTONS, RIGHT_STICK_BUTTONS, TOUCH_BUTTONS } from '../keymap/schema'
@@ -55,12 +57,12 @@ export function OverviewPage({ devices, onNavigate, configText, onSelectCommand 
     const result: Record<string, string> = {}
     for (const button of [...FACE_BUTTONS, ...DPAD_BUTTONS, ...BUMPER_BUTTONS, ...TRIGGER_BUTTONS, ...CENTER_BUTTONS, ...PADDLE_BUTTONS, ...MINI_BUTTONS, ...MISC_BUTTONS, ...LEFT_STICK_BUTTONS, ...RIGHT_STICK_BUTTONS, ...TOUCH_BUTTONS]) {
       const rows = getButtonBindingRows(text, button.command)
-      const outputs = rows.filter(row => row.binding).map(row => row.binding)
+      const outputs = rows.filter(row => row.binding).map(row => describeOutputValue(row.binding!))
       if (outputs.length || controllerSupportsInput(device, button.command)) result[button.command] = [names[button.command], outputs.join(' / ') || 'Unbound'].filter(Boolean).join(' · ')
     }
     const gridInputs = new Set(Array.from(text.matchAll(/^\s*(?:[^=\n]+[, +])?([LR]?T\d+)\s*=/gm), match => match[1]))
     for (const command of gridInputs) {
-      const outputs = getButtonBindingRows(text, command).filter(row => row.binding).map(row => row.binding)
+      const outputs = getButtonBindingRows(text, command).filter(row => row.binding).map(row => describeOutputValue(row.binding!))
       result[command] = [names[command], outputs.join(' / ') || 'Unbound'].filter(Boolean).join(' · ')
     }
     for (const [command, key] of [['L3', 'LEFT_STICK_MODE'], ['R3', 'RIGHT_STICK_MODE'], ['LEFT_PAD', 'LEFT_TOUCHPAD_MODE'], ['RIGHT_PAD', 'RIGHT_TOUCHPAD_MODE']] as const) {
@@ -87,15 +89,34 @@ export function OverviewPage({ devices, onNavigate, configText, onSelectCommand 
     return bound
   }, [configText])
 
+  const [showUnbound, setShowUnbound] = useState(false)
+  // The diagram reads as a picture of the controller by default; the sensor
+  // numbers behind it are for when you are dialling something in.
+  const [showDetails, setShowDetails] = useState(false)
+  const entries = Object.entries(labels).filter(([, label]) => showUnbound || label !== 'Unbound')
+  const left = entries.filter(([command]) => /^(L|ZL|UP$|DOWN$|LEFT$|RIGHT$|MINUS$|MISC[36]$)/.test(command))
+  const right = entries.filter(entry => !left.includes(entry))
+  const callouts = (items: [string, string][]) => <div className={styles.callouts}>
+    {items.map(([command, label]) => <button key={command} type="button" className={styles.callout}
+      aria-label={`${command}: ${label}`} title={command} onClick={() => onSelectCommand?.(command)}
+      onFocus={() => setHoveredCommand(command)} onBlur={() => setHoveredCommand(null)}
+      onMouseEnter={() => setHoveredCommand(command)} onMouseLeave={() => setHoveredCommand(null)}>
+      <InputGlyph command={command} family={controllerVisualFamily(device?.type)} size={24} />
+      <span>{label}</span>
+    </button>)}
+  </div>
   return (
     <div className={styles.page}>
       <Card className={`${statusStyles.pageCard} ${statusStyles.visualPanel}`}>
         <div className={statusStyles.visualPanelHeader}>
           <div className={statusStyles.panelTitle}>{t('overview.diagramTitle')}</div>
+          <button className="ghost-btn" aria-pressed={showUnbound} onClick={() => setShowUnbound(value => !value)}>{showUnbound ? 'Hide Unbound Inputs' : 'Show Unbound Inputs'}</button>
+          <button className="ghost-btn" aria-pressed={showDetails} onClick={() => setShowDetails(value => !value)}>{showDetails ? 'Hide Details' : 'Details'}</button>
           {device && <BatteryIndicator percent={device.batteryPercent} state={device.batteryState} />}
         </div>
         {device ? (
           <div className={styles.diagramRow}>
+            {callouts(left)}
             <div className={styles.diagram}>
               <ControllerStatusSvg
                 device={device}
@@ -103,9 +124,10 @@ export function OverviewPage({ devices, onNavigate, configText, onSelectCommand 
                 bindingLabels={labels}
                 selectedCommand={hoveredCommand}
                 onSelectCommand={onSelectCommand}
+                showRawTelemetry={showDetails}
               />
             </div>
-            <BindingLabelLegend labels={labels} device={device} onHoverCommand={setHoveredCommand} onSelectCommand={onSelectCommand} />
+            {callouts(right)}
           </div>
         ) : (
           <p className={styles.noDevice}>{t('overview.noDevice')}</p>

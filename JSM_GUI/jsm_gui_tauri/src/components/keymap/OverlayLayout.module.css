@@ -1,0 +1,187 @@
+/* A scaled-down stand-in for the monitor. Its proportions are the real screen's,
+   so a box dragged here lands in the same relative place when the overlay draws
+   it -- positions are stored as fractions, never pixels. */
+.screen {
+  position: relative;
+  width: 100%;
+  aspect-ratio: var(--screen-aspect, 1.7777);
+  border-radius: 12px;
+  border: 1px solid var(--border-1);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent) 6%, transparent), transparent 60%),
+    var(--bg-2);
+  overflow: hidden;
+  touch-action: none;
+  margin-bottom: 0.9rem;
+}
+
+.screenLabel {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.6rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* Positioned by its CENTRE, matching how a placement is stored and how the
+   overlay window is placed, so what is dragged here is what appears there. */
+.menu {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border-1));
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg-elevated));
+  color: var(--text-strong);
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  min-width: 14px;
+  min-height: 14px;
+}
+
+.menu:active { cursor: grabbing; }
+
+.menuSelected {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 32%, var(--bg-elevated));
+  box-shadow: 0 0 0 1px var(--accent), 0 4px 18px color-mix(in srgb, var(--accent) 25%, transparent);
+  z-index: 1;
+}
+
+.menuName {
+  font-size: 0.72rem;
+  font-weight: 700;
+  pointer-events: none;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* Bottom-right grab corner. Sized in absolute pixels so it stays usable however
+   small the menu is scaled down in this preview. */
+.handle {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: var(--accent);
+  border: 1px solid var(--bg-elevated);
+  cursor: nwse-resize;
+  touch-action: none;
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.85rem;
+  border: 1px solid var(--border-1);
+  border-radius: var(--radius-card);
+  background: var(--bg-elevated);
+}
+
+.controls h4 { margin: 0; color: var(--text-strong); }
+
+.controlRow {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.86rem;
+  color: var(--text-strong);
+}
+
+.hint {
+  margin: 0;
+  color: var(--text-mid);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.empty {
+  margin: 0;
+  padding: 1rem;
+  border: 1px dashed var(--border-1);
+  border-radius: var(--radius-card);
+  color: var(--text-mid);
+  font-size: 0.88rem;
+}
+
+/* Selecting by name, so a menu sitting exactly under another is still reachable
+   and the selected one can be raised above its neighbours. */
+.picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.7rem;
+}
+
+.chip {
+  border: 1px solid var(--border-1);
+  background: var(--bg-input);
+  color: var(--text-mid);
+  border-radius: 999px;
+  padding: 0.3rem 0.75rem;
+  font: 600 0.8rem/1 "Segoe UI", system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.chipActive {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 20%, var(--bg-input));
+  color: var(--text-strong);
+}
+
+/* Two mutually exclusive behaviours with a real explanation each, rather than a
+   checkbox whose label has to carry the whole idea. */
+.choice {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0.4rem 0 0;
+  padding: 0.6rem 0.75rem 0.75rem;
+  border: 1px solid var(--keymap-card-border, rgba(255, 255, 255, 0.12));
+  border-radius: 10px;
+}
+
+.choice legend {
+  padding: 0 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.choiceOption {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  cursor: pointer;
+}
+
+.choiceOption input {
+  margin-top: 0.2rem;
+  flex: 0 0 auto;
+}
+
+.choiceOption span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.choiceOption small {
+  opacity: 0.7;
+  line-height: 1.4;
+}

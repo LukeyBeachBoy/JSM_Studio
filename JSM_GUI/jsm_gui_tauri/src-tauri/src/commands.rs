@@ -4,7 +4,7 @@ use tauri::{AppHandle, State, Window};
 
 use crate::{
     runtime,
-    services::{ai, app_state::AppState, autostart, hidhide, input_debug, jsm_process, telemetry},
+    services::{ai, app_state::AppState, autostart, hidhide, input_debug, jsm_process, overlay, telemetry},
 };
 
 type CommandResult<T> = Result<T, String>;
@@ -359,6 +359,14 @@ pub fn library_load_profile(
 ) -> CommandResult<LoadLibraryProfileResult> {
     let content = runtime::load_library_profile(&app, &name)?;
     Ok(LoadLibraryProfileResult { name, content })
+}
+
+/// Read one file a profile imports, so the editor can resolve the same imports
+/// the mapper does. Returns null for a path that is not there, which the editor
+/// surfaces as a broken import.
+#[tauri::command]
+pub fn read_config_file(app: AppHandle, path: String) -> CommandResult<Option<String>> {
+    Ok(runtime::read_runtime_config(&app, &path)?)
 }
 
 #[tauri::command]
@@ -820,6 +828,57 @@ pub fn set_autostart_enabled(enabled: bool) -> CommandResult<()> {
     autostart::set_autostart_enabled(enabled)
 }
 
+
+// --- Trackpad overlay ------------------------------------------------------
+// The overlay is a separate always-on-top window, not a hook into any game. See
+// services/overlay.rs for why that boundary matters and what it costs.
+
+#[tauri::command]
+pub fn overlay_set_enabled(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    enabled: bool,
+) -> CommandResult<()> {
+    overlay::set_enabled(&app, &state, enabled)?;
+    // Remembered, so turning the overlay on is a decision that survives a
+    // restart rather than something to redo on every launch.
+    runtime::set_trackpad_overlay_enabled(&app, enabled)?;
+    Ok(())
+}
+
+/// Called by the overlay window once it has measured its display, so the
+/// telemetry emitter runs at the panel's rate rather than the main UI's 60 Hz.
+#[tauri::command]
+pub fn overlay_set_refresh_hz(state: State<'_, AppState>, hz: u32) -> CommandResult<()> {
+    overlay::set_refresh_hz(&state, hz);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn overlay_set_bounds(
+    app: AppHandle,
+    x: i32,
+    y: i32,
+    width: u32,
+    height: u32,
+) -> CommandResult<()> {
+    overlay::set_bounds(&app, x, y, width, height)
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OverlayWorkarea {
+    x: i32,
+    y: i32,
+    width: u32,
+    height: u32,
+}
+
+#[tauri::command]
+pub fn overlay_workarea(app: AppHandle) -> CommandResult<OverlayWorkarea> {
+    let (x, y, width, height) = overlay::workarea(&app)?;
+    Ok(OverlayWorkarea { x, y, width, height })
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -891,4 +950,9 @@ JSM_CONTROLLER_LIST_END
         assert!(parse_controller_candidates("").is_err());
         assert!(parse_controller_candidates("LIST_CONTROLLERS\n").is_err());
     }
+}
+
+#[tauri::command]
+pub fn set_default_polling_ms(app: AppHandle, value: f64) -> CommandResult<runtime::RuntimeMappingState> {
+    runtime::set_default_polling_ms(&app, value)
 }

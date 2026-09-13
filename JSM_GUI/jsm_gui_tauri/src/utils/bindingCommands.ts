@@ -1,3 +1,4 @@
+import { isLoadConfigBindingValue } from './loadConfigBinding'
 import {
   BindingActionModifier,
   BindingEventModifier,
@@ -33,7 +34,17 @@ export type BindingTriggerKind =
   | 'diagonal'
   | 'stickShift'
 
-export type BindingOutputKind = 'keyboard' | 'mouse' | 'wheel' | 'special' | 'command' | 'raw' | 'virtualController' | 'haptic'
+export type BindingOutputKind =
+  | 'keyboard'
+  | 'mouse'
+  | 'wheel'
+  | 'special'
+  | 'command'
+  /** A console command that loads another configuration; see loadConfigBinding. */
+  | 'loadConfig'
+  | 'raw'
+  | 'virtualController'
+  | 'haptic'
 export type BindingOutputBehavior = 'normal' | 'tapOnce' | 'toggle' | 'releaseOnly'
 
 export type BindingCommandSource =
@@ -104,6 +115,7 @@ const OUTPUT_KINDS = new Set<BindingOutputKind>([
   'wheel',
   'special',
   'command',
+  'loadConfig',
   'raw',
   'virtualController',
   'haptic',
@@ -183,7 +195,9 @@ const outputKindFromToken = (token: BindingToken): BindingOutputKind => {
     case 'special':
       return 'special'
     case 'console_command':
-      return 'command'
+      // Loading a configuration is a console command like any other; it is
+      // only told apart so the editor can offer the configurations by name.
+      return isLoadConfigBindingValue(token.value) ? 'loadConfig' : 'command'
     case 'raw_literal':
       return 'raw'
     case 'input':
@@ -202,6 +216,7 @@ const tokenKindFromOutput = (kind: BindingOutputKind): BindingTokenKind => {
     case 'special':
       return 'special'
     case 'command':
+    case 'loadConfig':
       return 'console_command'
     case 'raw':
       return 'raw_literal'

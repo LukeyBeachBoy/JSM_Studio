@@ -23,6 +23,8 @@ import {
   type VirtualControllerLogicalOutput,
   type VirtualControllerType,
 } from '../../utils/virtualController'
+import { loadConfigBindingName, loadConfigBindingValue } from '../../utils/loadConfigBinding'
+import { keyDisplayName, keyTokenFromDisplay } from '../../utils/keyNames'
 
 type Option = { value: string; label: string; disabled?: boolean }
 
@@ -37,13 +39,17 @@ type BindingEditorProps = {
   onCapture: () => void
   /** Turns the virtual gamepad on when a binding asks for one. */
   onEnableVirtualController?: () => void
+  /** Configurations this profile can switch to, for a load-config binding. */
+  libraryProfiles?: string[]
+  /** The configuration being edited, so it can be marked in that list. */
+  currentProfileName?: string | null
 }
 
 
 
 
 const COMMON_OUTPUTS: BindingOutputKind[] = ['keyboard', 'mouse', 'wheel']
-const RARE_OUTPUTS: BindingOutputKind[] = ['virtualController', 'haptic', 'special', 'command', 'raw']
+const RARE_OUTPUTS: BindingOutputKind[] = ['virtualController', 'haptic', 'special', 'loadConfig', 'command', 'raw']
 
 const OUTPUT_LABEL_KEYS: Record<BindingOutputKind, string> = {
   keyboard: 'keymap.commandOutputKeyboard',
@@ -53,6 +59,7 @@ const OUTPUT_LABEL_KEYS: Record<BindingOutputKind, string> = {
   haptic: 'keymap.commandOutputHaptic',
   special: 'keymap.commandOutputSpecial',
   command: 'keymap.commandOutputCommand',
+  loadConfig: 'keymap.commandOutputLoadConfig',
   raw: 'keymap.commandOutputRaw',
 }
 
@@ -75,6 +82,8 @@ export function BindingEditor({
   modifierOptions,
   specialOptions,
   virtualControllerType,
+  libraryProfiles = [],
+  currentProfileName,
   isCapturing,
   captureLabel,
   onChange,
@@ -129,6 +138,14 @@ export function BindingEditor({
       onChange({ outputKind: nextOutputKind, outputValue: token, virtualControllerLogicalOutput: logical ?? undefined })
       return
     }
+    if (nextOutputKind === 'loadConfig') {
+      // Seed the first configuration rather than an empty path, so the row
+      // is valid the moment it is chosen. Anything but this profile: loading
+      // the one you are already in does nothing useful.
+      const first = libraryProfiles.find(name => name !== currentProfileName) ?? libraryProfiles[0]
+      onChange({ outputKind: nextOutputKind, outputValue: first ? loadConfigBindingValue(first) : '' })
+      return
+    }
     if (nextOutputKind === 'haptic') {
       onChange({
         outputKind: nextOutputKind,
@@ -152,6 +169,26 @@ export function BindingEditor({
           onValueChange={value => onChange({ outputValue: value })}
           options={values.map(value => ({ value, label: value }))}
           placeholder={t('keymap.commandNoOutput')}
+          disabled={locked}
+          ariaLabel={t('keymap.commandOutputValue')}
+        />
+      )
+    }
+    if (command.outputKind === 'loadConfig') {
+      const selected = loadConfigBindingName(command.outputValue)
+      // A path pointing at a configuration that no longer exists still has to
+      // be shown, or renaming a profile would silently empty the control that
+      // refers to it.
+      const names = selected && !libraryProfiles.includes(selected) ? [...libraryProfiles, selected] : libraryProfiles
+      return (
+        <Select
+          value={selected ?? ''}
+          onValueChange={value => onChange({ outputValue: value ? loadConfigBindingValue(value) : '' })}
+          options={names.map(name => ({
+            value: name,
+            label: name === currentProfileName ? t('keymap.commandLoadConfigCurrent', { name }) : name,
+          }))}
+          placeholder={t('keymap.commandLoadConfigPlaceholder')}
           disabled={locked}
           ariaLabel={t('keymap.commandOutputValue')}
         />
@@ -194,8 +231,11 @@ export function BindingEditor({
           ref={valueInputRef}
           className={`${styles.valueInput} ${isCapturing ? styles.valueInputCapturing : ''}`}
           type="text"
-          value={command.outputValue}
-          onChange={event => onChange({ outputValue: event.target.value })}
+          // Shown by the name on the key; stored as the token the backend
+          // reads. Typing either works, so anyone who knows the tokens can
+          // still use them, and anything unrecognised passes through.
+          value={keyDisplayName(command.outputValue)}
+          onChange={event => onChange({ outputValue: keyTokenFromDisplay(event.target.value) })}
           placeholder={
             isCapturing
               ? captureLabel
@@ -294,7 +334,7 @@ export function BindingEditor({
               <Select
                 value={systemKeyOptions.includes(command.outputValue) ? command.outputValue : ''}
                 onValueChange={value => onChange({ outputValue: value })}
-                options={systemKeyOptions.map(value => ({ value, label: value }))}
+                options={systemKeyOptions.map(value => ({ value, label: keyDisplayName(value) }))}
                 placeholder={t('keymap.commandNoOutput')}
                 ariaLabel={t('keymap.commandOutputSystemKey')}
               />

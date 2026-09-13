@@ -54,13 +54,7 @@ const Dpad = ({ rotate }: { rotate: number }) => (
   </g>
 )
 
-const Shoulder = ({ side, tall }: { side: 'L' | 'R'; tall?: boolean }) => (
-  <g transform={side === 'R' ? 'scale(-1 1) translate(-16 0)' : undefined}>
-    <path d={tall ? 'M2.6 10.2V6.6a3 3 0 0 1 3-3h5.2a2.6 2.6 0 0 1 2.6 2.6v3.8' : 'M2.6 9.6V7.4a2.8 2.8 0 0 1 2.8-2.8h5.4a2.8 2.8 0 0 1 2.8 2.8v2.2'} />
-    <path d={tall ? 'M2.6 10.2h10.8' : 'M2.6 9.6h10.8'} />
-    {tall && <path d="M5.4 12.6h5.2" opacity="0.5" />}
-  </g>
-)
+const Shoulder = ({ side, tall }: { side: 'L' | 'R'; tall?: boolean }) => (<><rect x="1" y="3" width="14" height="10" rx="3" fill="currentColor" fillOpacity="0.12"/><Letter char={`${side}${tall ? 'T' : 'B'}`} size={6.4}/></>)
 
 const Stick = ({ clicked }: { clicked?: boolean }) => (
   <>
@@ -137,13 +131,13 @@ const GLYPHS: Record<string, (family: ControllerVisualFamily) => ReactNode> = {
   TOUCH: () => <Pad />,
   CAPTURE: () => <Pad />,
 
-  MISC5: () => <Grip side="right" />,
-  MISC6: () => <Grip side="left" />,
+  MISC5: () => <><Grip side="right" /><Letter char="R" size={6}/></>,
+  MISC6: () => <><Grip side="left" /><Letter char="L" size={6}/></>,
 
-  LSL: () => <Paddle side="left" />,
-  LSR: () => <Paddle side="left" />,
-  RSR: () => <Paddle side="right" />,
-  RSL: () => <Paddle side="right" />,
+  LSL: () => <><Paddle side="left" /><Letter char="L4" size={5.5}/></>,
+  LSR: () => <><Paddle side="left" /><Letter char="L5" size={5.5}/></>,
+  RSR: () => <><Paddle side="right" /><Letter char="R4" size={5.5}/></>,
+  RSL: () => <><Paddle side="right" /><Letter char="R5" size={5.5}/></>,
 
   // The Steam button keeps its own ring; every other family prints its mark on
   // an ordinary round face button.
@@ -185,12 +179,44 @@ const GLYPHS: Record<string, (family: ControllerVisualFamily) => ReactNode> = {
   ),
 }
 
+/**
+ * Inputs that are a family rather than a name: the pads, the numbered regions
+ * drawn on them, the segments of a stick wheel, and the stick directions.
+ *
+ * These cannot go in the table above because there are hundreds of them, and
+ * without them they fell through to the lettered disc, which took the first
+ * two characters of the config token -- so a left pad region read "LT" and the
+ * left pad itself read "LE". A region is a numbered cell of a particular pad,
+ * and it should look like one.
+ */
+const patternGlyph = (key: string): ReactNode | null => {
+  if (key === 'LEFT_PAD') return <Pad side="left" />
+  if (key === 'RIGHT_PAD') return <Pad side="right" />
+
+  const region = key.match(/^([LR]?)T(\d+)$/)
+  if (region) return <><Pad side={region[1] === 'L' ? 'left' : region[1] === 'R' ? 'right' : undefined} /><Letter char={region[2]} size={region[2].length > 1 ? 5.4 : 7} /></>
+
+  const segment = key.match(/^([LR])M(\d+)$/)
+  if (segment) return <><Stick /><Letter char={segment[2]} size={segment[2].length > 1 ? 5 : 6.4} /></>
+
+  const direction = key.match(/^([LR])(UP|DOWN|LEFT|RIGHT)$/)
+  if (direction) return <g transform={`rotate(${DPAD_ROTATION[direction[2]]} 8 8)`}><circle cx="8" cy="8" r="5.6" opacity="0.45" /><path d="M6.6 9.4V7.2H5.1L8 4.2l2.9 3H9.4v2.2z" /></g>
+
+  const ring = key.match(/^([LR])RING$/)
+  if (ring) return <><circle cx="8" cy="8" r="6.1" opacity="0.45" /><circle cx="8" cy="8" r="2.6" /></>
+
+  return null
+}
+
 export function InputGlyph({ command, family = 'generic', size = 16, className, title }: GlyphProps) {
   const key = command.toUpperCase()
 
   let content: ReactNode
+  const patterned = patternGlyph(key)
   if (key in GLYPHS) {
     content = GLYPHS[key](family)
+  } else if (patterned) {
+    content = patterned
   } else {
     // Unknown input: a lettered disc using the first two characters, so an
     // unmapped token still reads as a button rather than as raw config text.

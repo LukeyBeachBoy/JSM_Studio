@@ -1,5 +1,5 @@
 import { OPTION_HELP } from '../../utils/optionHelp'
-import { Fragment, useCallback, useState, type ReactNode } from 'react'
+import { Fragment, useCallback, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import * as RadixSelect from '@radix-ui/react-select'
 import styles from './Select.module.css'
 
@@ -78,15 +78,28 @@ export function Select({
   // the pointer. Which side it sits on is decided once, when the list opens:
   // the width is fixed, so nothing after that can change the answer.
   const [helpSide, setHelpSide] = useState<'right' | 'left' | 'bottom'>('right')
-  const measureHelpSide = useCallback((node: HTMLDivElement | null) => {
+  const [open, setOpen] = useState(false)
+  const contentRef = useRef<HTMLDivElement | null>(null)
+  const placeHelpPanel = useCallback(() => {
+    const node = contentRef.current
     if (!node) return
     const { left, right } = node.getBoundingClientRect()
     const needed = HELP_PANEL_WIDTH + HELP_PANEL_GAP
     setHelpSide(window.innerWidth - right >= needed ? 'right' : left >= needed ? 'left' : 'bottom')
   }, [])
+  // Measured a frame after opening, not in the Content's ref. Radix positions a
+  // popper with Floating UI *after* it mounts, so a ref callback measures the
+  // list where it has not been put yet -- which read as "acres of room on the
+  // right" every time, and the panel went right and off the screen even when
+  // the list ended a few pixels from the window edge.
+  useLayoutEffect(() => {
+    if (!open) return
+    const frame = requestAnimationFrame(placeHelpPanel)
+    return () => cancelAnimationFrame(frame)
+  }, [open, placeHelpPanel])
 
   return (
-    <RadixSelect.Root value={value} onValueChange={onValueChange} disabled={disabled} onOpenChange={open => { if (open) setHelpValue(value) }}>
+    <RadixSelect.Root value={value} onValueChange={onValueChange} disabled={disabled} onOpenChange={next => { setOpen(next); if (next) setHelpValue(value) }}>
       <RadixSelect.Trigger className={`${styles.trigger} ${className}`.trim()} aria-label={ariaLabel} title={title} id={id}>
         <span className={styles.value}>
           {active?.icon && <span className={styles.icon}>{active.icon}</span>}
@@ -98,7 +111,7 @@ export function Select({
       </RadixSelect.Trigger>
 
       <RadixSelect.Portal>
-        <RadixSelect.Content ref={measureHelpSide} className={styles.content} position="popper" sideOffset={4}>
+        <RadixSelect.Content ref={contentRef} className={styles.content} position="popper" sideOffset={4}>
           <RadixSelect.ScrollUpButton className={styles.scrollButton}>▲</RadixSelect.ScrollUpButton>
           <RadixSelect.Viewport className={styles.viewport}>
             {resolved.map((group, index) => (

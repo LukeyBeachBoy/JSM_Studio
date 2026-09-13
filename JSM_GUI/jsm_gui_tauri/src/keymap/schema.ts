@@ -120,7 +120,10 @@ export const PAD_CLICK_BUTTONS: ButtonDefinition[] = ['MISC3', 'MISC2']
 // on the left, RT1.. on the right. T1.. stays the single-pad controller's grid,
 // and is what a two-pad controller falls back to when only the shared
 // TOUCHPAD_MODE and GRID_SIZE are set.
-export type TouchpadGridPrefix = 'T' | 'LT' | 'RT'
+// LM../RM.. are the segments of a stick's radial menu. Not a touchpad grid, but
+// bindable in exactly the same way, so they share this builder rather than
+// growing a parallel one.
+export type TouchpadGridPrefix = 'T' | 'LT' | 'RT' | 'LM' | 'RM'
 
 export const buildTouchpadGridButton = (
   index: number,

@@ -1,3 +1,4 @@
+import { settingHelp } from '../utils/settingHelp'
 import { HelpButton } from './HelpButton'
 import { useEffect, useId, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -71,6 +72,7 @@ export function NumberField({
   id,
 }: NumberFieldProps) {
   const { t } = useTranslation()
+  const help = hint ?? (typeof label === 'string' ? settingHelp(label) : undefined)
   const autoId = useId()
   const inputId = id ?? autoId
   const [coarse, setCoarse] = useState(false)
@@ -149,7 +151,7 @@ export function NumberField({
           <label className={styles.label} htmlFor={inputId}>
             {label}
           </label>
-          {hint && <HelpButton title={typeof label === 'string' ? label : 'Setting help'}>{hint}</HelpButton>}
+          {help && <HelpButton title={typeof label === 'string' ? label : 'Setting help'}>{help}</HelpButton>}
         </span>
         <span className={styles.valueWrap}>
           <input

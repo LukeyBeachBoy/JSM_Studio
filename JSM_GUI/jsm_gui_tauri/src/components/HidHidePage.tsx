@@ -216,6 +216,8 @@ export function HidHidePage({ telemetryDevices }: HidHidePageProps) {
   return (
     <div className={styles.page}>
       <Card className={`${styles.pageCard} ${styles.hidHideCard}`}>
+        <p>Games may see both your physical controller and JSM Studio’s virtual controller, causing duplicate input. Hide the physical controller here when you want games to receive only mapped output. JSM Studio remains able to read it.</p>
+        <details><summary className="binding-summary">How Device Visibility Works</summary><p>HidHide is the Windows driver that filters access to controllers. Connected describes whether Windows detects the device; it does not mean games can see it. Partially hidden means some device interfaces are hidden and others remain visible. Filtering must be enabled for hiding to take effect. Advanced driver tools below expose the individual interfaces and access list.</p></details>
         <div className={styles.hidHideHeader}>
           <div className={styles.hidHideTitleRow}>
             <div className={styles.hidHideHeading}>

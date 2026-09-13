@@ -11,6 +11,10 @@ export const STICK_MODE_VALUES = [
   'HYBRID_AIM',
   'INNER_RING',
   'OUTER_RING',
+  // A weapon wheel on the stick: pushing past the menu deadzone selects one of
+  // LM1..LM25 / RM1..RM25 by angle, numbered clockwise from up exactly as a
+  // RADIAL touch grid is, and drawn by the same trackpad overlay.
+  'RADIAL_MENU',
   // Real analog passthrough to a virtual Xbox/DS4 controller (JoyShockMapper's
   // processGyroStick already forwards the physical stick's own curve/deadzone
   // untouched when no gyro is combined with it -- these aren't gyro-only modes
@@ -34,6 +38,7 @@ const STICK_MODE_LABEL_KEYS: Record<StickMode, string> = {
   HYBRID_AIM: 'stickModes.HYBRID_AIM',
   INNER_RING: 'stickModes.INNER_RING',
   OUTER_RING: 'stickModes.OUTER_RING',
+  RADIAL_MENU: 'stickModes.RADIAL_MENU',
   LEFT_STICK: 'stickModes.LEFT_STICK',
   RIGHT_STICK: 'stickModes.RIGHT_STICK',
 }
@@ -58,3 +63,21 @@ const STICK_DIRECTIONAL_MODES = new Set(['', 'NO_MOUSE', 'INNER_RING', 'OUTER_RI
 
 export const isDirectionalStickMode = (mode?: string | null) =>
   STICK_DIRECTIONAL_MODES.has((mode ?? '').trim().toUpperCase())
+
+/**
+ * Which of a stick's four direction commands a mode still sends.
+ *
+ * SCROLL_WHEEL is the odd one out. It is a whole-stick mode, so
+ * isDirectionalStickMode says no to it -- but every notch of rotation pulses the
+ * stick's *left and right* bindings, and those two are the only place to say
+ * what scrolling does. Folding them away with the rest of the directions left
+ * the mode with nothing to fire, which reads as the scroll wheel being broken.
+ */
+export type StickDirectionUse = 'all' | 'leftRight' | 'none'
+
+export const stickModeDirectionUse = (mode?: string | null): StickDirectionUse => {
+  const upper = (mode ?? '').trim().toUpperCase()
+  if (STICK_DIRECTIONAL_MODES.has(upper)) return 'all'
+  if (upper === 'SCROLL_WHEEL') return 'leftRight'
+  return 'none'
+}

@@ -40,10 +40,16 @@ import { controllerButtonLabel, type ControllerVisualFamily } from '../../utils/
 import { InputGlyph } from '../glyphs/InputGlyph'
 
 import { ButtonMappingCard } from './ButtonMappingCard'
-import { getVirtualControllerLogicalOutput, type VirtualControllerType } from '../../utils/virtualController'
+import { describeOutputValue, getVirtualControllerLogicalOutput, type VirtualControllerType } from '../../utils/virtualController'
 
 type ButtonBindingsCardProps = {
   button: ButtonDefinition
+  /**
+   * What this card is called in the DOM, when that is not the input's own
+   * command. A shifted card edits the same input under a chorded key, so it
+   * needs its own identity for focus, rename and jump-to-binding.
+   */
+  domCommand?: string
   rows: ButtonBindingRow[]
   modifierOptions: { value: string; label: string; disabled?: boolean }[]
   specialsByButton: Record<string, string | undefined>
@@ -57,6 +63,10 @@ type ButtonBindingsCardProps = {
   getRowEditorMode: (button: string, slot: BindingSlot, rowId: string) => 'simple' | 'advanced' | undefined
   setRowEditorMode: (button: string, slot: BindingSlot, rowId: string, mode?: 'simple' | 'advanced') => void
   captureLabel: string
+  // Set when this button's binding comes from an imported file rather than
+  // this profile.
+  inheritedFrom?: string | null
+  onOpenConfigEditor?: () => void
   isCapturing: (button: string, slot: BindingSlot, rowId?: string) => boolean
   isCapturingValue: (key: string) => boolean
   beginCapture: (
@@ -90,15 +100,25 @@ type ButtonBindingsCardProps = {
   trackballDecay: string
   onTrackballDecayChange: (value: string) => void
   virtualControllerType: VirtualControllerType
+  /** Configurations this profile can switch to, for a load-config binding. */
+  libraryProfiles?: string[]
+  /** The configuration being edited, so it can be marked in that list. */
+  currentProfileName?: string | null
   /** Which controller's glyphs to draw beside the input's name. */
   controllerFamily?: ControllerVisualFamily
   onEnableVirtualController?: () => void
   bindingLabel?: string
+  bindingIcon?: string
+  onBindingIconChange?: (command: string, icon: string) => void
   onBindingLabelChange?: (command: string, label: string) => void
   /** Bindings on the shared clipboard, ready to paste onto this button. */
   bindingClipboard?: BindingCommandPreset[]
   /** Replace the shared clipboard with the given bindings (copy). */
   onCopyBindings?: (presets: BindingCommandPreset[]) => void
+  /** Start expanded; see ButtonMappingCard. */
+  defaultOpen?: boolean
+  /** How many shifts reconfigure this input; shown on its compact row. */
+  modeshiftCount?: number
   /** Chord bindings are edited in this group's modeshift panel, not here. */
   chordsLiveInModeshifts?: boolean
 }
@@ -132,6 +152,7 @@ const hasOutputValue = (command: Pick<BindingCommandPreset, 'outputValue'>) => c
 
 export const ButtonBindingsCard = ({
   button,
+  domCommand,
   rows,
   modifierOptions,
   specialsByButton,
@@ -151,15 +172,31 @@ export const ButtonBindingsCard = ({
   trackballDecay,
   onTrackballDecayChange,
   virtualControllerType,
+  libraryProfiles,
+  currentProfileName,
   controllerFamily = 'generic',
   onEnableVirtualController,
   bindingLabel,
+  bindingIcon,
+  onBindingIconChange,
   onBindingLabelChange,
   bindingClipboard = [],
   onCopyBindings,
   chordsLiveInModeshifts,
+  defaultOpen,
+  modeshiftCount,
+  inheritedFrom,
+  onOpenConfigEditor,
 }: ButtonBindingsCardProps) => {
   const { t } = useTranslation()
+
+  // Captures are registered against this, and a command id is built from the
+  // input's own command -- so a shifted card and the normal card for the same
+  // input would register under the same key, leaving both rows showing as
+  // capturing and the captured value landing on whichever registered last.
+  // `domCommand` is what tells the two apart.
+  const captureKeyFor = (command: BindingCommand) =>
+    domCommand ? `${domCommand}:${command.id}` : command.id
   const [selectionMode, setSelectionMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const buttonKey = button.command.toUpperCase()
@@ -190,7 +227,7 @@ export const ButtonBindingsCard = ({
     () => parseRowsToCommands(rows, button.command, { specialKey, stickShiftAssignments: stickShiftEntries }),
     [button.command, rows, specialKey, stickShiftEntries]
   )
-  const rowCapturing = rows.some(row => isCapturing(button.command, row.slot, row.id)) || commands.some(command => isCapturingValue(command.id))
+  const rowCapturing = rows.some(row => isCapturing(button.command, row.slot, row.id)) || commands.some(command => isCapturingValue(captureKeyFor(command)))
   const buttonHasTrackball = commands.some(command => command.outputValue.toUpperCase().includes('TRACK'))
   const defaultModifier = getDefaultModifierForButton(button.command, modifierOptions)
 
@@ -467,7 +504,7 @@ export const ButtonBindingsCard = ({
   }
 
   const captureCommand = (command: BindingCommand) => {
-    beginValueCapture(command.id, t('keymap.anyBindingPrompt'), value => {
+    beginValueCapture(captureKeyFor(command), t('keymap.anyBindingPrompt'), value => {
       const token = parseBindingExpression(value)?.tokens[0]
       updateCommand(command, {
         outputKind:
@@ -502,19 +539,30 @@ export const ButtonBindingsCard = ({
   // One button opening a menu, with the rare trigger kinds behind a submenu --
   // Steam's own pattern. The nine buttons this replaces put every option on
   // screen at once whether or not you wanted any of them.
+  // Where the chord slot is filtered out of the rows, the menu must not offer
+  // to make one either: it would be written to a line this card does not show,
+  // and so be lost the moment anything else on the card was edited. The same
+  // goes for the two other condition-carrying kinds, which are chords by
+  // another name.
   const addMenuItems: MenuItem[] = [
     { label: t('keymap.commandTriggerRegular'), onSelect: () => handleAddCommand('regular') },
     { label: t('keymap.commandTriggerTap'), onSelect: () => handleAddCommand('tap') },
     { label: t('keymap.commandTriggerHold'), onSelect: () => handleAddCommand('hold') },
     { label: t('keymap.commandTriggerDouble'), onSelect: () => handleAddCommand('double') },
-    { label: t('keymap.commandTriggerChord'), onSelect: () => handleAddCommand('chord') },
+    ...(chordsLiveInModeshifts
+      ? []
+      : [{ label: t('keymap.commandTriggerChord'), onSelect: () => handleAddCommand('chord') } as MenuItem]),
     { kind: 'separator' },
     {
       kind: 'submenu',
       label: t('keymap.advancedOptions'),
       items: [
-        { label: t('keymap.commandTriggerSimultaneous'), onSelect: () => handleAddCommand('simultaneous') },
-        { label: t('keymap.commandTriggerDiagonal'), onSelect: () => handleAddCommand('diagonal') },
+        ...(chordsLiveInModeshifts
+          ? []
+          : [
+              { label: t('keymap.commandTriggerSimultaneous'), onSelect: () => handleAddCommand('simultaneous') } as MenuItem,
+              { label: t('keymap.commandTriggerDiagonal'), onSelect: () => handleAddCommand('diagonal') } as MenuItem,
+            ]),
         ...(onStickModeShiftChange
           ? [{ label: t('keymap.commandAddStickShift'), onSelect: () => handleAddCommand('stickShift') } as MenuItem]
           : []),
@@ -598,16 +646,31 @@ export const ButtonBindingsCard = ({
 
   return (
     <ButtonMappingCard
-      command={button.command}
-      title={controllerButtonLabel(button)}
+      command={domCommand ?? button.command}
+      summary={commands
+        .filter(command => command.outputValue.trim().length > 0)
+        .map(command => ({
+          trigger: command.triggerKind === 'regular' ? undefined : t(`keymap.commandTrigger${command.triggerKind.charAt(0).toUpperCase()}${command.triggerKind.slice(1)}`, command.triggerKind),
+          // What the game receives, not how the file spells it.
+          output: describeOutputValue(command.outputValue),
+        }))}
+      defaultOpen={defaultOpen}
+      modeshiftCount={modeshiftCount}
+      onPaste={bindingClipboard.length > 0 && !selectionMode ? pasteBindings : undefined}
+      pasteLabel={t('keymap.bindingsPaste', { count: bindingClipboard.length })}
+      title={controllerButtonLabel(button, controllerFamily)}
       glyph={<InputGlyph command={button.command} family={controllerFamily} size={19} />}
       description={getButtonDescription(button, t)}
       isCapturing={rowCapturing}
+      inheritedFrom={inheritedFrom}
+      onOpenConfigEditor={onOpenConfigEditor}
       toolbar={bindingsToolbar}
       addControl={addControl}
       extras={extras}
       label={bindingLabel}
       onLabelChange={onBindingLabelChange ? (value) => onBindingLabelChange(button.command, value) : undefined}
+      icon={bindingIcon}
+      onIconChange={onBindingIconChange ? (value) => onBindingIconChange(button.command, value) : undefined}
       commands={
         commands.length > 0 ? (
           commands.map(command => (
@@ -617,7 +680,9 @@ export const ButtonBindingsCard = ({
               modifierOptions={modifierOptions}
               specialOptions={command.source.kind === 'special' ? allSpecialOptionList : actionSpecialOptionList}
               virtualControllerType={virtualControllerType}
-              isCapturing={isCapturingValue(command.id)}
+              libraryProfiles={libraryProfiles}
+              currentProfileName={currentProfileName}
+              isCapturing={isCapturingValue(captureKeyFor(command))}
               captureLabel={captureLabel}
               onUpdate={updateCommand}
               onRemove={removeCommand}
@@ -627,7 +692,7 @@ export const ButtonBindingsCard = ({
               selectable={selectionMode}
               selected={selectedIds.includes(command.id)}
               onToggleSelected={toggleSelected}
-              onRename={() => document.querySelector<HTMLInputElement>(`[data-input-command="${button.command}"] input[aria-label]`)?.focus()}
+              onRename={() => document.querySelector<HTMLInputElement>(`[data-input-command="${domCommand ?? button.command}"] input[aria-label]`)?.focus()}
               onCapture={captureCommand}
               onEnableVirtualController={onEnableVirtualController}
             />

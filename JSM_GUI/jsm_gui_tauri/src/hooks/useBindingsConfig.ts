@@ -74,10 +74,16 @@ const clearSpecialAssignmentsForButton = (text: string, button: string) => {
 
 type BindingArgs = {
   configText: string
+  // Import-resolved text to read from. Falls back to configText when the
+  // profile imports nothing.
+  readText?: string
   setConfigText: React.Dispatch<React.SetStateAction<string>>
 }
 
-export function useBindingsConfig({ configText, setConfigText }: BindingArgs) {
+export function useBindingsConfig({ configText, readText, setConfigText }: BindingArgs) {
+  // Reads resolve through the imported baseline; writes still land in the
+  // profile's own text, so editing an inherited value creates an override.
+  const readSource = readText ?? configText
   const handleFaceButtonBindingChange = (
     button: string,
     slot: BindingSlot,
@@ -200,7 +206,7 @@ export function useBindingsConfig({ configText, setConfigText }: BindingArgs) {
     setConfigText(prev => applyWasdBindings(prev, setId))
   }
 
-  const gyroActivation = useMemo(() => parseGyroActivation(configText), [configText])
+  const gyroActivation = useMemo(() => parseGyroActivation(readSource), [readSource])
 
   const handleGyroActivationModeChange = (mode: GyroActivationMode, fallbackButton = 'R3') => {
     setConfigText(prev => {
@@ -217,8 +223,8 @@ export function useBindingsConfig({ configText, setConfigText }: BindingArgs) {
     })
   }
 
-  const trackballDecayValue = useMemo(() => getKeymapValue(configText, keyName.TRACKBALL_DECAY) ?? '', [configText])
-  const virtualControllerConfig = useMemo(() => analyzeVirtualControllerConfig(configText), [configText])
+  const trackballDecayValue = useMemo(() => getKeymapValue(readSource, keyName.TRACKBALL_DECAY) ?? '', [readSource])
+  const virtualControllerConfig = useMemo(() => analyzeVirtualControllerConfig(readSource), [readSource])
 
   const handleVirtualControllerTypeChange = (nextType: VirtualControllerType) => {
     const normalized = normalizeVirtualControllerType(nextType)

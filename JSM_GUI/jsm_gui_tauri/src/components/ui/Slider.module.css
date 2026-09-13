@@ -48,3 +48,7 @@
   outline: none;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 34%, transparent);
 }
+
+.root { height: 32px; }
+.track { height: 5px; }
+.thumb { width: 16px; height: 16px; background: var(--accent); border: 2px solid var(--bg-1); box-shadow: 0 0 0 1px var(--accent); }

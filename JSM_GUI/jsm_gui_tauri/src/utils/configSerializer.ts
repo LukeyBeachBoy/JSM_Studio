@@ -23,6 +23,7 @@ import {
   stickKeys,
   touchpadKeys,
 } from '../constants/configKeys'
+import { includeTarget } from './configIncludes'
 
 type SectionKey =
   | 'gyro_behavior'
@@ -54,7 +55,22 @@ type ParsedLine = {
 export type ParsedConfig = {
   sections: Record<SectionKey, ParsedLine[]>
   directives: ParsedLine[]
+  // Files this profile imports. Held separately because where an import sits is
+  // not cosmetic: the mapper applies lines in order and the last assignment
+  // wins, so an import is a baseline only while it stays above the profile's
+  // own settings. Sorting one into a settings section would drop it below the
+  // overrides and silently invert which file wins.
+  imports: ParsedLine[]
+  // Annotation comments the app itself writes and reads back: `# @label`,
+  // `# @icon`, `# @overlay`. JoyShockMapper ignores them, but they are app data
+  // rather than prose, so saving must not drop them the way it drops a
+  // hand-written comment (see TODO-3). Held separately because they are keyed
+  // by input rather than belonging to a settings section.
+  annotations: ParsedLine[]
 }
+
+/** `# @label RT1 = Reload`, `# @icon RT1 = lucide:refresh-cw`, `# @overlay ...` */
+const ANNOTATION = /^\s*#\s*@(label|icon|overlay)\b/i
 
 const SECTION_HEADERS: Record<SectionKey, string> = {
   gyro_behavior: '# Gyro Behavior',
@@ -249,6 +265,10 @@ export function parseConfigText(text: string): ParsedConfig {
 
   const seenDirectives = new Set<string>()
   const trailingCustom: ParsedLine[] = []
+  const imports: ParsedLine[] = []
+  const annotations: ParsedLine[] = []
+  const seenAnnotations = new Set<string>()
+  const seenImports = new Set<string>()
 
   text
     .split(/\r?\n/)
@@ -261,6 +281,23 @@ export function parseConfigText(text: string): ParsedConfig {
 
       if (!keyOnly) return
       if (keyOnly.startsWith('#')) {
+        // Labels, icons and overlay placements are the app's own data wearing a
+        // comment so the mapper ignores them. Dropping them here is what made a
+        // label and icon vanish the moment you pressed Save.
+        if (ANNOTATION.test(line) && !seenAnnotations.has(line)) {
+          seenAnnotations.add(line)
+          annotations.push({ line })
+        }
+        return
+      }
+      // Checked before the no-'=' branch below, which would otherwise file an
+      // import under "custom" and emit it last, after the overrides.
+      const imported = includeTarget(line)
+      if (imported) {
+        if (!seenImports.has(imported)) {
+          seenImports.add(imported)
+          imports.push({ line: imported })
+        }
         return
       }
       if (isDirectiveKey(keyOnly)) {
@@ -292,7 +329,7 @@ export function parseConfigText(text: string): ParsedConfig {
   if (trailingCustom.length) {
     sections.custom.push(...trailingCustom)
   }
-  return { sections, directives }
+  return { sections, directives, imports, annotations }
 }
 
 const serializeBlock = (header: string, lines: string[]) => {
@@ -306,6 +343,15 @@ export function serializeConfig(parsed: ParsedConfig): string {
   if (parsed.directives.length) {
     output.push('# Required Settings')
     parsed.directives.forEach(d => output.push(d.line))
+    output.push('')
+  }
+
+  // Straight after the required lines and above every setting. An import is a
+  // baseline the rest of the profile overrides, and only this position says so:
+  // emitted any lower, the imported file would win instead.
+  if (parsed.imports?.length) {
+    output.push('# Imports')
+    parsed.imports.forEach(entry => output.push(entry.line))
     output.push('')
   }
 
@@ -436,6 +482,15 @@ export function serializeConfig(parsed: ParsedConfig): string {
   if (miscKeymapLines.length) {
     output.push(KEYMAP_SUB_HEADERS.misc)
     output.push(...miscKeymapLines)
+    output.push('')
+  }
+
+  // Last, where they cannot disturb the assignment order the mapper depends on.
+  // They are comments, so position is cosmetic to JoyShockMapper -- but not to
+  // the reader, so they get their own block rather than being scattered.
+  if (parsed.annotations?.length) {
+    output.push('# Labels, icons and overlay layout (read by JSM Studio, ignored by JoyShockMapper)')
+    parsed.annotations.forEach(entry => output.push(entry.line))
     output.push('')
   }
 

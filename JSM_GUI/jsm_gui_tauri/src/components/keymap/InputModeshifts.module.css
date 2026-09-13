@@ -1,14 +1,46 @@
-.list, .card { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
-.card { padding: 1rem; border: 1px solid var(--border-strong); border-left: 3px solid var(--accent); border-radius: 10px; background: var(--bg-elevated); }
+.list { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
+
+/* A modeshift is one of this input group's rows, so it is framed like one: the
+   summary carries its own padding and the card carries none, which is what left
+   a closed card with a band of empty space under its title. The accent edge is
+   the only thing that marks it out from an ordinary row. */
+.card {
+  min-width: 0;
+  padding: 0;
+  border: 1px solid var(--border-1);
+  border-left: 3px solid var(--accent);
+  border-radius: 10px;
+  background: var(--bg-elevated);
+}
+
+/* Everything below the summary. One frame around the lot rather than a border
+   per field: the rows inside already have their own. */
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 0.35rem 0.85rem 0.95rem;
+  border-top: 1px solid var(--border-1);
+}
+
+.summaryMode { text-transform: capitalize; }
+
 .heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
 .heading h4 { margin: 0; display: inline-flex; align-items: center; gap: 0.4rem; }
 .heading :global(.help-button) { margin: 0; }
-.card .selectField { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 0.4rem; }
-.selectField > :global(button[role='combobox']) { flex-basis: 100%; width: 100%; }
+
+/* The trigger picker: caption and its "Required" note on one line, the control
+   on the next and full width. The three were sharing a row, which is what put
+   the label hard against the top of the card with nothing between them. */
+.selectField { display: grid; gap: 0.4rem; justify-items: start; }
+.caption { display: flex; align-items: baseline; gap: 0.45rem; }
+.selectField > :global(button[role='combobox']) { width: 100%; }
+
 .required, .hint { font-size: 0.8rem; color: var(--text-muted); }
 .hint { margin: 0; line-height: 1.5; }
-.dimensions, .bindings { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: 1rem; }
-.binding { min-width: 0; padding: 0.85rem; border: 1px solid var(--border-1); border-radius: 8px; background: var(--bg-input); }
+.dimensions { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: 1rem; }
+.bindings { display: flex; flex-direction: column; gap: 8px; }
+.binding { min-width: 0; }
 .binding h5 { margin: 0 0 0.65rem; font-size: 0.9rem; }
 .grid { display: grid; gap: 0.5rem; }
 .cell { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; min-width: 0; min-height: 5rem; padding: 0.75rem; background: var(--bg-input); border: 1px solid var(--border-1); border-radius: 8px; color: var(--text-strong); cursor: pointer; }

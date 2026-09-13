@@ -1,4 +1,5 @@
 import type { TFunction } from 'i18next'
+import { controllerButtonLabel, controllerButtonOrder, type ControllerVisualFamily } from './controllerStatus'
 
 export type ModifierSelectOption = {
   value: string
@@ -66,8 +67,31 @@ const clampGridButtons = (value: number) => {
   return Math.min(Math.max(Math.floor(value), 1), 25)
 }
 
-export const resolveModifierOptionLabel = (option: ModifierSelectOption, t: TFunction) =>
-  t(option.labelKey, option.labelParams)
+/**
+ * A trigger as the controller in front of you names it.
+ *
+ * The strings carry both families -- "L — top-left bumper (L1 / LB)" -- because
+ * without a controller there is no single right answer. With one there is, and
+ * printing the other pad's name beside it is the same noise the binding rows
+ * were showing. The command itself (`L`, `N`) is the configuration's spelling
+ * and stays in the config editor, not here.
+ */
+export const resolveModifierOptionLabel = (
+  option: ModifierSelectOption,
+  t: TFunction,
+  family: ControllerVisualFamily = 'generic'
+) => {
+  const label = t(option.labelKey, option.labelParams)
+  if (family === 'generic') return label
+  const definition = controllerButtonOrder().find(
+    button => button.command.toUpperCase() === option.value.toUpperCase()
+  )
+  if (!definition) return label
+  // "L — top-left bumper (L1 / LB)" -> "top-left bumper"
+  const description = label.replace(/^[^—]*—\s*/, '').replace(/\s*\([^()]*\)\s*$/, '')
+  const name = controllerButtonLabel(definition, family)
+  return description && description !== label ? `${name} — ${description}` : name
+}
 
 // A two-pad controller's cells are LT1.. and RT1.., so the caller passes the
 // commands it actually built rather than a count; the count path stays for the

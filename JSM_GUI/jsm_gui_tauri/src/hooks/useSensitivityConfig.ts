@@ -24,6 +24,9 @@ const prefixedKey = (key: string, prefix?: string) => (prefix ? `${prefix}${key}
 
 type SensitivityArgs = {
   configText: string
+  // Import-resolved text to read from. Falls back to configText when the
+  // profile imports nothing.
+  readText?: string
   setConfigText: React.Dispatch<React.SetStateAction<string>>
 }
 
@@ -38,7 +41,10 @@ type PendingDual = Record<
 
 const prefixKey = (prefix?: string) => prefix ?? '__base__'
 
-export function useSensitivityConfig({ configText, setConfigText }: SensitivityArgs) {
+export function useSensitivityConfig({ configText, readText, setConfigText }: SensitivityArgs) {
+  // Reads resolve through the imported baseline; writes still land in the
+  // profile's own text, so editing an inherited value creates an override.
+  const readSource = readText ?? configText
   const [sensitivityView, setSensitivityView] = useState<'base' | 'modeshift'>('base')
   const [pendingDual, setPendingDual] = useState<PendingDual>({})
   const pendingDualRef = useRef<PendingDual>({})
@@ -48,7 +54,7 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
     pendingDualRef.current = pendingDual
   }, [pendingDual])
 
-  const sensitivity = useMemo(() => parseSensitivityValues(configText), [configText])
+  const sensitivity = useMemo(() => parseSensitivityValues(readSource), [readSource])
   const SENS_MODE_REGEX = useMemo(
     () =>
       new RegExp(
@@ -65,9 +71,9 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
     []
   )
   const sensitivityModeshiftButton = useMemo(() => {
-    const match = configText.match(SENS_MODE_REGEX)
+    const match = readSource.match(SENS_MODE_REGEX)
     return match ? match[1].toUpperCase() : null
-  }, [SENS_MODE_REGEX, configText])
+  }, [SENS_MODE_REGEX, readSource])
 
   useEffect(() => {
     if (!sensitivityModeshiftButton && sensitivityView === 'modeshift') {
@@ -94,8 +100,8 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
 
   const modeshiftSensitivity = useMemo(() => {
     if (!sensitivityModeshiftButton) return undefined
-    return parseSensitivityValues(configText, { prefix: `${sensitivityModeshiftButton},` })
-  }, [configText, sensitivityModeshiftButton])
+    return parseSensitivityValues(readSource, { prefix: `${sensitivityModeshiftButton},` })
+  }, [readSource, sensitivityModeshiftButton])
 
   const activeSensitivityPrefix = useMemo(() => {
     if (sensitivityView === 'modeshift' && sensitivityModeshiftButton) {
@@ -671,7 +677,7 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
   }
 
   const holdPressTimeState = useMemo(() => {
-    const raw = getKeymapValue(configText, keyName.HOLD_PRESS_TIME)
+    const raw = getKeymapValue(readSource, keyName.HOLD_PRESS_TIME)
     if (raw) {
       const parsed = parseFloat(raw)
       if (Number.isFinite(parsed)) {
@@ -679,11 +685,11 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
       }
     }
     return { value: DEFAULT_HOLD_PRESS_TIME, isCustom: false }
-  }, [configText])
+  }, [readSource])
   const holdPressTimeSeconds = holdPressTimeState.value
   const holdPressTimeIsCustom = holdPressTimeState.isCustom
   const doublePressWindowState = useMemo(() => {
-    const raw = getKeymapValue(configText, keyName.DBL_PRESS_WINDOW)
+    const raw = getKeymapValue(readSource, keyName.DBL_PRESS_WINDOW)
     if (raw) {
       const parsed = parseFloat(raw)
       if (Number.isFinite(parsed)) {
@@ -691,11 +697,11 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
       }
     }
     return { value: DEFAULT_WINDOW_SECONDS, isCustom: false }
-  }, [configText])
+  }, [readSource])
   const doublePressWindowSeconds = doublePressWindowState.value
   const doublePressWindowIsCustom = doublePressWindowState.isCustom
   const simPressWindowState = useMemo(() => {
-    const raw = getKeymapValue(configText, keyName.SIM_PRESS_WINDOW)
+    const raw = getKeymapValue(readSource, keyName.SIM_PRESS_WINDOW)
     if (raw) {
       const parsed = parseFloat(raw)
       if (Number.isFinite(parsed)) {
@@ -703,17 +709,17 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
       }
     }
     return { value: DEFAULT_WINDOW_SECONDS, isCustom: false }
-  }, [configText])
+  }, [readSource])
   const simPressWindowSeconds = simPressWindowState.value
   const simPressWindowIsCustom = simPressWindowState.isCustom
 
   const lightBarColor = useMemo(() => {
-    const raw = getKeymapValue(configText, keyName.LIGHT_BAR)
+    const raw = getKeymapValue(readSource, keyName.LIGHT_BAR)
     if (raw && /^x[0-9a-f]{6}$/i.test(raw.trim())) {
       return `#${raw.trim().slice(1)}`
     }
     return null
-  }, [configText])
+  }, [readSource])
 
   const handleLightBarChange = useCallback((hexColor: string | null) => {
     if (!hexColor) {
@@ -725,7 +731,7 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
   }, [setConfigText])
 
   const triggerThresholdValue = useMemo(() => {
-    const raw = getKeymapValue(configText, keyName.TRIGGER_THRESHOLD)
+    const raw = getKeymapValue(readSource, keyName.TRIGGER_THRESHOLD)
     if (raw) {
       const parsed = parseFloat(raw)
       if (Number.isFinite(parsed)) {
@@ -733,7 +739,7 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
       }
     }
     return 0
-  }, [configText])
+  }, [readSource])
 
   const hasAccelValues = (values?: ReturnType<typeof parseSensitivityValues>) => {
     if (!values) return false
@@ -769,10 +775,10 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
   const [selectedModeshiftMode, setSelectedModeshiftMode] = useState<'static' | 'accel'>(modeshiftMode)
 
   const displaySensitivity = useMemo(() => {
-    const source = activeSensitivityPrefix
-      ? modeshiftSensitivity ?? parseSensitivityValues(configText, { prefix: activeSensitivityPrefix })
+    const activeValues = activeSensitivityPrefix
+      ? modeshiftSensitivity ?? parseSensitivityValues(readSource, { prefix: activeSensitivityPrefix })
       : sensitivity
-    const clone = { ...source }
+    const clone = { ...activeValues }
     const keyPrefix = prefixKey(activeSensitivityPrefix)
     const pending = pendingDual[keyPrefix] ?? {}
     if (pending.min?.x !== undefined) clone.minSensX = pending.min.x === '' ? undefined : parseFloat(pending.min.x)
@@ -784,9 +790,12 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
     if (clone.gyroSpace === undefined) clone.gyroSpace = sensitivity.gyroSpace
     if (clone.rollContribution === undefined) clone.rollContribution = sensitivity.rollContribution
     return clone
-  }, [activeSensitivityPrefix, configText, modeshiftSensitivity, pendingDual, sensitivity])
+  }, [activeSensitivityPrefix, readSource, modeshiftSensitivity, pendingDual, sensitivity])
 
   const finalizePendingValues = useCallback((): string => {
+    // This returns the text that gets SAVED, so it must build on the profile's
+    // own text. Starting from the import-resolved text would write every
+    // imported line into the profile and dissolve the import.
     let next = configText
     const allowed = new Set<string>([prefixKey()])
     if (sensitivityModeshiftButton) {
@@ -796,7 +805,17 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
       if (!allowed.has(key)) return
       const prefix = key === '__base__' ? undefined : key
       const mode = key === '__base__' ? selectedBaseMode : selectedModeshiftMode
-      const parsed = parseSensitivityValues(next, prefix ? { prefix } : undefined)
+      // An override only writes the components the user actually touched, and
+      // fills the rest from the current value. That value may be inherited, so
+      // the profile's own text is read first and anything it does not set
+      // falls back to the resolved text -- otherwise editing one axis of an
+      // inherited pair would silently zero the other.
+      const own = parseSensitivityValues(next, prefix ? { prefix } : undefined)
+      const effective = parseSensitivityValues(readSource, prefix ? { prefix } : undefined)
+      const parsed = { ...effective } as typeof own
+      for (const [field, value] of Object.entries(own)) {
+        if (value !== undefined) (parsed as Record<string, unknown>)[field] = value
+      }
       if (pending.min && mode !== 'static') {
         const clearedX = pending.min.x === ''
         const clearedY = pending.min.y === ''
@@ -869,11 +888,11 @@ export function useSensitivityConfig({ configText, setConfigText }: SensitivityA
     })
     setPendingDual({})
     pendingDualRef.current = {}
-    if (next !== configText) {
+    if (next !== readSource) {
       setConfigText(next)
     }
     return next
-  }, [configText, selectedBaseMode, selectedModeshiftMode, sensitivityModeshiftButton, setConfigText])
+  }, [configText, readSource, selectedBaseMode, selectedModeshiftMode, sensitivityModeshiftButton, setConfigText])
 
   const resetPendingSensitivityChanges = useCallback(() => {
     setPendingDual({})

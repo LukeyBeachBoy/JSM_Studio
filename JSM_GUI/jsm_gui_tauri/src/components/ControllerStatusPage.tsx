@@ -128,7 +128,7 @@ function ControllerStatusDeviceCard({ device, ignoredDevices, onSelectCommand }:
                   {pressedButtons.map(button => (
                     <span key={button.command} className={styles.buttonChip}>
                       <InputGlyph command={button.command} family={family} size={15} />
-                      {controllerButtonLabel(button)}
+                      {controllerButtonLabel(button, family)}
                     </span>
                   ))}
                 </div>

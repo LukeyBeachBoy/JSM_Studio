@@ -88,15 +88,7 @@ export const ViewMark = ({ family }: { family: ControllerVisualFamily }) =>
  *  mark reads as at this size, drawn rather than copied -- and each other
  *  family's own. */
 export const HomeMark = ({ family }: { family: ControllerVisualFamily }) => {
-  if (family === 'steam') {
-    return (
-      <>
-        <circle cx="9.6" cy="6.4" r="2" />
-        <path d="M4.1 9.9 7.8 8.2" />
-        <circle cx="5.3" cy="10.4" r="1.5" />
-      </>
-    )
-  }
+  if (family === 'steam') return <path d="M3.7 7.5 8 3.8l4.3 3.7M5.2 6.5v5.4h5.6V6.5M7 11.9V9h2v2.9" />
   if (family === 'playstation') return <Letter char="PS" size={5.6} />
   if (family === 'nintendo') return <path d="M5.4 8.2 8 5.8l2.6 2.4M6.4 7.6v2.9h3.2V7.6" />
   // Xbox nexus: the ring with the stylised X.

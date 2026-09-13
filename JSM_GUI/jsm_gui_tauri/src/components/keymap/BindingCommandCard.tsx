@@ -7,6 +7,7 @@ import { BindingEditor } from './BindingEditor'
 import { buildTriggerGroups, conditionTriggers, RETARGETABLE_TRIGGER_KINDS, TRIGGER_LABEL_KEYS } from './triggerKinds'
 import { Select } from '../ui/Select'
 import {
+  describeOutputValue,
   getPreferredVirtualControllerDisplayType,
   getVirtualControllerLogicalOutput,
   getVirtualControllerOutputLabel,
@@ -21,6 +22,10 @@ type BindingCommandCardProps = {
   modifierOptions: Option[]
   specialOptions: Option[]
   virtualControllerType: VirtualControllerType
+  /** Configurations this profile can switch to, for a load-config binding. */
+  libraryProfiles?: string[]
+  /** The configuration being edited, so it can be marked in that list. */
+  currentProfileName?: string | null
   isCapturing: boolean
   captureLabel: string
   onUpdate: (command: BindingCommand, patch: BindingCommandPatch) => void
@@ -57,6 +62,8 @@ export function BindingCommandCard({
   modifierOptions,
   specialOptions,
   virtualControllerType,
+  libraryProfiles,
+  currentProfileName,
   isCapturing,
   captureLabel,
   onUpdate,
@@ -92,7 +99,8 @@ export function BindingCommandCard({
   const outputLabel =
     command.outputKind === 'virtualController' && virtualLogicalOutput && virtualDisplayType
       ? getVirtualControllerOutputLabel(virtualLogicalOutput, virtualDisplayType, t)
-      : command.outputValue || t('keymap.commandNoOutput')
+      // Named rather than spelled, the same way the input's row names it.
+      : describeOutputValue(command.outputValue) || t('keymap.commandNoOutput')
   const summaryOutput = behaviorLabel ? `${behaviorLabel} ${outputLabel}` : outputLabel
   const tokenType = command.outputKind === 'virtualController' ? getVirtualControllerTokenType(command.outputValue) : null
   const virtualWarning =
@@ -191,6 +199,8 @@ export function BindingCommandCard({
 
       {expanded && (
         <BindingEditor
+          libraryProfiles={libraryProfiles}
+          currentProfileName={currentProfileName}
           command={command}
           modifierOptions={modifierOptions}
           specialOptions={specialOptions}

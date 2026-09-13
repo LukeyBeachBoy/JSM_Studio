@@ -77,6 +77,8 @@ const DEFAULT_CHORD_PROFILE_LINES: [&str; 12] = [
     "DOWN = VOLUME_DOWN",
 ];
 
+fn default_polling_ms() -> f64 { 3.0 }
+
 fn default_true() -> bool {
     true
 }
@@ -84,6 +86,8 @@ fn default_true() -> bool {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeMappingState {
+    #[serde(default = "default_polling_ms")]
+    pub default_polling_ms: f64,
     pub active_profile_path: String,
     #[serde(default)]
     pub applied_preview_path: Option<String>,
@@ -93,6 +97,12 @@ pub struct RuntimeMappingState {
     /// Studio itself is installed. Only has an effect while AutoLoad is on.
     #[serde(default = "default_true")]
     pub controller_nav_enabled: bool,
+    /// Whether the trackpad overlay window is shown. Persisted because it is a
+    /// feature you turn on once for a game and expect to still be on the next
+    /// time you launch -- it used to reset to off on every start, which read as
+    /// the overlay having broken.
+    #[serde(default)]
+    pub trackpad_overlay_enabled: bool,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -576,6 +586,39 @@ pub fn runtime_dir(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(app_data_dir(app)?.join("jsm-runtime"))
 }
 
+/// Read a config file the way JoyShockMapper resolves an import: a path
+/// relative to the runtime directory, which is both the mapper's working
+/// directory and its config folder.
+///
+/// Not limited to profiles-library, because an import may legitimately point at
+/// GyroConfigs or any other runtime subfolder. Every segment is checked instead,
+/// so a path cannot climb out of the runtime directory. Missing returns Ok(None)
+/// rather than an error: an import naming a file that is not there is something
+/// the editor reports to the user, not a failure of the call.
+pub fn read_runtime_config(app: &AppHandle, relative: &str) -> Result<Option<String>, String> {
+    let normalized = relative.replace('\\', "/");
+    let mut absolute = runtime_dir(app)?;
+    let mut segments = 0;
+    for segment in normalized.split('/') {
+        if segment.is_empty() || segment == "." {
+            continue;
+        }
+        if segment == ".." || segment.contains(':') {
+            return Err(format!("Invalid config path: {relative}"));
+        }
+        absolute.push(segment);
+        segments += 1;
+    }
+    if segments == 0 {
+        return Err(format!("Invalid config path: {relative}"));
+    }
+    match fs::read_to_string(&absolute) {
+        Ok(text) => Ok(Some(text)),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(format!("Failed to read {relative}: {error}")),
+    }
+}
+
 pub fn backend_bin_dir(app: &AppHandle, backend: &str) -> Result<PathBuf, String> {
     let path = bundled_shared_dir(app)?.join(normalize_backend_choice(backend));
     if path.exists() {
@@ -922,16 +965,11 @@ fn ensure_runtime_support_files(app: &AppHandle, backend: &str) -> Result<(), St
             .map_err(|error| format!("Failed to refresh {APP_NAVIGATION_FILE_NAME}: {error}"))?;
     }
 
-    // OnReset.txt used to be how the old overlay-based global chord layer got
-    // re-applied after every RESET_MAPPINGS. Chords are now full configuration
-    // swaps (see GlobalChord/chords.json) with nothing left to re-apply on
-    // reset, so an install that generated one before this version is cleaned
-    // up here -- it was always app-owned/regenerated, never user content.
-    let stale_reset_hook = runtime_root.join("OnReset.txt");
-    if stale_reset_hook.exists() {
-        fs::remove_file(&stale_reset_hook)
-            .map_err(|error| format!("Failed to remove stale OnReset.txt: {error}"))?;
-    }
+    // App-owned defaults are separate from user-authored OnReset hooks.
+    let defaults = runtime_root.join("StudioDefaults.txt");
+    let polling = read_runtime_mapping_state(app)?.default_polling_ms;
+    fs::write(defaults, format!("# JSM Studio global defaults\nTICK_TIME = {polling}\n"))
+        .map_err(|error| format!("Failed to write controller defaults: {error}"))?;
 
     Ok(())
 }
@@ -973,6 +1011,17 @@ pub fn set_controller_nav_enabled(
     state.controller_nav_enabled = enabled;
     persist_runtime_mapping_state(app, &state)?;
     sync_app_navigation_rule(app, &state)?;
+    Ok(state)
+}
+
+pub fn set_default_polling_ms(app: &AppHandle, value: f64) -> Result<RuntimeMappingState, String> {
+    if !value.is_finite() || !(1.0..=100.0).contains(&value) {
+        return Err("Polling interval must be between 1 and 100 ms".to_string());
+    }
+    let mut state = read_runtime_mapping_state(app)?;
+    state.default_polling_ms = value;
+    persist_runtime_mapping_state(app, &state)?;
+    ensure_runtime_support_files(app, &read_backend_choice(app)?)?;
     Ok(state)
 }
 
@@ -1197,11 +1246,13 @@ fn default_runtime_mapping_state(app: &AppHandle) -> Result<RuntimeMappingState,
         .unwrap_or_else(|| DEFAULT_PROFILE_RELATIVE.to_string());
 
     Ok(RuntimeMappingState {
+        default_polling_ms: 3.0,
         active_profile_path,
         applied_preview_path: None,
         mapping_enabled,
         autoload_enabled: get_startup_autoload_enabled(app)?.unwrap_or(true),
         controller_nav_enabled: true,
+        trackpad_overlay_enabled: false,
     })
 }
 
@@ -1530,4 +1581,17 @@ mod tests {
         assert_eq!(normalize_relative_profile_path(Some("../secrets.txt")), None);
         assert_eq!(normalize_relative_profile_path(Some("profiles-library/../x.txt")), None);
     }
+}
+
+/// Remembers whether the trackpad overlay is on, so it comes back after a
+/// restart instead of silently defaulting to off.
+pub fn set_trackpad_overlay_enabled(
+    app: &AppHandle,
+    enabled: bool,
+) -> Result<RuntimeMappingState, String> {
+    ensure_required_files(app)?;
+    let mut state = read_runtime_mapping_state(app)?;
+    state.trackpad_overlay_enabled = enabled;
+    persist_runtime_mapping_state(app, &state)?;
+    Ok(state)
 }

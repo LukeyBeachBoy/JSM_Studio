@@ -84,15 +84,17 @@ export function AppSelect({
   // empty-valued option is the usual "no selection" row, so it doubles as the
   // placeholder rather than rendering as a blank row you can pick.
   const placeholderOption = flat.find(option => option.value === '')
-  const visibleGroups = placeholderOption
-    ? groups.map(group => ({ ...group, options: group.options.filter(option => option.value !== '') }))
-        .filter(group => group.options.length > 0)
-    : groups
+  // Radix reserves the empty string for its placeholder. Keep the native
+  // option selectable through a private sentinel, translating at the boundary.
+  let emptyValue = '__jsm_empty__'
+  while (flat.some(option => option.value === emptyValue)) emptyValue += '_'
+  const visibleGroups = groups.map(group => ({ ...group, options: group.options.map(option =>
+    option.value === '' ? { ...option, value: emptyValue } : option) }))
 
   return (
     <Select
-      value={String(value ?? '')}
-      onValueChange={next => onChange?.({ target: { value: next } })}
+      value={String(value ?? '') || (placeholderOption ? emptyValue : '')}
+      onValueChange={next => onChange?.({ target: { value: next === emptyValue ? '' : next } })}
       groups={visibleGroups}
       placeholder={placeholderOption?.label}
       disabled={disabled}
