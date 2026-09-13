@@ -460,6 +460,55 @@ point within what the strip can already sense.
 
 ## Done
 
+### TODO-22 — A shifted binding could not be un-named
+
+**Status:** DONE 2026-09-13 · uncommitted
+
+**Reported as**
+
+"in my wardogs config the facebuttons have a couple modeshifts and it is not
+possible to unset an inherited label that was set in the main face button
+bindings. If you try making the input empty then it will refill with the label
+set in the main face button binding."
+
+**Fault**
+
+A shifted card with no label of its own shows the unshifted input's, so a shift
+is never anonymous (`InputModeshifts.tsx`, the `bindingLabel` prop). Clearing
+the field wrote an empty label through `setBindingLabel`, which deletes the
+line -- and with no line for the shifted key, the very next read fell through
+to the input's own label and put it straight back. The two halves disagreed:
+the writer had no way to record "cleared" and the reader treated absence as
+"inherit".
+
+**Fix**
+
+- `setBindingLabel` takes `{ keepEmpty }`, which writes the empty label as its
+  own line (`# @label L,S =`) instead of deleting it.
+- `parseBindingLabels` keeps empty label lines rather than skipping them, so a
+  cleared shift reads as `''` -- falsy everywhere that renders a label, but
+  distinct from "no line" in the fallback, which is the only place it matters.
+- The shifted card passes `keepEmpty` only while the input has a label to
+  suppress, so clearing a shift of an unnamed input still leaves no line behind.
+- `ControllerStatusSvg`'s two pad names fall back with `||` rather than `??`,
+  so a hand-written empty label cannot blank the diagram.
+
+The annotation survives Save untouched: `configSerializer` preserves any
+`# @label` line verbatim.
+
+**Verified** against the dev server with a profile carrying `# @label N = Jump`
+and an `L` shift on N: the shifted card shows Jump, clearing it leaves it clear,
+the save writes `# @label L,N =` alongside the unshifted label, and reopening
+the card shows it still empty while the input keeps its own name.
+
+**Guard**
+
+`tests/shifted_label_clear_regression.cjs` -- the fallback, the clear, the
+save round trip, naming it again, and the unnamed-input case. Verified to fail
+on the previous `bindingLabels.ts` ("Jump" !== "").
+
+---
+
 ### TODO-21 — Rotary scroll wheel had nothing left to fire
 
 **Status:** DONE 2026-09-13 · uncommitted · shipped in 0.7.44

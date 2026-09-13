@@ -226,8 +226,17 @@ function ShiftedBinding({ button, trigger, defaultOpen, ...props }: Props & { bu
       // Labels and icons are annotations rather than assignments, so they are
       // written straight to the shifted key instead of travelling through the
       // projection.
+      // A shift with no label of its own shows the unshifted one, so a shifted
+      // card is never anonymous. Clearing the field then has to leave a record
+      // of that -- an empty label line for the shifted key -- or the next read
+      // inherits the unshifted label straight back and the field refills itself.
+      // With nothing to inherit there is nothing to suppress, so the line goes.
       bindingLabel={getBindingLabel(props.text, key) ?? getBindingLabel(props.text, button.command)}
-      onBindingLabelChange={(_target, value) => onChange(previous => setBindingLabel(previous, key, value))}
+      onBindingLabelChange={(_target, value) =>
+        onChange(previous =>
+          setBindingLabel(previous, key, value, { keepEmpty: Boolean(getBindingLabel(previous, button.command)) })
+        )
+      }
       bindingIcon={parseBindingIcons(props.text)[key]}
       onBindingIconChange={
         isGridRegion ? (_target, value) => onChange(previous => setBindingIcon(previous, key, value)) : undefined

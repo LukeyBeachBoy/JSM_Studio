@@ -21,7 +21,10 @@ export function parseBindingLabels(text: string): BindingLabels {
     if (!match) return
     const command = match[1].trim().toUpperCase()
     const label = match[2].trim()
-    if (command && label) labels[command] = label
+    // An empty label line is kept rather than skipped: a shifted binding writes
+    // one to say "no label here" and stop the unshifted label showing through.
+    // Everywhere else an empty string reads the same as no line at all.
+    if (command) labels[command] = label
   })
   return labels
 }
@@ -30,8 +33,14 @@ export function getBindingLabel(text: string, command: string) {
   return parseBindingLabels(text)[command.trim().toUpperCase()]
 }
 
-/** Writes, replaces or (with an empty label) removes one input's label. */
-export function setBindingLabel(text: string, command: string, label: string) {
+/**
+ * Writes, replaces or (with an empty label) removes one input's label.
+ *
+ * `keepEmpty` writes the empty label as its own line instead of deleting it,
+ * which is how a shifted binding says "deliberately unnamed": deleting the
+ * line would let the unshifted label be inherited straight back.
+ */
+export function setBindingLabel(text: string, command: string, label: string, options: { keepEmpty?: boolean } = {}) {
   const key = command.trim().toUpperCase()
   if (!key) return text
   // A label is one line of plain text; anything that would end the line or
@@ -43,12 +52,12 @@ export function setBindingLabel(text: string, command: string, label: string) {
     return Boolean(match && match[1].trim().toUpperCase() === key)
   })
 
-  if (!clean) {
+  if (!clean && !options.keepEmpty) {
     if (index >= 0) lines.splice(index, 1)
     return lines.join('\n')
   }
 
-  const nextLine = `# @label ${key} = ${clean}`
+  const nextLine = `# @label ${key} =${clean ? ` ${clean}` : ''}`
   if (index >= 0) {
     lines[index] = nextLine
     return lines.join('\n')
