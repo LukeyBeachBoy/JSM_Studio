@@ -51,10 +51,20 @@ const fs = require('node:fs');
  await page.getByRole('button',{name:'Apply',exact:true}).click();
  await page.waitForFunction(()=>window.__calls.length===4);
  assert.deepEqual(await page.evaluate(()=>window.__calls),['apply','save','save','apply']);
- // Shifted grid must be editable even though the ordinary mode is mouse.
+ // A shift starts in the mode the pad is already in -- a modeshift is this
+ // input reconfigured, not a jump to one particular mode -- and any mode the
+ // pad supports can then be chosen, editable with the pad's own controls.
  await right.getByRole('button',{name:'Add modeshift'}).click();
  await right.getByRole('combobox').filter({hasText:'Choose a trigger'}).click();
- await page.getByRole('option',{name:/^L — top-left bumper/}).click();
+ // A trigger is named for the controller that is connected, so the mocked
+ // Steam Controller calls its top-left bumper LB rather than "L1 / LB".
+ await page.getByRole('option',{name:/top-left bumper/}).click();
+ const shiftCard = right.locator('details[aria-label="Right trackpad modeshift"]').first();
+ const shiftMode = shiftCard.getByRole('combobox',{name:/^Mode(?!shift)/});
+ await shiftMode.waitFor();
+ assert.match(await shiftMode.innerText(),/Mouse/,'a new shift should inherit the pad’s current mode');
+ await shiftMode.click();
+ await page.getByRole('option',{name:'Grid and Stick',exact:true}).click();
  await right.getByRole('textbox',{name:'Columns',exact:true}).waitFor();
  await right.getByRole('button',{name:/Region 1|Cell 1|RT1/}).first().waitFor();
  await page.keyboard.press('Control+s');

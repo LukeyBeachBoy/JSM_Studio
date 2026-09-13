@@ -24,16 +24,29 @@ const fs = require('node:fs');
   }};
  });
  await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
- const picker=page.locator('.utility-profile-select').getByRole('combobox');
+ // Switching configurations is one control now: the chip that names what you
+ // are editing opens the library, and a row there loads it.
+ const picker=page.locator('.profile-chip');
+ const selectProfile = async name => {
+  await picker.click();
+  const rows = page.locator('[class*=profileLibraryItem]');
+  await rows.first().waitFor();
+  const names = await rows.locator("input").evaluateAll(inputs => inputs.map(input => input.value));
+  const index = names.indexOf(name);
+  if (index < 0) throw new Error(`no configuration named ${name}: ${names.join(", ")}`);
+  await rows.nth(index).getByRole('button',{name:'Load',exact:true}).click();
+  const close = page.locator('.modal-overlay [data-modal-close], .modal-overlay .modal-header .ghost-btn').first();
+  if (await close.count()) await close.click().catch(() => {});
+ };
  await picker.filter({hasText:'Desktop'}).waitFor();
- await picker.click();await page.getByRole('option',{name:'Game',exact:true}).click();
+ await selectProfile('Game');
  await picker.filter({hasText:'Game'}).waitFor();
  assert.deepEqual(await page.evaluate(()=>window.__calls),[],'selecting a profile applied it');
  await page.getByRole('button',{name:'Save configuration',exact:true}).click();
  assert.deepEqual(await page.evaluate(()=>window.__calls),['save'],'Save must not Apply');
- await picker.click();await page.getByRole('option',{name:'Desktop',exact:true}).click();
+ await selectProfile('Desktop');
  await page.getByRole('button',{name:'Overview',exact:true}).click();
- const output=page.locator('li[role="button"]').filter({hasText:'SPACE'}).first();
+ const output=page.locator('button[class*=callout]').filter({hasText:'SPACE'}).first();
  await output.waitFor();
  const out=fs.mkdtempSync(path.join(require('node:os').tmpdir(),'jsm-feedback-'));
  await page.screenshot({path:path.join(out,'overview.png'),fullPage:true});
@@ -42,10 +55,14 @@ const fs = require('node:fs');
  assert(await north.evaluate(el=>el.contains(document.activeElement)),'preview shortcut did not focus N');
  await north.locator('input').filter({visible:true}).first().waitFor();
  await north.getByRole('button',{name:'Command actions',exact:true}).click();
- await page.getByRole('menuitem',{name:'Add sub command',exact:true}).waitFor();
+ // The command menu carries what the header does not; its exact contents are
+ // binding_card_regression's business, this only proves it opens here.
+ await page.getByRole('menuitem',{name:'Duplicate',exact:true}).waitFor();
  await page.keyboard.press('Escape');
  await page.getByRole('button',{name:'Overview',exact:true}).click();
- await page.locator('li[role="button"]').filter({hasText:'LT3'}).click();
+ // A callout names the action, not the command -- 'LT3' is what it is called
+ // in the configuration, not what it does -- so reach it by accessible name.
+ await page.locator('button[aria-label^="LT3:"]').click();
  const region=page.locator('[data-input-command="LT3"]');
  await region.waitFor();
  assert(await region.evaluate(el=>el.contains(document.activeElement)),'grid shortcut did not select and focus LT3');
@@ -53,16 +70,16 @@ const fs = require('node:fs');
  await page.locator('[data-input-command="LEFT_PAD"]').waitFor();
  assert(await page.locator('main').evaluate(el=>el.contains(document.activeElement)),'lazy page focus escaped');
  await page.screenshot({path:path.join(out,'trackpads.png'),fullPage:true});
- await picker.click();await page.getByRole('option',{name:'Game',exact:true}).click();
+ await selectProfile('Game');
  await page.evaluate(()=>{window.__delaySave=true;window.__saved=false});
  await page.getByRole('button',{name:'Save configuration',exact:true}).click();
  await page.waitForFunction(()=>typeof window.__finishSave==='function');
- await picker.click();await page.getByRole('option',{name:'Desktop',exact:true}).click();
+ await selectProfile('Desktop');
  await page.evaluate(()=>window.__finishSave());
  await page.waitForFunction(()=>window.__saved);
  await picker.filter({hasText:'Desktop'}).waitFor();
  await page.getByRole('button',{name:'Overview',exact:true}).click();
- await page.locator('li[role="button"]').filter({hasText:'SPACE'}).first().waitFor();
+ await page.locator('button[class*=callout]').filter({hasText:'SPACE'}).first().waitFor();
  await page.evaluate(async()=>{
   window.__hidStatus={supported:true,installed:true,active:false,inverse:false,steamAllowed:false,whitelistSynced:true,requiresElevation:false,managedInstanceIds:['test'],devices:[{instanceId:'test',displayName:'Test Steam Controller',vendor:'Valve',product:'Controller',present:true,hidden:true,partiallyHidden:false,managedByApp:true,stale:false,likelyCurrentController:false}]};
   window.__TAURI_INTERNALS__={invoke:async command=>{if(command==='get_hidhide_status')return structuredClone(window.__hidStatus);throw new Error('Unexpected mocked Tauri command: '+command)}};

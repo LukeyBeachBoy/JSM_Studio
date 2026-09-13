@@ -24,6 +24,9 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
  await page.locator('.profile-chip').filter({hasText:'Desktop'}).waitFor();
  await page.getByRole('button',{name:'Buttons',exact:true}).click();
+ // Bindings open in a focused detail panel now, so the card exists only once
+ // its input row is opened.
+ await page.locator('details[data-input-command="N"] > summary').click();
  const card = page.locator('[class*=commandCard]').first();
  await card.waitFor();
 

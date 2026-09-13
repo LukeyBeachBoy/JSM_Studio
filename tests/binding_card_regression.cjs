@@ -24,6 +24,9 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
  await page.locator('.profile-chip').filter({hasText:'Desktop'}).waitFor();
  await page.getByRole('button',{name:'Buttons',exact:true}).click();
+ // Bindings open in a focused detail panel now, so the card exists only once
+ // its input row is opened.
+ await page.locator('details[data-input-command="N"] > summary').click();
  const card = page.locator('[class*=commandCard]').first();
  await card.waitFor();
 
@@ -39,8 +42,9 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
    `a written binding should not offer kinds it cannot become: ${options.join(', ')}`);
  await page.keyboard.press('Escape');
 
- // The output reads as the key it sends.
- assert.equal(await card.locator('kbd').first().innerText(), 'SPACE');
+ // The output reads as the key it sends -- by the legend on that key, not by
+ // JoyShockMapper's name for it.
+ assert.equal(await card.locator('kbd').first().innerText(), 'Space');
 
  // The menu carries what the header does not, and nothing that does nothing.
  await card.getByRole('button',{name:'Command actions'}).click();
@@ -58,10 +62,17 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  await page.getByRole('option',{name:'Hold',exact:true}).click();
  await page.waitForFunction(() => document.querySelector('[class*=commandCard] [role=combobox]')?.textContent.includes('Hold'));
 
- // A fresh draft row is written from scratch, so it offers the wider set -- but
- // not chord, which this group's modeshift panel owns. A chord made here would
- // be filtered straight back out of the card and lost.
- await page.getByRole('button',{name:'Add command'}).first().click();
+ // Adding a trigger is one menu now, not nine buttons. It must not offer a
+ // chord: this group's modeshift panel owns those, and one made here would be
+ // written to a line the card filters straight back out and lost.
+ // The add control belongs to the input, not to one of its commands.
+ await page.locator('details[data-input-command="N"]').getByRole('button',{name:'Add another trigger'}).click();
+ const addItems = (await page.getByRole('menuitem').allInnerTexts()).map(text => text.trim());
+ assert.ok(!addItems.some(item => /chord/i.test(item)), `the card offers a chord it cannot keep: ${addItems.join(', ')}`);
+ assert.ok(addItems.includes('Advanced'), `the rare kinds should stay behind a submenu: ${addItems.join(', ')}`);
+
+ // A fresh draft row is written from scratch, so it offers the wider set.
+ await page.getByRole('menuitem',{name:'Press',exact:true}).click();
  const draft = page.locator('[class*=commandCard]').last();
  await draft.getByRole('combobox',{name:'Trigger'}).click();
  const draftOptions = (await page.getByRole('option').allInnerTexts()).map(text => text.trim());

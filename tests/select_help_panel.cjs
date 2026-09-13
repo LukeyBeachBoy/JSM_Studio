@@ -27,6 +27,9 @@ const fs = require('node:fs');
  await page.locator('.profile-chip').filter({hasText:'Desktop'}).waitFor();
  await page.getByRole('button',{name:'Buttons',exact:true}).click();
 
+ // Bindings open in a focused detail panel, so open the input's row first.
+ await page.locator('details[data-input-command="N"] > summary').click();
+
  // The press-type dropdown: its options carry help text of very different
  // lengths, which is what used to resize the popup.
  await page.getByRole('combobox').filter({hasText:/^Press$/}).first().click();

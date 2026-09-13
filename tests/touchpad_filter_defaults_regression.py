@@ -64,16 +64,20 @@ def test_balanced_preset_is_the_shipped_default():
           f'balanced speed is {block.group(2)}, backend default is {EXPECTED_SPEED_COEFF}')
 
 
-def test_preset_labels_quote_the_values_they_set():
-    """A preset named only "Balanced" tells the reader nothing about what it did,
-    and the pair is what the config file and the backend actually talk about."""
-    for preset, cutoff, speed in (('smoothingLight', '10', '0.8'),
-                                  ('smoothingBalanced', '6', '0.6'),
-                                  ('smoothingHeavy', '2.5', '3.0')):
-        label = re.search(rf"'keymap\.{preset}', '([^']+)'", SECTION)
-        check(label is not None, f'{preset} label not found')
-        check(f'({cutoff} / {speed})' in label.group(1),
-              f'{preset} label does not quote ({cutoff} / {speed}): {label.group(1)!r}')
+def test_preset_values_are_visible_and_applied():
+    """The compact editor shows the selected numbers in its disclosure summary,
+    rather than duplicating them in each option label."""
+    for preset, cutoff, speed in (('light', '10', '0.8'),
+                                  ('balanced', '6', '0.6'),
+                                  ('heavy', '2.5', '3.0')):
+        check(f"{{ id: '{preset}', cutoff: {cutoff}, speed: {speed} }}" in SECTION,
+              f'{preset} values changed')
+        check(f'<option value="{preset}">' in SECTION, f'{preset} option missing')
+    check('summary={`${cutoff} Hz · ${speed}`}' in SECTION, 'current filter values are hidden')
+    check('onTouchpadMinCutoffChange?.(String(next.cutoff))' in SECTION,
+          'preset does not apply its cutoff')
+    check('onTouchpadSpeedCoeffChange?.(String(next.speed))' in SECTION,
+          'preset does not apply its speed coefficient')
 
 
 if __name__ == '__main__':
