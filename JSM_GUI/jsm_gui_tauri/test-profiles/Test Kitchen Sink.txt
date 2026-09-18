@@ -1,0 +1,77 @@
+# Dense profile: every input group bound, chords and modeshifts together.
+# Meant for checking that the UI renders a busy configuration, not for playing.
+RESET_MAPPINGS
+AUTOCONNECT = ON
+TELEMETRY_ENABLED = ON
+TELEMETRY_PORT = 8974
+
+LEFT_STICK_MODE = NO_MOUSE
+RIGHT_STICK_MODE = AIM
+LEFT_TOUCHPAD_MODE = GRID_AND_STICK
+RIGHT_TOUCHPAD_MODE = MOUSE
+LEFT_RING_MODE = OUTER
+STICK_SENS = 360
+TRIGGER_THRESHOLD = 0
+
+# Face, d-pad, shoulders, centre.
+N = SPACE
+E = E
+S = LCTRL
+W = R
+UP = 1
+DOWN = 2
+LEFT = 3
+RIGHT = 4
+L = Q
+ZL = RMOUSE
+R = F
+ZR = LMOUSE
+PLUS = ESC
+MINUS = TAB
+HOME = "TURN_OFF_CONTROLLER"
+
+# Stick clicks and capacitive stick touch.
+L3 = LSHIFT
+R3 = MMOUSE
+LTOUCH = NONE
+RTOUCH = NONE
+
+# Mini shoulders and the back buttons.
+LMINI = LALT
+RMINI = C
+MISC1 = F13
+MISC2 = LMOUSE
+MISC3 = RMOUSE
+MISC4 = V
+
+# Left pad as a four-way grid.
+LUP = G
+LDOWN = H
+LLEFT = J
+LRIGHT = K
+LRING = L
+
+# Right pad ring.
+RRING = M
+
+# Chords off each mini shoulder.
+LMINI,UP = VOLUME_UP
+LMINI,DOWN = VOLUME_DOWN
+LMINI,N = PLAY_PAUSE
+RMINI,N = LWINDOWS\ UP\
+RMINI,S = LWINDOWS\ DOWN\
+
+# Modeshifts on the same two chords, so both kinds are live at once.
+ZL,STICK_SENS = 120
+ZL,MIN_GYRO_SENS = 0.6
+ZL,MAX_GYRO_SENS = 0.6
+LMINI,LEFT_STICK_MODE = SCROLL_WHEEL
+RMINI,RIGHT_STICK_MODE = MOUSE_AREA
+RMINI,STICK_SENS = 60
+
+# Gyro.
+GYRO_ON = ZR
+MIN_GYRO_SENS = 1.0
+MAX_GYRO_SENS = 2.0
+MIN_GYRO_THRESHOLD = 0
+MAX_GYRO_THRESHOLD = 75

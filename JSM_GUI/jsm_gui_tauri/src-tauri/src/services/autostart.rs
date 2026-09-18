@@ -17,74 +17,103 @@
 // still requires the creating process to already be elevated (true here: the
 // app is only ever running at all because the user already passed UAC once
 // to start it).
-use std::env;
-use std::os::windows::process::CommandExt;
-use std::process::Command;
-
-const TASK_NAME: &str = "JSM Studio Autostart";
-// Suppresses the console window schtasks.exe would otherwise flash briefly.
-const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-
-fn run_schtasks(args: &[&str]) -> Result<std::process::Output, String> {
-    Command::new("schtasks.exe")
-        .args(args)
-        .creation_flags(CREATE_NO_WINDOW)
-        .output()
-        .map_err(|error| format!("Failed to run schtasks.exe: {error}"))
-}
-
+// Only Windows has this mechanism. Other platforms compile the stub below, which
+// reports the feature as unavailable rather than failing the build or panicking.
 pub fn is_autostart_enabled() -> Result<bool, String> {
-    let output = run_schtasks(&["/Query", "/TN", TASK_NAME])?;
-    Ok(output.status.success())
+    imp::is_autostart_enabled()
 }
 
 pub fn set_autostart_enabled(enabled: bool) -> Result<(), String> {
-    if enabled {
-        let exe_path = env::current_exe()
-            .map_err(|error| format!("Failed to resolve the running executable's path: {error}"))?;
-        let exe_path = exe_path
-            .to_str()
-            .ok_or_else(|| "The executable path contains characters schtasks can't accept.".to_string())?;
-        // --autostart tells lib.rs's setup() to leave the window hidden (it
-        // starts hidden either way per tauri.conf.json) instead of showing it --
-        // "launch at startup" should mean the controller is ready, not that a
-        // window pops up over whatever the user just logged in to do.
-        // The whole thing needs to be one quoted string for /TR: schtasks treats
-        // an unquoted flag after the exe path as part of a literal command line,
-        // but only accepts that as a single /TR argument, not several argv entries.
-        let task_run_command = format!("\"{exe_path}\" --autostart");
-        // /F overwrites a pre-existing task instead of erroring, so re-enabling
-        // (or upgrading from an older exe path) is idempotent. /RL HIGHEST is
-        // the whole point -- see module comment.
-        let output = run_schtasks(&[
-            "/Create",
-            "/TN",
-            TASK_NAME,
-            "/TR",
-            &task_run_command,
-            "/SC",
-            "ONLOGON",
-            "/RL",
-            "HIGHEST",
-            "/F",
-        ])?;
-        if !output.status.success() {
-            let message = String::from_utf8_lossy(&output.stderr);
-            return Err(format!("Failed to create the startup task: {message}"));
-        }
-    } else {
-        let output = run_schtasks(&["/Delete", "/TN", TASK_NAME, "/F"]);
-        // Deleting a task that was never created is not a failure from the
-        // caller's point of view -- the end state (no autostart) is already
-        // what they asked for.
-        if let Ok(result) = &output {
-            if !result.status.success() {
-                let message = String::from_utf8_lossy(&result.stderr);
-                if !message.contains("cannot find") && !message.contains("does not exist") {
-                    return Err(format!("Failed to remove the startup task: {message}"));
+    imp::set_autostart_enabled(enabled)
+}
+
+#[cfg(target_os = "windows")]
+mod imp {
+    use std::env;
+    use std::os::windows::process::CommandExt;
+    use std::process::Command;
+
+    const TASK_NAME: &str = "JSM Studio Autostart";
+    // Suppresses the console window schtasks.exe would otherwise flash briefly.
+    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+
+    fn run_schtasks(args: &[&str]) -> Result<std::process::Output, String> {
+        Command::new("schtasks.exe")
+            .args(args)
+            .creation_flags(CREATE_NO_WINDOW)
+            .output()
+            .map_err(|error| format!("Failed to run schtasks.exe: {error}"))
+    }
+
+    pub fn is_autostart_enabled() -> Result<bool, String> {
+        let output = run_schtasks(&["/Query", "/TN", TASK_NAME])?;
+        Ok(output.status.success())
+    }
+
+    pub fn set_autostart_enabled(enabled: bool) -> Result<(), String> {
+        if enabled {
+            let exe_path = env::current_exe()
+                .map_err(|error| format!("Failed to resolve the running executable's path: {error}"))?;
+            let exe_path = exe_path
+                .to_str()
+                .ok_or_else(|| "The executable path contains characters schtasks can't accept.".to_string())?;
+            // --autostart tells lib.rs's setup() to leave the window hidden (it
+            // starts hidden either way per tauri.conf.json) instead of showing it --
+            // "launch at startup" should mean the controller is ready, not that a
+            // window pops up over whatever the user just logged in to do.
+            // The whole thing needs to be one quoted string for /TR: schtasks treats
+            // an unquoted flag after the exe path as part of a literal command line,
+            // but only accepts that as a single /TR argument, not several argv entries.
+            let task_run_command = format!("\"{exe_path}\" --autostart");
+            // /F overwrites a pre-existing task instead of erroring, so re-enabling
+            // (or upgrading from an older exe path) is idempotent. /RL HIGHEST is
+            // the whole point -- see module comment.
+            let output = run_schtasks(&[
+                "/Create",
+                "/TN",
+                TASK_NAME,
+                "/TR",
+                &task_run_command,
+                "/SC",
+                "ONLOGON",
+                "/RL",
+                "HIGHEST",
+                "/F",
+            ])?;
+            if !output.status.success() {
+                let message = String::from_utf8_lossy(&output.stderr);
+                return Err(format!("Failed to create the startup task: {message}"));
+            }
+        } else {
+            let output = run_schtasks(&["/Delete", "/TN", TASK_NAME, "/F"]);
+            // Deleting a task that was never created is not a failure from the
+            // caller's point of view -- the end state (no autostart) is already
+            // what they asked for.
+            if let Ok(result) = &output {
+                if !result.status.success() {
+                    let message = String::from_utf8_lossy(&result.stderr);
+                    if !message.contains("cannot find") && !message.contains("does not exist") {
+                        return Err(format!("Failed to remove the startup task: {message}"));
+                    }
                 }
             }
         }
+        Ok(())
     }
-    Ok(())
+}
+
+#[cfg(not(target_os = "windows"))]
+mod imp {
+    pub fn is_autostart_enabled() -> Result<bool, String> {
+        Ok(false)
+    }
+
+    pub fn set_autostart_enabled(enabled: bool) -> Result<(), String> {
+        if enabled {
+            // Turning it off is already the state a non-Windows build is in, so
+            // only a request to turn it on has anything to report.
+            return Err("Launch at startup is only available on Windows.".to_string());
+        }
+        Ok(())
+    }
 }

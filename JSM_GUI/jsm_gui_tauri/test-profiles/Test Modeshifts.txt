@@ -1,0 +1,38 @@
+# Modeshifts: the chord changes a *setting* rather than a binding, so the stick,
+# pad or gyro behaves differently for as long as the chord is held.
+RESET_MAPPINGS
+AUTOCONNECT = ON
+TELEMETRY_ENABLED = ON
+TELEMETRY_PORT = 8974
+
+# Base behaviour.
+LEFT_STICK_MODE = NO_MOUSE
+RIGHT_STICK_MODE = AIM
+LEFT_TOUCHPAD_MODE = GRID_AND_STICK
+RIGHT_TOUCHPAD_MODE = MOUSE
+STICK_SENS = 360
+TRIGGER_THRESHOLD = 0
+FLICK_TIME = 0.1
+
+# Hold ZL to aim: slower stick, slower gyro, tighter trigger.
+ZL,RIGHT_STICK_MODE = AIM
+ZL,STICK_SENS = 120
+ZL,MIN_GYRO_SENS = 0.6
+ZL,MAX_GYRO_SENS = 0.6
+
+# Hold the left grip for a scroll-wheel stick instead of a mouse stick.
+LMINI,LEFT_STICK_MODE = SCROLL_WHEEL
+LMINI,RIGHT_STICK_MODE = MOUSE_RING
+
+# Menu mode: a much lower sensitivity for browsing UI, on a chord you can tap.
+RMINI,RIGHT_STICK_MODE = MOUSE_AREA
+RMINI,STICK_SENS = 60
+RMINI,RIGHT_TOUCHPAD_MODE = MOUSE
+
+# Flick stick only while the right mini is held.
+RMINI,LEFT_STICK_MODE = FLICK
+
+# Bindings kept minimal so the settings are what the UI is showing.
+N = SPACE
+ZL = RMOUSE
+ZR = LMOUSE

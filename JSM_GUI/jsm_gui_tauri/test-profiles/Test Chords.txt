@@ -1,0 +1,43 @@
+# Chorded bindings: hold the chord button, press the second, get a different
+# action. Resolved inside the mapper on the press, so these fire on a quick
+# simultaneous tap.
+RESET_MAPPINGS
+AUTOCONNECT = ON
+TELEMETRY_ENABLED = ON
+TELEMETRY_PORT = 8974
+
+# Base layer -- what each button does with no chord held.
+N = SPACE
+E = ENTER
+S = LCTRL
+W = R
+UP = 1
+DOWN = 2
+LEFT = 3
+RIGHT = 4
+L = Q
+R = F
+PLUS = ESC
+MINUS = TAB
+
+# Chorded off the left mini shoulder: a media cluster on the d-pad.
+LMINI,UP = VOLUME_UP
+LMINI,DOWN = VOLUME_DOWN
+LMINI,LEFT = PREV_TRACK
+LMINI,RIGHT = NEXT_TRACK
+LMINI,N = PLAY_PAUSE
+
+# Chorded off the right mini shoulder: window management on the face buttons.
+RMINI,N = LWINDOWS\ UP\
+RMINI,S = LWINDOWS\ DOWN\
+RMINI,W = LWINDOWS\ LEFT\
+RMINI,E = LWINDOWS\ RIGHT\
+
+# A two-button chord that loads another profile -- the quick-tap case, which is
+# why it lives here as a chord and not anywhere slower.
+LMINI,PLUS = "profiles-library/Test Modeshifts.txt"
+
+# Same physical button, three different meanings depending on the chord.
+MISC1 = F13
+LMINI,MISC1 = F14
+RMINI,MISC1 = F15
