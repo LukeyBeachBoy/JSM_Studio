@@ -7,18 +7,19 @@ type KeymapSectionProps = {
   title: string
   description?: string
   icon?: ReactNode
+  /** How many inputs the section holds, shown after its name. */
+  count?: number
   action?: ReactNode
   children: ReactNode
 }
 
-export function KeymapSection({ className = '', title, description, icon, action, children }: KeymapSectionProps) {
+export function KeymapSection({ className = '', title, description, count, action, children }: KeymapSectionProps) {
   return (
     <section className={`${styles.keymapSection} ${className}`.trim()}>
       <div className={styles.keymapSectionHeader}>
         <div className={styles.keymapSectionHeading}>
-          {icon && <span className={styles.keymapSectionIcon}>{icon}</span>}
           <div>
-            <h3>{title} {description && <HelpButton title={title}>{description}</HelpButton>}</h3>
+            <h3>{title}{count !== undefined && <span className={styles.keymapSectionCount}>{count}</span>} {description && <HelpButton title={title}>{description}</HelpButton>}</h3>
 
           </div>
         </div>

@@ -1,0 +1,69 @@
+/* System States 17a: centred, a dashed warn-coloured outline that breathes
+   on --dur-ambient, title, prose, one secondary and one tertiary action. */
+.panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+  max-width: 520px;
+  margin: 0 auto;
+  padding: var(--sp-8) var(--sp-4);
+  text-align: center;
+}
+
+.art { width: 200px; height: 150px; }
+.outline {
+  fill: var(--surface-row);
+  stroke: var(--warn);
+  stroke-width: 2;
+  stroke-dasharray: 6 6;
+  animation: breathe var(--dur-ambient) ease-in-out infinite;
+}
+.ring { fill: var(--surface-control); }
+.dot { fill: none; stroke: var(--warn); stroke-width: 2.5; }
+
+@keyframes breathe { 0%, 100% { opacity: .5; } 50% { opacity: 1; } }
+
+.title {
+  margin: var(--sp-2) 0 0;
+  font-size: var(--fs-page);
+  line-height: var(--lh-page);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-title);
+  color: var(--text-1);
+}
+
+.body { margin: 0; color: var(--text-2); font-size: var(--fs-label); line-height: var(--lh-label); }
+.actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sp-2); margin-top: var(--sp-2); }
+
+/* 17b: connecting. Solid accent outline, a 260px line that fills in a second. */
+.connecting .outline {
+  stroke: var(--accent);
+  stroke-dasharray: none;
+  animation: none;
+  transition: stroke var(--dur-3, 240ms) ease;
+}
+.progress {
+  position: relative;
+  width: 260px;
+  height: 4px;
+  margin: var(--sp-2) 0;
+  border-radius: 2px;
+  background: var(--surface-control);
+  overflow: hidden;
+}
+.progress > span {
+  position: absolute;
+  inset: 0;
+  border-radius: 2px;
+  background: var(--accent);
+  transform-origin: left;
+  animation: fill 1s var(--ease-out, ease-out) forwards;
+}
+@keyframes fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.detail { color: var(--text-3); font-family: var(--font-mono); font-size: 12px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .outline { animation: none; }
+  .progress > span { animation: none; transform: none; }
+}

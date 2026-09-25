@@ -23,7 +23,7 @@ export function useTouchpadConfig({ configText, readText, setConfigText }: Touch
   // and every profile written before FOUR_WAY existed keeps its layout.
   const gridShape = (pad?: Pad) => {
     const v = (read(keyName.GRID_SHAPE, pad) ?? '').trim().toUpperCase()
-    return v === 'FOUR_WAY' || v === 'RADIAL' ? v : 'RECTANGLE'
+    return v === 'FOUR_WAY' || v === 'EIGHT_WAY' || v === 'RADIAL' ? v : 'RECTANGLE'
   }
   const gridDeadzone = (pad?: Pad) => {
     const v = Number.parseFloat(read(keyName.GRID_DEADZONE, pad) ?? '')
@@ -88,7 +88,7 @@ export function useTouchpadConfig({ configText, readText, setConfigText }: Touch
   // profile only carries the setting when it is actually doing something.
   const handleGridShape = useCallback((v: string, pad?: Pad) => {
     const n = v.trim().toUpperCase()
-    setConfigText(prev => n === 'FOUR_WAY' || n === 'RADIAL'
+    setConfigText(prev => n === 'FOUR_WAY' || n === 'EIGHT_WAY' || n === 'RADIAL'
       ? updateKeymapEntry(prev, key(keyName.GRID_SHAPE, pad), [n])
       : removeKeymapEntry(prev, key(keyName.GRID_SHAPE, pad)))
   }, [setConfigText])

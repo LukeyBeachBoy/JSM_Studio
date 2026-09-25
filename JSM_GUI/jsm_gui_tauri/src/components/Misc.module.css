@@ -97,93 +97,129 @@
   word-break: break-word;
 }
 
+/* Toasts (Components 13.13): top right of the content area, 340 wide on the
+   raised surface, a 3px edge in the semantic colour. Success draws its own
+   check (--dur-4); warnings and errors carry a dot. */
 .toastStack {
   position: fixed;
-  bottom: 20px;
+  top: calc(var(--titlebar-h) + var(--page-tabs-h) + 20px);
   right: 20px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  z-index: 9999;
+  gap: 10px;
+  z-index: var(--z-toast);
   pointer-events: none;
 }
 
 .toast {
-  max-width: 360px;
-  padding: 0.35rem 0.9rem;
-  border-radius: 999px;
-  font-size: 0.85rem;
-  line-height: 1.3;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-  border: 1px solid transparent;
+  width: 340px;
+  max-width: calc(100vw - 40px);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-3) 14px;
+  border-radius: var(--r-row);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-menu), inset 3px 0 0 var(--ok);
+  color: var(--text-1);
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-body);
   pointer-events: auto;
   opacity: 0;
-  transform: translateY(8px);
-  animation: toast-in 160ms ease forwards, toast-out 200ms ease forwards;
-  animation-delay: 0s, calc(3000ms - 200ms);
-  animation-fill-mode: forwards;
+  animation: toast-in var(--dur-3) var(--ease-emphasis) forwards, toast-out var(--dur-3) var(--ease-exit) forwards;
+  animation-delay: 0s, calc(3000ms - 240ms);
 }
 
-.toastSuccess {
-  background: var(--toast-success-bg);
-  border-color: var(--toast-success-border);
-  color: var(--toast-success-text);
+.toastWarn { box-shadow: var(--shadow-menu), inset 3px 0 0 var(--warn); }
+.toastError { box-shadow: var(--shadow-menu), inset 3px 0 0 var(--error); }
+
+.toastDot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: var(--warn);
+}
+.toastError .toastDot { background: var(--error); }
+
+.toastCheck {
+  flex: none;
+  margin-top: 2px;
+  color: var(--ok);
+}
+.toastCheck path {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: toast-check var(--dur-4) var(--ease-emphasis) var(--dur-2) forwards;
 }
 
-.toastWarn {
-  background: var(--toast-warn-bg);
-  border-color: var(--toast-warn-border);
-  color: var(--toast-warn-text);
-}
-
-.toastError {
-  background: var(--toast-error-bg);
-  border-color: var(--toast-error-border);
-  color: var(--toast-error-text);
-}
-
+@keyframes toast-check { to { stroke-dashoffset: 0; } }
 @keyframes toast-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: none; }
 }
-
 @keyframes toast-out {
-  from {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(-6px);
-  }
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(-6px); }
 }
 
+/* Update banner (13.13): an accent-soft strip with its action in accent. */
+/* Update banner (System States 17h): from the left edge to where toasts
+   stack, accent-soft, one line. */
 .updateBanner {
   position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
+  top: calc(var(--titlebar-h) + var(--page-tabs-h) + 20px);
+  left: 20px;
+  right: 380px;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem 1rem;
-  border-radius: 999px;
-  font-size: 0.85rem;
-  background: var(--toast-success-bg);
-  border: 1px solid var(--toast-success-border);
-  color: var(--toast-success-text);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-  z-index: 9999;
+  gap: var(--sp-3);
+  padding: 10px var(--sp-4);
+  border-radius: var(--r-row);
+  min-height: 44px;
+  box-sizing: border-box;
+  overflow: hidden;
+  font-size: 13px;
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface-raised));
+  color: var(--text-1);
+  box-shadow: var(--shadow-menu);
+  z-index: var(--z-toast);
   white-space: nowrap;
 }
+.updateBanner > * { position: relative; }
+.updateBanner > b { font-weight: var(--fw-semibold); }
+.updateBanner[data-phase='error'] { box-shadow: var(--shadow-menu), inset 3px 0 0 var(--error); }
+.updateBannerDetail { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--text-2); }
+.updateBannerSpacer { flex: 1; }
+.updateBanner > .updateBannerFill {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  transform-origin: left;
+  transition: transform var(--dur-2, 160ms) linear;
+}
+.updateBannerAction,
+.updateBannerLater {
+  height: 24px;
+  padding: 0 var(--sp-2);
+  border: 0;
+  border-radius: var(--r-sm);
+  background: none;
+  font: inherit;
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+}
+.updateBannerAction { color: var(--accent); }
+.updateBannerLater { color: var(--text-3); font-weight: var(--fw-medium); }
+.updateBannerAction:hover,
+.updateBannerLater:hover { background: color-mix(in srgb, var(--text-1) 8%, transparent); }
+.updateBannerAction:focus-visible,
+.updateBannerLater:focus-visible { outline: 2px solid var(--focus-keyboard); outline-offset: 1px; }
+@media (max-width: 900px) { .updateBanner { right: 20px; } }
 
-.updateBannerActions {
-  display: flex;
-  gap: 0.5rem;
+@media (prefers-reduced-motion: reduce) {
+  .toast { animation-duration: 120ms; }
+  .toastCheck path { animation: none; stroke-dashoffset: 0; }
 }

@@ -209,6 +209,32 @@ export const controllerVisualFamily = (type?: number): ControllerVisualFamily =>
   }
 }
 
+const CONTROLLER_NAMES: Record<number, string> = {
+  [CONTROLLER_TYPES.XBOXONE]: 'Xbox One controller',
+  [CONTROLLER_TYPES.JOYCON_LEFT]: 'Joy-Con (L)',
+  [CONTROLLER_TYPES.JOYCON_RIGHT]: 'Joy-Con (R)',
+  [CONTROLLER_TYPES.PRO_CONTROLLER]: 'Switch Pro Controller',
+  [CONTROLLER_TYPES.DS4]: 'DualShock 4',
+  [CONTROLLER_TYPES.DS]: 'DualSense',
+  [CONTROLLER_TYPES.XBOXONE_ELITE]: 'Xbox Elite controller',
+  [CONTROLLER_TYPES.XBOX_SERIES]: 'Xbox Series controller',
+  [CONTROLLER_TYPES.HORI_STEAM]: 'HORI Steam controller',
+  [CONTROLLER_TYPES.G7_PRO_8K]: 'G7 Pro 8K',
+  [CONTROLLER_TYPES.EIGHTBITDO_PRO_2]: '8BitDo Pro 2',
+  [CONTROLLER_TYPES.EIGHTBITDO_PRO_2_BT]: '8BitDo Pro 2',
+  [CONTROLLER_TYPES.EIGHTBITDO_PRO_3]: '8BitDo Pro 3',
+  [CONTROLLER_TYPES.EIGHTBITDO_ULTIMATE2_WIRELESS]: '8BitDo Ultimate 2',
+  [CONTROLLER_TYPES.FLYDIGI_APEX5]: 'Flydigi Apex 5',
+  [CONTROLLER_TYPES.FLYDIGI_VADER3_PRO]: 'Flydigi Vader 3 Pro',
+  [CONTROLLER_TYPES.FLYDIGI_VADER4_PRO]: 'Flydigi Vader 4 Pro',
+  [CONTROLLER_TYPES.FLYDIGI_VADER5_PRO]: 'Flydigi Vader 5 Pro',
+  [CONTROLLER_TYPES.SWITCH2_PRO_CONTROLLER]: 'Switch 2 Pro Controller',
+  [CONTROLLER_TYPES.STEAM_CONTROLLER_2026]: 'Steam Controller',
+}
+
+/** What the page-tab status line calls the connected controller. */
+export const controllerDisplayName = (type?: number) => (type !== undefined && CONTROLLER_NAMES[type]) || 'Controller'
+
 export const controllerBackInputMode = (device?: TelemetryDevice): ControllerBackInputMode => {
   const controllerType = device?.type ?? 0
   const splitType = device?.split ?? 0
@@ -478,6 +504,7 @@ export const getPressedControllerButtons = (device?: TelemetryDevice) => {
 // retain the generic editor; confirmed devices expose only usable controls.
 export const controllerSupportsInput = (device: TelemetryDevice | undefined, command: string): boolean => {
   if (!device || !device.type) return true
+  if (/^[LR]M[0-9]+$/.test(command)) return true
   if (/^(ZL|ZR|LUP|LDOWN|LLEFT|LRIGHT|LRING|RUP|RDOWN|RLEFT|RRIGHT|RRING)/.test(command)) return true
   if (device.type === 24 && ['LTOUCH', 'RTOUCH'].includes(command)) return true
   if (command === 'TOUCH' && device.type === 24) return false

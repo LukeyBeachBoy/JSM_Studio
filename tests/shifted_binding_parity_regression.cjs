@@ -73,6 +73,7 @@ const PROFILE = [
     );
     await page.keyboard.press('Escape');
 
+    await shifted.getByRole('button',{name:'Advanced command settings',exact:true}).first().click();
     // The editing capabilities the reduced version did not have.
     for (const name of [/Add another trigger/i, /Capture/i]) {
       assert.ok(await shifted.getByRole('button', { name }).count() >= 1, `the shifted card is missing ${name}`);
@@ -110,6 +111,7 @@ const PROFILE = [
     // binding expression.
     await shifted.getByRole('button', { name: /Add another trigger/i }).click();
     await page.getByRole('menuitem', { name: 'Hold', exact: true }).click();
+    await shifted.getByRole('button',{name:'Advanced command settings',exact:true}).nth(1).click();
     const outputs = shifted.getByRole('textbox', { name: /Output value/i });
     await outputs.nth(1).waitFor();
     await outputs.nth(1).fill('M');

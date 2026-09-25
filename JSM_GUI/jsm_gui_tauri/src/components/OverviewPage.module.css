@@ -1,94 +1,330 @@
-.page {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
+/* Overview (Overview.dc.html): filter bar, the controller as hero between two
+   callout columns, a band of cards for sticks, pads and buttons, and quick
+   settings last. */
+.page { display: flex; flex-direction: column; gap: var(--sp-6); }
 
-/* Diagram on the left, the configuration's named actions beside it. The legend
-   drops under the diagram once there is no room for a column. */
-.diagramRow {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-4);
-}
-
-.diagram {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-@media (max-width: 900px) {
-  .diagramRow {
-    flex-direction: column;
-  }
-}
-
-.noDevice {
-  color: var(--text-muted);
-  font-size: 0.85rem;
-  padding: 2rem 0;
-  text-align: center;
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 0.7rem;
-}
-
-.categoryCard {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.4rem;
-  text-align: left;
-  border: 1px solid var(--border-1);
-  border-radius: 10px;
-  background: var(--bg-1);
-  color: var(--text-mid);
-  padding: 0.9rem 1rem;
-  cursor: pointer;
-  font: inherit;
-  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
-}
-
-.categoryCard:hover {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 8%, var(--bg-1));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
-  color: var(--text-strong);
-}
-
-.categoryIcon {
+/* ---- Filter bar: chips, toggle chips, search on the right. */
+.filterBar { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.filterSpacer { flex: 1; }
+.filterChip {
+  height: var(--control-h-sm);
   display: inline-flex;
-  color: var(--text-dim);
+  align-items: center;
+  gap: 6px;
+  padding: 0 var(--sp-3);
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--surface-row);
+  color: var(--text-2);
+  font: inherit;
+  font-size: var(--fs-hint);
+  font-weight: var(--fw-medium);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--dur-1) var(--ease-standard), color var(--dur-1) var(--ease-standard);
+}
+.filterChip:hover { background: var(--surface-row-hover); color: var(--text-1); }
+.filterChip[aria-pressed='true'],
+.filterChip[data-selected='true'] { background: var(--text-1); color: var(--surface-frame); }
+.chipCount { color: inherit; opacity: .6; }
+.selectChip { padding: 0; }
+.selectChip select {
+  min-height: var(--control-h-sm);
+  height: var(--control-h-sm);
+  border-radius: var(--r-pill);
+  background-color: transparent;
+  color: inherit;
+  font-size: var(--fs-hint);
+  padding: 0 30px 0 var(--sp-3);
+}
+.selectChip select:hover:not(:disabled) { background-color: transparent; }
+
+.toggleChip {
+  height: var(--control-h-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 0 var(--sp-3) 0 var(--sp-2);
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--surface-row);
+  color: var(--text-2);
+  font: inherit;
+  font-size: var(--fs-hint);
+  font-weight: var(--fw-medium);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.toggleChip:hover { background: var(--surface-row-hover); color: var(--text-1); }
+.toggleMark {
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px var(--text-3);
+}
+.toggleChip[aria-pressed='true'] { color: var(--text-1); }
+.toggleChip[aria-pressed='true'] .toggleMark { background: var(--accent); box-shadow: none; }
+.toggleChip[aria-pressed='true'] .toggleMark::after {
+  content: '';
+  width: 7px;
+  height: 4px;
+  margin-top: -2px;
+  border-left: 2px solid var(--text-on-accent);
+  border-bottom: 2px solid var(--text-on-accent);
+  transform: rotate(-45deg);
 }
 
-.categoryCard:hover .categoryIcon {
+.search {
+  width: 320px;
+  max-width: 100%;
+  height: var(--control-h);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 0 var(--sp-2) 0 var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--line-1);
+  color: var(--text-3);
+}
+.search:focus-within { box-shadow: inset 0 0 0 1px var(--focus-keyboard); }
+.search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text-1);
+  font: inherit;
+  font-size: var(--fs-body);
+}
+
+/* ---- Layer preview: which layer's bindings the page shows. */
+.layerTabs { display: flex; align-items: center; gap: var(--sp-2); overflow-x: auto; flex-shrink: 0; }
+.layerTabs button {
+  height: var(--control-h-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex: none;
+  padding: 0 var(--sp-3);
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-size: var(--fs-hint);
+  font-weight: var(--fw-medium);
+  cursor: pointer;
+}
+.layerTabs button:hover { background: var(--surface-row-hover); color: var(--text-1); }
+.layerTabs button[aria-pressed='true'] { background: var(--surface-row); color: var(--text-1); box-shadow: inset 0 0 0 1px var(--line-2); }
+.layerTabs svg { display: none; }
+.layerSwatch { width: 8px; height: 8px; border-radius: 2px; }
+
+/* ---- Hero: 320 | controller | 320. */
+.hero {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr) 320px;
+  gap: var(--sp-6);
+  align-items: start;
+}
+.noDiagram { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.calloutColumn { display: flex; flex-direction: column; gap: var(--sp-2); min-width: 0; }
+.diagram { position: relative; min-width: 0; width: 100%; align-self: center; }
+.diagramStatus { position: absolute; top: 0; right: 0; }
+
+.bindingGroup { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.bindingGroup h3,
+.overviewCard h3 {
+  margin: var(--sp-2) 0 var(--sp-1);
+  padding: 0 var(--sp-3);
+  font-size: var(--fs-eyebrow);
+  line-height: var(--lh-eyebrow);
+  letter-spacing: var(--tracking-eyebrow);
+  font-weight: var(--fw-semibold);
+  color: var(--text-3);
+  text-transform: uppercase;
+}
+.callouts { display: flex; flex-direction: column; gap: 2px; }
+.inputRow { min-width: 0; }
+
+/* A callout (48 high): glyph, action and detail, output keycap on the right. */
+.callout {
+  position: relative;
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border: 0;
+  border-radius: var(--r-row);
+  background: transparent;
+  color: var(--text-1);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--dur-1) var(--ease-standard), box-shadow var(--dur-2) var(--ease-standard), transform var(--dur-2) var(--ease-emphasis);
+}
+.callout > svg { flex: none; color: var(--text-1); }
+.callout:hover { background: var(--surface-row-hover); }
+:global(body[data-input-source='controller']) .callout:focus {
+  background: var(--surface-selected);
+  box-shadow: 0 0 0 var(--focus-controller-width) var(--focus-controller), var(--shadow-lift);
+  transform: translateY(-1px);
+}
+.calloutCompact { min-height: 36px; padding: 6px var(--sp-2); gap: 10px; }
+
+.bindingText { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.calloutTitle {
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  font-weight: var(--fw-medium);
+  color: var(--text-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bindingText small, .detailLine {
+  font-size: var(--fs-micro);
+  line-height: 15px;
+  color: var(--text-3);
+  overflow-wrap: anywhere;
+}
+/* A layer action is a different kind of thing from a binding: it changes what
+   the whole controller is doing, not what one input emits. */
+.layerLine { font-size: var(--fs-micro); line-height: 15px; color: var(--layer-1); font-weight: var(--fw-semibold); }
+.layerLine svg { width: 12px; height: 12px; vertical-align: -2px; margin-right: 4px; }
+/* A relationship is context about other inputs, not this one. */
+.relationLine { font-size: var(--fs-micro); line-height: 15px; color: var(--text-3); }
+.unbound, .noDevice { color: var(--text-3); }
+.noDevice { text-align: center; padding: 3rem 1rem; }
+
+.valuePill {
+  min-width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  max-width: 9rem;
+  padding: 0 var(--sp-2);
+  border-radius: var(--r-sm);
+  background: var(--surface-control);
+  box-shadow: inset 0 -2px 0 var(--line-2);
+  color: var(--text-1);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: var(--fw-semibold);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Trigger pull, live: 4px, a soft leading edge, a tick at the soft-pull point. */
+.triggerMeter { position: relative; display: block; height: 4px; margin-top: 4px; border-radius: 2px; background: var(--surface-sunken); overflow: hidden; }
+.triggerMeterFill { position: absolute; inset: 0; transform-origin: left; background: linear-gradient(90deg, var(--telemetry) 88%, transparent); border-radius: 2px; }
+.triggerMeterTick { position: absolute; top: -2px; bottom: -2px; width: 1px; background: var(--text-2); }
+
+.inspect {
+  display: block;
+  margin: 0 0 var(--sp-1) 52px;
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: var(--accent);
+  font: inherit;
+  font-size: var(--fs-micro);
+  cursor: pointer;
 }
 
-.categoryTitle {
-  color: var(--text-strong);
-  font-weight: 800;
-  font-size: 0.92rem;
+.mode {
+  align-self: flex-start;
+  margin: 0 0 var(--sp-1) var(--sp-3);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-2);
+  text-align: left;
+  font: inherit;
+  font-size: var(--fs-hint);
+  text-transform: capitalize;
+  cursor: pointer;
+}
+.mode:hover { color: var(--accent); }
+
+/* ---- Band: one card per stick, pad and button cluster. */
+.band { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--sp-3); align-items: start; }
+.overviewCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  min-width: 0;
+  padding: var(--sp-3) var(--sp-2) var(--sp-2);
+  border-radius: var(--r-card);
+  background: var(--surface-row);
+}
+.overviewCard h3 { margin-top: var(--sp-1); }
+.overviewCard .callout:hover { background: var(--surface-row-hover); }
+
+/* ---- Quick settings: gyro (with live speed) and three single-value tiles. */
+.quickSettings { display: grid; grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr)); gap: var(--sp-3); }
+.quickTile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  min-width: 0;
+  padding: var(--sp-4);
+  border: 0;
+  border-radius: var(--r-card);
+  background: var(--surface-row);
+  color: var(--text-1);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--dur-1) var(--ease-standard);
+}
+.quickTile:hover:not(:disabled) { background: var(--surface-row-hover); }
+.quickTile:disabled { opacity: var(--disabled-opacity); cursor: default; }
+.quickTile small { color: var(--text-3); font-size: var(--fs-micro); }
+.quickTileGyro { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: var(--sp-5); padding: var(--sp-4) var(--sp-5); }
+.quickTileAction { justify-content: space-between; }
+.quickTileAction .quickValue { color: var(--accent); }
+.quickMain { display: flex; flex-direction: column; gap: var(--sp-2); min-width: 0; }
+.quickEyebrow { font-size: var(--fs-eyebrow); letter-spacing: var(--tracking-eyebrow); font-weight: var(--fw-semibold); color: var(--text-3); text-transform: uppercase; }
+.quickValue { font-size: var(--fs-body); font-weight: var(--fw-medium); color: var(--text-1); text-transform: none; }
+.quickValue::first-letter { text-transform: uppercase; }
+.quickStats { display: flex; flex-wrap: wrap; gap: var(--sp-5); margin-top: var(--sp-1); }
+.quickStats > span { display: flex; flex-direction: column; gap: 2px; font-size: var(--fs-hint); font-weight: var(--fw-semibold); font-variant-numeric: tabular-nums; text-transform: capitalize; }
+.quickLive { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; }
+.quickLiveHead { display: flex; justify-content: space-between; align-items: baseline; }
+.quickLiveHead b { font-size: var(--fs-hint); font-variant-numeric: tabular-nums; color: var(--telemetry); }
+.sparkline { width: 100%; height: 48px; border-radius: var(--r-md); background: var(--surface-sunken); }
+.sparkline polyline { fill: none; stroke: var(--telemetry); stroke-width: 2; vector-effect: non-scaling-stroke; }
+
+.otherHardware { color: var(--text-2); font-size: var(--fs-hint); }
+.otherHardware summary { cursor: pointer; }
+
+@media (max-width: 1279px) {
+  .hero { grid-template-columns: 280px minmax(0, 1fr) 280px; gap: var(--sp-4); }
+  .quickSettings { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .quickTileGyro { grid-column: 1 / -1; }
+}
+@media (max-width: 1023px) {
+  .hero { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .diagram { grid-column: 1 / -1; grid-row: 1; max-width: 560px; justify-self: center; }
+  .search { width: 100%; order: 10; }
+}
+@media (max-width: 640px) {
+  .hero, .quickSettings { grid-template-columns: minmax(0, 1fr); }
+  .quickTileGyro { grid-template-columns: minmax(0, 1fr); }
 }
 
-.categoryDesc {
-  color: var(--text-muted);
-  font-size: 0.78rem;
-  line-height: 1.4;
-}
-
-.diagramRow { display: grid; grid-template-columns: minmax(130px, 1fr) minmax(260px, 2.4fr) minmax(130px, 1fr); align-items: center; gap: 16px; }
-.callouts { display: flex; flex-direction: column; gap: 6px; }
-.callout { display: flex; align-items: center; gap: 10px; min-height: 40px; width: 100%; padding: 8px 10px; border: 1px solid var(--border-1); border-radius: 8px; background: var(--bg-1); color: var(--text-strong); text-align: left; font: inherit; font-size: .8rem; cursor: pointer; }
-.callout svg { flex-shrink: 0; }
-.callout span { overflow-wrap: anywhere; }
-.callout:hover { border-color: var(--accent); }
-.diagram { position: sticky; top: 16px; }
-@media(max-width: 1000px) { .diagramRow { grid-template-columns: 1fr 1fr; } .diagram { grid-column: 1 / -1; grid-row: 1; max-width: 560px; justify-self: center; position: static; } }
-
-.diagram { position: static; align-self: center; }
-.diagramRow { min-height: 420px; }
-.callouts { max-height: 560px; overflow-y: auto; }
+/* System States 17b: the live art cross-fades in after "Connecting to …". */
+.diagram[data-arrived] > * { animation: arrive var(--dur-3, 240ms) ease-out; }
+@keyframes arrive { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .diagram[data-arrived] > * { animation: none; } }

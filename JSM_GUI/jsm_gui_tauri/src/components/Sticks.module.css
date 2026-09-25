@@ -98,3 +98,9 @@
   gap: var(--space-2);
   margin-top: var(--space-2);
 }
+
+/* On the design: the stick's settings are plain setting rows on the canvas
+   (Configuration Pages 15b), no card or rule of their own. */
+.stickModeCard, .stickModeInline { padding: 0; border: 0; border-radius: 0; background: transparent; gap: var(--sp-2); }
+.stickModeExtras { border-top: 0; padding-top: 0; }
+.deadzoneRow { display: flex; flex-direction: column; gap: 0; }

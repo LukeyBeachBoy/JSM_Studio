@@ -40,7 +40,8 @@ import { controllerButtonLabel, type ControllerVisualFamily } from '../../utils/
 import { InputGlyph } from '../glyphs/InputGlyph'
 
 import { ButtonMappingCard } from './ButtonMappingCard'
-import { describeOutputValue, getVirtualControllerLogicalOutput, type VirtualControllerType } from '../../utils/virtualController'
+import { getVirtualControllerLogicalOutput, type VirtualControllerType } from '../../utils/virtualController'
+import { describeBinding, explainBinding } from '../../utils/bindingDescription'
 
 type ButtonBindingsCardProps = {
   button: ButtonDefinition
@@ -117,6 +118,9 @@ type ButtonBindingsCardProps = {
   onCopyBindings?: (presets: BindingCommandPreset[]) => void
   /** Start expanded; see ButtonMappingCard. */
   defaultOpen?: boolean
+  /** The row's name where the block around it already names the input, like
+      "Soft pull" inside Left trigger. */
+  label?: string
   /** How many shifts reconfigure this input; shown on its compact row. */
   modeshiftCount?: number
   /** Chord bindings are edited in this group's modeshift panel, not here. */
@@ -184,6 +188,7 @@ export const ButtonBindingsCard = ({
   onCopyBindings,
   chordsLiveInModeshifts,
   defaultOpen,
+  label,
   modeshiftCount,
   inheritedFrom,
   onOpenConfigEditor,
@@ -198,6 +203,9 @@ export const ButtonBindingsCard = ({
   const captureKeyFor = (command: BindingCommand) =>
     domCommand ? `${domCommand}:${command.id}` : command.id
   const [selectionMode, setSelectionMode] = useState(false)
+  // Parsing a draft into a real command can change its id. Keep disclosure at
+  // input level so typing the first character cannot close the active editor.
+  const [expandedCommands, setExpandedCommands] = useState<Set<number>>(() => new Set())
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const buttonKey = button.command.toUpperCase()
   const specialKey = specialsByButton[button.command]
@@ -596,7 +604,7 @@ export const ButtonBindingsCard = ({
     <>
       {buttonHasTrackball && (
         <div className={keymapStyles.trackballInline} data-capture-ignore="true">
-          <NumberField
+          <NumberField setting="TRACKBALL_DECAY"
             label={t('keymap.trackballDecay')}
             value={trackballDecay}
             onChange={onTrackballDecayChange}
@@ -651,14 +659,15 @@ export const ButtonBindingsCard = ({
         .filter(command => command.outputValue.trim().length > 0)
         .map(command => ({
           trigger: command.triggerKind === 'regular' ? undefined : t(`keymap.commandTrigger${command.triggerKind.charAt(0).toUpperCase()}${command.triggerKind.slice(1)}`, command.triggerKind),
-          // What the game receives, not how the file spells it.
-          output: describeOutputValue(command.outputValue),
+          // What the game receives, in words, not how the file spells it.
+          output: describeBinding(command.outputValue, t),
+          outputTitle: explainBinding(command.outputValue, t),
         }))}
       defaultOpen={defaultOpen}
       modeshiftCount={modeshiftCount}
       onPaste={bindingClipboard.length > 0 && !selectionMode ? pasteBindings : undefined}
       pasteLabel={t('keymap.bindingsPaste', { count: bindingClipboard.length })}
-      title={controllerButtonLabel(button, controllerFamily)}
+      title={label ?? controllerButtonLabel(button, controllerFamily)}
       glyph={<InputGlyph command={button.command} family={controllerFamily} size={19} />}
       description={getButtonDescription(button, t)}
       isCapturing={rowCapturing}
@@ -673,9 +682,13 @@ export const ButtonBindingsCard = ({
       onIconChange={onBindingIconChange ? (value) => onBindingIconChange(button.command, value) : undefined}
       commands={
         commands.length > 0 ? (
-          commands.map(command => (
+          commands.map((command, index) => (
             <BindingCommandCard
               key={command.id}
+              layerInput={domCommand?.includes(',') ? undefined : button.command}
+              inputLabel={controllerButtonLabel(button, controllerFamily)}
+              expanded={expandedCommands.has(index)}
+              onExpandedChange={open => setExpandedCommands(previous => { const next = new Set(previous); if (open) next.add(index); else next.delete(index); return next })}
               command={command}
               modifierOptions={modifierOptions}
               specialOptions={command.source.kind === 'special' ? allSpecialOptionList : actionSpecialOptionList}
@@ -685,7 +698,7 @@ export const ButtonBindingsCard = ({
               isCapturing={isCapturingValue(captureKeyFor(command))}
               captureLabel={captureLabel}
               onUpdate={updateCommand}
-              onRemove={removeCommand}
+              onRemove={removed => { setExpandedCommands(previous => new Set([...previous].filter(i => i !== index).map(i => i > index ? i - 1 : i))); removeCommand(removed) }}
               chordsLiveInModeshifts={chordsLiveInModeshifts}
               onDuplicate={duplicateCommand}
               onCopy={onCopyBindings ? (picked) => copyCommands([picked]) : undefined}

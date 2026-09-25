@@ -13,8 +13,8 @@ export type TouchpadGridPad = {
   columns: number
   rows: number
   cells: number
-  /** RECTANGLE (rows x columns) or FOUR_WAY (cardinal wedges about the centre). */
-  shape: 'RECTANGLE' | 'FOUR_WAY'
+  /** RECTANGLE, FOUR_WAY, EIGHT_WAY, or RADIAL. */
+  shape: 'RECTANGLE' | 'FOUR_WAY' | 'EIGHT_WAY' | 'RADIAL'
 }
 
 export type TouchpadGridInput = {
@@ -36,8 +36,12 @@ const GRID_MODE = 'GRID_AND_STICK'
 const clampSide = (value?: number) => Math.max(1, Math.min(5, value || 1))
 
 const normalizeMode = (mode?: string) => (mode ?? '').trim().toUpperCase()
-const normalizeShape = (shape?: string): TouchpadGridPad['shape'] =>
-  normalizeMode(shape) === 'FOUR_WAY' ? 'FOUR_WAY' : 'RECTANGLE'
+const normalizeShape = (shape?: string): TouchpadGridPad['shape'] => {
+  const normalized = normalizeMode(shape)
+  return normalized === 'FOUR_WAY' || normalized === 'EIGHT_WAY' || normalized === 'RADIAL'
+    ? normalized
+    : 'RECTANGLE'
+}
 
 const pad = (
   side: TouchpadGridPad['side'],
@@ -54,7 +58,7 @@ const pad = (
   // GRID_SIZE instead left the third and fourth wedges without a definition, so
   // they fell back to the single-pad T3/T4 names on a two-pad controller.
   // The backend caps a rectangle at 25 cells, so offering a 26th would bind nothing.
-  const cells = gridShape === 'FOUR_WAY' ? 4 : Math.min(25, cols * rowCount)
+  const cells = gridShape === 'FOUR_WAY' ? 4 : gridShape === 'EIGHT_WAY' ? 8 : Math.min(25, cols * rowCount)
   return { side, prefix, columns: cols, rows: rowCount, cells, shape: gridShape }
 }
 

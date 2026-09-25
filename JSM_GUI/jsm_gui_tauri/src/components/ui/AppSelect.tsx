@@ -1,4 +1,5 @@
 import { Children, isValidElement, type ReactNode } from 'react'
+import { SettingOrigin } from '../SettingOrigin'
 import { Select, type SelectGroup, type SelectOption } from './Select'
 
 // A drop-in replacement for `<select className="app-select">`. It takes the same
@@ -9,6 +10,7 @@ import { Select, type SelectGroup, type SelectOption } from './Select'
 type ChangeLike = { target: { value: string } }
 
 type AppSelectProps = {
+  setting?: string
   value?: string | number
   onChange?: (event: ChangeLike) => void
   disabled?: boolean
@@ -49,6 +51,7 @@ const toOption = (node: ReactNode): SelectOption | null => {
 }
 
 export function AppSelect({
+  setting,
   value,
   onChange,
   disabled,
@@ -92,7 +95,7 @@ export function AppSelect({
     option.value === '' ? { ...option, value: emptyValue } : option) }))
 
   return (
-    <Select
+    <><Select
       value={String(value ?? '') || (placeholderOption ? emptyValue : '')}
       onValueChange={next => onChange?.({ target: { value: next === emptyValue ? '' : next } })}
       groups={visibleGroups}
@@ -102,6 +105,6 @@ export function AppSelect({
       ariaLabel={ariaLabel}
       title={title}
       id={id}
-    />
+    /><SettingOrigin setting={setting} /></>
   )
 }

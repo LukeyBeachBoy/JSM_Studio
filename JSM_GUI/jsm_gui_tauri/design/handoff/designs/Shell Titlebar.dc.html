@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<header class="titlebar" data-focus-scope="titlebar" data-tauri-drag-region="" style="height:var(--titlebar-h);display:flex;align-items:center;gap:var(--sp-2);padding-left:var(--sp-4);background:var(--surface-frame);border-bottom:1px solid var(--line-1);font-family:var(--font-ui);color:var(--text-1);font-size:var(--fs-hint);">
+  <div class="titlebar__brand" style="flex:none;white-space:nowrap;display:flex;align-items:center;gap:var(--sp-2);padding-right:var(--sp-3);font-weight:var(--fw-semibold);font-size:var(--fs-body);"><img src="icons/app/jsm-studio-16.svg" alt="" width="18" height="18" style="display:block;">JSM Studio</div>
+
+  <div class="context-segment" data-focusable="" data-state="{{ stEditing }}" style="position:relative;height:var(--control-h-sm);display:flex;align-items:center;gap:var(--sp-2);padding:0 var(--sp-3);border-radius:var(--r-md);background:var(--surface-row);">
+    <span style="color:var(--text-3);">Editing</span><b style="font-weight:var(--fw-semibold);">Wardogs</b><sc-if value="{{ dirty }}" hint-placeholder-val="{{ true }}"><span class="unsaved-dot" style="width:6px;height:6px;border-radius:50%;background:var(--warn);" title="Unsaved changes"></span></sc-if><svg class="chevron" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-3);flex:none;"><path d="M2.5 3.75 5 6.25 7.5 3.75"></path></svg>
+    <sc-if value="{{ fEditing }}" hint-placeholder-val="{{ false }}"><span class="focus-ring" style="position:absolute;inset:-3px;border-radius:calc(var(--r-md) + 3px);box-shadow:0 0 0 var(--focus-controller-width) var(--focus-controller);pointer-events:none;"></span></sc-if>
+    <sc-if value="{{ numbered }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:-10px;right:-6px;width:16px;height:16px;border-radius:50%;background:var(--accent);color:var(--text-on-accent);font-size:10px;font-weight:var(--fw-bold);display:grid;place-items:center;">1</span></sc-if>
+  </div>
+  <div class="context-segment" data-focusable="" data-state="{{ stLayer }}" style="position:relative;height:var(--control-h-sm);display:flex;align-items:center;gap:var(--sp-2);padding:0 var(--sp-3);border-radius:var(--r-md);">
+    <span style="color:var(--text-3);">Layer</span><b style="font-weight:var(--fw-semibold);">Default</b><svg class="chevron" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-3);flex:none;"><path d="M2.5 3.75 5 6.25 7.5 3.75"></path></svg>
+    <sc-if value="{{ fLayer }}" hint-placeholder-val="{{ false }}"><span class="focus-ring" style="position:absolute;inset:-3px;border-radius:calc(var(--r-md) + 3px);box-shadow:0 0 0 var(--focus-controller-width) var(--focus-controller);pointer-events:none;"></span></sc-if>
+    <sc-if value="{{ numbered }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:-10px;right:-6px;width:16px;height:16px;border-radius:50%;background:var(--accent);color:var(--text-on-accent);font-size:10px;font-weight:var(--fw-bold);display:grid;place-items:center;">2</span></sc-if>
+  </div>
+  <div class="context-segment context-segment--applied" data-focusable="" data-state="{{ stApplied }}" style="position:relative;height:var(--control-h-sm);display:{{ appliedDisplay }};align-items:center;gap:var(--sp-2);padding:0 var(--sp-3);border-radius:var(--r-md);color:var(--text-2);">
+    <span style="color:var(--text-3);">Applied</span>
+    <sc-if value="{{ apLayers }}" hint-placeholder-val="{{ true }}">Wardogs<span style="color:var(--text-3);">·</span><span style="display:flex;align-items:center;gap:4px;color:var(--layer-1);"><span style="width:6px;height:6px;border-radius:2px;background:var(--layer-1);"></span>Vehicles</span><span style="display:flex;align-items:center;gap:4px;color:var(--layer-2);"><span style="width:6px;height:6px;border-radius:2px;background:var(--layer-2);"></span>Comms</span></sc-if>
+    <sc-if value="{{ apSame }}" hint-placeholder-val="{{ false }}">Wardogs</sc-if>
+    <sc-if value="{{ apOther }}" hint-placeholder-val="{{ false }}"><span style="color:var(--text-1);font-weight:var(--fw-medium);">Cyberpunk</span><span style="height:18px;display:flex;align-items:center;padding:0 6px;border-radius:var(--r-xs);background:var(--accent-soft);color:var(--accent);font-size:var(--fs-micro);font-weight:var(--fw-semibold);">Not editing · X to edit</span></sc-if>
+    <sc-if value="{{ apNone }}" hint-placeholder-val="{{ false }}"><span style="color:var(--text-3);">Nothing applied</span></sc-if>
+    <sc-if value="{{ fApplied }}" hint-placeholder-val="{{ false }}"><span class="focus-ring" style="position:absolute;inset:-3px;border-radius:calc(var(--r-md) + 3px);box-shadow:0 0 0 var(--focus-controller-width) var(--focus-controller);pointer-events:none;"></span></sc-if>
+    <sc-if value="{{ numbered }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:-10px;right:-6px;width:16px;height:16px;border-radius:50%;background:var(--accent);color:var(--text-on-accent);font-size:10px;font-weight:var(--fw-bold);display:grid;place-items:center;">3</span></sc-if>
+  </div>
+
+  <div style="flex:1;align-self:stretch;"></div>
+
+  <div class="mapping-plate" data-focusable="" data-state="{{ stMapping }}" style="position:relative;flex:none;white-space:nowrap;height:var(--control-h-sm);display:flex;align-items:center;gap:var(--sp-2);padding:0 var(--sp-3) 0 var(--sp-2);border-radius:var(--r-md);background:var(--surface-sunken);box-shadow:inset 0 0 0 1px var(--line-2);">
+    <sc-if value="{{ mTesting }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="position:absolute;inset:0;border-radius:var(--r-md);background:var(--telemetry-soft);box-shadow:inset 0 0 0 1px var(--telemetry);"></span><span style="position:relative;width:18px;height:18px;border-radius:50%;background:var(--telemetry-soft);display:grid;place-items:center;"><span style="width:8px;height:8px;border-radius:50%;background:var(--telemetry);box-shadow:0 0 0 3px var(--telemetry-soft);"></span></span><b style="position:relative;font-weight:var(--fw-semibold);color:var(--telemetry);">Testing Wardogs</b></sc-if>
+    <sc-if value="{{ mStudio }}" hint-placeholder-val="{{ true }}"><span style="width:18px;height:18px;border-radius:50%;background:var(--telemetry-soft);display:grid;place-items:center;"><span style="width:7px;height:7px;border-radius:50%;box-shadow:inset 0 0 0 2px var(--telemetry);"></span></span><b style="font-weight:var(--fw-semibold);">Mapping</b><span style="color:var(--text-3);white-space:nowrap;display:{{ pausedDisplay }};">paused in Studio</span></sc-if>
+    <sc-if value="{{ mOn }}" hint-placeholder-val="{{ false }}"><span style="width:18px;height:18px;border-radius:50%;background:var(--telemetry-soft);display:grid;place-items:center;"><span style="width:7px;height:7px;border-radius:50%;background:var(--telemetry);"></span></span><b style="font-weight:var(--fw-semibold);">Mapping</b></sc-if>
+    <sc-if value="{{ mOff }}" hint-placeholder-val="{{ false }}"><span style="width:18px;height:18px;border-radius:50%;display:grid;place-items:center;"><span style="width:8px;height:8px;border-radius:50%;box-shadow:inset 0 0 0 2px var(--text-3);"></span></span><b style="font-weight:var(--fw-semibold);color:var(--text-2);">Mapping off</b></sc-if>
+    <sc-if value="{{ mDisc }}" hint-placeholder-val="{{ false }}"><span style="width:18px;height:18px;border-radius:50%;background:var(--warn-soft);display:grid;place-items:center;"><span style="width:8px;height:8px;border-radius:50%;box-shadow:inset 0 0 0 2px var(--warn);"></span></span><b style="font-weight:var(--fw-semibold);color:var(--warn);">No controller</b></sc-if>
+    <sc-if value="{{ showOutput }}" hint-placeholder-val="{{ true }}"><span style="width:1px;height:14px;background:var(--line-2);"></span><span style="color:var(--text-2);">Virtual Xbox</span></sc-if><svg class="chevron" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-3);flex:none;"><path d="M2.5 3.75 5 6.25 7.5 3.75"></path></svg>
+    <sc-if value="{{ fMapping }}" hint-placeholder-val="{{ false }}"><span class="focus-ring" style="position:absolute;inset:-3px;border-radius:calc(var(--r-md) + 3px);box-shadow:0 0 0 var(--focus-controller-width) var(--focus-controller);pointer-events:none;"></span></sc-if>
+    <sc-if value="{{ numbered }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:-10px;right:-6px;width:16px;height:16px;border-radius:50%;background:var(--accent);color:var(--text-on-accent);font-size:10px;font-weight:var(--fw-bold);display:grid;place-items:center;">4</span></sc-if>
+  </div>
+
+  <sc-if value="{{ showTest }}" hint-placeholder-val="{{ true }}">
+  <div class="button button--test" data-focusable="" data-state="{{ stTest }}" style="position:relative;height:var(--control-h-sm);display:flex;align-items:center;gap:var(--sp-2);padding:0 var(--sp-3) 0 var(--sp-2);border-radius:var(--r-md);color:var(--text-1);font-weight:var(--fw-semibold);">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"><path d="M4 2.75v8.5L11 7z"></path></svg>Test
+    <sc-if value="{{ fTest }}" hint-placeholder-val="{{ false }}"><span class="focus-ring" style="position:absolute;inset:-3px;border-radius:calc(var(--r-md) + 3px);box-shadow:0 0 0 var(--focus-controller-width) var(--focus-controller);pointer-events:none;"></span></sc-if>
+    <sc-if value="{{ numbered }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:-10px;right:-8px;width:16px;height:16px;border-radius:50%;background:var(--accent);color:var(--text-on-accent);font-size:10px;font-weight:var(--fw-bold);display:grid;place-items:center;">5</span></sc-if>
+  </div>
+  </sc-if>
+  <sc-if value="{{ mTesting }}" hint-placeholder-val="{{ false }}">
+  <div class="button button--test-exit" data-focusable="" style="height:var(--control-h-sm);display:flex;align-items:center;gap:var(--sp-2);padding:0 var(--sp-3);border-radius:var(--r-md);background:var(--surface-control);font-weight:var(--fw-semibold);">Return to Studio</div>
+  </sc-if>
+  <div style="display:flex;align-items:center;gap:var(--sp-1);padding:0 var(--sp-1);color:var(--text-2);">
+    <span class="icon-button" data-focusable="" data-state="{{ stUndo }}" aria-label="Undo" style="position:relative;width:28px;height:28px;display:grid;place-items:center;border-radius:var(--r-sm);">↶
+      <sc-if value="{{ fUndo }}" hint-placeholder-val="{{ false }}"><span class="focus-ring" style="position:absolute;inset:-3px;border-radius:calc(var(--r-sm) + 3px);box-shadow:0 0 0 var(--focus-controller-width) var(--focus-controller);pointer-events:none;"></span></sc-if>
+      <sc-if value="{{ numbered }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:-10px;right:-8px;width:16px;height:16px;border-radius:50%;background:var(--accent);color:var(--text-on-accent);font-size:10px;font-weight:var(--fw-bold);display:grid;place-items:center;">6</span></sc-if>
+    </span>
+    <span class="icon-button" data-focusable="" data-state="{{ stRedo }}" aria-label="Redo" style="position:relative;width:28px;height:28px;display:grid;place-items:center;border-radius:var(--r-sm);">↷
+      <sc-if value="{{ fRedo }}" hint-placeholder-val="{{ false }}"><span class="focus-ring" style="position:absolute;inset:-3px;border-radius:calc(var(--r-sm) + 3px);box-shadow:0 0 0 var(--focus-controller-width) var(--focus-controller);pointer-events:none;"></span></sc-if>
+      <sc-if value="{{ numbered }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:-10px;right:-8px;width:16px;height:16px;border-radius:50%;background:var(--accent);color:var(--text-on-accent);font-size:10px;font-weight:var(--fw-bold);display:grid;place-items:center;">7</span></sc-if>
+    </span>
+  </div>
+  <div class="button button--secondary" data-focusable="" data-state="{{ stSave }}" style="position:relative;height:var(--control-h-sm);display:flex;align-items:center;padding:0 var(--sp-3);border-radius:var(--r-md);background:var(--surface-control);font-weight:var(--fw-semibold);">Save
+    <sc-if value="{{ fSave }}" hint-placeholder-val="{{ false }}"><span class="focus-ring" style="position:absolute;inset:-3px;border-radius:calc(var(--r-md) + 3px);box-shadow:0 0 0 var(--focus-controller-width) var(--focus-controller);pointer-events:none;"></span></sc-if>
+    <sc-if value="{{ numbered }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:-10px;right:-8px;width:16px;height:16px;border-radius:50%;background:var(--accent);color:var(--text-on-accent);font-size:10px;font-weight:var(--fw-bold);display:grid;place-items:center;">8</span></sc-if>
+  </div>
+  <div class="button button--primary" data-focusable="" data-state="{{ stApply }}" style="position:relative;height:var(--control-h-sm);display:flex;align-items:center;padding:0 var(--sp-4);border-radius:var(--r-md);background:var(--accent);color:var(--text-on-accent);font-weight:var(--fw-semibold);">Apply
+    <sc-if value="{{ fApply }}" hint-placeholder-val="{{ false }}"><span class="focus-ring" style="position:absolute;inset:-3px;border-radius:calc(var(--r-md) + 3px);box-shadow:0 0 0 var(--focus-controller-width) var(--focus-controller);pointer-events:none;"></span></sc-if>
+    <sc-if value="{{ numbered }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:-10px;right:-8px;width:16px;height:16px;border-radius:50%;background:var(--accent);color:var(--text-on-accent);font-size:10px;font-weight:var(--fw-bold);display:grid;place-items:center;">9</span></sc-if>
+  </div>
+  <div class="window-controls" data-focusable="false" style="display:flex;align-self:stretch;margin-left:var(--sp-3);color:var(--text-3);">
+    <span style="width:46px;display:grid;place-items:center;">—</span><span style="width:46px;display:grid;place-items:center;">▢</span><span style="width:46px;display:grid;place-items:center;">✕</span>
+  </div>
+</header>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;focus&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;none&quot;,&quot;editing&quot;,&quot;layer&quot;,&quot;applied&quot;,&quot;mapping&quot;,&quot;test&quot;,&quot;undo&quot;,&quot;redo&quot;,&quot;save&quot;,&quot;apply&quot;],&quot;default&quot;:&quot;none&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;open&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;none&quot;,&quot;editing&quot;,&quot;layer&quot;,&quot;mapping&quot;],&quot;default&quot;:&quot;none&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;numbered&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;mapping&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;studio&quot;,&quot;testing&quot;,&quot;on&quot;,&quot;off&quot;,&quot;disconnected&quot;],&quot;default&quot;:&quot;studio&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;applied&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;layers&quot;,&quot;same&quot;,&quot;other&quot;,&quot;none&quot;],&quot;default&quot;:&quot;layers&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;dirty&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;compact&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const f = this.props.focus ?? 'none';
+    const open = this.props.open ?? 'none';
+    const keys = ['editing','layer','applied','mapping','test','undo','redo','save','apply'];
+    const m = this.props.mapping ?? 'studio', ap = this.props.applied ?? 'layers', compact = !!this.props.compact;
+    const v = { numbered: !!this.props.numbered, dirty: this.props.dirty ?? true,
+      mOn: m === 'on', mStudio: m === 'studio', mTesting: m === 'testing', mOff: m === 'off', mDisc: m === 'disconnected', showTest: m === 'studio', showOutput: !compact && m !== 'disconnected' && m !== 'studio' && m !== 'testing',
+      apLayers: ap === 'layers', apSame: ap === 'same', apOther: ap === 'other', apNone: ap === 'none',
+      appliedDisplay: compact ? 'none' : 'flex', pausedDisplay: compact ? 'none' : 'inline' };
+    for (const k of keys) {
+      const cap = k[0].toUpperCase() + k.slice(1);
+      v['f' + cap] = f === k;
+      v['st' + cap] = open === k ? 'open' : (f === k ? 'focused' : 'default');
+    }
+    return v;
+  }
+}
+</script>
+</body>
+</html>

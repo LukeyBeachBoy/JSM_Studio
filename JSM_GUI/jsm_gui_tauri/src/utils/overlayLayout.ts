@@ -88,7 +88,7 @@ export type OverlayMenu = {
   pad: OverlayPad
   /** '' for the base layer, else the chord prefix, e.g. 'MISC2'. */
   layer: string
-  shape: 'RECTANGLE' | 'FOUR_WAY' | 'RADIAL'
+  shape: 'RECTANGLE' | 'FOUR_WAY' | 'EIGHT_WAY' | 'RADIAL'
   columns: number
   rows: number
   /** Fraction of the pad, centre to edge, that selects nothing. */
@@ -227,8 +227,8 @@ export function hitTestRegion(menu: OverlayMenu, x: number, y: number): number {
   const f = Math.fround
   const ux = f(toUnit(x))
   const uy = f(toUnit(y))
-  if (menu.shape === 'RADIAL') {
-    const segments = menu.regions.length
+  if (menu.shape === 'RADIAL' || menu.shape === 'EIGHT_WAY') {
+    const segments = menu.shape === 'EIGHT_WAY' ? 8 : menu.regions.length
     if (segments < 2) return -1
     const dx = f(ux - 0.5)
     const dy = f(uy - 0.5)
@@ -241,7 +241,8 @@ export function hitTestRegion(menu: OverlayMenu, x: number, y: number): number {
     let angle = f(f(Math.atan2(dx, -dy)) + f(step * 0.5))
     while (angle < 0) angle = f(angle + TAU)
     while (angle >= TAU) angle = f(angle - TAU)
-    return Math.min(segments - 1, Math.max(0, Math.trunc(f(angle / step))))
+    const index = Math.min(segments - 1, Math.max(0, Math.trunc(f(angle / step))))
+    return index < menu.regions.length ? index : -1
   }
   if (menu.shape === 'FOUR_WAY') {
     const dx = f(ux - 0.5)
@@ -430,7 +431,9 @@ export function resolveOverlayMenu(
   // A stick menu is only ever a wheel; there is no rectangle on a stick.
   const shape = stick
     ? 'RADIAL'
-    : rawShape === 'FOUR_WAY' ? 'FOUR_WAY' : rawShape === 'RADIAL' ? 'RADIAL' : 'RECTANGLE'
+    : rawShape === 'FOUR_WAY' ? 'FOUR_WAY'
+      : rawShape === 'EIGHT_WAY' ? 'EIGHT_WAY'
+        : rawShape === 'RADIAL' ? 'RADIAL' : 'RECTANGLE'
 
   let columns: number
   let rows: number
@@ -445,7 +448,7 @@ export function resolveOverlayMenu(
     const [rawCols, rawRows] = (read(keys.size) ?? '2 2').trim().split(/\s+/).map(Number)
     columns = Math.max(1, Math.min(5, Number.isFinite(rawCols) ? rawCols : 2))
     rows = Math.max(1, Math.min(5, Number.isFinite(rawRows) ? rawRows : 2))
-    count = shape === 'FOUR_WAY' ? 4 : columns * rows
+    count = shape === 'FOUR_WAY' || shape === 'EIGHT_WAY' ? (shape === 'FOUR_WAY' ? 4 : 8) : columns * rows
   }
   if (count < 1) return null
 

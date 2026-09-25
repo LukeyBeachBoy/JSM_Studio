@@ -36,14 +36,22 @@
    signal and telling them apart by colour taught the reader nothing. Distinct
    from .controlPressed, which is a physical press. */
 .capSenseActive {
-  fill: color-mix(in srgb, var(--telemetry-green) 22%, transparent);
-  stroke: var(--telemetry-green);
-  filter: drop-shadow(0 0 13px color-mix(in srgb, var(--telemetry-green) 36%, transparent));
+  fill: color-mix(in srgb, var(--accent) 22%, transparent);
+  stroke: var(--accent);
+  filter: drop-shadow(0 0 13px color-mix(in srgb, var(--accent) 36%, transparent));
 }
 
 .gripSenseText {
   fill: var(--text-muted);
   font: 700 22px system-ui, sans-serif;
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+}
+
+.triggerReadout {
+  fill: var(--text-muted);
+  font: 600 16px ui-monospace, SFMono-Regular, Menlo, monospace;
   text-anchor: middle;
   dominant-baseline: central;
   pointer-events: none;
@@ -92,8 +100,8 @@
 }
 
 .triggerTrackBound {
-  fill: color-mix(in srgb, var(--telemetry-green) 14%, transparent);
-  stroke: color-mix(in srgb, var(--telemetry-green) 86%, white 8%);
+  fill: color-mix(in srgb, var(--accent) 14%, transparent);
+  stroke: color-mix(in srgb, var(--accent) 86%, white 8%);
 }
 
 .triggerTrackSelected {
@@ -103,7 +111,7 @@
 }
 
 .triggerFill {
-  fill: color-mix(in srgb, var(--telemetry-green) 82%, var(--accent));
+  fill: color-mix(in srgb, var(--accent) 82%, var(--accent));
 }
 
 .triggerLabel,
@@ -149,8 +157,8 @@
 }
 
 .controlBound {
-  fill: color-mix(in srgb, var(--telemetry-green) 14%, transparent);
-  stroke: color-mix(in srgb, var(--telemetry-green) 86%, white 8%);
+  fill: color-mix(in srgb, var(--accent) 14%, transparent);
+  stroke: color-mix(in srgb, var(--accent) 86%, white 8%);
 }
 
 .controlSelected {
@@ -178,8 +186,8 @@
 }
 
 .stickBaseBound {
-  fill: color-mix(in srgb, var(--telemetry-green) 14%, transparent);
-  stroke: color-mix(in srgb, var(--telemetry-green) 86%, white 8%);
+  fill: color-mix(in srgb, var(--accent) 14%, transparent);
+  stroke: color-mix(in srgb, var(--accent) 86%, white 8%);
 }
 
 .stickBaseSelected {
@@ -196,7 +204,7 @@
 }
 
 .stickRingBound {
-  stroke: color-mix(in srgb, var(--telemetry-green) 70%, transparent);
+  stroke: color-mix(in srgb, var(--accent) 70%, transparent);
 }
 
 .stickKnob {
@@ -254,4 +262,127 @@
 
 .controlMarkActive {
   color: var(--accent);
+}
+
+/* ============ Steam Controller, live (Controller Live.dc.html) ============
+   The tonal art is the controller; the overlays above it stay invisible until
+   something is live. Hover lifts a hotspot, the focused callout's input is an
+   accent hotspot with the controller ring, presses and touches draw in the
+   telemetry green. Labels only appear with Details on. */
+.steamLayout {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: 0;
+}
+.steamLayout > .controllerSvg { flex: 1; min-width: 0; overflow: visible; }
+.art { pointer-events: none; }
+
+.steamLive .control,
+.steamLive .stickBase,
+.steamLive .stickRing,
+.steamLive .triggerTrack {
+  fill: transparent;
+  stroke: none;
+  filter: none;
+}
+.steamLive .controlText,
+.steamLive .triggerLabel,
+.steamLive .controlMark { display: none; }
+
+.steamLive .interactive:hover .control,
+.steamLive .interactive:hover .triggerTrack,
+.steamLive .interactive:hover .stickBase {
+  fill: var(--accent-soft);
+  stroke: none;
+  filter: none;
+}
+
+.steamLive .controlSelected,
+.steamLive .stickBaseSelected,
+.steamLive .triggerTrackSelected,
+.steamLive .interactive:hover .controlSelected {
+  fill: color-mix(in srgb, var(--accent) 35%, transparent);
+  stroke: var(--focus-controller);
+  stroke-width: 2;
+  filter: none;
+}
+
+.steamLive .controlPressed {
+  fill: color-mix(in srgb, var(--telemetry) 55%, transparent);
+  stroke: none;
+  filter: none;
+}
+
+.steamLive .capSenseActive {
+  fill: var(--telemetry-soft);
+  stroke: var(--telemetry);
+  stroke-opacity: .5;
+  filter: none;
+}
+
+/* The stick is a dot where the thumb is. */
+.steamLive .stickKnob {
+  r: 9px;
+  fill: var(--telemetry);
+  stroke: none;
+  opacity: .85;
+}
+.steamLive .stickKnobPressed { opacity: 1; r: 11px; }
+.steamLive .stickKnobSelected { fill: var(--focus-controller); opacity: 1; }
+
+.steamLive .triggerFill { fill: var(--telemetry); }
+
+.pressRing {
+  fill: none;
+  stroke: var(--telemetry);
+  stroke-width: 3;
+  pointer-events: none;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: press-ring var(--dur-3) var(--ease-standard) forwards;
+}
+@keyframes press-ring {
+  from { transform: scale(1); opacity: .7; }
+  to { transform: scale(1.6); opacity: 0; }
+}
+
+.padTouch circle { fill: var(--telemetry); }
+.padTouch .padTouchRing { fill: none; stroke: var(--telemetry); stroke-opacity: .35; stroke-width: 2; }
+
+.steamLive.showDetails .controlText,
+.steamLive.showDetails .triggerLabel { display: inline; fill: var(--text-3); font-family: var(--font-ui); }
+
+/* ---- Back view: 150px, mirrored, paddles and grips. */
+.backView {
+  flex: none;
+  width: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.backArt { width: 150px; height: auto; aspect-ratio: 428 / 319; overflow: visible; }
+.backSpot {
+  fill: none;
+  stroke: var(--line-2);
+  stroke-width: 2;
+  stroke-dasharray: 3 4;
+  cursor: pointer;
+  transition: fill var(--dur-1) var(--ease-standard);
+}
+.backSpot:hover { fill: var(--accent-soft); }
+.backSpotBound { stroke: var(--text-3); stroke-dasharray: none; }
+.backSpotPressed { fill: color-mix(in srgb, var(--telemetry) 30%, transparent); stroke: var(--telemetry); stroke-width: 2.5; stroke-dasharray: none; }
+.backSpotSelected { fill: color-mix(in srgb, var(--accent) 35%, transparent); stroke: var(--focus-controller); stroke-width: 3; stroke-dasharray: none; }
+.backLegend { display: flex; flex-direction: column; gap: 6px; font-size: var(--fs-micro); color: var(--text-3); }
+.backLegendTitle { letter-spacing: var(--tracking-eyebrow); font-weight: var(--fw-semibold); text-transform: uppercase; }
+.backLegendItem { display: flex; align-items: center; gap: 6px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.backLegendMark { width: 8px; height: 8px; flex: none; border-radius: 2px; background: var(--text-3); }
+.backLegendMarkLive { border-radius: 50%; background: var(--telemetry); }
+
+@media (prefers-reduced-motion: reduce) {
+  .pressRing { animation: none; opacity: 0; }
+}
+@media (max-width: 1100px) {
+  .backView { display: none; }
 }

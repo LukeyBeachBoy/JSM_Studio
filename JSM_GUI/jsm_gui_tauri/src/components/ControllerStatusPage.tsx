@@ -9,6 +9,7 @@ import { showToast } from '../utils/toast'
 import { BatteryIndicator } from './BatteryIndicator'
 import { Card } from './Card'
 import { ControllerStatusSvg } from './ControllerStatusSvg'
+import { runLongOperation } from './LongOperation'
 import styles from './ControllerStatusPage.module.css'
 
 type ControllerStatusPageProps = {
@@ -204,7 +205,7 @@ function ControllerConnectionStatusPanel({ connectedDevices, priority = false }:
     }
 
     setReconnecting(true)
-    void desktopBridge.reconnectJsmControllers()
+    void runLongOperation('Reconnecting controllers…', () => desktopBridge.reconnectJsmControllers(), { detail: 'Controllers drop out for a moment' })
       .then(result => {
         setError(null)
         showToast(

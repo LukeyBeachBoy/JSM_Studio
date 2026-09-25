@@ -21,7 +21,7 @@ const letters = (source: string) => source.split('').map(letter => ({ token: let
 // US layout. Tokens are the names JoyShockMapper's key parser accepts -- that is
 // the whole point of this picker: the face label is what you look for, the token
 // is what gets written.
-const MAIN_ROWS: KeyDef[][] = [
+export const MAIN_ROWS: KeyDef[][] = [
   row(
     { token: 'ESC', label: 'Esc' },
     ...Array.from({ length: 12 }, (_, index) => ({ token: `F${index + 1}` })),
@@ -69,7 +69,7 @@ const MAIN_ROWS: KeyDef[][] = [
   ),
 ]
 
-const NAV_ROWS: KeyDef[][] = [
+export const NAV_ROWS: KeyDef[][] = [
   row({ token: 'INSERT', label: 'Ins' }, { token: 'HOME', label: 'Home' }, { token: 'PAGEUP', label: 'PgUp' }),
   row({ token: 'DELETE', label: 'Del' }, { token: 'END', label: 'End' }, { token: 'PAGEDOWN', label: 'PgDn' }),
   [],
@@ -77,7 +77,7 @@ const NAV_ROWS: KeyDef[][] = [
   row({ token: 'LEFT', label: '←' }, { token: 'DOWN', label: '↓' }, { token: 'RIGHT', label: '→' }),
 ]
 
-const NUMPAD_ROWS: KeyDef[][] = [
+export const NUMPAD_ROWS: KeyDef[][] = [
   row({ token: 'NUM_LOCK', label: 'Num' }, { token: 'DIVIDE', label: '/' }, { token: 'MULTIPLY', label: '*' }, { token: 'SUBTRACT', label: '-' }),
   row({ token: 'N7', label: '7' }, { token: 'N8', label: '8' }, { token: 'N9', label: '9' }, { token: 'ADD', label: '+' }),
   // The trailing spacers stand in for the double-height + and Enter keys, so
@@ -90,7 +90,7 @@ const NUMPAD_ROWS: KeyDef[][] = [
 // Media and volume keys have no place on the drawn keyboard but are still
 // keyboard output, so they get their own strip rather than needing the token
 // typed by hand.
-const MEDIA_KEYS: KeyDef[] = row(
+export const MEDIA_KEYS: KeyDef[] = row(
   { token: 'MUTE', label: 'Mute', width: 2 },
   { token: 'VOLUME_DOWN', label: 'Vol -', width: 2 },
   { token: 'VOLUME_UP', label: 'Vol +', width: 2 },

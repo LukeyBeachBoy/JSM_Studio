@@ -1,3 +1,4 @@
+import { SettingPrefix } from './SettingOrigin'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { buildModifierOptions, resolveModifierOptionLabel } from '../utils/modifierOptions'
@@ -117,7 +118,7 @@ export function SensitivityControls({
   )
 
   return (
-    <Card className="control-panel" lockable locked={isCalibrating} lockMessage={lockMessage ?? t('messages.lockMessage')}>
+    <SettingPrefix prefix={sensitivityView === 'modeshift' && modeshiftButton ? modeshiftButton + ',' : ''}><Card className="control-panel" lockable locked={isCalibrating} lockMessage={lockMessage ?? t('messages.lockMessage')}>
       <h2>{t('sensitivity.title')}</h2>
       <div className="mode-toggle">
         <button className={`pill-tab ${mode === 'static' ? 'active' : ''}`} onClick={() => onModeChange('static')}>
@@ -184,6 +185,6 @@ export function SensitivityControls({
         className="control-actions"
       />
       <CurvePreview sensitivity={sensitivity} sample={sample} hasPendingChanges={hasPendingChanges} telemetry={telemetry} />
-    </Card>
+    </Card></SettingPrefix>
   )
 }

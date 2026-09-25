@@ -1,23 +1,26 @@
+/* Disclosure (Components 13.12): a hairline box with a 44px summary row;
+   closed, the summary previews the values inside. */
 .disclosure {
-  border-top: 1px solid var(--border-1);
-  padding-top: 0.45rem;
-  margin-top: 0.2rem;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--r-md);
+  box-shadow: inset 0 0 0 1px var(--line-1);
 }
 
 .summary {
+  min-height: var(--row-h-compact);
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: var(--sp-3);
+  padding: 0 var(--sp-3);
+  border-radius: var(--r-md);
   cursor: pointer;
   list-style: none;
   user-select: none;
-  padding: 0.25rem 0.2rem;
-  border-radius: 6px;
-  color: var(--text-muted);
-  font-size: 0.74rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  color: var(--text-1);
+  font-size: var(--fs-body);
+  font-weight: var(--fw-medium);
+  transition: background var(--dur-1) var(--ease-standard);
 }
 
 .summary::-webkit-details-marker {
@@ -25,23 +28,18 @@
 }
 
 .summary:hover {
-  color: var(--text-strong);
-}
-
-.summary:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent);
+  background: var(--surface-row-hover);
 }
 
 .chevron {
   display: inline-block;
-  width: 0.45rem;
-  height: 0.45rem;
-  border-right: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor;
+  width: 7px;
+  height: 7px;
+  margin: 0 3px;
+  border-right: 2px solid var(--text-3);
+  border-bottom: 2px solid var(--text-3);
   transform: rotate(-45deg);
-  transition: transform 0.15s ease;
-  margin-left: 0.15rem;
+  transition: transform var(--dur-2) var(--ease-emphasis);
 }
 
 .disclosure[open] > .summary .chevron {
@@ -58,17 +56,20 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  text-transform: none;
-  letter-spacing: 0;
-  font-weight: 600;
-  color: var(--text-dim);
+  font-weight: var(--fw-regular);
+  font-size: var(--fs-hint);
+  color: var(--text-3);
+}
+
+.disclosure[open] > .summary .preview {
+  display: none;
 }
 
 .body {
   display: flex;
   flex-direction: column;
-  gap: 0.7rem;
-  padding: 0.55rem 0.2rem 0.2rem;
+  gap: var(--sp-2);
+  padding: 0 var(--sp-3) var(--sp-3);
 }
 
 /* NumberField carries `flex: 1 1 200px` so several of them can share a row. In

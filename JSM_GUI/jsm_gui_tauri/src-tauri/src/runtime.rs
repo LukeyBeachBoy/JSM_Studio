@@ -79,6 +79,10 @@ const DEFAULT_CHORD_PROFILE_LINES: [&str; 12] = [
 
 fn default_polling_ms() -> f64 { 3.0 }
 
+fn default_calibration_seconds() -> f64 { DEFAULT_CALIBRATION_SECONDS as f64 }
+
+fn no_sound() -> i32 { -1 }
+
 fn default_true() -> bool {
     true
 }
@@ -103,6 +107,35 @@ pub struct RuntimeMappingState {
     /// the overlay having broken.
     #[serde(default)]
     pub trackpad_overlay_enabled: bool,
+    /// How long CALIBRATE_GYRO calibrates for, and how long it waits first so
+    /// the controller can be put down. Written to StudioDefaults.txt, so they
+    /// hold for the Studio button, a chord and a binding alike.
+    #[serde(default = "default_calibration_seconds")]
+    pub gyro_calibration_seconds: f64,
+    #[serde(default)]
+    pub gyro_calibration_delay: f64,
+    /// Built-in controller tune (0-13) played on connect / before a power-off
+    /// JoyShockMapper sends. -1 = none.
+    #[serde(default = "no_sound")]
+    pub connect_sound: i32,
+    #[serde(default = "no_sound")]
+    pub shutdown_sound: i32,
+    /// Studio's reserved chords: Quick Access + R5 pauses or resumes mapping,
+    /// Quick Access + R4 calibrates the gyro, from any configuration. Off by
+    /// default so they cannot fight a configuration that binds those inputs.
+    #[serde(default)]
+    pub reserved_chords: bool,
+    /// Whether the calibration HUD window appears over games. The run itself
+    /// is the same either way; Studio's own countdown still shows.
+    #[serde(default = "default_true")]
+    pub calibration_hud_enabled: bool,
+    /// Set once `controller_nav_enabled` has been moved to its redesign
+    /// meaning. Before the redesign that switch mapped the controller to
+    /// keyboard and mouse inside Studio, and people turned it off; now it is
+    /// how Studio pauses the configuration and reads the pad itself, so an old
+    /// "off" is not a choice about this feature and is reset to on once.
+    #[serde(default)]
+    pub studio_navigation_migrated: bool,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -116,6 +149,10 @@ pub struct AutoloadRule {
     pub missing_profile: bool,
     /// The rule JSM Studio installs for its own window (controller navigation).
     pub built_in: bool,
+    /// Kept but not used: the file is named `<app>.txt.paused`, which the
+    /// mapper's AutoLoad does not match, so pausing is a rename and loses nothing.
+    #[serde(default)]
+    pub paused: bool,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -145,6 +182,7 @@ pub fn ensure_required_files(app: &AppHandle) -> Result<(), String> {
     ensure_dir(&autoload_dir(app)?)?;
 
     migrate_bundled_runtime_data(app, &backend)?;
+    migrate_calibration_script(app)?;
     ensure_runtime_support_files(app, &backend)?;
 
     // Seed a starter configuration only when the library is empty. Recreating
@@ -166,8 +204,7 @@ pub fn ensure_required_files(app: &AppHandle) -> Result<(), String> {
     )?;
     write_startup_file(app, &state)?;
     sync_app_navigation_rule(app, &state)?;
-    let seconds = read_calibration_seconds(app)?;
-    write_calibration_command_file(app, seconds)?;
+    write_calibration_command_file(app)?;
 
     Ok(())
 }
@@ -196,24 +233,37 @@ pub fn write_backend_choice(app: &AppHandle, choice: &str) -> Result<String, Str
     ensure_parent_dir(&path)?;
     let content = serde_json::to_string(&normalized)
         .map_err(|error| format!("Failed to serialize backend choice: {error}"))?;
-    fs::write(path, content)
+    write_file_atomically(&path, &content)
         .map_err(|error| format!("Failed to persist backend choice: {error}"))?;
     Ok(normalized)
 }
 
 pub fn read_calibration_seconds(app: &AppHandle) -> Result<u32, String> {
-    let path = calibration_command_file(app)?;
-    let content = match fs::read_to_string(path) {
-        Ok(value) => value,
-        Err(_) => return Ok(DEFAULT_CALIBRATION_SECONDS),
-    };
-
-    Ok(parse_sleep_seconds(&content).unwrap_or(DEFAULT_CALIBRATION_SECONDS))
+    Ok(read_runtime_mapping_state(app)?.gyro_calibration_seconds.round().max(1.0) as u32)
 }
 
 pub fn write_calibration_seconds(app: &AppHandle, seconds: u32) -> Result<u32, String> {
-    write_calibration_command_file(app, seconds)?;
+    let mut state = read_runtime_mapping_state(app)?;
+    state.gyro_calibration_seconds = (seconds as f64).clamp(0.5, 60.0);
+    persist_runtime_mapping_state(app, &state)?;
+    ensure_runtime_support_files(app, &read_backend_choice(app)?)?;
     Ok(seconds)
+}
+
+/// RecalibrateGyro.txt used to carry the duration itself (RESTART_GYRO_CALIBRATION,
+/// SLEEP n, FINISH_GYRO_CALIBRATION). Carry a customised n into the setting once,
+/// before the file is rewritten to just CALIBRATE_GYRO.
+fn migrate_calibration_script(app: &AppHandle) -> Result<(), String> {
+    let Some(seconds) = fs::read_to_string(calibration_command_file(app)?)
+        .ok()
+        .as_deref()
+        .and_then(parse_sleep_seconds)
+    else {
+        return Ok(());
+    };
+    let mut state = read_runtime_mapping_state(app)?;
+    state.gyro_calibration_seconds = (seconds as f64).clamp(0.5, 60.0);
+    persist_runtime_mapping_state(app, &state)
 }
 
 pub fn get_active_profile(app: &AppHandle) -> Result<(String, String), String> {
@@ -251,7 +301,7 @@ pub fn write_active_profile(
     let preview = APPLIED_PREVIEW_RELATIVE;
     let absolute = absolute_profile_path(app, preview)?;
     ensure_file(&absolute, "")?;
-    fs::write(&absolute, content).map_err(|error| format!("Failed to write profile: {error}"))?;
+    write_file_atomically(&absolute, content).map_err(|error| format!("Failed to write profile: {error}"))?;
     let mut state = read_runtime_mapping_state(app)?;
     state.active_profile_path = resolved.clone();
     state.applied_preview_path = Some(preview.to_string());
@@ -278,7 +328,9 @@ pub fn list_library_profile_names(app: &AppHandle) -> Result<Vec<String>, String
     for entry in entries {
         let entry = entry.map_err(|error| format!("Failed to read profile entry: {error}"))?;
         let path = entry.path();
-        if path.extension().and_then(|ext| ext.to_str()) != Some("txt") {
+        let paused = path.extension().and_then(|ext| ext.to_str()) == Some("paused")
+            && path.file_stem().and_then(|stem| Path::new(stem).extension()).and_then(|ext| ext.to_str()) == Some("txt");
+        if path.extension().and_then(|ext| ext.to_str()) != Some("txt") && !paused {
             continue;
         }
         if let Some(stem) = path.file_stem().and_then(|value| value.to_str()) {
@@ -304,7 +356,7 @@ pub fn save_library_profile(app: &AppHandle, name: &str, content: &str) -> Resul
     ensure_library_dir(app)?;
     let safe_name = sanitize_profile_name(name);
     let path = library_profile_path(app, &safe_name)?;
-    fs::write(path, content).map_err(|error| format!("Failed to save profile: {error}"))?;
+    write_file_atomically(path, content).map_err(|error| format!("Failed to save profile: {error}"))?;
     Ok(safe_name)
 }
 
@@ -324,7 +376,7 @@ pub fn create_library_profile(
     let relative = relative_profile_path_from_name(&name);
     let absolute = absolute_profile_path(app, &relative)?;
     let content = profile_template_text();
-    fs::write(&absolute, &content).map_err(|error| format!("Failed to create profile: {error}"))?;
+    write_file_atomically(&absolute, &content).map_err(|error| format!("Failed to create profile: {error}"))?;
     Ok((relative, content))
 }
 
@@ -398,7 +450,7 @@ pub fn copy_active_profile(app: &AppHandle) -> Result<(String, String), String> 
     let copy_name = generate_copy_profile_name(app, &active_name)?;
     let copy_relative = relative_profile_path_from_name(&copy_name);
     let copy_absolute = absolute_profile_path(app, &copy_relative)?;
-    fs::write(&copy_absolute, &content)
+    write_file_atomically(&copy_absolute, &content)
         .map_err(|error| format!("Failed to copy profile: {error}"))?;
     Ok((copy_relative, content))
 }
@@ -446,7 +498,7 @@ pub fn read_calibration_preset(app: &AppHandle) -> Result<String, String> {
 pub fn save_calibration_preset(app: &AppHandle, content: &str) -> Result<(), String> {
     ensure_required_files(app)?;
     let path = calibration_preset_path(app)?;
-    fs::write(path, content).map_err(|error| format!("Failed to save calibration preset: {error}"))
+    write_file_atomically(path, content).map_err(|error| format!("Failed to save calibration preset: {error}"))
 }
 
 pub fn calibration_preset_exists(app: &AppHandle) -> Result<bool, String> {
@@ -476,6 +528,22 @@ pub fn set_mapping_enabled(app: &AppHandle, enabled: bool) -> Result<RuntimeMapp
     state.mapping_enabled = enabled;
     persist_runtime_mapping_state(app, &state)?;
     write_startup_file(app, &state)?;
+    Ok(state)
+}
+
+pub fn set_calibration_hud_enabled(app: &AppHandle, enabled: bool) -> Result<RuntimeMappingState, String> {
+    ensure_required_files(app)?;
+    let mut state = read_runtime_mapping_state(app)?;
+    state.calibration_hud_enabled = enabled;
+    persist_runtime_mapping_state(app, &state)?;
+    Ok(state)
+}
+
+pub fn set_reserved_chords(app: &AppHandle, enabled: bool) -> Result<RuntimeMappingState, String> {
+    ensure_required_files(app)?;
+    let mut state = read_runtime_mapping_state(app)?;
+    state.reserved_chords = enabled;
+    persist_runtime_mapping_state(app, &state)?;
     Ok(state)
 }
 
@@ -545,9 +613,11 @@ pub fn save_autoload_rule(
         return Err(format!("Profile does not exist: {safe_profile}"));
     }
 
-    let path = autoload_rule_path(app, &process)?;
+    // A paused rule stays paused when its configuration is changed.
+    let paused_path = paused_autoload_rule_path(app, &process)?;
+    let path = if paused_path.exists() { paused_path } else { autoload_rule_path(app, &process)? };
     ensure_parent_dir(&path)?;
-    fs::write(&path, format!("{profile_relative}\n"))
+    write_file_atomically(&path, format!("{profile_relative}\n"))
         .map_err(|error| format!("Failed to save AutoLoad rule: {error}"))?;
     autoload_rule_from_path(app, &path)
 }
@@ -555,6 +625,7 @@ pub fn save_autoload_rule(
 pub fn delete_autoload_rule(app: &AppHandle, process_name: &str) -> Result<bool, String> {
     ensure_required_files(app)?;
     let process = sanitize_process_name(process_name)?;
+    let _ = fs::remove_file(paused_autoload_rule_path(app, &process)?);
     let path = autoload_rule_path(app, &process)?;
     match fs::remove_file(path) {
         Ok(()) => Ok(true),
@@ -711,7 +782,7 @@ pub fn write_hidhide_state(app: &AppHandle, state: &HidHideState) -> Result<(), 
     ensure_parent_dir(&path)?;
     let content = serde_json::to_string_pretty(state)
         .map_err(|error| format!("Failed to serialize HidHide state: {error}"))?;
-    fs::write(path, content).map_err(|error| format!("Failed to write HidHide state: {error}"))
+    write_file_atomically(path, content).map_err(|error| format!("Failed to write HidHide state: {error}"))
 }
 
 fn backend_file(app: &AppHandle) -> Result<PathBuf, String> {
@@ -728,6 +799,20 @@ fn calibration_dir(app: &AppHandle) -> Result<PathBuf, String> {
 
 fn autoload_dir(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(runtime_dir(app)?.join("AutoLoad"))
+}
+
+/// Whether AutoLoad will load something for this process: a `<name>.txt` rule
+/// that is not paused. Matches the way JoyShockMapper compares names.
+pub fn has_live_autoload_rule(app: &AppHandle, process_stem: &str) -> bool {
+    let Ok(entries) = autoload_dir(app).and_then(|dir| fs::read_dir(dir).map_err(|error| error.to_string())) else {
+        return false;
+    };
+    entries.flatten().any(|entry| {
+        let name = entry.file_name().to_string_lossy().to_string();
+        let lower = name.to_ascii_lowercase();
+        lower.ends_with(".txt")
+            && name.split('.').next().is_some_and(|stem| stem.eq_ignore_ascii_case(process_stem))
+    })
 }
 
 fn calibration_preset_path(app: &AppHandle) -> Result<PathBuf, String> {
@@ -770,13 +855,57 @@ fn ensure_parent_dir(path: &Path) -> Result<(), String> {
     }
 }
 
+/// Write a file so that a reader never sees it half-written.
+///
+/// JoyShockMapper is a separate process that reads these files the moment we
+/// tell it to, and `fs::write` truncates before it writes: a reader that opens
+/// the file inside that window gets an empty or partial file. That is not
+/// theoretical. Applying a configuration while the Quick Access chord was in
+/// play produced a load that ran the RESET_MAPPINGS preamble and then stopped
+/// -- no VIRTUAL_CONTROLLER, no bindings, every input left unmapped -- because
+/// JoyShockMapper opened applied-preview.txt between the truncate and the
+/// write. The same window can leave gui-state.json unparseable after a crash,
+/// which is how a session loses its active configuration.
+///
+/// The temporary file is created beside the target so the rename stays on one
+/// volume, where Windows replaces atomically as far as any reader is
+/// concerned. Its extension is deliberately not `.txt`, so a half-written
+/// profile can never show up in the library listing.
+fn write_file_atomically(path: impl AsRef<Path>, content: impl AsRef<str>) -> Result<(), String> {
+    let path = path.as_ref();
+    ensure_parent_dir(path)?;
+    let temp = path.with_extension(format!("jsmtmp{}", std::process::id()));
+    fs::write(&temp, content.as_ref())
+        .map_err(|error| format!("Failed to write {}: {error}", temp.display()))?;
+
+    // A reader holding the target open blocks the replace on Windows, and
+    // JoyShockMapper reads these files constantly. Its reads are short, so a
+    // brief retry turns a collision into a small delay instead of a failed
+    // apply. Failing loudly after that is still better than the silent
+    // truncation this exists to prevent.
+    let mut last = String::new();
+    for attempt in 0..25 {
+        match fs::rename(&temp, path) {
+            Ok(()) => return Ok(()),
+            Err(error) => {
+                last = error.to_string();
+                if attempt < 24 {
+                    std::thread::sleep(std::time::Duration::from_millis(20));
+                }
+            }
+        }
+    }
+    let _ = fs::remove_file(&temp);
+    Err(format!("Failed to replace {}: {last}", path.display()))
+}
+
 fn ensure_file(path: &Path, default_content: &str) -> Result<(), String> {
     if path.exists() {
         return Ok(());
     }
 
     ensure_parent_dir(path)?;
-    fs::write(path, default_content)
+    write_file_atomically(path, default_content)
         .map_err(|error| format!("Failed to initialize file {}: {error}", path.display()))
 }
 
@@ -967,8 +1096,7 @@ fn ensure_runtime_support_files(app: &AppHandle, backend: &str) -> Result<(), St
 
     // App-owned defaults are separate from user-authored OnReset hooks.
     let defaults = runtime_root.join("StudioDefaults.txt");
-    let polling = read_runtime_mapping_state(app)?.default_polling_ms;
-    fs::write(defaults, format!("# JSM Studio global defaults\nTICK_TIME = {polling}\n"))
+    write_file_atomically(defaults, studio_defaults_text(&read_runtime_mapping_state(app)?))
         .map_err(|error| format!("Failed to write controller defaults: {error}"))?;
 
     Ok(())
@@ -992,7 +1120,7 @@ fn sync_app_navigation_rule(app: &AppHandle, state: &RuntimeMappingState) -> Res
     let path = autoload_rule_path(app, &stem)?;
     if state.controller_nav_enabled {
         ensure_parent_dir(&path)?;
-        fs::write(&path, format!("{APP_NAVIGATION_FILE_NAME}\n"))
+        write_file_atomically(&path, format!("{APP_NAVIGATION_FILE_NAME}\n"))
             .map_err(|error| format!("Failed to write controller navigation rule: {error}"))
     } else if path.exists() {
         fs::remove_file(&path)
@@ -1049,7 +1177,7 @@ fn write_global_chords_list(app: &AppHandle, chords: &[GlobalChord]) -> Result<(
     ensure_parent_dir(&path)?;
     let content = serde_json::to_string_pretty(chords)
         .map_err(|error| format!("Failed to serialize chords: {error}"))?;
-    fs::write(&path, content).map_err(|error| format!("Failed to write {}: {error}", path.display()))
+    write_file_atomically(&path, content).map_err(|error| format!("Failed to write {}: {error}", path.display()))
 }
 
 /// Creates or updates a chord (matched by id) and returns the full list.
@@ -1128,8 +1256,47 @@ fn mapping_disabled_text() -> String {
     MAPPING_DISABLED_LINES.join("\n") + "\n"
 }
 
-fn calibration_command_text(seconds: u32) -> String {
-    format!("RESTART_GYRO_CALIBRATION\nSLEEP {seconds}\nFINISH_GYRO_CALIBRATION\n")
+fn studio_defaults_text(state: &RuntimeMappingState) -> String {
+    format!(
+        "# JSM Studio global defaults\nTICK_TIME = {}\nGYRO_CALIBRATION_DELAY = {}\nGYRO_CALIBRATION_TIME = {}\nCONNECT_SOUND = {}\nSHUTDOWN_SOUND = {}\n",
+        state.default_polling_ms,
+        state.gyro_calibration_delay,
+        state.gyro_calibration_seconds,
+        state.connect_sound,
+        state.shutdown_sound,
+    )
+}
+
+/// The timing lives in StudioDefaults.txt; this file only starts the run, so a
+/// chord or binding pointed at it gets exactly what the Studio button does.
+fn calibration_command_text() -> String {
+    "CALIBRATE_GYRO\n".to_string()
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ControllerPreferences {
+    pub gyro_calibration_seconds: f64,
+    pub gyro_calibration_delay: f64,
+    pub connect_sound: i32,
+    pub shutdown_sound: i32,
+}
+
+pub fn set_controller_preferences(
+    app: &AppHandle,
+    preferences: ControllerPreferences,
+) -> Result<RuntimeMappingState, String> {
+    let finite = |value: f64, name: &str| {
+        if value.is_finite() { Ok(value) } else { Err(format!("{name} must be a number")) }
+    };
+    let mut state = read_runtime_mapping_state(app)?;
+    state.gyro_calibration_seconds = finite(preferences.gyro_calibration_seconds, "Calibration time")?.clamp(0.5, 60.0);
+    state.gyro_calibration_delay = finite(preferences.gyro_calibration_delay, "Calibration delay")?.clamp(0.0, 30.0);
+    state.connect_sound = preferences.connect_sound.clamp(-1, 13);
+    state.shutdown_sound = preferences.shutdown_sound.clamp(-1, 13);
+    persist_runtime_mapping_state(app, &state)?;
+    ensure_runtime_support_files(app, &read_backend_choice(app)?)?;
+    Ok(state)
 }
 
 fn parse_sleep_seconds(content: &str) -> Option<u32> {
@@ -1181,14 +1348,14 @@ fn get_startup_autoload_enabled(app: &AppHandle) -> Result<Option<bool>, String>
 fn write_startup_file(app: &AppHandle, state: &RuntimeMappingState) -> Result<(), String> {
     let path = startup_file(app)?;
     ensure_parent_dir(&path)?;
-    fs::write(&path, startup_file_text(state))
+    write_file_atomically(&path, startup_file_text(state))
         .map_err(|error| format!("Failed to write startup file: {error}"))
 }
 
 fn ensure_mapping_disabled_file(app: &AppHandle) -> Result<(), String> {
     let path = mapping_disabled_file(app)?;
     ensure_parent_dir(&path)?;
-    fs::write(path, mapping_disabled_text())
+    write_file_atomically(path, mapping_disabled_text())
         .map_err(|error| format!("Failed to write mapping disabled profile: {error}"))
 }
 
@@ -1208,6 +1375,12 @@ fn ensure_runtime_mapping_state(app: &AppHandle) -> Result<RuntimeMappingState, 
             default_runtime_mapping_state(app)?
         }
     };
+
+    if !state.studio_navigation_migrated {
+        state.controller_nav_enabled = true;
+        state.studio_navigation_migrated = true;
+        should_persist = true;
+    }
 
     let normalized_active = normalize_relative_profile_path(Some(&state.active_profile_path))
         .unwrap_or_else(|| DEFAULT_PROFILE_RELATIVE.to_string());
@@ -1253,6 +1426,13 @@ fn default_runtime_mapping_state(app: &AppHandle) -> Result<RuntimeMappingState,
         autoload_enabled: get_startup_autoload_enabled(app)?.unwrap_or(true),
         controller_nav_enabled: true,
         trackpad_overlay_enabled: false,
+        gyro_calibration_seconds: default_calibration_seconds(),
+        gyro_calibration_delay: 0.0,
+        connect_sound: -1,
+        shutdown_sound: -1,
+        reserved_chords: false,
+        calibration_hud_enabled: true,
+        studio_navigation_migrated: true,
     })
 }
 
@@ -1278,7 +1458,7 @@ fn persist_runtime_mapping_state(
     ensure_parent_dir(&path)?;
     let content = serde_json::to_string_pretty(state)
         .map_err(|error| format!("Failed to serialize GUI runtime state: {error}"))?;
-    fs::write(path, content).map_err(|error| format!("Failed to write GUI runtime state: {error}"))
+    write_file_atomically(path, content).map_err(|error| format!("Failed to write GUI runtime state: {error}"))
 }
 
 fn set_active_profile_state(app: &AppHandle, relative: &str) -> Result<(), String> {
@@ -1295,15 +1475,31 @@ fn set_active_profile_state(app: &AppHandle, relative: &str) -> Result<(), Strin
     write_startup_file(app, &state)
 }
 
-fn write_calibration_command_file(app: &AppHandle, seconds: u32) -> Result<(), String> {
+fn write_calibration_command_file(app: &AppHandle) -> Result<(), String> {
     let path = calibration_command_file(app)?;
     ensure_parent_dir(&path)?;
-    fs::write(&path, calibration_command_text(seconds))
+    write_file_atomically(&path, calibration_command_text())
         .map_err(|error| format!("Failed to write calibration command file: {error}"))
 }
 
 fn autoload_rule_path(app: &AppHandle, process_name: &str) -> Result<PathBuf, String> {
     Ok(autoload_dir(app)?.join(format!("{process_name}.txt")))
+}
+
+fn paused_autoload_rule_path(app: &AppHandle, process_name: &str) -> Result<PathBuf, String> {
+    Ok(autoload_dir(app)?.join(format!("{process_name}.txt.paused")))
+}
+
+/// Pauses or resumes one association by renaming its file.
+pub fn set_autoload_rule_paused(app: &AppHandle, process_name: &str, paused: bool) -> Result<AutoloadRule, String> {
+    ensure_required_files(app)?;
+    let process = sanitize_process_name(process_name)?;
+    let (active, parked) = (autoload_rule_path(app, &process)?, paused_autoload_rule_path(app, &process)?);
+    let (from, to) = if paused { (&active, &parked) } else { (&parked, &active) };
+    if from.exists() {
+        fs::rename(from, to).map_err(|error| format!("Failed to {} AutoLoad rule: {error}", if paused { "pause" } else { "resume" }))?;
+    }
+    autoload_rule_from_path(app, if to.exists() { to } else { from })
 }
 
 fn autoload_rule_from_path(app: &AppHandle, path: &Path) -> Result<AutoloadRule, String> {
@@ -1312,11 +1508,13 @@ fn autoload_rule_from_path(app: &AppHandle, path: &Path) -> Result<AutoloadRule,
         .and_then(|value| value.to_str())
         .unwrap_or_default()
         .to_string();
-    let process_name = path
-        .file_stem()
-        .and_then(|value| value.to_str())
-        .unwrap_or_default()
-        .to_string();
+    let paused = file_name.to_ascii_lowercase().ends_with(".txt.paused");
+    let process_name = file_name
+        .strip_suffix(".paused")
+        .unwrap_or(&file_name)
+        .rsplit_once('.')
+        .map(|(stem, _)| stem.to_string())
+        .unwrap_or_default();
     let content = fs::read_to_string(path).unwrap_or_default();
     let built_in = app_process_stem().is_some_and(|stem| stem.eq_ignore_ascii_case(&process_name));
 
@@ -1330,6 +1528,7 @@ fn autoload_rule_from_path(app: &AppHandle, path: &Path) -> Result<AutoloadRule,
             profile_path: Some(profile_path),
             missing_profile,
             built_in,
+            paused,
         });
     }
 
@@ -1341,6 +1540,7 @@ fn autoload_rule_from_path(app: &AppHandle, path: &Path) -> Result<AutoloadRule,
         profile_path: None,
         missing_profile: false,
         built_in,
+        paused,
     })
 }
 
@@ -1382,7 +1582,7 @@ fn update_autoload_profile_references(
             .as_deref()
             .is_some_and(|relative| relative.eq_ignore_ascii_case(old_relative))
         {
-            fs::write(&path, format!("{new_relative}\n"))
+            write_file_atomically(&path, format!("{new_relative}\n"))
                 .map_err(|error| format!("Failed to update AutoLoad profile reference: {error}"))?;
         }
     }
@@ -1557,6 +1757,69 @@ fn normalize_backend_choice(choice: &str) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A reader racing the writer must see the whole old file or the whole new
+    /// one, never an empty or partial one.
+    ///
+    /// Applying a configuration used to truncate the file in place, and
+    /// JoyShockMapper -- a separate process told to load it immediately --
+    /// read it in that window. Its console showed the load running the
+    /// RESET_MAPPINGS preamble and then stopping: no VIRTUAL_CONTROLLER, no
+    /// bindings, every input unmapped, the virtual pad destroyed.
+    #[test]
+    fn a_reader_never_observes_a_half_written_file() {
+        use std::sync::atomic::{AtomicBool, Ordering};
+        use std::sync::Arc;
+
+        let dir = std::env::temp_dir().join(format!("jsm-atomic-{}", std::process::id()));
+        let _ = fs::create_dir_all(&dir);
+        let path = dir.join("applied-preview.txt");
+
+        let old = "RESET_MAPPINGS\nVIRTUAL_CONTROLLER = DS4\nS = PS_CROSS\n";
+        let new = "RESET_MAPPINGS\nVIRTUAL_CONTROLLER = XBOX\nS = X_A\n";
+        write_file_atomically(&path, old).expect("seed");
+
+        let stop = Arc::new(AtomicBool::new(false));
+        let reader_stop = stop.clone();
+        let reader_path = path.clone();
+        // Reads as JoyShockMapper does: open, take the whole file, move on.
+        let reader = std::thread::spawn(move || {
+            let mut seen_bad = 0_usize;
+            let mut reads = 0_usize;
+            while !reader_stop.load(Ordering::Relaxed) {
+                if let Ok(text) = fs::read_to_string(&reader_path) {
+                    reads += 1;
+                    if text != old && text != new {
+                        seen_bad += 1;
+                    }
+                }
+            }
+            (reads, seen_bad)
+        });
+
+        for index in 0..300 {
+            let content = if index % 2 == 0 { new } else { old };
+            write_file_atomically(&path, content).expect("rewrite");
+        }
+        stop.store(true, Ordering::Relaxed);
+        let (reads, seen_bad) = reader.join().expect("reader");
+
+        assert!(reads > 0, "the reader never got to read, so this proves nothing");
+        assert_eq!(
+            seen_bad, 0,
+            "the reader saw {seen_bad} truncated or partial file(s) out of {reads} reads"
+        );
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    /// The temporary file must never look like a configuration, or a half
+    /// written profile turns up in the library listing.
+    #[test]
+    fn the_temporary_file_is_not_mistaken_for_a_profile() {
+        let temp = Path::new("profiles-library/Wardogs.txt")
+            .with_extension(format!("jsmtmp{}", std::process::id()));
+        assert_ne!(temp.extension().and_then(|value| value.to_str()), Some("txt"));
+    }
 
     #[test]
     fn the_apply_preview_path_is_a_valid_profile_path() {

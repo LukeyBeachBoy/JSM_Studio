@@ -1,6 +1,10 @@
+/* Form controls on the design system (Components.dc.html 13.9–13.11, 13.14).
+   The legacy class names stay because dozens of components use them; each now
+   renders as its design counterpart. */
+
 .tab-bar {
   display: flex;
-  gap: 0.35rem;
+  gap: var(--sp-1);
 }
 
 .tab-button {
@@ -9,41 +13,45 @@
   text-align: center;
 }
 
-/* Segmented control: a track with the selected segment filled, which is how
-   Steam Input marks the active tab. */
-.pill-tab {
-  border: 1px solid transparent;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--text-mid);
-  padding: 0.4rem 0.9rem;
-  font-weight: 700;
-  font-size: var(--font-label);
-  cursor: pointer;
-  transition: color 0.18s ease, background-color 0.18s ease;
-}
-
-.pill-tab:hover:not(.active) {
-  background: color-mix(in srgb, var(--bg-btn-hover) 60%, transparent);
-  color: var(--text-strong);
-}
-
-.pill-tab.active {
-  color: var(--btn-primary-text);
-  background: var(--accent-primary);
-}
-
+/* Segmented control (13.9): a sunken track, 36 high with a 3px inset; the
+   selected segment is a raised control. */
 .mode-toggle {
   display: flex;
-  gap: 0.2rem;
-  padding: 0.22rem;
-  border-radius: 999px;
-  background: var(--bg-input);
-  border: 1px solid var(--border-1);
+  gap: 0;
+  padding: 3px;
+  border-radius: var(--r-md);
+  background: var(--surface-sunken);
 }
 
 .mode-toggle.secondary {
-  margin-top: 0.75rem;
+  margin-top: var(--sp-3);
+}
+
+.pill-tab {
+  height: 30px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-3);
+  font: inherit;
+  font-size: var(--fs-hint);
+  font-weight: var(--fw-medium);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--dur-1) var(--ease-standard), background-color var(--dur-2) var(--ease-standard);
+}
+
+.pill-tab:hover:not(.active) {
+  color: var(--text-1);
+}
+
+.pill-tab.active {
+  background: var(--surface-control);
+  color: var(--text-1);
+  box-shadow: var(--shadow-lift);
 }
 
 .mode-toggle .pill-tab {
@@ -51,53 +59,88 @@
   text-align: center;
 }
 
-/* One dropdown look across the app, with our own chevron so it matches the
-   rest of the controls instead of the platform's default arrow. */
+/* Native select trigger (13.10): 36 high, control surface, our own chevron. */
 .app-select {
   appearance: none;
   -webkit-appearance: none;
-  border-radius: var(--radius-control);
-  border: 1px solid var(--border-1);
-  background-color: var(--bg-input);
-  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
-    linear-gradient(135deg, currentColor 50%, transparent 50%);
-  background-position: right 0.95rem center, right 0.7rem center;
-  background-size: 0.3rem 0.3rem, 0.3rem 0.3rem;
+  min-height: var(--control-h);
+  border: 0;
+  border-radius: var(--r-md);
+  background-color: var(--surface-control);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23808c99' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 10l5 5 5-5'/%3E%3C/svg%3E");
+  background-position: right 10px center;
+  background-size: 16px 16px;
   background-repeat: no-repeat;
-  color: var(--text-strong);
-  padding: 0.38rem 1.7rem 0.38rem 0.6rem;
+  color: var(--text-1);
+  padding: 0 34px 0 12px;
   font-family: inherit;
-  font-size: var(--font-label);
-  font-weight: 600;
-  line-height: 1.3;
-  transition: border-color 0.15s ease, background-color 0.15s ease;
+  font-size: var(--fs-body);
+  font-weight: var(--fw-medium);
+  line-height: var(--lh-body);
+  cursor: pointer;
+  transition: background-color var(--dur-1) var(--ease-standard);
 }
 
 .app-select:hover:not(:disabled) {
-  border-color: var(--border-strong);
+  background-color: var(--surface-control-hover);
 }
 
 .app-select:disabled {
-  opacity: 0.55;
+  opacity: var(--disabled-opacity);
+  cursor: default;
 }
 
+/* A group of settings is a column of full-width rows (Gyro.dc.html): each
+   field is caption and control on one line, its description underneath,
+   hairlines between. Groups that only hold actions stay a row of buttons. */
 .flex-inputs {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.65rem;
+  flex-direction: column;
+  gap: 0;
 }
+.flex-inputs:has(> button:first-child) {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+}
+.flex-inputs > .full-width-btn { width: auto; }
 
 /* Plain label-over-control fields. NumberField brings its own layout and only
    uses a label for the caption, so these rules target labels that are direct
    children of the row and their own direct controls. */
 .flex-inputs > label {
-  flex: 1;
-  min-width: 120px;
+  min-width: 0;
   display: flex;
-  flex-direction: column;
-  font-weight: 600;
-  color: var(--text-strong);
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2) var(--sp-3);
+  padding: var(--sp-4);
+  border-radius: var(--r-row);
+  box-shadow: inset 0 -1px 0 var(--line-1);
+  font-size: var(--fs-label);
+  line-height: var(--lh-label);
+  font-weight: var(--fw-medium);
+  color: var(--text-1);
+  transition: background var(--dur-1) var(--ease-standard);
 }
+.flex-inputs > label:hover { background: var(--surface-row-hover); }
+body[data-input-source='controller'] .flex-inputs > label:focus-within {
+  background: var(--surface-selected);
+  box-shadow: 0 0 0 var(--focus-controller-width) var(--focus-controller), var(--shadow-lift);
+}
+/* The control sits at the end of the caption's line, the description under both. */
+.flex-inputs > label > button[role='combobox'],
+.flex-inputs > label > .app-select,
+.flex-inputs > label > input:not([type='range']):not([type='checkbox']) {
+  width: auto;
+  min-width: 200px;
+  max-width: min(360px, 55%);
+  margin-left: auto;
+}
+.flex-inputs > label > .field-description,
+.flex-inputs > label > p { flex-basis: 100%; order: 10; }
 
 /* A caption and the Help button that explains it are one thing and share a
    line. The label stacks caption over control, so a button placed after the
@@ -117,62 +160,40 @@
   line-height: 1;
 }
 
-.flex-inputs > label > input:not([type='range']) {
-  margin-top: 0.35rem;
-  padding: 0.38rem 0.55rem;
-  border-radius: 6px;
-  border: 1px solid var(--border-1);
-  background: var(--bg-input);
-  color: var(--text-strong);
-  font-size: 1rem;
-  font-weight: 600;
-  box-sizing: border-box;
+/* Text fields are wells (13.14): sunken, a hairline, the accent ring on focus. */
+.flex-inputs > label > input:not([type='range']),
+.flex-inputs > label > select,
+.sensitivity-shift-row select,
+.text-field {
+  min-height: var(--control-h);
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--line-1);
+  color: var(--text-1);
+  font: inherit;
+  font-size: var(--fs-body);
+  font-weight: var(--fw-medium);
 }
 
-.flex-inputs > label > input:not([type='range']):focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
+.flex-inputs > label > input:not([type='range']):focus,
+.flex-inputs > label > select:focus,
+.text-field:focus {
+  box-shadow: inset 0 0 0 1px var(--focus-keyboard);
   outline: none;
 }
 
-.flex-inputs > label > select {
-  margin-top: 0.35rem;
-  padding: 0.38rem 0.55rem;
-  border-radius: 6px;
-  border: 1px solid var(--border-1);
-  background: var(--bg-input);
-  color: var(--text-strong);
-  font-size: 0.85rem;
-  font-weight: 600;
-  box-sizing: border-box;
-}
-
-/* .app-select brings its own chevron and padding; only the row spacing is
-   this rule's business. */
 .flex-inputs > label > select.app-select {
-  margin-top: 0.35rem;
-}
-
-.sensitivity-shift-row select {
-  border-radius: 6px;
-  border: 1px solid var(--border-1);
-  background: var(--bg-input);
-  color: var(--text-strong);
-  padding: 0.4rem 0.75rem;
-  font-weight: 600;
+  background-color: var(--surface-control);
+  box-shadow: none;
 }
 
 .sensitivity-shift-row {
-  margin-top: 1rem;
+  margin-top: var(--sp-4);
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-}
-
-.flex-inputs > label > select:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
-  outline: none;
+  gap: var(--sp-2);
 }
 
 input[type=number]::-webkit-outer-spin-button,
@@ -186,97 +207,57 @@ input[type=number] {
 }
 
 .flex-inputs > label > input[type=range] {
-  margin-top: 0.4rem;
   accent-color: var(--accent);
 }
 
+input[type='search'],
+input[type='text'],
+textarea {
+  font-family: inherit;
+}
+
+/* ---- Legacy button classes render as the design buttons (13.11). */
 :where(.primary-btn, .secondary-btn, .ghost-btn, .danger-btn) {
+  height: var(--control-h);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.42rem;
-  min-height: 2.1rem;
-  padding: 0.38rem 0.82rem;
-  box-sizing: border-box;
-  border-radius: 8px;
-  border: 1px solid transparent;
+  gap: var(--sp-2);
+  padding: 0 var(--sp-4);
+  border: 0;
+  border-radius: var(--r-md);
+  font: inherit;
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+  white-space: nowrap;
   cursor: pointer;
-  font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: 0.01em;
-  line-height: 1.15;
-  transition:
-    transform 0.14s ease,
-    border-color 0.18s ease,
-    background-color 0.18s ease,
-    color 0.18s ease,
-    box-shadow 0.22s ease,
-    opacity 0.18s ease;
+  transition: background-color var(--dur-1) var(--ease-standard), transform var(--dur-1) var(--ease-standard), opacity var(--dur-2) var(--ease-standard);
 }
 
-/* Steam Input's buttons are flat solids that brighten on hover -- they do not
-   lift off the page or carry a gradient, and that lift is most of what made
-   these read as a different app's controls. */
 :where(.primary-btn, .secondary-btn, .ghost-btn, .danger-btn):active:not(:disabled) {
-  filter: brightness(0.94);
+  transform: scale(.97);
 }
 
-:where(.primary-btn, .secondary-btn, .ghost-btn, .danger-btn):focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 28%, transparent);
-}
+.primary-btn { background: var(--accent); color: var(--text-on-accent); }
+.primary-btn:hover:not(:disabled) { background: var(--accent-strong); }
 
-.primary-btn {
-  border-color: transparent;
-  background: var(--accent-primary);
-  color: var(--btn-primary-text);
-}
+.secondary-btn { background: var(--surface-control); color: var(--text-1); }
+.secondary-btn:hover:not(:disabled) { background: var(--surface-control-hover); }
 
-.primary-btn:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--accent-primary) 86%, #ffffff 14%);
-}
+/* Ghost is the design's tertiary: no fill until hovered. */
+.ghost-btn { background: transparent; color: var(--text-2); }
+.ghost-btn:hover:not(:disabled) { background: var(--surface-row-hover); color: var(--text-1); }
 
-.secondary-btn {
-  border-color: transparent;
-  background: var(--bg-btn);
-  color: var(--text-strong);
-}
-
-.secondary-btn:hover:not(:disabled) {
-  background: var(--bg-btn-hover);
-}
-
-.ghost-btn {
-  border-color: color-mix(in srgb, var(--border-1) 58%, transparent);
-  background: transparent;
-  color: var(--text-mid);
-}
-
-.ghost-btn:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--accent) 24%, var(--border-1));
-  background: color-mix(in srgb, var(--accent) 8%, var(--bg-btn-hover));
-  color: var(--text-strong);
-  box-shadow: inset 0 1px 0 var(--inset-highlight);
-}
-
-.danger-btn {
-  border-color: var(--danger-border);
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--danger-bg) 78%, var(--bg-btn) 22%), color-mix(in srgb, var(--danger-bg) 94%, transparent));
-  color: var(--danger-text);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-}
-
-.danger-btn:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--danger-border) 88%, #ffffff 12%);
-  background: color-mix(in srgb, var(--danger-bg) 84%, var(--bg-btn-hover) 16%);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--danger-border) 26%, transparent);
-}
+.danger-btn { background: transparent; color: var(--error); }
+.danger-btn:hover:not(:disabled) { background: var(--error-soft); }
 
 :where(.primary-btn, .secondary-btn, .ghost-btn, .danger-btn):disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  box-shadow: none;
+  opacity: var(--disabled-opacity);
+  cursor: default;
   transform: none;
-  filter: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(.primary-btn, .secondary-btn, .ghost-btn, .danger-btn):active:not(:disabled) { transform: none; }
 }

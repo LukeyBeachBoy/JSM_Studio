@@ -16,8 +16,23 @@ const CALIBRATION_PATTERNS = [
   /^COUNTER_OS_MOUSE_SPEED\b/i,
 ]
 
+/**
+ * Puts the settings a configuration must have at the top of it.
+ *
+ * Only for a configuration that IS one. A file meant to be imported -- a shared
+ * template -- deliberately has no RESET_MAPPINGS, because the profile importing
+ * it has already run its own, and a second one part-way through the load wipes
+ * everything above the import line. It also makes the mapper report the template
+ * as the configuration it is running, since that is the file whose
+ * RESET_MAPPINGS it saw last: "Currently applied: FPS Template".
+ *
+ * So the absence of RESET_MAPPINGS is taken as deliberate and left alone. Studio
+ * seeds a new profile with the header already, so a real profile always has one
+ * to find.
+ */
 export const ensureHeaderLines = (text: string) => {
   const lines = text.split(/\r?\n/)
+  if (!lines.some(line => /^RESET_MAPPINGS\b/i.test(line.trim()))) return text
   const remaining: string[] = []
   lines.forEach(line => {
     const trimmed = line.trim()
@@ -39,6 +54,8 @@ export const sanitizeImportedConfig = (rawText: string) => {
   const withoutComments = rawText
     .split(/\r?\n/)
     .map(line => {
+      // These comments are portable editor data, including entire named layers.
+      if (/^\s*#\s*@(label|icon|overlay|layer)\b/i.test(line)) return line.trim()
       const hashIndex = line.indexOf('#')
       const withoutHash = hashIndex >= 0 ? line.slice(0, hashIndex) : line
       return withoutHash.trim()

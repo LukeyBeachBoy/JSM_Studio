@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type MutableRefObject } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card } from './Card'
+import { MapperConsole } from './MapperConsole'
+import { AdvancedDisclosure } from './AdvancedDisclosure'
 import styles from './MappingDebugPage.module.css'
 import { desktopBridge, type InputDebugEvent, type InputDebugHookStatus } from '../platform/desktopBridge'
 
@@ -155,11 +157,10 @@ export function MappingDebugPage({ consoleText, configText, appliedConfig, hasPe
 
   return (
     <div className={styles.page}>
-      <Card className={styles.card}>
-        <h2>JoyShockMapper console</h2>
-        <p className="field-description">Live console output from the running mapper. The most recent 4 KB are retained.</p>
-        <pre className="live-console" tabIndex={0} aria-label="JoyShockMapper live console">{consoleText || 'Waiting for console output from JoyShockMapper…'}</pre>
-      </Card>
+      <MapperConsole consoleText={consoleText} />
+      {/* Windows' own view of the keyboard and mouse, after mapping: a
+          diagnostic tool, so it is folded away (16i). */}
+      <AdvancedDisclosure label="Input capture" summary={status.running ? 'Capturing keyboard and mouse events' : 'Keyboard and mouse events Windows sees after mapping'}>
       <Card className={styles.card}>
         <div className={styles.header}>
           <div className={styles.titleBlock}>
@@ -251,6 +252,7 @@ export function MappingDebugPage({ consoleText, configText, appliedConfig, hasPe
           )}
         </section>
       </div>
+      </AdvancedDisclosure>
     </div>
   )
 }

@@ -24,25 +24,22 @@ const fs = require('node:fs');
   }};
  });
  await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
- // Switching configurations is one control now: the chip that names what you
- // are editing opens the library, and a row there loads it.
+ // Switching configurations is one control: the Editing segment in the title
+ // bar opens a searchable menu of every configuration, and choosing one loads it.
  const picker=page.locator('.profile-chip');
  const selectProfile = async name => {
   await picker.click();
-  const rows = page.locator('[class*=profileLibraryItem]');
-  await rows.first().waitFor();
-  const names = await rows.locator("input").evaluateAll(inputs => inputs.map(input => input.value));
-  const index = names.indexOf(name);
-  if (index < 0) throw new Error(`no configuration named ${name}: ${names.join(", ")}`);
-  await rows.nth(index).getByRole('button',{name:'Load',exact:true}).click();
-  const close = page.locator('.modal-overlay [data-modal-close], .modal-overlay .modal-header .ghost-btn').first();
-  if (await close.count()) await close.click().catch(() => {});
+  await page.getByRole('menuitem').filter({hasText:name}).first().click();
  };
  await picker.filter({hasText:'Desktop'}).waitFor();
  await selectProfile('Game');
  await picker.filter({hasText:'Game'}).waitFor();
  assert.deepEqual(await page.evaluate(()=>window.__calls),[],'selecting a profile applied it');
- await page.getByRole('button',{name:'Save configuration',exact:true}).click();
+ // The Save button idles while nothing is unsaved (design 2a); Ctrl+S still
+ // writes the file, and must not apply it.
+ assert.equal(await page.getByRole('button',{name:'Save configuration',exact:true}).getAttribute('data-reason'),'No unsaved changes');
+ await page.keyboard.press('Control+s');
+ await page.waitForFunction(()=>window.__calls.length>0);
  assert.deepEqual(await page.evaluate(()=>window.__calls),['save'],'Save must not Apply');
  await selectProfile('Desktop');
  await page.getByRole('button',{name:'Overview',exact:true}).click();
@@ -72,7 +69,7 @@ const fs = require('node:fs');
  await page.screenshot({path:path.join(out,'trackpads.png'),fullPage:true});
  await selectProfile('Game');
  await page.evaluate(()=>{window.__delaySave=true;window.__saved=false});
- await page.getByRole('button',{name:'Save configuration',exact:true}).click();
+ await page.keyboard.press('Control+s');
  await page.waitForFunction(()=>typeof window.__finishSave==='function');
  await selectProfile('Desktop');
  await page.evaluate(()=>window.__finishSave());
@@ -84,10 +81,10 @@ const fs = require('node:fs');
   window.__hidStatus={supported:true,installed:true,active:false,inverse:false,steamAllowed:false,whitelistSynced:true,requiresElevation:false,managedInstanceIds:['test'],devices:[{instanceId:'test',displayName:'Test Steam Controller',vendor:'Valve',product:'Controller',present:true,hidden:true,partiallyHidden:false,managedByApp:true,stale:false,likelyCurrentController:false}]};
   window.__TAURI_INTERNALS__={invoke:async command=>{if(command==='get_hidhide_status')return structuredClone(window.__hidStatus);throw new Error('Unexpected mocked Tauri command: '+command)}};
  });
- await page.getByRole('button',{name:'Device Visibility',exact:true}).click();
- await page.getByText('Configured to hide · hiding disabled',{exact:true}).waitFor();
- await page.evaluate(()=>{window.__hidStatus.active=true;window.__hidStatus.inverse=true;window.__hidStatus.steamAllowed=true});
- await page.getByRole('button',{name:'Refresh',exact:true}).click();
+ await page.locator('.titlebar__brand').click();
+ await page.getByRole('button',{name:'Device visibility',exact:true}).click();
+ await page.getByText('Set to hide · filtering is off',{exact:true}).waitFor();
+ await page.evaluate(()=>{window.__hidStatus.active=true;window.__hidStatus.inverse=true;window.__hidStatus.steamAllowed=true;window.dispatchEvent(new Event('focus'))});
  await page.getByText('Hidden from listed applications',{exact:true}).waitFor();
  await page.getByText('Steam currently has access through the application list.',{exact:false}).waitFor();
  await page.evaluate(()=>{window.__hidStatus.inverse=false;window.__hidStatus.steamAllowed=false;window.dispatchEvent(new Event('focus'))});

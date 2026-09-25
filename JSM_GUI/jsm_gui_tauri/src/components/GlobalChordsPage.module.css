@@ -1,180 +1,81 @@
-.page {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
-
-.header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-3);
-  flex-wrap: wrap;
-}
-
-.heading {
-  display: flex;
-  gap: 0.7rem;
-  align-items: flex-start;
-  min-width: 0;
-}
-
-.headingIcon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-  color: var(--accent);
-  flex: 0 0 auto;
-}
-
-.heading h2 {
-  margin: 0;
-  font-size: 1.15rem;
-}
-
-.heading p {
-  margin: 0.25rem 0 0;
-  color: var(--text-muted);
-  font-size: 0.84rem;
-  line-height: 1.45;
-  max-width: 62ch;
-}
-
-.chordList {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.chordRow {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border-radius: var(--radius-card);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-1);
-}
-
-.chordRowHead {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--space-3);
-  flex-wrap: wrap;
-}
-
-.chordRowHead label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  color: var(--text-strong);
-  font-size: 0.78rem;
-  font-weight: 700;
-  min-width: 14rem;
-}
-
-.chordButtonPicker {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.chordButtonPickerLabel {
-  color: var(--text-muted);
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
+/* Global chords (Tuning and Studio Pages 16g). */
+.page { display: flex; flex-direction: column; gap: var(--sp-2); }
+.eyebrow {
+  margin: var(--sp-4) 0 var(--sp-1);
+  font-size: var(--fs-eyebrow);
+  line-height: var(--lh-eyebrow);
+  letter-spacing: var(--tracking-eyebrow);
+  font-weight: var(--fw-semibold);
+  color: var(--text-3);
   text-transform: uppercase;
 }
-
-.chordChips {
+.eyebrow:first-child { margin-top: 0; }
+.rows { display: flex; flex-direction: column; gap: var(--sp-2); }
+.row { border-radius: var(--r-card); background: var(--surface-row); }
+.row[data-open] { box-shadow: inset 0 0 0 1px var(--accent); }
+.row[data-off] { opacity: .55; }
+.rowHead { min-height: 64px; display: flex; align-items: center; gap: var(--sp-3); padding: 0 var(--sp-4) 0 0; }
+.rowHead > button[role='combobox'] { min-width: 180px; }
+.rowMain {
+  flex: 1;
+  min-width: 0;
+  min-height: 64px;
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: 0 var(--sp-4);
+  border: 0;
+  border-radius: var(--r-card);
+  background: transparent;
+  color: var(--text-1);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
-
-.chordChip {
+span.rowMain { cursor: default; }
+button.rowMain:hover { background: var(--surface-row-hover); }
+.rowText { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.rowName { font-size: var(--fs-label); font-weight: var(--fw-medium); }
+.rowSub { color: var(--text-3); font-size: var(--fs-hint); }
+.keys { display: inline-flex; align-items: center; gap: var(--sp-1); color: var(--text-1); }
+.key { display: inline-flex; align-items: center; gap: var(--sp-1); }
+.plus { color: var(--text-3); font-size: var(--fs-hint); }
+.unset { color: var(--text-3); font-size: var(--fs-hint); }
+.picker { display: flex; flex-direction: column; gap: var(--sp-2); padding: var(--sp-3) var(--sp-4) var(--sp-4); box-shadow: inset 0 1px 0 var(--line-1); }
+.pickerLabel { color: var(--text-3); font-size: var(--fs-hint); font-weight: var(--fw-medium); }
+.chips { display: flex; flex-wrap: wrap; gap: var(--sp-1); }
+.chip {
+  height: var(--control-h-sm);
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  border: 1px solid var(--border-1);
-  border-radius: 999px;
-  padding: 0.32rem 0.75rem 0.32rem 0.58rem;
-  background: var(--bg-input);
-  color: var(--text-mid);
+  gap: 6px;
+  padding: 0 var(--sp-3) 0 var(--sp-2);
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--surface-control);
+  color: var(--text-2);
   font: inherit;
-  font-size: 0.78rem;
-  font-weight: 650;
+  font-size: var(--fs-hint);
+  font-weight: var(--fw-medium);
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
-
-.chordChip:hover {
-  border-color: var(--border-strong);
-  color: var(--text-strong);
-}
-
-.chordChip:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 34%, transparent);
-}
-
-.chordChipSelected {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 20%, var(--bg-input));
-  color: var(--text-strong);
-}
-
-.chordHint {
-  margin: 0;
-  color: var(--touchpad-grid-limit);
-  font-size: 0.8rem;
-}
-
-.addBar {
+.chip:hover { color: var(--text-1); background: var(--surface-control-hover); }
+.chip[aria-pressed='true'] { background: var(--accent); color: var(--text-on-accent); }
+.pickerFooter { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); margin-top: var(--sp-1); }
+.note { color: var(--text-3); font-size: var(--fs-hint); line-height: var(--lh-hint); }
+.empty { padding: var(--sp-5); border-radius: var(--r-card); background: var(--surface-row); color: var(--text-3); text-align: center; }
+.addBar { display: flex; align-items: center; justify-content: flex-end; gap: var(--sp-3); }
+.addBar > button[role='combobox'] { min-width: 220px; }
+.switchRow {
   display: flex;
-  gap: var(--space-3);
+  flex-direction: row-reverse;
+  justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
+  gap: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-row);
+  background: var(--surface-row);
+  cursor: pointer;
 }
-
-.addBar label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  color: var(--text-strong);
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-
-.addBar select {
-  min-width: 14rem;
-}
-
-.chordFooterHint {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 0.82rem;
-  line-height: 1.45;
-}
-
-.empty {
-  padding: 1.2rem;
-  border-radius: 10px;
-  border: 1px dashed var(--border-1);
-  color: var(--text-muted);
-  font-size: 0.84rem;
-  text-align: center;
-}
-
-@media (max-width: 760px) {
-  .chordRowHead {
-    flex-direction: column;
-    align-items: stretch;
-  }
-}
+.switchRow > span { display: flex; flex-direction: column; gap: 2px; color: var(--text-1); font-size: var(--fs-label); font-weight: var(--fw-medium); }
+.switchRow small { color: var(--text-3); font-size: var(--fs-hint); font-weight: var(--fw-regular); }

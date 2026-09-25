@@ -46,7 +46,10 @@ export function ToastHost() {
             toast.kind === 'error' ? styles.toastError : toast.kind === 'warn' ? styles.toastWarn : styles.toastSuccess
           }`}
         >
-          {toast.message}
+          {toast.kind === 'error' || toast.kind === 'warn'
+            ? <span className={styles.toastDot} aria-hidden="true" />
+            : <svg className={styles.toastCheck} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>}
+          <span>{toast.message}</span>
         </div>
       ))}
     </div>

@@ -1,13 +1,11 @@
-import type { ReactNode, SVGProps } from 'react'
 import type { ControllerVisualFamily } from '../../utils/controllerStatus'
-import { FaceMark, HomeMark, Letter, MenuMark, QuickAccessMark, ViewMark } from './inputMarks'
+import { FAMILY_GLYPHS, STEAM_GLYPHS, STEAM_SMALL_GLYPHS } from './glyphData'
 
-// Drawn input glyphs, in the same idiom as NavIcons: a 16px grid, currentColor,
-// no baked fills. Deliberately our own shapes rather than Valve's artwork --
-// they only have to read at 16px and stay recognisable across the four
-// controller families, not match Steam pixel for pixel. What is printed on each
-// button lives in ./inputMarks; this file draws the button under it.
-
+// Controller glyphs from the design set (design/handoff/designs/glyphs, see
+// scripts/build-design-icons.mjs). Solid badge = front input, outline =
+// back or passive input (paddles, touch, regions). Knocked-out labels use
+// --glyph-ink. At 20px and below the small cut is used: larger single
+// characters, no inner detail, heavier outlines.
 type GlyphProps = {
   command: string
   family?: ControllerVisualFamily
@@ -16,221 +14,134 @@ type GlyphProps = {
   title?: string
 }
 
-const svgBase: SVGProps<SVGSVGElement> = {
-  viewBox: '0 0 16 16',
-  fill: 'none',
-  stroke: 'currentColor',
-  strokeWidth: 1.4,
-  strokeLinecap: 'round',
-  strokeLinejoin: 'round',
-  'aria-hidden': true,
-  focusable: false,
+const SMALL_CUT_MAX = 20
+
+const TEXT_ATTRS = `text-anchor="middle" dominant-baseline="central" font-family="Geist, 'Segoe UI', system-ui" font-weight="700"`
+const label = (x: number, y: number, size: number, text: string, fill = 'currentColor') =>
+  `<text x="${x}" y="${y}" ${TEXT_ATTRS} font-size="${size}" fill="${fill}">${text}</text>`
+
+/** Swap the printed label of a drawing, for the siblings the set draws once. */
+const relabel = (svg: string, from: string, to: string) => svg.replace(`>${from}</text>`, `>${to}</text>`)
+
+// JSM command -> design key, where they differ.
+const COMMAND_KEYS: Record<string, string> = {
+  '+': 'PLUS', PLUS: 'PLUS', '-': 'MINUS', MINUS: 'MINUS',
+  LTOUCH: 'LST', LEFT_STICK: 'LS', LSTICK: 'LS', RIGHT_STICK: 'RS', RSTICK: 'RS',
+  LEFT_PAD: 'LTOUCH', LEFT_PAD_TOUCH: 'LTOUCH',
 }
 
-/** A round button face with something drawn inside it. The soft currentColor
- *  fill makes it read as a physical button at 16px, where a hairline outline
- *  plus a letter just turns to mush -- and it works on any backdrop. */
-const Face = ({ children }: { children: ReactNode }) => (
-  <>
-    <circle cx="8" cy="8" r="6.7" fill="currentColor" fillOpacity="0.18" strokeWidth="1.35" />
-    {children}
-  </>
-)
-
-/** The rounded-rect body the small centre buttons are printed on. */
-const Pill = ({ children }: { children: ReactNode }) => (
-  <>
-    <rect x="2.1" y="4.5" width="11.8" height="7" rx="3.5" fill="currentColor" fillOpacity="0.18" strokeWidth="1.35" />
-    {children}
-  </>
-)
-
-const DPAD_ROTATION: Record<string, number> = { UP: 0, RIGHT: 90, DOWN: 180, LEFT: 270 }
-
-const Dpad = ({ rotate }: { rotate: number }) => (
-  <g transform={`rotate(${rotate} 8 8)`}>
-    <path d="M6.3 9.7V6.3H4.2L8 2.6l3.8 3.7H9.7v3.4z" />
-    <path d="M4.4 12.4h7.2" opacity="0.45" />
-  </g>
-)
-
-const Shoulder = ({ side, tall }: { side: 'L' | 'R'; tall?: boolean }) => (<><rect x="1" y="3" width="14" height="10" rx="3" fill="currentColor" fillOpacity="0.12"/><Letter char={`${side}${tall ? 'T' : 'B'}`} size={6.4}/></>)
-
-const Stick = ({ clicked }: { clicked?: boolean }) => (
-  <>
-    <circle cx="8" cy="8" r="5.6" />
-    <circle cx="8" cy="8" r="2.4" fill={clicked ? 'currentColor' : 'none'} />
-  </>
-)
-
-const Pad = ({ side, clicked }: { side?: 'left' | 'right'; clicked?: boolean }) => (
-  <>
-    <rect x="2.4" y="3.4" width="11.2" height="9.2" rx="2.4" />
-    {clicked && <circle cx={side === 'left' ? 6.2 : 9.8} cy="8" r="1.5" fill="currentColor" stroke="none" />}
-    {!clicked && <circle cx="8" cy="8" r="1.4" opacity="0.55" />}
-  </>
-)
-
-const Grip = ({ side }: { side: 'left' | 'right' }) => (
-  <g transform={side === 'right' ? 'scale(-1 1) translate(-16 0)' : undefined}>
-    <path d="M9.6 2.8c-2.6 0-4.4 1.9-4.4 4.6 0 2.3.7 4 2.1 5.8" />
-    <path d="M11.8 6.1c-1 .5-1.6 1.5-1.6 2.7" opacity="0.55" />
-  </g>
-)
-
-const Paddle = ({ side }: { side: 'left' | 'right' }) => (
-  <g transform={side === 'right' ? 'scale(-1 1) translate(-16 0)' : undefined}>
-    <path d="M4.2 3.4h3.2c2 0 3.4 1.5 3.4 3.5v6.1" />
-    <path d="M4.2 3.4v3.1" opacity="0.55" />
-  </g>
-)
-
-// Command -> drawing. Anything absent falls back to a lettered circle, which
-// still beats printing the raw token like MISC1.
-const GLYPHS: Record<string, (family: ControllerVisualFamily) => ReactNode> = {
-  N: family => (
-    <Face>
-      <FaceMark command="N" family={family} />
-    </Face>
-  ),
-  E: family => (
-    <Face>
-      <FaceMark command="E" family={family} />
-    </Face>
-  ),
-  S: family => (
-    <Face>
-      <FaceMark command="S" family={family} />
-    </Face>
-  ),
-  W: family => (
-    <Face>
-      <FaceMark command="W" family={family} />
-    </Face>
-  ),
-
-  UP: () => <Dpad rotate={DPAD_ROTATION.UP} />,
-  DOWN: () => <Dpad rotate={DPAD_ROTATION.DOWN} />,
-  LEFT: () => <Dpad rotate={DPAD_ROTATION.LEFT} />,
-  RIGHT: () => <Dpad rotate={DPAD_ROTATION.RIGHT} />,
-
-  L: () => <Shoulder side="L" />,
-  R: () => <Shoulder side="R" />,
-  ZL: () => <Shoulder side="L" tall />,
-  ZR: () => <Shoulder side="R" tall />,
-  ZLF: () => <Shoulder side="L" tall />,
-  ZRF: () => <Shoulder side="R" tall />,
-
-  L3: () => <Stick clicked />,
-  R3: () => <Stick clicked />,
-  LTOUCH: () => <Stick />,
-  RTOUCH: () => <Stick />,
-
-  MISC2: () => <Pad side="right" clicked />,
-  MISC3: () => <Pad side="left" clicked />,
-  TOUCH: () => <Pad />,
-  CAPTURE: () => <Pad />,
-
-  MISC5: () => <><Grip side="right" /><Letter char="R" size={6}/></>,
-  MISC6: () => <><Grip side="left" /><Letter char="L" size={6}/></>,
-
-  LSL: () => <><Paddle side="left" /><Letter char="L4" size={5.5}/></>,
-  LSR: () => <><Paddle side="left" /><Letter char="L5" size={5.5}/></>,
-  RSR: () => <><Paddle side="right" /><Letter char="R4" size={5.5}/></>,
-  RSL: () => <><Paddle side="right" /><Letter char="R5" size={5.5}/></>,
-
-  // The Steam button keeps its own ring; every other family prints its mark on
-  // an ordinary round face button.
-  HOME: family =>
-    family === 'steam' ? (
-      <>
-        <circle cx="8" cy="8" r="6.4" strokeWidth="1.5" />
-        <HomeMark family={family} />
-      </>
-    ) : (
-      <Face>
-        <HomeMark family={family} />
-      </Face>
-    ),
-
-  MISC1: () => (
-    <Pill>
-      <QuickAccessMark />
-    </Pill>
-  ),
-
-  '+': family => (
-    <Pill>
-      <MenuMark family={family} />
-    </Pill>
-  ),
-
-  '-': family => (
-    <Pill>
-      <ViewMark family={family} />
-    </Pill>
-  ),
-
-  MIC: () => (
-    <>
-      <rect x="6.2" y="2.6" width="3.6" height="6.6" rx="1.8" />
-      <path d="M4.4 8.2a3.6 3.6 0 0 0 7.2 0M8 11.8v1.6" />
-    </>
-  ),
+// Right-hand and second-of-a-pair inputs the set draws only once.
+const REGULAR_SIBLINGS: Record<string, () => string | undefined> = {
+  RTOUCH: () => relabel(STEAM_GLYPHS.LST?.svg ?? '', 'L', 'R'),
+  RUP: () => STEAM_GLYPHS.LUP?.svg,
+  RRIGHT: () => STEAM_GLYPHS.LRIGHT?.svg,
+  RDOWN: () => STEAM_GLYPHS.LDOWN?.svg,
+  RLEFT: () => STEAM_GLYPHS.LLEFT?.svg,
+  RRING: () => STEAM_GLYPHS.LRING?.svg,
+  RIGHT_PAD: () => STEAM_GLYPHS.LTOUCH?.svg.replace('cx="14" cy="10" r="3"', 'cx="10" cy="10" r="3"').replace('cx="14" cy="10" r="5.5"', 'cx="10" cy="10" r="5.5"'),
 }
+
+// Small cuts derived from a sibling's small cut by swapping the label.
+const SMALL_SIBLINGS: Record<string, () => string | undefined> = {
+  N: () => relabel(STEAM_SMALL_GLYPHS.S, 'A', 'Y'),
+  W: () => relabel(STEAM_SMALL_GLYPHS.S, 'A', 'X'),
+  R: () => relabel(STEAM_SMALL_GLYPHS.L, 'L', 'R'),
+  ZL: () => relabel(STEAM_SMALL_GLYPHS.ZR, 'R', 'L'),
+  ZLF: () => relabel(STEAM_SMALL_GLYPHS.ZR, 'R', 'L'),
+  ZRF: () => STEAM_SMALL_GLYPHS.ZR,
+  L3: () => STEAM_SMALL_GLYPHS.R3,
+  MISC3: () => relabel(STEAM_SMALL_GLYPHS.MISC2, 'R', 'L'),
+  LSR: () => relabel(STEAM_SMALL_GLYPHS.LSL, '4', '5'),
+  RSR: () => STEAM_SMALL_GLYPHS.LSL,
+  RSL: () => relabel(STEAM_SMALL_GLYPHS.LSL, '4', '5'),
+}
+
+// Which family glyph stands for which JSM position.
+const FAMILY_ITEMS: Partial<Record<ControllerVisualFamily, { set: string; items: Record<string, string> }>> = {
+  playstation: { set: 'ps', items: { S: 'Cross', E: 'Circle', W: 'Square', N: 'Triangle', L: 'L1', R: 'R1', ZL: 'L2', ZR: 'R2', ZLF: 'L2', ZRF: 'R2' } },
+  nintendo: { set: 'nin', items: { S: 'B (south)', E: 'A (east)', W: 'Y (west)', N: 'X (north)', L: 'L', R: 'R', ZL: 'ZL', ZR: 'ZR', ZLF: 'ZL', ZRF: 'ZR' } },
+}
+const NINTENDO_SMALL_LETTERS: Record<string, string> = { S: 'B', E: 'A', W: 'Y', N: 'X' }
 
 /**
- * Inputs that are a family rather than a name: the pads, the numbered regions
- * drawn on them, the segments of a stick wheel, and the stick directions.
- *
- * These cannot go in the table above because there are hundreds of them, and
- * without them they fell through to the lettered disc, which took the first
- * two characters of the config token -- so a left pad region read "LT" and the
- * left pad itself read "LE". A region is a numbered cell of a particular pad,
- * and it should look like one.
+ * Inputs that are a family rather than a name: numbered pad regions and wheel
+ * segments come in the hundreds, so they are drawn from one pattern each
+ * instead of falling through to a lettered disc that read "LT" for a region.
  */
-const patternGlyph = (key: string): ReactNode | null => {
-  if (key === 'LEFT_PAD') return <Pad side="left" />
-  if (key === 'RIGHT_PAD') return <Pad side="right" />
-
+const patternGlyph = (key: string, small: boolean): string | null => {
   const region = key.match(/^([LR]?)T(\d+)$/)
-  if (region) return <><Pad side={region[1] === 'L' ? 'left' : region[1] === 'R' ? 'right' : undefined} /><Letter char={region[2]} size={region[2].length > 1 ? 5.4 : 7} /></>
-
+  if (region) {
+    const n = region[2]
+    const size = small ? (n.length > 1 ? 10 : 13) : n.length > 1 ? 8 : 9.5
+    return `<rect x="2.5" y="2.5" width="19" height="19" rx="5.5" fill="none" stroke="currentColor" stroke-width="${small ? 2.5 : 2}"/>` + label(12, 12.5, size, n)
+  }
   const segment = key.match(/^([LR])M(\d+)$/)
-  if (segment) return <><Stick /><Letter char={segment[2]} size={segment[2].length > 1 ? 5 : 6.4} /></>
-
-  const direction = key.match(/^([LR])(UP|DOWN|LEFT|RIGHT)$/)
-  if (direction) return <g transform={`rotate(${DPAD_ROTATION[direction[2]]} 8 8)`}><circle cx="8" cy="8" r="5.6" opacity="0.45" /><path d="M6.6 9.4V7.2H5.1L8 4.2l2.9 3H9.4v2.2z" /></g>
-
-  const ring = key.match(/^([LR])RING$/)
-  if (ring) return <><circle cx="8" cy="8" r="6.1" opacity="0.45" /><circle cx="8" cy="8" r="2.6" /></>
-
+  if (segment) {
+    const n = segment[2]
+    return `<circle cx="12" cy="12" r="${small ? 10 : 9.5}" fill="none" stroke="currentColor" stroke-width="${small ? 2.5 : 2}"/>` + label(12, 12.5, n.length > 1 ? 8 : small ? 12 : 9.5, n)
+  }
+  const padDirection = key.match(/^T(UP|DOWN|LEFT|RIGHT)$/)
+  if (padDirection) {
+    const rotate = { UP: 0, RIGHT: 90, DOWN: 180, LEFT: 270 }[padDirection[1]]
+    return `<rect x="2.5" y="2.5" width="19" height="19" rx="5.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 5 15.5 9.5h-7z" fill="currentColor" transform="rotate(${rotate} 12 12)"/>`
+  }
+  if (key === 'TRING') return STEAM_GLYPHS.LRING?.svg ?? null
+  if (key === 'TOUCH' || key === 'CAPTURE') {
+    return `<rect x="2.5" y="4.5" width="19" height="15" rx="4.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/>`
+  }
+  if (key === 'MIC') {
+    return `<rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor"/><path d="M6 11a6 6 0 0 0 12 0M12 17v3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>`
+  }
+  const mini = key.match(/^([LR])MINI$/)
+  if (mini) return `<rect x="2.5" y="6.5" width="19" height="11" rx="5.5" fill="currentColor"/>` + label(12, 12.25, 7.5, `${mini[1]}m`, 'var(--glyph-ink)')
   return null
 }
 
-export function InputGlyph({ command, family = 'generic', size = 16, className, title }: GlyphProps) {
-  const key = command.toUpperCase()
+/** The inner markup for one input, before the <svg> around it. */
+export const glyphMarkup = (command: string, family: ControllerVisualFamily = 'generic', size = 24): string => {
+  const upper = command.toUpperCase()
+  const key = COMMAND_KEYS[upper] ?? upper
+  const small = size <= SMALL_CUT_MAX
 
-  let content: ReactNode
-  const patterned = patternGlyph(key)
-  if (key in GLYPHS) {
-    content = GLYPHS[key](family)
-  } else if (patterned) {
-    content = patterned
-  } else {
-    // Unknown input: a lettered disc using the first two characters, so an
-    // unmapped token still reads as a button rather than as raw config text.
-    content = (
-      <Face>
-        <Letter char={key.slice(0, 2)} size={key.length > 1 ? 5.6 : 8.6} />
-      </Face>
-    )
+  const familyItem = FAMILY_ITEMS[family]
+  if (familyItem?.items[key]) {
+    if (small && family === 'nintendo' && NINTENDO_SMALL_LETTERS[key]) return relabel(STEAM_SMALL_GLYPHS.S, 'A', NINTENDO_SMALL_LETTERS[key])
+    const svg = FAMILY_GLYPHS[familyItem.set]?.items[familyItem.items[key]]
+    if (svg) return svg
   }
 
+  if (small) {
+    const cut = STEAM_SMALL_GLYPHS[key] ?? SMALL_SIBLINGS[key]?.()
+    if (cut) return cut
+  }
+  const regular = STEAM_GLYPHS[key]?.svg ?? REGULAR_SIBLINGS[key]?.()
+  if (regular) return regular
+
+  const patterned = patternGlyph(key, small)
+  if (patterned) return patterned
+
+  // Unknown input: a lettered disc, so an unmapped token still reads as a
+  // button rather than as raw config text.
+  const text = key.slice(0, 2)
+  return `<circle cx="12" cy="12" r="${small ? 11 : 10}" fill="currentColor"/>` + label(12, 12.5, text.length > 1 ? (small ? 10 : 8.5) : small ? 14 : 11, text, 'var(--glyph-ink)')
+}
+
+export function InputGlyph({ command, family = 'generic', size = 16, className, title }: GlyphProps) {
+  const markup = (title ? `<title>${title.replace(/[<&]/g, c => (c === '<' ? '&lt;' : '&amp;'))}</title>` : '') + glyphMarkup(command, family, size)
   return (
-    <svg {...svgBase} width={size} height={size} className={className} role={title ? 'img' : undefined} aria-label={title}>
-      {title && <title>{title}</title>}
-      {content}
-    </svg>
+    <svg
+      viewBox="0 0 24 24"
+      width={size}
+      height={size}
+      className={className}
+      role={title ? 'img' : undefined}
+      aria-label={title}
+      aria-hidden={title ? undefined : true}
+      focusable="false"
+      data-glyph={command.toUpperCase()}
+      // Drawn from the generated design glyph set and fixed patterns; the only
+      // runtime text is the title, which is escaped above.
+      dangerouslySetInnerHTML={{ __html: markup }}
+    />
   )
 }

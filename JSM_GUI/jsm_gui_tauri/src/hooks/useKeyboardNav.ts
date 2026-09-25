@@ -19,13 +19,19 @@ const FOCUSABLE_SELECTOR = [
 const TEXT_INPUT_TYPES = new Set(['text', 'search', 'url', 'email', 'password', 'number', 'tel'])
 
 const isVisible = (element: HTMLElement) => {
-  if (element.closest('[hidden], [inert], [aria-hidden="true"]')) return false
+  if (element.closest('[hidden], [inert], [aria-hidden="true"], [aria-disabled="true"], [data-disabled]') || element.matches(':disabled')) return false
+  for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+    if (parent instanceof HTMLDetailsElement && !parent.open && !parent.querySelector(':scope > summary')?.contains(element)) return false
+  }
+  const style = getComputedStyle(element)
+  if (style.visibility === 'hidden' || style.display === 'none') return false
   const rect = element.getBoundingClientRect()
   return rect.width > 0 && rect.height > 0
 }
 
 const topmostOverlay = () => {
-  const overlays = document.querySelectorAll<HTMLElement>('.modal-overlay')
+  // Dialogs, and the navigation drawer, which traps focus the same way.
+  const overlays = document.querySelectorAll<HTMLElement>('.modal-overlay, [data-focus-trap="true"]')
   return overlays.length ? overlays[overlays.length - 1] : null
 }
 
@@ -34,6 +40,7 @@ const topmostOverlay = () => {
 // its hands off the keyboard entirely, or the two would fight over every arrow
 // press and focus would jump out of the open list.
 const radixPopoverOpen = () => Boolean(document.querySelector('[data-radix-popper-content-wrapper]'))
+const navigationSuspended = () => document.body.dataset.bindingCapture === 'true' || Boolean(document.activeElement?.closest('[data-navigation-suspended="true"]'))
 
 /**
  * Whether something already owns Escape.
@@ -71,7 +78,7 @@ type Options = {
 export function useKeyboardNav({ onPageStep, onEscape, activePage, contentSelector = '.main-pane' }: Options) {
   const [modalOpen, setModalOpen] = useState(false)
   const skipNextPageFocus = useRef(true)
-  const pageFocus = useRef(new Map<unknown, number>())
+  const pageFocus = useRef(new Map<unknown, { index: number; element: HTMLElement }>())
   const activePageRef = useRef(activePage)
   activePageRef.current = activePage
   useEffect(() => {
@@ -79,7 +86,7 @@ export function useKeyboardNav({ onPageStep, onEscape, activePage, contentSelect
       const content = document.querySelector(contentSelector)
       if (!content) return
       const index = focusablesIn(content).indexOf(document.activeElement as HTMLElement)
-      if (index >= 0) pageFocus.current.set(activePageRef.current, index)
+      if (index >= 0 && !topmostOverlay()) pageFocus.current.set(activePageRef.current, { index, element: document.activeElement as HTMLElement })
     }
     document.addEventListener('focusin', remember)
     return () => document.removeEventListener('focusin', remember)
@@ -95,10 +102,17 @@ export function useKeyboardNav({ onPageStep, onEscape, activePage, contentSelect
     }
     const content = document.querySelector<HTMLElement>(contentSelector)
     if (!content) return
+    const scrollHost = content.closest<HTMLElement>('.shell-scroll')
+    if (scrollHost) scrollHost.scrollTop = 0
     const focusContent = () => {
       const items = focusablesIn(content)
-      const first = items[pageFocus.current.get(activePage) ?? 0] ?? items[0]
+      const saved = pageFocus.current.get(activePage)
+      const first = saved && items.includes(saved.element) ? saved.element : items[saved?.index ?? 0] ?? items[0]
       first?.focus({ preventScroll: true })
+      if (first && scrollHost) {
+        const bounds = first.getBoundingClientRect(), viewport = scrollHost.getBoundingClientRect()
+        if (bounds.top < viewport.top || bounds.bottom > viewport.bottom) first.scrollIntoView({ block: 'nearest' })
+      }
       return Boolean(first)
     }
     if (focusContent()) return
@@ -112,13 +126,13 @@ export function useKeyboardNav({ onPageStep, onEscape, activePage, contentSelect
   // lands somewhere sensible instead of behind the overlay.
   useEffect(() => {
     let lastOverlay: HTMLElement | null = null
-    const returnFocus = new Map<HTMLElement, HTMLElement>()
+    const returnFocus = new Map<HTMLElement, { element: HTMLElement; input?: string }>()
     const update = () => {
       const overlay = topmostOverlay()
       setModalOpen(Boolean(overlay))
       if (overlay && overlay !== lastOverlay) {
         const active = document.activeElement as HTMLElement | null
-        if (active) returnFocus.set(overlay, active)
+        if (active && !returnFocus.has(overlay)) returnFocus.set(overlay, { element: active, input: active.closest<HTMLElement>('[data-input-command]')?.dataset.inputCommand })
         if (!active || !overlay.contains(active)) {
           const first = focusablesIn(overlay).find(element => !element.classList.contains('ghost-btn')) ?? focusablesIn(overlay)[0]
           first?.focus({ preventScroll: true })
@@ -126,7 +140,8 @@ export function useKeyboardNav({ onPageStep, onEscape, activePage, contentSelect
       }
       if (lastOverlay && !lastOverlay.isConnected) {
         const previous = returnFocus.get(lastOverlay)
-        if (previous?.isConnected) previous.focus()
+        if (previous?.element.isConnected) previous.element.focus()
+        else if (previous?.input) document.querySelector<HTMLElement>(`details[data-input-command="${CSS.escape(previous.input)}"] > summary`)?.focus()
         returnFocus.delete(lastOverlay)
       }
       lastOverlay = overlay
@@ -139,7 +154,7 @@ export function useKeyboardNav({ onPageStep, onEscape, activePage, contentSelect
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return
+      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || navigationSuspended()) return
       if (radixPopoverOpen()) return
       const target = event.target as HTMLElement | null
       const tag = target?.tagName
@@ -188,7 +203,7 @@ export function useKeyboardNav({ onPageStep, onEscape, activePage, contentSelect
         }
         case 'PageUp':
         case 'PageDown': {
-          if (isTextEntry) return
+          if (isTextEntry || topmostOverlay()) return
           event.preventDefault()
           onPageStep(event.key === 'PageDown' ? 1 : -1)
           return
@@ -217,6 +232,7 @@ export function useKeyboardNav({ onPageStep, onEscape, activePage, contentSelect
       }
     }
     const direction = (event: Event) => {
+      if (navigationSuspended() || radixPopoverOpen()) return
       const current = document.activeElement as HTMLElement
       const next = directionalTarget(current, focusablesIn(topmostOverlay() ?? document), (event as CustomEvent<string>).detail)
       next?.focus(); next?.scrollIntoView({ block: 'nearest' })

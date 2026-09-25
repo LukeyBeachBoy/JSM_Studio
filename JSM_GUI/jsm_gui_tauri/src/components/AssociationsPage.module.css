@@ -1,0 +1,44 @@
+/* Associations (Tuning and Studio Pages 16f). */
+.page { display: flex; flex-direction: column; gap: var(--sp-4); }
+
+.masterSwitch {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-row);
+  background: var(--surface-row);
+  cursor: pointer;
+}
+.masterSwitch > span { display: flex; flex-direction: column; gap: 2px; color: var(--text-1); font-size: var(--fs-label); font-weight: var(--fw-medium); }
+.masterSwitch small { color: var(--text-3); font-size: var(--fs-hint); font-weight: var(--fw-regular); }
+
+.rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-2); }
+.row {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: var(--r-card);
+  background: var(--surface-row);
+  transition: background var(--dur-1) var(--ease-standard);
+}
+.row:hover { background: var(--surface-row-hover); }
+.row:focus-within { background: var(--surface-row-hover); }
+.row[data-paused] .name, .row[data-paused] .appIcon { opacity: .55; }
+
+.appIcon { width: 36px; height: 36px; flex: none; display: grid; place-items: center; border-radius: var(--r-md); background: var(--surface-control); color: var(--text-2); }
+.text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.name { color: var(--text-1); font-size: var(--fs-label); font-weight: var(--fw-medium); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sub { color: var(--text-3); font-size: var(--fs-hint); }
+.loads { display: flex; align-items: center; gap: var(--sp-2); }
+.loads > button[role='combobox'] { min-width: 180px; }
+.loadsLabel { color: var(--text-3); font-size: var(--fs-hint); }
+.remove { color: var(--text-3); }
+.remove:hover { color: var(--error); }
+
+.note, .empty { margin: 0; color: var(--text-3); font-size: var(--fs-body); }
+.empty { padding: var(--sp-6); border-radius: var(--r-card); background: var(--surface-row); text-align: center; }

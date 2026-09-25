@@ -114,7 +114,7 @@ export function AutoloadManager({
 
   return (
     <div className="modal-overlay" onMouseDown={onClose}>
-      <div className={`modal-card ${styles.modal}`} onMouseDown={event => event.stopPropagation()}>
+        <div className={`modal-card ${styles.modal}`} role="dialog" aria-modal="true" aria-label={t('autoload.title')} onMouseDown={event => event.stopPropagation()}>
         <div className="modal-header">
           <div>
             <h3>{t('autoload.title')}</h3>

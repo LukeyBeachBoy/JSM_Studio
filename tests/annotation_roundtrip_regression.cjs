@@ -80,13 +80,11 @@ for (const needle of ['@label LT1', '@icon LT1', '@overlay LEFT']) {
   );
 }
 
-// --- what is deliberately NOT fixed here ------------------------------------
-// Free prose is still dropped; that is TODO-3 and needs anchoring to the line
-// it describes. Asserted so the difference is a decision on record rather than
-// something discovered later and mistaken for this bug coming back.
+// Free prose now travels with the following setting rather than being pooled
+// or discarded by the canonical section serializer.
 assert.equal(
-  saved.includes('A hand-written note'), false,
-  'free-form comments are still dropped (TODO-3); only @-annotations are preserved'
+  saved.includes('# A hand-written note about the layout'), true,
+  'free-form comments survive Save'
 );
 
 // The bindings and settings themselves are untouched.
@@ -103,3 +101,9 @@ assert.ok(
 );
 
 console.log('annotations survive Save: labels, icons and overlay placements round-trip');
+
+// Annotation keys can contain commas and plus signs, but they are never bindings.
+const { getButtonBindingRows } = loadModule('src/utils/keymap.ts');
+const comboRows = getButtonBindingRows('RSR,N = J\n# @label RSR,N = Squad VOIP\n# @icon RSR,N = game-icons:radio\n# @label RSR+N = Chord label\n# RSR,N = K\n', 'N').filter(row => row.binding);
+assert.deepEqual(comboRows.map(row => [row.modifierCommand, row.binding]), [['RSR', 'J']]);
+console.log('annotation comments never create phantom chord bindings');

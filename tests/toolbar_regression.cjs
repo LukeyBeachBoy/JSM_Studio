@@ -27,10 +27,11 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  assert.equal(await page.locator('.utility-profile-select').count(), 0, 'the separate profile dropdown is still there');
  assert.equal(await page.getByRole('button',{name:'Manage configurations'}).count(), 0, 'the separate Manage button is still there');
 
- // Save and Apply are their own buttons, and each names its target.
+ // Save and Apply are their own labelled buttons (design: title bar), and each
+ // names its target.
  const save = page.getByRole('button',{name:'Save configuration',exact:true});
  const apply = page.getByRole('button',{name:'Apply',exact:true});
- assert.equal(await save.innerText(), '', 'Save should be icon-only');
+ assert.equal(await save.innerText(), 'Save');
  assert.match(await save.getAttribute('title'), /Desktop/, 'Save should name what it writes to');
  assert.match(await apply.getAttribute('title'), /Desktop/, 'Apply should name what it applies');
  assert.equal(await page.getByRole('button',{name:/Save and apply/}).count(), 0, 'the combined button is still there');
@@ -44,14 +45,18 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
 
  // Edit something that lands in the configuration file, then walk away from it.
  await page.getByRole('button',{name:'Triggers',exact:true}).click();
+ await page.getByText('Threshold & release',{exact:true}).first().click();
  const threshold = page.getByRole('textbox',{name:'Soft press point',exact:true}).first();
  await threshold.waitFor();
  await threshold.fill('0.1');
  await threshold.press('Tab');
- await page.locator('.pill--warning').first().waitFor();
+ await page.locator('.unsaved-dot').first().waitFor();
 
+ // The Editing segment opens the configuration menu; choosing another runs
+ // the unsaved-changes guard first.
+ const other = page.getByRole('menuitem').nth(1);
  await chip.click();
- await page.getByRole('button',{name:'Load',exact:true}).nth(1).click();
+ await other.click();
  const guard = page.getByRole('alertdialog');
  await guard.waitFor();
  assert.match(await guard.innerText(), /Desktop/, 'the guard should name the configuration holding the edits');
@@ -60,13 +65,12 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  // Cancel leaves you where you were, still dirty.
  await guard.getByRole('button',{name:'Cancel'}).click();
  await guard.waitFor({state:'detached'});
- await page.locator('.pill--warning').first().waitFor();
+ await page.locator('.unsaved-dot').first().waitFor();
  assert.equal(await page.evaluate(() => window.__calls.filter(c => c.startsWith('load:')).length), 0);
 
- // Cancelling the guard leaves the configuration dialog open, so the next
- // attempt starts from there rather than reopening it.
  // Saving first keeps the edit and then switches.
- await page.getByRole('button',{name:'Load',exact:true}).nth(1).click();
+ await chip.click();
+ await other.click();
  await guard.waitFor();
  await guard.getByRole('button',{name:'Save and switch'}).click();
  await page.waitForFunction(() => window.__calls.some(c => c.startsWith('save:Desktop')) && window.__calls.some(c => c.startsWith('load:')));

@@ -84,11 +84,14 @@ export const ViewMark = ({ family }: { family: ControllerVisualFamily }) =>
     </>
   )
 
-/** The home button's marking: the valve stem for Steam -- the silhouette Valve's
- *  mark reads as at this size, drawn rather than copied -- and each other
- *  family's own. */
+/** Controller-family home markings, including the linked Steam circles. */
 export const HomeMark = ({ family }: { family: ControllerVisualFamily }) => {
-  if (family === 'steam') return <path d="M3.7 7.5 8 3.8l4.3 3.7M5.2 6.5v5.4h5.6V6.5M7 11.9V9h2v2.9" />
+  if (family === 'steam') return <>
+    <circle cx="10.5" cy="5.5" r="2.7" />
+    <circle cx="10.5" cy="5.5" r="1.5" strokeWidth=".8" />
+    <circle cx="5.4" cy="10.6" r="1.9" />
+    <path d="m6.7 9.3 2-3M7.1 11.2l3.4-3M3.7 10 1.8 9.2" />
+  </>
   if (family === 'playstation') return <Letter char="PS" size={5.6} />
   if (family === 'nintendo') return <path d="M5.4 8.2 8 5.8l2.6 2.4M6.4 7.6v2.9h3.2V7.6" />
   // Xbox nexus: the ring with the stylised X.

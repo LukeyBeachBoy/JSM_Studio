@@ -4,8 +4,10 @@ import * as RadixSelect from '@radix-ui/react-select'
 import styles from './Select.module.css'
 
 // Kept in step with .description in Select.module.css.
-const HELP_PANEL_WIDTH = 280
+const HELP_PANEL_WIDTH = 320
 const HELP_PANEL_GAP = 8
+// The whole surface stays 16px inside the window (HANDOFF.md, placement rule).
+const VIEWPORT_MARGIN = 16
 
 export type SelectOption = {
   value: string
@@ -78,14 +80,21 @@ export function Select({
   // the pointer. Which side it sits on is decided once, when the list opens:
   // the width is fixed, so nothing after that can change the answer.
   const [helpSide, setHelpSide] = useState<'right' | 'left' | 'bottom'>('right')
+  // Docked below, the panel is wider than a short list; a list that ends near
+  // the window's right edge would push it off, so it slides left to fit.
+  const [helpShift, setHelpShift] = useState(0)
   const [open, setOpen] = useState(false)
   const contentRef = useRef<HTMLDivElement | null>(null)
   const placeHelpPanel = useCallback(() => {
     const node = contentRef.current
     if (!node) return
-    const { left, right } = node.getBoundingClientRect()
-    const needed = HELP_PANEL_WIDTH + HELP_PANEL_GAP
-    setHelpSide(window.innerWidth - right >= needed ? 'right' : left >= needed ? 'left' : 'bottom')
+    // Beside the list only when the panel fits there with the margin to
+    // spare; otherwise it docks below, inside the same surface.
+    const { left, right, width } = node.getBoundingClientRect()
+    const beside = window.innerWidth - right >= HELP_PANEL_WIDTH + HELP_PANEL_GAP + VIEWPORT_MARGIN
+    setHelpSide(beside ? 'right' : 'bottom')
+    const panelWidth = Math.max(HELP_PANEL_WIDTH, width)
+    setHelpShift(beside ? 0 : Math.min(0, window.innerWidth - VIEWPORT_MARGIN - (left + panelWidth)))
   }, [])
   // Measured a frame after opening, not in the Content's ref. Radix positions a
   // popper with Floating UI *after* it mounts, so a ref callback measures the
@@ -141,7 +150,7 @@ export function Select({
             ))}
           </RadixSelect.Viewport>
           {description && (
-            <div className={`${styles.description} ${styles[helpSide]}`} aria-live="polite">
+            <div className={`${styles.description} ${styles[helpSide]}`} style={helpSide === 'bottom' && helpShift ? { left: helpShift } : undefined} aria-live="polite">
               <strong>{helpOption?.label}</strong>
               <p>{description}</p>
             </div>

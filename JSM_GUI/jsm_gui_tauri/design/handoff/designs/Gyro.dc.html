@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<link rel="stylesheet" href="./tokens/tokens.css">
+<style>html,body{margin:0;min-height:100%;background:#0a0e12;font-family:"Geist",system-ui,sans-serif;font-feature-settings:"tnum" 1;} a{color:#6ec3f4;text-decoration:none;} a:hover{color:#e8eef4;}</style>
+</helmet>
+<section data-screen-label="Turn 6 · Gyro settings template" style="padding:64px;display:flex;flex-direction:column;gap:32px;">
+  <div style="display:flex;flex-direction:column;gap:8px;max-width:960px;color:#e8eef4;">
+    <div style="font-size:12px;letter-spacing:.12em;color:#808c99;">TURN 6 · PAGE TEMPLATE · SETTINGS</div>
+    <div style="font-size:32px;font-weight:600;letter-spacing:-.015em;">Gyro: the settings-page template</div>
+    <div style="font-size:15px;line-height:22px;color:#b0bcc8;">Full-width setting rows: label and origin on the left, value pill right-aligned, a wide slider or segmented control, and the description always underneath. Rows are separated by hairlines only. Minimum sensitivity is shown in adjust mode (A to enter, left/right to change, X for fine/coarse, A or B to leave). Static sensitivity has no description, so the row says so, shows the raw JSM name and offers the docs. Triggers, Joysticks, Trackpads and the Tuning pages reuse this template.</div>
+  </div>
+  <div id="6a" style="display:flex;flex-direction:column;gap:16px;width:1440px;">
+    <div style="display:flex;align-items:baseline;gap:12px;color:#e8eef4;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">6a</span><span style="font-size:20px;font-weight:600;">1440 × 900 · Sensitivity, slider adjusting</span></div>
+    <div class="shell" style="position:relative;width:1440px;height:900px;display:grid;grid-template-rows:var(--titlebar-h) 52px minmax(0,1fr);background:var(--surface-canvas);border-radius:12px;overflow:hidden;box-shadow:0 0 0 1px var(--line-2);">
+      <dc-import name="Shell Titlebar" hint-size="100%,44px"></dc-import>
+      <dc-import name="Page Tabs" page="Gyro" hint-size="100%,52px"></dc-import>
+      <div style="display:grid;grid-template-columns:216px minmax(0,1fr);min-height:0;">
+        <nav class="section-list" style="display:flex;flex-direction:column;gap:2px;padding:88px var(--sp-3) var(--sp-4) var(--sp-5);font-family:var(--font-ui);font-size:var(--fs-body);color:var(--text-2);">
+            <div class="section-item"  style="height:40px;display:flex;align-items:center;padding:0 var(--sp-3);border-radius:var(--r-md);">General</div>
+            <div class="section-item"  style="height:40px;display:flex;align-items:center;padding:0 var(--sp-3);border-radius:var(--r-md);">Calibration</div>
+            <div class="section-item" data-state="current" style="height:40px;display:flex;align-items:center;padding:0 var(--sp-3);border-radius:var(--r-md);background:var(--surface-row);color:var(--text-1);font-weight:var(--fw-medium);">Sensitivity</div>
+            <div class="section-item"  style="height:40px;display:flex;align-items:center;padding:0 var(--sp-3);border-radius:var(--r-md);">Noise &amp; steadying</div>
+            <div class="section-item"  style="height:40px;display:flex;align-items:center;padding:0 var(--sp-3);border-radius:var(--r-md);">Orientation</div>
+            <div class="section-item"  style="height:40px;display:flex;align-items:center;padding:0 var(--sp-3);border-radius:var(--r-md);">Dampening</div>
+            <div class="section-item"  style="height:40px;display:flex;align-items:center;padding:0 var(--sp-3);border-radius:var(--r-md);">Diagnostics</div>
+        </nav>
+        <main style="min-width:0;overflow:hidden;">
+          <div style="transform:translateY(-470px);">
+    <div class="page page--settings" style="display:flex;flex-direction:column;gap:var(--sp-1);max-width:var(--content-max);margin:0 auto;padding:var(--sp-8) var(--sp-8) 120px;font-family:var(--font-ui);color:var(--text-1);">
+      <header class="page-header" style="display:flex;align-items:flex-end;gap:var(--sp-6);padding:0 var(--sp-4) var(--sp-4);">
+        <div style="flex:1;display:flex;flex-direction:column;gap:var(--sp-2);">
+          <div style="font-size:var(--fs-eyebrow);letter-spacing:var(--tracking-eyebrow);font-weight:var(--fw-semibold);color:var(--text-3);">WARDOGS · CONTROLS</div>
+          <h1 style="margin:0;font-size:var(--fs-page);line-height:var(--lh-page);font-weight:var(--fw-semibold);letter-spacing:var(--tracking-title);">Gyro</h1>
+          <p style="margin:0;font-size:var(--fs-body);color:var(--text-2);">How tilting the controller moves your aim, and when.</p>
+        </div>
+        <div class="telemetry-chip" style="height:var(--control-h-sm);display:flex;align-items:center;gap:var(--sp-2);padding:0 var(--sp-3);border-radius:var(--r-pill);background:var(--telemetry-soft);color:var(--telemetry);font-size:var(--fs-hint);font-weight:var(--fw-semibold);font-family:var(--font-mono);"><span style="width:6px;height:6px;border-radius:50%;background:var(--telemetry);"></span>142 °/s · 1000 Hz</div>
+      </header>
+      <h2 id="general" class="section-heading" style="margin:var(--sp-5) 0 var(--sp-1);padding:0 var(--sp-4);font-size:var(--fs-section);line-height:var(--lh-section);font-weight:var(--fw-semibold);">General</h2>
+      <div class="setting-row"  style="position:relative;display:flex;flex-direction:column;gap:var(--sp-3);padding:var(--sp-4) var(--sp-4);border-radius:var(--r-row);box-shadow:inset 0 -1px 0 var(--line-1);">
+          <div style="display:flex;align-items:center;gap:var(--sp-3);">
+            <span class="setting-row__label" style="font-size:var(--fs-label);line-height:var(--lh-label);font-weight:var(--fw-medium);color:var(--text-1);">Activation</span>
+            
+            
+            <span style="flex:1;"></span><span class="origin-marker" data-origin="inherited" style="display:flex;align-items:center;gap:6px;font-size:var(--fs-hint);color:var(--origin-inherited);"><span style="width:6px;height:6px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--origin-inherited);"></span>FPS Template</span>
+          </div>
+          <div class="segmented" style="display:flex;padding:3px;border-radius:var(--r-md);background:var(--surface-sunken);font-size:var(--fs-hint);font-weight:var(--fw-medium);"><span style="flex:1;height:30px;display:grid;place-items:center;padding:0 var(--sp-3);border-radius:var(--r-sm);color:var(--text-3);">Always on</span><span style="flex:1;height:30px;display:grid;place-items:center;padding:0 var(--sp-3);border-radius:var(--r-sm);background:var(--surface-control);color:var(--text-1);box-shadow:var(--shadow-lift);">Hold to enable</span><span style="flex:1;height:30px;display:grid;place-items:center;padding:0 var(--sp-3);border-radius:var(--r-sm);color:var(--text-3);">Hold to disable</span><span style="flex:1;height:30px;display:grid;place-items:center;padding:0 var(--sp-3);border-radius:var(--r-sm);color:var(--text-3);">Always off</span></div>
+          <p class="setting-row__desc" style="margin:0;font-size:var(--fs-hint);line-height:var(--lh-hint);color:var(--text-3);max-width:720px;text-wrap:pretty;">Hold to enable turns gyro on only while the activation input is held.</p>
+        </div>
+      <div class="setting-row"  style="position:relative;display:flex;flex-direction:column;gap:var(--sp-3);padding:var(--sp-4) var(--sp-4);border-radius:var(--r-row);box-shadow:inset 0 -1px 0 var(--line-1);">
+          <div style="display:flex;align-items:center;gap:var(--sp-3);">
+            <span class="setting-row__label" style="font-size:var(--fs-label);line-height:var(--lh-label);font-weight:var(--fw-medium);color:var(--text-1);">Activation input</span>
+            
+            
+            <span style="flex:1;"></span><span class="origin-marker" data-origin="inherited" style="display:flex;align-items:center;gap:6px;font-size:var(--fs-hint);color:var(--origin-inherited);"><span style="width:6px;height:6px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--origin-inherited);"></span>FPS Template</span><span style="height:var(--control-h-sm);display:flex;align-items:center;gap:var(--sp-2);padding:0 var(--sp-3) 0 var(--sp-1);border-radius:var(--r-pill);background:var(--surface-control);font-size:var(--fs-hint);font-weight:var(--fw-semibold);"><span style="width:20px;height:20px;display:grid;place-items:center;"><span style="width:9px;height:17px;border-radius:5px;box-shadow:inset 0 0 0 2px var(--text-1);"></span></span>Right grip</span>
+          </div>
+          
+          <p class="setting-row__desc" style="margin:0;font-size:var(--fs-hint);line-height:var(--lh-hint);color:var(--text-3);max-width:720px;text-wrap:pretty;">Capacitive grip sensor. Tune its range under Tuning › Grip sensors.</p>
+        </div>
+      <div class="setting-row"  style="position:relative;display:flex;flex-direction:column;gap:var(--sp-3);padding:var(--sp-4) var(--sp-4);border-radius:var(--r-row);box-shadow:inset 0 -1px 0 var(--line-1);">
+          <div style="display:flex;align-items:center;gap:var(--sp-3);">
+            <span class="setting-row__label" style="font-size:var(--fs-label);line-height:var(--lh-label);font-weight:var(--fw-medium);color:var(--text-1);">Output</span>
+            
+            
+            <span style="flex:1;"></span><span class="origin-marker" data-origin="inherited" style="display:flex;align-items:center;gap:6px;font-size:var(--fs-hint);color:var(--origin-inherited);"><span style="width:6px;height:6px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--origin-inherited);"></span>FPS Template</span><span class="select-trigger" style="height:var(--control-h-sm);display:flex;align-items:center;gap:var(--sp-2);padding:0 var(--sp-2) 0 var(--sp-3);border-radius:var(--r-pill);background:var(--surface-control);font-size:var(--fs-hint);font-weight:var(--fw-semibold);color:var(--text-1);">Mouse<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-3);"><path d="M2.5 3.75 5 6.25 7.5 3.75"></path></svg></span>
+          </div>
+          
+          <p class="setting-row__desc" style="margin:0;font-size:var(--fs-hint);line-height:var(--lh-hint);color:var(--text-3);max-width:720px;text-wrap:pretty;">Mouse gives the most precise aim in games that accept mouse and controller together.</p>
+        </div>
+      <h2 id="calibration" class="section-heading" style="margin:var(--sp-5) 0 var(--sp-1);padding:0 var(--sp-4);font-size:var(--fs-section);line-height:var(--lh-section);font-weight:var(--fw-semibold);">Calibration</h2>
+      <div class="setting-row"  style="position:relative;display:flex;flex-direction:column;gap:var(--sp-3);padding:var(--sp-4) var(--sp-4);border-radius:var(--r-row);box-shadow:inset 0 -1px 0 var(--line-1);">
+          <div style="display:flex;align-items:center;gap:var(--sp-3);">
+            <span class="setting-row__label" style="font-size:var(--fs-label);line-height:var(--lh-label);font-weight:var(--fw-medium);color:var(--text-1);">Real world calibration</span>
+            
+            
+            <span style="flex:1;"></span><span class="origin-marker origin-marker--override" data-origin="override" style="display:flex;align-items:center;gap:6px;font-size:var(--fs-hint);color:var(--origin-override);"><span style="width:6px;height:6px;border-radius:50%;background:var(--origin-override);"></span>Override</span><span class="value-pill" style="min-width:56px;height:var(--control-h-sm);display:flex;align-items:center;justify-content:center;gap:4px;padding:0 var(--sp-3);border-radius:var(--r-pill);background:var(--surface-control);font-size:var(--fs-hint);font-weight:var(--fw-semibold);font-variant-numeric:tabular-nums;color:var(--text-1);">35.856</span>
+          </div>
+          
+          <p class="setting-row__desc" style="margin:0;font-size:var(--fs-hint);line-height:var(--lh-hint);color:var(--text-3);max-width:720px;text-wrap:pretty;">Makes one full turn of the controller equal one full turn in game. Use the easy guide to measure it.</p>
+        </div>
+      <div class="setting-row"  style="position:relative;display:flex;flex-direction:column;gap:var(--sp-3);padding:var(--sp-4) var(--sp-4);border-radius:var(--r-row);box-shadow:inset 0 -1px 0 var(--line-1);">
+          <div style="display:flex;align-items:center;gap:var(--sp-3);">
+            <span class="setting-row__label" style="font-size:var(--fs-label);line-height:var(--lh-label);font-weight:var(--fw-medium);color:var(--text-1);">In-game sensitivity</span>
+            
+            
+            <span style="flex:1;"></span><span class="origin-marker origin-marker--override" data-origin="override" style="display:flex;align-items:center;gap:6px;font-size:var(--fs-hint);color:var(--origin-override);"><span style="width:6px;height:6px;border-radius:50%;background:var(--origin-override);"></span>Override</span><span class="value-pill" style="min-width:56px;height:var(--control-h-sm);display:flex;align-items:center;justify-content:center;gap:4px;padding:0 var(--sp-3);border-radius:var(--r-pill);background:var(--surface-control);font-size:var(--fs-hint);font-weight:var(--fw-semibold);font-variant-numeric:tabular-nums;color:var(--text-1);">0.5</span>
+          </div>
+          
+          <p class="setting-row__desc" style="margin:0;font-size:var(--fs-hint);line-height:var(--lh-hint);color:var(--text-3);max-width:720px;text-wrap:pretty;">The mouse sensitivity set inside Wardogs, so real world calibration can compensate.</p>
+        </div>
+      <h2 id="sensitivity" class="section-heading" style="margin:var(--sp-5) 0 var(--sp-1);padding:0 var(--sp-4);font-size:var(--fs-section);line-height:var(--lh-section);font-weight:var(--fw-semibold);">Sensitivity</h2>
+      <div class="setting-row" data-state="adjusting" style="position:relative;display:flex;flex-direction:column;gap:var(--sp-3);padding:var(--sp-4) var(--sp-4);border-radius:var(--r-row);background:var(--surface-selected);box-shadow:0 0 0 var(--focus-controller-width) var(--accent),var(--shadow-lift);">
+          <div style="display:flex;align-items:center;gap:var(--sp-3);">
+            <span class="setting-row__label" style="font-size:var(--fs-label);line-height:var(--lh-label);font-weight:var(--fw-medium);color:var(--text-1);">Minimum sensitivity</span>
+            
+            <span style="height:20px;display:flex;align-items:center;padding:0 var(--sp-2);border-radius:var(--r-xs);background:var(--accent);color:var(--text-on-accent);font-size:var(--fs-micro);font-weight:var(--fw-bold);letter-spacing:.04em;">ADJUSTING · FINE 0.01</span>
+            <span style="flex:1;"></span><span class="origin-marker origin-marker--override" data-origin="override" style="display:flex;align-items:center;gap:6px;font-size:var(--fs-hint);color:var(--origin-override);"><span style="width:6px;height:6px;border-radius:50%;background:var(--origin-override);"></span>Override <span style="color:var(--text-3);">· template 3 / 3</span></span><span class="value-pill" style="min-width:56px;height:var(--control-h-sm);display:flex;align-items:center;justify-content:center;gap:4px;padding:0 var(--sp-3);border-radius:var(--r-pill);background:var(--surface-control);font-size:var(--fs-hint);font-weight:var(--fw-semibold);font-variant-numeric:tabular-nums;color:var(--text-1);">1.00<span style="color:var(--text-3);font-weight:var(--fw-regular);">X</span></span><span class="value-pill" style="min-width:56px;height:var(--control-h-sm);display:flex;align-items:center;justify-content:center;gap:4px;padding:0 var(--sp-3);border-radius:var(--r-pill);background:var(--surface-control);font-size:var(--fs-hint);font-weight:var(--fw-semibold);font-variant-numeric:tabular-nums;color:var(--text-1);">1.00<span style="color:var(--text-3);font-weight:var(--fw-regular);">Y</span></span>
+          </div>
+          <div class="slider" data-state="adjusting"  style="position:relative;height:24px;display:flex;align-items:center;margin-bottom:16px;">
+            <div style="position:absolute;left:0;right:0;height:6px;border-radius:3px;background:var(--surface-control);"></div>
+            <div class="slider__fill" style="position:absolute;left:0;width:100%;height:6px;border-radius:3px;background:var(--accent);transform-origin:left;transform:scaleX(0.1);"></div>
+            
+            <div class="slider__ticks" aria-hidden="true" style="position:absolute;left:0;right:0;top:30px;display:flex;justify-content:space-between;"><span style="width:1px;height:7px;background:var(--text-2);"></span><span style="width:1px;height:4px;background:var(--text-3);"></span><span style="width:1px;height:4px;background:var(--text-3);"></span><span style="width:1px;height:4px;background:var(--text-3);"></span><span style="width:1px;height:4px;background:var(--text-3);"></span><span style="width:1px;height:7px;background:var(--text-2);"></span><span style="width:1px;height:4px;background:var(--text-3);"></span><span style="width:1px;height:4px;background:var(--text-3);"></span><span style="width:1px;height:4px;background:var(--text-3);"></span><span style="width:1px;height:4px;background:var(--text-3);"></span><span style="width:1px;height:7px;background:var(--text-2);"></span><span style="width:1px;height:4px;background:var(--text-3);"></span><span style="width:1px;height:4px;background:var(--text-3);"></span><span style="width:1px;height:4px;background:var(--text-3);"></span><span style="width:1px;height:4px;background:var(--text-3);"></span><span style="width:1px;height:7px;background:var(--text-2);"></span><span style="width:1px;height:4px;background:var(--text-3);"></span><span style="width:1px;height:4px;background:var(--text-3);"></span><span style="width:1px;height:4px;background:var(--text-3);"></span><span style="width:1px;height:4px;background:var(--text-3);"></span><span style="width:1px;height:7px;background:var(--text-2);"></span></div>
+            <div class="slider__thumb" style="position:absolute;left:calc(10% - 12px);width:24px;height:24px;border-radius:50%;background:var(--text-1);box-shadow:0 0 0 6px var(--accent-soft),0 1px 3px rgba(0,0,0,.4);"></div>
+          </div>
+          <p class="setting-row__desc" style="margin:0;font-size:var(--fs-hint);line-height:var(--lh-hint);color:var(--text-2);max-width:720px;text-wrap:pretty;">Sensitivity at slow speeds. Lower keeps small corrections steady.</p>
+        </div>
+      <div class="setting-row"  style="position:relative;display:flex;flex-direction:column;gap:var(--sp-3);padding:var(--sp-4) var(--sp-4);border-radius:var(--r-row);box-shadow:inset 0 -1px 0 var(--line-1);">
+          <div style="display:flex;align-items:center;gap:var(--sp-3);">
+            <span class="setting-row__label" style="font-size:var(--fs-label);line-height:var(--lh-label);font-weight:var(--fw-medium);color:var(--text-1);">Maximum sensitivity</span>
+            
+            
+            <span style="flex:1;"></span><span class="origin-marker" data-origin="inherited" style="display:flex;align-items:center;gap:6px;font-size:var(--fs-hint);color:var(--origin-inherited);"><span style="width:6px;height:6px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--origin-inherited);"></span>FPS Template</span><span class="value-pill" style="min-width:56px;height:var(--control-h-sm);display:flex;align-items:center;justify-content:center;gap:4px;padding:0 var(--sp-3);border-radius:var(--r-pill);background:var(--surface-control);font-size:var(--fs-hint);font-weight:var(--fw-semibold);font-variant-numeric:tabular-nums;color:var(--text-1);">4.00<span style="color:var(--text-3);font-weight:var(--fw-regular);">X</span></span><span class="value-pill" style="min-width:56px;height:var(--control-h-sm);display:flex;align-items:center;justify-content:center;gap:4px;padding:0 var(--sp-3);border-radius:var(--r-pill);background:var(--surface-control);font-size:var(--fs-hint);font-weight:var(--fw-semibold);font-variant-numeric:tabular-nums;color:var(--text-1);">4.00<span style="color:var(--text-3);font-weight:var(--fw-regular);">Y</span></span>
+          </div>
+          <div class="slider"  style="position:relative;height:24px;display:flex;align-items:center;">
+            <div style="position:absolute;left:0;right:0;height:6px;border-radius:3px;background:var(--surface-control);"></div>
+            <div class="slider__fill" style="position:absolute;left:0;width:100%;height:6px;border-radius:3px;background:var(--accent);transform-origin:left;transform:scaleX(0.4);"></div>
+            
+            <div class="slider__thumb" style="position:absolute;left:calc(40% - 10px);width:20px;height:20px;border-radius:50%;background:var(--text-1);box-shadow:0 1px 3px rgba(0,0,0,.4);"></div>
+          </div>
+          <p class="setting-row__desc" style="margin:0;font-size:var(--fs-hint);line-height:var(--lh-hint);color:var(--text-3);max-width:720px;text-wrap:pretty;">Sensitivity once the controller turns faster than the maximum threshold.</p>
+        </div>
+      <div class="setting-row"  style="position:relative;display:flex;flex-direction:column;gap:var(--sp-3);padding:var(--sp-4) var(--sp-4);border-radius:var(--r-row);box-shadow:inset 0 -1px 0 var(--line-1);">
+          <div style="display:flex;align-items:center;gap:var(--sp-3);">
+            <span class="setting-row__label" style="font-size:var(--fs-label);line-height:var(--lh-label);font-weight:var(--fw-medium);color:var(--text-1);">Static sensitivity (X)</span>
+            <span class="help-dot" title="No description yet" style="width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--text-4);color:var(--text-3);display:grid;place-items:center;font-size:11px;font-weight:600;">?</span>
+            
+            <span style="flex:1;"></span><span class="origin-marker" data-origin="inherited" style="display:flex;align-items:center;gap:6px;font-size:var(--fs-hint);color:var(--origin-inherited);"><span style="width:6px;height:6px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--origin-inherited);"></span>FPS Template</span><span class="value-pill" style="min-width:56px;height:var(--control-h-sm);display:flex;align-items:center;justify-content:center;gap:4px;padding:0 var(--sp-3);border-radius:var(--r-pill);background:var(--surface-control);font-size:var(--fs-hint);font-weight:var(--fw-semibold);font-variant-numeric:tabular-nums;color:var(--text-1);">2.00</span>
+          </div>
+          <div class="slider"  style="position:relative;height:24px;display:flex;align-items:center;">
+            <div style="position:absolute;left:0;right:0;height:6px;border-radius:3px;background:var(--surface-control);"></div>
+            <div class="slider__fill" style="position:absolute;left:0;width:100%;height:6px;border-radius:3px;background:var(--accent);transform-origin:left;transform:scaleX(0.2);"></div>
+            
+            <div class="slider__thumb" style="position:absolute;left:calc(20% - 10px);width:20px;height:20px;border-radius:50%;background:var(--text-1);box-shadow:0 1px 3px rgba(0,0,0,.4);"></div>
+          </div>
+          <p class="setting-row__desc" style="margin:0;font-size:var(--fs-hint);line-height:var(--lh-hint);color:var(--text-3);max-width:720px;text-wrap:pretty;"><span style="color:var(--text-4);">No description yet · JSM name GYRO_SENS · <span style="color:var(--text-3);">Y opens documentation</span></span></p>
+        </div>
+      <div class="setting-row"  style="position:relative;display:flex;flex-direction:column;gap:var(--sp-3);padding:var(--sp-4) var(--sp-4);border-radius:var(--r-row);box-shadow:inset 0 -1px 0 var(--line-1);">
+          <div style="display:flex;align-items:center;gap:var(--sp-3);">
+            <span class="setting-row__label" style="font-size:var(--fs-label);line-height:var(--lh-label);font-weight:var(--fw-medium);color:var(--text-1);">Maximum threshold</span>
+            
+            
+            <span style="flex:1;"></span><span class="origin-marker" data-origin="inherited" style="display:flex;align-items:center;gap:6px;font-size:var(--fs-hint);color:var(--origin-inherited);"><span style="width:6px;height:6px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--origin-inherited);"></span>FPS Template</span><span class="value-pill" style="min-width:56px;height:var(--control-h-sm);display:flex;align-items:center;justify-content:center;gap:4px;padding:0 var(--sp-3);border-radius:var(--r-pill);background:var(--surface-control);font-size:var(--fs-hint);font-weight:var(--fw-semibold);font-variant-numeric:tabular-nums;color:var(--text-1);">75<span style="color:var(--text-3);font-weight:var(--fw-regular);">°/s</span></span>
+          </div>
+          <div class="slider"  style="position:relative;height:24px;display:flex;align-items:center;">
+            <div style="position:absolute;left:0;right:0;height:6px;border-radius:3px;background:var(--surface-control);"></div>
+            <div class="slider__fill" style="position:absolute;left:0;width:100%;height:6px;border-radius:3px;background:var(--accent);transform-origin:left;transform:scaleX(0.375);"></div>
+            
+            <div class="slider__thumb" style="position:absolute;left:calc(37.5% - 10px);width:20px;height:20px;border-radius:50%;background:var(--text-1);box-shadow:0 1px 3px rgba(0,0,0,.4);"></div>
+          </div>
+          <p class="setting-row__desc" style="margin:0;font-size:var(--fs-hint);line-height:var(--lh-hint);color:var(--text-3);max-width:720px;text-wrap:pretty;">Turn speed at which maximum sensitivity is reached.</p>
+        </div>
+    </div></div>
+        </main>
+      </div>
+      <div class="hint-capsule" style="position:absolute;left:calc(50% + 108px);bottom:var(--sp-4);transform:translateX(-50%);height:var(--capsule-h);display:flex;align-items:center;gap:var(--sp-5);padding:0 var(--sp-5) 0 var(--sp-3);border-radius:var(--r-pill);background:var(--surface-raised);box-shadow:var(--shadow-capsule);font-family:var(--font-ui);font-size:var(--fs-hint);color:var(--text-2);white-space:nowrap;">
+        <span style="display:flex;align-items:center;gap:var(--sp-2);color:var(--accent);font-weight:var(--fw-semibold);">Adjusting</span>
+        <span style="width:1px;height:18px;background:var(--line-2);"></span>
+        <span style="display:flex;align-items:center;gap:var(--sp-2);"><b style="color:var(--text-1);">◀ ▶</b>Change</span>
+        <span style="display:flex;align-items:center;gap:var(--sp-2);"><b style="width:22px;height:22px;border-radius:50%;background:var(--text-1);color:var(--surface-frame);display:grid;place-items:center;font-size:11px;flex:none;">X</b>Coarse</span>
+        <span style="display:flex;align-items:center;gap:var(--sp-2);"><b style="width:22px;height:22px;border-radius:50%;background:var(--text-1);color:var(--surface-frame);display:grid;place-items:center;font-size:11px;flex:none;">A</b>Done</span>
+        <span style="display:flex;align-items:center;gap:var(--sp-2);"><b style="width:22px;height:22px;border-radius:50%;background:var(--text-1);color:var(--surface-frame);display:grid;place-items:center;font-size:11px;flex:none;">B</b>Cancel</span>
+      </div>
+    </div>
+  </div>
+  <div id="6b" style="display:flex;flex-direction:column;gap:16px;width:1440px;">
+    <div style="display:flex;align-items:baseline;gap:12px;color:#e8eef4;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">6b</span><span style="font-size:20px;font-weight:600;">Full page · General and Calibration at rest</span></div>
+    <div class="shell" style="position:relative;width:1440px;display:grid;grid-template-rows:var(--titlebar-h) 52px auto;background:var(--surface-canvas);border-radius:12px;overflow:hidden;box-shadow:0 0 0 1px var(--line-2);">
+      <dc-import name="Shell Titlebar" hint-size="100%,44px"></dc-import>
+      <dc-import name="Page Tabs" page="Gyro" hint-size="100%,52px"></dc-import>
+      <main style="min-width:0;padding-left:216px;">
+    <div class="page page--settings" style="display:flex;flex-direction:column;gap:var(--sp-1);max-width:var(--content-max);margin:0 auto;padding:var(--sp-8) var(--sp-8) 120px;font-family:var(--font-ui);color:var(--text-1);">
+      <header class="page-header" style="display:flex;align-items:flex-end;gap:var(--sp-6);padding:0 var(--sp-4) var(--sp-4);">
+        <div style="flex:1;display:flex;flex-direction:column;gap:var(--sp-2);">
+          <div style="font-size:var(--fs-eyebrow);letter-spacing:var(--tracking-eyebrow);font-weight:var(--fw-semibold);color:var(--text-3);">WARDOGS · CONTROLS</div>
+          <h1 style="margin:0;font-size:var(--fs-page);line-height:var(--lh-page);font-weight:var(--fw-semibold);letter-spacing:var(--tracking-title);">Gyro</h1>
+          <p style="margin:0;font-size:var(--fs-body);color:var(--text-2);">How tilting the controller moves your aim, and when.</p>
+        </div>
+        <div class="telemetry-chip" style="height:var(--control-h-sm);display:flex;align-items:center;gap:var(--sp-2);padding:0 var(--sp-3);border-radius:var(--r-pill);background:var(--telemetry-soft);color:var(--telemetry);font-size:var(--fs-hint);font-weight:var(--fw-semibold);font-family:var(--font-mono);"><span style="width:6px;height:6px;border-radius:50%;background:var(--telemetry);"></span>142 °/s · 1000 Hz</div>
+      </header>
+      <h2 id="general" class="section-heading" style="margin:var(--sp-5) 0 var(--sp-1);padding:0 var(--sp-4);font-size:var(--fs-section);line-height:var(--lh-section);font-weight:var(--fw-semibold);">General</h2>
+      <div class="setting-row"  style="position:relative;display:flex;flex-direction:column;gap:var(--sp-3);padding:var(--sp-4) var(--sp-4);border-radius:var(--r-row);box-shadow:inset 0 -1px 0 var(--line-1);">
+          <div style="display:flex;align-items:center;gap:var(--sp-3);">
+            <span class="setting-row__label" style="font-size:var(--fs-label);line-height:var(--lh-label);font-weight:var(--fw-medium);color:var(--text-1);">Activation</span>
+            
+            
+            <span style="flex:1;"></span><span class="origin-marker" data-origin="inherited" style="display:flex;align-items:center;gap:6px;font-size:var(--fs-hint);color:var(--origin-inherited);"><span style="width:6px;height:6px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--origin-inherited);"></span>FPS Template</span>
+          </div>
+          <div class="segmented" style="display:flex;padding:3px;border-radius:var(--r-md);background:var(--surface-sunken);font-size:var(--fs-hint);font-weight:var(--fw-medium);"><span style="flex:1;height:30px;display:grid;place-items:center;padding:0 var(--sp-3);border-radius:var(--r-sm);color:var(--text-3);">Always on</span><span style="flex:1;height:30px;display:grid;place-items:center;padding:0 var(--sp-3);border-radius:var(--r-sm);background:var(--surface-control);color:var(--text-1);box-shadow:var(--shadow-lift);">Hold to enable</span><span style="flex:1;height:30px;display:grid;place-items:center;padding:0 var(--sp-3);border-radius:var(--r-sm);color:var(--text-3);">Hold to disable</span><span style="flex:1;height:30px;display:grid;place-items:center;padding:0 var(--sp-3);border-radius:var(--r-sm);color:var(--text-3);">Always off</span></div>
+          <p class="setting-row__desc" style="margin:0;font-size:var(--fs-hint);line-height:var(--lh-hint);color:var(--text-3);max-width:720px;text-wrap:pretty;">Hold to enable turns gyro on only while the activation input is held.</p>
+        </div>
+      <div class="setting-row"  style="position:relative;display:flex;flex-direction:column;gap:var(--sp-3);padding:var(--sp-4) var(--sp-4);border-radius:var(--r-row);box-shadow:inset 0 -1px 0 var(--line-1);">
+          <div style="display:flex;align-items:center;gap:var(--sp-3);">
+            <span class="setting-row__label" style="font-size:var(--fs-label);line-height:var(--lh-label);font-weight:var(--fw-medium);color:var(--text-1);">Activation input</span>
+            
+            
+            <span style="flex:1;"></span><span class="origin-marker" data-origin="inherited" style="display:flex;align-items:center;gap:6px;font-size:var(--fs-hint);color:var(--origin-inherited);"><span style="width:6px;height:6px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--origin-inherited);"></span>FPS Template</span><span style="height:var(--control-h-sm);display:flex;align-items:center;gap:var(--sp-2);padding:0 var(--sp-3) 0 var(--sp-1);border-radius:var(--r-pill);background:var(--surface-control);font-size:var(--fs-hint);font-weight:var(--fw-semibold);"><span style="width:20px;height:20px;display:grid;place-items:center;"><span style="width:9px;height:17px;border-radius:5px;box-shadow:inset 0 0 0 2px var(--text-1);"></span></span>Right grip</span>
+          </div>
+          
+          <p class="setting-row__desc" style="margin:0;font-size:var(--fs-hint);line-height:var(--lh-hint);color:var(--text-3);max-width:720px;text-wrap:pretty;">Capacitive grip sensor. Tune its range under Tuning › Grip sensors.</p>
+        </div>
+      <div class="setting-row"  style="position:relative;display:flex;flex-direction:column;gap:var(--sp-3);padding:var(--sp-4) var(--sp-4);border-radius:var(--r-row);box-shadow:inset 0 -1px 0 var(--line-1);">
+          <div style="display:flex;align-items:center;gap:var(--sp-3);">
+            <span class="setting-row__label" style="font-size:var(--fs-label);line-height:var(--lh-label);font-weight:var(--fw-medium);color:var(--text-1);">Output</span>
+            
+            
+            <span style="flex:1;"></span><span class="origin-marker" data-origin="inherited" style="display:flex;align-items:center;gap:6px;font-size:var(--fs-hint);color:var(--origin-inherited);"><span style="width:6px;height:6px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--origin-inherited);"></span>FPS Template</span><span class="select-trigger" style="height:var(--control-h-sm);display:flex;align-items:center;gap:var(--sp-2);padding:0 var(--sp-2) 0 var(--sp-3);border-radius:var(--r-pill);background:var(--surface-control);font-size:var(--fs-hint);font-weight:var(--fw-semibold);color:var(--text-1);">Mouse<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-3);"><path d="M2.5 3.75 5 6.25 7.5 3.75"></path></svg></span>
+          </div>
+          
+          <p class="setting-row__desc" style="margin:0;font-size:var(--fs-hint);line-height:var(--lh-hint);color:var(--text-3);max-width:720px;text-wrap:pretty;">Mouse gives the most precise aim in games that accept mouse and controller together.</p>
+        </div>
+      <h2 id="calibration" class="section-heading" style="margin:var(--sp-5) 0 var(--sp-1);padding:0 var(--sp-4);font-size:var(--fs-section);line-height:var(--lh-section);font-weight:var(--fw-semibold);">Calibration</h2>
+      <div class="setting-row"  style="position:relative;display:flex;flex-direction:column;gap:var(--sp-3);padding:var(--sp-4) var(--sp-4);border-radius:var(--r-row);box-shadow:inset 0 -1px 0 var(--line-1);">
+          <div style="display:flex;align-items:center;gap:var(--sp-3);">
+            <span class="setting-row__label" style="font-size:var(--fs-label);line-height:var(--lh-label);font-weight:var(--fw-medium);color:var(--text-1);">Real world calibration</span>
+            
+            
+            <span style="flex:1;"></span><span class="origin-marker origin-marker--override" data-origin="override" style="display:flex;align-items:center;gap:6px;font-size:var(--fs-hint);color:var(--origin-override);"><span style="width:6px;height:6px;border-radius:50%;background:var(--origin-override);"></span>Override</span><span class="value-pill" style="min-width:56px;height:var(--control-h-sm);display:flex;align-items:center;justify-content:center;gap:4px;padding:0 var(--sp-3);border-radius:var(--r-pill);background:var(--surface-control);font-size:var(--fs-hint);font-weight:var(--fw-semibold);font-variant-numeric:tabular-nums;color:var(--text-1);">35.856</span>
+          </div>
+          
+          <p class="setting-row__desc" style="margin:0;font-size:var(--fs-hint);line-height:var(--lh-hint);color:var(--text-3);max-width:720px;text-wrap:pretty;">Makes one full turn of the controller equal one full turn in game. Use the easy guide to measure it.</p>
+        </div>
+      <div class="setting-row"  style="position:relative;display:flex;flex-direction:column;gap:var(--sp-3);padding:var(--sp-4) var(--sp-4);border-radius:var(--r-row);box-shadow:inset 0 -1px 0 var(--line-1);">
+          <div style="display:flex;align-items:center;gap:var(--sp-3);">
+            <span class="setting-row__label" style="font-size:var(--fs-label);line-height:var(--lh-label);font-weight:var(--fw-medium);color:var(--text-1);">In-game sensitivity</span>
+            
+            
+            <span style="flex:1;"></span><span class="origin-marker origin-marker--override" data-origin="override" style="display:flex;align-items:center;gap:6px;font-size:var(--fs-hint);color:var(--origin-override);"><span style="width:6px;height:6px;border-radius:50%;background:var(--origin-override);"></span>Override</span><span class="value-pill" style="min-width:56px;height:var(--control-h-sm);display:flex;align-items:center;justify-content:center;gap:4px;padding:0 var(--sp-3);border-radius:var(--r-pill);background:var(--surface-control);font-size:var(--fs-hint);font-weight:var(--fw-semibold);font-variant-numeric:tabular-nums;color:var(--text-1);">0.5</span>
+          </div>
+          
+          <p class="setting-row__desc" style="margin:0;font-size:var(--fs-hint);line-height:var(--lh-hint);color:var(--text-3);max-width:720px;text-wrap:pretty;">The mouse sensitivity set inside Wardogs, so real world calibration can compensate.</p>
+        </div>
+      <h2 id="sensitivity" class="section-heading" style="margin:var(--sp-5) 0 var(--sp-1);padding:0 var(--sp-4);font-size:var(--fs-section);line-height:var(--lh-section);font-weight:var(--fw-semibold);">Sensitivity</h2>
+      <div class="setting-row"  style="position:relative;display:flex;flex-direction:column;gap:var(--sp-3);padding:var(--sp-4) var(--sp-4);border-radius:var(--r-row);box-shadow:inset 0 -1px 0 var(--line-1);">
+          <div style="display:flex;align-items:center;gap:var(--sp-3);">
+            <span class="setting-row__label" style="font-size:var(--fs-label);line-height:var(--lh-label);font-weight:var(--fw-medium);color:var(--text-1);">Minimum sensitivity</span>
+            
+            
+            <span style="flex:1;"></span><span class="origin-marker origin-marker--override" data-origin="override" style="display:flex;align-items:center;gap:6px;font-size:var(--fs-hint);color:var(--origin-override);"><span style="width:6px;height:6px;border-radius:50%;background:var(--origin-override);"></span>Override <span style="color:var(--text-3);">· template 3 / 3</span></span><span class="value-pill" style="min-width:56px;height:var(--control-h-sm);display:flex;align-items:center;justify-content:center;gap:4px;padding:0 var(--sp-3);border-radius:var(--r-pill);background:var(--surface-control);font-size:var(--fs-hint);font-weight:var(--fw-semibold);font-variant-numeric:tabular-nums;color:var(--text-1);">1.00<span style="color:var(--text-3);font-weight:var(--fw-regular);">X</span></span><span class="value-pill" style="min-width:56px;height:var(--control-h-sm);display:flex;align-items:center;justify-content:center;gap:4px;padding:0 var(--sp-3);border-radius:var(--r-pill);background:var(--surface-control);font-size:var(--fs-hint);font-weight:var(--fw-semibold);font-variant-numeric:tabular-nums;color:var(--text-1);">1.00<span style="color:var(--text-3);font-weight:var(--fw-regular);">Y</span></span>
+          </div>
+          <div class="slider"  style="position:relative;height:24px;display:flex;align-items:center;">
+            <div style="position:absolute;left:0;right:0;height:6px;border-radius:3px;background:var(--surface-control);"></div>
+            <div class="slider__fill" style="position:absolute;left:0;width:100%;height:6px;border-radius:3px;background:var(--accent);transform-origin:left;transform:scaleX(0.1);"></div>
+            
+            <div class="slider__thumb" style="position:absolute;left:calc(10% - 10px);width:20px;height:20px;border-radius:50%;background:var(--text-1);box-shadow:0 1px 3px rgba(0,0,0,.4);"></div>
+          </div>
+          <p class="setting-row__desc" style="margin:0;font-size:var(--fs-hint);line-height:var(--lh-hint);color:var(--text-3);max-width:720px;text-wrap:pretty;">Sensitivity at slow speeds. Lower keeps small corrections steady.</p>
+        </div>
+      <div class="setting-row"  style="position:relative;display:flex;flex-direction:column;gap:var(--sp-3);padding:var(--sp-4) var(--sp-4);border-radius:var(--r-row);box-shadow:inset 0 -1px 0 var(--line-1);">
+          <div style="display:flex;align-items:center;gap:var(--sp-3);">
+            <span class="setting-row__label" style="font-size:var(--fs-label);line-height:var(--lh-label);font-weight:var(--fw-medium);color:var(--text-1);">Maximum sensitivity</span>
+            
+            
+            <span style="flex:1;"></span><span class="origin-marker" data-origin="inherited" style="display:flex;align-items:center;gap:6px;font-size:var(--fs-hint);color:var(--origin-inherited);"><span style="width:6px;height:6px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--origin-inherited);"></span>FPS Template</span><span class="value-pill" style="min-width:56px;height:var(--control-h-sm);display:flex;align-items:center;justify-content:center;gap:4px;padding:0 var(--sp-3);border-radius:var(--r-pill);background:var(--surface-control);font-size:var(--fs-hint);font-weight:var(--fw-semibold);font-variant-numeric:tabular-nums;color:var(--text-1);">4.00<span style="color:var(--text-3);font-weight:var(--fw-regular);">X</span></span><span class="value-pill" style="min-width:56px;height:var(--control-h-sm);display:flex;align-items:center;justify-content:center;gap:4px;padding:0 var(--sp-3);border-radius:var(--r-pill);background:var(--surface-control);font-size:var(--fs-hint);font-weight:var(--fw-semibold);font-variant-numeric:tabular-nums;color:var(--text-1);">4.00<span style="color:var(--text-3);font-weight:var(--fw-regular);">Y</span></span>
+          </div>
+          <div class="slider"  style="position:relative;height:24px;display:flex;align-items:center;">
+            <div style="position:absolute;left:0;right:0;height:6px;border-radius:3px;background:var(--surface-control);"></div>
+            <div class="slider__fill" style="position:absolute;left:0;width:100%;height:6px;border-radius:3px;background:var(--accent);transform-origin:left;transform:scaleX(0.4);"></div>
+            
+            <div class="slider__thumb" style="position:absolute;left:calc(40% - 10px);width:20px;height:20px;border-radius:50%;background:var(--text-1);box-shadow:0 1px 3px rgba(0,0,0,.4);"></div>
+          </div>
+          <p class="setting-row__desc" style="margin:0;font-size:var(--fs-hint);line-height:var(--lh-hint);color:var(--text-3);max-width:720px;text-wrap:pretty;">Sensitivity once the controller turns faster than the maximum threshold.</p>
+        </div>
+      <div class="setting-row"  style="position:relative;display:flex;flex-direction:column;gap:var(--sp-3);padding:var(--sp-4) var(--sp-4);border-radius:var(--r-row);box-shadow:inset 0 -1px 0 var(--line-1);">
+          <div style="display:flex;align-items:center;gap:var(--sp-3);">
+            <span class="setting-row__label" style="font-size:var(--fs-label);line-height:var(--lh-label);font-weight:var(--fw-medium);color:var(--text-1);">Static sensitivity (X)</span>
+            <span class="help-dot" title="No description yet" style="width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--text-4);color:var(--text-3);display:grid;place-items:center;font-size:11px;font-weight:600;">?</span>
+            
+            <span style="flex:1;"></span><span class="origin-marker" data-origin="inherited" style="display:flex;align-items:center;gap:6px;font-size:var(--fs-hint);color:var(--origin-inherited);"><span style="width:6px;height:6px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--origin-inherited);"></span>FPS Template</span><span class="value-pill" style="min-width:56px;height:var(--control-h-sm);display:flex;align-items:center;justify-content:center;gap:4px;padding:0 var(--sp-3);border-radius:var(--r-pill);background:var(--surface-control);font-size:var(--fs-hint);font-weight:var(--fw-semibold);font-variant-numeric:tabular-nums;color:var(--text-1);">2.00</span>
+          </div>
+          <div class="slider"  style="position:relative;height:24px;display:flex;align-items:center;">
+            <div style="position:absolute;left:0;right:0;height:6px;border-radius:3px;background:var(--surface-control);"></div>
+            <div class="slider__fill" style="position:absolute;left:0;width:100%;height:6px;border-radius:3px;background:var(--accent);transform-origin:left;transform:scaleX(0.2);"></div>
+            
+            <div class="slider__thumb" style="position:absolute;left:calc(20% - 10px);width:20px;height:20px;border-radius:50%;background:var(--text-1);box-shadow:0 1px 3px rgba(0,0,0,.4);"></div>
+          </div>
+          <p class="setting-row__desc" style="margin:0;font-size:var(--fs-hint);line-height:var(--lh-hint);color:var(--text-3);max-width:720px;text-wrap:pretty;"><span style="color:var(--text-4);">No description yet · JSM name GYRO_SENS · <span style="color:var(--text-3);">Y opens documentation</span></span></p>
+        </div>
+      <div class="setting-row"  style="position:relative;display:flex;flex-direction:column;gap:var(--sp-3);padding:var(--sp-4) var(--sp-4);border-radius:var(--r-row);box-shadow:inset 0 -1px 0 var(--line-1);">
+          <div style="display:flex;align-items:center;gap:var(--sp-3);">
+            <span class="setting-row__label" style="font-size:var(--fs-label);line-height:var(--lh-label);font-weight:var(--fw-medium);color:var(--text-1);">Maximum threshold</span>
+            
+            
+            <span style="flex:1;"></span><span class="origin-marker" data-origin="inherited" style="display:flex;align-items:center;gap:6px;font-size:var(--fs-hint);color:var(--origin-inherited);"><span style="width:6px;height:6px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--origin-inherited);"></span>FPS Template</span><span class="value-pill" style="min-width:56px;height:var(--control-h-sm);display:flex;align-items:center;justify-content:center;gap:4px;padding:0 var(--sp-3);border-radius:var(--r-pill);background:var(--surface-control);font-size:var(--fs-hint);font-weight:var(--fw-semibold);font-variant-numeric:tabular-nums;color:var(--text-1);">75<span style="color:var(--text-3);font-weight:var(--fw-regular);">°/s</span></span>
+          </div>
+          <div class="slider"  style="position:relative;height:24px;display:flex;align-items:center;">
+            <div style="position:absolute;left:0;right:0;height:6px;border-radius:3px;background:var(--surface-control);"></div>
+            <div class="slider__fill" style="position:absolute;left:0;width:100%;height:6px;border-radius:3px;background:var(--accent);transform-origin:left;transform:scaleX(0.375);"></div>
+            
+            <div class="slider__thumb" style="position:absolute;left:calc(37.5% - 10px);width:20px;height:20px;border-radius:50%;background:var(--text-1);box-shadow:0 1px 3px rgba(0,0,0,.4);"></div>
+          </div>
+          <p class="setting-row__desc" style="margin:0;font-size:var(--fs-hint);line-height:var(--lh-hint);color:var(--text-3);max-width:720px;text-wrap:pretty;">Turn speed at which maximum sensitivity is reached.</p>
+        </div>
+    </div></main>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

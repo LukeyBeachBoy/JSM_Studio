@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<link rel="stylesheet" href="./tokens/tokens.css">
+<style>html,body{margin:0;min-height:100%;background:#0a0e12;font-family:"Geist",system-ui,sans-serif;font-feature-settings:"tnum" 1;} a{color:#6ec3f4;text-decoration:none;} a:hover{color:#e8eef4;}</style>
+</helmet>
+
+<section data-screen-label="Turn 4 · Native navigation and Test mode" style="padding:64px 64px 0;display:flex;flex-direction:column;gap:40px;">
+  <div style="display:flex;flex-direction:column;gap:8px;max-width:920px;color:#e8eef4;">
+    <div style="font-size:12px;letter-spacing:.12em;color:#808c99;">TURN 4 · NATIVE CONTROLLER NAVIGATION</div>
+    <div style="font-size:32px;font-weight:600;letter-spacing:-.015em;">Studio has the controller; Test hands it back</div>
+    <div style="font-size:15px;line-height:22px;color:#b0bcc8;">While Studio's window has focus it reads the pad through SDL and the applied profile pauses; global chords still fire when held. Test runs the profile inside Studio until you hold View + Menu, press Esc or click Return. The live preview keeps drawing pad touches, trigger pulls, stick positions and grip contact in every mode, because telemetry is its own stream.</div>
+  </div>
+  <div id="4a" style="display:flex;flex-direction:column;gap:16px;width:1664px;">
+    <div style="display:flex;align-items:baseline;gap:12px;color:#e8eef4;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">4a</span><span style="font-size:20px;font-weight:600;">Mapping plate states</span></div>
+    <div style="display:grid;grid-template-columns:200px 1440px;gap:16px 24px;align-items:center;">
+      <div style="font-size:13px;line-height:19px;color:#b0bcc8;"><b style="color:#e8eef4;font-weight:600;">Studio focused</b><br>Default. Hollow green ring: mapping is on and resumes when you leave. Test sits beside it (title bar item 5).</div>
+      <div style="border-radius:10px;overflow:hidden;box-shadow:0 0 0 1px var(--line-2);"><dc-import name="Shell Titlebar" dirty="{{ false }}" applied="same" hint-size="100%,44px"></dc-import></div>
+      <div style="font-size:13px;line-height:19px;color:#b0bcc8;"><b style="color:#e8eef4;font-weight:600;">Testing</b><br>Plate fills green and pulses; Test becomes Return to Studio. Navigation is suspended.</div>
+      <div style="border-radius:10px;overflow:hidden;box-shadow:0 0 0 1px var(--line-2);"><dc-import name="Shell Titlebar" mapping="testing" dirty="{{ false }}" applied="same" hint-size="100%,44px"></dc-import></div>
+      <div style="font-size:13px;line-height:19px;color:#b0bcc8;"><b style="color:#e8eef4;font-weight:600;">Mapping off</b><br>Nothing resumes on blur. Test is hidden.</div>
+      <div style="border-radius:10px;overflow:hidden;box-shadow:0 0 0 1px var(--line-2);"><dc-import name="Shell Titlebar" mapping="off" applied="none" dirty="{{ false }}" hint-size="100%,44px"></dc-import></div>
+      <div style="font-size:13px;line-height:19px;color:#b0bcc8;"><b style="color:#e8eef4;font-weight:600;">No controller</b><br>Test is hidden until a pad connects.</div>
+      <div style="border-radius:10px;overflow:hidden;box-shadow:0 0 0 1px var(--line-2);"><dc-import name="Shell Titlebar" mapping="disconnected" dirty="{{ false }}" applied="same" hint-size="100%,44px"></dc-import></div>
+    </div>
+  </div>
+  <div id="4b" style="display:flex;flex-direction:column;gap:16px;width:1440px;">
+    <div style="display:flex;align-items:baseline;gap:12px;color:#e8eef4;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">4b</span><span style="font-size:20px;font-weight:600;">Test mode</span></div>
+    <div style="font-size:14px;line-height:21px;color:#b0bcc8;max-width:900px;">A green edge banner states the mode and the three ways out. The focus ring is hidden (nothing is navigable by pad), mouse and keyboard still work. Rows flash briefly when their input fires, so you can see what the profile is doing without leaving the page.</div>
+    <div class="shell" data-mode="testing" style="position:relative;width:1440px;height:900px;display:grid;grid-template-rows:var(--titlebar-h) 40px 52px minmax(0,1fr);background:var(--surface-canvas);border-radius:12px;overflow:hidden;box-shadow:0 0 0 1px var(--line-2);">
+      <dc-import name="Shell Titlebar" mapping="testing" dirty="{{ false }}" applied="same" hint-size="100%,44px"></dc-import>
+      <div class="test-banner" role="status" style="display:flex;align-items:center;gap:var(--sp-3);padding:0 var(--sp-5);background:var(--telemetry-soft);box-shadow:inset 0 -1px 0 var(--telemetry);font-family:var(--font-ui);font-size:var(--fs-hint);color:var(--text-1);">
+        <span style="width:8px;height:8px;border-radius:50%;background:var(--telemetry);box-shadow:0 0 0 4px var(--telemetry-soft);"></span>
+        <b style="font-weight:var(--fw-semibold);">Testing Wardogs</b><span style="color:var(--text-2);">Your controller is running the profile. Studio navigation is paused.</span>
+        <span style="flex:1;"></span>
+        <span style="display:flex;align-items:center;gap:var(--sp-2);color:var(--text-2);">Hold <b style="height:20px;padding:0 6px;border-radius:6px;background:var(--text-1);color:var(--surface-frame);display:grid;place-items:center;font-size:10px;">View</b><span>+</span><b style="height:20px;padding:0 6px;border-radius:6px;background:var(--text-1);color:var(--surface-frame);display:grid;place-items:center;font-size:10px;">Menu</b> or press Esc to return</span>
+      </div>
+      <dc-import name="Page Tabs" hint-size="100%,52px"></dc-import>
+      <div style="display:grid;grid-template-columns:216px minmax(0,1fr);min-height:0;">
+        <nav class="section-list" style="display:flex;flex-direction:column;gap:2px;padding:88px var(--sp-3) var(--sp-4) var(--sp-5);font-family:var(--font-ui);font-size:var(--fs-body);color:var(--text-2);">
+          <div style="height:40px;display:flex;align-items:center;padding:0 var(--sp-3);border-radius:var(--r-md);background:var(--surface-row);color:var(--text-1);font-weight:var(--fw-medium);">Face buttons</div>
+          <div style="height:40px;display:flex;align-items:center;padding:0 var(--sp-3);">Bumpers</div>
+          <div style="height:40px;display:flex;align-items:center;padding:0 var(--sp-3);">Back paddles</div>
+          <div style="height:40px;display:flex;align-items:center;padding:0 var(--sp-3);">Grips</div>
+          <div style="height:40px;display:flex;align-items:center;padding:0 var(--sp-3);">Menu buttons</div>
+        </nav>
+        <main style="position:relative;min-width:0;overflow:hidden;">
+          <dc-import name="Buttons Content" focus-ring="{{ false }}" flash-demo="{{ true }}" hint-size="100%,900px"></dc-import>
+          
+        </main>
+      </div>
+      <div class="hint-capsule" style="position:absolute;left:50%;bottom:var(--sp-4);transform:translateX(-50%);height:var(--capsule-h);display:flex;align-items:center;gap:var(--sp-4);padding:0 var(--sp-5) 0 var(--sp-3);border-radius:var(--r-pill);background:var(--surface-raised);box-shadow:var(--shadow-capsule);font-family:var(--font-ui);font-size:var(--fs-hint);color:var(--text-2);white-space:nowrap;">
+        <span style="display:flex;align-items:center;gap:var(--sp-2);">Hold <b style="height:20px;padding:0 6px;border-radius:6px;background:var(--text-1);color:var(--surface-frame);display:grid;place-items:center;font-size:10px;">View</b><b style="height:20px;padding:0 6px;border-radius:6px;background:var(--text-1);color:var(--surface-frame);display:grid;place-items:center;font-size:10px;">Menu</b></span><span style="color:var(--text-1);">Return to Studio</span>
+        <span style="width:1px;height:18px;background:var(--line-2);"></span><span>Esc · click Return to Studio</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section data-screen-label="Turn 3 · Shell 1c build-out" style="padding:64px;display:flex;flex-direction:column;gap:48px;">
+  <div style="display:flex;flex-direction:column;gap:8px;max-width:920px;color:#e8eef4;">
+    <div style="font-size:12px;letter-spacing:.12em;color:#808c99;">TURN 3 · SHELL 1c · STRUCTURE</div>
+    <div style="font-size:32px;font-weight:600;letter-spacing:-.015em;">Shell, widths, states and focus model</div>
+    <div style="font-size:15px;line-height:22px;color:#b0bcc8;">The chosen console-tab shell at 1440 × 900, 1024 × 720 and the &lt; 1060px drawer; every context state of the title bar; and the focus model with its scopes, rings and glide. Earlier turns live in <a href="Shell%20Directions.dc.html">Shell Directions</a>.</div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:64px;align-items:flex-start;">
+
+    <div id="3a" style="display:flex;flex-direction:column;gap:16px;width:1440px;">
+      <div style="display:flex;align-items:baseline;gap:12px;color:#e8eef4;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">3a</span><span style="font-size:20px;font-weight:600;">1440 × 900 · primary</span></div>
+      <div class="shell" data-width="wide" style="position:relative;width:1440px;height:900px;display:grid;grid-template-rows:var(--titlebar-h) 52px minmax(0,1fr);background:var(--surface-canvas);border-radius:12px;overflow:hidden;box-shadow:0 0 0 1px var(--line-2);">
+        <dc-import name="Shell Titlebar" hint-size="100%,44px"></dc-import>
+        <dc-import name="Page Tabs" hint-size="100%,52px"></dc-import>
+        <div style="display:grid;grid-template-columns:216px minmax(0,1fr);min-height:0;">
+          <nav class="section-list" data-focus-scope="sections" style="display:flex;flex-direction:column;gap:2px;padding:88px var(--sp-3) var(--sp-4) var(--sp-5);font-family:var(--font-ui);font-size:var(--fs-body);color:var(--text-2);">
+            <div class="section-item" data-state="current" style="height:40px;display:flex;align-items:center;padding:0 var(--sp-3);border-radius:var(--r-md);background:var(--surface-row);color:var(--text-1);font-weight:var(--fw-medium);">Face buttons</div>
+            <div class="section-item" style="height:40px;display:flex;align-items:center;padding:0 var(--sp-3);">Bumpers</div>
+            <div class="section-item" style="height:40px;display:flex;align-items:center;padding:0 var(--sp-3);">Back paddles</div>
+            <div class="section-item" style="height:40px;display:flex;align-items:center;padding:0 var(--sp-3);">Grips</div>
+            <div class="section-item" style="height:40px;display:flex;align-items:center;padding:0 var(--sp-3);">Menu buttons</div>
+            <div class="section-item" style="height:40px;display:flex;align-items:center;padding:0 var(--sp-3);">Extra buttons</div>
+          </nav>
+          <main style="min-width:0;overflow:hidden;"><dc-import name="Buttons Content" hint-size="100%,900px"></dc-import></main>
+        </div>
+        <div class="hint-capsule" style="position:absolute;left:50%;bottom:var(--sp-4);transform:translateX(-50%);height:var(--capsule-h);display:flex;align-items:center;gap:var(--sp-5);padding:0 var(--sp-5) 0 var(--sp-3);border-radius:var(--r-pill);background:var(--surface-raised);box-shadow:var(--shadow-capsule);font-family:var(--font-ui);font-size:var(--fs-hint);color:var(--text-2);white-space:nowrap;">
+          <span style="display:flex;align-items:center;gap:var(--sp-2);"><b style="width:22px;height:22px;border-radius:50%;background:var(--text-1);color:var(--surface-frame);display:grid;place-items:center;font-size:11px;">A</b>Edit</span>
+          <span style="display:flex;align-items:center;gap:var(--sp-2);"><b style="width:22px;height:22px;border-radius:50%;background:var(--text-1);color:var(--surface-frame);display:grid;place-items:center;font-size:11px;">X</b>Capture</span>
+          <span style="display:flex;align-items:center;gap:var(--sp-2);"><b style="width:22px;height:22px;border-radius:50%;background:var(--text-1);color:var(--surface-frame);display:grid;place-items:center;font-size:11px;">Y</b>Details</span>
+          <span style="display:flex;align-items:center;gap:var(--sp-2);"><b style="width:22px;height:22px;border-radius:50%;background:var(--text-1);color:var(--surface-frame);display:grid;place-items:center;font-size:11px;">B</b>Back</span>
+          <span style="width:1px;height:18px;background:var(--line-2);"></span>
+          <span style="display:flex;align-items:center;gap:var(--sp-2);"><b style="padding:0 5px;height:16px;border-radius:6px 6px 3px 3px;background:var(--text-1);color:var(--surface-frame);font-size:9px;display:grid;place-items:center;">LB</b><b style="padding:0 5px;height:16px;border-radius:6px 6px 3px 3px;background:var(--text-1);color:var(--surface-frame);font-size:9px;display:grid;place-items:center;">RB</b>Section</span>
+          <span style="display:flex;align-items:center;gap:var(--sp-2);"><b style="padding:0 5px;height:18px;border-radius:8px 8px 3px 3px;background:var(--text-1);color:var(--surface-frame);font-size:9px;display:grid;place-items:center;">LT</b><b style="padding:0 5px;height:18px;border-radius:8px 8px 3px 3px;background:var(--text-1);color:var(--surface-frame);font-size:9px;display:grid;place-items:center;">RT</b>Page</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="3b" style="display:flex;flex-direction:column;gap:16px;width:1024px;">
+      <div style="display:flex;align-items:baseline;gap:12px;color:#e8eef4;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">3b</span><span style="font-size:20px;font-weight:600;">1024 × 720 · minimum comfortable</span></div>
+      <div style="font-size:14px;line-height:21px;color:#b0bcc8;">Tabs drop to icons except the selected one (names appear in a tooltip on focus). Applied moves into the Editing menu, the plate drops the output name. Section list narrows to 184px; capsule hints drop their labels for LB/RB and LT/RT.</div>
+      <div class="shell" data-width="compact" style="position:relative;width:1024px;height:720px;display:grid;grid-template-rows:var(--titlebar-h) 52px minmax(0,1fr);background:var(--surface-canvas);border-radius:12px;overflow:hidden;box-shadow:0 0 0 1px var(--line-2);">
+        <dc-import name="Shell Titlebar" compact="{{ true }}" hint-size="100%,44px"></dc-import>
+        <dc-import name="Page Tabs" mode="compact" hint-size="100%,52px"></dc-import>
+        <div style="display:grid;grid-template-columns:184px minmax(0,1fr);min-height:0;">
+          <nav class="section-list" style="display:flex;flex-direction:column;gap:2px;padding:88px var(--sp-2) var(--sp-4) var(--sp-4);font-family:var(--font-ui);font-size:var(--fs-body);color:var(--text-2);">
+            <div class="section-item" data-state="current" style="height:40px;display:flex;align-items:center;padding:0 var(--sp-3);border-radius:var(--r-md);background:var(--surface-row);color:var(--text-1);font-weight:var(--fw-medium);">Face buttons</div>
+            <div class="section-item" style="height:40px;display:flex;align-items:center;padding:0 var(--sp-3);">Bumpers</div>
+            <div class="section-item" style="height:40px;display:flex;align-items:center;padding:0 var(--sp-3);">Back paddles</div>
+            <div class="section-item" style="height:40px;display:flex;align-items:center;padding:0 var(--sp-3);">Grips</div>
+            <div class="section-item" style="height:40px;display:flex;align-items:center;padding:0 var(--sp-3);">Menu buttons</div>
+            <div class="section-item" style="height:40px;display:flex;align-items:center;padding:0 var(--sp-3);">Extra buttons</div>
+          </nav>
+          <main style="min-width:0;overflow:hidden;"><dc-import name="Buttons Content" hint-size="100%,900px"></dc-import></main>
+        </div>
+        <div class="hint-capsule" style="position:absolute;left:calc(50% + 92px);bottom:var(--sp-4);transform:translateX(-50%);height:var(--capsule-h);display:flex;align-items:center;gap:var(--sp-4);padding:0 var(--sp-4) 0 var(--sp-3);border-radius:var(--r-pill);background:var(--surface-raised);box-shadow:var(--shadow-capsule);font-family:var(--font-ui);font-size:var(--fs-hint);color:var(--text-2);white-space:nowrap;">
+          <span style="display:flex;align-items:center;gap:var(--sp-2);"><b style="width:22px;height:22px;border-radius:50%;background:var(--text-1);color:var(--surface-frame);display:grid;place-items:center;font-size:11px;">A</b>Edit</span>
+          <span style="display:flex;align-items:center;gap:var(--sp-2);"><b style="width:22px;height:22px;border-radius:50%;background:var(--text-1);color:var(--surface-frame);display:grid;place-items:center;font-size:11px;">X</b>Capture</span>
+          <span style="display:flex;align-items:center;gap:var(--sp-2);"><b style="width:22px;height:22px;border-radius:50%;background:var(--text-1);color:var(--surface-frame);display:grid;place-items:center;font-size:11px;">B</b>Back</span>
+          <span style="display:flex;align-items:center;gap:4px;"><b style="padding:0 5px;height:16px;border-radius:6px 6px 3px 3px;background:var(--text-1);color:var(--surface-frame);font-size:9px;display:grid;place-items:center;">LB</b><b style="padding:0 5px;height:16px;border-radius:6px 6px 3px 3px;background:var(--text-1);color:var(--surface-frame);font-size:9px;display:grid;place-items:center;">RB</b></span>
+        </div>
+      </div>
+    </div>
+
+    <div id="3c" style="display:flex;flex-direction:column;gap:16px;width:960px;">
+      <div style="display:flex;align-items:baseline;gap:12px;color:#e8eef4;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">3c</span><span style="font-size:20px;font-weight:600;">&lt; 1060px · navigation drawer</span></div>
+      <div style="font-size:14px;line-height:21px;color:#b0bcc8;">Tabs and section list fold into one button showing page · section. A (or click) opens a drawer holding every page, the current page's sections unfolded, Tuning and Studio. LT/RT and LB/RB still step pages and sections without opening it.</div>
+      <div class="shell" data-width="narrow" style="position:relative;width:960px;height:720px;display:grid;grid-template-rows:var(--titlebar-h) 52px minmax(0,1fr);background:var(--surface-canvas);border-radius:12px;overflow:hidden;box-shadow:0 0 0 1px var(--line-2);">
+        <dc-import name="Shell Titlebar" compact="{{ true }}" hint-size="100%,44px"></dc-import>
+        <dc-import name="Page Tabs" mode="drawer" hint-size="100%,52px"></dc-import>
+        <main style="min-width:0;overflow:hidden;"><dc-import name="Buttons Content" hint-size="100%,900px"></dc-import></main>
+        <div class="scrim" style="position:absolute;inset:var(--titlebar-h) 0 0 0;background:var(--surface-scrim);z-index:5;"></div>
+        <aside class="drawer" data-state="open" data-focus-scope="drawer" style="position:absolute;top:var(--titlebar-h);left:0;bottom:0;width:320px;display:flex;flex-direction:column;gap:2px;padding:var(--sp-4) var(--sp-3);background:var(--surface-nav);box-shadow:var(--shadow-menu);z-index:6;font-family:var(--font-ui);font-size:var(--fs-body);color:var(--text-2);overflow:hidden;">
+          <div style="padding:0 var(--sp-3) var(--sp-2);font-size:var(--fs-eyebrow);letter-spacing:var(--tracking-eyebrow);font-weight:var(--fw-semibold);color:var(--text-3);">WARDOGS</div>
+          <div class="nav-item" style="height:40px;display:flex;align-items:center;gap:var(--sp-3);padding:0 var(--sp-3);"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="2.5" y="2.5" width="5" height="5" rx="1.5"></rect><rect x="10.5" y="2.5" width="5" height="5" rx="1.5"></rect><rect x="2.5" y="10.5" width="5" height="5" rx="1.5"></rect><rect x="10.5" y="10.5" width="5" height="5" rx="1.5"></rect></svg>Overview</div>
+          <div class="nav-item" data-state="selected" style="height:40px;display:flex;align-items:center;gap:var(--sp-3);padding:0 var(--sp-3);border-radius:var(--r-md);background:var(--surface-row);color:var(--text-1);font-weight:var(--fw-medium);"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="9" cy="4" r="2"></circle><circle cx="9" cy="14" r="2"></circle><circle cx="4" cy="9" r="2"></circle><circle cx="14" cy="9" r="2"></circle></svg>Buttons</div>
+          <div style="display:flex;flex-direction:column;gap:2px;margin:2px 0 4px 20px;padding-left:var(--sp-3);border-left:1px solid var(--line-2);font-size:var(--fs-hint);">
+            <div class="nav-subitem" data-state="focused" style="height:32px;display:flex;align-items:center;padding:0 var(--sp-3);border-radius:var(--r-sm);color:var(--text-1);background:var(--surface-selected);box-shadow:0 0 0 var(--focus-controller-width) var(--focus-controller);">Face buttons</div>
+            <div class="nav-subitem" style="height:32px;display:flex;align-items:center;padding:0 var(--sp-3);">Bumpers</div>
+            <div class="nav-subitem" style="height:32px;display:flex;align-items:center;padding:0 var(--sp-3);">Back paddles</div>
+            <div class="nav-subitem" style="height:32px;display:flex;align-items:center;padding:0 var(--sp-3);">Grips</div>
+            <div class="nav-subitem" style="height:32px;display:flex;align-items:center;padding:0 var(--sp-3);">Menu buttons</div>
+          </div>
+          <div class="nav-item" style="height:40px;display:flex;align-items:center;gap:var(--sp-3);padding:0 var(--sp-3);"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M7 2.5h4v4.5h4.5v4H11v4.5H7V11H2.5V7H7z" stroke-linejoin="round"></path></svg>D-Pad</div>
+          <div class="nav-item" style="height:40px;display:flex;align-items:center;gap:var(--sp-3);padding:0 var(--sp-3);"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 15V7a5 5 0 0 1 10 0v8z" stroke-linejoin="round"></path></svg>Triggers</div>
+          <div class="nav-item" style="height:40px;display:flex;align-items:center;gap:var(--sp-3);padding:0 var(--sp-3);"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="9" cy="9" r="6.5"></circle><circle cx="9" cy="9" r="2.5"></circle></svg>Joysticks</div>
+          <div class="nav-item" style="height:40px;display:flex;align-items:center;gap:var(--sp-3);padding:0 var(--sp-3);"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="2.5" y="2.5" width="13" height="13" rx="3.5"></rect></svg>Trackpads</div>
+          <div class="nav-item" style="height:40px;display:flex;align-items:center;gap:var(--sp-3);padding:0 var(--sp-3);"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.75"><ellipse cx="9" cy="8" rx="2.7" ry="5.3"></ellipse><ellipse cx="9" cy="8" rx="5.7" ry="2.1"></ellipse><path d="M9 13.3v2.4M6.5 16h5"></path></svg>Gyro</div>
+          <div class="nav-item" style="height:40px;display:flex;align-items:center;gap:var(--sp-3);padding:0 var(--sp-3);"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"><path d="M9 2.5 15.5 6 9 9.5 2.5 6z"></path><path d="M2.5 10 9 13.5 15.5 10"></path></svg>Layers</div>
+          <div class="nav-item" style="height:40px;display:flex;align-items:center;gap:var(--sp-3);padding:0 var(--sp-3);"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M3 5h12M3 9h12M3 13h12"></path></svg>Tuning<span style="margin-left:auto;color:var(--text-3);">›</span></div>
+          <div style="flex:1;"></div>
+          <div class="nav-item" style="height:40px;display:flex;align-items:center;gap:var(--sp-3);padding:0 var(--sp-3);border-top:1px solid var(--line-1);"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="2.5" y="2.5" width="13" height="13" rx="3"></rect><path d="M2.5 7h13"></path></svg>Studio<span style="margin-left:auto;font-size:var(--fs-hint);color:var(--text-3);">Library, preferences…</span></div>
+          <div style="display:flex;align-items:center;gap:var(--sp-2);padding:var(--sp-2) var(--sp-3) 0;font-size:var(--fs-hint);color:var(--text-3);"><span style="width:6px;height:6px;border-radius:50%;background:var(--telemetry);"></span>Steam Controller · 82%</div>
+        </aside>
+        <div class="hint-capsule" style="position:absolute;left:calc(50% + 160px);bottom:var(--sp-4);transform:translateX(-50%);height:var(--capsule-h);display:flex;align-items:center;gap:var(--sp-4);padding:0 var(--sp-4) 0 var(--sp-3);border-radius:var(--r-pill);background:var(--surface-raised);box-shadow:var(--shadow-capsule);font-family:var(--font-ui);font-size:var(--fs-hint);color:var(--text-2);white-space:nowrap;z-index:7;">
+          <span style="display:flex;align-items:center;gap:var(--sp-2);"><b style="width:22px;height:22px;border-radius:50%;background:var(--text-1);color:var(--surface-frame);display:grid;place-items:center;font-size:11px;">A</b>Go</span>
+          <span style="display:flex;align-items:center;gap:var(--sp-2);"><b style="width:22px;height:22px;border-radius:50%;background:var(--text-1);color:var(--surface-frame);display:grid;place-items:center;font-size:11px;">B</b>Close</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section data-screen-label="Turn 3 · Context states" style="padding:0 64px 64px;display:flex;flex-direction:column;gap:24px;">
+  <div id="3d" style="display:flex;flex-direction:column;gap:16px;width:1664px;">
+    <div style="display:flex;align-items:baseline;gap:12px;color:#e8eef4;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">3d</span><span style="font-size:20px;font-weight:600;">Context states</span></div>
+    <div style="font-size:14px;line-height:21px;color:#b0bcc8;max-width:900px;">The title bar always answers five questions: what am I editing, which layer, what is applied, is it mapping, and is anything unsaved. None of them shout; only a missing controller takes the warm colour.</div>
+    <div style="display:grid;grid-template-columns:200px 1440px;gap:16px 24px;align-items:center;">
+      <div style="font-size:13px;line-height:19px;color:#b0bcc8;"><b style="color:#e8eef4;font-weight:600;">Layers active, unsaved</b><br>Default working state.</div>
+      <div style="border-radius:10px;overflow:hidden;box-shadow:0 0 0 1px var(--line-2);"><dc-import name="Shell Titlebar" hint-size="100%,44px"></dc-import></div>
+      <div style="font-size:13px;line-height:19px;color:#b0bcc8;"><b style="color:#e8eef4;font-weight:600;">Saved, applied = editing</b><br>No dot; applied collapses to the name.</div>
+      <div style="border-radius:10px;overflow:hidden;box-shadow:0 0 0 1px var(--line-2);"><dc-import name="Shell Titlebar" dirty="{{ false }}" applied="same" hint-size="100%,44px"></dc-import></div>
+      <div style="font-size:13px;line-height:19px;color:#b0bcc8;"><b style="color:#e8eef4;font-weight:600;">Applied ≠ editing</b><br>Applied shows its own name and a jump affordance.</div>
+      <div style="border-radius:10px;overflow:hidden;box-shadow:0 0 0 1px var(--line-2);"><dc-import name="Shell Titlebar" applied="other" hint-size="100%,44px"></dc-import></div>
+      <div style="font-size:13px;line-height:19px;color:#b0bcc8;"><b style="color:#e8eef4;font-weight:600;">Mapping off</b><br>Hollow ring, muted label; output kept.</div>
+      <div style="border-radius:10px;overflow:hidden;box-shadow:0 0 0 1px var(--line-2);"><dc-import name="Shell Titlebar" mapping="off" applied="none" dirty="{{ false }}" hint-size="100%,44px"></dc-import></div>
+      <div style="font-size:13px;line-height:19px;color:#b0bcc8;"><b style="color:#e8eef4;font-weight:600;">No controller</b><br>Plate and tab-bar status go warm; the ring breathes while searching.</div>
+      <div style="border-radius:10px;overflow:hidden;box-shadow:0 0 0 1px var(--line-2);display:flex;flex-direction:column;"><dc-import name="Shell Titlebar" mapping="disconnected" hint-size="100%,44px"></dc-import><dc-import name="Page Tabs" disconnected="{{ true }}" hint-size="100%,52px"></dc-import></div>
+    </div>
+  </div>
+
+  <div id="3e" style="display:flex;flex-direction:column;gap:16px;width:1440px;margin-top:40px;">
+    <div style="display:flex;align-items:baseline;gap:12px;color:#e8eef4;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">3e</span><span style="font-size:20px;font-weight:600;">Focus model</span></div>
+    <div style="display:grid;grid-template-columns:720px 1fr;gap:48px;align-items:start;">
+      <div style="position:relative;width:720px;height:450px;border-radius:12px;overflow:hidden;box-shadow:0 0 0 1px var(--line-2);background:var(--surface-canvas);">
+        <div style="position:absolute;inset:0;width:1440px;height:900px;transform:scale(.5);transform-origin:0 0;display:grid;grid-template-rows:var(--titlebar-h) 52px minmax(0,1fr);">
+          <dc-import name="Shell Titlebar" hint-size="100%,44px"></dc-import>
+          <dc-import name="Page Tabs" hint-size="100%,52px"></dc-import>
+          <div style="display:grid;grid-template-columns:216px minmax(0,1fr);min-height:0;"><div></div><main style="overflow:hidden;opacity:.5;"><dc-import name="Buttons Content" hint-size="100%,900px"></dc-import></main></div>
+        </div>
+        <div style="position:absolute;left:2px;top:2px;width:716px;height:19px;border:2px dashed var(--layer-3);border-radius:6px;box-sizing:border-box;"></div>
+        <div style="position:absolute;left:2px;top:23px;width:716px;height:24px;border:2px dashed var(--layer-1);border-radius:6px;box-sizing:border-box;"></div>
+        <div style="position:absolute;left:2px;top:50px;width:104px;height:396px;border:2px dashed var(--layer-2);border-radius:6px;box-sizing:border-box;"></div>
+        <div style="position:absolute;left:110px;top:50px;width:606px;height:396px;border:2px dashed var(--accent);border-radius:6px;box-sizing:border-box;"></div>
+        <span style="position:absolute;left:360px;top:5px;padding:0 6px;border-radius:4px;background:var(--layer-3);color:#111;font-size:11px;font-weight:700;">1 Title bar</span>
+        <span style="position:absolute;left:560px;top:28px;padding:0 6px;border-radius:4px;background:var(--layer-1);color:#111;font-size:11px;font-weight:700;">2 Page tabs</span>
+        <span style="position:absolute;left:10px;top:420px;padding:0 6px;border-radius:4px;background:var(--layer-2);color:#111;font-size:11px;font-weight:700;">3 Sections</span>
+        <span style="position:absolute;left:600px;top:420px;padding:0 6px;border-radius:4px;background:var(--accent);color:#07131d;font-size:11px;font-weight:700;">4 Page</span>
+      </div>
+      <div style="display:flex;flex-direction:column;font-size:14px;line-height:21px;color:#d4dde6;">
+        <div style="display:grid;grid-template-columns:120px 1fr 1fr;gap:12px;padding:0 0 10px;font-size:11px;letter-spacing:.1em;color:#808c99;"><span>SCOPE</span><span>ENTRY</span><span>ON RETURN</span></div>
+        <div style="display:grid;grid-template-columns:120px 1fr 1fr;gap:12px;padding:10px 0;border-top:1px solid rgba(214,228,242,.08);"><b style="font-weight:600;">1 Title bar</b><span>Up from page tabs, nearest item horizontally</span><span>Last item used</span></div>
+        <div style="display:grid;grid-template-columns:120px 1fr 1fr;gap:12px;padding:10px 0;border-top:1px solid rgba(214,228,242,.08);"><b style="font-weight:600;">2 Page tabs</b><span>Up from the top of the page or section list. LT/RT step pages from any scope</span><span>Selected tab</span></div>
+        <div style="display:grid;grid-template-columns:120px 1fr 1fr;gap:12px;padding:10px 0;border-top:1px solid rgba(214,228,242,.08);"><b style="font-weight:600;">3 Sections</b><span>Left from the page. LB/RB step sections from the page without entering</span><span>Current section</span></div>
+        <div style="display:grid;grid-template-columns:120px 1fr 1fr;gap:12px;padding:10px 0;border-top:1px solid rgba(214,228,242,.08);"><b style="font-weight:600;">4 Page</b><span>Default scope on every page load: first row of the current section</span><span>Remembered row per page + layer, and scroll offset</span></div>
+        <div style="display:grid;grid-template-columns:120px 1fr 1fr;gap:12px;padding:10px 0;border-top:1px solid rgba(214,228,242,.08);"><b style="font-weight:600;">Menu, dialog, picker, drawer</b><span>Traps focus. Lands on the current value, else the first item</span><span>B closes and restores the element that opened it</span></div>
+        <div style="padding:14px 0 0;border-top:1px solid rgba(214,228,242,.08);color:#b0bcc8;">Back retraces: close the innermost surface → collapse an open row → return to the originating page at the same layer, scroll and input (Overview → Y editor → B → Overview with Y focused). Auto-scroll keeps the focused element 96px clear of the top and the capsule. Disabled items with a reason stay focusable and show it in the capsule; disabled items without one are skipped.</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) 460px;gap:32px;margin-top:24px;align-items:start;">
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:13px;color:#b0bcc8;"><b style="color:#e8eef4;font-weight:600;">Mouse hover</b> · fill lifts one step, no ring</div>
+        <div class="binding-row" data-state="hover" style="height:var(--row-h);display:flex;align-items:center;gap:var(--sp-4);padding:0 var(--sp-4) 0 var(--sp-3);border-radius:var(--r-row);background:var(--surface-row-hover);font-family:var(--font-ui);color:var(--text-1);">
+          <span style="width:28px;height:28px;border-radius:50%;background:var(--text-1);color:var(--surface-frame);display:grid;place-items:center;font-size:14px;font-weight:700;">B</span><span style="flex:1;font-size:var(--fs-label);font-weight:500;">Crouch</span><span style="height:28px;display:grid;place-items:center;padding:0 12px;border-radius:var(--r-sm);background:var(--surface-control);box-shadow:inset 0 -2px 0 var(--line-2);font-size:13px;font-weight:600;">C</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:13px;color:#b0bcc8;"><b style="color:#e8eef4;font-weight:600;">Keyboard :focus-visible</b> · Tab: ring only, offset 2px</div>
+        <div class="binding-row" data-state="focus-visible" style="height:var(--row-h);display:flex;align-items:center;gap:var(--sp-4);padding:0 var(--sp-4) 0 var(--sp-3);border-radius:var(--r-row);background:var(--surface-row);outline:2px solid var(--focus-keyboard);outline-offset:var(--focus-offset);font-family:var(--font-ui);color:var(--text-1);">
+          <span style="width:28px;height:28px;border-radius:50%;background:var(--text-1);color:var(--surface-frame);display:grid;place-items:center;font-size:14px;font-weight:700;">B</span><span style="flex:1;font-size:var(--fs-label);font-weight:500;">Crouch</span><span style="height:28px;display:grid;place-items:center;padding:0 12px;border-radius:var(--r-sm);background:var(--surface-control);box-shadow:inset 0 -2px 0 var(--line-2);font-size:13px;font-weight:600;">C</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:13px;color:#b0bcc8;"><b style="color:#e8eef4;font-weight:600;">Controller focus</b> · fill + tight ring + 1px lift</div>
+        <div class="binding-row" data-state="focused" style="height:var(--row-h);display:flex;align-items:center;gap:var(--sp-4);padding:0 var(--sp-4) 0 var(--sp-3);border-radius:var(--r-row);background:var(--surface-selected);box-shadow:0 0 0 var(--focus-controller-width) var(--focus-controller),var(--shadow-lift);transform:translateY(-1px);font-family:var(--font-ui);color:var(--text-1);">
+          <span style="width:28px;height:28px;border-radius:50%;background:var(--text-1);color:var(--surface-frame);display:grid;place-items:center;font-size:14px;font-weight:700;">B</span><span style="flex:1;font-size:var(--fs-label);font-weight:500;">Crouch</span><span style="height:28px;display:grid;place-items:center;padding:0 12px;border-radius:var(--r-sm);background:var(--surface-control);box-shadow:inset 0 -2px 0 var(--line-2);font-size:13px;font-weight:600;">C</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:13px;color:#b0bcc8;"><b style="color:#e8eef4;font-weight:600;">Glide (live)</b> · one shared highlight translates 240ms emphasis ease</div>
+        <div class="glide-demo" style="position:relative;display:flex;flex-direction:column;gap:8px;font-family:var(--font-ui);color:var(--text-1);">
+          <div class="focus-highlight" aria-hidden="true" style="position:absolute;left:0;right:0;top:0;height:var(--row-h);border-radius:var(--r-row);background:var(--surface-selected);box-shadow:0 0 0 var(--focus-controller-width) var(--focus-controller),var(--shadow-lift);transform:translateY({{ glideY }}px);transition:transform var(--dur-3) var(--ease-emphasis);pointer-events:none;"></div>
+          <div style="position:relative;height:var(--row-h);display:flex;align-items:center;gap:var(--sp-4);padding:0 var(--sp-4) 0 var(--sp-3);border-radius:var(--r-row);box-shadow:inset 0 0 0 1px var(--line-1);"><span style="width:28px;height:28px;border-radius:50%;background:var(--text-1);color:var(--surface-frame);display:grid;place-items:center;font-size:14px;font-weight:700;">A</span><span style="flex:1;font-size:var(--fs-label);">Jump</span></div>
+          <div style="position:relative;height:var(--row-h);display:flex;align-items:center;gap:var(--sp-4);padding:0 var(--sp-4) 0 var(--sp-3);border-radius:var(--r-row);box-shadow:inset 0 0 0 1px var(--line-1);"><span style="width:28px;height:28px;border-radius:50%;background:var(--text-1);color:var(--surface-frame);display:grid;place-items:center;font-size:14px;font-weight:700;">B</span><span style="flex:1;font-size:var(--fs-label);">Crouch</span></div>
+          <div style="position:relative;height:var(--row-h);display:flex;align-items:center;gap:var(--sp-4);padding:0 var(--sp-4) 0 var(--sp-3);border-radius:var(--r-row);box-shadow:inset 0 0 0 1px var(--line-1);"><span style="width:28px;height:28px;border-radius:50%;background:var(--text-1);color:var(--surface-frame);display:grid;place-items:center;font-size:14px;font-weight:700;">X</span><span style="flex:1;font-size:var(--fs-label);">Reload</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { i: 0 };
+  componentDidMount() {
+    this.t = setInterval(() => { if (!document.hidden) this.setState(s => ({ i: (s.i + 1) % 4 })); }, 1100);
+  }
+  componentWillUnmount() { clearInterval(this.t); }
+  renderVals() {
+    const seq = [0, 1, 2, 1];
+    return { glideY: seq[this.state.i] * 64, flash: this.state.i % 2 === 0 ? 1 : 0 };
+  }
+}
+</script>
+</body>
+</html>

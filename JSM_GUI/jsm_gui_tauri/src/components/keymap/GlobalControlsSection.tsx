@@ -132,7 +132,7 @@ export function GlobalControlsSection({
               <span className={keymapStyles.globalControlTitle}>{t('keymap.adaptiveTriggers')}</span>
             </div>
             <div className={keymapStyles.globalControlInputGroup}>
-              <AppSelect
+              <AppSelect setting="ADAPTIVE_TRIGGER"
                 className="app-select"
                 value={adaptiveTriggerValue}
                 onChange={(event) => onAdaptiveTriggerChange(event.target.value)}
@@ -144,7 +144,7 @@ export function GlobalControlsSection({
             </div>
           </div>
           <div className={keymapStyles.globalControlRow} data-capture-ignore="true">
-            <NumberField
+            <NumberField setting="TRIGGER_THRESHOLD"
               label={t('keymap.triggerThreshold')}
               value={triggerThreshold}
               onChange={onTriggerThresholdChange}

@@ -68,6 +68,8 @@ const PROFILE = [
     await page.locator('details').filter({ hasText: 'Modeshift ·' }).first().locator(':scope > summary').click();
     const shifted = page.locator('[data-input-command="RSR,S"]').first();
     await shifted.locator(':scope > summary').click();
+    // Output/value fields fold behind the advanced-settings gear now.
+    await shifted.getByRole('button', { name: 'Advanced command settings', exact: true }).first().click();
     const field = shifted.getByRole('textbox', { name: /Output value/i }).first();
     await field.waitFor();
     assert.equal(await field.inputValue(), 'Hyphen', 'the shifted binding did not load');

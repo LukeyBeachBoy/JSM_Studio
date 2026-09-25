@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<link rel="stylesheet" href="./tokens/tokens.css">
+<style>html,body{margin:0;min-height:100%;background:#0a0e12;font-family:"Geist",system-ui,sans-serif;font-feature-settings:"tnum" 1;} a{color:#6ec3f4;text-decoration:none;} a:hover{color:#e8eef4;}</style>
+</helmet>
+<section data-screen-label="Turn 14 · Calibration HUD" style="padding:64px;display:flex;flex-direction:column;gap:28px;font-family:var(--font-ui);">
+  <div style="display:flex;flex-direction:column;gap:8px;max-width:960px;color:#e8eef4;">
+    <div style="font-size:12px;letter-spacing:.12em;color:#808c99;">TURN 14 · SIGNATURE MOMENT</div>
+    <div style="font-size:32px;font-weight:600;letter-spacing:-.015em;">Gyro calibration HUD</div>
+    <div style="font-size:15px;line-height:22px;color:#b0bcc8;">380 × 150, click-through, 48px from the top of the screen. One jewel: a ring of 60 fine segments around the controller. Waiting drains the ring with the countdown while the controller rests; the scan spins the ring up, lifts the controller a few pixels and fills segments as samples land, with a sweep arc and settling dots; done collapses the segments into one ring that draws a check and blooms once; failure shakes once and turns amber. Progress is interpolated every frame between the ~30 Hz updates.</div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <sc-for list="{{ demos }}" as="d" hint-placeholder-count="5">
+      <span onClick="{{ d.pick }}" style="height:32px;display:flex;align-items:center;padding:0 14px;border-radius:999px;cursor:pointer;font-size:13px;font-weight:600;background:{{ d.bg }};color:{{ d.fg }};">{{ d.label }}</span>
+    </sc-for>
+    <span onClick="{{ toggleReduced }}" style="height:32px;display:flex;align-items:center;padding:0 14px;border-radius:999px;cursor:pointer;font-size:13px;font-weight:600;background:#1f2730;color:#b0bcc8;margin-left:16px;">Reduced motion: {{ reducedLabel }}</span>
+  </div>
+  <div style="display:flex;gap:40px;flex-wrap:wrap;">
+    <sc-for list="{{ scenes }}" as="s" hint-placeholder-count="2">
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <span style="font-size:12px;letter-spacing:.1em;color:#808c99;">{{ s.label }}</span>
+        <div class="game-scene" style="position:relative;width:760px;height:320px;border-radius:14px;overflow:hidden;background:{{ s.bg }};">
+          <div style="position:absolute;inset:0;background:repeating-linear-gradient(135deg,{{ s.stripe }} 0 14px,transparent 14px 28px);"></div>
+          <span style="position:absolute;left:16px;bottom:12px;font-family:var(--font-mono);font-size:11px;color:{{ s.note }};">game screenshot</span>
+          <div class="calibration-hud" data-phase="{{ phase }}" style="position:absolute;left:190px;top:48px;width:380px;height:150px;box-sizing:border-box;display:flex;align-items:center;gap:18px;padding:0 24px 0 18px;border-radius:28px;background:rgba(10,14,19,.78);backdrop-filter:blur(18px) saturate(1.3);box-shadow:0 18px 48px rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,255,255,.09),inset 0 1px 0 rgba(255,255,255,.08);opacity:{{ hudOp }};transform:translateY({{ hudY }}px) scale({{ hudScale }}) translateX({{ shakeX }}px);color:#eef3f8;">
+            <svg width="114" height="114" viewBox="0 0 120 120" style="flex:none;overflow:visible;">
+              <circle cx="60" cy="60" r="54" fill="{{ bloomFill }}" opacity="{{ bloomOp }}" style="transform-origin:60px 60px;transform:scale({{ bloomScale }});"></circle>
+              <g style="transform-origin:60px 60px;transform:rotate({{ ringRot }}deg);opacity:{{ segOp }};">
+                <sc-for list="{{ segs }}" as="g" hint-placeholder-count="60">
+                  <line x1="60" y1="7" x2="60" y2="{{ g.y2 }}" stroke="{{ g.c }}" stroke-width="2.6" stroke-linecap="round" opacity="{{ g.o }}" transform="rotate({{ g.a }} 60 60)"></line>
+                </sc-for>
+              </g>
+              <circle cx="60" cy="60" r="52" fill="none" stroke="{{ solidC }}" stroke-width="3.2" stroke-dasharray="327" stroke-dashoffset="{{ solidOff }}" transform="rotate(-90 60 60)" stroke-linecap="round" opacity="{{ solidOp }}"></circle>
+              <path d="M60 60 L60 8 A52 52 0 0 1 86 15 Z" fill="url(#sweep-{{ s.id }})" opacity="{{ sweepOp }}" style="transform-origin:60px 60px;transform:rotate({{ sweepRot }}deg);"></path>
+              <defs><linearGradient id="sweep-{{ s.id }}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#6ec3f4" stop-opacity="0"></stop><stop offset="1" stop-color="#6ec3f4" stop-opacity=".28"></stop></linearGradient></defs>
+              <sc-for list="{{ dots }}" as="p" hint-placeholder-count="10"><circle cx="{{ p.x }}" cy="{{ p.y }}" r="1.4" fill="#9ad8ff" opacity="{{ p.o }}"></circle></sc-for>
+              <g style="opacity:{{ ctrlOp }};transform:translate(0px,{{ ctrlY }}px) rotate({{ ctrlRot }}deg);transform-origin:60px 64px;">
+                <ellipse cx="60" cy="86" rx="{{ shadowRx }}" ry="3" fill="#000" opacity="{{ shadowOp }}"></ellipse>
+                <g transform="translate(29 47) scale(.0555)"><g transform="translate(42.43417 0) scale(2.3510972)"><path d="M109.129 2.09533C111.67 1.83272 115.706 1.90069 118.263 1.94414C123.279 2.02938 126.884 3.85153 130.242 7.53745C133.611 7.69185 138.182 7.54883 141.627 7.54095L166.072 7.4578L244.21 7.49073L288.935 7.49388L302.25 7.5376C303.35 7.54473 307.827 7.73703 308.712 7.54143C311.835 6.85308 314.358 3.37035 317.983 2.58393C322.998 1.49671 328.322 1.96333 333.422 2.23575C347.987 4.84038 372.105 9.1774 376.628 25.3138C381.955 29.595 385.49 33.7538 388.698 39.7838C393.06 47.9915 395.505 55.9275 398.395 64.5708C403.375 79.4775 407.855 94.5032 411.753 109.728C413.085 114.931 414.992 120.549 416.117 125.739C418.762 137.95 421.942 149.99 424.217 162.276C425.835 169.769 426.582 177.569 427.897 185.078C428.862 190.585 429.418 195.872 430.23 201.293C431.298 208.419 431.763 214.014 432.108 221.227C433.26 245.315 433.005 271.2 420.29 292.552C413.703 303.595 402.552 312.09 390 314.938C376.84 318.01 362.602 316.583 356.085 302.888C352.777 296.465 351.558 289.452 349.47 282.707C346.443 272.93 339.96 257.538 331.1 251.848L330.875 251.703C321.875 245.828 313.248 246.919 303 246.938L279.642 246.951L186.304 246.923L146.076 246.95C132.819 246.876 116.195 244.41 105.892 254.14C96.578 262.935 92.195 275.745 88.509 287.76C85.7955 296.605 83.1455 307.182 74.7818 312.58C66.8313 317.402 55.744 316.75 47.1323 314.443C34.5363 311.205 24.4946 302.638 17.9333 291.535C7.34481 272.995 6.13453 249.569 6.29896 228.64C6.39473 223.913 7.05863 219.107 7.30233 214.398C7.83083 197.91 11.4324 182.134 14.2666 166.03C16.8123 151.565 20.2276 138.73 23.8489 124.55C29.1633 104.451 35.2555 84.5655 42.1123 64.939C46.4433 52.5323 52.199 32.7263 64.2318 25.586C64.2438 25.3598 64.262 25.134 64.2865 24.9087L64.318 24.621C65.8118 10.2315 97.8073 3.25995 109.129 2.09533Z" fill="#1c242d" stroke="#e3eaf1" stroke-width="6"></path></g></g>
+              </g>
+              <path d="M42 61 l12 12 l25 -26" fill="none" stroke="{{ checkC }}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="60" stroke-dashoffset="{{ checkOff }}" opacity="{{ checkOp }}"></path>
+              <path d="M60 38 v26 M60 76 v.5" fill="none" stroke="#e8b56a" stroke-width="6" stroke-linecap="round" opacity="{{ failOp }}"></path>
+            </svg>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;">
+              <span style="font-size:11px;letter-spacing:.14em;font-weight:600;color:{{ eyebrowC }};">{{ eyebrow }}</span>
+              <span style="font-size:22px;line-height:26px;font-weight:600;letter-spacing:-.01em;">{{ title }}</span>
+              <span style="font-size:13px;line-height:18px;color:#aebbc8;">{{ sub }}</span>
+              <div style="display:flex;align-items:baseline;gap:6px;margin-top:6px;font-family:var(--font-mono);font-size:12px;color:#808c99;"><span style="font-size:20px;font-weight:500;color:#eef3f8;">{{ big }}</span>{{ bigUnit }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;max-width:1560px;">
+    <div style="padding:16px;border-radius:12px;background:#131920;color:#b0bcc8;font-size:13px;line-height:20px;"><b style="color:#e8eef4;">Waiting</b><br>Segments drain clockwise with the countdown; controller rests with a contact shadow. Number counts down in tabular mono.</div>
+    <div style="padding:16px;border-radius:12px;background:#131920;color:#b0bcc8;font-size:13px;line-height:20px;"><b style="color:#e8eef4;">→ Calibrating</b><br>400ms: ring spins a quarter turn with --ease-emphasis, controller lifts 4px, shadow shrinks. Segments fill as samples land; sweep arc circles every 1.6s; dots drift in and settle.</div>
+    <div style="padding:16px;border-radius:12px;background:#131920;color:#b0bcc8;font-size:13px;line-height:20px;"><b style="color:#e8eef4;">→ Done</b><br>Segments fade into one solid ring (240ms), controller fades, check draws (400ms), one soft bloom (500ms), lingers 1.6s, exits by fading and settling 6px up.</div>
+    <div style="padding:16px;border-radius:12px;background:#131920;color:#b0bcc8;font-size:13px;line-height:20px;"><b style="color:#e8eef4;">Failed / cancelled</b><br>One 3-cycle shake (360ms), ring turns amber and drops to the progress reached, “Controller moved”. Engine doesn’t report this yet (open question). Reduced motion: no spin, lift, sweep, dots or shake; phases cross-fade, ring still fills.</div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { t: 0, demo: 'loop', reduced: false };
+  componentDidMount() {
+    try { const s = JSON.parse(localStorage.getItem('jsm-hud-demo') || '{}'); if (s.demo) this.setState({ demo: s.demo }); } catch (e) {}
+    const q = new URLSearchParams(location.search).get('demo'); if (q) this.setState({ demo: q });
+    this.t0 = performance.now();
+    const loop = (ts) => { this.raf = requestAnimationFrame(loop); if (document.hidden) return; this.setState({ t: (ts - this.t0) / 1000 }); };
+    this.raf = requestAnimationFrame(loop);
+  }
+  componentWillUnmount() { cancelAnimationFrame(this.raf); }
+  pick(d) { this.t0 = performance.now(); this.setState({ demo: d, t: 0 }); try { localStorage.setItem('jsm-hud-demo', JSON.stringify({ demo: d })); } catch (e) {} }
+  renderVals() {
+    const R = this.state.reduced, D = this.state.demo;
+    const ease = (x) => 1 - Math.pow(1 - Math.max(0, Math.min(1, x)), 3);
+    const clamp = (x) => Math.max(0, Math.min(1, x));
+    let t = this.state.t;
+    const L = 11.4;
+    let phase, local;
+    if (D === 'loop') { const u = t % L; if (u < 3) { phase = 'waiting'; local = u; } else if (u < 8.4) { phase = 'calibrating'; local = u - 3; } else { phase = 'done'; local = u - 8.4; } }
+    else if (D === 'failed') { const u = t % 6; if (u < 2.2) { phase = 'calibrating'; local = u + 1.2; } else { phase = 'failed'; local = u - 2.2; } }
+    else { phase = D; local = D === 'waiting' ? t % 3 : D === 'calibrating' ? t % 5.4 : t % 3; }
+    const N = 60;
+    let fill = 0, drain = 1, ringRot = 0, segOp = 1, solidOp = 0, solidOff = 327, checkOff = 60, checkOp = 0, ctrlOp = 1, ctrlY = 0, ctrlRot = 0, shadowOp = .35, shadowRx = 22, bloomOp = 0, bloomScale = .9, sweepOp = 0, sweepRot = 0, hudOp = 1, hudY = 0, hudScale = 1, shakeX = 0, failOp = 0;
+    let segColor = '#6ec3f4', eyebrow = '', title = '', sub = '', big = '', bigUnit = '', eyebrowC = '#6ec3f4', checkC = '#7cc7a0', solidC = '#7cc7a0', bloomFill = '#7cc7a0';
+    const intro = ease(local / .35);
+    if (phase === 'waiting') {
+      drain = 1 - local / 3; hudOp = D === 'loop' ? intro : 1; hudScale = R ? 1 : .96 + .04 * (D === 'loop' ? intro : 1);
+      eyebrow = 'GYRO CALIBRATION'; title = 'Set it down'; sub = 'Controller flat and still. Starting in'; big = Math.max(1, Math.ceil(3 - local)); bigUnit = 's · start delay 3 s';
+    } else if (phase === 'calibrating') {
+      const p = clamp(local / 5.4); fill = ease(p) * .06 + p * .94;
+      const e = ease(local / .4); ringRot = R ? 0 : 90 * e;
+      ctrlY = R ? 0 : -4 * e + Math.sin(local * 2.4) * .8 * (1 - p); ctrlRot = R ? 0 : Math.sin(local * 5) * 3 * (1 - p);
+      shadowOp = .35 - .2 * e; shadowRx = 22 - 5 * e;
+      sweepOp = R ? 0 : .9 * e; sweepRot = local * 225;
+      eyebrow = 'CALIBRATING'; title = 'Hold still'; sub = 'Sampling the gyro'; big = Math.round(p * 100); bigUnit = '% · ' + Math.round(p * 4200) + ' samples';
+    } else if (phase === 'done') {
+      const a = ease(local / .24); segOp = 1 - a; solidOp = a; solidOff = 327 * (1 - a) * 0; fill = 1;
+      ctrlOp = 1 - a; checkOp = 1; checkOff = 60 * (1 - ease((local - .15) / .4));
+      bloomOp = R ? 0 : .35 * Math.max(0, 1 - Math.abs(local - .55) / .45); bloomScale = .9 + .25 * ease((local - .2) / .6);
+      segColor = '#7cc7a0'; eyebrow = 'DONE'; eyebrowC = '#7cc7a0'; title = 'Calibrated'; sub = 'Gyro offset saved for this session'; big = '0.02'; bigUnit = '°/s residual drift';
+      if (local > 2.2) { const x = ease((local - 2.2) / .6); hudOp = 1 - x; hudY = R ? 0 : -6 * x; }
+    } else if (phase === 'failed') {
+      fill = .26; segColor = '#e8b56a'; eyebrowC = '#e8b56a'; ctrlOp = 0; failOp = ease(local / .2);
+      shakeX = R ? 0 : (local < .36 ? Math.sin(local / .36 * Math.PI * 6) * 6 * (1 - local / .36) : 0);
+      eyebrow = 'CANCELLED'; title = 'Controller moved'; sub = 'Put it down and press Calibrate again'; big = '26'; bigUnit = '% reached';
+    }
+    const segs = [];
+    for (let i = 0; i < N; i++) {
+      const f = i / N;
+      let on, o;
+      if (phase === 'waiting') { on = f < drain; o = on ? .95 : .14; }
+      else { const edge = fill * N - i; on = edge > 0; o = on ? (edge < 1 ? .3 + .65 * edge : .95) : .14; }
+      segs.push({ a: f * 360, y2: on ? 15 : 12, c: on ? segColor : '#aebbc8', o: o });
+    }
+    const dots = [];
+    if (phase === 'calibrating' && !R) for (let i = 0; i < 10; i++) {
+      const ang = i * 2.4 + local * .6, r = 44 - ((local * 14 + i * 9) % 30);
+      dots.push({ x: 60 + Math.cos(ang) * r, y: 60 + Math.sin(ang) * r, o: Math.max(0, Math.min(.8, (r - 14) / 20)) });
+    }
+    const demos = ['loop','waiting','calibrating','done','failed'].map(d => ({ label: d === 'loop' ? 'Loop all phases' : d, bg: D === d ? '#e8eef4' : '#1f2730', fg: D === d ? '#0d1217' : '#b0bcc8', pick: () => this.pick(d) }));
+    return {
+      demos, toggleReduced: () => this.setState(s => ({ reduced: !s.reduced })), reducedLabel: R ? 'on' : 'off',
+      scenes: [{ id: 'd', label: 'OVER A DARK SCENE', bg: 'linear-gradient(160deg,#1a2230,#0b0f16 70%)', stripe: 'rgba(255,255,255,.03)', note: 'rgba(255,255,255,.35)' }, { id: 'l', label: 'OVER A BRIGHT SCENE', bg: 'linear-gradient(160deg,#dfe9f2,#b8c9d6 70%)', stripe: 'rgba(0,0,0,.05)', note: 'rgba(0,0,0,.45)' }],
+      phase, segs, dots, ringRot, segOp, solidOp, solidOff, solidC, checkOff, checkOp, checkC, ctrlOp, ctrlY, ctrlRot, shadowOp, shadowRx, bloomOp, bloomScale, bloomFill, sweepOp, sweepRot, hudOp, hudY, hudScale, shakeX, failOp,
+      eyebrow, eyebrowC, title, sub, big: String(big), bigUnit,
+    };
+  }
+}
+</script>
+</body>
+</html>

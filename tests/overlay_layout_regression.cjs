@@ -85,6 +85,8 @@ const layouts = [
   { shape: 'FOUR_WAY', columns: 2, rows: 2, deadzone: 0 },
   { shape: 'FOUR_WAY', columns: 2, rows: 2, deadzone: 0.15 },
   { shape: 'FOUR_WAY', columns: 2, rows: 2, deadzone: 0.5 },
+  { shape: 'EIGHT_WAY', columns: 2, rows: 2, deadzone: 0 },
+  { shape: 'EIGHT_WAY', columns: 1, rows: 1, deadzone: 0.2 },
   // A wheel's segment boundaries are angles, so float-vs-double drift shows up
   // as a whole segment of disagreement rather than a single edge coordinate.
   { shape: 'RADIAL', columns: 4, rows: 1, deadzone: 0 },
@@ -115,7 +117,7 @@ cases.forEach((c, index) => {
     columns: c.columns,
     rows: c.rows,
     deadzone: c.deadzone,
-    regions: Array.from({ length: c.shape === 'FOUR_WAY' ? 4 : c.columns * c.rows }, () => ({})),
+    regions: Array.from({ length: c.shape === 'FOUR_WAY' ? 4 : c.shape === 'EIGHT_WAY' ? 8 : c.columns * c.rows }, () => ({})),
   };
   const mine = hitTestRegion(menu, c.tx, c.ty);
   if (mine !== backend[index]) {

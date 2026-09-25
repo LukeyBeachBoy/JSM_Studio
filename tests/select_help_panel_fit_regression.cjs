@@ -41,8 +41,13 @@ const stub = () => {
         await page.addInitScript(stub);
         await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
         await page.locator('.profile-chip').filter({ hasText: 'Desktop' }).waitFor();
-        await page.getByRole('button', { name: 'Triggers', exact: true }).click();
-        const trigger = page.getByRole('combobox', { name: /full pull mode/i }).first();
+        // Narrow windows fold the page tabs into the navigation drawer, so the
+        // page buttons only exist once it is open.
+        const triggersTab = page.getByRole('button', { name: 'Triggers', exact: true });
+        const drawer = page.locator('.page-tabs__drawer-button');
+        if (await drawer.isVisible()) await drawer.click();
+        await triggersTab.first().click();
+        const trigger = page.getByRole('combobox', { name: /trigger behavior/i }).first();
         await trigger.waitFor();
         const tbox = await trigger.boundingBox();
         await trigger.click();
@@ -57,12 +62,16 @@ const stub = () => {
         const hbox = await help.boundingBox();
         const side = (await help.getAttribute('class') || '').match(/right|left|bottom/)?.[0] ?? null;
         assert.deepEqual(errors, [], `page errors at ${width}: ${errors.join(', ')}`);
-        return { width, trigger: tbox.width, list: lbox.width, listRight: lbox.x + lbox.width, help: hbox, side };
+        return { width, trigger: tbox.width, list: lbox.width, listBox: lbox, listLeft: lbox.x, listRight: lbox.x + lbox.width, help: hbox, side };
       } finally { await page.close(); }
     };
 
+    // The row's own settling width shifts the exact pixel a panel flips sides
+    // at whenever the surrounding shell changes, so these buckets exist only to
+    // exercise "plenty of room", "tight but still beside it" and "no room
+    // either side" -- not to pin a specific side to a specific width.
     const wide = [1920, 1440, 1180, 1058, 900];
-    const narrow = [760, 700, 640];
+    const narrow = [760, 700, 640, 500];
     const results = [];
     for (const w of [...wide, ...narrow]) results.push(await measureAt(w));
 
@@ -75,24 +84,50 @@ const stub = () => {
         `at ${r.width}px the list is ${Math.round(r.list)}px wide, above the ${WIDTH_CAP}px cap`);
     }
 
-    // The cap has to actually be biting, or this test proves nothing about it.
+    // A select now sits at the end of its setting row at no more than 320px
+    // (Gyro.dc.html, "Output"), so a trigger stretched across the row -- what
+    // the cap was guarding against -- should no longer happen at all. Where one
+    // still does, the list must not track it.
     const stretched = results.filter(r => r.trigger > WIDTH_CAP + 40);
-    assert.ok(stretched.length >= 4, 'expected several widths where the trigger is far wider than the cap');
+    for (const r of results) {
+      assert.ok(r.trigger <= 320 + 1, `at ${r.width}px the trigger is ${Math.round(r.trigger)}px wide, not a row-end select`);
+    }
     for (const r of stretched) {
       assert.ok(r.list < r.trigger - 40,
         `at ${r.width}px the list (${Math.round(r.list)}) still tracks its ${Math.round(r.trigger)}px trigger`);
     }
 
-    // With room to the right the panel goes right...
-    assert.ok(results.filter(r => wide.includes(r.width)).every(r => r.side === 'right'),
-      `panel should sit beside the list when there is room: ${JSON.stringify(results.map(r => [r.width, r.side]))}`);
+    // Whichever side is chosen, the panel must actually sit there rather than
+    // overlapping the list it describes -- the invariant that matters, and one
+    // that (unlike a fixed width-to-side table) does not go stale when the
+    // surrounding shell's chrome changes how much room a row has to give.
+    const GAP_TOLERANCE = 2;
+    for (const r of results) {
+      if (r.side === 'right') {
+        assert.ok(r.help.x >= r.listRight - GAP_TOLERANCE,
+          `at ${r.width}px side=right but the panel (x=${Math.round(r.help.x)}) overlaps the list (ends ${Math.round(r.listRight)})`);
+      } else if (r.side === 'left') {
+        assert.ok(r.help.x + r.help.width <= r.listLeft + GAP_TOLERANCE,
+          `at ${r.width}px side=left but the panel (ends ${Math.round(r.help.x + r.help.width)}) overlaps the list (starts ${Math.round(r.listLeft)})`);
+      } else {
+        assert.equal(r.side, 'bottom', `at ${r.width}px the panel has no recognised side`);
+        assert.ok(r.help.y >= r.listBox.y + r.listBox.height - GAP_TOLERANCE,
+          `at ${r.width}px side=bottom but the panel (y=${Math.round(r.help.y)}) overlaps the list (ends ${Math.round(r.listBox.y + r.listBox.height)})`);
+      }
+    }
+
+    // With plenty of room on both sides the panel prefers the right, same as
+    // the reported bug's fix relied on.
+    const roomiest = results.find(r => r.width === Math.max(...results.map(x => x.width)));
+    assert.equal(roomiest.side, 'right',
+      `expected the widest window (${roomiest.width}px) to have room on the right, got ${roomiest.side}`);
     // ...and where neither side fits it drops below rather than off the edge.
     // This is what the ref-callback measurement could never do: it reported the
     // unpositioned rect and answered "right" at every size.
-    const tightest = results.find(r => r.width === 640);
+    const tightest = results.find(r => r.width === Math.min(...results.map(x => x.width)));
     assert.equal(tightest.side, 'bottom',
-      `with no room either side the panel must drop below, got ${tightest.side}`);
+      `with no room either side (${tightest.width}px) the panel must drop below, got ${tightest.side}`);
 
-    console.log('PASS: dropdown width is capped independently of its trigger, and the help panel stays on screen from 1920px down to 640px');
+    console.log('PASS: dropdown width is capped independently of its trigger, the help panel stays on screen and never overlaps the list it describes, from 1920px down to 500px');
   } finally { await browser.close(); }
 })();

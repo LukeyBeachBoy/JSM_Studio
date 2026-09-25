@@ -1,75 +1,77 @@
+/* A labelled switch row (Components 13.9 toggle inside a 13.5 setting row):
+   the label on the left, a 52 × 30 switch on the right. Off is a control-grey
+   track with a text-2 thumb; on is the accent with a dark thumb. */
 .themeToggle {
-  display: inline-flex;
-  /* Inside the fixed-width sidebar this row has less space than its content
-     wants; without these it simply overhung the rail and gave the whole pane
-     a horizontal scrollbar. The label gives way, the switch never does. */
+  display: flex;
+  width: 100%;
   max-width: 100%;
+  min-height: var(--row-h-compact);
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.35rem 0.65rem;
-  border-radius: 999px;
-  border: 1px solid var(--border-1);
-  background: var(--bg-input);
-  color: var(--text-strong);
+  gap: var(--sp-4);
+  padding: 10px var(--sp-4);
+  border: 0;
+  border-radius: var(--r-row);
+  background: var(--surface-row);
+  color: var(--text-1);
   cursor: pointer;
-  font-weight: 600;
-  font-size: 0.9rem;
-  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  font: inherit;
+  font-size: var(--fs-label);
+  font-weight: var(--fw-medium);
+  text-align: left;
+  transition: background var(--dur-1) var(--ease-standard);
 }
 
-.themeToggle:hover {
-  border-color: var(--border-strong);
-  background: var(--bg-btn-hover);
+.themeToggle:hover:not(:disabled) {
+  background: var(--surface-row-hover);
+}
+
+.themeToggle:disabled {
+  opacity: var(--disabled-opacity);
+  cursor: default;
 }
 
 .labelGroup {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: var(--sp-2);
   min-width: 0;
 }
 
 .switch {
   position: relative;
-  width: 46px;
-  height: 24px;
-  border-radius: 999px;
-  background: var(--bg-btn-hover);
-  border: 1px solid var(--border-1);
-  transition: background-color 0.2s ease, border-color 0.2s ease;
-  flex-shrink: 0;
+  width: 52px;
+  height: 30px;
+  flex: none;
+  border-radius: var(--r-pill);
+  background: var(--surface-control);
+  transition: background-color var(--dur-2) var(--ease-standard);
 }
 
 .thumb {
   position: absolute;
-  top: 50%;
-  left: 3px;
-  width: 19px;
-  height: 19px;
+  top: 4px;
+  left: 4px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
-  background: var(--bg-2);
-  border: 1px solid var(--border-1);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-  transform: translate(0, -50%);
-  transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+  background: var(--text-2);
+  transition: transform var(--dur-2) var(--ease-emphasis), background-color var(--dur-2) var(--ease-standard);
 }
 
 .on .switch {
-  background: color-mix(in srgb, var(--accent) 30%, var(--bg-btn-hover));
-  border-color: var(--accent);
+  background: var(--accent);
 }
 
 .on .thumb {
-  transform: translate(22px, -50%);
-  border-color: var(--accent);
+  transform: translateX(22px);
+  background: var(--text-on-accent);
 }
 
 .icon {
-  width: 1.1rem;
+  width: 18px;
   text-align: center;
-  font-size: 1.05rem;
-  color: var(--text-mid);
+  color: var(--text-2);
 }
 
 .on .icon {
@@ -77,22 +79,18 @@
 }
 
 .text {
-  white-space: nowrap;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .compact {
-  padding: 0.35rem 0.45rem;
-  gap: 0.5rem;
+  padding: var(--sp-2);
+  gap: var(--sp-2);
 }
 
 .compact .text {
   display: none;
 }
 
-.themeToggle { border-radius: 8px; padding: 10px 12px; min-height: 44px; }
-.text { white-space: normal; overflow: visible; text-overflow: clip; }
-.on .switch { background: var(--accent); }
-.thumb { background: var(--text-strong); border: 0; box-shadow: none; }
+@media (prefers-reduced-motion: reduce) {
+  .thumb, .switch { transition: none; }
+}

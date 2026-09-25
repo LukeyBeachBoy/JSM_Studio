@@ -48,8 +48,8 @@ type BindingEditorProps = {
 
 
 
-const COMMON_OUTPUTS: BindingOutputKind[] = ['keyboard', 'mouse', 'wheel']
-const RARE_OUTPUTS: BindingOutputKind[] = ['virtualController', 'haptic', 'special', 'loadConfig', 'command', 'raw']
+const COMMON_OUTPUTS: BindingOutputKind[] = ['keyboard', 'mouse', 'wheel', 'virtualController']
+const RARE_OUTPUTS: BindingOutputKind[] = ['haptic', 'special', 'loadConfig', 'command', 'raw']
 
 const OUTPUT_LABEL_KEYS: Record<BindingOutputKind, string> = {
   keyboard: 'keymap.commandOutputKeyboard',
@@ -70,12 +70,7 @@ const BEHAVIOR_OPTIONS: Array<{ value: BindingOutputBehavior; labelKey: string }
   { value: 'releaseOnly', labelKey: 'keymap.commandBehaviorReleaseOnly' },
 ]
 
-const mouseOptions = ['LMOUSE', 'MMOUSE', 'RMOUSE', 'BMOUSE', 'FMOUSE']
-const wheelOptions = ['SCROLLUP', 'SCROLLDOWN']
-// Valid keyboard-output tokens that a physical key capture cannot produce, so
-// without this quick-pick they are only reachable by typing the exact token.
-const systemKeyOptions = ['VOLUME_UP', 'VOLUME_DOWN', 'MUTE', 'SCREENSHOT', 'NEXT_TRACK', 'PREV_TRACK', 'PLAY_PAUSE']
-const builtInCommandOptions = ['TURN_OFF_CONTROLLER', 'RESTART_GYRO_CALIBRATION', 'FINISH_GYRO_CALIBRATION', 'CALIBRATE_TRIGGERS']
+import { mouseOptions, wheelOptions, systemKeyOptions, builtInCommandOptions } from './actionCatalog'
 
 export function BindingEditor({
   command,

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<link rel="stylesheet" href="./tokens/tokens.css">
+<style>html,body{margin:0;height:100%;background:#0a0e12;font-family:"Geist",system-ui,sans-serif;font-feature-settings:"tnum" 1;overflow:hidden;} a{color:#6ec3f4;text-decoration:none;} a:hover{color:#e8eef4;}</style>
+</helmet>
+<div class="shell" data-screen-label="Prototype" tabindex="0" style="position:relative;width:100vw;height:100vh;display:grid;grid-template-rows:var(--titlebar-h) 52px minmax(0,1fr);background:var(--surface-canvas);font-family:var(--font-ui);color:var(--text-1);overflow:hidden;outline:none;">
+  <dc-import name="Shell Titlebar" hint-size="100%,44px"></dc-import>
+  <nav class="page-tabs" style="display:flex;align-items:center;gap:4px;padding:0 var(--sp-4);background:var(--surface-frame);border-bottom:1px solid var(--line-1);font-size:var(--fs-body);color:var(--text-2);white-space:nowrap;">
+    <b style="padding:0 6px;height:18px;border-radius:8px 8px 3px 3px;background:var(--text-3);color:var(--surface-frame);font-size:9px;display:grid;place-items:center;margin-right:8px;">LT</b>
+    <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+      <span class="page-tab" style="height:52px;display:flex;align-items:center;padding:0 12px;color:{{ t.color }};box-shadow:{{ t.shadow }};font-weight:{{ t.weight }};">{{ t.name }}</span>
+    </sc-for>
+    <b style="padding:0 6px;height:18px;border-radius:8px 8px 3px 3px;background:var(--text-3);color:var(--surface-frame);font-size:9px;display:grid;place-items:center;margin-left:8px;">RT</b>
+    <span style="flex:1;"></span>
+    <span style="font-size:12px;color:var(--text-3);">Prototype · arrows, Enter, Esc, Tab / Shift+Tab, PgUp / PgDn, Space</span>
+  </nav>
+  <main style="position:relative;min-height:0;overflow:hidden;">
+    <div style="position:absolute;inset:0;opacity:{{ enterOp }};transform:translateX({{ enterX }}px);transition:{{ enterTrans }};">
+
+      <sc-if value="{{ isOverview }}" hint-placeholder-val="{{ true }}">
+        <div style="height:100%;display:grid;grid-template-columns:440px minmax(0,1fr);gap:40px;max-width:1280px;margin:0 auto;padding:40px 40px 100px;box-sizing:border-box;">
+          <div style="display:flex;flex-direction:column;gap:14px;min-width:0;">
+            <div style="display:flex;flex-direction:column;gap:6px;"><span style="font-size:var(--fs-eyebrow);letter-spacing:var(--tracking-eyebrow);font-weight:600;color:var(--text-3);">WARDOGS · STEAM CONTROLLER</span><span style="font-size:var(--fs-page);line-height:var(--lh-page);font-weight:600;letter-spacing:var(--tracking-title);">Overview</span></div>
+            <div class="focus-list" style="position:relative;display:flex;flex-direction:column;gap:6px;">
+              <div class="focus-highlight" aria-hidden="true" style="position:absolute;left:0;right:0;top:0;height:60px;border-radius:var(--r-row);background:var(--surface-selected);box-shadow:0 0 0 2px var(--focus-controller),var(--shadow-lift);transform:translateY({{ ovY }}px);transition:transform var(--dur-3) var(--ease-emphasis);"></div>
+              <sc-for list="{{ inputs }}" as="it" hint-placeholder-count="6">
+                <div class="callout" style="position:relative;height:60px;display:flex;align-items:center;gap:14px;padding:0 14px;border-radius:var(--r-row);background:{{ it.bg }};">
+                  <span class="glyph-badge" style="width:{{ it.gw }}px;height:{{ it.gh }}px;flex:none;border-radius:{{ it.gr }};background:{{ it.gbg }};box-shadow:{{ it.gbox }};color:{{ it.gfg }};display:grid;place-items:center;font-size:{{ it.gfs }}px;font-weight:700;">{{ it.g }}</span>
+                  <div style="flex:1;min-width:0;display:flex;flex-direction:column;"><span style="font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ it.label }}</span><span style="font-size:12px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ it.sub }}</span></div>
+                  <span style="min-width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;padding:0 12px;border-radius:var(--r-sm);background:var(--surface-control);box-shadow:inset 0 -2px 0 var(--line-2);font-size:13px;font-weight:600;white-space:nowrap;">{{ it.value }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="min-width:0;padding-top:40px;"><dc-import name="Controller Live" show-back="{{ false }}" hint-size="100%,480px"></dc-import></div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isEditor }}" hint-placeholder-val="{{ false }}">
+        <div style="height:100%;max-width:960px;margin:0 auto;padding:40px 40px 100px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px;">
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-3);">Overview <span>›</span><span style="color:var(--text-1);">{{ cur.sub }}</span></div>
+          <div style="display:flex;align-items:center;gap:16px;padding:16px;border-radius:var(--r-card);background:var(--surface-row);">
+            <span class="glyph-badge" style="width:{{ cur.gw }}px;height:{{ cur.gh }}px;flex:none;border-radius:{{ cur.gr }};background:{{ cur.gbg }};box-shadow:{{ cur.gbox }};color:{{ cur.gfg }};display:grid;place-items:center;font-size:{{ cur.gfs }}px;font-weight:700;">{{ cur.g }}</span>
+            <div style="flex:1;display:flex;flex-direction:column;"><span style="font-size:var(--fs-section);font-weight:600;">{{ cur.label }}</span><span style="font-size:13px;color:var(--text-3);">{{ cur.summary }}</span></div>
+            <span style="font-size:12px;color:var(--text-3);">{{ cur.origin }}</span>
+          </div>
+          <span style="font-size:var(--fs-eyebrow);letter-spacing:var(--tracking-eyebrow);font-weight:600;color:var(--text-3);padding:4px 4px 0;">COMMANDS</span>
+          <div class="focus-list" style="position:relative;display:flex;flex-direction:column;gap:6px;">
+            <div class="focus-highlight" aria-hidden="true" style="position:absolute;left:0;right:0;top:0;height:56px;border-radius:var(--r-row);background:var(--surface-selected);box-shadow:0 0 0 2px var(--focus-controller),var(--shadow-lift);transform:translateY({{ edY }}px);transition:transform var(--dur-3) var(--ease-emphasis);"></div>
+            <sc-for list="{{ edRows }}" as="r" hint-placeholder-count="3">
+              <div class="command-row" style="position:relative;height:56px;display:flex;align-items:center;gap:14px;padding:0 16px;border-radius:var(--r-row);background:{{ r.bg }};">
+                <span style="min-width:96px;height:32px;display:flex;align-items:center;padding:0 12px;border-radius:var(--r-md);background:{{ r.actBg }};font-size:13px;font-weight:600;color:var(--text-1);">{{ r.act }}</span>
+                <span style="color:var(--text-3);">{{ r.arrow }}</span>
+                <span style="min-width:28px;height:30px;display:inline-flex;align-items:center;justify-content:center;padding:0 12px;border-radius:var(--r-sm);background:{{ r.outBg }};box-shadow:{{ r.outBox }};font-size:13px;font-weight:600;white-space:nowrap;color:{{ r.outFg }};transform:scale({{ r.pop }});transition:transform var(--dur-3) var(--ease-spring),background var(--dur-3) var(--ease-standard);">{{ r.out }}</span>
+                <span style="flex:1;font-size:13px;color:var(--text-2);">{{ r.name }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;height:44px;padding:0 12px;border-radius:var(--r-md);box-shadow:inset 0 0 0 1px var(--line-1);font-size:14px;color:var(--text-2);"><span style="color:var(--text-1);font-weight:500;">Advanced</span><span style="font-size:12px;color:var(--text-3);">Timing, repeat, turbo, fire delays</span></div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isGyro }}" hint-placeholder-val="{{ false }}">
+        <div style="height:100%;max-width:960px;margin:0 auto;padding:40px 40px 100px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px;">
+          <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"><span style="font-size:var(--fs-eyebrow);letter-spacing:var(--tracking-eyebrow);font-weight:600;color:var(--text-3);">WARDOGS · CONTROLS</span><span style="font-size:var(--fs-page);line-height:var(--lh-page);font-weight:600;letter-spacing:var(--tracking-title);">Gyro · Sensitivity</span></div>
+          <div class="focus-list" style="position:relative;display:flex;flex-direction:column;gap:8px;">
+            <div class="focus-highlight" aria-hidden="true" style="position:absolute;left:0;right:0;top:0;height:120px;border-radius:var(--r-row);background:var(--surface-selected);box-shadow:0 0 0 2px {{ gyRing }},var(--shadow-lift);transform:translateY({{ gyY }}px);transition:transform var(--dur-3) var(--ease-emphasis);"></div>
+            <sc-for list="{{ gyRows }}" as="g" hint-placeholder-count="4">
+              <div class="setting-row" style="position:relative;height:120px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;gap:12px;padding:0 18px;border-radius:var(--r-row);background:{{ g.bg }};">
+                <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:15px;font-weight:500;">{{ g.label }}</span><span style="height:20px;display:{{ g.adjDisplay }};align-items:center;padding:0 8px;border-radius:4px;background:var(--accent);color:var(--text-on-accent);font-size:10px;font-weight:700;letter-spacing:.04em;">{{ g.adjText }}</span><span style="flex:1;"></span><span style="min-width:64px;height:28px;display:inline-flex;align-items:center;justify-content:center;padding:0 12px;border-radius:999px;background:var(--surface-control);font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;">{{ g.valText }}</span></div>
+                <div style="position:relative;height:24px;display:flex;align-items:center;">
+                  <div style="position:absolute;left:0;right:0;height:6px;border-radius:3px;background:var(--surface-control);"></div>
+                  <div style="position:absolute;left:0;width:100%;height:6px;border-radius:3px;background:var(--accent);transform-origin:left;transform:scaleX({{ g.pct }});transition:transform var(--dur-2) var(--ease-standard);"></div>
+                  <div style="position:absolute;left:0;width:100%;height:24px;transform:translateX({{ g.thumbX }});transition:transform var(--dur-2) var(--ease-standard);pointer-events:none;"><div style="position:absolute;left:-11px;top:1px;width:22px;height:22px;border-radius:50%;background:var(--text-1);box-shadow:{{ g.thumbShadow }};"></div></div>
+                </div>
+                <span style="font-size:12px;color:var(--text-3);">{{ g.desc }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+
+    <sc-if value="{{ isPicker }}" hint-placeholder-val="{{ false }}">
+      <div class="action-picker" style="position:absolute;inset:0;background:var(--surface-canvas);display:flex;flex-direction:column;gap:20px;padding:28px 48px;box-sizing:border-box;z-index:4;opacity:{{ pickOp }};transform:scale({{ pickScale }});transition:{{ pickTrans }};transform-origin:50% 30%;">
+        <div style="display:flex;flex-direction:column;gap:4px;"><span style="font-size:var(--fs-eyebrow);letter-spacing:var(--tracking-eyebrow);font-weight:600;color:var(--text-3);">{{ pickEyebrow }}</span><span style="font-size:var(--fs-page);font-weight:600;letter-spacing:var(--tracking-title);">Choose an action</span></div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <b style="padding:0 5px;height:16px;border-radius:6px 6px 3px 3px;background:var(--text-1);color:var(--surface-frame);font-size:9px;display:grid;place-items:center;">LB</b>
+          <sc-for list="{{ cats }}" as="c" hint-placeholder-count="5"><span style="height:40px;display:flex;align-items:center;padding:0 16px;border-radius:999px;background:{{ c.bg }};color:{{ c.fg }};font-size:14px;font-weight:500;transition:background var(--dur-2) var(--ease-standard);">{{ c.name }}</span></sc-for>
+          <b style="padding:0 5px;height:16px;border-radius:6px 6px 3px 3px;background:var(--text-1);color:var(--surface-frame);font-size:9px;display:grid;place-items:center;">RB</b>
+        </div>
+        <sc-if value="{{ isKeyboard }}" hint-placeholder-val="{{ true }}">
+          <div class="keyboard" style="position:relative;display:flex;flex-direction:column;gap:6px;">
+            <div class="focus-highlight" aria-hidden="true" style="position:absolute;left:0;top:0;width:{{ kbW }}px;height:56px;border-radius:var(--r-md);box-shadow:0 0 0 3px var(--focus-controller);transform:translate({{ kbX }}px,{{ kbY }}px);transition:transform var(--dur-3) var(--ease-emphasis);z-index:2;pointer-events:none;"></div>
+            <sc-for list="{{ kbRows }}" as="kr" hint-placeholder-count="4">
+              <div style="display:flex;gap:6px;padding-left:{{ kr.pad }}px;">
+                <sc-for list="{{ kr.keys }}" as="k" hint-placeholder-count="10"><span class="key-cap" style="width:{{ k.w }}px;height:56px;flex:none;box-sizing:border-box;display:flex;align-items:flex-start;padding:8px 10px;border-radius:var(--r-md);background:{{ k.bg }};box-shadow:inset 0 -3px 0 rgba(0,0,0,.28);font-size:15px;font-weight:600;color:var(--text-1);white-space:nowrap;">{{ k.k }}</span></sc-for>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ isList }}" hint-placeholder-val="{{ false }}">
+          <div class="focus-list" style="position:relative;display:flex;flex-direction:column;gap:6px;max-width:520px;">
+            <div class="focus-highlight" aria-hidden="true" style="position:absolute;left:0;right:0;top:0;height:48px;border-radius:var(--r-md);background:var(--surface-selected);box-shadow:0 0 0 2px var(--focus-controller);transform:translateY({{ plY }}px);transition:transform var(--dur-3) var(--ease-emphasis);"></div>
+            <sc-for list="{{ plItems }}" as="p" hint-placeholder-count="5"><div style="position:relative;height:48px;display:flex;align-items:center;padding:0 16px;border-radius:var(--r-md);background:var(--surface-row);font-size:14px;">{{ p }}</div></sc-for>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+      <div class="toast" style="position:absolute;right:24px;top:20px;z-index:6;display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:var(--r-row);background:var(--surface-raised);box-shadow:var(--shadow-menu),inset 3px 0 0 var(--ok);font-size:14px;">
+        <svg width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="var(--ok-soft)"></circle><path d="M7.5 12.5l3 3 6-6.5" fill="none" stroke="var(--ok)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="16" stroke-dashoffset="{{ toastDash }}" style="transition:stroke-dashoffset var(--dur-4) var(--ease-emphasis);"></path></svg>
+        <span>{{ toast }}</span>
+      </div>
+    </sc-if>
+
+    <div class="hint-capsule" style="position:absolute;left:50%;bottom:16px;transform:translateX(-50%);height:var(--capsule-h);display:flex;align-items:center;gap:20px;padding:0 20px 0 12px;border-radius:999px;background:var(--surface-raised);box-shadow:var(--shadow-capsule);font-size:var(--fs-hint);color:var(--text-2);white-space:nowrap;z-index:5;">
+      <sc-for list="{{ hints }}" as="h" hint-placeholder-count="4">
+        <span style="display:flex;align-items:center;gap:8px;"><b style="min-width:22px;height:22px;padding:0 {{ h.pad }}px;box-sizing:border-box;border-radius:{{ h.r }};background:var(--text-1);color:var(--surface-frame);display:grid;place-items:center;font-size:{{ h.fs }}px;">{{ h.g }}</b>{{ h.t }}</span>
+      </sc-for>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    screen: 'overview', page: 'overview', ov: 2, ed: 0, cat: 2, kr: 0, kc: 0, pl: 0, gy: 0, adjusting: false, coarse: false, before: null,
+    enter: false, dir: 1, pickIn: false, toast: null, toastDraw: false, popRow: -1,
+    inputs: [
+      { g: 'LT', kind: 'trig', label: 'Aim down sights', sub: 'Left trigger', origin: 'From FPS Template', cmds: [{ act: 'Soft pull', out: 'RMB', name: 'Aim down sights' }] },
+      { g: 'LB', kind: 'bump', label: 'Grenade', sub: 'Left bumper', origin: 'From FPS Template', cmds: [{ act: 'Press', out: 'G', name: 'Grenade' }] },
+      { g: 'RB', kind: 'bump', label: 'Ping, Place marker', sub: 'Right bumper', origin: 'From FPS Template', cmds: [{ act: 'Tap', out: 'MMB', name: 'Ping' }, { act: 'Hold', out: 'Q', name: 'Place marker' }] },
+      { g: 'B', kind: 'disc', label: 'Crouch', sub: 'B button', origin: 'Override · template Left Ctrl', cmds: [{ act: 'Press', out: 'C', name: 'Crouch' }] },
+      { g: 'Y', kind: 'disc', label: 'Interact', sub: 'Y button', origin: 'From FPS Template', cmds: [{ act: 'Press', out: 'F', name: 'Interact' }] },
+      { g: 'L4', kind: 'paddle', label: 'Vehicles & utility', sub: 'L4 paddle', origin: 'Override', cmds: [{ act: 'Hold', out: 'Layer', name: 'Vehicles & utility' }] },
+    ],
+    gyro: [
+      { label: 'Minimum sensitivity', v: 1, min: 0, max: 10, fine: .01, coarse: .1, d: 2, u: '', desc: 'Sensitivity at slow speeds. Lower keeps small corrections steady.' },
+      { label: 'Maximum sensitivity', v: 4, min: 0, max: 10, fine: .01, coarse: .1, d: 2, u: '', desc: 'Sensitivity once the controller turns faster than the maximum threshold.' },
+      { label: 'Maximum threshold', v: 75, min: 0, max: 200, fine: 1, coarse: 10, d: 0, u: ' °/s', desc: 'Turn speed at which maximum sensitivity is reached.' },
+      { label: 'Real world calibration', v: 35.856, min: 0, max: 100, fine: .001, coarse: .1, d: 3, u: '', desc: 'One full turn of the controller equals one full turn in game.' },
+    ],
+  };
+  KB = [['Q','W','E','R','T','Y','U','I','O','P'], ['A','S','D','F','G','H','J','K','L'], ['Z','X','C','V','B','N','M'], ['Space','Left Shift','Left Ctrl','Tab','Esc']];
+  CATS = ['Gamepad', 'Mouse', 'Keyboard', 'System', 'JSM'];
+  LISTS = { Gamepad: ['Xbox A', 'Xbox B', 'Xbox X', 'Xbox Y', 'Xbox LB', 'Xbox RB'], Mouse: ['Left mouse', 'Right mouse', 'Middle mouse', 'Scroll up', 'Scroll down', 'Mouse 4'], System: ['Volume up', 'Volume down', 'Mute', 'Play / pause', 'Screenshot'], JSM: ['Calibrate gyro', 'Gyro on', 'Gyro off', 'Load Wardogs Menu'] };
+  SHORT = { 'Left mouse': 'LMB', 'Right mouse': 'RMB', 'Middle mouse': 'MMB' };
+  componentDidMount() {
+    this.onKey = (e) => this.key(e);
+    window.addEventListener('keydown', this.onKey);
+    try { const s = JSON.parse(localStorage.getItem('jsm-proto') || 'null'); if (s && s.page) this.setState({ page: s.page, screen: s.page }); } catch (e) {}
+  }
+  componentWillUnmount() { window.removeEventListener('keydown', this.onKey); clearTimeout(this.t1); clearTimeout(this.t2); }
+  go(screen, dir) {
+    this.setState({ screen, enter: true, dir });
+    clearTimeout(this.t1); this.t1 = setTimeout(() => this.setState({ enter: false }), 30);
+    if (screen === 'overview' || screen === 'gyro') { this.setState({ page: screen }); try { localStorage.setItem('jsm-proto', JSON.stringify({ page: screen })); } catch (e) {} }
+  }
+  showToast(t) {
+    this.setState({ toast: t, toastDraw: false });
+    setTimeout(() => this.setState({ toastDraw: true }), 60);
+    clearTimeout(this.t2); this.t2 = setTimeout(() => this.setState({ toast: null }), 2600);
+  }
+  choose(val) {
+    const s = this.state;
+    const inputs = s.inputs.map((it, i) => i !== s.ov ? it : { ...it, cmds: it.cmds.map((c, j) => j !== s.ed ? c : { ...c, out: this.SHORT[val] || val }) });
+    inputs[s.ov] = { ...inputs[s.ov], value: undefined };
+    this.setState({ inputs, screen: 'editor', pickIn: false, popRow: s.ed });
+    setTimeout(() => this.setState({ popRow: -1 }), 260);
+    this.showToast(`${inputs[s.ov].g} ${s.inputs[s.ov].cmds[s.ed].act} → ${this.SHORT[val] || val}`);
+  }
+  key(e) {
+    const k = e.key, s = this.state;
+    const handled = ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Enter','Escape','Tab','PageUp','PageDown',' '].includes(k);
+    if (!handled) return;
+    e.preventDefault();
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+    if (s.screen === 'picker') {
+      const cat = this.CATS[s.cat];
+      if (k === 'Tab') { const c = (s.cat + (e.shiftKey ? -1 : 1) + this.CATS.length) % this.CATS.length; this.setState({ cat: c, pl: 0 }); return; }
+      if (k === 'Escape') { this.setState({ screen: 'editor', pickIn: false }); return; }
+      if (cat === 'Keyboard') {
+        if (k === 'ArrowRight') this.setState({ kc: clamp(s.kc + 1, 0, this.KB[s.kr].length - 1) });
+        if (k === 'ArrowLeft') this.setState({ kc: clamp(s.kc - 1, 0, this.KB[s.kr].length - 1) });
+        if (k === 'ArrowDown') { const r = clamp(s.kr + 1, 0, 3); this.setState({ kr: r, kc: clamp(s.kc, 0, this.KB[r].length - 1) }); }
+        if (k === 'ArrowUp') { const r = clamp(s.kr - 1, 0, 3); this.setState({ kr: r, kc: clamp(s.kc, 0, this.KB[r].length - 1) }); }
+        if (k === 'Enter') this.choose(this.KB[s.kr][s.kc]);
+      } else {
+        const items = this.LISTS[cat];
+        if (k === 'ArrowDown') this.setState({ pl: clamp(s.pl + 1, 0, items.length - 1) });
+        if (k === 'ArrowUp') this.setState({ pl: clamp(s.pl - 1, 0, items.length - 1) });
+        if (k === 'Enter') this.choose(items[s.pl]);
+      }
+      return;
+    }
+    if (s.screen === 'editor') {
+      const n = s.inputs[s.ov].cmds.length + 2;
+      if (k === 'ArrowDown') this.setState({ ed: clamp(s.ed + 1, 0, n - 1) });
+      if (k === 'ArrowUp') this.setState({ ed: clamp(s.ed - 1, 0, n - 1) });
+      if (k === 'Escape') this.go('overview', -1);
+      if (k === 'Enter') {
+        if (s.ed < s.inputs[s.ov].cmds.length) { this.setState({ screen: 'picker', pickIn: true, cat: 2 }); setTimeout(() => this.setState({ pickIn: false }), 20); }
+        else if (s.ed === n - 2) this.showToast('Add command opens the picker for a new command');
+        else this.showToast('Use inherited restores the FPS Template binding');
+      }
+      return;
+    }
+    if (k === 'PageDown' || k === 'PageUp') {
+      if (s.adjusting) return;
+      const order = ['overview', 'gyro'];
+      const i = order.indexOf(s.page) + (k === 'PageDown' ? 1 : -1);
+      if (i >= 0 && i < order.length) this.go(order[i], k === 'PageDown' ? 1 : -1);
+      return;
+    }
+    if (s.screen === 'overview') {
+      if (k === 'ArrowDown') this.setState({ ov: clamp(s.ov + 1, 0, s.inputs.length - 1) });
+      if (k === 'ArrowUp') this.setState({ ov: clamp(s.ov - 1, 0, s.inputs.length - 1) });
+      if (k === 'Enter') { this.setState({ ed: 0 }); this.go('editor', 1); }
+      return;
+    }
+    if (s.screen === 'gyro') {
+      const row = s.gyro[s.gy];
+      if (s.adjusting) {
+        const step = s.coarse ? row.coarse : row.fine;
+        const setV = (v) => this.setState({ gyro: s.gyro.map((r, i) => i === s.gy ? { ...r, v: clamp(+v.toFixed(row.d), r.min, r.max) } : r) });
+        if (k === 'ArrowRight') setV(row.v + step);
+        if (k === 'ArrowLeft') setV(row.v - step);
+        if (k === ' ') this.setState({ coarse: !s.coarse });
+        if (k === 'Enter') { this.setState({ adjusting: false }); this.showToast(`${row.label} set to ${row.v.toFixed(row.d)}${row.u}`); }
+        if (k === 'Escape') this.setState({ adjusting: false, gyro: s.gyro.map((r, i) => i === s.gy ? { ...r, v: s.before } : r) });
+        return;
+      }
+      if (k === 'ArrowDown') this.setState({ gy: clamp(s.gy + 1, 0, s.gyro.length - 1) });
+      if (k === 'ArrowUp') this.setState({ gy: clamp(s.gy - 1, 0, s.gyro.length - 1) });
+      if (k === 'Enter') this.setState({ adjusting: true, coarse: false, before: row.v });
+      if (k === 'Escape') this.go('overview', -1);
+    }
+  }
+  glyph(it) {
+    const base = { g: it.g, gfg: 'var(--surface-frame)', gbg: 'var(--text-1)', gbox: 'none', gfs: 13 };
+    if (it.kind === 'disc') return { ...base, gw: 28, gh: 28, gr: '50%' };
+    if (it.kind === 'bump') return { ...base, gw: 30, gh: 20, gr: '8px 8px 4px 4px', gfs: 10 };
+    if (it.kind === 'trig') return { ...base, gw: 26, gh: 26, gr: '12px 12px 4px 4px', gfs: 10 };
+    return { ...base, gw: 28, gh: 28, gr: '6px', gbg: 'transparent', gbox: 'inset 0 0 0 2px var(--text-1)', gfg: 'var(--text-1)', gfs: 11 };
+  }
+  renderVals() {
+    const s = this.state;
+    const summarize = (it) => it.cmds.length > 1 ? it.cmds[0].out : it.cmds[0].out;
+    const inputs = s.inputs.map((it, i) => ({ ...this.glyph(it), label: it.label, sub: it.cmds.length > 1 ? `${it.sub} · ${it.cmds.length} commands` : it.sub, value: summarize(it) + (it.cmds.length > 1 ? ' +1' : ''), bg: 'var(--surface-row)' }));
+    const cur = s.inputs[s.ov];
+    const curV = { ...this.glyph(cur), label: cur.label, sub: cur.sub, origin: cur.origin, summary: `${cur.cmds.length} command${cur.cmds.length > 1 ? 's' : ''} · ${cur.cmds.map(c => c.act).join(' / ')}` };
+    const edRows = cur.cmds.map((c, i) => ({ act: c.act, arrow: '→', out: c.out, name: c.name, bg: 'var(--surface-row)', actBg: 'var(--surface-control)', outBg: s.popRow === i ? 'var(--accent)' : 'var(--surface-control)', outFg: s.popRow === i ? 'var(--text-on-accent)' : 'var(--text-1)', outBox: 'inset 0 -2px 0 var(--line-2)', pop: s.popRow === i ? 1.12 : 1 }))
+      .concat([{ act: '+ Add command', arrow: '', out: '', name: '', bg: 'transparent', actBg: 'transparent', outBg: 'transparent', outFg: 'transparent', outBox: 'none', pop: 1 }, { act: 'Use inherited', arrow: '', out: '', name: 'Restore FPS Template binding', bg: 'transparent', actBg: 'transparent', outBg: 'transparent', outFg: 'transparent', outBox: 'none', pop: 1 }]);
+    const gyRows = s.gyro.map((r, i) => { const pct = (r.v - r.min) / (r.max - r.min); const adj = s.adjusting && i === s.gy; return { label: r.label, valText: r.v.toFixed(r.d) + r.u, pct, thumbX: (pct * 100) + '%', desc: r.desc, bg: 'var(--surface-row)', adjDisplay: adj ? 'flex' : 'none', adjText: s.coarse ? 'ADJUSTING · COARSE' : 'ADJUSTING · FINE', thumbShadow: adj ? '0 0 0 6px var(--accent-soft),0 1px 3px rgba(0,0,0,.4)' : '0 1px 3px rgba(0,0,0,.4)' }; });
+    const tabs = ['Overview', 'Buttons', 'Triggers', 'Joysticks', 'Trackpads', 'Gyro', 'Layers'].map(n => { const on = (n === 'Overview' && s.page === 'overview') || (n === 'Gyro' && s.page === 'gyro'); const live = n === 'Overview' || n === 'Gyro'; return { name: n, color: on ? 'var(--text-1)' : live ? 'var(--text-2)' : 'var(--text-4)', shadow: on ? 'inset 0 -2px 0 var(--accent)' : 'none', weight: on ? 500 : 400 }; });
+    const cat = this.CATS[s.cat];
+    const kbPad = [0, 20, 50, 0];
+    const kbRows = this.KB.map((row, r) => ({ pad: kbPad[r], keys: row.map((k) => ({ k, w: r === 3 ? (k === 'Space' ? 300 : 120) : 56, bg: 'var(--surface-control)' })) }));
+    const kx = (r, c) => { let x = kbPad[r]; for (let i = 0; i < c; i++) x += (r === 3 ? (this.KB[3][i] === 'Space' ? 300 : 120) : 56) + 6; return x; };
+    const kbW = s.kr === 3 ? (this.KB[3][s.kc] === 'Space' ? 300 : 120) : 56;
+    const H = (g, t, shape = 'disc') => ({ g, t, pad: shape === 'disc' ? 0 : 5, r: shape === 'disc' ? '50%' : shape === 'shoulder' ? '6px 6px 3px 3px' : '5px', fs: shape === 'disc' ? 11 : 9 });
+    let hints;
+    if (s.screen === 'picker') hints = [H('↕↔', 'Move', 'key'), H('A', 'Choose ' + (cat === 'Keyboard' ? this.KB[s.kr][s.kc] : this.LISTS[cat][s.pl])), H('B', 'Back to ' + cur.g), H('LB RB', 'Category', 'shoulder')];
+    else if (s.screen === 'editor') hints = [H('↕', 'Move', 'key'), H('A', s.ed < cur.cmds.length ? 'Change action' : 'Select'), H('B', 'Back to Overview')];
+    else if (s.screen === 'gyro' && s.adjusting) hints = [H('◀ ▶', 'Change', 'key'), H('X', s.coarse ? 'Fine' : 'Coarse'), H('A', 'Done'), H('B', 'Cancel')];
+    else if (s.screen === 'gyro') hints = [H('↕', 'Move', 'key'), H('A', 'Adjust'), H('LT RT', 'Page', 'shoulder'), H('B', 'Back')];
+    else hints = [H('↕', 'Move', 'key'), H('A', 'Edit ' + cur.g), H('LT RT', 'Page', 'shoulder')];
+    return {
+      tabs, inputs, cur: curV, edRows, gyRows, hints,
+      isOverview: s.screen === 'overview', isEditor: s.screen === 'editor' || s.screen === 'picker', isGyro: s.screen === 'gyro', isPicker: s.screen === 'picker',
+      ovY: s.ov * 66, edY: s.ed * 62, gyY: s.gy * 128, gyRing: s.adjusting ? 'var(--accent)' : 'var(--focus-controller)',
+      enterOp: s.enter ? 0 : 1, enterX: s.enter ? 16 * s.dir : 0, enterTrans: s.enter ? 'none' : 'opacity 240ms cubic-bezier(.3,0,0,1), transform 240ms cubic-bezier(.3,0,0,1)',
+      pickOp: s.pickIn ? 0 : 1, pickScale: s.pickIn ? .96 : 1, pickTrans: s.pickIn ? 'none' : 'opacity 240ms cubic-bezier(.3,0,0,1), transform 240ms cubic-bezier(.3,0,0,1)',
+      pickEyebrow: `${cur.sub.toUpperCase()} · ${cur.cmds[Math.min(s.ed, cur.cmds.length - 1)].act.toUpperCase()}`,
+      cats: this.CATS.map((c, i) => ({ name: c, bg: i === s.cat ? 'var(--text-1)' : 'transparent', fg: i === s.cat ? 'var(--surface-frame)' : 'var(--text-2)' })),
+      isKeyboard: cat === 'Keyboard', isList: cat !== 'Keyboard', kbRows, kbX: kx(s.kr, s.kc), kbY: s.kr * 62, kbW,
+      plItems: cat === 'Keyboard' ? [] : this.LISTS[cat], plY: s.pl * 54,
+      hasToast: !!s.toast, toast: s.toast || '', toastDash: s.toastDraw ? 0 : 16,
+    };
+  }
+}
+</script>
+</body>
+</html>

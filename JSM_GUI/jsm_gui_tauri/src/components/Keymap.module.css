@@ -109,27 +109,8 @@
 }
 
 .mappingListShell {
-  display: grid;
-  grid-template-columns: minmax(11rem, 13rem) minmax(0, 1fr);
-  gap: 1rem;
-  align-items: start;
-}
-
-.mappingListSidebar {
-  position: sticky;
-  top: calc(var(--top-bar-height) + 0.75rem);
-  z-index: 4;
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
-}
-
-.mappingListSidebarTitle {
-  color: var(--text-strong);
-  font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 
 .mappingListContent {
@@ -137,33 +118,6 @@
   flex-direction: column;
   gap: 1rem;
   min-width: 0;
-}
-
-.mappingListJumpBar {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-  padding: 0.6rem;
-  border: 1px solid var(--border-1);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--bg-2) 92%, transparent);
-  backdrop-filter: blur(10px);
-}
-
-.mappingListJumpChip {
-  border: 1px solid var(--border-1);
-  border-radius: 10px;
-  background: var(--bg-input);
-  color: var(--text-mid);
-  padding: 0.42rem 0.72rem;
-  cursor: pointer;
-  font-weight: 700;
-  text-align: left;
-}
-
-.mappingListJumpChip:hover {
-  border-color: var(--border-strong);
-  color: var(--text-strong);
 }
 
 .mappingListSectionAnchor {
@@ -430,15 +384,15 @@
   gap: 1rem;
   align-items: flex-start;
   padding: 0.75rem 1rem;
-  border: 1px solid var(--border-1);
-  border-radius: 12px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-card);
   background: var(--bg-input);
   flex-wrap: wrap;
+  overflow: hidden;
 }
 
 .keymapRowCapturing {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent);
+  box-shadow: var(--focus-ring, 0 0 0 2px var(--accent) inset);
 }
 
 /* Fixed width, not a minimum: a long description (the extra shoulder buttons
@@ -464,10 +418,15 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 2.25rem;
+  height: 2.25rem;
   color: var(--text-mid);
   flex: 0 0 auto;
+}
+
+.buttonGlyph svg {
+  width: 100%;
+  height: 100%;
 }
 
 .buttonName {
@@ -667,9 +626,15 @@
 
 .commandCard {
   border: 1px solid var(--border-1);
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   background: var(--bg-input);
   overflow: hidden;
+  transition: box-shadow var(--transition-fast, 120ms ease);
+}
+
+.commandCard:focus-within {
+  box-shadow: var(--focus-ring, 0 0 0 2px var(--accent) inset);
+  border-color: transparent;
 }
 
 /* Sticky, because the inputs you might paste onto run well past one screen and
@@ -787,23 +752,25 @@
   color: var(--text-muted);
 }
 
-/* The output is a key or button the game receives, so it reads as one: keycap
-   styling separates it from the surrounding prose at a glance. */
+/* The output is what this input sends, read as a value badge -- the same
+   rounded-pill language as every other value in the workspace (trigger
+   badges, gyro state, filter chips), so a binding reads as "name -> pill"
+   consistently rather than one row style for the key and another for
+   everything else. */
 .commandOutputSummary {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  padding: 0.1rem 0.4rem;
-  border: 1px solid var(--border-strong);
-  border-bottom-width: 2px;
-  border-radius: 5px;
-  background: var(--bg-input);
+  padding: 0.3rem 0.85rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: var(--bg-btn);
   color: var(--text-strong);
   font-family: inherit;
-  font-size: 0.78rem;
-  font-weight: 700;
-  line-height: 1.45;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
 .commandActions {
@@ -918,17 +885,6 @@
     text-align: center;
   }
 
-  .mappingListJumpBar {
-    top: calc(var(--top-bar-height) + 0.5rem);
-  }
-
-  .mappingListShell {
-    grid-template-columns: 1fr;
-  }
-
-  .mappingListSidebar {
-    position: static;
-  }
 }
 
 .commandEmptyState {
@@ -1745,3 +1701,271 @@
 }
 
 .globalControlRow > :only-child { grid-column: 1 / -1; }
+
+.keymapRow { border: 0; border-radius: var(--radius-control); background: transparent; }
+.commandCard { border: 0; border-radius: var(--radius-control); background: var(--bg-2); overflow: visible; }
+.commandSummary { min-height: 44px; }
+.commandOutputSummary { border: 0; border-radius: var(--radius-control); background: var(--bg-btn); padding: 6px 12px; font-size: 13px; font-weight: 500; }
+.commandSummaryMain { min-height: 40px; }
+.commandSummaryMain:hover { background: var(--bg-btn-hover); }
+
+.triggerModeInline { background: transparent; border: 0; padding: 0; }
+.triggerModeInline > label { display: grid; grid-template-columns: minmax(140px, 1fr) minmax(180px, 1fr); align-items: center; gap: 8px 16px; padding: 12px 16px; background: var(--bg-2); }
+.triggerModeInline > label > :global(.setting-origin) { grid-column: 1 / -1; }
+
+/* ============ Binding editor (Binding Editor.dc.html, 7a) ============
+   An open row becomes a card: 64px summary over a hairline, then the body --
+   the input's name and label, COMMANDS as 52px rows (activation → output,
+   Timing, Remove), modeshifts and layer actions, Advanced last. */
+.keymapRow {
+  display: block;
+  padding: 0;
+  gap: 0;
+  border: 0;
+  border-radius: var(--r-row);
+  background: transparent;
+  overflow: visible;
+}
+.keymapRow[open] {
+  border-radius: var(--r-card);
+  background: var(--surface-row);
+  box-shadow: 0 0 0 1px var(--line-2), var(--shadow-lift);
+}
+.keymapRowCapturing { box-shadow: 0 0 0 2px var(--warn); }
+
+.keymapLabel {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--sp-2) var(--sp-3);
+  flex: none;
+  max-width: none;
+  min-width: 0;
+  text-align: left;
+}
+.keymapLabel > * { flex: 0 0 auto; }
+.keymapLabel .buttonNameRow { padding: 0; }
+.keymapLabel > .buttonLabelInput { flex: 1 1 200px; }
+.buttonNameRow { display: flex; align-items: center; gap: var(--sp-3); min-width: 0; }
+.buttonGlyph { display: inline-flex; }
+.buttonName { font-size: var(--fs-label); font-weight: var(--fw-semibold); color: var(--text-1); }
+.buttonMeta { font-size: var(--fs-hint); color: var(--text-3); }
+.buttonLabelInput {
+  height: 32px;
+  min-width: 200px;
+  flex: 1 1 200px;
+  max-width: 320px;
+  padding: 0 var(--sp-3);
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--line-1);
+  color: var(--text-1);
+  font: inherit;
+  font-size: var(--fs-hint);
+}
+.buttonLabelInput:hover { box-shadow: inset 0 0 0 1px var(--line-2); }
+.buttonLabelInput:focus { outline: none; box-shadow: inset 0 0 0 1px var(--focus-keyboard); }
+
+.commandList { display: flex; flex-direction: column; gap: var(--sp-2); min-width: 0; }
+
+.commandCard {
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--surface-row-hover);
+  overflow: visible;
+}
+.commandCard:focus-within { box-shadow: none; }
+:global(body[data-input-source='controller']) .commandCard:focus-within {
+  box-shadow: 0 0 0 var(--focus-controller-width) var(--focus-controller);
+}
+
+.commandSummary {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 0 var(--sp-3);
+}
+
+.commandTriggerBadge,
+.commandSummary .commandTriggerBadgeSelect {
+  height: 32px;
+  min-height: 32px;
+  min-width: 112px;
+  width: auto;
+  flex: none;
+  padding: 0 var(--sp-2) 0 var(--sp-3);
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--surface-control);
+  color: var(--text-1);
+  font-size: var(--fs-hint);
+  font-weight: var(--fw-semibold);
+}
+
+.commandSummaryMain {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 2px var(--sp-2);
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--text-1);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.commandSummaryMain:hover { background: var(--surface-control); }
+.commandArrow { color: var(--text-3); font-size: var(--fs-body); }
+
+.commandOutputSummary {
+  min-width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--sp-3);
+  border: 0;
+  border-radius: var(--r-sm);
+  background: var(--surface-control);
+  box-shadow: inset 0 -2px 0 var(--line-2);
+  color: var(--text-1);
+  font-family: var(--font-ui);
+  font-size: var(--fs-hint);
+  font-weight: var(--fw-semibold);
+  white-space: nowrap;
+}
+.commandSummaryMain:hover .commandOutputSummary { background: var(--surface-control-hover); }
+
+.commandConditionBadge,
+.commandRawBadge {
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--sp-2);
+  border: 0;
+  border-radius: var(--r-sm);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-semibold);
+}
+.commandRawBadge { background: var(--warn-soft); color: var(--warn); }
+
+.commandActions { display: flex; align-items: center; gap: var(--sp-1); flex: none; margin-left: auto; }
+.commandActions :global(.ghost-btn) {
+  height: 32px;
+  gap: 6px;
+  padding: 0 var(--sp-3);
+  font-size: var(--fs-hint);
+}
+
+.advancedRemoveBtn {
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--sp-3);
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--error);
+  font: inherit;
+  font-size: var(--fs-hint);
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+}
+.advancedRemoveBtn:hover:not(:disabled) { background: var(--error-soft); }
+
+.addCommandRow { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin-top: var(--sp-1); }
+.bindingsToolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.commandEmptyState { color: var(--text-3); font-size: var(--fs-hint); }
+.commandWarningText { padding: 0 var(--sp-3) var(--sp-2); color: var(--warn); font-size: var(--fs-hint); }
+
+/* Section headings (Buttons Content): name and count, 17/24. */
+.keymapSection { display: flex; flex-direction: column; gap: var(--sp-2); }
+.keymapSectionHeader { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); margin: 0 0 var(--sp-2); }
+.keymapSectionHeading h3 {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  font-size: var(--fs-section);
+  line-height: var(--lh-section);
+  font-weight: var(--fw-semibold);
+  color: var(--text-1);
+}
+.keymapSectionHeading h3 :global(.help-button) { align-self: center; }
+.keymapSectionCount { font-size: var(--fs-hint); font-weight: var(--fw-regular); color: var(--text-3); }
+.keymapSectionIcon { display: none; }
+.mappingListContent { display: flex; flex-direction: column; gap: var(--sp-7); }
+.keymapGrid { display: flex; flex-direction: column; gap: var(--sp-2); }
+
+/* The page header already names the page (Configuration Pages.dc.html); a
+   second title inside the panel only repeated it. */
+.keymapCardHeader:not(:has(button)) { display: none; }
+
+/* Press timing (Tuning and Studio Pages 16e): the settings-page template, a
+   column of full-width rows on the canvas, not a card of cards. */
+.globalControlsBlock { padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.globalControls { display: flex; flex-direction: column; gap: 0; }
+.globalControlRow {
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  padding: 12px var(--sp-4);
+  border: 0;
+  border-radius: var(--r-row);
+  background: transparent;
+  box-shadow: inset 0 -1px 0 var(--line-1);
+}
+/* A row that is one NumberField is that field's own row. */
+.globalControlRow:has(> :global(.setting-row):only-child) { display: block; padding: 0; box-shadow: none; }
+.globalControlText { gap: 2px; }
+.globalControlTitle { color: var(--text-1); font-size: var(--fs-label); line-height: var(--lh-label); font-weight: var(--fw-medium); }
+.globalControlCaption { color: var(--text-3); font-size: var(--fs-hint); line-height: var(--lh-hint); }
+.globalControlInputGroup :global(button[role='combobox']) { min-width: 180px; }
+.lightBarColorPicker { width: 44px; height: 28px; padding: 2px; border: 0; border-radius: var(--r-pill); background: var(--surface-control); }
+.lightBarClearBtn { height: 28px; padding: 0 var(--sp-3); border: 0; border-radius: var(--r-pill); background: transparent; color: var(--text-2); font-size: var(--fs-hint); font-weight: var(--fw-semibold); }
+.lightBarClearBtn:hover { background: var(--surface-row-hover); color: var(--text-1); }
+
+@media (min-width: 1280px) {
+  .mappingListSplit {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: var(--sp-6);
+  }
+}
+
+/* The live plot beside the stick's settings; they wrap under it when narrow. */
+/* Trigger calibration (15a). */
+.triggerCalibration { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-2); margin-top: var(--sp-5); }
+.eyebrowHeading { font-size: var(--fs-eyebrow); line-height: var(--lh-eyebrow); letter-spacing: var(--tracking-eyebrow); font-weight: var(--fw-semibold); color: var(--text-3); text-transform: uppercase; }
+.calibrationNote { margin: 0; max-width: 720px; color: var(--text-2); font-size: var(--fs-body); line-height: var(--lh-body); }
+.stickTop { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--sp-4); }
+.stickTop > .stickSettingsInline { flex: 1 1 260px; min-width: 0; }
+
+.sectionStack { display: contents; }
+/* Trackpad tuning (16b): two columns from 1280 up. */
+.sensorColumns { display: flex; flex-direction: column; gap: var(--sp-6); }
+@media (min-width: 1280px) {
+  .sensorColumns {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-flow: dense;
+    align-items: start;
+    gap: var(--sp-5) var(--sp-6);
+  }
+  .sensorColumns > :global(#touch-sensors) { grid-column: 1; grid-row: 1 / span 2; }
+  .sensorColumns > :global(#touch-accel) { grid-column: 2; grid-row: 1; }
+  .sensorColumns > :global(#touch-haptics) { grid-column: 2; grid-row: 2; }
+}

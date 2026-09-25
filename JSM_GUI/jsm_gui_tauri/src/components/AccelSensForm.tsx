@@ -74,14 +74,14 @@ export function AccelSensForm({
       outputs={
         <>
           <div className="flex-inputs">
-            <NumberField label={t('sensitivity.minSensX')} value={sensitivity.minSensX} onChange={onMinSensXChange} min={0} max={30} step={0.1} />
-            <NumberField label={t('sensitivity.minSensY')} value={sensitivity.minSensY} onChange={onMinSensYChange} min={0} max={30} step={0.1} />
-            <NumberField label={t('sensitivity.maxSensX')} value={sensitivity.maxSensX} onChange={onMaxSensXChange} min={0} max={30} step={0.1} />
-            <NumberField label={t('sensitivity.maxSensY')} value={sensitivity.maxSensY} onChange={onMaxSensYChange} min={0} max={30} step={0.1} />
+            <NumberField setting="MIN_GYRO_SENS" label={t('sensitivity.minSensX')} value={sensitivity.minSensX} onChange={onMinSensXChange} min={0} max={30} step={0.1} />
+            <NumberField setting="MIN_GYRO_SENS" label={t('sensitivity.minSensY')} value={sensitivity.minSensY} onChange={onMinSensYChange} min={0} max={30} step={0.1} />
+            <NumberField setting="MAX_GYRO_SENS" label={t('sensitivity.maxSensX')} value={sensitivity.maxSensX} onChange={onMaxSensXChange} min={0} max={30} step={0.1} />
+            <NumberField setting="MAX_GYRO_SENS" label={t('sensitivity.maxSensY')} value={sensitivity.maxSensY} onChange={onMaxSensYChange} min={0} max={30} step={0.1} />
           </div>
           {showRollContribution && (
             <div className="flex-inputs">
-              <NumberField
+              <NumberField setting="ROLL_CONTRIBUTION"
                 label={t('sensitivity.rollContribution')}
                 value={sensitivity.rollContribution}
                 onChange={onRollContributionChange}

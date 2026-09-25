@@ -4,7 +4,8 @@ use std::{
     process::{Command, Stdio},
 };
 
-use tauri::AppHandle;
+use serde_json::{json, Value};
+use tauri::{AppHandle, Emitter};
 
 use crate::{
     runtime,
@@ -121,7 +122,10 @@ pub fn launch_jsm(app: &AppHandle, state: &AppState) -> Result<(), String> {
     {
         process_state.job = job;
     }
+    process_state.exit = None;
+    process_state.exit_unreported = false;
     drop(process_state);
+    let _ = app.emit("mapper-status", json!({ "running": true }));
 
     telemetry::stop_calibration_countdown(app, state)?;
     Ok(())
@@ -153,6 +157,40 @@ pub fn terminate_jsm(app: &AppHandle, state: &AppState) -> Result<(), String> {
     telemetry::broadcast_empty_devices(app, state)?;
     telemetry::stop_calibration_countdown(app, state)?;
     Ok(())
+}
+
+/// Whether the mapper is running, and if it stopped by itself, how.
+pub fn status(state: &AppState) -> Result<Value, String> {
+    let mut process_state = lock_process_state(state)?;
+    sync_child_state(&mut process_state)?;
+    Ok(json!({ "running": process_state.child.is_some(), "exit": process_state.exit }))
+}
+
+/// Called from the telemetry health tick. When the mapper has died on its own,
+/// tells the UI once -- with its exit code and the last line it printed -- so
+/// Studio can say so instead of every page silently going stale.
+pub fn report_unexpected_exit(app: &AppHandle, state: &AppState) {
+    let Ok(mut process_state) = lock_process_state(state) else { return };
+    if sync_child_state(&mut process_state).is_err() || !process_state.exit_unreported {
+        return;
+    }
+    process_state.exit_unreported = false;
+    drop(process_state);
+
+    let last_line = telemetry::latest_packet(state)
+        .ok()
+        .flatten()
+        .and_then(|packet| packet.get("console").and_then(Value::as_str).map(str::to_string))
+        .and_then(|console| console.lines().rev().map(str::trim).find(|line| !line.is_empty()).map(str::to_string));
+
+    let exit = {
+        let Ok(mut process_state) = lock_process_state(state) else { return };
+        let Some(exit) = process_state.exit.as_mut() else { return };
+        exit.last_line = last_line;
+        exit.clone()
+    };
+    let _ = telemetry::broadcast_empty_devices(app, state);
+    let _ = app.emit("mapper-status", json!({ "running": false, "exit": exit }));
 }
 
 pub fn is_running(state: &AppState) -> Result<bool, String> {
@@ -299,6 +337,28 @@ fn terminate_stray_mappers(executable: &Path, keep_pid: Option<u32>) {
     }
 }
 
+/// The file stem of the foreground window's process ("Cyberpunk2077"), the
+/// name AutoLoad matches rules against.
+#[cfg(target_os = "windows")]
+pub fn foreground_process_stem() -> Option<String> {
+    use windows_sys::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowThreadProcessId};
+    let window = unsafe { GetForegroundWindow() };
+    if window.is_null() {
+        return None;
+    }
+    let mut pid = 0u32;
+    unsafe { GetWindowThreadProcessId(window, &mut pid) };
+    if pid == 0 {
+        return None;
+    }
+    process_image_path(pid)?.file_stem()?.to_str().map(str::to_string)
+}
+
+#[cfg(not(target_os = "windows"))]
+pub fn foreground_process_stem() -> Option<String> {
+    None
+}
+
 #[cfg(target_os = "windows")]
 fn process_image_path(pid: u32) -> Option<std::path::PathBuf> {
     let handle = unsafe { OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid) };
@@ -359,7 +419,20 @@ fn lock_process_state(state: &AppState) -> Result<std::sync::MutexGuard<'_, Proc
 fn sync_child_state(process_state: &mut ProcessState) -> Result<(), String> {
     let exited = match process_state.child.as_mut() {
         Some(child) => match child.try_wait() {
-            Ok(Some(_)) => true,
+            Ok(Some(code)) => {
+                // Only reached for a child still being tracked, so Studio did not
+                // stop it: terminate_jsm takes the child out before killing it.
+                process_state.exit = Some(crate::services::app_state::MapperExit {
+                    exit_code: code as u32,
+                    stopped_at_ms: std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .map(|elapsed| elapsed.as_millis() as u64)
+                        .unwrap_or(0),
+                    last_line: None,
+                });
+                process_state.exit_unreported = true;
+                true
+            }
             Ok(None) => false,
             Err(error) => {
                 return Err(format!(

@@ -105,8 +105,12 @@ export function OverlayLayoutSection(props: Props) {
 
   const endDrag = () => { dragRef.current = null }
 
+  // Menu layout (Tuning and Studio Pages 16c): the editor on the left, the
+  // live preview -- drawn by the overlay's own renderer -- on the right.
   return (
     <>
+      <div className={styles.layout}>
+      <div className={styles.editor}>
       <KeymapSection
         title={t('keymap.overlayLayoutTitle', 'Overlay layout')}
         description={t(
@@ -290,7 +294,15 @@ export function OverlayLayoutSection(props: Props) {
           </>
         )}
       </KeymapSection>
-      {active && <MenuPreview menu={active} aspect={padAspect} />}
+      </div>
+      {active && activeKey && (
+        <aside className={styles.previewCol} aria-label="Live preview">
+          <span className={styles.eyebrow}>Live preview · {t(...SURFACE_NAMES[splitKey(activeKey).pad])}{splitKey(activeKey).layer ? ` · ${splitKey(activeKey).layer}` : ''}</span>
+          <div className={styles.previewStage}><MenuPreview menu={active} aspect={padAspect} /></div>
+          <p className={styles.hint}>Drawn by the overlay window's own renderer, so what you see here is what appears over the game.</p>
+        </aside>
+      )}
+      </div>
       <SectionActions
         className={keymapStyles.keymapSectionActions}
         hasPendingChanges={props.hasPendingChanges}

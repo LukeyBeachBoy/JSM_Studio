@@ -21,15 +21,22 @@
 }
 
 .pad {
+  /* The dot is placed in the padding box but measured in container units, which
+     are the CONTENT box -- so both have to agree about this one number. */
+  --pad-inset: 4px;
   container-type: size;
   position: relative;
   width: 100%;
   height: 100%;
   display: grid;
   gap: 4px;
-  padding: 4px;
+  padding: var(--pad-inset);
   box-sizing: border-box;
   border-radius: 18px;
+  /* A wedge is a clip-path triangle filling a square cell, so without this its
+     corners are drawn over the pad's rounded ones. Clipping here also rounds
+     the block of wedges, which has no corners of its own to round. */
+  overflow: hidden;
   background: rgba(8, 12, 18, 0.72);
   border: 1px solid rgba(255, 255, 255, 0.16);
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
@@ -110,11 +117,10 @@
    exactly, and moved by transform alone so each frame is compositor-only. */
 .dot {
   position: absolute;
-  top: 0;
-  left: 0;
+  top: var(--pad-inset, 0px);
+  left: var(--pad-inset, 0px);
   width: 16px;
   height: 16px;
-  margin: -8px 0 0 -8px;
   border-radius: 50%;
   background: #7dffb0;
   box-shadow: 0 0 12px rgba(125, 255, 176, 0.8);
@@ -176,6 +182,7 @@
   /* No inset: the clip already keeps the segments inside the circle, and the
      padding would leave the wheel smaller than the box the hit test uses. */
   padding: 0;
+  --pad-inset: 0px;
 }
 
 /* Sized from the same variable as the text, so one font control scales the
@@ -228,4 +235,98 @@
   border-radius: 50%;
   border: 1px solid var(--menu-divider);
   box-sizing: border-box;
+}
+
+/* ============ Look (Overlay.dc.html) ============
+   Built to read in half a second over bright and dark scenes: near-opaque ink
+   regions with a light hairline and shadowed white type; the region about to
+   fire flips to solid accent with dark type; the touch dot is telemetry green
+   with a two-step trail. Self-contained: the overlay loads none of the app's
+   CSS, so the handful of values are written out here. Only colours and
+   decoration below -- every size and position the hit test depends on is
+   decided by the rules above. */
+.root {
+  font-family: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  color: #fff;
+  transition: opacity 80ms ease-out;
+}
+.root[data-visible='true'] { transition-duration: 80ms; }
+
+/* Reveal: fade and scale .96 -> 1 over 160ms. Transform only, so the regions'
+   layout -- and so the hit test -- is never touched. */
+.pad {
+  background: rgba(12, 16, 22, .38);
+  border: 0;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08), 0 12px 36px rgba(0, 0, 0, .35);
+}
+/* Only the live overlay reveals; a preview drawn in Studio is always shown. */
+.root .pad {
+  transform: scale(.96);
+  transition: transform 160ms cubic-bezier(.2, .8, .2, 1);
+}
+.root[data-visible='true'] .pad { transform: none; }
+
+.region {
+  background: rgba(12, 16, 22, .84);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1);
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .7);
+  transition: background-color 90ms linear, color 90ms linear;
+}
+.region[data-bound='false'] { opacity: 1; background: rgba(12, 16, 22, .55); }
+.wedge, .segment { box-shadow: none; }
+
+.region[data-selected='true'] {
+  background: #6ec3f4;
+  color: #0d1217;
+  text-shadow: none;
+}
+
+.label { font-weight: 650; letter-spacing: -.005em; }
+
+/* The key as a keycap: a small dark pill under the label. */
+.binding {
+  display: inline-block;
+  min-width: 1.7em;
+  margin-top: 3px;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, .14);
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .35);
+  font: 650 calc(var(--overlay-font, 14px) * .72)/1.2 'Segoe UI', system-ui, sans-serif;
+  opacity: 1;
+  text-shadow: none;
+}
+.region[data-selected='true'] .binding { background: rgba(13, 18, 23, .16); color: #0d1217; box-shadow: none; }
+
+.radial { --menu-divider: rgba(255, 255, 255, .16); }
+
+.dot {
+  width: 14px;
+  height: 14px;
+  background: #a6d65a;
+  box-shadow: 0 0 0 3px rgba(166, 214, 90, .28), 0 1px 4px rgba(0, 0, 0, .6);
+}
+
+/* The same 14px box as the dot, so the same transform centres it; the
+   visible disc is drawn smaller inside it. */
+.trail {
+  position: absolute;
+  top: var(--pad-inset, 0px);
+  left: var(--pad-inset, 0px);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #a6d65a 0 4px, transparent 4.5px);
+  pointer-events: none;
+  will-change: transform;
+}
+.trail[data-trail='1'] { opacity: .5; transition: transform 45ms linear; }
+.trail[data-trail='2'] { opacity: .25; background: radial-gradient(circle, #a6d65a 0 3px, transparent 3.5px); transition: transform 90ms linear; }
+
+.hint { font: 600 11px/1 'Segoe UI', system-ui, sans-serif; color: rgba(255, 255, 255, .8); }
+
+@media (prefers-reduced-motion: reduce) {
+  .pad, .root[data-visible='true'] .pad { transform: none; transition: none; }
+  .trail { display: none; }
 }

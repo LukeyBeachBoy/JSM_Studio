@@ -5,14 +5,16 @@ import styles from './Touchpad.module.css'
 import { SectionActions } from '../SectionActions'
 import { NumberField } from '../NumberField'
 import { AdvancedDisclosure } from '../AdvancedDisclosure'
+import { ShapePicker } from './ShapePicker'
 import { AppSelect } from '../ui/AppSelect'
 
 export type TouchpadModeCardConfig = {
+  keyPrefix?: string
   mode: string
   dualStageMode: string
   gridColumns: number
   gridRows: number
-  /** RECTANGLE (rows x columns) or FOUR_WAY (cardinal wedges). */
+  /** RECTANGLE (rows x columns), FOUR_WAY, EIGHT_WAY, or RADIAL. */
   gridShape?: string
   /** Fraction of the pad, centre to edge, that presses nothing in FOUR_WAY. */
   gridDeadzone?: number
@@ -79,34 +81,31 @@ const DUAL_STAGE_MODE_DESC_KEYS: Record<string, string> = {
 
 // One pad's mode and the settings that only mean anything for that mode. Exported
 // so the per-side Trackpads layout can place it inside a Left / Right column.
+const MODE_DESCRIPTIONS: Record<string, string> = {
+  GRID_AND_STICK: 'Regions you bind, and a touch stick',
+  MOUSE: 'Touch moves the mouse',
+  PS_TOUCHPAD: 'Forwards touches to the virtual PlayStation pad',
+}
+
 export function TouchpadModeCard({ config, title }: { config: TouchpadModeCardConfig; title?: string }) {
   const { t } = useTranslation()
+  const key = (name: string) => (config.keyPrefix ?? '') + name
   return (
     <div className={styles.touchpadCard}>
       {title && <h4>{title}</h4>}
       <label>
         {t('keymap.mode')}
-        <AppSelect className="app-select" value={config.mode} onChange={e => config.onModeChange?.(e.target.value)}>
+        <AppSelect setting={key('TOUCHPAD_MODE')} className="app-select" value={config.mode} onChange={e => config.onModeChange?.(e.target.value)}>
           <option value="">{t('common.noneSelected')}</option>
           <option value="GRID_AND_STICK">{t('keymap.gridAndStick')}</option>
           <option value="MOUSE">{t('keymap.mouse')}</option>
           <option value="PS_TOUCHPAD">{t('keymap.psTouchpad')}</option>
         </AppSelect>
+        {MODE_DESCRIPTIONS[config.mode] && <small>{MODE_DESCRIPTIONS[config.mode]}</small>}
       </label>
       {config.mode === 'GRID_AND_STICK' && (
         <>
-          <label>
-            {t('keymap.gridShape', 'Regions')}
-            <AppSelect
-              className="app-select"
-              value={config.gridShape || 'RECTANGLE'}
-              onChange={e => config.onGridShapeChange?.(e.target.value)}
-            >
-              <option value="RECTANGLE">{t('keymap.gridShapeRectangle', 'Grid (rows and columns)')}</option>
-              <option value="FOUR_WAY">{t('keymap.gridShapeFourWay', '4-way button pad')}</option>
-              <option value="RADIAL">{t('keymap.gridShapeRadial', 'Radial menu (wheel)')}</option>
-            </AppSelect>
-          </label>
+          <ShapePicker label={`${title ?? ''} ${t('keymap.gridShape', 'Regions')}`.trim()} value={config.gridShape || 'RECTANGLE'} onChange={value => config.onGridShapeChange?.(value)} />
           {/* Each shape exposes only the dials that mean something to it: a
               wedge layout has four regions by definition, a wheel's rows and
               columns multiply into a segment count, and only the two round
@@ -119,6 +118,11 @@ export function TouchpadModeCard({ config, title }: { config: TouchpadModeCardCo
               )}
             </p>
           )}
+          {config.gridShape === 'EIGHT_WAY' && (
+            <p className={styles.touchpadHint}>
+              {t('keymap.gridShapeEightWayHint', 'The pad is divided into eight equal wedges, clockwise from up: up, up-right, right, down-right, down, down-left, left and up-left.')}
+            </p>
+          )}
           {config.gridShape === 'RADIAL' && (
             <p className={styles.touchpadHint}>
               {t('keymap.gridShapeRadialHint', {
@@ -128,12 +132,12 @@ export function TouchpadModeCard({ config, title }: { config: TouchpadModeCardCo
               })}
             </p>
           )}
-          {config.gridShape !== 'FOUR_WAY' && (
+          {config.gridShape !== 'FOUR_WAY' && config.gridShape !== 'EIGHT_WAY' && (
             <div className={styles.gridSizeInputs}>
               <NumberField
                 layout="inline"
                 label={t('keymap.columns')}
-                value={config.gridColumns}
+                setting={key('GRID_SIZE')} value={config.gridColumns}
                 onChange={v => config.onGridSizeChange?.(Number(v) || 1, config.gridRows)}
                 min={1}
                 max={5}
@@ -142,7 +146,7 @@ export function TouchpadModeCard({ config, title }: { config: TouchpadModeCardCo
               <NumberField
                 layout="inline"
                 label={t('keymap.rows')}
-                value={config.gridRows}
+                setting={key('GRID_SIZE')} value={config.gridRows}
                 onChange={v => config.onGridSizeChange?.(config.gridColumns, Number(v) || 1)}
                 min={1}
                 max={5}
@@ -150,13 +154,13 @@ export function TouchpadModeCard({ config, title }: { config: TouchpadModeCardCo
               />
             </div>
           )}
-          {(config.gridShape === 'FOUR_WAY' || config.gridShape === 'RADIAL') && (
+          {(config.gridShape === 'FOUR_WAY' || config.gridShape === 'EIGHT_WAY' || config.gridShape === 'RADIAL') && (
             <>
               <div className={styles.gridSizeInputs}>
                 <NumberField
                   layout="inline"
                   label={t('keymap.gridDeadzone', 'Centre deadzone')}
-                  value={config.gridDeadzone}
+                  setting={key('GRID_DEADZONE')} value={config.gridDeadzone}
                   onChange={v => config.onGridDeadzoneChange?.(v)}
                   min={0}
                   max={1}
@@ -179,7 +183,7 @@ export function TouchpadModeCard({ config, title }: { config: TouchpadModeCardCo
             <NumberField
             layout="inline"
               label={t('keymap.touchpadSensitivityX', 'Horizontal sensitivity')}
-              value={config.sensitivity}
+              setting={key('TOUCHPAD_SENS')} value={config.sensitivity}
               onChange={v => config.onSensitivityChange?.(v)}
               min={0}
               max={10}
@@ -190,7 +194,7 @@ export function TouchpadModeCard({ config, title }: { config: TouchpadModeCardCo
             <NumberField
             layout="inline"
               label={t('keymap.touchpadSensitivityY', 'Vertical sensitivity')}
-              value={config.sensitivityY}
+              setting={key('TOUCHPAD_SENS')} value={config.sensitivityY}
               onChange={v => config.onSensitivityYChange?.(v)}
               min={0}
               max={10}
@@ -219,21 +223,26 @@ export function TouchpadModeCard({ config, title }: { config: TouchpadModeCardCo
       )}
       {config.mode === 'GRID_AND_STICK' && (
         <>
+          {/* A switch row: caption and its description on the left, the
+              switch at the end (Configuration Pages 15c, "Click required"). */}
           <label className={styles.touchpadCheckbox}>
             <input
               type="checkbox"
+              aria-label={t('keymap.gridRequiresClick')}
               checked={config.gridRequiresClick ?? false}
               onChange={e => config.onGridRequiresClickChange?.(e.target.checked)}
             />
-            {t('keymap.gridRequiresClick')}
+            <span className={styles.switchText}>
+              <span>{t('keymap.gridRequiresClick')}</span>
+              <small>{t('keymap.gridRequiresClickHint')}</small>
+            </span>
           </label>
-          <p className={styles.touchpadHint}>{t('keymap.gridRequiresClickHint')}</p>
         <AdvancedDisclosure summary={config.dualStageMode || 'NO_SKIP'}>
           <label>
             {t('keymap.touchpadDualStageMode')}
             <AppSelect
               className="app-select"
-              value={config.dualStageMode || 'NO_SKIP'}
+              setting={key('TOUCHPAD_DUAL_STAGE_MODE')} value={config.dualStageMode || 'NO_SKIP'}
               onChange={e => config.onDualStageModeChange?.(e.target.value)}
             >
               {DUAL_STAGE_MODES.map(v => (
@@ -264,8 +273,8 @@ export function TouchpadSettingsSection(props: Props) {
         <div className={styles.touchpadSettings}>
           {left && right ? (
             <div className={styles.touchpadSettings}>
-              <TouchpadModeCard config={left} title={t('keymap.leftTouchpad', 'Left touchpad')} />
-              <TouchpadModeCard config={right} title={t('keymap.rightTouchpad', 'Right touchpad')} />
+              <TouchpadModeCard config={{...left, keyPrefix:'LEFT_'}} title={t('keymap.leftTouchpad', 'Left touchpad')} />
+              <TouchpadModeCard config={{...right, keyPrefix:'RIGHT_'}} title={t('keymap.rightTouchpad', 'Right touchpad')} />
             </div>
           ) : (
             <TouchpadModeCard

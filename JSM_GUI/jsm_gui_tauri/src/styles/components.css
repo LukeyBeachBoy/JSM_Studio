@@ -1,0 +1,352 @@
+/* Shared primitives from Components.dc.html. Page and shell CSS build on these.
+   Focus has three looks by input source (HANDOFF.md, "Focus model"):
+     hover       fill steps up one level, no ring
+     keyboard    :focus-visible, 2px outline 2px off, no fill (index.css)
+     controller  selected fill + 2px ring + 1px lift, when the last navigation
+                 came from the pad (body[data-input-source="controller"]). */
+
+/* ---- Buttons: 36 high (28 in the title bar), radius 8, padding 0 16. */
+.button {
+  height: var(--control-h);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  padding: 0 var(--sp-4);
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--text-1);
+  font: inherit;
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--dur-1) var(--ease-standard), transform var(--dur-1) var(--ease-standard), opacity var(--dur-2) var(--ease-standard);
+}
+
+.button:active:not(:disabled):not([aria-disabled='true']) { transform: scale(.97); }
+.button:disabled,
+.button[aria-disabled='true'] { opacity: var(--disabled-opacity); cursor: default; }
+
+.button--primary { background: var(--accent); color: var(--text-on-accent); }
+.button--primary:hover:not(:disabled):not([aria-disabled='true']) { background: var(--accent-strong); }
+
+.button--secondary { background: var(--surface-control); color: var(--text-1); }
+.button--secondary:hover:not(:disabled):not([aria-disabled='true']) { background: var(--surface-control-hover); }
+
+.button--tertiary,
+.button--ghost { background: transparent; color: var(--text-2); }
+.button--tertiary:hover:not(:disabled):not([aria-disabled='true']),
+.button--ghost:hover:not(:disabled):not([aria-disabled='true']) { background: var(--surface-row-hover); }
+
+.button--danger { background: transparent; color: var(--error); }
+.button--danger:hover:not(:disabled):not([aria-disabled='true']) { background: var(--error-soft); }
+
+.button--sm { height: var(--control-h-sm); padding: 0 var(--sp-3); font-size: var(--fs-hint); }
+.button--lg { height: var(--control-h-lg); padding: 0 var(--sp-5); }
+
+.icon-button {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: background var(--dur-1) var(--ease-standard), color var(--dur-1) var(--ease-standard);
+}
+.icon-button:hover:not(:disabled) { background: var(--surface-row-hover); color: var(--text-1); }
+.icon-button:disabled { opacity: .35; cursor: default; }
+
+/* ---- Segmented: 36 high with a 3px inset; the tiny cut sits inside menus. */
+.segmented {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: var(--r-md);
+  background: var(--surface-sunken);
+  font-size: var(--fs-hint);
+  font-weight: var(--fw-semibold);
+}
+.segmented > * {
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0 var(--sp-3);
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-3);
+  font: inherit;
+  cursor: pointer;
+}
+.segmented > [data-selected='true'],
+.segmented > [aria-pressed='true'],
+.segmented > [aria-checked='true'] { background: var(--surface-control); color: var(--text-1); }
+.segmented > [data-selected='true'][data-tone='telemetry'] { background: var(--telemetry-soft); color: var(--telemetry); }
+.segmented--tiny { padding: 2px; }
+.segmented--tiny > * { height: 26px; }
+
+/* ---- Controller focus: one look for every focusable, driven by input source.
+   :focus rather than :focus-visible, since pad moves are programmatic focus
+   and the browser's own heuristic would hide the ring for them. */
+body[data-input-source='controller'] :focus {
+  outline: none;
+  box-shadow: 0 0 0 var(--focus-controller-width) var(--focus-controller), var(--shadow-lift);
+}
+body[data-input-source='controller'] :is(.button, .icon-button, .back-chip, .segmented > *):focus {
+  box-shadow: 0 0 0 2px var(--surface-canvas), 0 0 0 4px var(--focus-controller);
+}
+/* Rows take the selected fill as well as the ring, and lift a pixel. */
+body[data-input-source='controller'] :is(.section-item, .nav-item, .nav-subitem, .binding-summary, .setting-row, .page-tabs__drawer-button):focus {
+  background: var(--surface-selected);
+  transform: translateY(-1px);
+}
+/* The mouse gets hover fills only; a click must not leave a ring behind. */
+body[data-input-source='mouse'] :focus:not(:focus-visible) { outline: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .button:active:not(:disabled) { transform: none; }
+}
+
+/* ---- Origin marker (13.8): where a value comes from. */
+.origin-marker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--origin-inherited);
+  white-space: nowrap;
+}
+.origin-marker small { font-size: inherit; overflow: hidden; text-overflow: ellipsis; }
+.origin-marker__dot {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px var(--origin-inherited);
+}
+.origin-marker[data-origin='override'] { color: var(--origin-override); }
+.origin-marker[data-origin='override'] .origin-marker__dot { background: var(--origin-override); box-shadow: none; }
+.origin-marker__reset {
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  margin-left: var(--sp-1);
+  padding: 0 var(--sp-2);
+  border: 0;
+  border-radius: var(--r-sm);
+  background: var(--surface-control);
+  color: var(--text-1);
+  font: inherit;
+  font-size: 12px;
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+}
+.origin-marker__reset:hover:not(:disabled) { background: var(--surface-control-hover); }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---- Setting row (13.5): label, origin and value on one line, the control
+   under it, the description always visible. Compact 10/16, default 16,
+   tall 20/16. The pad's focus is the whole row: selected fill + ring. */
+/* On settings pages rows sit on the canvas, separated by hairlines only
+   (Gyro.dc.html); hover lifts the fill one step. */
+.setting-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border-radius: var(--r-row);
+  background: transparent;
+  box-shadow: inset 0 -1px 0 var(--line-1);
+  transition: background var(--dur-1) var(--ease-standard), box-shadow var(--dur-2) var(--ease-standard), transform var(--dur-2) var(--ease-emphasis);
+}
+.setting-row:hover { background: var(--surface-row-hover); }
+.setting-row--compact { gap: 6px; padding: 10px var(--sp-4); }
+.setting-row--tall { padding: var(--sp-5) var(--sp-4); }
+body[data-input-source='controller'] .setting-row:focus-within {
+  background: var(--surface-selected);
+  box-shadow: 0 0 0 var(--focus-controller-width) var(--focus-controller), var(--shadow-lift);
+  transform: translateY(-1px);
+}
+/* Inside the row the ring is the row's; the control keeps only its own shape. */
+body[data-input-source='controller'] .setting-row :focus { box-shadow: none; }
+
+/* ---- Binding row (13.6): hover lifts the fill, the pad's focus is the
+   selected fill + ring, an open row keeps the selected fill. The output is a
+   keycap pill: 28 high, radius 6, an inset line along its bottom edge. */
+.binding-summary:hover { background: var(--surface-row-hover); }
+details[open] > .binding-summary { min-height: 64px; background: transparent; border-radius: var(--r-card) var(--r-card) 0 0; box-shadow: inset 0 -1px 0 var(--line-1); }
+body[data-input-source='controller'] .binding-summary:focus {
+  box-shadow: 0 0 0 var(--focus-controller-width) var(--focus-controller), var(--shadow-lift);
+}
+.binding-summary-hint kbd {
+  min-width: 28px;
+  height: var(--control-h-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--sp-3);
+  border: 0;
+  border-radius: var(--r-sm);
+  background: var(--surface-control);
+  box-shadow: inset 0 -2px 0 var(--line-2);
+  color: var(--text-1);
+  font-family: var(--font-ui);
+  font-size: var(--fs-hint);
+  font-weight: var(--fw-semibold);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Heard, not seen: kept inline (unlike .visually-hidden) so the marker's text
+   still reads as one phrase, "Inherited · FPS Template". */
+.origin-marker__spoken { font-size: 0; }
+
+/* Before any input there is no ring: focus placed on load is for whoever
+   touches the keyboard or pad first, and a mouse user never needs to see it. */
+body:not([data-input-source]) :focus-visible { outline: none; }
+/* The row's label: the action's own name over the input's, when both exist. */
+.binding-summary-name { display: flex; flex-direction: column; min-width: 0; }
+.binding-summary-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.binding-summary-input { font-size: var(--fs-hint); line-height: var(--lh-hint); font-weight: var(--fw-regular); color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---- A caption and its select are one setting row (13.5, Gyro.dc.html
+   "Output"): caption on the left, the select at the end of the same line, any
+   description under both. Most pages build these as <label>caption<Select/>
+   </label>, so this is keyed off that shape rather than a class on each. */
+label:not([class*='Chip']):has(> button[role='combobox']) {
+  min-width: 0;
+  min-height: 60px;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2) var(--sp-4);
+  padding: 12px var(--sp-4);
+  border-radius: var(--r-row);
+  background: transparent;
+  box-shadow: inset 0 -1px 0 var(--line-1);
+  color: var(--text-1);
+  font-size: var(--fs-label);
+  line-height: var(--lh-label);
+  font-weight: var(--fw-medium);
+  transition: background var(--dur-1) var(--ease-standard);
+}
+label:not([class*='Chip']):has(> button[role='combobox']):hover { background: var(--surface-row-hover); }
+label:not([class*='Chip']):has(> button[role='combobox']) > button[role='combobox'] {
+  width: auto;
+  min-width: 180px;
+  max-width: min(320px, 60%);
+  margin: 0 0 0 auto;
+}
+label:not([class*='Chip']):has(> button[role='combobox']) > :is(small, p, .field-description, .hint) {
+  flex-basis: 100%;
+  order: 10;
+  margin: 0;
+  color: var(--text-3);
+  font-size: var(--fs-hint);
+  line-height: var(--lh-hint);
+  font-weight: var(--fw-regular);
+}
+body[data-input-source='controller'] label:not([class*='Chip']):has(> button[role='combobox']):focus-within {
+  background: var(--surface-selected);
+  box-shadow: 0 0 0 var(--focus-controller-width) var(--focus-controller), var(--shadow-lift);
+}
+
+/* ---- Toggle (Components 13.9): every on/off setting is a 52 x 30 switch,
+   never a checkbox. Off is a control-grey track with a text-2 thumb; on is the
+   accent with a dark thumb carrying a check. Components that draw their own switch hide
+   the input, so this does not fight them. A multi-select tick stays a checkbox. */
+input[type='checkbox']:not([class*='SelectCheckbox']) {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  width: 52px;
+  height: 30px;
+  flex: none;
+  margin: 0;
+  border-radius: var(--r-pill);
+  background: var(--surface-control);
+  cursor: pointer;
+  transition: background-color var(--dur-2) var(--ease-standard);
+}
+input[type='checkbox']:not([class*='SelectCheckbox'])::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--text-2);
+  transition: transform var(--dur-2) var(--ease-emphasis), background-color var(--dur-2) var(--ease-standard);
+}
+input[type='checkbox']:not([class*='SelectCheckbox']):checked { background: var(--accent); }
+input[type='checkbox']:not([class*='SelectCheckbox']):checked::before {
+  transform: translateX(22px);
+  background: var(--text-on-accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%236ec3f4' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 6.2 5 8.2 9 4'/%3E%3C/svg%3E") center / 12px no-repeat;
+}
+input[type='checkbox']:not([class*='SelectCheckbox']):disabled { opacity: var(--disabled-opacity); cursor: default; }
+input[type='checkbox']:not([class*='SelectCheckbox']):focus-visible { outline: none; box-shadow: 0 0 0 2px var(--surface-canvas), 0 0 0 4px var(--focus-keyboard); }
+@media (prefers-reduced-motion: reduce) {
+  :where(input[type='checkbox'])::before { transition: none; }
+}
+
+/* A switch and its caption: caption first, switch at the end of the line. */
+:where(label:has(> input[type='checkbox']:not([class*='SelectCheckbox']):first-child)) {
+  display: inline-flex;
+  flex-direction: row-reverse;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--sp-3);
+  cursor: pointer;
+}
+
+/* The confirming button of a destructive dialog (System States 17g). */
+.button--danger-solid { background: var(--error); color: var(--text-on-accent); }
+.button--danger-solid:hover:not(:disabled):not([aria-disabled='true']) { filter: brightness(1.08); }
+
+/* Confirmation dialog (Components 13.13): 440-480 wide, padding 24. */
+.confirm-dialog { width: min(480px, calc(100vw - 32px)); display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-6); }
+.confirm-dialog h3 { margin: 0; font-size: var(--fs-section); line-height: var(--lh-section); font-weight: var(--fw-semibold); }
+.confirm-dialog p { margin: 0; color: var(--text-2); font-size: var(--fs-body); line-height: var(--lh-body); }
+.confirm-dialog p strong { color: var(--text-1); }
+.confirm-dialog__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--sp-2); margin-top: var(--sp-2); }
+.confirm-dialog__actions .button--tertiary:first-child { margin-right: auto; }
+
+/* ---- Focus glide (HANDOFF focus model): the pad's ring is one shared
+   highlight (components/FocusGlide) that translates between controls; the
+   control under it keeps its fill and lift but drops its own ring. */
+.focus-glide {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 65; /* over dialogs (--z-dialog 60), under toasts (--z-toast 70) */
+  pointer-events: none;
+  box-shadow: 0 0 0 var(--focus-controller-width) var(--focus-controller), var(--shadow-lift);
+  opacity: 0;
+  will-change: transform;
+}
+.focus-glide[data-shape='pill'] { box-shadow: 0 0 0 2px var(--surface-canvas), 0 0 0 4px var(--focus-controller); }
+.focus-glide[data-visible='true'] { opacity: 1; }
+.focus-glide[data-animate='true'] { transition: transform var(--dur-3) var(--ease-emphasis); }
+body[data-focus-glide] [data-glide-target]:focus,
+body[data-focus-glide] [data-glide-target]:focus-within { box-shadow: none !important; }
+body:not([data-input-source='controller']) .focus-glide { display: none; }

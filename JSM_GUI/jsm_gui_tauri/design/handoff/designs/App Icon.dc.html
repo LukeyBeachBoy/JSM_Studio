@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<link rel="stylesheet" href="./tokens/tokens.css">
+<style>html,body{margin:0;min-height:100%;background:#0a0e12;font-family:"Geist",system-ui,sans-serif;} a{color:#6ec3f4;text-decoration:none;} a:hover{color:#e8eef4;}</style>
+</helmet>
+<section data-screen-label="Turn 11 · App icon" style="padding:64px;display:flex;flex-direction:column;gap:28px;width:1200px;font-family:var(--font-ui);">
+  <div style="display:flex;flex-direction:column;gap:8px;max-width:900px;color:#e8eef4;">
+    <div style="font-size:12px;letter-spacing:.12em;color:#808c99;">TURN 11 · APP ICON</div>
+    <div style="font-size:32px;font-weight:600;letter-spacing:-.015em;">JSM Studio app icon</div>
+    <div style="font-size:15px;line-height:22px;color:#b0bcc8;">A homage to the JoyShockMapper mark: the split controller, the four dots, the cyan disc and the orbit that stands for gyro, redrawn with one accent, one ink and a proper tile. The orbit weaves behind the left half and in front of the right, and ends in a small satellite. The 16px cut drops the dots, stick ring and satellite so it stays a readable disc-with-orbit in the taskbar and title bar.</div>
+  </div>
+  <div style="display:flex;gap:40px;align-items:center;">
+    <div style="width:128px;height:128px;border-radius:16px;overflow:hidden;background:#fff;display:grid;place-items:center;"><img src="uploads/pasted-1790341530279-0.png" alt="Original JoyShockMapper logo" style="width:96px;height:96px;"></div>
+    <span style="font-size:28px;color:#5b6571;">→</span>
+    <div style="width:128px;height:128px;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="128" height="128">
+<defs>
+<linearGradient id="hero-tile" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a222c"/><stop offset="1" stop-color="#0b1015"/></linearGradient>
+<radialGradient id="hero-disc" cx=".38" cy=".3" r=".85"><stop offset="0" stop-color="#9ad8ff"/><stop offset=".55" stop-color="#6ec3f4"/><stop offset="1" stop-color="#2f86c7"/></radialGradient>
+<clipPath id="hero-l"><rect x="0" y="0" width="124" height="256"/></clipPath>
+<clipPath id="hero-r"><rect x="132" y="0" width="124" height="256"/></clipPath>
+<clipPath id="hero-front"><rect x="128" y="0" width="128" height="256"/></clipPath>
+</defs>
+<rect x="12" y="12" width="232" height="232" rx="56" fill="url(#hero-tile)"/>
+<rect x="12.5" y="12.5" width="231" height="231" rx="55.5" fill="none" stroke="#ffffff" stroke-opacity=".08"/>
+<circle cx="128" cy="128" r="86" fill="url(#hero-disc)"/>
+<circle cx="128" cy="128" r="86" fill="none" stroke="#0b1116" stroke-width="5"/>
+<g transform="rotate(38 128 128)"><ellipse cx="128" cy="128" rx="112" ry="30" fill="none" stroke="#0b1116" stroke-width="9"/></g>
+<g transform="translate(128 130) scale(.86) translate(-128 -130) rotate(-24 128 133)">
+  <path d="M89 96h78a31 31 0 0 1 30.2 24l7.6 33.4a19 19 0 0 1-31.8 17.8L158 156H98l-15 15.2a19 19 0 0 1-31.8-17.8L58.8 120A31 31 0 0 1 89 96z" fill="#0b1116" clip-path="url(#hero-l)"/>
+  <path d="M89 96h78a31 31 0 0 1 30.2 24l7.6 33.4a19 19 0 0 1-31.8 17.8L158 156H98l-15 15.2a19 19 0 0 1-31.8-17.8L58.8 120A31 31 0 0 1 89 96z" fill="#0b1116" clip-path="url(#hero-r)"/>
+  <circle cx="98" cy="124" r="9" fill="none" stroke="#6ec3f4" stroke-width="4"/>
+  <circle cx="156" cy="117" r="5" fill="#8fd0f7"/><circle cx="172" cy="117" r="5" fill="#8fd0f7"/><circle cx="156" cy="133" r="5" fill="#8fd0f7"/><circle cx="172" cy="133" r="5" fill="#8fd0f7"/>
+</g>
+<g clip-path="url(#hero-front)"><g transform="rotate(38 128 128)"><path d="M228 141.5a112 30 0 0 1-112 16" fill="none" stroke="#6ec3f4" stroke-width="19" stroke-linecap="butt"/><path d="M228 141.5a112 30 0 0 1-112 16" fill="none" stroke="#0b1116" stroke-width="9" stroke-linecap="butt"/><path d="M228 141.5a112 30 0 0 1-112 16" fill="none" stroke="#6ec3f4" stroke-opacity=".0" stroke-width="3"/></g></g>
+<g transform="rotate(38 128 128)"><circle cx="16" cy="128" r="8" fill="#6ec3f4" stroke="#0b1116" stroke-width="5"/></g>
+</svg></div>
+    <div style="font-size:13px;line-height:20px;color:#b0bcc8;max-width:420px;">Original (left) and redraw (right). Files: <span style="font-family:var(--font-mono);">icons/app/jsm-studio.svg</span> (all sizes ≥ 24) and <span style="font-family:var(--font-mono);">icons/app/jsm-studio-16.svg</span>. Export to <span style="font-family:var(--font-mono);">src-tauri/icons</span> as PNG 32/128/256/512 and .ico.</div>
+  </div>
+  <div style="display:flex;align-items:flex-end;gap:32px;padding:40px;border-radius:16px;background:#131920;"><div style="display:flex;flex-direction:column;align-items:center;gap:10px;"><div style="width:256px;height:256px;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<linearGradient id="p0131-tile" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a222c"/><stop offset="1" stop-color="#0b1015"/></linearGradient>
+<radialGradient id="p0131-disc" cx=".38" cy=".3" r=".85"><stop offset="0" stop-color="#9ad8ff"/><stop offset=".55" stop-color="#6ec3f4"/><stop offset="1" stop-color="#2f86c7"/></radialGradient>
+<clipPath id="p0131-l"><rect x="0" y="0" width="124" height="256"/></clipPath>
+<clipPath id="p0131-r"><rect x="132" y="0" width="124" height="256"/></clipPath>
+<clipPath id="p0131-front"><rect x="128" y="0" width="128" height="256"/></clipPath>
+</defs>
+<rect x="12" y="12" width="232" height="232" rx="56" fill="url(#p0131-tile)"/>
+<rect x="12.5" y="12.5" width="231" height="231" rx="55.5" fill="none" stroke="#ffffff" stroke-opacity=".08"/>
+<circle cx="128" cy="128" r="86" fill="url(#p0131-disc)"/>
+<circle cx="128" cy="128" r="86" fill="none" stroke="#0b1116" stroke-width="5"/>
+<g transform="rotate(38 128 128)"><ellipse cx="128" cy="128" rx="112" ry="30" fill="none" stroke="#0b1116" stroke-width="9"/></g>
+<g transform="translate(128 130) scale(.86) translate(-128 -130) rotate(-24 128 133)">
+  <path d="M89 96h78a31 31 0 0 1 30.2 24l7.6 33.4a19 19 0 0 1-31.8 17.8L158 156H98l-15 15.2a19 19 0 0 1-31.8-17.8L58.8 120A31 31 0 0 1 89 96z" fill="#0b1116" clip-path="url(#p0131-l)"/>
+  <path d="M89 96h78a31 31 0 0 1 30.2 24l7.6 33.4a19 19 0 0 1-31.8 17.8L158 156H98l-15 15.2a19 19 0 0 1-31.8-17.8L58.8 120A31 31 0 0 1 89 96z" fill="#0b1116" clip-path="url(#p0131-r)"/>
+  <circle cx="98" cy="124" r="9" fill="none" stroke="#6ec3f4" stroke-width="4"/>
+  <circle cx="156" cy="117" r="5" fill="#8fd0f7"/><circle cx="172" cy="117" r="5" fill="#8fd0f7"/><circle cx="156" cy="133" r="5" fill="#8fd0f7"/><circle cx="172" cy="133" r="5" fill="#8fd0f7"/>
+</g>
+<g clip-path="url(#p0131-front)"><g transform="rotate(38 128 128)"><path d="M228 141.5a112 30 0 0 1-112 16" fill="none" stroke="#6ec3f4" stroke-width="19" stroke-linecap="butt"/><path d="M228 141.5a112 30 0 0 1-112 16" fill="none" stroke="#0b1116" stroke-width="9" stroke-linecap="butt"/><path d="M228 141.5a112 30 0 0 1-112 16" fill="none" stroke="#6ec3f4" stroke-opacity=".0" stroke-width="3"/></g></g>
+<g transform="rotate(38 128 128)"><circle cx="16" cy="128" r="8" fill="#6ec3f4" stroke="#0b1116" stroke-width="5"/></g>
+</svg></div><span style="font-size:11px;color:#808c99;font-family:var(--font-mono);">256</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:10px;"><div style="width:128px;height:128px;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="128" height="128">
+<defs>
+<linearGradient id="p1131-tile" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a222c"/><stop offset="1" stop-color="#0b1015"/></linearGradient>
+<radialGradient id="p1131-disc" cx=".38" cy=".3" r=".85"><stop offset="0" stop-color="#9ad8ff"/><stop offset=".55" stop-color="#6ec3f4"/><stop offset="1" stop-color="#2f86c7"/></radialGradient>
+<clipPath id="p1131-l"><rect x="0" y="0" width="124" height="256"/></clipPath>
+<clipPath id="p1131-r"><rect x="132" y="0" width="124" height="256"/></clipPath>
+<clipPath id="p1131-front"><rect x="128" y="0" width="128" height="256"/></clipPath>
+</defs>
+<rect x="12" y="12" width="232" height="232" rx="56" fill="url(#p1131-tile)"/>
+<rect x="12.5" y="12.5" width="231" height="231" rx="55.5" fill="none" stroke="#ffffff" stroke-opacity=".08"/>
+<circle cx="128" cy="128" r="86" fill="url(#p1131-disc)"/>
+<circle cx="128" cy="128" r="86" fill="none" stroke="#0b1116" stroke-width="5"/>
+<g transform="rotate(38 128 128)"><ellipse cx="128" cy="128" rx="112" ry="30" fill="none" stroke="#0b1116" stroke-width="9"/></g>
+<g transform="translate(128 130) scale(.86) translate(-128 -130) rotate(-24 128 133)">
+  <path d="M89 96h78a31 31 0 0 1 30.2 24l7.6 33.4a19 19 0 0 1-31.8 17.8L158 156H98l-15 15.2a19 19 0 0 1-31.8-17.8L58.8 120A31 31 0 0 1 89 96z" fill="#0b1116" clip-path="url(#p1131-l)"/>
+  <path d="M89 96h78a31 31 0 0 1 30.2 24l7.6 33.4a19 19 0 0 1-31.8 17.8L158 156H98l-15 15.2a19 19 0 0 1-31.8-17.8L58.8 120A31 31 0 0 1 89 96z" fill="#0b1116" clip-path="url(#p1131-r)"/>
+  <circle cx="98" cy="124" r="9" fill="none" stroke="#6ec3f4" stroke-width="4"/>
+  <circle cx="156" cy="117" r="5" fill="#8fd0f7"/><circle cx="172" cy="117" r="5" fill="#8fd0f7"/><circle cx="156" cy="133" r="5" fill="#8fd0f7"/><circle cx="172" cy="133" r="5" fill="#8fd0f7"/>
+</g>
+<g clip-path="url(#p1131-front)"><g transform="rotate(38 128 128)"><path d="M228 141.5a112 30 0 0 1-112 16" fill="none" stroke="#6ec3f4" stroke-width="19" stroke-linecap="butt"/><path d="M228 141.5a112 30 0 0 1-112 16" fill="none" stroke="#0b1116" stroke-width="9" stroke-linecap="butt"/><path d="M228 141.5a112 30 0 0 1-112 16" fill="none" stroke="#6ec3f4" stroke-opacity=".0" stroke-width="3"/></g></g>
+<g transform="rotate(38 128 128)"><circle cx="16" cy="128" r="8" fill="#6ec3f4" stroke="#0b1116" stroke-width="5"/></g>
+</svg></div><span style="font-size:11px;color:#808c99;font-family:var(--font-mono);">128</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:10px;"><div style="width:64px;height:64px;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="64" height="64">
+<defs>
+<linearGradient id="p2131-tile" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a222c"/><stop offset="1" stop-color="#0b1015"/></linearGradient>
+<radialGradient id="p2131-disc" cx=".38" cy=".3" r=".85"><stop offset="0" stop-color="#9ad8ff"/><stop offset=".55" stop-color="#6ec3f4"/><stop offset="1" stop-color="#2f86c7"/></radialGradient>
+<clipPath id="p2131-l"><rect x="0" y="0" width="124" height="256"/></clipPath>
+<clipPath id="p2131-r"><rect x="132" y="0" width="124" height="256"/></clipPath>
+<clipPath id="p2131-front"><rect x="128" y="0" width="128" height="256"/></clipPath>
+</defs>
+<rect x="12" y="12" width="232" height="232" rx="56" fill="url(#p2131-tile)"/>
+<rect x="12.5" y="12.5" width="231" height="231" rx="55.5" fill="none" stroke="#ffffff" stroke-opacity=".08"/>
+<circle cx="128" cy="128" r="86" fill="url(#p2131-disc)"/>
+<circle cx="128" cy="128" r="86" fill="none" stroke="#0b1116" stroke-width="5"/>
+<g transform="rotate(38 128 128)"><ellipse cx="128" cy="128" rx="112" ry="30" fill="none" stroke="#0b1116" stroke-width="9"/></g>
+<g transform="translate(128 130) scale(.86) translate(-128 -130) rotate(-24 128 133)">
+  <path d="M89 96h78a31 31 0 0 1 30.2 24l7.6 33.4a19 19 0 0 1-31.8 17.8L158 156H98l-15 15.2a19 19 0 0 1-31.8-17.8L58.8 120A31 31 0 0 1 89 96z" fill="#0b1116" clip-path="url(#p2131-l)"/>
+  <path d="M89 96h78a31 31 0 0 1 30.2 24l7.6 33.4a19 19 0 0 1-31.8 17.8L158 156H98l-15 15.2a19 19 0 0 1-31.8-17.8L58.8 120A31 31 0 0 1 89 96z" fill="#0b1116" clip-path="url(#p2131-r)"/>
+  <circle cx="98" cy="124" r="9" fill="none" stroke="#6ec3f4" stroke-width="4"/>
+  <circle cx="156" cy="117" r="5" fill="#8fd0f7"/><circle cx="172" cy="117" r="5" fill="#8fd0f7"/><circle cx="156" cy="133" r="5" fill="#8fd0f7"/><circle cx="172" cy="133" r="5" fill="#8fd0f7"/>
+</g>
+<g clip-path="url(#p2131-front)"><g transform="rotate(38 128 128)"><path d="M228 141.5a112 30 0 0 1-112 16" fill="none" stroke="#6ec3f4" stroke-width="19" stroke-linecap="butt"/><path d="M228 141.5a112 30 0 0 1-112 16" fill="none" stroke="#0b1116" stroke-width="9" stroke-linecap="butt"/><path d="M228 141.5a112 30 0 0 1-112 16" fill="none" stroke="#6ec3f4" stroke-opacity=".0" stroke-width="3"/></g></g>
+<g transform="rotate(38 128 128)"><circle cx="16" cy="128" r="8" fill="#6ec3f4" stroke="#0b1116" stroke-width="5"/></g>
+</svg></div><span style="font-size:11px;color:#808c99;font-family:var(--font-mono);">64</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:10px;"><div style="width:48px;height:48px;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="48" height="48">
+<defs>
+<linearGradient id="p3131-tile" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a222c"/><stop offset="1" stop-color="#0b1015"/></linearGradient>
+<radialGradient id="p3131-disc" cx=".38" cy=".3" r=".85"><stop offset="0" stop-color="#9ad8ff"/><stop offset=".55" stop-color="#6ec3f4"/><stop offset="1" stop-color="#2f86c7"/></radialGradient>
+<clipPath id="p3131-l"><rect x="0" y="0" width="124" height="256"/></clipPath>
+<clipPath id="p3131-r"><rect x="132" y="0" width="124" height="256"/></clipPath>
+<clipPath id="p3131-front"><rect x="128" y="0" width="128" height="256"/></clipPath>
+</defs>
+<rect x="12" y="12" width="232" height="232" rx="56" fill="url(#p3131-tile)"/>
+<rect x="12.5" y="12.5" width="231" height="231" rx="55.5" fill="none" stroke="#ffffff" stroke-opacity=".08"/>
+<circle cx="128" cy="128" r="86" fill="url(#p3131-disc)"/>
+<circle cx="128" cy="128" r="86" fill="none" stroke="#0b1116" stroke-width="5"/>
+<g transform="rotate(38 128 128)"><ellipse cx="128" cy="128" rx="112" ry="30" fill="none" stroke="#0b1116" stroke-width="9"/></g>
+<g transform="translate(128 130) scale(.86) translate(-128 -130) rotate(-24 128 133)">
+  <path d="M89 96h78a31 31 0 0 1 30.2 24l7.6 33.4a19 19 0 0 1-31.8 17.8L158 156H98l-15 15.2a19 19 0 0 1-31.8-17.8L58.8 120A31 31 0 0 1 89 96z" fill="#0b1116" clip-path="url(#p3131-l)"/>
+  <path d="M89 96h78a31 31 0 0 1 30.2 24l7.6 33.4a19 19 0 0 1-31.8 17.8L158 156H98l-15 15.2a19 19 0 0 1-31.8-17.8L58.8 120A31 31 0 0 1 89 96z" fill="#0b1116" clip-path="url(#p3131-r)"/>
+  <circle cx="98" cy="124" r="9" fill="none" stroke="#6ec3f4" stroke-width="4"/>
+  <circle cx="156" cy="117" r="5" fill="#8fd0f7"/><circle cx="172" cy="117" r="5" fill="#8fd0f7"/><circle cx="156" cy="133" r="5" fill="#8fd0f7"/><circle cx="172" cy="133" r="5" fill="#8fd0f7"/>
+</g>
+<g clip-path="url(#p3131-front)"><g transform="rotate(38 128 128)"><path d="M228 141.5a112 30 0 0 1-112 16" fill="none" stroke="#6ec3f4" stroke-width="19" stroke-linecap="butt"/><path d="M228 141.5a112 30 0 0 1-112 16" fill="none" stroke="#0b1116" stroke-width="9" stroke-linecap="butt"/><path d="M228 141.5a112 30 0 0 1-112 16" fill="none" stroke="#6ec3f4" stroke-opacity=".0" stroke-width="3"/></g></g>
+<g transform="rotate(38 128 128)"><circle cx="16" cy="128" r="8" fill="#6ec3f4" stroke="#0b1116" stroke-width="5"/></g>
+</svg></div><span style="font-size:11px;color:#808c99;font-family:var(--font-mono);">48</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:10px;"><div style="width:32px;height:32px;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="32" height="32">
+<defs>
+<linearGradient id="p4131-tile" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a222c"/><stop offset="1" stop-color="#0b1015"/></linearGradient>
+<radialGradient id="p4131-disc" cx=".38" cy=".3" r=".85"><stop offset="0" stop-color="#9ad8ff"/><stop offset=".55" stop-color="#6ec3f4"/><stop offset="1" stop-color="#2f86c7"/></radialGradient>
+<clipPath id="p4131-l"><rect x="0" y="0" width="124" height="256"/></clipPath>
+<clipPath id="p4131-r"><rect x="132" y="0" width="124" height="256"/></clipPath>
+<clipPath id="p4131-front"><rect x="128" y="0" width="128" height="256"/></clipPath>
+</defs>
+<rect x="12" y="12" width="232" height="232" rx="56" fill="url(#p4131-tile)"/>
+<rect x="12.5" y="12.5" width="231" height="231" rx="55.5" fill="none" stroke="#ffffff" stroke-opacity=".08"/>
+<circle cx="128" cy="128" r="86" fill="url(#p4131-disc)"/>
+<circle cx="128" cy="128" r="86" fill="none" stroke="#0b1116" stroke-width="5"/>
+<g transform="rotate(38 128 128)"><ellipse cx="128" cy="128" rx="112" ry="30" fill="none" stroke="#0b1116" stroke-width="9"/></g>
+<g transform="translate(128 130) scale(.86) translate(-128 -130) rotate(-24 128 133)">
+  <path d="M89 96h78a31 31 0 0 1 30.2 24l7.6 33.4a19 19 0 0 1-31.8 17.8L158 156H98l-15 15.2a19 19 0 0 1-31.8-17.8L58.8 120A31 31 0 0 1 89 96z" fill="#0b1116" clip-path="url(#p4131-l)"/>
+  <path d="M89 96h78a31 31 0 0 1 30.2 24l7.6 33.4a19 19 0 0 1-31.8 17.8L158 156H98l-15 15.2a19 19 0 0 1-31.8-17.8L58.8 120A31 31 0 0 1 89 96z" fill="#0b1116" clip-path="url(#p4131-r)"/>
+  <circle cx="98" cy="124" r="9" fill="none" stroke="#6ec3f4" stroke-width="4"/>
+  <circle cx="156" cy="117" r="5" fill="#8fd0f7"/><circle cx="172" cy="117" r="5" fill="#8fd0f7"/><circle cx="156" cy="133" r="5" fill="#8fd0f7"/><circle cx="172" cy="133" r="5" fill="#8fd0f7"/>
+</g>
+<g clip-path="url(#p4131-front)"><g transform="rotate(38 128 128)"><path d="M228 141.5a112 30 0 0 1-112 16" fill="none" stroke="#6ec3f4" stroke-width="19" stroke-linecap="butt"/><path d="M228 141.5a112 30 0 0 1-112 16" fill="none" stroke="#0b1116" stroke-width="9" stroke-linecap="butt"/><path d="M228 141.5a112 30 0 0 1-112 16" fill="none" stroke="#6ec3f4" stroke-opacity=".0" stroke-width="3"/></g></g>
+<g transform="rotate(38 128 128)"><circle cx="16" cy="128" r="8" fill="#6ec3f4" stroke="#0b1116" stroke-width="5"/></g>
+</svg></div><span style="font-size:11px;color:#808c99;font-family:var(--font-mono);">32</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:10px;"><div style="width:16px;height:16px;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="16" height="16">
+<defs><clipPath id="q131-l"><rect x="0" y="0" width="122" height="256"/></clipPath><clipPath id="q131-r"><rect x="134" y="0" width="122" height="256"/></clipPath></defs>
+<rect x="8" y="8" width="240" height="240" rx="60" fill="#10161d"/>
+<circle cx="128" cy="128" r="96" fill="#6ec3f4"/>
+<g transform="rotate(-24 128 133)"><path d="M89 96h78a31 31 0 0 1 30.2 24l7.6 33.4a19 19 0 0 1-31.8 17.8L158 156H98l-15 15.2a19 19 0 0 1-31.8-17.8L58.8 120A31 31 0 0 1 89 96z" fill="#0b1116" clip-path="url(#q131-l)" transform="translate(-10 -8) scale(1.08)"/><path d="M89 96h78a31 31 0 0 1 30.2 24l7.6 33.4a19 19 0 0 1-31.8 17.8L158 156H98l-15 15.2a19 19 0 0 1-31.8-17.8L58.8 120A31 31 0 0 1 89 96z" fill="#0b1116" clip-path="url(#q131-r)" transform="translate(-10 -8) scale(1.08)"/></g>
+<g transform="rotate(38 128 128)"><ellipse cx="128" cy="128" rx="118" ry="30" fill="none" stroke="#0b1116" stroke-width="16"/></g>
+</svg></div><span style="font-size:11px;color:#808c99;font-family:var(--font-mono);">16 cut</span></div></div>
+  <div style="display:flex;align-items:flex-end;gap:32px;padding:40px;border-radius:16px;background:#f1f4f7;"><div style="display:flex;flex-direction:column;align-items:center;gap:10px;"><div style="width:256px;height:256px;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<linearGradient id="p0f1f-tile" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a222c"/><stop offset="1" stop-color="#0b1015"/></linearGradient>
+<radialGradient id="p0f1f-disc" cx=".38" cy=".3" r=".85"><stop offset="0" stop-color="#9ad8ff"/><stop offset=".55" stop-color="#6ec3f4"/><stop offset="1" stop-color="#2f86c7"/></radialGradient>
+<clipPath id="p0f1f-l"><rect x="0" y="0" width="124" height="256"/></clipPath>
+<clipPath id="p0f1f-r"><rect x="132" y="0" width="124" height="256"/></clipPath>
+<clipPath id="p0f1f-front"><rect x="128" y="0" width="128" height="256"/></clipPath>
+</defs>
+<rect x="12" y="12" width="232" height="232" rx="56" fill="url(#p0f1f-tile)"/>
+<rect x="12.5" y="12.5" width="231" height="231" rx="55.5" fill="none" stroke="#ffffff" stroke-opacity=".08"/>
+<circle cx="128" cy="128" r="86" fill="url(#p0f1f-disc)"/>
+<circle cx="128" cy="128" r="86" fill="none" stroke="#0b1116" stroke-width="5"/>
+<g transform="rotate(38 128 128)"><ellipse cx="128" cy="128" rx="112" ry="30" fill="none" stroke="#0b1116" stroke-width="9"/></g>
+<g transform="translate(128 130) scale(.86) translate(-128 -130) rotate(-24 128 133)">
+  <path d="M89 96h78a31 31 0 0 1 30.2 24l7.6 33.4a19 19 0 0 1-31.8 17.8L158 156H98l-15 15.2a19 19 0 0 1-31.8-17.8L58.8 120A31 31 0 0 1 89 96z" fill="#0b1116" clip-path="url(#p0f1f-l)"/>
+  <path d="M89 96h78a31 31 0 0 1 30.2 24l7.6 33.4a19 19 0 0 1-31.8 17.8L158 156H98l-15 15.2a19 19 0 0 1-31.8-17.8L58.8 120A31 31 0 0 1 89 96z" fill="#0b1116" clip-path="url(#p0f1f-r)"/>
+  <circle cx="98" cy="124" r="9" fill="none" stroke="#6ec3f4" stroke-width="4"/>
+  <circle cx="156" cy="117" r="5" fill="#8fd0f7"/><circle cx="172" cy="117" r="5" fill="#8fd0f7"/><circle cx="156" cy="133" r="5" fill="#8fd0f7"/><circle cx="172" cy="133" r="5" fill="#8fd0f7"/>
+</g>
+<g clip-path="url(#p0f1f-front)"><g transform="rotate(38 128 128)"><path d="M228 141.5a112 30 0 0 1-112 16" fill="none" stroke="#6ec3f4" stroke-width="19" stroke-linecap="butt"/><path d="M228 141.5a112 30 0 0 1-112 16" fill="none" stroke="#0b1116" stroke-width="9" stroke-linecap="butt"/><path d="M228 141.5a112 30 0 0 1-112 16" fill="none" stroke="#6ec3f4" stroke-opacity=".0" stroke-width="3"/></g></g>
+<g transform="rotate(38 128 128)"><circle cx="16" cy="128" r="8" fill="#6ec3f4" stroke="#0b1116" stroke-width="5"/></g>
+</svg></div><span style="font-size:11px;color:#66727f;font-family:var(--font-mono);">256</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:10px;"><div style="width:128px;height:128px;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="128" height="128">
+<defs>
+<linearGradient id="p1f1f-tile" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a222c"/><stop offset="1" stop-color="#0b1015"/></linearGradient>
+<radialGradient id="p1f1f-disc" cx=".38" cy=".3" r=".85"><stop offset="0" stop-color="#9ad8ff"/><stop offset=".55" stop-color="#6ec3f4"/><stop offset="1" stop-color="#2f86c7"/></radialGradient>
+<clipPath id="p1f1f-l"><rect x="0" y="0" width="124" height="256"/></clipPath>
+<clipPath id="p1f1f-r"><rect x="132" y="0" width="124" height="256"/></clipPath>
+<clipPath id="p1f1f-front"><rect x="128" y="0" width="128" height="256"/></clipPath>
+</defs>
+<rect x="12" y="12" width="232" height="232" rx="56" fill="url(#p1f1f-tile)"/>
+<rect x="12.5" y="12.5" width="231" height="231" rx="55.5" fill="none" stroke="#ffffff" stroke-opacity=".08"/>
+<circle cx="128" cy="128" r="86" fill="url(#p1f1f-disc)"/>
+<circle cx="128" cy="128" r="86" fill="none" stroke="#0b1116" stroke-width="5"/>
+<g transform="rotate(38 128 128)"><ellipse cx="128" cy="128" rx="112" ry="30" fill="none" stroke="#0b1116" stroke-width="9"/></g>
+<g transform="translate(128 130) scale(.86) translate(-128 -130) rotate(-24 128 133)">
+  <path d="M89 96h78a31 31 0 0 1 30.2 24l7.6 33.4a19 19 0 0 1-31.8 17.8L158 156H98l-15 15.2a19 19 0 0 1-31.8-17.8L58.8 120A31 31 0 0 1 89 96z" fill="#0b1116" clip-path="url(#p1f1f-l)"/>
+  <path d="M89 96h78a31 31 0 0 1 30.2 24l7.6 33.4a19 19 0 0 1-31.8 17.8L158 156H98l-15 15.2a19 19 0 0 1-31.8-17.8L58.8 120A31 31 0 0 1 89 96z" fill="#0b1116" clip-path="url(#p1f1f-r)"/>
+  <circle cx="98" cy="124" r="9" fill="none" stroke="#6ec3f4" stroke-width="4"/>
+  <circle cx="156" cy="117" r="5" fill="#8fd0f7"/><circle cx="172" cy="117" r="5" fill="#8fd0f7"/><circle cx="156" cy="133" r="5" fill="#8fd0f7"/><circle cx="172" cy="133" r="5" fill="#8fd0f7"/>
+</g>
+<g clip-path="url(#p1f1f-front)"><g transform="rotate(38 128 128)"><path d="M228 141.5a112 30 0 0 1-112 16" fill="none" stroke="#6ec3f4" stroke-width="19" stroke-linecap="butt"/><path d="M228 141.5a112 30 0 0 1-112 16" fill="none" stroke="#0b1116" stroke-width="9" stroke-linecap="butt"/><path d="M228 141.5a112 30 0 0 1-112 16" fill="none" stroke="#6ec3f4" stroke-opacity=".0" stroke-width="3"/></g></g>
+<g transform="rotate(38 128 128)"><circle cx="16" cy="128" r="8" fill="#6ec3f4" stroke="#0b1116" stroke-width="5"/></g>
+</svg></div><span style="font-size:11px;color:#66727f;font-family:var(--font-mono);">128</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:10px;"><div style="width:64px;height:64px;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="64" height="64">
+<defs>
+<linearGradient id="p2f1f-tile" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a222c"/><stop offset="1" stop-color="#0b1015"/></linearGradient>
+<radialGradient id="p2f1f-disc" cx=".38" cy=".3" r=".85"><stop offset="0" stop-color="#9ad8ff"/><stop offset=".55" stop-color="#6ec3f4"/><stop offset="1" stop-color="#2f86c7"/></radialGradient>
+<clipPath id="p2f1f-l"><rect x="0" y="0" width="124" height="256"/></clipPath>
+<clipPath id="p2f1f-r"><rect x="132" y="0" width="124" height="256"/></clipPath>
+<clipPath id="p2f1f-front"><rect x="128" y="0" width="128" height="256"/></clipPath>
+</defs>
+<rect x="12" y="12" width="232" height="232" rx="56" fill="url(#p2f1f-tile)"/>
+<rect x="12.5" y="12.5" width="231" height="231" rx="55.5" fill="none" stroke="#ffffff" stroke-opacity=".08"/>
+<circle cx="128" cy="128" r="86" fill="url(#p2f1f-disc)"/>
+<circle cx="128" cy="128" r="86" fill="none" stroke="#0b1116" stroke-width="5"/>
+<g transform="rotate(38 128 128)"><ellipse cx="128" cy="128" rx="112" ry="30" fill="none" stroke="#0b1116" stroke-width="9"/></g>
+<g transform="translate(128 130) scale(.86) translate(-128 -130) rotate(-24 128 133)">
+  <path d="M89 96h78a31 31 0 0 1 30.2 24l7.6 33.4a19 19 0 0 1-31.8 17.8L158 156H98l-15 15.2a19 19 0 0 1-31.8-17.8L58.8 120A31 31 0 0 1 89 96z" fill="#0b1116" clip-path="url(#p2f1f-l)"/>
+  <path d="M89 96h78a31 31 0 0 1 30.2 24l7.6 33.4a19 19 0 0 1-31.8 17.8L158 156H98l-15 15.2a19 19 0 0 1-31.8-17.8L58.8 120A31 31 0 0 1 89 96z" fill="#0b1116" clip-path="url(#p2f1f-r)"/>
+  <circle cx="98" cy="124" r="9" fill="none" stroke="#6ec3f4" stroke-width="4"/>
+  <circle cx="156" cy="117" r="5" fill="#8fd0f7"/><circle cx="172" cy="117" r="5" fill="#8fd0f7"/><circle cx="156" cy="133" r="5" fill="#8fd0f7"/><circle cx="172" cy="133" r="5" fill="#8fd0f7"/>
+</g>
+<g clip-path="url(#p2f1f-front)"><g transform="rotate(38 128 128)"><path d="M228 141.5a112 30 0 0 1-112 16" fill="none" stroke="#6ec3f4" stroke-width="19" stroke-linecap="butt"/><path d="M228 141.5a112 30 0 0 1-112 16" fill="none" stroke="#0b1116" stroke-width="9" stroke-linecap="butt"/><path d="M228 141.5a112 30 0 0 1-112 16" fill="none" stroke="#6ec3f4" stroke-opacity=".0" stroke-width="3"/></g></g>
+<g transform="rotate(38 128 128)"><circle cx="16" cy="128" r="8" fill="#6ec3f4" stroke="#0b1116" stroke-width="5"/></g>
+</svg></div><span style="font-size:11px;color:#66727f;font-family:var(--font-mono);">64</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:10px;"><div style="width:48px;height:48px;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="48" height="48">
+<defs>
+<linearGradient id="p3f1f-tile" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a222c"/><stop offset="1" stop-color="#0b1015"/></linearGradient>
+<radialGradient id="p3f1f-disc" cx=".38" cy=".3" r=".85"><stop offset="0" stop-color="#9ad8ff"/><stop offset=".55" stop-color="#6ec3f4"/><stop offset="1" stop-color="#2f86c7"/></radialGradient>
+<clipPath id="p3f1f-l"><rect x="0" y="0" width="124" height="256"/></clipPath>
+<clipPath id="p3f1f-r"><rect x="132" y="0" width="124" height="256"/></clipPath>
+<clipPath id="p3f1f-front"><rect x="128" y="0" width="128" height="256"/></clipPath>
+</defs>
+<rect x="12" y="12" width="232" height="232" rx="56" fill="url(#p3f1f-tile)"/>
+<rect x="12.5" y="12.5" width="231" height="231" rx="55.5" fill="none" stroke="#ffffff" stroke-opacity=".08"/>
+<circle cx="128" cy="128" r="86" fill="url(#p3f1f-disc)"/>
+<circle cx="128" cy="128" r="86" fill="none" stroke="#0b1116" stroke-width="5"/>
+<g transform="rotate(38 128 128)"><ellipse cx="128" cy="128" rx="112" ry="30" fill="none" stroke="#0b1116" stroke-width="9"/></g>
+<g transform="translate(128 130) scale(.86) translate(-128 -130) rotate(-24 128 133)">
+  <path d="M89 96h78a31 31 0 0 1 30.2 24l7.6 33.4a19 19 0 0 1-31.8 17.8L158 156H98l-15 15.2a19 19 0 0 1-31.8-17.8L58.8 120A31 31 0 0 1 89 96z" fill="#0b1116" clip-path="url(#p3f1f-l)"/>
+  <path d="M89 96h78a31 31 0 0 1 30.2 24l7.6 33.4a19 19 0 0 1-31.8 17.8L158 156H98l-15 15.2a19 19 0 0 1-31.8-17.8L58.8 120A31 31 0 0 1 89 96z" fill="#0b1116" clip-path="url(#p3f1f-r)"/>
+  <circle cx="98" cy="124" r="9" fill="none" stroke="#6ec3f4" stroke-width="4"/>
+  <circle cx="156" cy="117" r="5" fill="#8fd0f7"/><circle cx="172" cy="117" r="5" fill="#8fd0f7"/><circle cx="156" cy="133" r="5" fill="#8fd0f7"/><circle cx="172" cy="133" r="5" fill="#8fd0f7"/>
+</g>
+<g clip-path="url(#p3f1f-front)"><g transform="rotate(38 128 128)"><path d="M228 141.5a112 30 0 0 1-112 16" fill="none" stroke="#6ec3f4" stroke-width="19" stroke-linecap="butt"/><path d="M228 141.5a112 30 0 0 1-112 16" fill="none" stroke="#0b1116" stroke-width="9" stroke-linecap="butt"/><path d="M228 141.5a112 30 0 0 1-112 16" fill="none" stroke="#6ec3f4" stroke-opacity=".0" stroke-width="3"/></g></g>
+<g transform="rotate(38 128 128)"><circle cx="16" cy="128" r="8" fill="#6ec3f4" stroke="#0b1116" stroke-width="5"/></g>
+</svg></div><span style="font-size:11px;color:#66727f;font-family:var(--font-mono);">48</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:10px;"><div style="width:32px;height:32px;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="32" height="32">
+<defs>
+<linearGradient id="p4f1f-tile" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a222c"/><stop offset="1" stop-color="#0b1015"/></linearGradient>
+<radialGradient id="p4f1f-disc" cx=".38" cy=".3" r=".85"><stop offset="0" stop-color="#9ad8ff"/><stop offset=".55" stop-color="#6ec3f4"/><stop offset="1" stop-color="#2f86c7"/></radialGradient>
+<clipPath id="p4f1f-l"><rect x="0" y="0" width="124" height="256"/></clipPath>
+<clipPath id="p4f1f-r"><rect x="132" y="0" width="124" height="256"/></clipPath>
+<clipPath id="p4f1f-front"><rect x="128" y="0" width="128" height="256"/></clipPath>
+</defs>
+<rect x="12" y="12" width="232" height="232" rx="56" fill="url(#p4f1f-tile)"/>
+<rect x="12.5" y="12.5" width="231" height="231" rx="55.5" fill="none" stroke="#ffffff" stroke-opacity=".08"/>
+<circle cx="128" cy="128" r="86" fill="url(#p4f1f-disc)"/>
+<circle cx="128" cy="128" r="86" fill="none" stroke="#0b1116" stroke-width="5"/>
+<g transform="rotate(38 128 128)"><ellipse cx="128" cy="128" rx="112" ry="30" fill="none" stroke="#0b1116" stroke-width="9"/></g>
+<g transform="translate(128 130) scale(.86) translate(-128 -130) rotate(-24 128 133)">
+  <path d="M89 96h78a31 31 0 0 1 30.2 24l7.6 33.4a19 19 0 0 1-31.8 17.8L158 156H98l-15 15.2a19 19 0 0 1-31.8-17.8L58.8 120A31 31 0 0 1 89 96z" fill="#0b1116" clip-path="url(#p4f1f-l)"/>
+  <path d="M89 96h78a31 31 0 0 1 30.2 24l7.6 33.4a19 19 0 0 1-31.8 17.8L158 156H98l-15 15.2a19 19 0 0 1-31.8-17.8L58.8 120A31 31 0 0 1 89 96z" fill="#0b1116" clip-path="url(#p4f1f-r)"/>
+  <circle cx="98" cy="124" r="9" fill="none" stroke="#6ec3f4" stroke-width="4"/>
+  <circle cx="156" cy="117" r="5" fill="#8fd0f7"/><circle cx="172" cy="117" r="5" fill="#8fd0f7"/><circle cx="156" cy="133" r="5" fill="#8fd0f7"/><circle cx="172" cy="133" r="5" fill="#8fd0f7"/>
+</g>
+<g clip-path="url(#p4f1f-front)"><g transform="rotate(38 128 128)"><path d="M228 141.5a112 30 0 0 1-112 16" fill="none" stroke="#6ec3f4" stroke-width="19" stroke-linecap="butt"/><path d="M228 141.5a112 30 0 0 1-112 16" fill="none" stroke="#0b1116" stroke-width="9" stroke-linecap="butt"/><path d="M228 141.5a112 30 0 0 1-112 16" fill="none" stroke="#6ec3f4" stroke-opacity=".0" stroke-width="3"/></g></g>
+<g transform="rotate(38 128 128)"><circle cx="16" cy="128" r="8" fill="#6ec3f4" stroke="#0b1116" stroke-width="5"/></g>
+</svg></div><span style="font-size:11px;color:#66727f;font-family:var(--font-mono);">32</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:10px;"><div style="width:16px;height:16px;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="16" height="16">
+<defs><clipPath id="qf1f-l"><rect x="0" y="0" width="122" height="256"/></clipPath><clipPath id="qf1f-r"><rect x="134" y="0" width="122" height="256"/></clipPath></defs>
+<rect x="8" y="8" width="240" height="240" rx="60" fill="#10161d"/>
+<circle cx="128" cy="128" r="96" fill="#6ec3f4"/>
+<g transform="rotate(-24 128 133)"><path d="M89 96h78a31 31 0 0 1 30.2 24l7.6 33.4a19 19 0 0 1-31.8 17.8L158 156H98l-15 15.2a19 19 0 0 1-31.8-17.8L58.8 120A31 31 0 0 1 89 96z" fill="#0b1116" clip-path="url(#qf1f-l)" transform="translate(-10 -8) scale(1.08)"/><path d="M89 96h78a31 31 0 0 1 30.2 24l7.6 33.4a19 19 0 0 1-31.8 17.8L158 156H98l-15 15.2a19 19 0 0 1-31.8-17.8L58.8 120A31 31 0 0 1 89 96z" fill="#0b1116" clip-path="url(#qf1f-r)" transform="translate(-10 -8) scale(1.08)"/></g>
+<g transform="rotate(38 128 128)"><ellipse cx="128" cy="128" rx="118" ry="30" fill="none" stroke="#0b1116" stroke-width="16"/></g>
+</svg></div><span style="font-size:11px;color:#66727f;font-family:var(--font-mono);">16 cut</span></div></div>
+  <div style="display:flex;flex-direction:column;gap:10px;">
+    <div style="font-size:12px;letter-spacing:.12em;color:#808c99;">IN CONTEXT · TITLE BAR</div>
+    <div style="width:720px;border-radius:10px;overflow:hidden;box-shadow:0 0 0 1px var(--line-2);"><dc-import name="Shell Titlebar" hint-size="100%,44px"></dc-import></div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

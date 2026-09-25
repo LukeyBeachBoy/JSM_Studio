@@ -1,0 +1,34 @@
+/* Shape tiles (Configuration Pages 15c): four square tiles on the row surface;
+   the chosen one is the selected fill with the accent ring. */
+.picker {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--sp-2);
+}
+
+.tile {
+  min-height: 78px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2);
+  border: 0;
+  border-radius: var(--r-card);
+  background: var(--surface-row);
+  color: var(--text-2);
+  font: inherit;
+  font-size: var(--fs-hint);
+  font-weight: var(--fw-medium);
+  cursor: pointer;
+  transition: background var(--dur-1) var(--ease-standard), color var(--dur-1) var(--ease-standard), box-shadow var(--dur-2) var(--ease-standard);
+}
+
+.tile:hover:not(:disabled) { background: var(--surface-row-hover); color: var(--text-1); }
+.tile[aria-checked='true'] { background: var(--surface-selected); color: var(--text-1); box-shadow: inset 0 0 0 2px var(--accent); }
+.tile:disabled { opacity: var(--disabled-opacity); cursor: default; }
+:global(body[data-input-source='controller']) .tile:focus {
+  box-shadow: 0 0 0 var(--focus-controller-width) var(--focus-controller), var(--shadow-lift);
+  transform: translateY(-1px);
+}

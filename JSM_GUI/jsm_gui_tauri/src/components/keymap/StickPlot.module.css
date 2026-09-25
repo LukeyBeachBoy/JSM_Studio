@@ -1,0 +1,30 @@
+/* Live stick plot (Configuration Pages 15b): a sunken well, hairline gate
+   and axes, accent deadzone rings, the stick in the telemetry colour. */
+.plot {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: var(--sp-3);
+  border-radius: var(--r-card);
+  background: var(--surface-row);
+}
+
+.plot svg { width: 168px; height: 168px; }
+
+.gate { fill: var(--surface-sunken); stroke: var(--line-2); stroke-width: 1.5; }
+.axis { stroke: var(--line-1); stroke-width: 1; }
+.inner { fill: none; stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 3 4; }
+.outer { fill: none; stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 4 5; opacity: .6; }
+.trail { fill: var(--telemetry); }
+.dot { fill: var(--telemetry); }
+.dotIdle { fill: var(--text-3); }
+
+.readout {
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  font-variant-numeric: tabular-nums;
+}

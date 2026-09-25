@@ -1,0 +1,63 @@
+/* Live meter (Configuration Pages 15a): a 28px bar on the sunken surface,
+   the pull in the telemetry colour, soft point accent, full pull white. The fill
+   is a transform so a telemetry frame costs no layout. */
+.meter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-row);
+  background: var(--surface-row);
+}
+
+.head {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-3);
+  font-size: var(--fs-hint);
+  line-height: var(--lh-hint);
+}
+
+.value {
+  color: var(--telemetry);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.track {
+  position: relative;
+  height: 28px;
+  border-radius: var(--r-sm);
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+
+.fill {
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+  background: var(--telemetry);
+}
+
+.soft,
+.full {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+}
+
+.soft { background: var(--accent); }
+.full { right: 3px; background: var(--text-1); }
+
+.scale {
+  position: relative;
+  height: 16px;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+}
+
+.scale > span { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
+.scale > .fullLabel { right: 0; left: auto; transform: none; }

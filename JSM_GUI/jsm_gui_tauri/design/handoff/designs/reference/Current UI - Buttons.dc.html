@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="./current-tokens.css">
+<style>body{margin:0;background:#1b2027;font-family:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;} a{color:#66c0f4;} a:hover{color:#dfe6ed;}</style>
+</helmet>
+<div data-screen-label="Current · Buttons" style="display:grid;grid-template-columns:224px 1fr;width:100%;height:900px;overflow:hidden;background:var(--bg-0);color:var(--text-strong);font-size:14px;">
+  <aside style="background:var(--sidebar-bg);border-right:1px solid var(--border-1);padding:14px 12px;display:flex;flex-direction:column;gap:13px;">
+    <div style="display:flex;align-items:center;gap:6px;padding:6px 2px 11px;border-bottom:1px solid var(--border-1);">
+      <div style="flex:1;font-size:15.7px;font-weight:800;letter-spacing:.01em;">JSM Studio</div>
+      <div style="width:28px;height:28px;border:1px solid var(--border-1);border-radius:7px;"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+      <div style="padding:9px 0;text-align:center;background:var(--bg-btn);border-radius:8px;font-size:12px;">Configuration</div>
+      <div style="padding:9px 0;text-align:center;color:var(--text-mid);font-size:12px;">Studio</div>
+    </div>
+    <div style="font-size:10.9px;font-weight:800;letter-spacing:.12em;color:var(--text-muted);padding:4px 6px 0;">CONTROLS</div>
+    <div style="display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--text-mid);">
+      <div style="padding:12px 14px;">Overview</div>
+      <div style="padding:12px 14px;background:var(--state-selected);border-radius:8px;color:var(--text-strong);box-shadow:inset 2px 0 0 var(--accent);">Buttons</div>
+      <div style="margin-left:8px;display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;">
+        <div style="padding:12px;background:var(--state-selected);border-radius:6px;color:var(--text-strong);box-shadow:inset 2px 0 0 var(--accent);">Face Buttons ›</div>
+        <div style="padding:12px;">Bumpers</div><div style="padding:12px;">Center buttons</div><div style="padding:12px;">Paddles</div><div style="padding:12px;">Extra buttons</div>
+      </div>
+      <div style="padding:12px 14px;">D-Pad</div><div style="padding:12px 14px;">Triggers</div><div style="padding:12px 14px;">Joysticks</div><div style="padding:12px 14px;">Trackpads</div><div style="padding:12px 14px;">Gyro</div><div style="padding:12px 14px;">Layers</div>
+    </div>
+    <div style="font-size:10.9px;font-weight:800;letter-spacing:.12em;color:var(--text-muted);padding:4px 6px 0;">TUNING</div>
+    <div style="display:flex;flex-direction:column;gap:4px;color:var(--text-mid);"><div style="padding:12px 14px;">Trackpad tuning</div><div style="padding:12px 14px;">Grip sensors</div></div>
+  </aside>
+  <div style="display:grid;grid-template-rows:56px 52px 1fr 40px;min-width:0;">
+    <header style="display:flex;align-items:center;gap:12px;padding:0 24px;background:var(--topbar-bg);border-bottom:1px solid var(--border-1);">
+      <div style="padding:9px 14px;background:var(--bg-btn);border-radius:999px;font-weight:700;font-size:14px;">● Mapping on</div>
+      <div style="font-weight:700;">Wardogs ⌄</div>
+      <div style="font-size:12px;color:var(--text-mid);">Currently applied: Wardogs</div>
+      <div style="font-size:12px;">Output</div>
+      <div style="padding:7px 18px;background:var(--bg-input);border:1px solid var(--border-1);border-radius:6px;font-weight:700;">Xbox ▾</div>
+      <div style="flex:1;"></div>
+      <div style="color:var(--text-dim);">↶ ↷ ▣</div>
+      <div style="padding:8px 14px;background:var(--accent-primary);border-radius:6px;font-weight:700;">Apply</div>
+      <div style="padding:8px 10px;">•••</div>
+    </header>
+    <div style="display:flex;align-items:center;gap:8px;padding:0 24px;border-bottom:1px solid var(--border-1);font-size:12px;">
+      <div style="flex:1;"></div>
+      <b>Edit layer</b>
+      <div style="padding:9px 12px;width:175px;border:1px solid var(--accent);border-radius:6px;background:var(--bg-input);font-size:14px;font-weight:600;">Default</div>
+      <span style="color:var(--text-mid);">Base bindings</span>
+      <div style="flex:1;"></div>
+      <div style="padding:8px 12px;border:1px solid var(--border-1);border-radius:6px;font-weight:700;color:var(--text-mid);">Manage layers</div>
+    </div>
+    <main style="overflow:hidden;padding:32px 24px;">
+      <div style="max-width:1172px;margin:0 auto;display:flex;flex-direction:column;gap:9px;">
+        <div style="font-size:12px;letter-spacing:.08em;color:var(--text-mid);">WARDOGS</div>
+        <div style="font-size:26px;font-weight:700;margin-bottom:12px;">Buttons</div>
+        <div style="font-size:16px;font-weight:600;">Face Buttons ⓘ</div>
+        <div style="height:56px;display:flex;align-items:center;gap:12px;padding:0 20px;background:var(--bg-2);border-radius:8px;"><b style="width:26px;height:26px;border-radius:50%;background:#eee;color:#111;display:grid;place-items:center;font-size:13px;">Y</b>Y<span style="flex:1;"></span><span style="padding:5px 12px;background:var(--bg-btn);border-radius:6px;font-size:13px;font-weight:600;">Interact</span>›</div>
+        <div style="height:56px;display:flex;align-items:center;gap:12px;padding:0 20px;background:var(--bg-2);border-radius:8px;"><b style="width:26px;height:26px;border-radius:50%;background:#eee;color:#111;display:grid;place-items:center;font-size:13px;">B</b>B<span style="flex:1;"></span><span style="padding:5px 12px;background:var(--bg-btn);border-radius:6px;font-size:13px;font-weight:600;">Crouch</span>›</div>
+        <div style="height:56px;display:flex;align-items:center;gap:12px;padding:0 20px;background:var(--bg-2);border-radius:8px;"><b style="width:26px;height:26px;border-radius:50%;background:#eee;color:#111;display:grid;place-items:center;font-size:13px;">A</b>A<span style="flex:1;"></span><span style="padding:5px 12px;background:var(--bg-btn);border-radius:6px;font-size:13px;font-weight:600;">Jump</span>›</div>
+        <div style="height:56px;display:flex;align-items:center;gap:12px;padding:0 20px;background:var(--bg-2);border-radius:8px;"><b style="width:26px;height:26px;border-radius:50%;background:#eee;color:#111;display:grid;place-items:center;font-size:13px;">X</b>X<span style="flex:1;"></span><span style="padding:5px 12px;background:var(--bg-btn);border-radius:6px;font-size:13px;font-weight:600;">Reload</span>›</div>
+        <div style="align-self:flex-start;padding:8px 12px;border:1px solid var(--border-1);border-radius:6px;font-size:13px;font-weight:700;color:var(--text-mid);">Add modeshift</div>
+        <div style="font-size:16px;font-weight:600;margin-top:8px;">Bumpers ⓘ</div>
+        <div style="font-weight:600;padding:8px 0;">L&#160;&#160;Left</div>
+        <div style="height:56px;display:flex;align-items:center;gap:12px;padding:0 20px;background:var(--bg-2);border-radius:8px;"><b style="padding:2px 6px;border-radius:8px 8px 4px 4px;background:#eee;color:#111;font-size:11px;">LB</b>LB<span style="flex:1;"></span><span style="padding:5px 12px;background:var(--bg-btn);border-radius:6px;font-size:13px;font-weight:600;">Grenade</span>›</div>
+      </div>
+    </main>
+    <footer style="display:flex;align-items:center;padding:0 24px;border-top:1px solid var(--border-1);background:var(--bg-1);font-size:13px;color:var(--text-mid);"><span>↑ ↓ ← → Navigate · Enter Select · Esc Back</span><span style="flex:1;"></span><span>Ctrl+S Save · Ctrl+Shift+A Apply</span></footer>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

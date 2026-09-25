@@ -9,6 +9,11 @@ declare interface Window {
     getCalibrationSeconds?: () => Promise<number>
     setCalibrationSeconds?: (seconds: number) => Promise<number>
     onCalibrationStatus?: (callback: (payload: { calibrating: boolean; seconds?: number }) => void) => () => void
+    listAutoloadRules?: () => Promise<import('../platform/desktopBridge').AutoloadRule[]>
+    getLayerStack?: () => Promise<import('../platform/desktopBridge').LayerStack | null>
+    getMapperStatus?: () => Promise<import('../platform/desktopBridge').MapperStatus | null>
+    onMapperStatus?: (callback: (payload: import('../platform/desktopBridge').MapperStatus) => void) => () => void
+    onGyroCalibrationResult?: (callback: (payload: import('../platform/desktopBridge').GyroCalibrationResult) => void) => () => void
     listLibraryProfiles?: () => Promise<string[]>
     saveLibraryProfile?: (name: string, content: string) => Promise<{ name: string }>
     loadLibraryProfile?: (name: string) => Promise<{ name: string; content: string }>

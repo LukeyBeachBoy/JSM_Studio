@@ -1,13 +1,12 @@
+import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { KeymapSection } from '../KeymapSection'
 import keymapStyles from '../Keymap.module.css'
-import styles from './Touchpad.module.css'
+import styles from './Grips.module.css'
 import { SectionActions } from '../SectionActions'
 import { GRIP_FIRMWARE_DEFAULT } from '../../hooks/useGripConfig'
-import { HAPTIC_EFFECTS } from '../../utils/hapticBindings'
+import { HAPTIC_EFFECT_CHOICES } from '../../utils/hapticBindings'
 import { NumberField } from '../NumberField'
-import { AppSelect } from '../ui/AppSelect'
-import { HelpButton } from '../HelpButton'
+import { Icon } from '../icons/Icon'
 import { gripRangePercent, gripGuardPercent, gripRangeRaw, gripGuardRaw } from '../../utils/gripCalibration'
 
 type Props = {
@@ -27,6 +26,15 @@ type Props = {
   onGripHapticEffectChange?: (v: string) => void
   onGripReleaseHapticIntensityChange?: (v: string) => void
   onGripReleaseHapticEffectChange?: (v: string) => void
+  /** Live contact from telemetry; null when no controller is connected. */
+  liveGrips?: { left: boolean; right: boolean } | null
+  /** The two grips' binding rows, right then left as on the controller's back. */
+  bindings?: ReactNode
+  leftReleaseDelay?: string
+  rightReleaseDelay?: string
+  onReleaseDelayChange?: (side: 'LEFT' | 'RIGHT', value: string) => void
+  /** Steam Controller 2026, whose left grip reads less reliably (TODO-17). */
+  steamController?: boolean
   hasPendingChanges: boolean
   statusMessage?: string | null
   onApply: () => void
@@ -34,9 +42,29 @@ type Props = {
   applyDisabled?: boolean
 }
 
-// Mirrors Steam Input's Grip Sensor Calibration page: a Range and a Flicker
-// Guard, both written to the controller. The verified firmware settings path
-// applies this pair to both sensors; automatic haptics can be gated per side.
+const EFFECT_NAMES: Record<string, string> = { TICK: 'Tick', CLICK: 'Click', TONE: 'Tone', RUMBLE: 'Rumble', SWEEP: 'Sweep', PULSE: 'Pulse', TAP: 'Tap' }
+
+// Haptic effects as tiles (Tuning and Studio Pages 16a). Pulse is Steam's own
+// grip pulse and has one strength, so it says so.
+function HapticTiles({ value, onChange, disabled, label }: { value: string; onChange: (value: string) => void; disabled?: boolean; label: string }) {
+  const { t } = useTranslation()
+  return (
+    <div className={styles.hapticTiles} role="radiogroup" aria-label={label}>
+      {HAPTIC_EFFECT_CHOICES.filter(effect => effect !== 'OFF').map(effect => (
+        <button key={effect} type="button" role="radio" aria-checked={value === effect} className={styles.hapticTile}
+          disabled={disabled} onClick={() => onChange(effect)} data-hints="A:Choose;B:Back">
+          <Icon name="haptic" size={22} />
+          <span title={t(`keymap.hapticEffect_${effect}`)}>{EFFECT_NAMES[effect] ?? effect}</span>
+          {effect === 'PULSE' && <small>fixed</small>}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// Grip sensors (Tuning and Studio Pages 16a): live contact beside the grips'
+// bindings, the one sensor range and flicker guard both grips share (a
+// firmware limit, said so), each side's release delay, then the haptics.
 export function GripSettingsSection(props: Props) {
   const { t } = useTranslation()
   const range = props.gripSensorRange ?? GRIP_FIRMWARE_DEFAULT
@@ -45,111 +73,100 @@ export function GripSettingsSection(props: Props) {
   const hapticEffect = props.gripHapticEffect ?? 'CLICK'
   const releaseHaptic = props.gripReleaseHapticIntensity ?? 0
   const releaseHapticEffect = props.gripReleaseHapticEffect ?? 'CLICK'
-  const inherited = t('keymap.gripKeepCurrent', 'Keep controller setting')
+  // Unset means "leave the controller's own value"; the pill is too narrow to say so.
+  const inherited = 'auto'
+  const live = props.liveGrips
+
+  const bar = (side: 'left' | 'right') => {
+    const on = !!live?.[side]
+    return (
+      <div className={styles.contact}>
+        <div className={styles.contactBar} data-on={on || undefined}><span className={styles.contactFill} /></div>
+        <b className={on ? styles.contactOn : undefined}>{side === 'left' ? 'Left' : 'Right'}</b>
+        <small>{live ? (on ? 'contact' : 'open') : '—'}</small>
+      </div>
+    )
+  }
 
   return (
     <>
-      <KeymapSection
-        title={t('keymap.gripSettingsTitle', 'Grip sensors')}
-        description={t(
-          'keymap.gripSettingsDescription',
-          'The capacitive strips inside the handles detect how near your hands are. These are the same two settings as Steam Input’s Grip Sensor Calibration, and they are stored on the controller.'
-        )}
-      >
-        <div className={styles.touchpadSettings}>
-          <details><summary className="binding-summary">Advanced Calibration</summary>
-          <NumberField layout="inline"
-            label={t('keymap.gripSensorRange', 'Grip sensor range')}
+      <div className={styles.gripPage}>
+        <aside className={styles.liveCard} aria-label="Live contact">
+          <span className={styles.eyebrow}>Live contact</span>
+          <div className={styles.contacts}>{bar('left')}{bar('right')}</div>
+          <p className={styles.note}>{live
+            ? 'Each grip is one contact bit from the controller; range and flicker guard decide when it trips.'
+            : 'Connect the controller to see each grip’s contact live.'}</p>
+        </aside>
+
+        <div className={styles.gripMain}>
+          {props.bindings && <>
+            <span className={styles.eyebrow}>Bindings</span>
+            <div className={styles.bindings}>{props.bindings}</div>
+          </>}
+
+          <span className={styles.eyebrow}>Sensor · both grips <em>One shared range and flicker guard is a firmware limit</em></span>
+          <NumberField setting="GRIP_SENSOR_RANGE"
+            label="Range"
             value={gripRangePercent(range)}
             onChange={v => props.onGripSensorRangeChange?.(gripRangeRaw(v))}
-            min={0}
-            max={100}
-            step={1}
-            coarseStep={10}
-            defaultValue={80}
-            unit="%"
+            min={0} max={100} step={1} coarseStep={10} defaultValue={80} unit="%"
             placeholder={inherited}
-            hint={t('keymap.gripCalibrationHint')}
+            hint="How near your hand must come before a grip counts as contact. Applies to both grips; it is stored on the controller."
           />
-          <NumberField layout="inline"
-            label={t('keymap.gripFlickerGuard', 'Flicker guard size')}
+          <NumberField setting="GRIP_FLICKER_GUARD"
+            label="Flicker guard"
             value={gripGuardPercent(guard)}
             onChange={v => props.onGripFlickerGuardChange?.(gripGuardRaw(v))}
-            min={0}
-            max={100}
-            step={1}
-            coarseStep={10}
-            defaultValue={27}
-            unit="%"
+            min={0} max={100} step={1} coarseStep={10} defaultValue={27} unit="%"
             placeholder={inherited}
-            hint={t('keymap.gripCalibrationHint')}
+            hint="Extra distance a hand must move away before contact ends, so a hand at the edge of range cannot chatter. Applies to both grips."
           />
-          </details>
-          <h3>Feedback</h3>
-          <div className={styles.gripHapticSides}>
-            <span className={styles.settingLabel}>
-              {t('keymap.gripHapticSensors', 'Haptic feedback')}
-              <HelpButton title={t('keymap.gripHapticSensors', 'Haptic feedback')}>
-                {t('keymap.gripHapticSensorsHint')}
-              </HelpButton>
-            </span>
-            <label>
-              <input type="checkbox" checked={props.leftGripHaptics ?? true}
-                onChange={e => props.onLeftGripHapticsChange?.(e.target.checked)} />
-              {t('keymap.leftGripHaptics', 'Left grip')}
+          {props.onReleaseDelayChange && (
+            <div className={styles.pair}>
+              <NumberField setting="LEFT_GRIP_RELEASE_DELAY"
+                label="Left release delay" value={props.leftReleaseDelay ?? ''} placeholder="0"
+                onChange={v => props.onReleaseDelayChange?.('LEFT', v)} min={0} max={2000} step={10} coarseStep={100} unit="ms"
+                hint="Per side. How long the left grip keeps reading held after your hand leaves it."
+              />
+              <NumberField setting="RIGHT_GRIP_RELEASE_DELAY"
+                label="Right release delay" value={props.rightReleaseDelay ?? ''} placeholder="0"
+                onChange={v => props.onReleaseDelayChange?.('RIGHT', v)} min={0} max={2000} step={10} coarseStep={100} unit="ms"
+                hint="Per side. How long the right grip keeps reading held after your hand leaves it."
+              />
+            </div>
+          )}
+          {props.steamController && (
+            <p className={styles.warning}>The left grip reads less reliably on this controller. Avoid binding a held layer to it; a lost contact would drop the layer. A left release delay rides out short drops.</p>
+          )}
+
+          <span className={styles.eyebrow}>Grip haptic</span>
+          <div className={styles.switches}>
+            <label className={styles.switchRow}>
+              <input type="checkbox" checked={props.leftGripHaptics ?? true} onChange={e => props.onLeftGripHapticsChange?.(e.target.checked)} />
+              <span>{t('keymap.leftGripHaptics', 'Left grip')}</span>
             </label>
-            <label>
-              <input type="checkbox" checked={props.rightGripHaptics ?? true}
-                onChange={e => props.onRightGripHapticsChange?.(e.target.checked)} />
-              {t('keymap.rightGripHaptics', 'Right grip')}
+            <label className={styles.switchRow}>
+              <input type="checkbox" checked={props.rightGripHaptics ?? true} onChange={e => props.onRightGripHapticsChange?.(e.target.checked)} />
+              <span>{t('keymap.rightGripHaptics', 'Right grip')}</span>
             </label>
           </div>
-          <NumberField layout="inline"
-            label={t('keymap.gripHapticIntensity', 'Grip haptic')}
-            value={haptic}
-            onChange={v => props.onGripHapticIntensityChange?.(v)}
-            min={0}
-            max={100}
-            step={1}
+          <HapticTiles label="Contact haptic" value={hapticEffect} onChange={v => props.onGripHapticEffectChange?.(v)} />
+          <NumberField setting="GRIP_HAPTIC_INTENSITY"
+            label="Intensity" value={haptic} onChange={v => props.onGripHapticIntensityChange?.(v)}
+            min={0} max={100} step={1} unit="%"
             hint={t('keymap.gripHapticHint')}
           />
-          <label>
-            {t('keymap.gripHapticEffect', 'Grip haptic effect')}
-            <AppSelect
-              className="app-select"
-              value={hapticEffect}
-              disabled={haptic === 0}
-              onChange={e => props.onGripHapticEffectChange?.(e.target.value)}
-            >
-              {HAPTIC_EFFECTS.filter(effect => effect !== 'OFF').map(effect => (
-                <option key={effect} value={effect}>{t(`keymap.hapticEffect_${effect}`)}</option>
-              ))}
-            </AppSelect>
-          </label>
-          <NumberField layout="inline"
-            label={t('keymap.gripReleaseHapticIntensity', 'Grip release haptic')}
-            value={releaseHaptic}
-            onChange={v => props.onGripReleaseHapticIntensityChange?.(v)}
-            min={0}
-            max={100}
-            step={1}
+
+          <span className={styles.eyebrow}>Release haptic</span>
+          <HapticTiles label="Release haptic" value={releaseHapticEffect} onChange={v => props.onGripReleaseHapticEffectChange?.(v)} />
+          <NumberField setting="GRIP_RELEASE_HAPTIC_INTENSITY"
+            label="Intensity" value={releaseHaptic} onChange={v => props.onGripReleaseHapticIntensityChange?.(v)}
+            min={0} max={100} step={1} unit="%"
             hint={t('keymap.gripReleaseHapticHint')}
           />
-          <label>
-            {t('keymap.gripReleaseHapticEffect', 'Grip release haptic effect')}
-            <AppSelect
-              className="app-select"
-              value={releaseHapticEffect}
-              disabled={releaseHaptic === 0}
-              onChange={e => props.onGripReleaseHapticEffectChange?.(e.target.value)}
-            >
-              {HAPTIC_EFFECTS.filter(effect => effect !== 'OFF').map(effect => (
-                <option key={effect} value={effect}>{t(`keymap.hapticEffect_${effect}`)}</option>
-              ))}
-            </AppSelect>
-          </label>
         </div>
-      </KeymapSection>
+      </div>
       <SectionActions
         className={keymapStyles.keymapSectionActions}
         hasPendingChanges={props.hasPendingChanges}

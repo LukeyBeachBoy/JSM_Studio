@@ -46,9 +46,11 @@ const fs = require('node:fs');
  assert.ok(!/LEFT_TOUCH_STICK_MODE = AIM/.test(await page.evaluate(()=>window.__lastSaved)));
  const appearance = left.getByRole('button',{name:'Appearance & Position',exact:true});
  await appearance.click();
- await page.getByRole('heading',{name:'Menu Layout',exact:true}).waitFor();
+ await page.getByRole('heading',{name:'Menu layout',exact:true}).waitFor();
  await page.screenshot({path:path.join(__dirname,'../tmp/redesign-menus.png'),fullPage:true});
- await page.getByRole('button',{name:'Settings',exact:true}).first().click();
+ // Preferences is a Studio page now, behind the app mark (design: Studio Home).
+ await page.locator('.titlebar__brand').click();
+ await page.getByRole('button',{name:'Preferences',exact:true}).first().click();
  await page.getByRole('heading',{name:'Controller Polling',exact:true}).waitFor();
  await page.getByRole('button',{name:'Navigate with controller',exact:true}).waitFor();
  await page.screenshot({path:path.join(__dirname,'../tmp/redesign-settings.png'),fullPage:true});

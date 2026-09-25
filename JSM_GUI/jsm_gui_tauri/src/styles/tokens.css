@@ -1,202 +1,129 @@
-/* Palette follows Steam Input's current controller configuration screen: a
-   near-neutral dark grey shell rather than the old blue-black one, panels
-   separated from the page by a step in lightness rather than by a border, and
-   a desaturated link blue for accents, selection, AND success/confirmation
-   feedback (toasts, pills, badges) -- Steam Input leans on this one blue for
-   nearly everything positive rather than switching hue per state.
+/* The design tokens themselves live in design-tokens.css, copied verbatim from
+   design/handoff/designs/tokens/tokens.css. Everything below is the old
+   vocabulary kept as aliases (HANDOFF.md, "Token migration"), so components
+   that still say --bg-2 or --text-muted resolve to the new surfaces and text
+   steps rather than to a second palette. New code uses the new names. */
+@import './design-tokens.css';
 
-   Green (#a3d34e family) is kept, but narrowed to genuine live/real-time
-   telemetry only (a stick or touch position actually moving right now) --
-   the one case where sharing the accent's hue would make "live" and
-   "selected" indistinguishable. Success toasts/pills previously used this
-   same green for every routine confirmation, which read as green splashed
-   across the whole app rather than a rare, meaningful signal.
-
-   The blue-black version read as heavier and more saturated than the thing it
-   was imitating: colour was doing work that spacing and lightness should do. */
 :root,
-:root[data-theme='dark'] {
-  /* Layout */
-  --top-bar-height: 48px;
-  --bp-main: 1060px;
-
-  /* Spacing rhythm: everything is a multiple of 4px, so panels, rows and gaps
-     line up instead of each component inventing its own value. */
-  --space-1: 0.25rem;
-  --space-2: 0.5rem;
-  --space-3: 0.75rem;
-  --space-4: 1rem;
-  --space-5: 1.5rem;
-  --space-6: 2rem;
-
-  /* Type scale. Four steps, each with a job: page title, section title, body
-     label, hint. Steam Input's screens use about this much variation and no
-     more -- weight and colour do the rest. */
-  --font-page-title: 1.12rem;
-  --font-section-title: 0.95rem;
-  --font-label: 0.84rem;
-  --font-hint: 0.76rem;
-  --radius-card: 10px;
-  --radius-control: 7px;
-
-  /* One elevation for panels, so cards read as raised rather than outlined.
-     A border on every panel was most of what made the old screens busy. */
-  --elevation-card: 0 1px 2px rgba(0, 0, 0, 0.28), 0 6px 18px rgba(0, 0, 0, 0.22);
-
-  /* Backgrounds */
-  --bg-0: #16181c;
-  --bg-1: #1a1d22;
-  --bg-1-5: #1f2329;
-  --bg-2: #23272e;
-  --bg-btn: #272c34;
-  --bg-btn-hover: #31373f;
-  --bg-btn-primary: #2b5878;
-  --bg-input: #1a1d22;
-  --canvas-grid-x: rgba(255, 255, 255, 0.016);
-  --canvas-grid-y: rgba(255, 255, 255, 0.012);
-  --canvas-gradient: linear-gradient(180deg, #14161a 0%, var(--bg-0) 100%);
-  --shell-scroll-grid-x: rgba(255, 255, 255, 0.012);
-  --shell-scroll-grid-y: rgba(255, 255, 255, 0.01);
-  --topbar-bg: linear-gradient(180deg, #1f2329, #1a1d22);
-  --sidebar-bg: linear-gradient(180deg, #1a1d22, #141619);
-  --toolbar-bg: #1f2329;
-  --inset-highlight: rgba(255, 255, 255, 0.02);
+:root[data-theme='dark'],
+:root[data-theme='light'] {
+  /* Surfaces */
+  --bg-0: var(--surface-canvas);
+  --bg-1: var(--surface-frame);
+  --topbar-bg: var(--surface-frame);
+  --toolbar-bg: var(--surface-frame);
+  --bg-1-5: var(--surface-nav);
+  --sidebar-bg: var(--surface-nav);
+  --bg-2: var(--surface-row);
+  --bg-elevated: var(--surface-raised);
+  --bg-btn: var(--surface-control);
+  --bg-btn-hover: var(--surface-control-hover);
+  --bg-input: var(--surface-sunken);
+  --state-selected: var(--surface-selected);
+  --state-focused: var(--surface-selected);
+  --canvas-grid-x: transparent;
+  --canvas-grid-y: transparent;
+  --canvas-gradient: var(--surface-canvas);
+  --shell-scroll-grid-x: transparent;
+  --shell-scroll-grid-y: transparent;
+  --inset-highlight: transparent;
+  --elevation-card: none;
 
   /* Text */
-  --text-strong: #e9ebee;
-  --text-mid: #b4bac2;
-  --text-muted: #8b919a;
-  --text-dim: #6a7078;
+  --text-strong: var(--text-1);
+  --text-primary: var(--text-1);
+  --text-mid: var(--text-2);
+  --text-muted: var(--text-3);
+  --text-dim: var(--text-4);
 
-  /* Borders: neutral and quiet. A saturated border on every panel was what made
-     the old palette feel busy -- panels separate by lightness instead. */
-  --border-1: rgba(255, 255, 255, 0.07);
-  --border-strong: rgba(255, 255, 255, 0.16);
+  /* Hairlines */
+  --border-1: var(--line-1);
+  --border-subtle: var(--line-1);
+  --border-color: var(--line-2);
+  --border-strong: var(--line-2);
+  --menu-divider: var(--line-1);
+  --keymap-card-border: var(--line-1);
 
-  /* Accent */
-  --accent: #4c9fd8;
-  --accent-primary: #3183c4;
-  --btn-primary-text: #f2f7fb;
+  /* Accent and focus. The primary button is now solid accent. */
+  --accent-primary: var(--accent-strong);
+  --bg-btn-primary: var(--accent);
+  --btn-primary-text: var(--text-on-accent);
+  --focus-ring: 0 0 0 2px var(--focus-keyboard);
 
-  /* Specialty */
-  --telemetry-green: #a3d34e;
+  /* One semantic set replaces the pill, toast and danger palettes. */
+  --warning: var(--warn);
+  --pill-warn-bg: var(--warn-soft);
+  --pill-warn-border: var(--warn);
+  --pill-warn-text: var(--warn);
+  --pill-error-bg: var(--error-soft);
+  --pill-error-border: var(--error);
+  --pill-error-text: var(--error);
+  --pill-success-bg: var(--ok-soft);
+  --pill-success-border: var(--ok);
+  --pill-success-text: var(--ok);
+  --danger-bg: var(--error-soft);
+  --danger-border: var(--error);
+  --danger-text: var(--error);
+  --toast-success-bg: var(--surface-raised);
+  --toast-success-border: var(--ok);
+  --toast-success-text: var(--text-1);
+  --toast-warn-bg: var(--surface-raised);
+  --toast-warn-border: var(--warn);
+  --toast-warn-text: var(--text-1);
+  --toast-warning-text: var(--text-1);
+  --toast-error-bg: var(--surface-raised);
+  --toast-error-border: var(--error);
+  --toast-error-text: var(--text-1);
+  --telemetry-green: var(--telemetry);
 
-  /* Pills / alerts (dark) */
-  --pill-warn-bg: rgba(255, 190, 88, 0.16);
-  --pill-warn-border: rgba(255, 190, 88, 0.56);
-  --pill-warn-text: #ffe1a8;
+  /* Trackpad grids draw in the well colours like every other meter. */
+  --touchpad-grid-bg: var(--surface-sunken);
+  --touchpad-grid-border: var(--line-2);
+  --touchpad-grid-cell-bg: var(--surface-row);
+  --touchpad-grid-cell-border: var(--line-2);
+  --touchpad-grid-muted: var(--text-3);
+  --touchpad-grid-hint: var(--text-2);
+  --touchpad-grid-limit: var(--text-3);
 
-  --pill-error-bg: rgba(255, 116, 120, 0.16);
-  --pill-error-border: rgba(255, 116, 120, 0.64);
-  --pill-error-text: #ffc7c9;
+  /* Type: 26/16/14/12 became 28/17/15/13. */
+  --font-page-title: var(--fs-page);
+  --font-section-title: var(--fs-section);
+  --font-label: var(--fs-label);
+  --font-hint: var(--fs-hint);
 
-  --pill-success-bg: rgba(76, 159, 216, 0.16);
-  --pill-success-border: rgba(76, 159, 216, 0.56);
-  --pill-success-text: #cfe9fb;
+  /* Spacing: the same 4px base, extended. */
+  --space-1: var(--sp-1);
+  --space-2: var(--sp-2);
+  --space-3: var(--sp-3);
+  --space-4: var(--sp-4);
+  --space-5: var(--sp-6);
+  --space-6: var(--sp-7);
 
-  /* Danger buttons/links (dark) */
-  --danger-bg: var(--pill-error-bg);
-  --danger-border: var(--pill-error-border);
-  --danger-text: var(--pill-error-text);
+  /* Radii */
+  --radius-card: var(--r-card);
+  --radius-control: var(--r-md);
+  --radius-pill: var(--r-pill);
 
-  /* Toasts (dark) */
-  --toast-success-bg: #122430;
-  --toast-success-border: #4c9fd8;
-  --toast-success-text: #d9eefb;
-  --toast-warn-bg: #442f12;
-  --toast-warn-border: #ffc15e;
-  --toast-warn-text: #ffe9c4;
-  --toast-error-bg: #461b22;
-  --toast-error-border: #ff8f9a;
-  --toast-error-text: #ffe0e3;
-
-  /* Touchpad grid (dark) */
-  --touchpad-grid-bg: #1a1d22;
-  --touchpad-grid-border: #333941;
-  --touchpad-grid-cell-bg: #1f2329;
-  --touchpad-grid-cell-border: #3c434c;
-  --touchpad-grid-muted: #99a0a9;
-  --touchpad-grid-hint: #d3d8de;
-  --touchpad-grid-limit: #adb4bd;
-
-}
-
-:root[data-theme='light'] {
-  --top-bar-height: 48px;
+  /* Dimensions */
+  --header-height: var(--titlebar-h);
+  --top-bar-height: var(--titlebar-h);
+  --footer-height: var(--capsule-h);
+  --row-height: var(--row-h);
+  --control-height: var(--control-h);
+  --sidebar-width: var(--shell-section-w);
+  --disabled-opacity: .45;
+  --transition-fast: var(--dur-2) var(--ease-standard);
   --bp-main: 1060px;
 
-  /* A light theme needs a much softer shadow to read as raised rather than
-     dirty; everything else in the scale is theme-independent. */
-  --elevation-card: 0 1px 2px rgba(31, 58, 88, 0.1), 0 6px 16px rgba(31, 58, 88, 0.08);
+  /* Shell measurements (HANDOFF.md, "Measurements"). */
+  --page-tabs-h: 52px;
+  --shell-section-w: 216px;
+  --content-max-overview: 1360px;
+  --page-pad: var(--sp-8);
+  --glyph-ink: var(--surface-frame);
+}
 
-  --bg-0: #dfe6ee;
-  --bg-1: #e8eef4;
-  --bg-1-5: #f0f4f8;
-  --bg-2: #f6f8fb;
-  --bg-btn: #edf2f7;
-  --bg-btn-hover: #dfe8f0;
-  --bg-btn-primary: #d8eaf7;
-  --bg-input: #eef3f7;
-  --canvas-grid-x: rgba(63, 84, 105, 0.07);
-  --canvas-grid-y: rgba(63, 84, 105, 0.05);
-  --canvas-gradient: linear-gradient(180deg, #e7edf3 0%, var(--bg-0) 100%);
-  --shell-scroll-grid-x: rgba(63, 84, 105, 0.055);
-  --shell-scroll-grid-y: rgba(63, 84, 105, 0.04);
-  --topbar-bg: linear-gradient(180deg, #f4f7fa, #e9f0f6);
-  --sidebar-bg: linear-gradient(180deg, #edf3f8, #dce5ed);
-  --toolbar-bg: #eef3f8;
-  --inset-highlight: rgba(255, 255, 255, 0.82);
-
-  --text-strong: #17212c;
-  --text-mid: #3f4d5c;
-  --text-muted: #667687;
-  --text-dim: #8795a5;
-
-  --border-1: #c4ced9;
-  --border-strong: rgba(10, 110, 189, 0.5);
-
-  --accent: #0a6ebd;
-  --accent-primary: #1677b7;
-  --btn-primary-text: #f6fbff;
-
-  /* Specialty */
-  --telemetry-green: #5b8a1f;
-
-  /* Pills / alerts (light) */
-  --pill-warn-bg: rgba(173, 104, 24, 0.13);
-  --pill-warn-border: rgba(173, 104, 24, 0.48);
-  --pill-warn-text: #7f4b10;
-
-  --pill-error-bg: rgba(181, 60, 72, 0.12);
-  --pill-error-border: rgba(181, 60, 72, 0.48);
-  --pill-error-text: #9d2d39;
-
-  --pill-success-bg: rgba(10, 110, 189, 0.12);
-  --pill-success-border: rgba(10, 110, 189, 0.45);
-  --pill-success-text: #0f4d7d;
-
-  /* Danger buttons/links (light) */
-  --danger-bg: var(--pill-error-bg);
-  --danger-border: var(--pill-error-border);
-  --danger-text: var(--pill-error-text);
-
-  /* Toasts (light) */
-  --toast-success-bg: #dceaf5;
-  --toast-success-border: #1677b7;
-  --toast-success-text: #0f4d7d;
-  --toast-warn-bg: #f5ebd8;
-  --toast-warn-border: #bd7b26;
-  --toast-warn-text: #805016;
-  --toast-error-bg: #f4e4e7;
-  --toast-error-border: #c24e5f;
-  --toast-error-text: #8e2d39;
-
-  /* Touchpad grid (light) */
-  --touchpad-grid-bg: #e7edf4;
-  --touchpad-grid-border: #c4ced9;
-  --touchpad-grid-cell-bg: #f3f6f9;
-  --touchpad-grid-cell-border: #b9c5d1;
-  --touchpad-grid-muted: #617182;
-  --touchpad-grid-hint: #344251;
-  --touchpad-grid-limit: #7d8b99;
+@media (max-width: 1279px) {
+  :root { --shell-section-w: 184px; }
 }

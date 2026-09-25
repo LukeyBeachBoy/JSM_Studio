@@ -16,12 +16,12 @@ export function StaticSensForm({ sensitivity, onChangeX, onChangeY, onRollContri
   return (
     <>
       <div className="flex-inputs">
-        <NumberField label={t('sensitivity.staticSensX')} value={sensitivity.gyroSensX} onChange={onChangeX} min={0} max={30} step={0.1} />
-        <NumberField label={t('sensitivity.staticSensY')} value={sensitivity.gyroSensY} onChange={onChangeY} min={0} max={30} step={0.1} />
+        <NumberField setting="GYRO_SENS" label={t('sensitivity.staticSensX')} value={sensitivity.gyroSensX} onChange={onChangeX} min={0} max={30} step={0.1} />
+        <NumberField setting="GYRO_SENS" label={t('sensitivity.staticSensY')} value={sensitivity.gyroSensY} onChange={onChangeY} min={0} max={30} step={0.1} />
       </div>
       {showRollContribution && (
         <div className="flex-inputs">
-          <NumberField
+          <NumberField setting="ROLL_CONTRIBUTION"
             label={t('sensitivity.rollContribution')}
             value={sensitivity.rollContribution}
             onChange={onRollContributionChange}

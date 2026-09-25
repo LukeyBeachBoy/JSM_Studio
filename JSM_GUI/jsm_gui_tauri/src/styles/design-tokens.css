@@ -1,0 +1,146 @@
+/* JSM Studio design tokens — v0.1 (structure pass).
+   Dark is primary. Every component value resolves to one of these.
+   Bundled in src/assets/fonts/: Geist[wght].woff2, GeistMono[wght].woff2 (SIL OFL). */
+
+@font-face { font-family: "Geist"; src: local("Geist"), url("../assets/fonts/Geist[wght].woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: "Geist Mono"; src: local("Geist Mono"), url("../assets/fonts/GeistMono[wght].woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
+
+:root, :root[data-theme="dark"] {
+  /* Surfaces by elevation (cool blue-grey, lightness steps of ~3%) */
+  --surface-frame: #0d1217;      /* title bar + context header */
+  --surface-canvas: #131920;     /* page background */
+  --surface-nav: #181f27;        /* sidebar / rail */
+  --surface-row: #1f2730;        /* rows, cards */
+  --surface-row-hover: #26303a;
+  --surface-control: #2e3844;    /* pills, buttons */
+  --surface-control-hover: #38444f;
+  --surface-sunken: #0f151b;     /* meters, wells */
+  --surface-raised: #232c36;     /* menus, dialogs */
+  --surface-selected: #2a4a63;   /* focused / selected row fill */
+  --surface-scrim: rgba(5, 9, 13, .64);
+
+  /* Text */
+  --text-1: #e8eef4;
+  --text-2: #b0bcc8;
+  --text-3: #808c99;
+  --text-4: #5b6571;
+  --text-on-accent: #07131d;
+
+  /* Accent (one) */
+  --accent: #6ec3f4;
+  --accent-strong: #3d95d6;
+  --accent-soft: rgba(110, 195, 244, .14);
+
+  /* Focus */
+  --focus-controller: #9ad8ff;           /* ring colour for pad focus */
+  --focus-controller-width: 2px;
+  --focus-keyboard: #6ec3f4;             /* :focus-visible ring (no fill) */
+  --focus-offset: 2px;
+
+  /* Hairlines */
+  --line-1: rgba(214, 228, 242, .07);
+  --line-2: rgba(214, 228, 242, .13);
+
+  /* Semantic */
+  --ok: #7cc7a0;   --ok-soft: rgba(124, 199, 160, .14);
+  --warn: #e8b56a; --warn-soft: rgba(232, 181, 106, .14);
+  --error: #ef8a8f; --error-soft: rgba(239, 138, 143, .14);
+  --telemetry: #a6d65a; --telemetry-soft: rgba(166, 214, 90, .16);
+
+  /* Origin markers */
+  --origin-inherited: #8b97a4;
+  --origin-override: #6ec3f4;
+
+  /* Layer colours (equal L/C in oklch, hue varies) */
+  --layer-1: oklch(76% .11 300);  /* Vehicles & utility */
+  --layer-2: oklch(76% .11 160);  /* Comms */
+  --layer-3: oklch(76% .11 60);   /* Tactical map */
+  --layer-1-soft: oklch(76% .11 300 / .16);
+  --layer-2-soft: oklch(76% .11 160 / .16);
+  --layer-3-soft: oklch(76% .11 60 / .16);
+
+  /* Type */
+  --font-ui: "Geist", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Geist Mono", "Cascadia Mono", Consolas, monospace;
+  --fs-display: 32px; --lh-display: 38px;
+  --fs-page: 28px;    --lh-page: 34px;
+  --fs-section: 17px; --lh-section: 24px;
+  --fs-label: 15px;   --lh-label: 20px;
+  --fs-body: 14px;    --lh-body: 20px;
+  --fs-hint: 13px;    --lh-hint: 18px;
+  --fs-eyebrow: 11px; --lh-eyebrow: 14px;
+  --fs-micro: 11px;
+  --fw-regular: 400; --fw-medium: 500; --fw-semibold: 600; --fw-bold: 700;
+  --tracking-eyebrow: .12em;
+  --tracking-title: -.015em;
+
+  /* Spacing (4px base) */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px;
+  --sp-6: 24px; --sp-7: 32px; --sp-8: 40px; --sp-9: 48px; --sp-10: 64px;
+
+  /* Radii */
+  --r-xs: 4px; --r-sm: 6px; --r-md: 8px; --r-row: 10px; --r-card: 14px; --r-pill: 999px;
+
+  /* Dimensions */
+  --titlebar-h: 44px;
+  --context-h: 44px;
+  --sidebar-w: 256px;
+  --rail-w: 72px;
+  --section-list-w: 232px;
+  --row-h-compact: 44px; --row-h: 56px; --row-h-tall: 72px;
+  --control-h-sm: 28px; --control-h: 36px; --control-h-lg: 44px;
+  --footer-h: 48px;
+  --capsule-h: 44px;
+  --content-max: 1040px;
+  --glyph-sm: 20px; --glyph-md: 28px; --glyph-lg: 36px;
+
+  /* Elevation (sparingly) */
+  --shadow-menu: 0 12px 32px rgba(0, 0, 0, .45), 0 0 0 1px var(--line-2);
+  --shadow-capsule: 0 8px 24px rgba(0, 0, 0, .4), 0 0 0 1px var(--line-1);
+  --shadow-lift: 0 2px 8px rgba(0, 0, 0, .28);
+
+  /* Motion */
+  --dur-1: 90ms; --dur-2: 160ms; --dur-3: 240ms; --dur-4: 400ms; --dur-ambient: 2400ms;
+  --ease-standard: cubic-bezier(.2, 0, 0, 1);
+  --ease-emphasis: cubic-bezier(.3, 0, 0, 1);
+  --ease-exit: cubic-bezier(.4, 0, 1, 1);
+  --ease-spring: cubic-bezier(.34, 1.36, .64, 1);
+  --stagger: 24ms;
+
+  /* Controller art (see Controller Art 9c) */
+  --art-line: #e3eaf1; --art-detail: #aebbc8; --art-body: #1c242d; --art-well: #0e1419; --art-cap: #212a34; --art-rim: rgba(255, 255, 255, .10);
+
+  /* Z */
+  --z-sticky: 10; --z-focus: 20; --z-drawer: 40; --z-menu: 50; --z-dialog: 60; --z-toast: 70;
+}
+
+:root[data-theme="light"] {
+  --surface-frame: #e6ebf0;
+  --surface-canvas: #f1f4f7;
+  --surface-nav: #e9eef2;
+  --surface-row: #ffffff;
+  --surface-row-hover: #f5f8fa;
+  --surface-control: #e3e9ef;
+  --surface-control-hover: #d7dfe7;
+  --surface-sunken: #e4e9ee;
+  --surface-raised: #ffffff;
+  --surface-selected: #d3e6f5;
+  --surface-scrim: rgba(20, 32, 44, .32);
+  --text-1: #141c24; --text-2: #3e4b58; --text-3: #66727f; --text-4: #929ca7;
+  --text-on-accent: #ffffff;
+  --accent: #0b6fb8; --accent-strong: #095c99; --accent-soft: rgba(11, 111, 184, .1);
+  --focus-controller: #0b6fb8; --focus-keyboard: #0b6fb8;
+  --line-1: rgba(20, 40, 60, .08); --line-2: rgba(20, 40, 60, .15);
+  --ok: #2e7d57; --warn: #9a6415; --error: #b23b45; --telemetry: #4f8a1c;
+  --origin-inherited: #6d7986; --origin-override: #0b6fb8;
+  --layer-1: oklch(52% .13 300); --layer-2: oklch(52% .13 160); --layer-3: oklch(52% .13 60);
+  --layer-1-soft: oklch(52% .13 300 / .12); --layer-2-soft: oklch(52% .13 160 / .12); --layer-3-soft: oklch(52% .13 60 / .12);
+  --shadow-menu: 0 12px 32px rgba(20, 40, 60, .16), 0 0 0 1px var(--line-2);
+  --shadow-capsule: 0 6px 20px rgba(20, 40, 60, .14), 0 0 0 1px var(--line-1);
+  --shadow-lift: 0 1px 4px rgba(20, 40, 60, .12);
+  --art-line: #1c2732; --art-detail: #4b5967; --art-body: #f7f9fb; --art-well: #d3dbe3; --art-cap: #eef2f5; --art-rim: rgba(255, 255, 255, .9);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-1: 0ms; --dur-2: 0ms; --dur-3: 120ms; --dur-4: 120ms; --stagger: 0ms; }
+}

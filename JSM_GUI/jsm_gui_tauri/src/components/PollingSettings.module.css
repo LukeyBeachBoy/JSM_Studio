@@ -1,0 +1,36 @@
+/* Controller polling (Tuning and Studio Pages 16d). */
+.polling { display: flex; flex-direction: column; align-items: stretch; gap: var(--sp-2); }
+.polling > button { align-self: flex-start; }
+
+.heading {
+  margin: 0 0 var(--sp-1);
+  font-size: var(--fs-eyebrow);
+  line-height: var(--lh-eyebrow);
+  letter-spacing: var(--tracking-eyebrow);
+  font-weight: var(--fw-semibold);
+  color: var(--text-3);
+  text-transform: uppercase;
+}
+
+.sources {
+  margin: var(--sp-2) 0 0;
+  padding: var(--sp-1) var(--sp-4);
+  border-radius: var(--r-card);
+  background: var(--surface-row);
+}
+.sources > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  padding: 10px 0;
+  box-shadow: inset 0 -1px 0 var(--line-1);
+  font-size: var(--fs-body);
+}
+.sources > div:last-child { box-shadow: none; }
+.sources dt { color: var(--text-2); }
+.sources dd { margin: 0; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.sources .effective dd { color: var(--text-1); font-weight: var(--fw-semibold); }
+.sources dd.set { color: var(--origin-override, var(--accent)); font-weight: var(--fw-semibold); }
+
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); }
+.note { margin: 0; color: var(--text-3); font-size: var(--fs-hint); }

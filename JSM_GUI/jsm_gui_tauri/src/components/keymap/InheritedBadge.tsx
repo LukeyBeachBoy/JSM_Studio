@@ -37,7 +37,7 @@ export function InheritedBadge({ source, onOpenConfigEditor }: Props) {
         onOpenConfigEditor?.()
       }}
     >
-      <span className={styles.mark} aria-hidden="true">↳</span>
+      <span className={styles.mark} aria-hidden="true" />
       <span className={styles.source}>{name}</span>
     </button>
   )

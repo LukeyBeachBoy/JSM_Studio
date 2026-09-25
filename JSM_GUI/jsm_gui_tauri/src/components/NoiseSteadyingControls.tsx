@@ -67,22 +67,22 @@ export function NoiseSteadyingControls({
         <h2 className="section-title">{t('noise.title')}</h2>
         <p className="section-caption compact">{t('noise.caption')}</p>
       </div>
-      <div className={telemetryStyles.telemetryInline}>
+      <details className="instrument-panel"><summary>Live gyro diagnostics</summary><div className={telemetryStyles.telemetryInline}>
         <TelemetryBanner {...telemetry} />
+      </div></details>
+      <div className="flex-inputs">
+        <NumberField setting="GYRO_CUTOFF_SPEED" label={t('noise.deadzone')} value={sensitivity.cutoffSpeed} onChange={onCutoffSpeedChange} min={0} max={5} step={0.01} unit="°/s" />
+        <NumberField setting="GYRO_CUTOFF_RECOVERY" label={t('noise.steadying')} value={sensitivity.cutoffRecovery} onChange={onCutoffRecoveryChange} min={0} max={5} step={0.01} unit="°/s" />
       </div>
       <div className="flex-inputs">
-        <NumberField label={t('noise.deadzone')} value={sensitivity.cutoffSpeed} onChange={onCutoffSpeedChange} min={0} max={5} step={0.01} unit="°/s" />
-        <NumberField label={t('noise.steadying')} value={sensitivity.cutoffRecovery} onChange={onCutoffRecoveryChange} min={0} max={5} step={0.01} unit="°/s" />
-      </div>
-      <div className="flex-inputs">
-        <NumberField label={t('noise.smoothTime')} value={sensitivity.smoothTime} onChange={onSmoothTimeChange} min={0} max={0.03} step={0.001} unit="s" />
-        <NumberField label={t('noise.smoothThreshold')} value={sensitivity.smoothThreshold} onChange={onSmoothThresholdChange} min={0} max={50} step={1} unit="°/s" />
+        <NumberField setting="GYRO_SMOOTH_TIME" label={t('noise.smoothTime')} value={sensitivity.smoothTime} onChange={onSmoothTimeChange} min={0} max={0.03} step={0.001} unit="s" />
+        <NumberField setting="GYRO_SMOOTH_THRESHOLD" label={t('noise.smoothThreshold')} value={sensitivity.smoothThreshold} onChange={onSmoothThresholdChange} min={0} max={50} step={1} unit="°/s" />
       </div>
       <div className="flex-inputs">
         <label>
           <span className="field-caption">{t('noise.smoothingDecay')}
           <HelpButton title="Gyro Smoothing Decay">Chooses how smoothing is applied. Off averages a fixed number of recent samples; on decays the old value continuously, which does not depend on the polling interval and so behaves the same whatever it is set to. Both use the same smooth time and threshold.</HelpButton></span>
-          <AppSelect value={sensitivity.smoothingDecay ?? 'OFF'} onChange={(e) => onSmoothingDecayChange(e.target.value)}>
+          <AppSelect setting="GYRO_SMOOTHING_DECAY" value={sensitivity.smoothingDecay ?? 'OFF'} onChange={(e) => onSmoothingDecayChange(e.target.value)}>
             <option value="OFF">{t('common.off')}</option>
             <option value="ON">{t('common.on')}</option>
           </AppSelect>
@@ -98,29 +98,29 @@ export function NoiseSteadyingControls({
       </div>
       {sensitivity.oneEuroFilter && (
         <div className="flex-inputs">
-          <NumberField label={t('noise.oneEuroMinCutoff')} value={sensitivity.oneEuroMinCutoff} onChange={onOneEuroMinCutoffChange} min={0} max={20} step={0.1} defaultValue={6} unit="Hz" />
-          <NumberField label={t('noise.oneEuroSpeedCoeff')} value={sensitivity.oneEuroSpeedCoeff} onChange={onOneEuroSpeedCoeffChange} min={0} max={2} step={0.01} defaultValue={0.3} />
+          <NumberField setting="ONE_EURO_MIN_CUTOFF" label={t('noise.oneEuroMinCutoff')} value={sensitivity.oneEuroMinCutoff} onChange={onOneEuroMinCutoffChange} min={0} max={20} step={0.1} defaultValue={6} unit="Hz" />
+          <NumberField setting="ONE_EURO_SPEED_COEFF" label={t('noise.oneEuroSpeedCoeff')} value={sensitivity.oneEuroSpeedCoeff} onChange={onOneEuroSpeedCoeffChange} min={0} max={2} step={0.01} defaultValue={0.3} />
         </div>
       )}
       <div className="flex-inputs">
-        <NumberField label={t('noise.angleSnapping')} value={sensitivity.angleSnap} onChange={onAngleSnapChange} min={0} max={45} step={0.1} unit="°" />
+        <NumberField setting="GYRO_ANGLE_SNAP" label={t('noise.angleSnapping')} value={sensitivity.angleSnap} onChange={onAngleSnapChange} min={0} max={45} step={0.1} unit="°" />
         <label>
           <span className="field-caption">{t('noise.easeAngleSnapping')}
           <HelpButton title="Ease Angle Snapping">How angle snapping takes hold. Off snaps as soon as you are inside the angle; on fades the snap in across it, so aim is pulled level gradually rather than jumping.</HelpButton></span>
-          <AppSelect className="app-select" value={sensitivity.angleSnapEase ?? 'OFF'} onChange={(e) => onAngleSnapSmoothChange(e.target.value)}>
+          <AppSelect setting="GYRO_ANGLE_SNAP_EASE" className="app-select" value={sensitivity.angleSnapEase ?? 'OFF'} onChange={(e) => onAngleSnapSmoothChange(e.target.value)}>
             <option value="OFF">{t('common.off')}</option>
             <option value="ON">{t('common.on')}</option>
           </AppSelect>
         </label>
       </div>
       <div className="flex-inputs">
-        <NumberField label={t('noise.decelBrakeStrength')} value={sensitivity.decelBrakeStrength} onChange={onDecelBrakeStrengthChange} min={0} max={1} step={0.01} />
-        <NumberField label={t('noise.decelBrakeThreshold')} value={sensitivity.decelBrakeThreshold} onChange={onDecelBrakeThresholdChange} min={1} max={60} step={0.5} defaultValue={25} unit="°/s" />
+        <NumberField setting="DECEL_BRAKE_STRENGTH" label={t('noise.decelBrakeStrength')} value={sensitivity.decelBrakeStrength} onChange={onDecelBrakeStrengthChange} min={0} max={1} step={0.01} />
+        <NumberField setting="DECEL_BRAKE_THRESHOLD" label={t('noise.decelBrakeThreshold')} value={sensitivity.decelBrakeThreshold} onChange={onDecelBrakeThresholdChange} min={1} max={60} step={0.5} defaultValue={25} unit="°/s" />
       </div>
       {/* Not gyro noise as such -- the gyro is reporting a real movement. It just
           isn't one you meant, which is what the rest of this page is about. */}
       <div className="flex-inputs">
-        <NumberField
+        <NumberField setting="GYRO_CLICK_DAMPEN"
           label={t('noise.gyroClickDampen', 'Trackpad press damping')}
           value={sensitivity.gyroClickDampen}
           onChange={onGyroClickDampenChange}

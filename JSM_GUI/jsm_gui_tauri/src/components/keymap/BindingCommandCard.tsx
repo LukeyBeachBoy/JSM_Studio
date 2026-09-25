@@ -1,23 +1,30 @@
 import { useEffect, useRef, useState } from 'react'
+import { Icon } from '../icons/Icon'
 import { useTranslation } from 'react-i18next'
 import { BindingCommand, BindingCommandPatch } from '../../utils/bindingCommands'
 import keymapStyles from '../Keymap.module.css'
 import { Menu } from '../ui/Menu'
 import { BindingEditor } from './BindingEditor'
+import { ActionPicker } from './ActionPicker'
+import { SettingOrigin } from '../SettingOrigin'
 import { buildTriggerGroups, conditionTriggers, RETARGETABLE_TRIGGER_KINDS, TRIGGER_LABEL_KEYS } from './triggerKinds'
 import { Select } from '../ui/Select'
 import {
-  describeOutputValue,
   getPreferredVirtualControllerDisplayType,
   getVirtualControllerLogicalOutput,
   getVirtualControllerOutputLabel,
   getVirtualControllerTokenType,
   type VirtualControllerType,
 } from '../../utils/virtualController'
+import { describeBinding, explainBinding } from '../../utils/bindingDescription'
 
 type Option = { value: string; label: string; disabled?: boolean }
 
 type BindingCommandCardProps = {
+  expanded: boolean
+  onExpandedChange: (expanded: boolean) => void
+  inputLabel: string
+  layerInput?: string
   command: BindingCommand
   modifierOptions: Option[]
   specialOptions: Option[]
@@ -58,6 +65,10 @@ const conditionPrefixKeys: Partial<Record<BindingCommand['triggerKind'], string>
 }
 
 export function BindingCommandCard({
+  expanded,
+  onExpandedChange,
+  inputLabel,
+  layerInput,
   command,
   modifierOptions,
   specialOptions,
@@ -79,12 +90,9 @@ export function BindingCommandCard({
   chordsLiveInModeshifts,
 }: BindingCommandCardProps) {
   const { t } = useTranslation()
-  // Open by default. Collapsing as soon as a binding had a value meant the only
-  // editable control left on screen was the trigger badge, with the binding
-  // itself rendered as plain text behind a summary row that does not look
-  // clickable -- so a bound grid region (or any bound input) looked like it
-  // could no longer be changed at all. The row still collapses on request.
-  const [expanded, setExpanded] = useState(true)
+  // Basic selection uses the action picker; advanced properties stay contextual.
+  const setExpanded = onExpandedChange
+  const [pickerOpen, setPickerOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const holdTimer = useRef<ReturnType<typeof setTimeout>>()
   const cancelHold = () => { clearTimeout(holdTimer.current) }
@@ -96,11 +104,19 @@ export function BindingCommandCard({
     : ''
   const virtualLogicalOutput = command.virtualControllerLogicalOutput ?? getVirtualControllerLogicalOutput(command.outputValue)
   const virtualDisplayType = getPreferredVirtualControllerDisplayType(virtualControllerType, command.outputValue)
-  const outputLabel =
+  // A virtual-controller button is named from the scheme being displayed, so
+  // it keeps its own label rather than going through the binding reader.
+  const virtualLabel =
     command.outputKind === 'virtualController' && virtualLogicalOutput && virtualDisplayType
       ? getVirtualControllerOutputLabel(virtualLogicalOutput, virtualDisplayType, t)
-      // Named rather than spelled, the same way the input's row names it.
-      : describeOutputValue(command.outputValue) || t('keymap.commandNoOutput')
+      : null
+  // A parsed token arrives here stripped: its action modifier is `outputBehavior`
+  // and its event modifier is `triggerKind`, both of which this card shows in
+  // their own controls -- so the value is read on its own and the behaviour word
+  // still goes in front, or the card would say it twice. A row the parser could
+  // not split keeps its whole expression in outputValue, and that is where the
+  // reader earns its keep.
+  const outputLabel = virtualLabel ?? (describeBinding(command.outputValue, t) || t('keymap.commandNoOutput'))
   const summaryOutput = behaviorLabel ? `${behaviorLabel} ${outputLabel}` : outputLabel
   const tokenType = command.outputKind === 'virtualController' ? getVirtualControllerTokenType(command.outputValue) : null
   const virtualWarning =
@@ -176,15 +192,16 @@ export function BindingCommandCard({
         ) : (
           <span className={keymapStyles.commandTriggerBadge}>{triggerLabel}</span>
         )}
-        <button type="button" className={keymapStyles.commandSummaryMain} onClick={() => setExpanded(value => !value)}>
+        <button type="button" className={keymapStyles.commandSummaryMain} aria-label={`Choose action: ${summaryOutput}`} onClick={() => command.isRoundTripSafe && command.triggerKind !== 'stickShift' ? setPickerOpen(true) : setExpanded(!expanded)}>
           {conditionLabel && <span className={keymapStyles.commandConditionBadge}>{conditionLabel}</span>}
-          <span className={keymapStyles.commandArrow}>-&gt;</span>
-          <kbd className={keymapStyles.commandOutputSummary}>{summaryOutput}</kbd>
+          <span className={keymapStyles.commandArrow} aria-hidden="true">→</span>
+          <kbd className={keymapStyles.commandOutputSummary} title={explainBinding(command.outputValue, t)}>{summaryOutput}</kbd>
           {!command.isRoundTripSafe && <span className={keymapStyles.commandRawBadge}>{t('keymap.commandRawSyntax')}</span>}
         </button>
         <div className={keymapStyles.commandActions} data-capture-ignore="true">
+          <button type="button" className="ghost-btn" aria-label="Advanced command settings" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}><Icon name="timing" size={16} />Timing</button>
           <Menu open={menuOpen} onOpenChange={setMenuOpen} ariaLabel={t('keymap.commandActionsAriaLabel')}
-            trigger={<button type="button" className="ghost-btn" aria-label={t('keymap.commandActionsAriaLabel')}>&#9881;</button>}
+            trigger={<button type="button" className="ghost-btn" aria-label={t('keymap.commandActionsAriaLabel')}><Icon name="more" size={18} /></button>}
             items={[
               { label: t('keymap.commandMenuRename'), disabled: !onRename, onSelect: () => { requestAnimationFrame(() => onRename?.()) } },
               { label: t('keymap.commandCopy'), disabled: !onCopy, onSelect: () => onCopy?.(command) },
@@ -196,6 +213,8 @@ export function BindingCommandCard({
         </div>
       </div>
       {virtualWarning && <div className={keymapStyles.commandWarningText}>{virtualWarning}</div>}
+      <SettingOrigin setting={command.source.kind === 'special' ? command.source.specialKey : command.sourceLine.includes('=') ? command.sourceLine.split('=')[0].trim() : command.physicalInput} />
+      {pickerOpen && <ActionPicker layerInput={layerInput} inputLabel={inputLabel} command={command} virtualControllerType={virtualControllerType} specialOptions={specialOptions} libraryProfiles={libraryProfiles} onSelect={patch => onUpdate(command, patch)} onClose={() => setPickerOpen(false)} onAdvanced={() => setExpanded(true)} onEnableVirtualController={onEnableVirtualController} onCapture={() => onCapture(command)} />}
 
       {expanded && (
         <BindingEditor

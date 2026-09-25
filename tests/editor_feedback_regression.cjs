@@ -45,8 +45,13 @@ const fs = require('node:fs');
  await page.keyboard.press('Control+s');
  await page.waitForFunction(()=>window.__calls.includes('save'));
  assert.deepEqual(await page.evaluate(()=>window.__calls),['apply','save']);
- // Save and Apply are separate buttons that each name what they act on.
- await page.getByRole('button',{name:'Save configuration',exact:true}).click();
+ // Save and Apply are separate buttons that each name what they act on. With
+ // nothing unsaved, Save stays focusable but idle and says why (design 2a).
+ const saveButton = page.getByRole('button',{name:'Save configuration',exact:true});
+ assert.equal(await saveButton.getAttribute('data-reason'),'No unsaved changes');
+ await sens.fill('3.4'); await sens.press('Tab');
+ await right.getByText('Unsaved changes',{exact:true}).waitFor();
+ await saveButton.click();
  await page.waitForFunction(()=>window.__calls.length===3);
  await page.getByRole('button',{name:'Apply',exact:true}).click();
  await page.waitForFunction(()=>window.__calls.length===4);
@@ -69,7 +74,9 @@ const fs = require('node:fs');
  await right.getByRole('button',{name:/Region 1|Cell 1|RT1/}).first().waitFor();
  await page.keyboard.press('Control+s');
  await page.waitForFunction(()=>/L\s*,\s*RIGHT_TOUCHPAD_MODE = GRID_AND_STICK/.test(window.__lastSaved));
- await page.getByRole('button',{name:'Trackpad tuning',exact:true}).click();
+ // Tuning pages sit behind the Tuning tab's menu.
+ await page.getByRole('button',{name:/^Tuning/}).click();
+ await page.getByRole('menuitem',{name:'Trackpad tuning'}).click();
  await page.getByRole('navigation',{name:'Trackpad tuning sections'}).waitFor();
  await page.getByText('420.00 px/s',{exact:true}).waitFor();
  await page.locator('#touch-release').getByRole('button',{name:'Help: Lift-off protection',exact:true}).click();
@@ -80,6 +87,8 @@ const fs = require('node:fs');
  await page.evaluate(()=>{document.querySelector('.shell-scroll').scrollTop=0});
  await page.screenshot({path:path.join(artifacts,'trackpad-tuning.png'),fullPage:true});
  await page.getByRole('button',{name:'Triggers',exact:true}).click();
+ // Threshold and release tuning now folds away behind its own disclosure.
+ await page.locator('summary').filter({hasText:'Threshold & release'}).first().click();
  await page.getByRole('textbox',{name:'Soft press point',exact:true}).first().fill('0.1');
  await page.keyboard.press('Tab');
  await page.keyboard.press('Control+s');
@@ -88,7 +97,10 @@ const fs = require('node:fs');
  await page.keyboard.press('Tab');
  await page.keyboard.press('Control+s');
  await page.waitForFunction(()=>window.__lastSaved.includes('TRIGGER_HYSTERESIS = 0.03'));
- await page.getByRole('button',{name:'Debug Console',exact:true}).click();
+ // Debug Console now lives under the app-level Studio context, not the
+ // per-configuration rail.
+ await page.locator('.titlebar__brand').click();
+ await page.getByRole('button',{name:'Debug console',exact:true}).click();
  await page.getByLabel('JoyShockMapper live console').filter({hasText:'Mapper ready'}).waitFor();
  assert.deepEqual(errors,[]);
  console.log('PASS: scoped dirty state, undo/redo, shortcuts, save/apply separation, modeshift editing, live graph, help, trigger controls, console');

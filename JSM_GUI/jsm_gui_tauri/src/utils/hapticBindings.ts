@@ -8,11 +8,17 @@ export const HAPTIC_PREFIX = 'HAPTIC_'
 
 export type HapticSide = 'L' | 'R' | 'BOTH'
 
-// The firmware's own effects, in the firmware's own order. The index is what
+// The firmware's own effects, in the firmware's own order, then PULSE and TAP (Steam's
+// grip-calibration pulse, alone or after a pad click). The index is what
 // travels in the report, so do not reorder.
-export const HAPTIC_EFFECTS = ['OFF', 'TICK', 'CLICK', 'TONE', 'RUMBLE', 'NOISE', 'SCRIPT', 'SWEEP'] as const
+export const HAPTIC_EFFECTS = ['OFF', 'TICK', 'CLICK', 'TONE', 'RUMBLE', 'NOISE', 'SCRIPT', 'SWEEP', 'PULSE', 'TAP'] as const
 
 export type HapticEffect = (typeof HAPTIC_EFFECTS)[number]
+
+// What the pickers offer. NOISE and SCRIPT stay parseable so existing profiles
+// load, but nothing is known that drives them on this controller, so they are
+// not offered.
+export const HAPTIC_EFFECT_CHOICES = HAPTIC_EFFECTS.filter(effect => effect !== 'NOISE' && effect !== 'SCRIPT')
 
 export const HAPTIC_SIDES: HapticSide[] = ['L', 'R', 'BOTH']
 

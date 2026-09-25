@@ -119,6 +119,17 @@ impl Drop for JobObject {
     }
 }
 
+/// The mapper stopping on its own -- not because Studio stopped it.
+#[derive(Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MapperExit {
+    pub exit_code: u32,
+    /// Unix milliseconds, for "stopped at 12:41:07".
+    pub stopped_at_ms: u64,
+    /// The last thing it printed, filled in from telemetry when reported.
+    pub last_line: Option<String>,
+}
+
 pub struct ProcessState {
     #[cfg(target_os = "windows")]
     pub child: Option<ManagedProcess>,
@@ -126,6 +137,10 @@ pub struct ProcessState {
     pub child: Option<Child>,
     #[cfg(target_os = "windows")]
     pub job: Option<JobObject>,
+    /// Set when the child is found to have exited by itself; cleared by a launch.
+    pub exit: Option<MapperExit>,
+    /// The exit above has not been announced to the UI yet.
+    pub exit_unreported: bool,
 }
 
 impl Default for ProcessState {
@@ -134,6 +149,8 @@ impl Default for ProcessState {
             child: None,
             #[cfg(target_os = "windows")]
             job: None,
+            exit: None,
+            exit_unreported: false,
         }
     }
 }
@@ -172,11 +189,24 @@ pub struct AppState {
     /// instead of the 60 Hz the main UI is intentionally capped to. Rendering
     /// faster than the panel is wasted work, so this is a cap, not a target.
     pub overlay_interval_us: Arc<AtomicU64>,
+    /// Minimum gap between main-window telemetry frames, in microseconds. The
+    /// window measures its own display and raises this, so a 144 Hz panel gets
+    /// 144 Hz instead of the 60 Hz this used to be fixed at. Emission is still
+    /// gated on the window being focused, so an unfocused window costs nothing
+    /// however fast its display is.
+    pub ui_interval_us: Arc<AtomicU64>,
+    /// Studio's Test mode is running: the configuration being edited has the
+    /// controller inside Studio, so Apply must not hand it back to navigation.
+    pub studio_testing: Arc<AtomicBool>,
 }
 
 /// 240 Hz until the overlay reports what its display actually does. Chosen over
 /// 60 so a high-refresh panel is never throttled during the first touch.
 pub const DEFAULT_OVERLAY_INTERVAL_US: u64 = 4_167;
+
+/// 60 Hz until the window reports what its display actually does, which is what
+/// the main UI was previously fixed at.
+pub const DEFAULT_UI_INTERVAL_US: u64 = 16_667;
 
 impl Default for AppState {
     fn default() -> Self {
@@ -185,8 +215,10 @@ impl Default for AppState {
             telemetry: Arc::new(Mutex::new(TelemetryState::default())),
             calibration_generation: Arc::new(AtomicU64::new(0)),
             telemetry_ui_active: Arc::new(AtomicBool::new(false)),
+            studio_testing: Arc::new(AtomicBool::new(false)),
             overlay_active: Arc::new(AtomicBool::new(false)),
             overlay_interval_us: Arc::new(AtomicU64::new(DEFAULT_OVERLAY_INTERVAL_US)),
+            ui_interval_us: Arc::new(AtomicU64::new(DEFAULT_UI_INTERVAL_US)),
         }
     }
 }

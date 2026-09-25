@@ -1,26 +1,32 @@
+/* The setting row's own parts (the row surface is .setting-row in
+   styles/components.css). Value pill: 28 high, pill radius, min-width 56,
+   13/600 tabular; unit in the muted text step. */
+/* Grows to share a row only when it sits in one; in a column a 200px basis
+   would become a 200px height. */
 .field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
   min-width: 0;
+  flex: 0 0 auto;
+}
+
+:global(.row-fields) > .field {
   flex: 1 1 200px;
 }
 
 .field.disabled {
-  opacity: 0.55;
+  opacity: var(--disabled-opacity);
 }
 
 .head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem;
+  gap: 10px;
+  min-width: 0;
 }
 
 .labelGroup {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 6px;
   min-width: 0;
   margin-right: auto;
 }
@@ -28,55 +34,62 @@
 .labelGroup > .label {
   display: block;
   flex: 0 1 auto;
-  color: var(--text-strong);
-  font-size: 0.82rem;
-  font-weight: 650;
-  line-height: 1.25;
   min-width: 0;
+  color: var(--text-1);
+  font-size: var(--fs-label);
+  line-height: var(--lh-label);
+  font-weight: var(--fw-medium);
 }
 
 .labelGroup > :global(.help-button) {
-  flex: 0 0 auto;
+  flex: none;
   margin: 0;
 }
 
 .valueWrap {
+  min-width: 56px;
+  height: 28px;
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  flex: 0 0 auto;
+  justify-content: center;
+  gap: 4px;
+  flex: none;
+  padding: 0 var(--sp-3);
+  border-radius: var(--r-pill);
+  background: var(--surface-control);
+  font-size: var(--fs-hint);
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-1);
 }
 
 .valueInput {
-  width: 4.6rem;
-  padding: 0.22rem 0.45rem;
+  width: 3.4em;
+  padding: 0;
   text-align: right;
-  border-radius: 6px;
-  border: 1px solid var(--border-1);
-  background: var(--bg-input);
-  color: var(--text-strong);
+  border: 0;
+  background: transparent;
+  color: inherit;
   font: inherit;
-  font-size: 0.8rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
+}
+
+.valueWrap:focus-within {
+  box-shadow: 0 0 0 2px var(--focus-keyboard);
 }
 
 .valueInput:focus-visible {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
 .unit {
-  color: var(--text-muted);
-  font-size: 0.74rem;
-  font-weight: 700;
+  color: var(--text-3);
+  font-weight: var(--fw-regular);
 }
 
 .track {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--sp-3);
 }
 
 .slider {
@@ -84,73 +97,51 @@
   min-width: 0;
 }
 
+/* Fine / coarse: quiet until switched to coarse. X does the same while
+   adjusting with the pad. */
 .stepToggle {
-  flex: 0 0 auto;
-  min-width: 3.3rem;
-  padding: 0.14rem 0.45rem;
-  border-radius: 999px;
-  border: 1px solid var(--border-1);
+  flex: none;
+  height: 24px;
+  padding: 0 var(--sp-2);
+  border: 0;
+  border-radius: var(--r-sm);
   background: transparent;
-  color: var(--text-muted);
+  color: var(--text-3);
   font: inherit;
-  font-size: 0.66rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-semibold);
+  letter-spacing: .04em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  transition: color var(--dur-1) var(--ease-standard), background var(--dur-1) var(--ease-standard);
 }
 
 .stepToggle:hover:not(:disabled) {
-  border-color: var(--border-strong);
-  color: var(--text-strong);
-}
-
-.stepToggle:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 28%, transparent);
+  background: var(--surface-row-hover);
+  color: var(--text-1);
 }
 
 .stepToggleCoarse {
-  border-color: color-mix(in srgb, var(--accent) 50%, var(--border-1));
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-  color: var(--text-strong);
+  background: var(--warn-soft);
+  color: var(--warn);
 }
 
 .hint {
-  color: var(--text-muted);
-  font-size: 0.74rem;
-  line-height: 1.4;
+  margin: 0;
+  color: var(--text-3);
+  font-size: var(--fs-hint);
+  line-height: var(--lh-hint);
 }
 
-/* Dense variant: everything on one row -- label, slider, value. The label column
-   is fixed so a page of these lines up as a table rather than each row finding
-   its own width. */
-.inline {
-  flex-direction: row;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.5rem 1rem;
+/* Help that degrades: a missing description says so, quietly. */
+.hintMissing {
+  color: var(--text-4);
 }
 
-.inline .head {
-  flex: 0 0 auto;
-  order: 0;
-  gap: 0.5rem;
-  width: 17rem;
-  max-width: 100%;
-}
+/* The dense one-line variant is gone: the design has one numeric row
+   everywhere (label, origin and value on top, a full-width slider, the
+   description underneath), so 'inline' now renders the same as 'stacked'. */
+.inline { flex-direction: column; }
 
-.inline .labelGroup {
-  flex: 1 1 auto;
-}
-
-.inline .track {
-  flex: 1 1 auto;
-  order: 1;
-}
-
-.inline .hint {
-  flex-basis: 100%;
-  order: 2;
-}
+/* Fine / coarse stays out of the way until the row is being worked on. */
+.field:not(:hover):not(:focus-within) .stepToggle:not(.stepToggleCoarse) { opacity: 0; }

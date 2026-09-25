@@ -114,6 +114,37 @@ pub fn terminate_jsm(app: AppHandle, state: State<'_, AppState>) -> CommandResul
     jsm_process::terminate_jsm(&app, state.inner())
 }
 
+/// Shows or hides the calibration HUD over games.
+#[tauri::command]
+pub fn set_calibration_hud_enabled(app: AppHandle, enabled: bool) -> CommandResult<runtime::RuntimeMappingState> {
+    runtime::set_calibration_hud_enabled(&app, enabled)
+}
+
+/// Turns Studio's reserved chords (pause mapping, calibrate gyro) on or off.
+#[tauri::command]
+pub fn set_reserved_chords(app: AppHandle, enabled: bool) -> CommandResult<runtime::RuntimeMappingState> {
+    runtime::set_reserved_chords(&app, enabled)
+}
+
+/// Pauses or resumes one association without losing it.
+#[tauri::command]
+pub fn set_autoload_rule_paused(app: AppHandle, process_name: String, paused: bool) -> CommandResult<runtime::AutoloadRule> {
+    runtime::set_autoload_rule_paused(&app, &process_name, paused)
+}
+
+/// The configuration layers active right now, in stack order.
+#[tauri::command]
+pub fn get_layer_stack() -> serde_json::Value {
+    crate::services::global_chords::layer_stack()
+}
+
+/// Whether the mapper is running, and if it stopped by itself, its exit code,
+/// when, and the last line it printed.
+#[tauri::command]
+pub fn get_mapper_status(state: State<'_, AppState>) -> CommandResult<serde_json::Value> {
+    jsm_process::status(state.inner())
+}
+
 #[tauri::command]
 pub fn minimize_temporarily(window: Window) -> CommandResult<()> {
     window
@@ -138,6 +169,7 @@ pub fn apply_profile(
     text: String,
 ) -> CommandResult<ApplyProfileResult> {
     let path = runtime::write_active_profile(&app, profile_path.as_deref(), &text)?;
+    crate::services::config_layers::prepare(&app, &path)?;
     let runtime_state = runtime::get_runtime_mapping_state(&app)?;
     if !runtime_state.mapping_enabled {
         return Ok(ApplyProfileResult {
@@ -156,12 +188,14 @@ pub fn apply_profile(
             restarted = true;
         } else {
             let _ = jsm_process::inject_console_command(&app, state.inner(), "AUTOCONNECT = ON")?;
+            keep_studio_navigation(&app, state.inner(), &runtime_state)?;
         }
     } else {
         jsm_process::launch_jsm(&app, state.inner())?;
         restarted = true;
     }
 
+    crate::services::config_layers::applied();
     Ok(ApplyProfileResult {
         restarted,
         path: Some(path),
@@ -206,9 +240,22 @@ pub fn set_autoload_enabled(
 #[tauri::command]
 pub fn set_controller_nav_enabled(
     app: AppHandle,
+    state: State<'_, AppState>,
     enabled: bool,
 ) -> CommandResult<runtime::RuntimeMappingState> {
-    runtime::set_controller_nav_enabled(&app, enabled)
+    let runtime_state = runtime::set_controller_nav_enabled(&app, enabled)?;
+    // The switch is flipped from inside Studio, where AutoLoad will not run
+    // again until the foreground app changes, so it takes effect here: on
+    // hands the pad to Studio, off gives it back to the configuration.
+    if runtime_state.mapping_enabled && jsm_process::is_running(state.inner())? {
+        if enabled {
+            keep_studio_navigation(&app, state.inner(), &runtime_state)?;
+        } else {
+            let profile = runtime::effective_profile_for_state(&runtime_state);
+            let _ = inject_profile_with_retry(&app, state.inner(), &profile)?;
+        }
+    }
+    Ok(runtime_state)
 }
 
 #[tauri::command]
@@ -252,7 +299,7 @@ pub fn delete_autoload_rule(
     Ok(SimpleSuccessResult { success })
 }
 
-fn apply_runtime_mapping_state(
+pub(crate) fn apply_runtime_mapping_state(
     app: &AppHandle,
     state: &AppState,
     runtime_state: &runtime::RuntimeMappingState,
@@ -270,6 +317,7 @@ fn apply_runtime_mapping_state(
 
     if runtime_state.mapping_enabled {
         let _ = jsm_process::inject_console_command(app, state, "AUTOCONNECT = ON")?;
+        keep_studio_navigation(app, state, runtime_state)?;
     }
 
     if runtime_state.mapping_enabled {
@@ -282,6 +330,115 @@ fn apply_runtime_mapping_state(
     }
 
     Ok(())
+}
+
+/// Whether Studio should have the controller right now: its window is in
+/// front, the navigation rule is live, and no Test is running.
+fn studio_holds_controller(state: &AppState, runtime_state: &runtime::RuntimeMappingState) -> bool {
+    runtime_state.mapping_enabled
+        && runtime_state.autoload_enabled
+        && runtime_state.controller_nav_enabled
+        && state.telemetry_ui_active.load(std::sync::atomic::Ordering::Relaxed)
+        && !state.studio_testing.load(std::sync::atomic::Ordering::Relaxed)
+}
+
+/// Loading a configuration while Studio is in front would hand it the pad
+/// inside Studio: AutoLoad only switches when the foreground app changes, so
+/// nothing would pause it again until you left and came back. Applying from
+/// Studio updates what games get; Studio keeps the controller.
+fn keep_studio_navigation(app: &AppHandle, state: &AppState, runtime_state: &runtime::RuntimeMappingState) -> CommandResult<()> {
+    if studio_holds_controller(state, runtime_state) {
+        let _ = jsm_process::inject_console_command(app, state, runtime::APP_NAVIGATION_FILE_NAME)?;
+    }
+    Ok(())
+}
+
+/// Studio's window gained or lost focus. AutoLoad only acts when the
+/// foreground app changes and only for apps with a rule, so Studio does the
+/// handover itself rather than trusting it: coming to the front, the
+/// navigation profile takes the pad (and any Test is over); leaving for an app
+/// without its own rule, the applied configuration comes back -- otherwise
+/// that app would be left with the navigation profile, which maps nothing.
+/// Apps with a rule are left to AutoLoad, which loads theirs.
+pub(crate) fn studio_focus_changed(app: &AppHandle, focused: bool) {
+    let state = tauri::Manager::state::<AppState>(app);
+    if focused {
+        state.studio_testing.store(false, std::sync::atomic::Ordering::Relaxed);
+        hand_pad_to_studio(app);
+        return;
+    }
+    let Ok(runtime_state) = runtime::get_runtime_mapping_state(app) else { return };
+    if !(runtime_state.mapping_enabled && runtime_state.autoload_enabled && runtime_state.controller_nav_enabled) {
+        return;
+    }
+    if !jsm_process::is_running(state.inner()).unwrap_or(false) {
+        return;
+    }
+    // Let the new window settle in front before asking who it is.
+    std::thread::sleep(std::time::Duration::from_millis(120));
+    if state.telemetry_ui_active.load(std::sync::atomic::Ordering::Relaxed) {
+        return; // Studio came straight back.
+    }
+    let foreground = jsm_process::foreground_process_stem();
+    let own = runtime::app_process_stem();
+    match foreground {
+        Some(stem) if own.as_deref().is_some_and(|own| own.eq_ignore_ascii_case(&stem)) => {}
+        Some(stem) if runtime::has_live_autoload_rule(app, &stem) => {}
+        _ => {
+            let profile = runtime::effective_profile_for_state(&runtime_state);
+            let _ = inject_profile_with_retry(app, state.inner(), &profile);
+        }
+    }
+}
+
+/// The mapper has just come up (its first telemetry after a launch or a
+/// silence). A focus event at launch can arrive before it can take commands,
+/// and then OnStartUp's applied configuration would keep the pad inside
+/// Studio; so Studio takes it once the mapper is listening.
+pub(crate) fn mapper_came_up(app: &AppHandle) {
+    let state = tauri::Manager::state::<AppState>(app);
+    if state.telemetry_ui_active.load(std::sync::atomic::Ordering::Relaxed)
+        && !state.studio_testing.load(std::sync::atomic::Ordering::Relaxed)
+    {
+        hand_pad_to_studio(app);
+    }
+}
+
+/// Load the navigation profile, when Studio should have the controller.
+fn hand_pad_to_studio(app: &AppHandle) {
+    let state = tauri::Manager::state::<AppState>(app);
+    let Ok(runtime_state) = runtime::get_runtime_mapping_state(app) else { return };
+    if !(runtime_state.mapping_enabled && runtime_state.autoload_enabled && runtime_state.controller_nav_enabled) {
+        return;
+    }
+    if !jsm_process::is_running(state.inner()).unwrap_or(false) {
+        return;
+    }
+    let _ = inject_profile_with_retry(app, state.inner(), runtime::APP_NAVIGATION_FILE_NAME);
+}
+
+/// Test mode starts or ends. While it runs, Apply leaves the configuration
+/// with the controller.
+#[tauri::command]
+pub fn set_studio_testing(state: State<'_, AppState>, testing: bool) {
+    state.studio_testing.store(testing, std::sync::atomic::Ordering::Relaxed);
+}
+
+/// Ends Studio's Test mode: loads the navigation profile again so the pad
+/// drives Studio instead of the configuration. AutoLoad only switches when the
+/// foreground app changes, and Studio stays in front throughout a test, so it
+/// has to be loaded explicitly. Does nothing unless the navigation rule is
+/// live (mapping, AutoLoad and controller navigation all on).
+#[tauri::command]
+pub fn resume_studio_navigation(app: AppHandle, state: State<'_, AppState>) -> CommandResult<bool> {
+    let runtime_state = runtime::get_runtime_mapping_state(&app)?;
+    if !(runtime_state.mapping_enabled && runtime_state.autoload_enabled && runtime_state.controller_nav_enabled) {
+        return Ok(false);
+    }
+    if !jsm_process::is_running(state.inner())? {
+        return Ok(false);
+    }
+    inject_profile_with_retry(&app, state.inner(), runtime::APP_NAVIGATION_FILE_NAME)
 }
 
 fn inject_profile_with_retry(app: &AppHandle, state: &AppState, path: &str) -> CommandResult<bool> {
@@ -313,14 +470,40 @@ pub fn recalibrate_gyro(
     state: State<'_, AppState>,
 ) -> CommandResult<SimpleSuccessResult> {
     runtime::ensure_required_files(&app)?;
+    // JoyShockMapper runs the whole thing (delay, then calibration) and reports
+    // its progress over telemetry, which is what drives both the in-app
+    // countdown and the overlay -- so a chord or binding shows the same thing.
     let success =
         jsm_process::inject_console_command(&app, state.inner(), runtime::CALIBRATION_COMMAND)?;
-    if success {
-        let seconds = runtime::read_calibration_seconds(&app)?;
-        telemetry::start_calibration_countdown(app.clone(), state.inner().clone(), seconds)?;
-    } else {
+    if !success {
         telemetry::stop_calibration_countdown(&app, state.inner())?;
     }
+    Ok(SimpleSuccessResult { success })
+}
+
+/// Saves the gyro calibration timing and controller sounds, and hands them to
+/// the running mapper at once rather than waiting for the next profile load.
+#[tauri::command]
+pub fn set_controller_preferences(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    preferences: runtime::ControllerPreferences,
+) -> CommandResult<runtime::RuntimeMappingState> {
+    let saved = runtime::set_controller_preferences(&app, preferences)?;
+    let _ = jsm_process::inject_console_command(&app, state.inner(), "StudioDefaults.txt");
+    Ok(saved)
+}
+
+#[tauri::command]
+pub fn play_controller_sound(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    sound: i32,
+) -> CommandResult<SimpleSuccessResult> {
+    if !(0..=13).contains(&sound) {
+        return Err("Sound must be 0-13.".into());
+    }
+    let success = jsm_process::inject_console_command(&app, state.inner(), &format!("PLAY_SOUND {sound}"))?;
     Ok(SimpleSuccessResult { success })
 }
 
@@ -843,6 +1026,14 @@ pub fn overlay_set_enabled(
     // Remembered, so turning the overlay on is a decision that survives a
     // restart rather than something to redo on every launch.
     runtime::set_trackpad_overlay_enabled(&app, enabled)?;
+    Ok(())
+}
+
+/// Called by the main window once it has measured its display, so the preview
+/// is drawn at the panel's refresh rate rather than a fixed 60 Hz.
+#[tauri::command]
+pub fn ui_set_refresh_hz(state: State<'_, AppState>, hz: u32) -> CommandResult<()> {
+    telemetry::set_ui_refresh_hz(&state, hz);
     Ok(())
 }
 

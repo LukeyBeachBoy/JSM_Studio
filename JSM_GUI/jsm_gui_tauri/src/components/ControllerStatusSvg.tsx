@@ -1,4 +1,5 @@
-import steamControllerFront from '../assets/steam-controller-front.svg'
+import { useEffect, useRef } from 'react'
+import { STEAM_BACK_ART, STEAM_FRONT_ART } from './controllerArt'
 import type { TelemetryDevice } from '../hooks/useTelemetry'
 import { InputMark } from './glyphs/inputMarks'
 import {
@@ -328,6 +329,8 @@ function ButtonBubble({
         cy={cy}
         r={radius}
       />
+      {/* A press pulses once: the ring grows 1 to 1.6 and fades (--dur-3). */}
+      {pressed && <circle className={styles.pressRing} cx={cx} cy={cy} r={radius} />}
       {command ? (
         <InputMark
           command={command}
@@ -508,6 +511,18 @@ function shoulderTrigger(side: keyof typeof STEAM_SHOULDER) {
   }
 }
 
+// Whether a full-pull binding can ever fire comes down to whether the trigger
+// reaches the top of its axis, and no rounded decimal shows that: one count
+// short of the maximum still prints as 1.0000. So report the raw count the
+// telemetry float was divided down from, against the maximum it has to reach.
+const TRIGGER_AXIS_MAX = 32767
+const TRIGGER_READOUT_Y = SHOULDER_BUMPER_Y + SHOULDER_BUMPER_H + 14
+function TriggerReadout({ x, value }: { x: number; value: number }) {
+  return <text className={styles.triggerReadout} x={x} y={TRIGGER_READOUT_Y}>
+    {Math.round(value * TRIGGER_AXIS_MAX)}/{TRIGGER_AXIS_MAX}
+  </text>
+}
+
 function shoulderBumper(side: keyof typeof STEAM_SHOULDER) {
   const { x, w } = STEAM_SHOULDER[side]
   return {
@@ -541,34 +556,63 @@ function padPoint(pad: { cx: number; cy: number; half: number; rot: number }, u:
 // 127.9 units across, left and right). Do not hand-tune: re-measure the SVG.
 const STEAM_STICK_RADIUS = 66
 
-// Grip zone geometry. The grip reaches the host as a single bit -- the
-// controller decides how hard a squeeze that takes, from LEFT_GRIP_RANGE /
-// RIGHT_GRIP_RANGE -- so this lights up rather than filling like a meter.
-const GRIP_ZONE = { width: 150, height: 105, rx: 42 } as const
-
-type GripZoneProps = {
-  x: number
-  y: number
-  pressed: boolean
-  bound?: boolean
-  selected?: boolean
-  label: string
-  onSelect?: () => void
+// A touch on a pad: the point, a soft ring, and a trail of the last few
+// positions fading behind it (Foundations, "Motion": pad/stick trail = 3-5
+// fading dots). Positions come from telemetry, one per rendered frame.
+function PadTouch({ point }: { point: { x: number; y: number } }) {
+  const trail = useRef<{ x: number; y: number }[]>([])
+  useEffect(() => {
+    trail.current = [point, ...trail.current].slice(0, 5)
+  })
+  const behind = trail.current.slice(0, 4)
+  return (
+    <g className={styles.padTouch} aria-hidden="true">
+      {behind.map((dot, index) => <circle key={index} cx={dot.x} cy={dot.y} r={10 - index} opacity={0.6 - index * 0.14} />)}
+      <circle cx={point.x} cy={point.y} r={13} />
+      <circle className={styles.padTouchRing} cx={point.x} cy={point.y} r={22} />
+    </g>
+  )
 }
 
-function GripZone({ x, y, pressed, bound, selected, label, onSelect }: GripZoneProps) {
-  const { width, height, rx } = GRIP_ZONE
+// The back of the controller, mirrored so left stays left (Controller Live):
+// paddles and grip sensors, which the front view cannot show.
+const BACK_HOTSPOTS: { command: string; label: string; cx: number; cy: number; rx: number; ry: number }[] = [
+  { command: 'MISC6', label: 'Left grip', cx: 30, cy: 228, rx: 16, ry: 52 },
+  { command: 'MISC5', label: 'Right grip', cx: 398, cy: 228, rx: 16, ry: 52 },
+  { command: 'LSL', label: 'L4', cx: 103, cy: 175, rx: 17, ry: 24 },
+  { command: 'LSR', label: 'L5', cx: 84, cy: 235, rx: 15, ry: 23 },
+  { command: 'RSR', label: 'R4', cx: 325, cy: 175, rx: 17, ry: 24 },
+  { command: 'RSL', label: 'R5', cx: 344, cy: 235, rx: 15, ry: 23 },
+]
+
+function SteamBackView({ pressed, boundCommands, selectedCommand, onSelectCommand, bindingLabels }: {
+  pressed: Set<string>; boundCommands?: Set<string>; selectedCommand?: string | null
+  onSelectCommand?: (command: string) => void; bindingLabels?: Record<string, string>
+}) {
+  const isPressed = (command: string) => pressed.has(command) || (command === 'MISC6' && pressed.has('GRIP_L')) || (command === 'MISC5' && pressed.has('GRIP_R'))
+  const isSelected = (command: string) => selectedCommand === command || (command === 'MISC6' && selectedCommand === 'GRIP_L') || (command === 'MISC5' && selectedCommand === 'GRIP_R')
+  const legend = BACK_HOTSPOTS.filter(spot => isPressed(spot.command) || boundCommands?.has(spot.command)).slice(0, 4)
   return (
-    <rect
-      aria-label={label}
-      className={join(styles.gripSense, pressed && styles.capSenseActive, bound && styles.controlBound, selected && styles.controlSelected)}
-      x={x}
-      y={y}
-      width={width}
-      height={height}
-      rx={rx}
-      onClick={onSelect}
-    />
+    <div className={styles.backView}>
+      <svg className={styles.backArt} viewBox="0 0 428 319" role="img" aria-label="Steam Controller back, mirrored">
+        <g transform="translate(428 0) scale(-1 1)" dangerouslySetInnerHTML={{ __html: STEAM_BACK_ART }} />
+        {BACK_HOTSPOTS.map(spot => (
+          <ellipse key={spot.command} className={join(styles.backSpot, boundCommands?.has(spot.command) && styles.backSpotBound, isPressed(spot.command) && styles.backSpotPressed, isSelected(spot.command) && styles.backSpotSelected)}
+            cx={spot.cx} cy={spot.cy} rx={spot.rx} ry={spot.ry} onClick={() => onSelectCommand?.(spot.command)}>
+            <title>{spot.label}</title>
+          </ellipse>
+        ))}
+      </svg>
+      <div className={styles.backLegend}>
+        <span className={styles.backLegendTitle}>Back · mirrored</span>
+        {legend.map(spot => (
+          <span key={spot.command} className={styles.backLegendItem}>
+            <span className={join(styles.backLegendMark, isPressed(spot.command) && styles.backLegendMarkLive)} aria-hidden="true" />
+            {isPressed(spot.command) && spot.command.startsWith('MISC') ? spot.label + ' held' : (spot.label + ' ' + (bindingLabels?.[spot.command] ?? '').split(' · ')[0]).trim()}
+          </span>
+        ))}
+      </div>
+    </div>
   )
 }
 
@@ -620,8 +664,8 @@ export function ControllerStatusSvg({ bindingLabels,
   const leftStickY = device.status?.leftStick.y ?? 0
   const rightStickX = device.status?.rightStick.x ?? 0
   const rightStickY = device.status?.rightStick.y ?? 0
-  const leftTriggerLabel = isSteam ? 'L2' : family === 'playstation' ? 'L2' : family === 'xbox' ? 'LT' : 'ZL'
-  const rightTriggerLabel = isSteam ? 'R2' : family === 'playstation' ? 'R2' : family === 'xbox' ? 'RT' : 'ZR'
+  const leftTriggerLabel = isSteam ? 'LT' : family === 'playstation' ? 'L2' : family === 'xbox' ? 'LT' : 'ZL'
+  const rightTriggerLabel = isSteam ? 'RT' : family === 'playstation' ? 'R2' : family === 'xbox' ? 'RT' : 'ZR'
   const leftStickBound = hasAny(LEFT_STICK_COMMANDS, boundCommands)
   const rightStickBound = hasAny(RIGHT_STICK_COMMANDS, boundCommands)
   const leftStickSelected = isAnySelected(LEFT_STICK_COMMANDS, selectedCommand)
@@ -643,26 +687,11 @@ export function ControllerStatusSvg({ bindingLabels,
   if (isSteam) {
       // --- Steam Controller 2026 layout ---
       return (
-        <div className={styles.visualizer}>
-          <svg className={styles.controllerSvg} viewBox="0 0 1117 750" role="img" aria-label="Steam Controller live status">
-                    <title>Steam Controller live status</title>
-                                      <image className={styles.steamArtwork} href={steamControllerFront} x="0" y="0" width="1117" height="750" preserveAspectRatio="xMidYMid meet" aria-label="Steam Controller front artwork" />
-                    <g aria-label="Grip sense overlays">
-                      <GripZone
-                        x={80} y={585}
-                        pressed={pressed.has('GRIP_L')}
-                        bound={boundCommands?.has('GRIP_L')} selected={selectedCommand === 'GRIP_L'}
-                        label="Left grip sensor" onSelect={() => onSelectCommand?.('GRIP_L')}
-                      />
-                      <text className={styles.gripSenseText} x="155" y="638">L GRIP</text>
-                      <GripZone
-                        x={887} y={585}
-                        pressed={pressed.has('GRIP_R')}
-                        bound={boundCommands?.has('GRIP_R')} selected={selectedCommand === 'GRIP_R'}
-                        label="Right grip sensor" onSelect={() => onSelectCommand?.('GRIP_R')}
-                      />
-                      <text className={styles.gripSenseText} x="962" y="638">R GRIP</text>
-                    </g>
+        <div className={join(styles.visualizer, styles.steamLayout)}>
+          <svg className={join(styles.controllerSvg, styles.steamLive, showRawTelemetry && styles.showDetails)} viewBox="0 0 1117 750" role="img" aria-label="Steam Controller live status">
+            <title>Steam Controller live status</title>
+            {/* The approved tonal rendering (Controller Art 9c), themed by --art-*. */}
+            <g className={styles.art} dangerouslySetInnerHTML={{ __html: STEAM_FRONT_ART }} />
             {/* Live overlays on the Steam Controller 2026 front artwork */}
             {/* Sticks (top) */}
             <Stick cx={412} cy={219} baseRadius={STEAM_STICK_RADIUS} touched={device.status?.leftStickTouch} x={leftStickX} y={leftStickY} pressed={pressed.has('L3')} muted={!hasLeftSide} bound={leftStickBound} selected={leftStickSelected} onSelect={hasLeftSide ? () => onSelectCommand?.(pickCommand(LEFT_STICK_COMMANDS, boundCommands, selectedCommand)) : undefined} title="Left stick" />
@@ -686,30 +715,24 @@ export function ControllerStatusSvg({ bindingLabels,
 
             {/* Left pad (bottom-left) */}
             <g className={join(styles.interactive)} onClick={() => onSelectCommand?.('LEFT_PAD')}>
-              <rect className={join(styles.control, boundCommands?.has('TOUCH') && styles.controlBound, selectedCommand === 'TOUCH' && styles.controlSelected, leftPad?.touched && styles.capSenseActive)}
+              <rect className={join(styles.control, boundCommands?.has('MISC3') && styles.controlBound, (selectedCommand === 'MISC3' || selectedCommand === 'LEFT_PAD') && styles.controlSelected, leftPad?.touched && styles.capSenseActive)}
                 x={STEAM_PAD.left.cx - STEAM_PAD.left.half} y={STEAM_PAD.left.cy - STEAM_PAD.left.half}
                 width={STEAM_PAD.left.half * 2} height={STEAM_PAD.left.half * 2} rx="48" ry="48"
                 transform={`rotate(${STEAM_PAD.left.rot} ${STEAM_PAD.left.cx} ${STEAM_PAD.left.cy})`} />
               <text className={styles.controlText} x={STEAM_PAD.left.cx} y={STEAM_PAD.left.cy}>{bindingLabels?.LEFT_PAD || 'LPad'}</text>
               {showRawTelemetry && leftPad && <text className={styles.gripSenseText} x={STEAM_PAD.left.cx} y={STEAM_PAD.left.cy + 24}>{`p=${(leftPad.pressure ?? 0).toFixed(4)}`}</text>}
-              {leftPad?.touched && (() => {
-                const pt = padPoint(STEAM_PAD.left, leftPad.x, leftPad.y)
-                return <circle cx={pt.x} cy={pt.y} r={12} className={styles.stickKnob} />
-              })()}
+              {leftPad?.touched && <PadTouch point={padPoint(STEAM_PAD.left, leftPad.x, leftPad.y)} />}
             </g>
 
             {/* Right pad (bottom-right) */}
             <g className={join(styles.interactive)} onClick={() => onSelectCommand?.('RIGHT_PAD')}>
-              <rect className={join(styles.control, boundCommands?.has('CAPTURE') && styles.controlBound, selectedCommand === 'CAPTURE' && styles.controlSelected, rightPad?.touched && styles.capSenseActive)}
+              <rect className={join(styles.control, boundCommands?.has('MISC2') && styles.controlBound, (selectedCommand === 'MISC2' || selectedCommand === 'RIGHT_PAD') && styles.controlSelected, rightPad?.touched && styles.capSenseActive)}
                 x={STEAM_PAD.right.cx - STEAM_PAD.right.half} y={STEAM_PAD.right.cy - STEAM_PAD.right.half}
                 width={STEAM_PAD.right.half * 2} height={STEAM_PAD.right.half * 2} rx="48" ry="48"
                 transform={`rotate(${STEAM_PAD.right.rot} ${STEAM_PAD.right.cx} ${STEAM_PAD.right.cy})`} />
               <text className={styles.controlText} x={STEAM_PAD.right.cx} y={STEAM_PAD.right.cy}>{bindingLabels?.RIGHT_PAD || 'RPad'}</text>
               {showRawTelemetry && rightPad && <text className={styles.gripSenseText} x={STEAM_PAD.right.cx} y={STEAM_PAD.right.cy + 24}>{`p=${(rightPad.pressure ?? 0).toFixed(4)}`}</text>}
-              {rightPad?.touched && (() => {
-                const pt = padPoint(STEAM_PAD.right, rightPad.x, rightPad.y)
-                return <circle cx={pt.x} cy={pt.y} r={12} className={styles.stickKnob} />
-              })()}
+              {rightPad?.touched && <PadTouch point={padPoint(STEAM_PAD.right, rightPad.x, rightPad.y)} />}
             </g>
 
             {/* Center buttons */}
@@ -720,26 +743,37 @@ export function ControllerStatusSvg({ bindingLabels,
 
             {/* Bumpers/triggers, on the artwork's own shoulder humps */}
             <TriggerPath {...shoulderTrigger('left')} compact label={leftTriggerLabel} value={leftTrigger} muted={!hasLeftSide} bound={leftTriggerBound} selected={leftTriggerSelected} onSelect={hasLeftSide ? () => onSelectCommand?.(pickCommand(LEFT_TRIGGER_COMMANDS, boundCommands, selectedCommand)) : undefined} title="Left trigger" />
+            {showRawTelemetry && hasLeftSide && <TriggerReadout x={shoulderTrigger('left').labelX} value={leftTrigger} />}
             <PathButton {...shoulderBumper('left')} compact label={controllerButtonGlyph(device.type, 'L')} pressed={pressed.has('L')} muted={!hasLeftSide} bound={boundCommands?.has('L')} selected={selectedCommand === 'L'} onSelect={hasLeftSide ? () => onSelectCommand?.('L') : undefined} title="Left bumper" />
             <TriggerPath {...shoulderTrigger('right')} compact label={rightTriggerLabel} value={rightTrigger} muted={!hasRightSide} bound={rightTriggerBound} selected={rightTriggerSelected} onSelect={hasRightSide ? () => onSelectCommand?.(pickCommand(RIGHT_TRIGGER_COMMANDS, boundCommands, selectedCommand)) : undefined} title="Right trigger" />
+            {showRawTelemetry && hasRightSide && <TriggerReadout x={shoulderTrigger('right').labelX} value={rightTrigger} />}
             <PathButton {...shoulderBumper('right')} compact label={controllerButtonGlyph(device.type, 'R')} pressed={pressed.has('R')} muted={!hasRightSide} bound={boundCommands?.has('R')} selected={selectedCommand === 'R'} onSelect={hasRightSide ? () => onSelectCommand?.('R') : undefined} title="Right bumper" />
 
-            {/* Paddles */}
-            {PADDLE_LAYOUT.filter(entry => visiblePaddleCommandSet.has(entry.command)).map(entry => {
-              const hasSide = entry.side === 'left' ? hasLeftSide : hasRightSide
-              return (
-                <PaddleButton key={entry.command} x={entry.x} y={entry.y} width={entry.width} height={entry.height}
-                  label={getPaddleLabel(backInputMode, entry.command, true)} pressed={pressed.has(entry.command)} muted={!hasSide}
-                  bound={boundCommands?.has(entry.command)} selected={selectedCommand === entry.command}
-                  onSelect={hasSide ? () => onSelectCommand?.(entry.command) : undefined} title={BACK_INPUT_TITLES[entry.command]} />
-              )
-            })}
           </svg>
+          <SteamBackView pressed={pressed} boundCommands={boundCommands} selectedCommand={selectedCommand} onSelectCommand={onSelectCommand} bindingLabels={bindingLabels} />
         </div>
       )
   }
 
-  // --- Legacy layout (DualSense, Xbox, Switch, generic) ---
+  // Offset-stick controllers have their own physical layout, without a
+  // PlayStation touchpad or microphone. Unknown devices are labelled generic.
+  if (family !== 'playstation') {
+    const bubble = (command: string, x: number, y: number, radius = 23) => <ButtonBubble key={command} cx={x} cy={y} radius={radius} command={command} family={family} label={controllerButtonGlyph(device.type, command)} pressed={pressed.has(command)} bound={boundCommands?.has(command)} selected={selectedCommand === command} onSelect={() => onSelectCommand?.(command)} title={bindingLabels?.[command] ?? command} />
+    return <div className={styles.visualizer}><svg className={styles.controllerSvg} viewBox="0 0 640 430" role="img" aria-label={`${family === 'nintendo' ? 'Nintendo Pro' : family === 'xbox' ? 'Xbox' : 'Generic'} controller layout`}>
+      <path className={styles.control} d={family === 'nintendo' ? 'M145 75 Q90 62 68 139 L34 329 Q27 399 85 397 Q120 398 155 330 L202 287 H438 L485 330 Q520 398 555 397 Q613 399 606 329 L572 139 Q550 62 495 75 Z' : 'M152 77 Q83 63 66 153 L30 337 Q27 396 80 399 Q119 402 157 325 L205 283 H435 L483 325 Q521 402 560 399 Q613 396 610 337 L574 153 Q557 63 488 77 Z'} />
+      <PaddleButton x={112} y={43} width={102} height={27} label={leftTriggerLabel} pressed={leftTrigger > .5} bound={leftTriggerBound} selected={leftTriggerSelected} onSelect={() => onSelectCommand?.('ZL')} title="Left trigger" />
+      <PaddleButton x={426} y={43} width={102} height={27} label={rightTriggerLabel} pressed={rightTrigger > .5} bound={rightTriggerBound} selected={rightTriggerSelected} onSelect={() => onSelectCommand?.('ZR')} title="Right trigger" />
+      <PaddleButton x={107} y={77} width={110} height={24} label={controllerButtonGlyph(device.type, 'L')} bound={boundCommands?.has('L')} selected={selectedCommand === 'L'} pressed={pressed.has('L')} onSelect={() => onSelectCommand?.('L')} title="Left bumper" />
+      <PaddleButton x={423} y={77} width={110} height={24} label={controllerButtonGlyph(device.type, 'R')} bound={boundCommands?.has('R')} selected={selectedCommand === 'R'} pressed={pressed.has('R')} onSelect={() => onSelectCommand?.('R')} title="Right bumper" />
+      <Stick cx={164} cy={164} baseRadius={52} x={leftStickX} y={leftStickY} bound={leftStickBound} selected={leftStickSelected} pressed={pressed.has('L3')} onSelect={() => onSelectCommand?.('L3')} title="Left stick" />
+      <Stick cx={401} cy={266} baseRadius={52} x={rightStickX} y={rightStickY} bound={rightStickBound} selected={rightStickSelected} pressed={pressed.has('R3')} onSelect={() => onSelectCommand?.('R3')} title="Right stick" />
+      {bubble('N',486,126)}{bubble('S',486,208)}{bubble('W',445,167)}{bubble('E',527,167)}
+      {bubble('UP',238,229,18)}{bubble('DOWN',238,303,18)}{bubble('LEFT',201,266,18)}{bubble('RIGHT',275,266,18)}
+      {bubble('-',277,159,15)}{bubble('+',363,159,15)}{bubble('HOME',320,118,20)}
+      {PADDLE_LAYOUT.filter(e => visiblePaddleCommandSet.has(e.command)).map((e,i) => <PaddleButton key={e.command} x={i % 2 ? 454 : 100} y={345 + Math.floor(i/2)*27} width={86} height={22} label={getPaddleLabel(backInputMode,e.command)} pressed={pressed.has(e.command)} bound={boundCommands?.has(e.command)} selected={selectedCommand === e.command} onSelect={() => onSelectCommand?.(e.command)} title={BACK_INPUT_TITLES[e.command]} />)}
+    </svg></div>
+  }
+  // PlayStation layout.
   return (
     <div className={styles.visualizer}>
       <svg

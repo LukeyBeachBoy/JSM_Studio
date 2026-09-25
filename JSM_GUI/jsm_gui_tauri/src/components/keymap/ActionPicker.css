@@ -1,0 +1,229 @@
+/* The action picker (Binding Editor 7b): a full-screen surface under the title
+   bar that scales in from the output pill, categories as pill tabs stepped by
+   LB / RB, content beside a detail panel. */
+.action-picker-overlay {
+  z-index: var(--z-dialog);
+  align-items: stretch;
+  justify-content: stretch;
+  padding: var(--titlebar-h) 0 0;
+  background: transparent;
+}
+
+.action-picker {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  background: var(--surface-canvas);
+  color: var(--text-1);
+  animation: dialog-in var(--dur-3) var(--ease-emphasis);
+}
+
+.action-picker__header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-5);
+  padding: var(--sp-6) var(--sp-8) var(--sp-4);
+}
+.action-picker__title { display: flex; align-items: center; gap: var(--sp-4); flex: 1; min-width: 0; color: var(--text-1); }
+.action-picker__eyebrow {
+  display: block;
+  font-size: var(--fs-eyebrow);
+  line-height: var(--lh-eyebrow);
+  letter-spacing: var(--tracking-eyebrow);
+  font-weight: var(--fw-semibold);
+  color: var(--text-3);
+  text-transform: uppercase;
+}
+.action-picker h2 {
+  margin: var(--sp-1) 0 0;
+  font-size: var(--fs-page);
+  line-height: var(--lh-page);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-title);
+}
+.action-picker__current { display: flex; align-items: center; gap: var(--sp-2); color: var(--text-3); font-size: var(--fs-hint); white-space: nowrap; }
+
+.action-picker__search {
+  width: 300px;
+  height: var(--control-h);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 0 var(--sp-2) 0 var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--line-1);
+  color: var(--text-3);
+}
+.action-picker__search:focus-within { box-shadow: inset 0 0 0 1px var(--focus-keyboard); }
+.action-picker__search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text-1);
+  font: inherit;
+  font-size: var(--fs-body);
+}
+
+.action-picker__tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-2) var(--sp-8) var(--sp-4);
+  border-bottom: 1px solid var(--line-1);
+  overflow-x: auto;
+}
+.action-picker__step { margin: 0 var(--sp-1); }
+.action-picker__spacer { flex: 1; }
+.action-tab {
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex: none;
+  padding: 0 var(--sp-4);
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-size: var(--fs-body);
+  font-weight: var(--fw-medium);
+  cursor: pointer;
+  transition: background var(--dur-1) var(--ease-standard), color var(--dur-1) var(--ease-standard);
+}
+.action-tab:hover { background: var(--surface-row-hover); color: var(--text-1); }
+.action-tab[aria-pressed='true'] { background: var(--text-1); color: var(--surface-frame); }
+
+.action-picker__body {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: var(--sp-6);
+  padding: var(--sp-6) var(--sp-8) 96px;
+  overflow: auto;
+}
+.action-picker__content { min-width: 0; }
+
+.action-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: var(--sp-2); }
+.action-choice {
+  position: relative;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 0 var(--sp-4);
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--surface-row);
+  color: var(--text-1);
+  font: inherit;
+  font-size: var(--fs-body);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--dur-1) var(--ease-standard);
+}
+.action-choice:hover:not(:disabled) { background: var(--surface-row-hover); }
+.action-choice[aria-pressed='true'] { box-shadow: inset 0 0 0 1px var(--accent); }
+.action-choice:disabled { opacity: var(--disabled-opacity); cursor: default; }
+
+/* The keyboard: real proportions, keycaps with an inset bottom edge. */
+.action-keyboard, .action-numpad { display: flex; flex-direction: column; gap: 6px; }
+.action-numpad { max-width: 360px; }
+.action-key-row { display: flex; gap: 6px; }
+.action-key-row > * { flex: 1 1 0; min-width: 0; }
+.key-cap {
+  position: relative;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  padding: 0 4px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: var(--surface-control);
+  box-shadow: inset 0 -2px 0 var(--line-2);
+  color: var(--text-1);
+  font: inherit;
+  font-size: var(--fs-hint);
+  font-weight: var(--fw-semibold);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--dur-1) var(--ease-standard);
+}
+.key-cap:hover { background: var(--surface-control-hover); }
+.key-cap[aria-pressed='true'] { background: var(--accent); color: var(--text-on-accent); box-shadow: none; }
+body[data-input-source='controller'] .key-cap:focus,
+body[data-input-source='controller'] .action-choice:focus {
+  background: var(--surface-selected);
+  box-shadow: 0 0 0 var(--focus-controller-width) var(--focus-controller), var(--shadow-lift);
+  transform: translateY(-1px);
+}
+.action-used {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.action-pill {
+  min-width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--sp-3);
+  border-radius: var(--r-sm);
+  background: var(--surface-control);
+  box-shadow: inset 0 -2px 0 var(--line-2);
+  color: var(--text-1);
+  font-family: var(--font-ui);
+  font-size: var(--fs-hint);
+  font-weight: var(--fw-semibold);
+  white-space: nowrap;
+}
+
+.picker-detail {
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-5);
+  border-radius: var(--r-card);
+  background: var(--surface-row);
+}
+.picker-detail__eyebrow { font-size: var(--fs-eyebrow); letter-spacing: var(--tracking-eyebrow); font-weight: var(--fw-semibold); color: var(--text-3); text-transform: uppercase; }
+.picker-detail__name { display: flex; align-items: center; gap: var(--sp-3); font-size: var(--fs-label); font-weight: var(--fw-medium); }
+.picker-detail__note { color: var(--text-2); font-size: var(--fs-hint); line-height: var(--lh-hint); }
+.picker-detail__raw { color: var(--text-3); font-size: var(--fs-hint); }
+.picker-detail__raw code { margin-left: var(--sp-1); color: var(--text-2); font-family: var(--font-mono); }
+
+.action-picker-note { color: var(--text-2); font-size: var(--fs-hint); margin: 0 0 var(--sp-4); }
+.gamepad-actions .action-choice { gap: 14px; }
+
+@media (max-width: 1023px) {
+  .action-picker__body { grid-template-columns: minmax(0, 1fr); padding: var(--sp-4) var(--sp-4) 96px; }
+  .action-picker__header { flex-wrap: wrap; padding: var(--sp-4); }
+  .action-picker__tabs { padding: var(--sp-2) var(--sp-4) var(--sp-3); }
+  .action-picker__search { width: 100%; order: 5; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .action-picker { animation: none; }
+}
+
+/* LED brightness: a console command with a value, so it carries its own stepper. */
+.action-led { display: flex; align-items: center; gap: var(--sp-2); margin: var(--sp-3) 0; padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-4); border-radius: var(--r-row); background: var(--surface-row); }
+.action-led__label { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.action-led__label b { color: var(--text-1); font-size: var(--fs-label); font-weight: var(--fw-medium); }
+.action-led__label small { color: var(--text-3); font-size: var(--fs-hint); }
+.action-led input { width: 64px; height: var(--control-h); border: 0; border-radius: var(--r-md); background: var(--surface-control); color: var(--text-1); font: inherit; text-align: center; font-variant-numeric: tabular-nums; }
+.action-led input:focus-visible { outline: 2px solid var(--focus-keyboard); outline-offset: 1px; }
+.action-led .action-choice.action-led__set { min-width: 72px; }

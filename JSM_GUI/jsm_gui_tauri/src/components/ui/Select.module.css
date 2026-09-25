@@ -1,44 +1,49 @@
-/* Matches `.app-select` in styles/forms.css so a Radix select and a native one
-   can sit in the same form without reading as two different controls. */
+/* Select trigger, list and explanation panel (Components 13.10). Matches
+   `.app-select` in styles/forms.css so a Radix select and a native one read as
+   the same control. */
 .trigger {
   display: inline-flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: var(--sp-2);
   width: 100%;
-  min-height: 2rem;
-  padding: 0.38rem 0.6rem;
-  border-radius: var(--radius-control);
-  border: 1px solid var(--border-1);
-  background: var(--bg-input);
-  color: var(--text-strong);
+  min-height: var(--control-h);
+  padding: 0 10px 0 12px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--surface-control);
+  color: var(--text-1);
   font: inherit;
-  font-size: var(--font-label);
-  font-weight: 600;
-  line-height: 1.3;
+  font-size: var(--fs-body);
+  font-weight: var(--fw-medium);
+  line-height: var(--lh-body);
   cursor: pointer;
   text-align: left;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition: background var(--dur-1) var(--ease-standard), box-shadow var(--dur-2) var(--ease-standard);
 }
 
 .trigger:hover:not([data-disabled]) {
-  border-color: var(--border-strong);
+  background: var(--surface-control-hover);
+}
+
+.trigger[data-state='open'] {
+  box-shadow: 0 0 0 2px var(--accent);
 }
 
 .trigger[data-disabled] {
-  opacity: 0.55;
-  cursor: not-allowed;
+  opacity: var(--disabled-opacity);
+  cursor: default;
 }
 
 .trigger:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  outline: 2px solid var(--focus-keyboard);
+  outline-offset: var(--focus-offset);
 }
 
 .value {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: var(--sp-2);
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -48,17 +53,17 @@
 .icon {
   display: inline-flex;
   align-items: center;
-  flex: 0 0 auto;
-  color: var(--text-mid);
+  flex: none;
+  color: var(--text-2);
 }
 
 .chevron {
-  flex: 0 0 auto;
-  color: var(--text-muted);
+  flex: none;
+  color: var(--text-3);
 }
 
 .content {
-  z-index: 60;
+  z-index: var(--z-menu);
   /* Match the trigger so a normal control's list lines up under it -- but only
      up to a point. These triggers stretch to their settings column, and a list
      of words like NO_SKIP has no reason to be 850px wide; it also left no room
@@ -66,103 +71,142 @@
   min-width: min(var(--radix-select-trigger-width), 22rem);
   max-width: min(92vw, 30rem);
   max-height: var(--radix-select-content-available-height);
-  border-radius: 10px;
-  border: 1px solid var(--border-strong);
-  background: var(--bg-2);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.38);
+  border-radius: var(--r-card);
+  border: 0;
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-menu);
   /* visible so the help panel can sit alongside; items are inset far enough
      from the rounded corners that nothing needs clipping here. */
   position: relative;
   overflow: visible;
 }
 
+/* Opening only: an exit animation keeps the closed list mounted, and with it
+   Radix's aria-hidden over the rest of the page, for a frame. */
+.content[data-state='open'] {
+  animation: select-in var(--dur-3) var(--ease-emphasis);
+}
+
+@keyframes select-in {
+  from { opacity: 0; transform: scale(.96); }
+  to { opacity: 1; transform: none; }
+}
+
 .viewport {
-  padding: 0.28rem;
+  padding: var(--sp-2);
 }
 
 .item {
   position: relative;
+  min-height: 40px;
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.4rem 0.6rem 0.4rem 1.5rem;
-  border-radius: 6px;
-  color: var(--text-mid);
-  font-size: var(--font-label);
-  font-weight: 600;
-  line-height: 1.3;
+  gap: var(--sp-3);
+  padding: 6px var(--sp-3) 6px 34px;
+  border-radius: var(--r-md);
+  color: var(--text-1);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
   cursor: pointer;
   user-select: none;
   outline: none;
+  transition: background var(--dur-1) var(--ease-standard);
 }
 
 .item[data-highlighted] {
-  background: var(--accent-primary);
-  color: var(--btn-primary-text);
+  background: var(--surface-row-hover);
 }
 
-.item[data-highlighted] .icon,
-.item[data-highlighted] .itemHint {
-  color: inherit;
+.item[data-highlighted]:focus-visible,
+:global(body[data-input-source='controller']) .item[data-highlighted] {
+  background: var(--surface-selected);
+  box-shadow: 0 0 0 var(--focus-controller-width) var(--focus-controller);
 }
 
 .item[data-state='checked'] {
-  color: var(--text-strong);
+  color: var(--text-1);
+  font-weight: var(--fw-medium);
 }
 
 .item[data-disabled] {
-  opacity: 0.45;
-  cursor: not-allowed;
+  opacity: var(--disabled-opacity);
+  cursor: default;
 }
 
 .itemIndicator {
   position: absolute;
-  left: 0.4rem;
+  left: 12px;
   display: inline-flex;
   align-items: center;
-  color: currentColor;
+  color: var(--accent);
 }
 
 .itemHint {
   margin-left: auto;
-  padding-left: 0.75rem;
-  color: var(--text-dim);
-  font-size: var(--font-hint);
-  font-weight: 600;
+  padding-left: var(--sp-3);
+  color: var(--text-3);
+  font-size: var(--fs-hint);
 }
 
 .groupLabel {
-  padding: 0.4rem 0.6rem 0.25rem;
-  color: var(--text-muted);
-  font-size: var(--font-hint);
-  font-weight: 800;
-  letter-spacing: 0.07em;
+  padding: var(--sp-3) var(--sp-3) var(--sp-1);
+  color: var(--text-3);
+  font-size: var(--fs-eyebrow);
+  line-height: var(--lh-eyebrow);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-eyebrow);
   text-transform: uppercase;
 }
 
 .separator {
   height: 1px;
-  margin: 0.28rem 0.3rem;
-  background: var(--border-1);
+  margin: var(--sp-2);
+  background: var(--line-1);
 }
 
 .scrollButton {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 1.2rem;
-  color: var(--text-muted);
-  font-size: 0.6rem;
-  background: var(--bg-2);
+  height: 20px;
+  color: var(--text-3);
+  font-size: 10px;
+  background: var(--surface-raised);
   cursor: default;
 }
 
-/* Out of the popup's flow: a long description must never change the popup's
-   height, or the options shift under the pointer while you read them. */
-.description { position: absolute; z-index: 1; width: 280px; max-height: min(320px, var(--radix-select-content-available-height)); overflow-y: auto; padding: 12px 14px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--bg-input); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.38); font-size: 13px; line-height: 1.5; color: var(--text-mid); }
-.description p { margin: 5px 0 0; white-space: normal; }
+/* The explanation panel. Out of the popup's flow: a long description must
+   never change the popup's height, or the options shift under the pointer
+   while you read them. Placement (beside or docked below, clamped to the
+   viewport) is decided in Select.tsx. */
+.description {
+  position: absolute;
+  z-index: 1;
+  width: 320px;
+  max-height: min(320px, var(--radix-select-content-available-height));
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: var(--sp-5);
+  border-radius: var(--r-card);
+  background: var(--surface-row);
+  box-shadow: var(--shadow-menu);
+  font-size: var(--fs-body);
+  line-height: 21px;
+  color: var(--text-1);
+}
+
+.description p {
+  margin: 0;
+  white-space: normal;
+  color: var(--text-2);
+}
+
 .right { top: 0; left: calc(100% + 8px); }
 .left { top: 0; right: calc(100% + 8px); }
-.bottom { top: calc(100% + 6px); left: 0; width: max(280px, 100%); }
+.bottom { top: calc(100% + 6px); left: 0; width: max(320px, 100%); }
 
-.trigger { min-height: 38px; padding: 8px 12px; border-radius: 8px; font-weight: 500; }
+@media (prefers-reduced-motion: reduce) {
+  .content { animation: none; }
+}

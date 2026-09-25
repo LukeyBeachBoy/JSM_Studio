@@ -35,8 +35,10 @@ const CONFIG = [
     await page.goto(URL);
 
     // Drive the config editor the way a person would, so this exercises the
-    // real render path rather than a hand-built DOM.
-    await page.getByRole('button', { name: 'Edit config', exact: true }).click();
+    // real render path rather than a hand-built DOM. "Edit source" lives on
+    // the Studio configurations page's detail panel, behind the app mark.
+    await page.locator('.titlebar__brand').click();
+    await page.getByRole('button', { name: 'Edit source', exact: true }).click();
     const editor = page.locator('textarea').first();
     await editor.waitFor();
     await editor.fill(CONFIG);
@@ -45,7 +47,8 @@ const CONFIG = [
     await editor.waitFor({ state: 'hidden' });
 
     // Trackpads page, where the pad preview lives.
-    await page.getByText('Trackpads', { exact: true }).first().click();
+    await page.locator('.back-chip').click();
+    await page.getByRole('button', { name: 'Trackpads', exact: true }).first().click();
     // The editor preview and the live overlay are one renderer now, so a
     // region is the overlay's own element: a div with the button role, named
     // '<command>: <label>'. Ordering by that name keeps LT1..LT4 in index

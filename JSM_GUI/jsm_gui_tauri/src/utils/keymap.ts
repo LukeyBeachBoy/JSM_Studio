@@ -66,6 +66,22 @@ function parseNumbers(value?: string, limit = Infinity) {
     .filter(num => Number.isFinite(num))
 }
 
+// Splitting the configuration into lines is pure, but the readers below run
+// once per input per render, and renders follow controller telemetry -- so the
+// same few kilobytes were being split hundreds of times a second. Cache it for
+// the last few configurations, and hand out a frozen array: only the readers
+// use this. The writers below keep their own split, because they edit it.
+const LINE_CACHE = new Map<string, readonly string[]>()
+const LINE_CACHE_LIMIT = 8
+function configLines(text: string): readonly string[] {
+  const hit = LINE_CACHE.get(text)
+  if (hit) return hit
+  const lines = Object.freeze(text.split(/\r?\n/))
+  LINE_CACHE.set(text, lines)
+  if (LINE_CACHE.size > LINE_CACHE_LIMIT) LINE_CACHE.delete(LINE_CACHE.keys().next().value!)
+  return lines
+}
+
 export function parseSensitivityValues(text: string, options?: { prefix?: string }): SensitivityValues {
   const keyWithPrefix = (key: string) => {
     if (!options?.prefix) return key
@@ -695,12 +711,12 @@ function parseComboBindings(
   slot: Extract<BindingSlot, 'chord' | 'simultaneous' | 'diagonal'>
 ): ComboBinding[] {
   const target = button.toUpperCase()
-  const lines = text.split(/\r?\n/)
+  const lines = configLines(text)
   const results: ComboBinding[] = []
   for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
     const line = lines[lineIndex]
     const trimmed = line.trim()
-    if (!trimmed) continue
+    if (!trimmed || trimmed.startsWith('#')) continue
     const [rawKey, rawValue] = trimmed.split('=')
     if (!rawValue) continue
     const key = rawKey.trim().toUpperCase()
@@ -924,7 +940,7 @@ export function getButtonSpecialAssignments(text: string) {
 
 export function getStickModeShiftAssignmentMap(text: string) {
   const result: Record<string, StickModeShiftAssignment[]> = {}
-  const lines = text.split(/\r?\n/)
+  const lines = configLines(text)
   lines.forEach(line => {
     const match = line.match(/^\s*([^,]+)\s*,\s*((LEFT|RIGHT)_STICK_MODE)\s*=\s*([^\s#]+)/i)
     if (!match) return

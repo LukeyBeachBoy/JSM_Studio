@@ -1,41 +1,39 @@
-/* Deliberately quiet. An inherited value is normal, not a problem, so the badge
-   reads as a note rather than a warning -- it must not compete with the
-   binding it annotates. */
+/* The origin marker for an inherited binding (Components 13.8): a hollow dot
+   and the source's name. Quiet on purpose -- inheriting is normal, not a
+   problem, so it reads as a note beside the value rather than a warning. */
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.28em;
-  padding: 0.05em 0.45em;
-  border: 1px solid var(--border-subtle, rgba(127, 127, 127, 0.35));
-  border-radius: 999px;
+  gap: 6px;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: var(--r-xs);
   background: transparent;
-  color: var(--text-muted, #8a8f98);
-  font-size: 0.72em;
-  font-weight: 500;
-  line-height: 1.5;
+  color: var(--origin-inherited);
+  font: inherit;
+  font-size: 12px;
+  font-weight: var(--fw-regular);
+  line-height: 1.4;
   white-space: nowrap;
   cursor: pointer;
   vertical-align: middle;
 }
 
-.badge:hover,
+.badge:hover:not(:disabled),
 .badge:focus-visible {
-  color: var(--text-primary, inherit);
-  border-color: var(--border-strong, rgba(127, 127, 127, 0.7));
+  color: var(--text-2);
 }
 
 .badge:disabled {
   cursor: default;
 }
 
-.badge:disabled:hover {
-  color: var(--text-muted, #8a8f98);
-  border-color: var(--border-subtle, rgba(127, 127, 127, 0.35));
-}
-
 .mark {
-  font-size: 0.9em;
-  opacity: 0.8;
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px currentColor;
 }
 
 .source {

@@ -1,0 +1,47 @@
+/* Debug console (Tuning and Studio Pages 16i). */
+.console { display: flex; flex-direction: column; gap: var(--sp-3); }
+.toolbar { display: flex; align-items: center; justify-content: flex-end; gap: var(--sp-2); }
+.meta { margin-right: auto; color: var(--text-3); font-size: var(--fs-hint); }
+
+.log {
+  height: min(56vh, 520px);
+  overflow-y: auto;
+  padding: var(--sp-4);
+  border-radius: var(--r-card);
+  background: var(--surface-sunken);
+  font-family: var(--font-mono);
+  font-size: var(--fs-hint);
+  line-height: 1.85;
+  color: var(--text-2);
+}
+.log:focus-visible { outline: 2px solid var(--focus-keyboard); outline-offset: 2px; }
+.line { display: flex; gap: var(--sp-3); }
+.time { flex: none; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.text { min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text-1); }
+.line[data-tone='warn'] .text { color: var(--warn); }
+.line[data-tone='bad'] .text { color: var(--error); }
+.line[data-tone='command'] .text { color: var(--accent); }
+.waiting { color: var(--text-3); }
+
+.commandLine {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-1) var(--sp-1) var(--sp-4);
+  border-radius: var(--r-card);
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--line-1);
+}
+.commandLine:focus-within { box-shadow: inset 0 0 0 1px var(--focus-keyboard); }
+.prompt { color: var(--text-3); font-family: var(--font-mono); }
+.commandLine input {
+  flex: 1;
+  min-width: 0;
+  height: var(--control-h);
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text-1);
+  font-family: var(--font-mono);
+  font-size: var(--fs-hint);
+}

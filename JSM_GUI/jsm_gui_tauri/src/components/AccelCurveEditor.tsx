@@ -89,7 +89,7 @@ export function AccelCurveEditor({
   const shapeParams = inherits ? null : (
     <>
       {curve === 'NATURAL' && (
-        <NumberField
+        <NumberField setting="ACCEL_NATURAL_VHALF"
           label={t('sensitivity.naturalMidpoint')}
           value={values.naturalVHalf}
           onChange={onNaturalVHalfChange}
@@ -104,7 +104,7 @@ export function AccelCurveEditor({
       )}
       {curve === 'POWER' && (
         <>
-          <NumberField
+          <NumberField setting="ACCEL_POWER_VREF"
             label={t('sensitivity.powerVRef')}
             value={values.powerVRef}
             onChange={onPowerVRefChange}
@@ -115,7 +115,7 @@ export function AccelCurveEditor({
             placeholder={defaults.powerVRef !== undefined ? String(defaults.powerVRef) : undefined}
             disabled={disabled}
           />
-          <NumberField
+          <NumberField setting="ACCEL_POWER_EXPONENT"
             label={t('sensitivity.powerExponent')}
             value={values.powerExponent}
             onChange={onPowerExponentChange}
@@ -130,7 +130,7 @@ export function AccelCurveEditor({
       )}
       {curve === 'SIGMOID' && (
         <>
-          <NumberField
+          <NumberField setting="ACCEL_SIGMOID_MID"
             label={t('sensitivity.sigmoidMidpoint')}
             value={values.sigmoidMid}
             onChange={onSigmoidMidChange}
@@ -142,7 +142,7 @@ export function AccelCurveEditor({
             placeholder={defaults.sigmoidMid !== undefined ? String(defaults.sigmoidMid) : undefined}
             disabled={disabled}
           />
-          <NumberField
+          <NumberField setting="ACCEL_SIGMOID_WIDTH"
             label={t('sensitivity.sigmoidWidth')}
             value={values.sigmoidWidth}
             onChange={onSigmoidWidthChange}
@@ -157,7 +157,7 @@ export function AccelCurveEditor({
         </>
       )}
       {curve === 'JUMP' && (
-        <NumberField
+        <NumberField setting="ACCEL_JUMP_TAU"
           label={t('sensitivity.jumpTau')}
           value={values.jumpTau}
           onChange={onJumpTauChange}
@@ -212,7 +212,7 @@ export function AccelCurveEditor({
       {outputs}
 
       <div className="flex-inputs">
-        <NumberField
+        <NumberField setting="MIN_GYRO_THRESHOLD"
           label={t('accelCurve.minSpeed')}
           value={values.minThreshold}
           onChange={onMinThresholdChange}
@@ -225,7 +225,7 @@ export function AccelCurveEditor({
           hint={t('accelCurve.minSpeedHint')}
           disabled={disabled}
         />
-        <NumberField
+        <NumberField setting="MAX_GYRO_THRESHOLD"
           label={t('accelCurve.maxSpeed')}
           value={values.maxThreshold}
           onChange={onMaxThresholdChange}

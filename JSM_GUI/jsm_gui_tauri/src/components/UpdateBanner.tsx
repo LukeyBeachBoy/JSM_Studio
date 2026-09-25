@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react'
-import { useTranslation } from 'react-i18next'
 import { desktopBridge } from '../platform/desktopBridge'
 import styles from './Misc.module.css'
 
 type UpdateState =
   | { phase: 'idle' }
   | { phase: 'available'; version: string }
-  | { phase: 'downloading' }
-  | { phase: 'error' }
-  | { phase: 'ready' }
+  | { phase: 'downloading'; version: string }
+  | { phase: 'installing'; version: string }
+  | { phase: 'error'; version?: string }
 
+// Update banner (System States 17h): one line under the tabs, left of where
+// toasts stack. "Install and restart" downloads, then installs as soon as the
+// download lands; the download's progress fills the banner meanwhile.
 export function UpdateBanner() {
-  const { t } = useTranslation()
   const [update, setUpdate] = useState<UpdateState>({ phase: 'idle' })
   const [dismissed, setDismissed] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -25,7 +26,14 @@ export function UpdateBanner() {
       setProgress(percent)
     })
     const removeDownloaded = desktopBridge.onUpdateDownloaded(() => {
-      setUpdate({ phase: 'ready' })
+      setUpdate(current => {
+        const version = 'version' in current ? current.version ?? '' : ''
+        void desktopBridge.installUpdate().catch(error => {
+          console.error('Failed to install JSM Studio update', error)
+          setUpdate({ phase: 'error', version })
+        })
+        return { phase: 'installing', version }
+      })
     })
     const checkTimer = window.setTimeout(() => {
       void desktopBridge.checkForUpdates()
@@ -40,56 +48,44 @@ export function UpdateBanner() {
 
   if (update.phase === 'idle' || dismissed) return null
 
+  const version = 'version' in update ? update.version : undefined
+  const install = (target: string) => {
+    setProgress(0)
+    setUpdate({ phase: 'downloading', version: target })
+    void desktopBridge.downloadUpdate().catch(error => {
+      console.error('Failed to download JSM Studio update', error)
+      setUpdate({ phase: 'error', version: target })
+    })
+  }
+
   return (
-    <div className={styles.updateBanner}>
-      {update.phase === 'available' && (
-        <>
-          <span>{t('update.available', { version: update.version })}</span>
-          <div className={styles.updateBannerActions}>
-            <button
-              type="button"
-              className="primary-btn"
-              onClick={() => {
-                setUpdate({ phase: 'downloading' })
-                void desktopBridge.downloadUpdate().catch(error => {
-                  console.error('Failed to download JSM Studio update', error)
-                  setUpdate({ phase: 'error' })
-                })
-              }}
-            >
-              {t('update.downloadNow')}
-            </button>
-            <button type="button" className="ghost-btn" onClick={() => setDismissed(true)}>
-              {t('common.later')}
-            </button>
-          </div>
-        </>
+    <div className={styles.updateBanner} role="status" data-phase={update.phase}>
+      {update.phase === 'downloading' && (
+        <span className={styles.updateBannerFill} style={{ transform: `scaleX(${Math.max(0, Math.min(100, progress)) / 100})` }} aria-hidden="true" />
       )}
-      {update.phase === 'downloading' && <span>{t('update.downloading', { percent: progress })}</span>}
-      {update.phase === 'error' && (
-        <>
-          <span>{t('update.failed')}</span>
-          <button type="button" className="ghost-btn" onClick={() => setDismissed(true)}>
-            {t('common.later')}
-          </button>
-        </>
+      <b>
+        {update.phase === 'available' && 'Update available'}
+        {update.phase === 'downloading' && 'Downloading update'}
+        {update.phase === 'installing' && 'Installing update'}
+        {update.phase === 'error' && 'The update did not install'}
+      </b>
+      <span className={styles.updateBannerDetail}>
+        {update.phase === 'downloading'
+          ? `JSM Studio ${version} · ${Math.round(progress)}%`
+          : update.phase === 'installing'
+            ? 'JSM Studio restarts on its own'
+            : update.phase === 'error'
+              ? 'Try again, or download it from the releases page'
+              : `JSM Studio ${version}`}
+      </span>
+      <span className={styles.updateBannerSpacer} />
+      {(update.phase === 'available' || (update.phase === 'error' && version)) && (
+        <button type="button" className={styles.updateBannerAction} onClick={() => install(version!)}>
+          {update.phase === 'error' ? 'Try again' : 'Install and restart'}
+        </button>
       )}
-      {update.phase === 'ready' && (
-        <>
-          <span>{t('update.ready')}</span>
-          <button
-            type="button"
-            className="primary-btn"
-            onClick={() => {
-              void desktopBridge.installUpdate().catch(error => {
-                console.error('Failed to install JSM Studio update', error)
-                setUpdate({ phase: 'error' })
-              })
-            }}
-          >
-            {t('update.restartNow')}
-          </button>
-        </>
+      {(update.phase === 'available' || update.phase === 'error') && (
+        <button type="button" className={styles.updateBannerLater} onClick={() => setDismissed(true)}>Later</button>
       )}
     </div>
   )

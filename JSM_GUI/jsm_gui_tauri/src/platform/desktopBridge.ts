@@ -5,6 +5,29 @@ export type CalibrationStatus = {
   seconds?: number
 }
 
+/** The mapper stopping by itself (System States 17c). */
+export type MapperExit = {
+  exitCode: number
+  /** Unix milliseconds. */
+  stoppedAtMs: number
+  lastLine?: string | null
+}
+
+export type MapperStatus = {
+  running: boolean
+  exit?: MapperExit | null
+}
+
+/** How a CALIBRATE_GYRO run ended; "moved" when the controller was picked up. */
+/** The configuration layers the mapper has on right now, in stack order. */
+export type LayerStack = { profile: string; layers: { id: string; name: string }[] }
+
+export type GyroCalibrationResult = {
+  ok: boolean
+  reason?: 'moved'
+  reached?: number
+}
+
 export type ApplyProfileResult = {
   restarted: boolean
   path?: string
@@ -19,6 +42,22 @@ export type RuntimeMappingState = {
   defaultPollingMs?: number
   controllerNavEnabled: boolean
   trackpadOverlayEnabled?: boolean
+  gyroCalibrationSeconds?: number
+  gyroCalibrationDelay?: number
+  /** Built-in controller tune 0-13, or -1 for none. */
+  connectSound?: number
+  shutdownSound?: number
+  /** Studio's reserved chords (pause mapping, calibrate gyro). */
+  reservedChords?: boolean
+  /** Whether the calibration HUD appears over games. */
+  calibrationHudEnabled?: boolean
+}
+
+export type ControllerPreferences = {
+  gyroCalibrationSeconds: number
+  gyroCalibrationDelay: number
+  connectSound: number
+  shutdownSound: number
 }
 
 export type AutoloadRule = {
@@ -30,6 +69,8 @@ export type AutoloadRule = {
   missingProfile: boolean
   /** The rule JSM Studio installs for its own window; read-only in the UI. */
   builtIn: boolean
+  /** Kept but not used (the file is renamed so AutoLoad skips it). */
+  paused?: boolean
 }
 
 // One global chord: hold any button in `buttons`, the configuration at
@@ -180,11 +221,20 @@ export interface DesktopBridge {
   setMappingEnabled: (enabled: boolean) => Promise<RuntimeMappingState>
   setAutoloadEnabled: (enabled: boolean) => Promise<RuntimeMappingState>
   setDefaultPollingMs: (value: number) => Promise<RuntimeMappingState>
+  setControllerPreferences: (preferences: ControllerPreferences) => Promise<RuntimeMappingState>
+  playControllerSound: (sound: number) => Promise<{ success: boolean }>
   setControllerNavEnabled: (enabled: boolean) => Promise<RuntimeMappingState>
+  /** Ends Test mode: loads Studio's navigation profile so the pad drives Studio again. */
+  resumeStudioNavigation: () => Promise<boolean>
+  setStudioTesting: (testing: boolean) => Promise<void>
   setTrackpadOverlayEnabled: (enabled: boolean) => Promise<void>
   listAutoloadRules: () => Promise<AutoloadRule[]>
   saveAutoloadRule: (processName: string, profileName: string) => Promise<AutoloadRule | null>
   deleteAutoloadRule: (processName: string) => Promise<{ success: boolean }>
+  setAutoloadRulePaused: (processName: string, paused: boolean) => Promise<AutoloadRule | null>
+  setReservedChords: (enabled: boolean) => Promise<RuntimeMappingState | null>
+  setCalibrationHudEnabled: (enabled: boolean) => Promise<RuntimeMappingState | null>
+  onRuntimeMappingState: (callback: (state: RuntimeMappingState) => void) => Unsubscribe
   listGlobalChords: () => Promise<GlobalChord[]>
   saveGlobalChord: (chord: GlobalChord) => Promise<GlobalChord[]>
   deleteGlobalChord: (id: string) => Promise<GlobalChord[]>
@@ -192,6 +242,11 @@ export interface DesktopBridge {
   getCalibrationSeconds: () => Promise<number | null>
   setCalibrationSeconds: (seconds: number) => Promise<number | null>
   onCalibrationStatus: (callback: (payload: CalibrationStatus) => void) => Unsubscribe
+  getMapperStatus: () => Promise<MapperStatus | null>
+  getLayerStack: () => Promise<LayerStack | null>
+  onLayerStack: (callback: (payload: LayerStack) => void) => Unsubscribe
+  onMapperStatus: (callback: (payload: MapperStatus) => void) => Unsubscribe
+  onGyroCalibrationResult: (callback: (payload: GyroCalibrationResult) => void) => Unsubscribe
   listLibraryProfiles: () => Promise<string[]>
   onLibraryProfilesChanged: (callback: (profiles: string[]) => void) => Unsubscribe
   saveLibraryProfile: (name: string, content: string) => Promise<{ name: string } | null>
@@ -229,6 +284,9 @@ export interface DesktopBridge {
   stopInputDebugHook: () => Promise<InputDebugHookStatus>
   getInputDebugHookStatus: () => Promise<InputDebugHookStatus>
   onInputDebugEvent: (callback: (payload: InputDebugEvent) => void) => Unsubscribe
+  /** Report this window’s measured display refresh rate, so telemetry is
+   *  emitted at the panel’s pace rather than a fixed 60 Hz. */
+  setUiRefreshHz: (hz: number) => Promise<void>
   getHidHideStatus: () => Promise<HidHideStatus>
   setHidHideActive: (active: boolean) => Promise<HidHideStatus>
   setHidHideDeviceHidden: (instanceId: string, hidden: boolean) => Promise<HidHideStatus>
@@ -383,11 +441,31 @@ export const desktopBridge: DesktopBridge = {
     if (isTauriWindow()) return invokeTauri<RuntimeMappingState>('set_default_polling_ms', { value })
     return { activeProfilePath: 'profiles-library/Profile 1.txt', mappingEnabled: true, autoloadEnabled: true, controllerNavEnabled: true, defaultPollingMs: value }
   },
+  async setControllerPreferences(preferences) {
+    if (isTauriWindow()) return invokeTauri<RuntimeMappingState>('set_controller_preferences', { preferences })
+    return { activeProfilePath: 'profiles-library/Profile 1.txt', mappingEnabled: true, autoloadEnabled: true, controllerNavEnabled: true, ...preferences }
+  },
+  async playControllerSound(sound) {
+    if (isTauriWindow()) return invokeTauri<{ success: boolean }>('play_controller_sound', { sound })
+    return { success: false }
+  },
   async setControllerNavEnabled(enabled) {
     if (isTauriWindow()) {
       return invokeTauri<RuntimeMappingState>('set_controller_nav_enabled', { enabled })
     }
     return { activeProfilePath: 'profiles-library/Profile 1.txt', mappingEnabled: true, autoloadEnabled: true, controllerNavEnabled: enabled }
+  },
+  async setStudioTesting(testing) {
+    if (isTauriWindow()) await invokeTauri<void>('set_studio_testing', { testing }).catch(() => {})
+  },
+  async resumeStudioNavigation() {
+    if (isTauriWindow()) {
+      return invokeTauri<boolean>('resume_studio_navigation').catch(error => {
+        console.error('Failed to resume Studio navigation', error)
+        return false
+      })
+    }
+    return false
   },
   async listGlobalChords() {
     if (isTauriWindow()) {
@@ -411,11 +489,35 @@ export const desktopBridge: DesktopBridge = {
     if (isTauriWindow()) {
       return invokeTauri<AutoloadRule[]>('list_autoload_rules').catch(() => [])
     }
-    return []
+    return (await getElectronAPI()?.listAutoloadRules?.()) ?? []
   },
   async saveAutoloadRule(processName, profileName) {
     if (isTauriWindow()) {
       return invokeTauri<AutoloadRule>('save_autoload_rule', { processName, profileName }).catch(() => null)
+    }
+    return null
+  },
+  async setCalibrationHudEnabled(enabled) {
+    if (isTauriWindow()) {
+      return invokeTauri<RuntimeMappingState>('set_calibration_hud_enabled', { enabled }).catch(() => null)
+    }
+    return null
+  },
+  async setReservedChords(enabled) {
+    if (isTauriWindow()) {
+      return invokeTauri<RuntimeMappingState>('set_reserved_chords', { enabled }).catch(() => null)
+    }
+    return null
+  },
+  onRuntimeMappingState(callback) {
+    if (isTauriWindow()) {
+      return listenTauri<RuntimeMappingState>('runtime-mapping-state', callback)
+    }
+    return noop
+  },
+  async setAutoloadRulePaused(processName, paused) {
+    if (isTauriWindow()) {
+      return invokeTauri<AutoloadRule>('set_autoload_rule_paused', { processName, paused }).catch(() => null)
     }
     return null
   },
@@ -449,6 +551,36 @@ export const desktopBridge: DesktopBridge = {
       return listenTauri<CalibrationStatus>('calibration-status', callback)
     }
     return getElectronAPI()?.onCalibrationStatus?.(callback) ?? noop
+  },
+  async getLayerStack() {
+    if (isTauriWindow()) {
+      return invokeTauri<LayerStack>('get_layer_stack').catch(() => null)
+    }
+    return (await getElectronAPI()?.getLayerStack?.()) ?? null
+  },
+  onLayerStack(callback) {
+    if (isTauriWindow()) {
+      return listenTauri<LayerStack>('layer-stack', callback)
+    }
+    return noop
+  },
+  async getMapperStatus() {
+    if (isTauriWindow()) {
+      return invokeTauri<MapperStatus>('get_mapper_status').catch(() => null)
+    }
+    return (await getElectronAPI()?.getMapperStatus?.()) ?? null
+  },
+  onMapperStatus(callback) {
+    if (isTauriWindow()) {
+      return listenTauri<MapperStatus>('mapper-status', callback)
+    }
+    return getElectronAPI()?.onMapperStatus?.(callback) ?? noop
+  },
+  onGyroCalibrationResult(callback) {
+    if (isTauriWindow()) {
+      return listenTauri<GyroCalibrationResult>('gyro-calibration-result', callback)
+    }
+    return getElectronAPI()?.onGyroCalibrationResult?.(callback) ?? noop
   },
   async listLibraryProfiles() {
     if (isTauriWindow()) {
@@ -704,6 +836,11 @@ export const desktopBridge: DesktopBridge = {
       return invokeTauri<HidHideStatus>('get_hidhide_status')
     }
     return unsupportedHidHideStatus()
+  },
+  async setUiRefreshHz(hz) {
+    // Nothing to tell outside the desktop shell: the browser harness just
+    // renders whatever it is handed.
+    if (isTauriWindow()) await invokeTauri<void>('ui_set_refresh_hz', { hz })
   },
   async setHidHideActive(active) {
     if (isTauriWindow()) {

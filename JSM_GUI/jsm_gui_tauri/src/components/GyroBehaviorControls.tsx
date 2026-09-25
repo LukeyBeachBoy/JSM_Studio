@@ -113,7 +113,7 @@ export function GyroBehaviorControls({
       options.push({ value: gyroActivationButton, label: gyroActivationButton, disabled: false })
     }
     return options
-  }, [gyroActivationButton, isTouchpadGridActive, t, touchpadGridCells, touchpadGridCommands])
+  }, [gyroActivationButton, isTouchpadGridActive, t, touchpadGridCells, touchpadGridCommands, devices])
   const fallbackActivationButton =
     activationButtonOptions.find(option => option.value === 'R3' && !option.disabled)?.value ??
     activationButtonOptions.find(option => !option.disabled)?.value ??
@@ -145,7 +145,7 @@ export function GyroBehaviorControls({
           <HelpButton title="Gyro Activation">{t('gyro.activationHint')}</HelpButton></span>
           <AppSelect
             className="app-select"
-            value={gyroActivationMode}
+            setting={gyroActivationMode === 'hold_off' ? 'GYRO_OFF' : 'GYRO_ON'} value={gyroActivationMode}
             onChange={(event) =>
               onGyroActivationModeChange(event.target.value as GyroActivationMode, selectedActivationButton)
             }
@@ -163,7 +163,7 @@ export function GyroBehaviorControls({
           <HelpButton title="Activation Button">{t('gyro.activationButtonHint')}</HelpButton></span>
           <AppSelect
             className="app-select"
-            value={selectedActivationButton}
+            setting={gyroActivationMode === 'hold_off' ? 'GYRO_OFF' : 'GYRO_ON'} value={selectedActivationButton}
             onChange={(event) => onGyroActivationButtonChange(event.target.value)}
             disabled={isCalibrating || !usesActivationButton}
           >
@@ -179,7 +179,7 @@ export function GyroBehaviorControls({
         <label>
           <span className="field-caption">{t('gyro.gyroOutput')}
           <HelpButton title="Gyro Output">{t('gyro.gyroOutputHint')}</HelpButton></span>
-          <AppSelect className="app-select" value={sensitivity.gyroOutput ?? ''} onChange={(e) => onGyroOutputChange(e.target.value)}>
+          <AppSelect setting="GYRO_OUTPUT" className="app-select" value={sensitivity.gyroOutput ?? ''} onChange={(e) => onGyroOutputChange(e.target.value)}>
             <option value="">{t('gyro.gyroOutputMouse')} ({t('common.default')})</option>
             <option value="LEFT_STICK">{t('gyro.gyroOutputLeftStick')}</option>
             <option value="RIGHT_STICK">{t('gyro.gyroOutputRightStick')}</option>
@@ -191,7 +191,7 @@ export function GyroBehaviorControls({
           do nothing, so they fold away rather than inviting a pointless edit. */}
       {gyroDrivesMouse ? (
         <div className="flex-inputs">
-          <NumberField
+          <NumberField setting="REAL_WORLD_CALIBRATION"
             label={t('gyro.realWorldCalibration')}
             value={sensitivity.realWorldCalibration}
             onChange={onRealWorldCalibrationChange}
@@ -200,7 +200,7 @@ export function GyroBehaviorControls({
             step={0.1}
             coarseStep={100}
           />
-          <NumberField
+          <NumberField setting="IN_GAME_SENS"
             label={t('gyro.inGameSensitivity')}
             value={sensitivity.inGameSens}
             onChange={onInGameSensChange}
@@ -213,11 +213,11 @@ export function GyroBehaviorControls({
       ) : (
         <p className="field-description">{t('gyro.stickOutputNote', 'Calibration and in-game sensitivity apply when the gyro drives the mouse. With a stick output, tune the stick’s own settings instead.')}</p>
       )}
-      <AdvancedDisclosure>
+      <AdvancedDisclosure label="Orientation & output options">
         <div className="flex-inputs">
           <label>
             {t('gyro.gyroSpace')} <HelpButton title="Gyro Space">Local uses the controller’s own axes. Player Turn combines yaw and roll relative to your grip; World Turn turns around gravity’s vertical axis. Choose a space that keeps turning natural as you tilt the controller.</HelpButton>
-            <AppSelect className="app-select" value={sensitivity.gyroSpace ?? ''} onChange={(e) => onGyroSpaceChange(e.target.value)}>
+            <AppSelect setting="GYRO_SPACE" className="app-select" value={sensitivity.gyroSpace ?? ''} onChange={(e) => onGyroSpaceChange(e.target.value)}>
               <option value="">{t('common.useDefault')}</option>
               {GYRO_SPACE_OPTIONS.map(option => (
                 <option key={option.value} value={option.value}>
@@ -230,14 +230,14 @@ export function GyroBehaviorControls({
         <div className="flex-inputs">
           <label>
             {t('gyro.gyroAxisX')}
-            <AppSelect className="app-select" value={sensitivity.gyroAxisX ?? ''} onChange={(e) => onGyroAxisXChange(e.target.value)}>
+            <AppSelect setting="GYRO_AXIS_X" className="app-select" value={sensitivity.gyroAxisX ?? ''} onChange={(e) => onGyroAxisXChange(e.target.value)}>
               <option value="">{t('common.default')}</option>
               <option value="INVERTED">{t('gyro.inverted')}</option>
             </AppSelect>
           </label>
           <label>
             {t('gyro.gyroAxisY')}
-            <AppSelect className="app-select" value={sensitivity.gyroAxisY ?? ''} onChange={(e) => onGyroAxisYChange(e.target.value)}>
+            <AppSelect setting="GYRO_AXIS_Y" className="app-select" value={sensitivity.gyroAxisY ?? ''} onChange={(e) => onGyroAxisYChange(e.target.value)}>
               <option value="">{t('common.default')}</option>
               <option value="INVERTED">{t('gyro.inverted')}</option>
             </AppSelect>
@@ -248,7 +248,7 @@ export function GyroBehaviorControls({
             <label>
               {t('gyro.counterOsMouseSpeed')}
               <p className="field-description">{t('gyro.counterOsMouseSpeedHint')}</p>
-              <AppSelect
+              <AppSelect setting="COUNTER_OS_MOUSE_SPEED"
                 className="app-select"
                 value={counterOsMouseSpeed ? 'ON' : 'OFF'}
                 onChange={(event) => onCounterOsMouseSpeedChange(event.target.value === 'ON')}

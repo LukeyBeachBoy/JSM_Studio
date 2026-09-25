@@ -7,7 +7,8 @@ import {
   type HidHideStatus,
 } from '../platform/desktopBridge'
 import { showToast } from '../utils/toast'
-import { Card } from './Card'
+import { AdvancedDisclosure } from './AdvancedDisclosure'
+import { runLongOperation } from './LongOperation'
 import styles from './ControllerStatusPage.module.css'
 
 const HIDHIDE_RELEASES_URL = 'https://github.com/nefarius/HidHide/releases/latest'
@@ -169,7 +170,8 @@ export function HidHidePage({ telemetryDevices }: HidHidePageProps) {
 
   const handleInstallHidHide = () => {
     setBusyKey('hidhide:install')
-    void desktopBridge.installBundledHidHide()
+    // The installer reports no progress and cannot be stopped part way.
+    void runLongOperation('Installing HidHide…', () => desktopBridge.installBundledHidHide(), { detail: 'Windows may ask for permission' })
       .then(result => {
         setStatus(result.status)
         setError(null)
@@ -213,221 +215,121 @@ export function HidHidePage({ telemetryDevices }: HidHidePageProps) {
   const hidHideInstallBusy = busyKey === 'hidhide:install'
   const hidHideOpenBusy = busyKey === 'hidhide:open'
 
+  const connected = decoratedDevices.filter(device => device.present && !device.hidden && !device.stale)
+  const hidden = decoratedDevices.filter(device => device.hidden || device.stale || !device.present)
+
+  const deviceRow = (device: (typeof decoratedDevices)[number]) => {
+    const actionBusy = busyKey === `hidhide:${device.instanceId}`
+    const actionDisabled = actionBusy || hidHideControlsLocked
+    const external = device.hidden && !device.managedByApp && !device.stale
+    const actionLabel = device.stale
+      ? t('controllerStatus.hidHideClearStale')
+      : device.hidden ? t('controllerStatus.hidHideUnhideDevice') : 'Hide from games'
+    const sub = device.stale
+      ? 'No longer connected · an old entry'
+      : !device.present
+        ? 'Not connected · stays hidden when it returns'
+        : device.hidden
+          ? !status?.active
+            ? 'Set to hide · filtering is off'
+            // Inverse mode hides only from the applications on HidHide's list.
+            : status.inverse ? 'Hidden from listed applications' : 'Hidden from games · JSM still reads it'
+          : device.partiallyHidden
+            ? t('controllerStatus.hidHidePartiallyHidden')
+            : `Visible to games${device.likelyCurrentController ? ' · JSM reads it directly' : ''}`
+    return (
+      <div key={device.instanceId} className={styles.deviceRow} data-hidden={device.hidden || undefined}>
+        <span className={styles.deviceDot} data-state={device.hidden ? 'hidden' : device.present ? 'visible' : 'away'} aria-hidden="true" />
+        <span className={styles.deviceText}>
+          <span className={styles.deviceName}>{device.displayName}</span>
+          <span className={styles.deviceSub}>{sub}</span>
+        </span>
+        {external
+          ? <span className={styles.deviceNote} title={t('controllerStatus.hidHideHiddenExternallyHint')}>{t('controllerStatus.hidHideHiddenExternally')}</span>
+          : <button type="button" className={`button ${device.hidden || device.stale ? 'button--secondary' : 'button--primary'}`} onClick={() => handleToggleDevice(device)} disabled={actionDisabled}>
+              {actionBusy ? t('common.refreshing') : actionLabel}
+            </button>}
+      </div>
+    )
+  }
+
+  // Device visibility (Tuning and Studio Pages 16h): what games can see, as
+  // Connected and Hidden, one action each; the driver's own tools sit under
+  // Advanced.
   return (
     <div className={styles.page}>
-      <Card className={`${styles.pageCard} ${styles.hidHideCard}`}>
-        <p>Games may see both your physical controller and JSM Studio’s virtual controller, causing duplicate input. Hide the physical controller here when you want games to receive only mapped output. JSM Studio remains able to read it.</p>
-        <details><summary className="binding-summary">How Device Visibility Works</summary><p>HidHide is the Windows driver that filters access to controllers. Connected describes whether Windows detects the device; it does not mean games can see it. Partially hidden means some device interfaces are hidden and others remain visible. Filtering must be enabled for hiding to take effect. Advanced driver tools below expose the individual interfaces and access list.</p></details>
-        <div className={styles.hidHideHeader}>
-          <div className={styles.hidHideTitleRow}>
-            <div className={styles.hidHideHeading}>
-              <h2>{t('controllerStatus.hidHideTitle')}</h2>
-              {status && (
-                <span className={styles.cardMetric}>
-                  {status.installed
-                    ? status.active
-                      ? t('controllerStatus.hidHideActive')
-                      : t('controllerStatus.hidHideInactive')
-                    : t('controllerStatus.hidHideNotInstalled')}
-                </span>
-              )}
-            </div>
-          </div>
-          <div className={styles.hidHideActions}>
-            <button
-              type="button"
-              className="ghost-btn"
-              onClick={() => void refreshStatus()}
-              disabled={loading || hasActionInFlight}
-            >
-              {loading ? t('common.refreshing') : t('controllerStatus.hidHideRefresh')}
+      {status?.installed && !status.requiresElevation && (
+        <label className={styles.filterSwitch}>
+          <input type="checkbox" checked={status.active} disabled={hidHideControlsLocked} onChange={handleToggleActive} />
+          <span>
+            <span>Hide controllers from games</span>
+            <small>{status.active ? 'On: games see only what JSM sends, and the virtual controller.' : 'Off: every controller below is visible to games, whatever it is set to.'}</small>
+          </span>
+        </label>
+      )}
+
+      {error && <div className={styles.errorNote} role="alert">{t('controllerStatus.hidHideError', { error })}</div>}
+
+      {loading && !status ? (
+        <p className={styles.note}>{t('common.refreshing')}</p>
+      ) : !status ? null : !status.supported ? (
+        <p className={styles.notice}>{t('controllerStatus.hidHideUnsupported')}</p>
+      ) : status.requiresElevation ? (
+        <div className={`${styles.notice} ${styles.noticeWarn}`}>
+          <b>{t('controllerStatus.hidHideElevationTitle')}</b>
+          <p>{t('controllerStatus.hidHideElevationBody')}</p>
+        </div>
+      ) : !status.installed ? (
+        <div className={styles.notice}>
+          <b>{t('controllerStatus.hidHidePrerequisiteTitle')}</b>
+          <p>{t('controllerStatus.hidHidePrerequisiteBody')}</p>
+          <div className={styles.noticeActions}>
+            <button type="button" className="button button--primary" onClick={handleInstallHidHide} disabled={hidHideInstallBusy}>
+              {hidHideInstallBusy ? t('common.refreshing') : t('controllerStatus.hidHideInstallButton')}
             </button>
-            {status?.installed && (
-              <button
-                type="button"
-                className="secondary-btn"
-                onClick={handleOpenHidHide}
-                disabled={hasActionInFlight}
-              >
-                {hidHideOpenBusy ? t('common.refreshing') : t('controllerStatus.hidHideOpenClient')}
-              </button>
-            )}
-            {status?.installed && (
-              <button
-                type="button"
-                className={status.whitelistSynced ? 'secondary-btn' : 'primary-btn'}
-                onClick={handleRepairWhitelist}
-                disabled={hidHideControlsLocked}
-              >
-                {t('controllerStatus.hidHideRepairWhitelist')}
-              </button>
-            )}
-            {status?.installed && (
-              <button
-                type="button"
-                className={status.active ? 'secondary-btn' : 'primary-btn'}
-                onClick={handleToggleActive}
-                disabled={hidHideControlsLocked}
-              >
-                {status.active
-                  ? t('controllerStatus.hidHideDisableHiding')
-                  : t('controllerStatus.hidHideEnableHiding')}
-              </button>
-            )}
+            <button type="button" className="button button--tertiary" onClick={openInstallGuide} disabled={hasActionInFlight}>
+              {t('controllerStatus.hidHideDownloadButton')}
+            </button>
           </div>
         </div>
+      ) : (
+        <>
+          {heuristicAmbiguous && <p className={`${styles.notice} ${styles.noticeWarn}`}>{t('controllerStatus.hidHideHeuristicWarning')}</p>}
+          {/* Both change what "hidden" means, so they are said up front. */}
+          {status.active && status.inverse && <p className={styles.notice}>{t('controllerStatus.hidHideInverseHint')}</p>}
+          {status.active && status.steamAllowed && <p className={`${styles.notice} ${styles.noticeWarn}`}>{t('controllerStatus.hidHideSteamAllowed')}</p>}
+          <span className={styles.eyebrow}>Connected</span>
+          {connected.length ? <div className={styles.rows}>{connected.map(deviceRow)}</div>
+            : <p className={styles.note}>{decoratedDevices.length ? 'Every connected controller is hidden.' : t('controllerStatus.hidHideNoDevices')}</p>}
+          {hidden.length > 0 && <>
+            <span className={styles.eyebrow}>Hidden</span>
+            <div className={styles.rows}>{hidden.map(deviceRow)}</div>
+          </>}
+        </>
+      )}
 
-        {status?.installed && (
-          <div className={styles.hidHideSummary}>
-            <span
-              className={`${styles.hidHideChip} ${
-                status.whitelistSynced ? styles.hidHideChipPositive : styles.hidHideChipWarn
-              }`}
-            >
-              {status.whitelistSynced
-                ? t('controllerStatus.hidHideWhitelistReady')
-                : t('controllerStatus.hidHideWhitelistNeedsRepair')}
+      {status?.installed && (
+        <AdvancedDisclosure summary="Driver tools, the allow-list, how it works">
+          <p className={styles.note}>HidHide is the Windows driver that filters access to controllers. Connected means Windows detects the device, not that games can see it. Partially hidden means some of a device’s interfaces are hidden and others are not. Filtering must be on for hiding to take effect.</p>
+          {!status.requiresElevation && <>
+            <p className={styles.note}>{t('controllerStatus.hidHideReconnectHint')}</p>
+          </>}
+          <div className={styles.toolRow}>
+            <span className={`${styles.chip} ${status.whitelistSynced ? styles.chipOk : styles.chipWarn}`}>
+              {status.whitelistSynced ? t('controllerStatus.hidHideWhitelistReady') : t('controllerStatus.hidHideWhitelistNeedsRepair')}
             </span>
+            <button type="button" className={`button ${status.whitelistSynced ? 'button--tertiary' : 'button--secondary'}`} onClick={handleRepairWhitelist} disabled={hidHideControlsLocked}>
+              {t('controllerStatus.hidHideRepairWhitelist')}
+            </button>
+            <button type="button" className="button button--tertiary" onClick={handleOpenHidHide} disabled={hasActionInFlight}>
+              {hidHideOpenBusy ? t('common.refreshing') : t('controllerStatus.hidHideOpenClient')}
+            </button>
+            <button type="button" className="button button--tertiary" onClick={() => void refreshStatus()} disabled={loading || hasActionInFlight}>
+              {loading ? t('common.refreshing') : t('controllerStatus.hidHideRefresh')}
+            </button>
           </div>
-        )}
-
-        {status?.installed && !status.requiresElevation && (
-          <div className={`${styles.hidHideNotice} ${styles.hidHideNoticeMuted}`}>
-            <p>{t('controllerStatus.hidHideReconnectHint')}</p>
-            {status.inverse && <p>{t('controllerStatus.hidHideInverseHint')}</p>}
-            {status.active && status.steamAllowed && (
-              <p>{t('controllerStatus.hidHideSteamAllowed')}</p>
-            )}
-          </div>
-        )}
-
-        {error && (
-          <div className={`${styles.hidHideNotice} ${styles.hidHideNoticeError}`}>
-            {t('controllerStatus.hidHideError', { error })}
-          </div>
-        )}
-
-        {loading && !status ? (
-          <div className={styles.emptyInline}>{t('common.refreshing')}</div>
-        ) : !status ? null : !status.supported ? (
-          <div className={`${styles.hidHideNotice} ${styles.hidHideNoticeMuted}`}>
-            {t('controllerStatus.hidHideUnsupported')}
-          </div>
-        ) : status.requiresElevation ? (
-          <div className={`${styles.hidHideNotice} ${styles.hidHideNoticeWarn}`}>
-            <div className={styles.hidHideNoticeTitle}>{t('controllerStatus.hidHideElevationTitle')}</div>
-            <p>{t('controllerStatus.hidHideElevationBody')}</p>
-          </div>
-        ) : !status.installed ? (
-          <div className={`${styles.hidHideNotice} ${styles.hidHideNoticeMuted}`}>
-            <div className={styles.hidHideNoticeTitle}>{t('controllerStatus.hidHidePrerequisiteTitle')}</div>
-            <p>{t('controllerStatus.hidHidePrerequisiteBody')}</p>
-            <div className={styles.hidHideNoticeActions}>
-              <button
-                type="button"
-                className="primary-btn"
-                onClick={handleInstallHidHide}
-                disabled={hidHideInstallBusy}
-              >
-                {hidHideInstallBusy ? t('common.refreshing') : t('controllerStatus.hidHideInstallButton')}
-              </button>
-              <button type="button" className="ghost-btn" onClick={openInstallGuide} disabled={hasActionInFlight}>
-                {t('controllerStatus.hidHideDownloadButton')}
-              </button>
-            </div>
-          </div>
-        ) : (
-          <>
-            {heuristicAmbiguous && (
-              <div className={`${styles.hidHideNotice} ${styles.hidHideNoticeWarn}`}>
-                {t('controllerStatus.hidHideHeuristicWarning')}
-              </div>
-            )}
-
-            {decoratedDevices.length === 0 ? (
-              <div className={`${styles.hidHideNotice} ${styles.hidHideNoticeMuted}`}>
-                {t('controllerStatus.hidHideNoDevices')}
-              </div>
-            ) : (
-              <div className={styles.hidHideDeviceList}>
-                {decoratedDevices.map(device => {
-                  const actionBusy = busyKey === `hidhide:${device.instanceId}`
-                  const actionDisabled = actionBusy || hidHideControlsLocked
-                  const actionLabel = device.stale
-                    ? t('controllerStatus.hidHideClearStale')
-                    : device.hidden
-                      ? t('controllerStatus.hidHideUnhideDevice')
-                      : t('controllerStatus.hidHideHideDevice')
-
-                  return (
-                    <div key={device.instanceId} className={styles.hidHideDeviceRow}>
-                      <div className={styles.hidHideDeviceMain}>
-                        <div className={styles.hidHideDeviceTitleRow}>
-                          <strong>{device.displayName}</strong>
-                          <div className={styles.hidHideDeviceBadges}>
-                            <span
-                              className={`${styles.hidHidePill} ${
-                                device.hidden ? styles.hidHidePillWarn : styles.hidHidePillMuted
-                              }`}
-                            >
-                              {device.hidden
-                                ? !status.active
-                                  ? t('controllerStatus.hidHideConfiguredInactive')
-                                  : status.inverse
-                                    ? t('controllerStatus.hidHideInverseHidden')
-                                    : t('controllerStatus.hidHideHidden')
-                                : device.partiallyHidden
-                                  ? t('controllerStatus.hidHidePartiallyHidden')
-                                  : t('controllerStatus.hidHideVisible')}
-                            </span>
-                            <span
-                              className={`${styles.hidHidePill} ${
-                                device.present ? styles.hidHidePillPositive : styles.hidHidePillMuted
-                              }`}
-                            >
-                              {device.present
-                                ? t('controllerStatus.hidHidePresent')
-                                : t('controllerStatus.hidHideSavedOnly')}
-                            </span>
-                          </div>
-                        </div>
-
-                        {device.likelyCurrentController && (
-                          <div className={styles.hidHideDeviceMeta}>
-                            {t('controllerStatus.hidHideLikelyCurrent')}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className={styles.hidHideDeviceActions}>
-                        {device.hidden && !device.managedByApp && !device.stale ? (
-                          <button
-                            type="button"
-                            className="ghost-btn"
-                            disabled
-                            title={t('controllerStatus.hidHideHiddenExternallyHint')}
-                          >
-                            {t('controllerStatus.hidHideHiddenExternally')}
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            className={device.hidden || device.stale ? 'secondary-btn' : 'primary-btn'}
-                            onClick={() => handleToggleDevice(device)}
-                            disabled={actionDisabled}
-                          >
-                            {actionBusy ? t('common.refreshing') : actionLabel}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </>
-        )}
-      </Card>
+        </AdvancedDisclosure>
+      )}
     </div>
   )
 }

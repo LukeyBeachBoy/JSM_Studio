@@ -21,63 +21,9 @@ across sessions. Newest items go at the bottom of **Open**.
 
 ## Open
 
-### TODO-1 — Inherited indicator on every exposed setting, not just button cards
-
-**Status:** open · raised 2026-09-10
-
-**Context**
-
-Import resolution landed in 0.7.23 (`src/utils/configIncludes.ts`,
-`src/hooks/useConfigIncludes.ts`). Every read now goes through the
-import-resolved text, so inherited *values* are correct everywhere. The
-`InheritedBadge` that says where a value came from, though, is rendered in
-exactly one place: `ButtonMappingCard.tsx`, fed from
-`KeymapControls.tsx:1135`, keyed on the whole input's command.
-
-So `Wardogs.txt` — the first profile to import a template — shows the badge on
-things like the left-stick directions, and shows nothing on:
-
-- every settings field (sensitivity, trackpad tuning, grip sensors, timing)
-- trackpad mode dropdowns, grid size, and the `RT1..RT9` grid cells
-- individual binding rows inside a card, which is the wrong granularity anyway:
-  one input can hold several bindings (tap, hold, chord, double) and they can
-  come from different files
-
-**Why**
-
-An inherited value is a ghost — it is live and it is real, but it is not in the
-text the editor shows, so someone hunting for it in the config editor cannot
-find it. The badge is the only thing connecting the two, and a badge that
-appears on some controls and not others is worse than none: its absence reads
-as "this one is mine", which is a lie.
-
-**Done when**
-
-- Every UI control that exposes a config value shows the indicator when that
-  value's effective definition comes from an imported file.
-- The indicator is per *binding*, not per input, wherever an input holds more
-  than one binding.
-- Overriding an inherited value drops the indicator on that control alone.
-  (Already the behaviour — `inheritedFrom` returns null once the profile owns
-  the key — so this needs a test, not an implementation.)
-- A regression test covers at least one settings field and one grid cell, not
-  just a button card. Extend `tests/config_imports_ui_regression.cjs`.
-
-**Notes**
-
-- `inheritedFrom(resolution, INCLUDE_ROOT, key)` already answers this for any
-  key, including chorded ones (`MISC2,RIGHT_TOUCHPAD_MODE`). The work is
-  plumbing and per-control placement, not resolution logic.
-- Worth considering a shared wrapper (something like `<Inheritable configKey>`)
-  rather than threading two props into every field, given how many controls
-  there are. `ConfigScope` in `src/hooks/configContext.ts` is a precedent for
-  wrapping a group of controls with config-derived state.
-
----
-
 ### TODO-3 — Saving a profile drops its standalone comments
 
-**Status:** open · raised 2026-09-10
+**Status:** DONE 2026-09-20 · uncommitted
 
 **Context**
 
@@ -112,6 +58,16 @@ file a worse artefact than the one the user wrote.
   sections, so a comment needs to travel with its following assignment. A
   banner comment with a blank line after it has no obvious anchor — decide
   whether those attach to the next section or are preserved verbatim.
+
+**What was done**
+
+- `configSerializer` now carries ordinary standalone comments on the following
+  parsed line, so canonical section ordering does not separate a note from the
+  setting it describes. Trailing comments remain in the custom block.
+- Generated section headings are recognised as serializer structure, keeping a
+  second Save byte-for-byte stable.
+- `tests/comment_roundtrip_regression.cjs` covers directive, setting, section
+  banner, trailing comments, and repeated-save placement.
 
 ---
 
@@ -187,7 +143,7 @@ fix has to come from somewhere other than more filtering.
 
 ### TODO-5 — Diagonals for the 4-way button pad
 
-**Status:** open · raised 2026-09-11
+**Status:** DONE 2026-09-20 · uncommitted
 
 **Context**
 
@@ -214,6 +170,16 @@ the difference between a d-pad you can strafe diagonally on and one you cannot.
 - Steam also has an "overlap" option where a diagonal presses both neighbouring
   cardinals at once. That is a *third* behaviour, not a region count — decide
   whether it belongs as its own setting before assuming EIGHT_WAY covers it.
+
+**What was done**
+
+- Added `GridShape::EIGHT_WAY` as a fixed eight-wedge layout. It uses the same
+  clockwise-from-up radial math as the overlay and ignores `GRID_SIZE`.
+- Added the editor selector, explanations, deadzone control, preview and
+  overlay parity handling. Existing rectangle, four-way and radial profiles are
+  unchanged.
+- Extended `touch_four_way_harness.cpp` and `overlay_layout_regression.cjs`
+  with eight-way boundary, deadzone, release and parity coverage.
 
 ---
 
@@ -337,7 +303,7 @@ point of the overlay. Iconify is the intended source:
 
 ### TODO-8 — Radial menus, and menus on the sticks
 
-**Status:** open · raised 2026-09-12
+**Status:** DONE 2026-09-20 · uncommitted · hardware verification pending
 
 **Context**
 
@@ -406,9 +372,10 @@ are not the safety net that note implied.
 **Still open from this item**
 
 - Not verified on hardware: no controller was available, so the stick wheel has
-  been proven to compile, resolve, and render, but not to fire.
-- The overlay has no live *dot* for a stick the way it has for a pad; the
-  selected segment highlights, but there is no cursor showing deflection.
+  been proven to compile, resolve, render and hit-test, but not to fire on a
+  physical stick.
+- The overlay now has the same live dot for sticks and pads; the remaining
+  validation is physical input rather than a missing implementation.
 
 ---
 
@@ -456,6 +423,278 @@ point within what the strip can already sense.
   them. If the repositioned left grip proves too eager as a chord, a paddle
   stays the better home for a held layer.
 
+---
+
+### TODO-24 — Grip pulse strength
+
+**Status:** open · raised 2026-09-25
+
+**Context**
+
+`GRIP_HAPTIC_EFFECT = PULSE` is Steam's grip-calibration haptic, copied from USB
+traffic: report `0x81`, target 3 (left grip) / 4 (right grip), 300 µs on, 300 µs
+off, 1 repeat. `TAP` is the same pulse preceded by a pad `CLICK`. Luke confirmed
+PULSE feels exactly like Steam's; the intensity dial only reaches TAP's click.
+Filling the report's trailing 16-bit gain field did nothing.
+
+**Done when** the dial audibly/tangibly changes PULSE's strength, or it is
+established that it cannot and the dial is hidden for PULSE.
+
+**Notes**
+
+- Steam's grip tool calls `TriggerHapticPulse(ctrl, side, 300, 300)` — timing
+  only, no strength. Steam's strength knobs are the per-side personalization
+  settings `nLHapticStrength` / `nRHapticStrength` (slider − 2). Capture pending
+  to see what they write to the controller.
+- Candidate host-side knob: pulse on-time (on_us) and repeat count.
+- **Answered 2026-09-25 (implemented, uncommitted):** Steam's pulse cannot be
+  made stronger. Steam's haptic-strength sliders and rumble-intensity dropdown
+  write nothing to the controller (capture: previews are `0x82` clicks at
+  −17..−5 dB); `TriggerHapticPulse` has no strength; longer on-time or repeats
+  change the character (thinner), not the strength. Targets 3/4 are the back
+  rumble motors (SteamHapticsSinger), which *do* take gain via `0x83` — so
+  RUMBLE is now a 60 Hz / 40 ms `0x83` burst on the side's back motor, following
+  the intensity dial. PULSE is labelled fixed-strength in Studio.
+
+---
+
+### TODO-25 — Tone / Rumble / Noise / Script / Sweep haptics do nothing
+
+**Status:** open · raised 2026-09-25
+
+**Context**
+
+These are sent as the 3-byte `0x82` command (side, effect, gain). Only TICK and
+CLICK are self-contained; the others need frequency/duration that the short
+command cannot carry, so the controller plays nothing.
+
+**Done when** each effect offered in Studio produces a distinct, felt haptic, or
+is removed from the list.
+
+**Notes** — the full-parameter reports exist in SDL's `controller_structs.h`:
+`0x83` LFO tone (side, gain, freq, duration_ms, lfo_freq, lfo_depth), `0x84` log
+sweep (side, gain, duration_ms, start/end freq), `0x85` script (side, script_id,
+gain), `0x80` rumble (type, intensity, per-side speed/gain).
+
+- **2026-09-25 (implemented, uncommitted):** those reports number actuators
+  0/1 = left/right pad, 3/4 = left/right back motor (SteamHapticsSinger
+  `main.cpp`; `0x83` bursts on target 4 felt and gain-scaled by Luke). TONE =
+  200 Hz / 60 ms `0x83` on the pad, RUMBLE = 60 Hz / 40 ms `0x83` on the back
+  motor, SWEEP = 80 ms 100→600 Hz `0x84` on the pad — SWEEP is not yet felt.
+  NOISE and SCRIPT are hidden from Studio's pickers (still parse) — no known
+  parameters drive them.
+
+---
+
+### TODO-26 — Custom startup / shutdown sounds
+
+**Status:** implemented, awaiting hardware check · raised 2026-09-25 · uncommitted
+
+**Context** — Steam offers 14 built-in sounds (`SettingController_HapticSound_0..13`)
+for Start Up Sound / Shutdown Sound on this controller. Luke wants to pick them
+from JSM.
+
+**Done when** a JSM setting chooses each sound and the controller plays it on
+the next power-on / power-off.
+
+**Notes** — Steam sends `ID_SET_AUDIO_MAPPING` (`0xC1`) on every settings apply:
+16 slots indexed by SDL's `ControllerAudio` (0 startup, 1 shutdown, 2 pair, 3 pair
+success, 4 identify, 5 lizard mode, 6 normal mode); observed
+`ff ff ff ff 03 09 05 ff…` with both sounds at default. `ID_PLAY_AUDIO` (`0xB6`)
+should preview. Capture of changing the sounds pending.
+
+- **2026-09-25 findings (hardware-tested):**
+  - Steam's "Identify Controller → Ping" is output report `0x85` (haptic
+    script) `85 05 0c 00` = target 5, script 12, gain 0. Scripts 0–13 all play.
+    Steam's names for its 14 sounds (`SettingController_HapticSound_0..13`):
+    Warm and Happy, Invader, Controller Confirmed, Victory!, Rise and Shine,
+    Shorty, Warm Boot, Next Level, Shake It Off, Access Denied, Deactivate,
+    Discovery, Triumph, The Mann — index-to-script mapping assumed, not proven.
+  - `0xB6` PLAY_AUDIO (u32 or u8 index) plays nothing. `0xC1` mapping with
+    slots 0/1 = 12 changes neither jingle, with Steam closed. Firmware strings
+    have no startup-sound key; the jingles look hard-coded. Only related key:
+    `user/haptic_boot_level` (reads 2 via `0xED`) — not written (undocumented
+    persistent store).
+  - Plan agreed: JSM plays a chosen sound on connect and when *it* powers the
+    controller off, with preview in Studio; custom sounds later as `0x83` tone
+    sequences (SteamHapticsSinger-style, e.g. from `.mid`). The firmware's own
+    jingle still plays at power-on / button power-off.
+
+---
+
+### TODO-27 — LED colour as a binding
+
+**Status:** open · raised 2026-09-25
+
+**Context** — Steam stores `led_red/green/blue`, `led_saturation`,
+`led_brightness` for the controller (its UI hides colour when
+`bUseOnlyBrightness`). SDL's Triton `SetJoystickLED` is unsupported, so JSM's
+`LIGHT_BAR` does nothing today. Setting 45 (`LED_USER_BRIGHTNESS`) = 100 is
+written by Steam on connect.
+
+**Done when** a binding can set the LED colour and it visibly changes.
+
+**Notes** — capture of Steam's LED page pending; first establish whether the
+LED is RGB at all.
+
+- **2026-09-25:** Steam shows only a brightness slider for this controller (no
+  colour picker), and the capture shows only setting 45 changing (0–100). The
+  LED is most likely white-only, so the achievable version is *brightness* as a
+  binding (write setting 45), not colour.
+- **Correction, same day:** the LED *is* RGB(W) — it shows orange/green, but
+  only when the controller is **off** and charging (firmware-driven). Firmware
+  strings: `ID_SET_LED_COLOR` / `ID_GET_LED_COLOR`, `cal/rgbw_{r,g,b,w}`,
+  `pwmrgbleds`. OpenPuck's `steam_commands.h`: SET = `0xC5` (marked "??"),
+  GET = `0xE9`. Verified on hardware: `E9` reads 4 bytes (default `00 00 00 00`);
+  `C5` stores 4 bytes (clamped to 200) and any non-zero value turns the LED
+  steady and overrides the charging pulse — but every byte position shows
+  **white**. Setting 45 (brightness) visibly dims it. Steam never sets colour
+  for this controller. **Parked** — next step would be disassembling the C5
+  handler (needs Ghidra, installed by Luke). 52/53 are trackpad click pressure,
+  not LED (written and restored during testing).
+- **2026-09-25 (implemented, uncommitted): brightness as a binding.** JSM has
+  `LED_BRIGHTNESS` (0-100, -1 = leave it alone, the default); SDLWrapper writes
+  setting 45 when it changes. It is an ordinary setting, so a binding sets it
+  with a console command (`LSL = "LED_BRIGHTNESS = 10"`) and a layer can carry
+  its own value. The action picker's JSM tab has an LED brightness stepper that
+  writes exactly that. Colour stays parked. **Needs a hardware check.**
+
+---
+
+### TODO-28 — Gyro calibration through the overlay, with a start delay
+
+**Status:** implemented, awaiting hardware check · raised 2026-09-25 · uncommitted
+
+**Context** — calibration currently runs from a Studio button with a small
+countdown in the UI. Luke wants it bindable (global chord) with a configurable
+delay before it starts, shown in the always-on-top overlay as a widget: the
+countdown to start, then a progress bar and an SVG of the controller being
+calibrated, visible in-game.
+
+**Done when** a chord starts it, the overlay shows the delay and progress over
+a fullscreen game, and the result is the same calibration the button does.
+
+**Notes (2026-09-25, implemented)**
+
+- JSM owns the run: `CALIBRATE_GYRO` waits `GYRO_CALIBRATION_DELAY`, then
+  RESTART → `GYRO_CALIBRATION_TIME` → FINISH on its own thread; a newer run
+  supersedes an older one. Phase / remaining / total go out in every telemetry
+  packet as `gyroCal`.
+- `RecalibrateGyro.txt` is now just `CALIBRATE_GYRO`; the timing lives in
+  Studio's state (`gyroCalibrationSeconds/Delay`) → `StudioDefaults.txt`. A
+  customised old `SLEEP n` is migrated once.
+- Studio: `services/hud.rs` owns a separate always-on-top click-through window
+  (`hud.html`, `src/hud/`), shown top-centre while `gyroCal.phase != 0` and for
+  1.6 s after ("Gyro calibrated"). The in-app countdown pill is fed from the
+  same telemetry, so the Studio timer thread is gone. `hud.html?demo[=state]`
+  previews the widget in a browser.
+- Settings page → Gyro Calibration (Start Delay, Duration) and Controller Sounds
+  (connect / shutdown, with Preview) save immediately and are pushed to the
+  running mapper by loading `StudioDefaults.txt`.
+- Global chords only accept library profiles and act as held layers, so the
+  chord route is: a binding inside the chord's profile that loads
+  `RecalibrateGyro.txt`. Not yet verified.
+- **2026-09-25 (implemented, uncommitted): moving the controller cancels the
+  run.** While `CALIBRATE_GYRO` samples, JSM watches the raw gyro; above
+  10 °/s for 50 ms it stops, puts back each controller's previous offset (the
+  motion would otherwise be baked in as drift), and holds `gyroCal.phase = 3`
+  with `reached` (0-99 %) for 2.5 s. The HUD shows "Controller moved · N %
+  reached"; Studio toasts the result either way. Verified at rest (1 → 2 → 0,
+  no false cancel); **the cancel itself needs a hardware check** — pick the
+  controller up mid-run.
+
+---
+
+### TODO-29 — Per-grip sensor range (answered: not possible)
+
+**Status:** answered 2026-09-25 — kept for the host-side alternative
+
+Luke wants a short-range right grip (gyro) and a long-range left grip (layer).
+The firmware has one range (`0x22`) and one flicker guard (`0x23`) and applies
+each to both sensors (see `docs/grip-calibration-investigation.md`); Steam's
+settings traffic confirms it only ever writes that one pair. The only host-side
+lever is time, not distance: a separate release delay for the left grip.
+
+- **2026-09-25 (implemented, uncommitted):** `LEFT_GRIP_RELEASE_DELAY` and
+  `RIGHT_GRIP_RELEASE_DELAY` (0-2000 ms) keep a grip held that long after
+  contact ends, applied in SDLWrapper after the Steam grip bits. Set from Grip
+  sensors → Release delay. **Needs a hardware check.**
+
+---
+
+### TODO-30 — Controller-first redesign v3, through Claude Design
+
+**Status:** open · raised 2026-09-25 · brief written
+
+**Context** — Luke's view of the 2026-09-20 Steam Input passes: a re-skin on
+old bones. The next attempt starts in Claude Design and produces an HTML/CSS
+project plus a design system, which Claude Code then implements pixel for pixel.
+The brief is [claude-design-brief.md](claude-design-brief.md). It consolidates
+every earlier brief, audit and open UI item.
+
+**Done when** the Claude Design output meets the brief's §13, and the
+implementation matches it with every item in the brief's §4 still reachable and
+the existing regression suite green.
+
+**Notes**
+
+- **2026-09-25 (uncommitted):** the handoff is in `JSM_GUI/jsm_gui_tauri/design/handoff/`
+  and its seven implementation steps are in: tokens, icons/glyphs, the 1c shell,
+  native controller navigation + Test mode, components, pages, overlay + HUD.
+  Backups: `refs/backup/pre-redesign-2026-09-25` (repo and submodule),
+  `refs/backup/pre-backend-2026-09-25` (submodule), step snapshots
+  `refs/backup/redesign-*`. Preview without hardware: `/?mock` (`&nopad`,
+  `&mapperdown`, `&configerror`).
+- Backend for the system states: the mapper reports lines it could not use
+  (`configErrors`: profile, file, line, text, reason) and sends a heartbeat
+  packet every 0.5 s when no controller is polling; Studio reports the mapper
+  exiting by itself (`mapper-status` event, `get_mapper_status`) with exit code
+  and last console line. Test: `tests/mapper_config_errors_regression.cjs`.
+- **2026-09-25, pages and states (uncommitted):** the remaining design pages
+  are built, not just restyled: Trackpads shape tiles and region layout (15c),
+  trigger calibration (15a, DualSense only), Layers "Active now · live" from
+  the chord watcher's `layer-stack` event and "Suppress holds while active"
+  (15e), Grip sensors live contact, release delay and haptic tiles (16a), Press
+  timing with polling sources (16d), AI assistant chat with diffs (16e),
+  Associations with per-app pause (`.txt.paused`, 16f), Global chords with
+  Studio's reserved chords (QAM+R5 pause mapping, QAM+R4 calibrate; opt-in,
+  16g), Device visibility groups (16h), Debug console (16i), Preferences with a
+  Calibration HUD switch (16j), Documentation topics from the JoyShockMapper
+  README (16k), controller connecting (17b, `?mock&padlater`), long-operation
+  dialog (17f: import is cancellable; HidHide install and reconnect are not),
+  update banner (17h, `?mock&update`), focus glide, LED brightness output
+  (TODO-27), Soft pull / Full pull trigger rows, and a Studio tab strip that
+  fits at 1280.
+- Not built: the D-Pad "Mode" control (15d). JoyShockMapper has no D-pad mode
+  to set, so it would be a control with nothing behind it.
+- Needs hardware: moved-calibration cancel, grip release delay, LED brightness,
+  reserved chords, paused associations.
+- **0.7.72-0.7.73 (Luke: "controller navigation doesn't work"):** an old
+  `controllerNavEnabled: false` (the pre-redesign keyboard/mouse-in-Studio
+  switch) kept the rule off; it is reset to on once (`studioNavigationMigrated`).
+  Apply loaded the configuration inside Studio; now Studio does the handover
+  on its own window focus (front: AppNavigation; leaving for an app without a
+  live rule: the applied configuration) and Apply re-takes the pad unless a
+  Test runs (`set_studio_testing`). AppNavigation maps nothing: pads are
+  unbound grids, `GYRO_ON = NONE` (the right pad used to be a mouse and the
+  gyro is on by default). AutoLoad now skips `*.txt.paused`, which it used to
+  load. Test: `tests/app_navigation_profile_regression.cjs`. Needs a hardware
+  check.
+- **0.7.74:** 0.7.73's AppNavigation left telemetry off after its
+  RESET_MAPPINGS, so coming back to Studio showed "No controller" and killed
+  navigation and global chords; it now carries Studio's required header
+  (AUTOCONNECT, TELEMETRY_ENABLED/PORT, StudioDefaults.txt). At launch the focus
+  event can beat the mapper, leaving the applied configuration live in Studio;
+  the first telemetry after a launch or a 3 s silence now hands the pad to
+  Studio (`mapper_came_up`).
+- **0.7.75:** a controller turned off (the global chord's TURN_OFF_CONTROLLER)
+  and back on was never detected: the log showed `Going from 1 devices to 0`
+  and nothing after. SDL drops it, the dongle's interfaces never leave, and SDL
+  only rescans on a device-change notification its main-thread window never
+  receives; a fresh SDL process saw the controller. AutoConnect now restarts
+  SDL's gamepad subsystem every 3 s while nothing is open
+  (`RescanDevices`), covered by bug 5 in
+  `tests/autoconnect_reconnect_regression.cjs`. Needs a hardware check.
 ---
 
 ## Done
@@ -1529,6 +1768,783 @@ per shifted mode — will keep diverging from the real one as settings are added
   in JSM rather than per-pad, so putting them in a pad target's `buttons` would
   make one pad's shift removal delete the other pad's lines. Needs a decision on
   ownership before wiring the UI. Folded into TODO-1's sweep or its own item.
+
+---
+
+### TODO-1 — Inherited indicator on every exposed setting, not just button cards
+
+**Status:** DONE 2026-09-17 · 0.7.49 · uncommitted
+
+**Context**
+
+Import resolution landed in 0.7.23 (`src/utils/configIncludes.ts`,
+`src/hooks/useConfigIncludes.ts`). Every read now goes through the
+import-resolved text, so inherited *values* are correct everywhere. The
+`InheritedBadge` that says where a value came from, though, is rendered in
+exactly one place: `ButtonMappingCard.tsx`, fed from
+`KeymapControls.tsx:1135`, keyed on the whole input's command.
+
+So `Wardogs.txt` — the first profile to import a template — shows the badge on
+things like the left-stick directions, and shows nothing on:
+
+- every settings field (sensitivity, trackpad tuning, grip sensors, timing)
+- trackpad mode dropdowns, grid size, and the `RT1..RT9` grid cells
+- individual binding rows inside a card, which is the wrong granularity anyway:
+  one input can hold several bindings (tap, hold, chord, double) and they can
+  come from different files
+
+**Why**
+
+An inherited value is a ghost — it is live and it is real, but it is not in the
+text the editor shows, so someone hunting for it in the config editor cannot
+find it. The badge is the only thing connecting the two, and a badge that
+appears on some controls and not others is worse than none: its absence reads
+as "this one is mine", which is a lie.
+
+**Done when**
+
+- Every UI control that exposes a config value shows the indicator when that
+  value's effective definition comes from an imported file.
+- The indicator is per *binding*, not per input, wherever an input holds more
+  than one binding.
+- Overriding an inherited value drops the indicator on that control alone.
+  (Already the behaviour — `inheritedFrom` returns null once the profile owns
+  the key — so this needs a test, not an implementation.)
+- A regression test covers at least one settings field and one grid cell, not
+  just a button card. Extend `tests/config_imports_ui_regression.cjs`.
+
+**Notes**
+
+- `inheritedFrom(resolution, INCLUDE_ROOT, key)` already answers this for any
+  key, including chorded ones (`MISC2,RIGHT_TOUCHPAD_MODE`). The work is
+  plumbing and per-control placement, not resolution logic.
+- Worth considering a shared wrapper (something like `<Inheritable configKey>`)
+  rather than threading two props into every field, given how many controls
+  there are. `ConfigScope` in `src/hooks/configContext.ts` is a precedent for
+  wrapping a group of controls with config-derived state.
+
+---
+
+**Outcome**
+
+Done by the per-value origin marker added for the usability audit, rather than
+by a new mechanism: `SettingOrigin` (`src/components/SettingOrigin.tsx`) reads
+the import resolution and the selected layer, and is rendered by `NumberField`,
+`AppSelect` and each binding row in `BindingEditor`. It is the shared wrapper
+the Notes argued for — controls pass one `setting` prop rather than two, and
+`SettingPrefix` supplies the modeshift prefix for a whole panel.
+
+It reads `Inherited · FPS Template`, `Default → FPS Template` inside a layer,
+`Override · Comms`, `This profile` or `App default`, and carries the matching
+restore button (`Use inherited` / `Use Default`) beside the value itself, so an
+override is undone in place rather than through raw keys in Manage layers.
+`SettingsInventory` lists every effective value with its origin for anything
+not individually threaded.
+
+Sensitivity, trackpad tuning, grip sensors, timing, gyro, modeshifts and
+binding rows all carry it — about 90 controls.
+
+**Verified**
+
+`tests/config_imports_ui_regression.cjs` now covers a trackpad mode dropdown, a
+settings field (grid size) and an `RT1` grid cell, all inherited from an
+imported file; that overriding the grid size marks that control alone and
+leaves the mode dropdown and the grid cell inherited; and that `Use inherited`
+restores the imported value in place. Per-binding origin and reset inside a
+layer are covered by `tests/usability_audit_regression.cjs`.
+
+Not installed or tested on a physical controller.
+
+---
+
+### Usability audit follow-through — 2026-09-17
+
+**Status:** DONE 2026-09-17 · 0.7.49 · uncommitted
+
+Implements the ten findings in `docs/ui-audit-2026-09-17.md`.
+
+- Availability is now activation-aware: an input that only enables gyro or only
+  drives an analog trigger says so (`Enable gyro`, `Analog left trigger →
+  Xbox`) instead of `Unbound`, and `Available inputs` lists what is genuinely
+  spare, including grid cells that exist in the geometry but hold no binding.
+- Discard now drops the draft instead of returning it on the next visit.
+- Creating a layer selects it, and the migration checkbox starts clear and says
+  how many assignments it would move.
+- Layers compose: persistent layers stack in application order with held layers
+  on top in press order, last one winning a conflict, and Remove affects only
+  its own layer. The composed profile is named for its layers, so the applied
+  label reads `Wardogs · Vehicles + Comms` while the picker still edits one.
+- Hold/Apply/Remove layer are ordinary binding choices on the input itself.
+- Per-value origin and in-place restore — see TODO-1.
+- Overview describes effects, offers search and binding/modifier filters, and
+  each use opens the setting behind it.
+- Narrow widths use a navigation drawer; Back retraces to the originating
+  input and restores its focus.
+- One shared device identity across diagram, rows, glyphs and tooltips.
+
+**Verified**
+
+39 browser/node regressions and 32 Rust unit tests pass, including
+`tests/usability_audit_regression.cjs` and the layer-activation composition
+tests. Two faults found while finishing this and fixed here:
+
+- The narrow-width drawer button printed the internal tab id (`triggers`), and
+  `tests/select_help_panel_fit_regression.cjs` could not navigate below 1060px
+  because the rail it clicked is now behind that drawer.
+- `readLayers` required a `trigger` key while the mapper defaults it
+  (`config_layers.rs`), so a hand-written Apply/Remove-only layer ran on the
+  controller while being invisible in every editing surface.
+
+Not installed or tested on a physical controller. Finding 4 in particular
+wants a controller playtest: composition is covered by unit tests only.
+
+---
+
+
+### Overview readability — 2026-09-16
+
+Grouped shoulder, grip, back and middle inputs beside the controller; sticks,
+D-pad and face buttons below it, with separate trackpad groups. Binding rows
+grow with wrapped text and modeshifts are separate lines. Horizontal layer
+preview buttons share the editor selection. Controller highlights use blue;
+shared input glyphs have solid silhouettes and family-specific shoulder labels.
+Also fixed annotation comments being parsed as extra chord bindings.
+
+Verified the production frontend build and browser regressions for dense
+bindings, layer switching, input navigation, narrow layouts and offline use.
+See tests/overview_layout_regression.cjs. Packaged in the 0.7.47 NSIS installer;
+version and SHA-256 verified. Not installed or tested on a physical controller.
+
+### Full trigger pull never fired on a trigger that stops short — 2026-09-18
+
+**Status:** DONE 2026-09-18 · 0.7.50 · uncommitted
+
+**Reported as**
+
+"I also have a binding on the full pull of the left trigger, which is supposed
+to hold the shift key, but that doesn’t seem to be doing anything."
+
+**Fault**
+
+`ZLF = LSHIFT` was correct in the profile, in the applied copy and in every
+composed layer, and `ZL_MODE = NO_SKIP` does allow a full pull. But the mapper
+decided a trigger was fully pulled with `position == 1.0` — an exact float
+comparison, at seven sites in `JoyShock.cpp` — while `position` is the SDL axis
+divided by `SDL_JOYSTICK_AXIS_MAX` (`SDLWrapper.cpp`, `GetLeftTrigger`). A
+trigger that stops one count short of 32767 therefore never satisfies it, and
+the full-pull binding silently never fires. The soft pull is unaffected because
+it compares `position > threshold` (`InputGuards.h`).
+
+**Change**
+
+`fullPullPressed(position)` in `InputGuards.h` (`>= 0.99f`, non-finite guarded)
+now backs all seven sites, including the two `X_LT`/`X_RT` chord-stack updates,
+which had the same latent fault for a virtual-gamepad full pull.
+
+Studio gained a raw trigger readout under each shoulder, shown with the
+Overview’s **Details** toggle. It prints the axis count against its maximum
+(`32766/32767`), not a decimal: one count short still rounds to `1.0000`, which
+is the exact distinction that decides whether a full-pull binding can fire.
+Steam drawing only — the other families share DualSense geometry (finding 10),
+which was not worth risking a text collision in without rendering it.
+
+**Verified**
+
+JoyShockMapper compiles; 39 browser/node regressions and 32 Rust tests pass.
+The readout was rendered against a synthetic `32766/32767` left trigger and a
+`32767/32767` right trigger and reported both correctly.
+
+**Not verified:** whether Luke’s left trigger actually stops short. That is the
+hypothesis this fixes, and it needs the controller — the readout is in the build
+so it can be answered. If the trigger does reach 32767, the real cause is still
+open and this change is merely a robustness fix.
+
+0.99 is a judgement call: a trigger pulled to 99% now counts as a full pull.
+Worth revisiting against the measured value.
+
+**Follow-up 2026-09-18 (0.7.52):** confirmed from the console — the full pull
+now fires, so the trigger does stop short of the axis maximum. But it fired as
+`ZLF: true / false` on alternating polls: the engage test had been relaxed to
+0.99 while the three release tests still read `position < 1.0`, so anything
+resting between them engaged and released every poll and machine-gunned the key.
+`fullPullPressed` now takes the previous state and releases at 0.97, and the two
+`X_LT`/`X_RT` level tests latch through `_fullPullDown`. Covered by
+`tests/trigger_full_pull_harness.cpp`.
+
+---
+
+### Live controller view went laggy on a complex profile — 2026-09-18
+
+**Status:** DONE 2026-09-18 · 0.7.51 · uncommitted
+
+**Reported as** "the live joystick/touchpad is really laggy in the UI now".
+
+**Fault**
+
+Not the layer conversion and not the trigger work, though both were suspected.
+Measured at 250 Hz synthetic telemetry on Wardogs: **17.8 fps, worst frame
+123 ms**, and only 37 of ~1000 samples delivered in four seconds. The same
+profile in its pre-conversion modeshift form measured 17.0 fps, and a minimal
+profile 62.8 fps — so the cost tracked configuration size, not layers.
+
+A CPU profile put 59.8% of self time in `layerEntries`, 11.9% in `inputUsage`
+and 8.6% in `parseComboBindings`. The usage badges, per-value origins and
+modifier filter added for the usability audit are all pure functions of the
+configuration text, but they were called per input per render — and renders are
+driven by controller telemetry, so the profile was being re-parsed hundreds of
+times a second.
+
+**Change**
+
+- `layerEntries` caches its last 8 whole-configuration parses, frozen, keyed by
+  text. Single-line lookups are deliberately not cached: each line is a distinct
+  key that would evict the configuration.
+- `configLines` does the same for the line split in `keymap.ts`, for the two
+  read-only scanners only. The four writers there mutate their array and keep
+  their own split — freezing a shared one would have broken them.
+- The Overview memoizes its modifier options, and the per-row "Inspect uses"
+  button reads `hasUses` from the `bindings` memo instead of recomputing
+  `inputUsage` for every input on every frame.
+
+**Result** on the same measurement: **59.3 fps, worst frame 30 ms**, 144 samples
+delivered — roughly 4x the throughput and 4x better latency, at the 60 fps cap.
+
+**Verified**
+
+39 browser/node regressions and 32 Rust tests pass. The freezes are the risk
+worth noting: any future caller that mutates a cached parse will now throw
+rather than corrupt a shared value, which is the intended trade.
+
+Measured headless at 1440x900, not on the real device: the remaining cost is
+still `inputUsage` and `parseComboBindings`, which scan per input rather than
+building one index per configuration. That refactor was not attempted here.
+
+---
+
+### Live preview follows the monitor, not a fixed 60 Hz — 2026-09-18
+
+**Status:** DONE 2026-09-18 · 0.7.53 · uncommitted
+
+**Asked for:** "While the UI is focused I would like it to use the max refresh
+rate of my monitor."
+
+**Where the 60 Hz came from**
+
+Two caps, both deliberate at the time. `useTelemetry` published on a
+`1000 / 60` timer, and the emitter in `telemetry.rs` refused to send a UI packet
+more often than `Duration::from_micros(16_667)`. Raising either alone would have
+changed nothing.
+
+**Change**
+
+The overlay already solved this: it measures its display and reports the rate
+through `overlay_set_refresh_hz`, with a comment about "the 60 Hz the main UI is
+intentionally capped to". The main window now does the same.
+
+- `ui_interval_us` in `AppState`, defaulting to the previous 60 Hz until the
+  window reports, read by the emitter in place of the fixed interval.
+- `ui_set_refresh_hz` command, clamped to 30..1000: below 30 the preview
+  stutters, above 1000 it would outrun the mapper own tick.
+- `useTelemetry` publishes on `requestAnimationFrame` rather than a timer, so
+  the pace is the panel own clock, and samples arriving between frames replace
+  the pending one instead of queueing.
+- The rate is measured over 40 frames and re-measured on focus, since the
+  window may have been dragged to a different monitor.
+
+Emission is still gated on `telemetry_ui_active`, which the window Focused
+event drives, so an unfocused window costs nothing however fast its display is.
+That was the existing behaviour and it is unchanged.
+
+**Verified**
+
+`tests/telemetry_performance_regression.cjs` was rewritten around the new
+contract: it drives the real hook against a fake 120 Hz frame clock and asserts
+the rate is reported as 120, that 120 packets produce ~120 updates rather than
+60, that a burst inside one frame collapses to a single update, and that idle,
+blurred and hidden windows schedule nothing. A Rust test covers the Hz-to-
+interval maths and the clamp. 39 browser/node regressions and 33 Rust tests
+pass.
+
+**Not verified:** the actual rate on the real monitor. Measured in a headless
+browser the publish rate is render-bound on a large profile, not cap-bound, so
+the ceiling being lifted is shown by the unit test rather than by a frame
+count.
+
+---
+
+### Overlay drew the wrong menus, and its touch dot missed the finger — 2026-09-18
+
+**Status:** DONE 2026-09-18 · 0.7.54 · uncommitted
+
+**1. A chord swap left the previous profile’s menus on screen**
+
+Reported as: holding the global chord and moving the right stick put up the
+weapon wheel on the FIRST movement, but not on a second one.
+
+The overlay re-read the running configuration on a `setInterval(load, 2000)`
+and nothing else, so for up to two seconds after a binding swapped the
+configuration it still held the old menus. The first tilt in that window drew a
+wheel for a stick that is a scroll wheel in the config actually loaded; by the
+second tilt the poll had landed, which is what made it look intermittent.
+
+The overlay packet now carries `activeProfile`, and the hot path drops every
+menu and re-reads the moment it changes. The interval stays as the backstop for
+a file edited underneath us.
+
+**2. The touch dot sat up and to the left of the finger**
+
+It was centred twice — `margin: -8px 0 0 -8px` and `translate(-50%, -50%)` —
+and its offsets start at the pad’s padding box while the container units that
+move it measure the content box. At the top-left corner the dot was almost
+entirely outside the pad; at the bottom-right it stopped short of it.
+
+The margin is gone and the inset is now one `--pad-inset` variable that both
+the padding and the dot’s origin read, so the dot shares the box the regions
+are drawn in. `.radial` sets it to 0, matching its own `padding: 0`.
+
+**3. Wedges painted over the pad’s rounded corners**
+
+A wedge is a clip-path triangle filling a square cell, and `.pad` had
+`border-radius` but no `overflow: hidden`. Clipping there both cuts the wedges
+to the corners and rounds the block of wedges, which has no corners of its own
+to round.
+
+**Verified**
+
+Two new tests: `tests/overlay_touch_dot_regression.cjs` puts the dot at both
+corners and the centre within 1.5px and asserts the pad clips; and
+`tests/overlay_live_profile_swap_regression.cjs` swaps the running profile and
+asserts the first tilt afterwards shows nothing, then that the real menu
+returns. 41 browser/node regressions and 33 Rust tests pass. Screenshots of
+both pad corners are in `tmp/ui-verify-2026-09-18`.
+
+Not tested on the physical controller.
+
+---
+
+### TODO-23 — L4 + START no longer opens the Wardogs Menu configuration
+
+**Status:** DONE 2026-09-18 · 0.7.55 · uncommitted
+
+**Fault**
+
+The console settled it. The binding was mapped and firing:
+
+```
+LSL,+ mapped to Instant profiles-library/Wardogs Menu.txt
+LSL,+: true
+```
+
+...and the load was being discarded. `CmdRegistry::loadConfigFile` carried:
+
+```cpp
+// Autoload may enqueue a file while a chord is held. Leave the held
+// configuration intact; only the internal restore may replace it.
+if (!_chordRestore.empty() && !_chordLoading && _loadingFiles.empty()) return true;
+```
+
+`_chordRestore` is non-empty for the whole time a chord OR a layer is held,
+because Studio activates both with `STUDIO_CHORD_BEGIN`. Holding L4 activates
+the Vehicles & utility layer, so every outside load was swallowed — and a
+binding that loads a config reaches `loadConfigFile` by exactly the same route
+Autoload does (`WriteToConsole` in `Mapping.cpp` and `AutoLoad.cpp`), so the
+guard could not tell them apart. It returned true, and the binding looked dead.
+
+This is why it worked before the layer conversion: holding L4 was an ordinary
+modeshift inside the mapper, and nothing was being held at the registry level.
+
+**Change**
+
+Autoload now announces itself — `STUDIO_AUTOLOAD <path>` — and the registry
+ignores that one line while a configuration is held. The blanket guard is gone,
+so a binding the player pressed loads its config even while a layer is held.
+The held state then clears itself through the `RESET_MAPPINGS` at the top of
+the newly loaded profile, so a later `STUDIO_CHORD_END` cannot restore over it.
+
+**Not verified on hardware.** The mechanism is read from the source and the
+console output; the reported symptom should be gone, but only the controller
+can confirm it.
+
+**Follow-up 2026-09-18 (0.7.56):** confirmed working, and it exposed the other
+half. Returning from the menu profile left every layer dead, because the load
+does not clear `_chordRestore`: the clear inside the `RESET_MAPPINGS` branch is
+guarded on `_loadingFiles.empty()`, which is never true while a file is being
+loaded. The flag survived, and `STUDIO_CHORD_BEGIN` opens with
+`if (!_chordRestore.empty()) return;`, so every later chord and layer was
+refused in silence. A deliberate top-level load now clears the held state and
+its restore lines, which is what the earlier note wrongly assumed already
+happened.
+
+
+---
+
+### Layer activation reworked around context, and one hold at a time — 2026-09-18
+
+**Status:** DONE 2026-09-18 · 0.7.58 · uncommitted
+
+Two corrections from Luke, both of which changed the model rather than a config.
+
+**1. An activator belongs to a state, not to the root**
+
+Asked for: menu mode entered with L4 + START and left the same way. The first
+attempt made `LSL,+` a chord in the root configuration, which Luke rejected:
+if L4 holds the Vehicles layer then START pressed there belongs to *that*
+layer, not to a root chord. Nothing in the root should fire while a layer is
+held.
+
+So an activator is now read in the state it belongs to: **Apply while its layer
+is off, Remove while it is on.** A layer can never apply and remove itself in
+one press, the same input can serve as both (the earlier apply==remove toggle
+special case falls out of this for free and was deleted), and the two can
+differ. Menu is therefore Apply `LSL,+`, Remove `+`: entered from inside
+Vehicles & utility, left with START alone.
+
+Writing that rule immediately broke `held_layer_restores_persistent_layer_and_
+remove_can_cancel_a_hold`: Remove could no longer cancel a *held* layer,
+because a held layer is not latched. Remove is now read while the layer is on in
+either sense.
+
+Activators may also be chords: `layer_pressed` splits on `,` and requires every
+part down. `LayerBar` keeps an assigned chord in its dropdown, which only lists
+single inputs, so opening the panel cannot silently replace one.
+
+**2. Only one layer is held at a time**
+
+Held layers used to compose in press order. They no longer do: `held_order`
+remains the press-order stack but only its top is active, so a second hold takes
+over completely and releasing it falls back to a hold still under the finger,
+then to the persistent layers, then to Default. `held_layers_compose_and_
+release_independently` asserted the old rule and now states the new one.
+
+**Verified**
+
+37 Rust tests and 41 browser/node regressions pass, including a test of the
+exact menu flow and one pinning what happens when a toggle chord shares a button
+with a hold layer. `docs/config-layers.md` and the Manage layers copy now
+describe both rules.
+
+**Still open:** a held layer is not suppressed while a persistent layer is
+active, so L4 still holds Vehicles & utility in menu mode. Luke expects it not
+to. That needs a way for a layer to say it excludes holds; not invented here.
+
+Not tested on the physical controller.
+
+---
+
+### Layer behaviour checked against Steam, and corrected — 2026-09-18
+
+**Status:** DONE 2026-09-18 · 0.7.59 · uncommitted
+
+Luke asked how Steam actually does this, since our layers are copied from it.
+Read from Valve’s Steamworks documentation (Action Set Layers, General Concepts,
+ISteamInput), not from memory.
+
+**What Steam does**
+
+- Action sets: "Only one action set can be active for any given input device at
+  a given time." They replace the layout wholesale. In legacy mode — a
+  player-made configuration, which is our case — "action set changes must be
+  manually triggered by the player themselves."
+- "Activating a new action set will clear all active layers from the old set."
+- Layers: "More than one layer can be applied at a time and will be applied
+  consecutively", with no technical limit, and "the last layer applied will
+  override any conflicting information that came before."
+- Applying an already-active layer does nothing and does not reorder it;
+  deactivating and reapplying puts it on top.
+- There is no nesting. `ActivateActionSetLayer` / `DeactivateActionSetLayer` /
+  `DeactivateAllActionSetLayers` operate on a flat ordered stack, and
+  `GetActiveActionSetLayers` returns an array of everything active.
+
+**What that changed here**
+
+- **Stacking restored.** 0.7.58 had made only one layer holdable at a time. That
+  is not Steam: holding a second layer adds it on top and releasing it removes
+  only that one. Reverted, and the test now states the documented rules.
+- **Menu mode goes back to being a separate configuration.** A Steam action set
+  is a whole alternative layout, one at a time, player-switched, clearing the
+  layers of the set it leaves — which is precisely what loading another profile
+  already does here (the worker resets activation and re-prepares layers for the
+  new profile). So `Wardogs.txt` + `Wardogs Menu.txt` was the right shape all
+  along; it only looked wrong because the mapper was swallowing the load, fixed
+  in 0.7.55/0.7.56. `Wardogs Layered.txt` is left on disk, unused.
+
+**Kept from the layer work**, because these do match Steam: an activator is read
+in the state it belongs to (Apply while off, Remove while on — which is also why
+applying an active layer is a no-op), and an activator may be a chord.
+
+`docs/config-layers.md` and the Manage layers copy now describe Steam’s rules
+and say plainly that a separate configuration is our action set.
+
+37 Rust tests and 41 browser/node regressions pass. Not tested on the physical
+controller.
+
+---
+
+### Layer actions removed from the output list — 2026-09-18
+
+**Status:** DONE 2026-09-18 · 0.7.60 · uncommitted
+
+Luke noticed there were two places to bind a layer action and asked why.
+
+They were never two ways of doing it. The section under the binding card is the
+editor; the three entries in the Output dropdown set nothing at all. Choosing
+one dispatched `jsm:edit-layer-binding` and returned before touching the
+binding. Observed rather than assumed: the configuration was unchanged, the
+dropdown snapped back to its previous value, the section opened below, and
+focus stayed on the dropdown — the handler focuses the section, but Radix
+restores focus to its own trigger when the menu closes, and that wins (checked
+at 50ms and 600ms).
+
+They came from the audit finding 5, which wanted layer actions reachable from
+the ordinary binding editor instead of only from Manage layers. But a layer
+action cannot be an output value: it needs a layer as well as an action, one
+input can carry several, and it coexists with that input’s ordinary binding.
+So the dropdown could only ever be a signpost to the section, and it read as a
+duplicate mechanism instead.
+
+Removed: the option group, the handoff in `handleOutputKindChange`, the listener
+in `InputLayerActions`, and the ref that existed only to serve it.
+
+`tests/layers_browser_regression.cjs` now asserts the output list offers no
+layer entries, still offers real outputs, and that the section is on the same
+card. 41 browser/node regressions and 37 Rust tests pass.
+
+---
+
+### Overview: layer actions look like layer actions, and a modifier says what it changes — 2026-09-18
+
+**Status:** DONE 2026-09-18 · 0.7.61 · uncommitted
+
+From Luke, reviewing screenshots: layer bindings should be distinct, and
+"Modeshift trigger · 1 changed inputs / settings" raised more questions than it
+answered.
+
+**Both were fair.** A layer action changes what the whole controller is doing,
+not what one input emits, and it was rendered as another plain line among the
+bindings. And the modeshift line counted rather than named: it said there was
+something to find without saying what it was or where it lived. The grammar was
+wrong for one, too.
+
+**Change**
+
+An Overview line now carries its kind (`OverviewLine`), so a layer action can be
+rendered as one: the layer icon and the same blue the layer badges already use.
+Relationship lines are muted, because they are context about other inputs.
+
+The modeshift summary names what it changes. With one affected input there is
+room to say what it becomes, reusing the same output description the binding
+rows use, so `L4` now reads `While held: Menu → Load Wardogs Menu` instead of
+`Modeshift trigger · 1 changed inputs / settings`. With several it names the
+first three and counts the rest. A pad cell keeps its own name rather than being
+title-cased into `Rt1`.
+
+**Verified**
+
+`tests/overview_binding_lines_regression.cjs` covers a layer action being marked
+and iconed, the one-input wording, the crowded wording, the pad-cell name, and
+that neither half of the old string survives anywhere on the page.
+`overview_layout_regression.cjs` asserted the old wording and now states the new
+one. 42 browser/node regressions and 37 Rust tests pass.
+
+One thing the screenshots caught that the tests could not: the first version
+styled the layer line `inline-flex`, which ignores `text-align`, so in the
+right-aligned left-hand column it sat flush left while every sibling sat right.
+It is inline again with the icon aligned by `vertical-align`.
+
+---
+
+### Layer activation belongs to the input — 2026-09-18
+
+**Status:** DONE 2026-09-18 · 0.7.62 · uncommitted
+
+Luke: "make our layer system faithful to steam and move the ownership to the
+input -- activation stored as a regular binding on a button rather than a field
+on the layer."
+
+It was stored on the layer: one `trigger`, one `applyTrigger`, one
+`removeTrigger` each. That is why only one input could ever drive a layer, why
+the layer panel owned activation at all, and why the input card was a derived
+view of somebody else’s data.
+
+**Format.** An annotation beside the layers, ignored by the mapper like the
+other `# @` lines:
+
+```
+# @layer {"id":"map","name":"Tactical map","overrides":{ ... }}
+# @layer-action RSL = toggle map
+```
+
+Verbs `hold`, `apply`, `remove`, `toggle`. The input may be a chord, one input
+may carry several actions, and several inputs may drive one layer.
+
+**Migration.** Both sides read the old fields and the new lines, so a profile
+keeps working untouched; writing emits annotations and drops the fields.
+`applyTrigger == removeTrigger` reads back as a `toggle`.
+
+**Changed:** `layers.ts` (model, `readLayerActions`, `setLayerActions`, cached
+the way `layerEntries` is), `LayerBar` (the panel lost activation; the input’s
+own section gained the verb, including the explicit toggle), `App.tsx`
+(provides the actions and the one writer), `config_layers.rs` (`parse_actions`,
+`PreparedLayer` now holds lists), `layer_activation.rs` (any input may fire an
+action).
+
+**Verified**
+
+42 browser/node regressions and 39 Rust tests, including two new Rust tests for
+the parser and the legacy path, and `layers_regression.cjs` rewritten around the
+new model. Checked against the real profiles: `Wardogs.txt` and
+`Wardogs Layered.txt` read back with identical activation, lose the old fields
+on save, and every layer projects exactly the same effective configuration.
+
+One bug worth recording, found by the browser test rather than by reasoning:
+`defaultLayer` stripped the new annotation lines, and since every projected
+configuration is built on it, the whole UI went blind to activation. Only the
+writer drops them now.
+
+Not tested on the physical controller.
+
+---
+
+### Manage layers is a dialog, and creating a layer binds nothing — 2026-09-18
+
+**Status:** DONE 2026-09-18 · 0.7.63 · uncommitted
+
+Luke, on the previous build: why does Manage layers still expand a huge section
+with a long description, and why does Create layer still have a "Hold
+(optional)" field when we just decided inputs are responsible for applying
+layers? It should be a modal for add/delete/rename, with no activation out of
+the box.
+
+Both fair. The Hold field was left behind by the previous change and
+contradicted it: creating a layer quietly bound R4 by default.
+
+**Change**
+
+- Manage layers opens a dialog (`.layer-modal`, the existing modal pattern),
+  not an inline slab above the controller. It closes with Close.
+- It holds: create by name, rename in place, delete, and each layer’s overrides
+  with Restore inheritance. No activation controls of any kind.
+- The four-line paragraph is two lines saying what a layer is and where
+  activation lives.
+- Creating a layer now binds nothing at all.
+- Lifting an input’s modeshifts into a layer stays, because it edits that
+  layer’s overrides, but it moved onto the selected layer ("Move modeshifts
+  into Comms from R4") instead of riding on a create-time button field.
+
+**Verified**
+
+42 browser/node regressions and 39 Rust tests. `layers_browser_regression.cjs`
+follows the new flow: create binds nothing, the modeshift move is a separate
+act, and Comms ends up driven by three inputs at once — a hold on R4, an apply
+on L5 and a remove on R5 — which the old model could not express. The real
+profiles still read back with identical activation and no projection changes.
+
+Not tested on the physical controller.
+
+---
+
+### Saving a template turned it into a profile — 2026-09-18
+
+**Status:** DONE 2026-09-18 · 0.7.64 · uncommitted
+
+Reported as: “it says my currently applied config is FPS Tempalte”.
+
+**Fault**
+
+`FPS Template.txt` had been saved from the editor, and every save runs through
+`ensureHeaderLines`, which puts `RESET_MAPPINGS`, `AUTOCONNECT` and the two
+telemetry lines at the top of the file. The template deliberately had none of
+them: its own header said so.
+
+That breaks an imported file twice. The importing profile has already run its
+own `RESET_MAPPINGS`, so a second one part-way through the load wipes everything
+above the import line. And `CmdRegistry` sets `liveProfile` on each
+`RESET_MAPPINGS` it processes, to the file being loaded at the time -- so the
+mapper reported the template as the configuration it was running, which is
+exactly what the label showed.
+
+Nothing to do with the layer work; the save has behaved this way all along and
+only bites a file used as an import.
+
+**Change**
+
+`ensureHeaderLines` treats a missing `RESET_MAPPINGS` as deliberate and leaves
+the text alone. A real profile always has one -- Studio seeds new profiles with
+the header -- so they are unaffected and still get their telemetry lines tidied
+to the top.
+
+Luke’s template was repaired in place (backup:
+`FPS Template.txt.backup-2026-09-18`): the three injected lines removed and the
+explanatory header written back, including why it must not have them.
+
+**Verified**
+
+`tests/imported_template_save_regression.cjs` saves a template and asserts it
+gains no RESET_MAPPINGS, telemetry or AUTOCONNECT and keeps its settings, while
+a real profile still gets its header put first and its telemetry added. 43
+browser/node regressions and 39 Rust tests pass.
+
+**Still missing:** the comments the earlier save stripped out of the template
+are gone; only the header was reconstructed. That is TODO-3, which is still
+open.
+
+---
+
+### Steam Input UI/UX transformation — 2026-09-20
+
+**Status:** DONE (verification pass) 2026-09-20 · uncommitted
+
+**Asked for**
+
+A full visual/interaction redesign so JSM Studio reads as a premium,
+controller-native configurator comparable to Steam Input, given as a detailed
+brief directly to Codex (not routed through this file). Codex audited the
+codebase, wrote the plan in
+[steam-input-transformation.md](steam-input-transformation.md), implemented
+stages 1-4 (design tokens, shell/nav split, shared surfaces, the category
+action picker, gyro reorganisation), and ran out of usage before stage 5
+(verification).
+
+**What was actually wrong when picked up**
+
+Nothing in the implementation itself — `tsc`, the web build, and the two new
+tests Codex wrote (`steam_workspace_regression.cjs`,
+`layers_browser_regression.cjs`) all passed untouched. The gap was exactly
+what stage 5 says to do and hadn't been done: run it against the *existing*
+suite. Five pre-existing tests failed, all because they drove UI shapes the
+redesign had deliberately moved (bindings collapsed behind "Choose an
+action" / "Advanced command settings", trigger tuning behind its own
+disclosure, "Edit config" into a menu) — plus one real regression, a trigger
+mode label (`l2FullPullMode`/`r2FullPullMode`) that got hardcoded to English
+instead of translated, silently dropping Chinese support for that string.
+
+**Fixed**
+
+- `keymap.l2FullPullMode` / `keymap.r2FullPullMode` retranslated to "Left/
+  Right trigger behavior" in both locales and read through `t()` again.
+- The five stale tests updated to drive the new UI shape rather than the old
+  one. `select_help_panel_fit_regression.cjs` additionally had its
+  width-to-side table (which had gone stale because the wider redesigned rows
+  shift exactly where that breakpoint falls) replaced with geometry-based
+  invariants that don't depend on today's specific pixel budget.
+- `ControllerGlyphBar`'s D-pad hint cluster was missing a `key`, found via a
+  React console warning while debugging one of the above.
+
+**Verified**
+
+47 browser/node regressions and 41 Rust unit tests pass (the
+`jsm-gui-app-tauri` binary test needs elevation on this machine and could not
+run, unrelated to this change). Visual sweep at 1440x900 and 1024x720 across
+every configuration page plus the Studio-side pages (Configurations,
+Application associations, Debug Console, Settings) against the supplied Steam
+Input screenshots. Full account in
+[steam-input-transformation.md](steam-input-transformation.md)'s validation
+log.
+
+**Not verified:** physical controller. **Also flagged, not fixed:** the
+select help panel's "drop below" placement overflows the window by ~8px at a
+couple of narrow widths (540-560px, 480px) — pre-existing, unrelated to this
+redesign, spun off separately.
 
 ---
 

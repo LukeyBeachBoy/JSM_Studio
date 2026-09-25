@@ -16,7 +16,7 @@ export function Card({ children, className = '', lockable = false, locked = fals
   if (className) classes.push(className)
 
   return (
-    <section className={classes.join(' ')}>
+    <section className={classes.join(' ')} aria-disabled={locked || undefined}>
       {lockable && lockMessage && <div className={miscStyles.lockedOverlay}>{lockMessage}</div>}
       {children}
     </section>

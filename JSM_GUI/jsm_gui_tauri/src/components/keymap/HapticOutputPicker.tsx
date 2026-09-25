@@ -4,7 +4,7 @@ import { NumberField } from '../NumberField'
 import { AppSelect } from '../ui/AppSelect'
 import {
   DEFAULT_HAPTIC_BINDING,
-  HAPTIC_EFFECTS,
+  HAPTIC_EFFECT_CHOICES,
   HAPTIC_GAIN_MAX,
   HAPTIC_GAIN_MIN,
   HAPTIC_SIDES,
@@ -54,7 +54,7 @@ export function HapticOutputPicker({ value, disabled, onChange }: HapticOutputPi
           disabled={disabled}
           onChange={(event) => update({ effect: event.target.value as HapticEffect })}
         >
-          {HAPTIC_EFFECTS.map(effect => (
+          {HAPTIC_EFFECT_CHOICES.map(effect => (
             <option key={effect} value={effect}>{t(`keymap.hapticEffect_${effect}`)}</option>
           ))}
         </AppSelect>

@@ -84,6 +84,8 @@ const STEAM = 24;
     // --- the value sits in its own right-hand column ------------------------
     // Not "roughly right of centre": every row's value must start at the same
     // x, which is what makes the outputs readable as a column.
+    // Measure the settled layout, not a frame of the page sliding in.
+    await page.waitForFunction(() => document.getAnimations().every(animation => animation.playState !== 'running'));
     const rows = page.locator('details[data-input-command] > summary .binding-summary-hint');
     const lefts = [];
     for (let i = 0; i < 3; i++) {
@@ -95,10 +97,12 @@ const STEAM = 24;
     assert.equal(new Set(lefts).size, 1, `the values do not line up as a column: ${lefts.join(', ')}`);
 
     // --- no phantom thumb in the editor preview -----------------------------
+    // Scoped to the content pane: the header carries its own unrelated status
+    // dot (the mapping on/off indicator), which also matches [class*=dot].
     await page.getByRole('button', { name: 'Trackpads', exact: true }).click();
     await page.locator('[data-input-command="LT1"]').first().waitFor();
     assert.equal(
-      await page.locator('[class*=Overlay_dot], [class*=dot]').count(),
+      await page.locator('.main-pane [class*=Overlay_dot], .main-pane [class*=dot]').count(),
       0,
       'the preview draws a live-touch dot that nothing is driving'
     );

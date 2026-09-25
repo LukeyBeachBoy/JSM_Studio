@@ -334,6 +334,19 @@
     gap: 0.75rem;
   }
 
+  .navItemGroup {
+    flex: 0 1 auto;
+  }
+
+  .navSubList {
+    margin: 4px 0 0;
+    padding-left: 0;
+    border-left: 0;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
   .navSectionLabel {
     display: none;
   }
@@ -427,3 +440,43 @@
 
 .navItem { min-height: 38px; }
 .navFooter { flex-shrink: 0; }
+
+.navItem { min-height: 44px; border-radius: var(--radius-control); font-size: 14px; font-weight: 500; padding: 10px 12px; }
+
+/* The active page's own groups, right under it in the same list -- this is
+   the sidebar "updating dynamically", not a second nav surface bolted beside
+   the content. Every other item stays a single row. */
+.navItemGroup { display: flex; flex-direction: column; gap: 4px; }
+.navSubList { display: flex; flex-direction: column; gap: 4px; margin: 4px 0 8px 10px; }
+.navSubItem { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 42px; padding: 8px 12px; border: 0; border-radius: var(--radius-control); background: var(--bg-2); color: var(--text-mid); font: inherit; font-size: 14px; font-weight: 500; text-align: left; cursor: pointer; transition: background-color var(--transition-fast), color var(--transition-fast); }
+.navSubItem:hover { background: var(--bg-btn-hover); color: var(--text-strong); }
+.navSubItem.active { background: var(--state-selected); color: var(--text-strong); font-weight: 650; }
+.navSubItem:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.navSubItemChevron { flex: 0 0 auto; color: var(--text-dim); }
+.navSubItem.active .navSubItemChevron { color: currentColor; }
+.active { background: var(--state-selected); color: var(--text-strong); box-shadow: inset 3px 0 var(--accent); }
+.navSection { gap: 2px; }
+.navSectionLabel { padding: 10px 12px 6px; font-size: 10px; }
+.navItemIcon svg { width: 18px; height: 18px; }
+.collapsed .navItem { border-radius: var(--radius-control); }
+
+/* On Preferences (16j) the same controls are full setting rows: no box around
+   them, each switch a 60px row on the row surface. */
+:global(.prefs-column) .navSettings { gap: var(--sp-2); padding: 0; border: 0; border-radius: 0; background: transparent; }
+:global(.prefs-column) .navThemeToggle {
+  min-height: 60px;
+  padding: 0 var(--sp-4);
+  border-radius: var(--r-row);
+  background: var(--surface-row);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-medium);
+}
+:global(.prefs-column) .navThemeToggle:hover:not(:disabled) { background: var(--surface-row-hover); }
+:global(.prefs-column) .navLanguageSelect {
+  min-height: 60px;
+  padding: 0 var(--sp-4);
+  border: 0;
+  border-radius: var(--r-row);
+  background: var(--surface-row);
+}
+:global(.prefs-column) .navLanguageSelect::after { content: 'Language'; order: -1; margin-right: auto; color: var(--text-1); font-size: var(--fs-label); font-weight: var(--fw-medium); }

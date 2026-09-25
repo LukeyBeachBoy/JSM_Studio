@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JSM Studio Calibration</title>
+    <style>
+      /* A transparent sheet over the game: only the card itself is painted. */
+      html, body, #hud-root {
+        margin: 0;
+        height: 100%;
+        background: transparent;
+        overflow: hidden;
+        user-select: none;
+        cursor: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="hud-root"></div>
+    <script type="module" src="/src/hud/main.tsx"></script>
+  </body>
+</html>

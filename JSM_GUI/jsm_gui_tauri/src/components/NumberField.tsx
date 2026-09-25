@@ -1,11 +1,14 @@
 import { settingHelp } from '../utils/settingHelp'
+import { SettingOrigin } from './SettingOrigin'
 import { HelpButton } from './HelpButton'
-import { useEffect, useId, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { PAD_EVENT, type PadEventDetail } from '../nav/useControllerNavigation'
 import { useTranslation } from 'react-i18next'
 import { Slider } from './ui/Slider'
 import styles from './NumberField.module.css'
 
 export type NumberFieldProps = {
+  setting?: string
   label: ReactNode
   /** Config text value. '' / undefined means "not set" (placeholder shows the default). */
   value: string | number | undefined | null
@@ -55,6 +58,7 @@ const clamp = (value: number, min?: number, max?: number) => {
  * controller mapped to arrow keys can drive them.
  */
 export function NumberField({
+  setting,
   label,
   value,
   onChange,
@@ -78,6 +82,24 @@ export function NumberField({
   const [coarse, setCoarse] = useState(false)
   const [draft, setDraft] = useState<string>(value === undefined || value === null ? '' : String(value))
   const [editing, setEditing] = useState(false)
+  const rowRef = useRef<HTMLDivElement>(null)
+
+  // Y opens this setting's help, or the documentation when it has none yet
+  // (HANDOFF.md, "Help that degrades").
+  useEffect(() => {
+    const row = rowRef.current
+    if (!row) return
+    const onPad = (event: Event) => {
+      const { button } = (event as CustomEvent<PadEventDetail>).detail
+      if (button !== 'Y') return
+      event.preventDefault()
+      const helpButton = row.querySelector<HTMLButtonElement>('.help-button')
+      if (helpButton) helpButton.click()
+      else window.dispatchEvent(new CustomEvent('jsm:open-docs', { detail: { setting } }))
+    }
+    row.addEventListener(PAD_EVENT, onPad)
+    return () => row.removeEventListener(PAD_EVENT, onPad)
+  }, [setting])
 
   // Keep the text box in sync with upstream changes (slider, other controls),
   // but never clobber what the user is mid-way through typing.
@@ -140,8 +162,10 @@ export function NumberField({
 
   return (
     <div
-      className={`${styles.field} ${layout === 'inline' ? styles.inline : ''} ${disabled ? styles.disabled : ''} ${className}`.trim()}
+      ref={rowRef}
+      className={`setting-row ${styles.field} ${layout === 'inline' ? styles.inline : ''} ${disabled ? styles.disabled : ''} ${className}`.trim()}
       data-capture-ignore="true"
+      data-hints={help ? 'A:Adjust;Y:Help;B:Back' : 'A:Adjust;Y:Documentation;B:Back'}
     >
       <div className={styles.head}>
         {/* The help button belongs to the label, not to the row: left on its
@@ -153,6 +177,19 @@ export function NumberField({
           </label>
           {help && <HelpButton title={typeof label === 'string' ? label : 'Setting help'}>{help}</HelpButton>}
         </span>
+        {/* Fine / coarse sits with the value, so showing it on hover moves
+            nothing and the slider keeps the full width. */}
+        <button
+          type="button"
+          className={`${styles.stepToggle} ${coarse ? styles.stepToggleCoarse : ''}`}
+          onClick={() => setCoarse(prev => !prev)}
+          disabled={disabled}
+          title={coarse ? t('numberField.coarseTitle', { step: big }) : t('numberField.fineTitle', { step: fine })}
+          aria-pressed={coarse}
+        >
+          {coarse ? t('numberField.coarse') : t('numberField.fine')}
+        </button>
+        <SettingOrigin setting={setting} />
         <span className={styles.valueWrap}>
           <input
             id={inputId}
@@ -184,18 +221,13 @@ export function NumberField({
           step={activeStep}
           disabled={disabled}
           ariaLabel={typeof label === 'string' ? label : undefined}
+          onToggleFine={() => setCoarse(prev => !prev)}
+          coarse={coarse}
         />
-        <button
-          type="button"
-          className={`${styles.stepToggle} ${coarse ? styles.stepToggleCoarse : ''}`}
-          onClick={() => setCoarse(prev => !prev)}
-          disabled={disabled}
-          title={coarse ? t('numberField.coarseTitle', { step: big }) : t('numberField.fineTitle', { step: fine })}
-          aria-pressed={coarse}
-        >
-          {coarse ? t('numberField.coarse') : t('numberField.fine')}
-        </button>
       </div>
+      {help
+        ? <p className={styles.hint}>{help}</p>
+        : <p className={`${styles.hint} ${styles.hintMissing}`}>No description yet · {setting ?? (typeof label === 'string' ? label : 'this setting')} · Y opens documentation</p>}
 
     </div>
   )

@@ -5,7 +5,7 @@ import styles from './Touchpad.module.css'
 import { SectionActions } from '../SectionActions'
 import { NumberField } from '../NumberField'
 import { AdvancedDisclosure } from '../AdvancedDisclosure'
-import { HAPTIC_EFFECTS } from '../../utils/hapticBindings'
+import { HAPTIC_EFFECT_CHOICES } from '../../utils/hapticBindings'
 import { AppSelect } from '../ui/AppSelect'
 
 type Props = {
@@ -54,7 +54,7 @@ export function TouchpadHapticSection(props: Props) {
         )}
       >
         <div className={styles.touchpadSettings}>
-          <NumberField layout="inline"
+          <NumberField setting="TOUCHPAD_HAPTIC_INTENSITY" layout="inline"
             label={t('keymap.touchpadHapticIntensity', 'Movement haptic')}
             value={intensity}
             onChange={v => props.onTouchpadHapticIntensityChange?.(v)}
@@ -64,7 +64,7 @@ export function TouchpadHapticSection(props: Props) {
             coarseStep={5}
             hint={intensity === 0 ? t('keymap.touchpadHapticOff', 'Off') : undefined}
           />
-          <NumberField layout="inline"
+          <NumberField setting="TOUCHPAD_CLICK_HAPTIC_INTENSITY" layout="inline"
             label={t('keymap.touchpadClickHapticIntensity', 'Click haptic')}
             value={clickIntensity}
             onChange={v => props.onTouchpadClickHapticIntensityChange?.(v)}
@@ -74,7 +74,7 @@ export function TouchpadHapticSection(props: Props) {
             coarseStep={5}
             hint={t('keymap.touchpadClickHapticHint')}
           />
-          <NumberField layout="inline"
+          <NumberField setting="TOUCHPAD_RELEASE_HAPTIC_INTENSITY" layout="inline"
             label={t('keymap.touchpadReleaseHapticIntensity', 'Click release haptic')}
             value={releaseIntensity}
             onChange={v => props.onTouchpadReleaseHapticIntensityChange?.(v)}
@@ -88,18 +88,18 @@ export function TouchpadHapticSection(props: Props) {
             <div className={styles.touchpadSettings}>
               <label>
                 {t('keymap.touchpadHapticEffect', 'Movement haptic effect')}
-                <AppSelect
+                <AppSelect setting="TOUCHPAD_HAPTIC_EFFECT"
                   className="app-select"
                   value={effect}
                   disabled={intensity === 0}
                   onChange={e => props.onTouchpadHapticEffectChange?.(e.target.value)}
                 >
-                  {HAPTIC_EFFECTS.filter(entry => entry !== 'OFF').map(entry => (
+                  {HAPTIC_EFFECT_CHOICES.filter(entry => entry !== 'OFF').map(entry => (
                     <option key={entry} value={entry}>{t(`keymap.hapticEffect_${entry}`)}</option>
                   ))}
                 </AppSelect>
               </label>
-              <NumberField layout="inline"
+              <NumberField setting="TOUCHPAD_HAPTIC_INTERVAL" layout="inline"
                 label={t('keymap.touchpadHapticInterval', 'Tick spacing')}
                 value={interval}
                 onChange={v => props.onTouchpadHapticIntervalChange?.(v)}
@@ -113,26 +113,26 @@ export function TouchpadHapticSection(props: Props) {
               />
               <label>
                 {t('keymap.touchpadClickHapticEffect', 'Click haptic effect')}
-                <AppSelect
+                <AppSelect setting="TOUCHPAD_CLICK_HAPTIC_EFFECT"
                   className="app-select"
                   value={clickEffect}
                   disabled={clickIntensity === 0}
                   onChange={e => props.onTouchpadClickHapticEffectChange?.(e.target.value)}
                 >
-                  {HAPTIC_EFFECTS.filter(entry => entry !== 'OFF').map(entry => (
+                  {HAPTIC_EFFECT_CHOICES.filter(entry => entry !== 'OFF').map(entry => (
                     <option key={entry} value={entry}>{t(`keymap.hapticEffect_${entry}`)}</option>
                   ))}
                 </AppSelect>
               </label>
               <label>
                 {t('keymap.touchpadReleaseHapticEffect', 'Click release haptic effect')}
-                <AppSelect
+                <AppSelect setting="TOUCHPAD_RELEASE_HAPTIC_EFFECT"
                   className="app-select"
                   value={releaseEffect}
                   disabled={releaseIntensity === 0}
                   onChange={e => props.onTouchpadReleaseHapticEffectChange?.(e.target.value)}
                 >
-                  {HAPTIC_EFFECTS.filter(entry => entry !== 'OFF').map(entry => (
+                  {HAPTIC_EFFECT_CHOICES.filter(entry => entry !== 'OFF').map(entry => (
                     <option key={entry} value={entry}>{t(`keymap.hapticEffect_${entry}`)}</option>
                   ))}
                 </AppSelect>

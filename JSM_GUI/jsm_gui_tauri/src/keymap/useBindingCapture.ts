@@ -24,6 +24,16 @@ export const useBindingCapture = (
   const [captureTarget, setCaptureTarget] = useState<CaptureTarget | null>(null)
   const [captureLabel, setCaptureLabel] = useState<string>('')
   const [suppressKey, setSuppressKey] = useState<string | null>(null)
+  const capturing = Boolean(captureTarget)
+  useEffect(() => {
+    if (!capturing) return
+    document.body.dataset.bindingCapture = 'true'
+    window.dispatchEvent(new Event('jsm:interaction-hint'))
+    return () => {
+      delete document.body.dataset.bindingCapture
+      window.dispatchEvent(new Event('jsm:interaction-hint'))
+    }
+  }, [capturing])
 
   useEffect(() => {
     if (!captureTarget) return

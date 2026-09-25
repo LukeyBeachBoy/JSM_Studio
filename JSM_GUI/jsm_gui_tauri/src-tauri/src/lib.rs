@@ -50,6 +50,9 @@ pub fn run() {
             if let Err(error) = services::overlay::ensure(&app.handle()) {
                 eprintln!("Failed to prepare the trackpad overlay: {error}");
             }
+            if let Err(error) = services::hud::ensure(&app.handle()) {
+                eprintln!("Failed to prepare the calibration HUD: {error}");
+            }
             // ... and put it back on if that is how it was left. Without this
             // the overlay silently defaults to off on every launch, which reads
             // as the feature having broken rather than as a setting.
@@ -114,18 +117,26 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::launch_jsm,
+            commands::get_mapper_status,
+            commands::get_layer_stack,
+            commands::set_autoload_rule_paused,
+            commands::set_reserved_chords,
+            commands::set_calibration_hud_enabled,
             commands::overlay_set_enabled,
+            commands::ui_set_refresh_hz,
             commands::overlay_set_refresh_hz,
             commands::overlay_set_bounds,
             commands::overlay_workarea,
             commands::terminate_jsm,
             commands::minimize_temporarily,
+            commands::resume_studio_navigation,
             commands::apply_profile,
             commands::get_runtime_mapping_state,
             commands::set_mapping_enabled,
             commands::set_autoload_enabled,
             commands::list_autoload_rules,
             commands::set_controller_nav_enabled,
+            commands::set_studio_testing,
             commands::set_default_polling_ms,
             commands::list_global_chords,
             commands::save_global_chord,
@@ -135,6 +146,8 @@ pub fn run() {
             commands::recalibrate_gyro,
             commands::get_calibration_seconds,
             commands::set_calibration_seconds,
+            commands::set_controller_preferences,
+            commands::play_controller_sound,
             commands::library_list_profiles,
             commands::library_save_profile,
             commands::library_load_profile,
@@ -175,8 +188,12 @@ pub fn run() {
             if window.label() == "main" {
                 let state = window.state::<AppState>();
                 match event {
-                    WindowEvent::Focused(focused) => state.telemetry_ui_active.store(
-                        *focused, std::sync::atomic::Ordering::Relaxed),
+                    WindowEvent::Focused(focused) => {
+                        state.telemetry_ui_active.store(*focused, std::sync::atomic::Ordering::Relaxed);
+                        let app = window.app_handle().clone();
+                        let focused = *focused;
+                        std::thread::spawn(move || commands::studio_focus_changed(&app, focused));
+                    }
                     WindowEvent::CloseRequested { .. } => state.telemetry_ui_active.store(
                         false, std::sync::atomic::Ordering::Relaxed),
                     _ => {}

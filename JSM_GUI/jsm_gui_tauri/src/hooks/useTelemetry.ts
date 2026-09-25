@@ -61,8 +61,11 @@ export type TelemetrySample = {
   [key: string]: unknown
 }
 
-// Telemetry is a preview, not the controller input clock. Publish at most
-// once per 60 Hz frame and do no rendering work while another app has focus.
+// Telemetry is a preview, not the controller input clock: publishing faster
+// than the display can draw is wasted work. So it is published once per frame
+// via requestAnimationFrame, which is the panel's own clock -- 60 Hz, 144 Hz or
+// whatever this monitor runs at -- rather than the fixed 60 Hz this used to be.
+// No rendering work happens at all while another app has focus.
 export function useTelemetry() {
   const [sample, setSample] = useState<TelemetrySample | null>(null)
   const [isCalibrating, setIsCalibrating] = useState(false)
@@ -70,25 +73,24 @@ export function useTelemetry() {
 
   useEffect(() => {
     let latest: TelemetrySample | null = null
-    let timer: ReturnType<typeof setTimeout> | undefined
-    let lastPublishedAt = -Infinity
+    let frame: number | undefined
     let focused = document.hasFocus()
     const active = () => focused && !document.hidden
     const publish = () => {
-      timer = undefined
+      frame = undefined
       if (!active() || !latest) return
-      lastPublishedAt = performance.now()
       setSample(latest)
     }
+    // One publish per displayed frame. Samples arriving between frames replace
+    // `latest` rather than queueing, so the UI always draws the newest state and
+    // never works through a backlog.
     const schedule = () => {
-      if (!active() || !latest || timer !== undefined) return
-      const delay = Math.max(0, 1000 / 60 - (performance.now() - lastPublishedAt))
-      if (delay === 0) publish()
-      else timer = setTimeout(publish, delay)
+      if (!active() || !latest || frame !== undefined) return
+      frame = requestAnimationFrame(publish)
     }
     const pause = () => {
-      if (timer !== undefined) clearTimeout(timer)
-      timer = undefined
+      if (frame !== undefined) cancelAnimationFrame(frame)
+      frame = undefined
     }
     const onFocus = () => { focused = true; schedule() }
     const onBlur = () => { focused = false; pause() }
@@ -111,6 +113,42 @@ export function useTelemetry() {
       document.removeEventListener('visibilitychange', onVisibility)
       dispose?.()
       statusDispose?.()
+    }
+  }, [])
+
+  // --- Tell the backend how fast this display actually is -------------------
+  // The emitter has to know, or it would keep sending at 60 Hz and the frames
+  // above would have nothing new to draw. Measured rather than assumed, because
+  // there is no reliable API for it. Re-measured whenever the window regains
+  // focus, since it may have been dragged to a different monitor since.
+  useEffect(() => {
+    let raf = 0
+    let cancelled = false
+    const measure = () => {
+      let frames = 0
+      let start = 0
+      const step = (now: number) => {
+        if (cancelled) return
+        if (!start) start = now
+        if (++frames < 40) {
+          raf = requestAnimationFrame(step)
+          return
+        }
+        const hz = Math.round((frames - 1) * 1000 / (now - start))
+        // A measurement taken while the window was occluded or throttled is not
+        // the panel's rate; ignore it rather than pinning the emitter low.
+        if (hz >= 30) desktopBridge.setUiRefreshHz(Math.min(1000, hz)).catch(() => {})
+      }
+      frames = 0
+      start = 0
+      raf = requestAnimationFrame(step)
+    }
+    measure()
+    window.addEventListener('focus', measure)
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(raf)
+      window.removeEventListener('focus', measure)
     }
   }, [])
 

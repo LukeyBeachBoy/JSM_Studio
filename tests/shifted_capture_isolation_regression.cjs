@@ -70,6 +70,7 @@ assert.ok(normalIds.some(id => shiftedIds.includes(id)), 'the ids no longer coll
     const shifted = page.locator('[data-input-command="RSR,S"]').first();
     const normal = page.locator('details[data-input-command="S"]').first();
     await shifted.locator(':scope > summary').click();
+    await shifted.getByRole('button',{name:'Advanced command settings',exact:true}).first().click();
     await shifted.getByRole('textbox', { name: /Output value/i }).first().waitFor();
 
     // --- capture on the shifted card -----------------------------------------

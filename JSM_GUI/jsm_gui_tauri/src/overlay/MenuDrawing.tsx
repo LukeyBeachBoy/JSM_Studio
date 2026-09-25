@@ -19,7 +19,7 @@ type Props = {
 export function MenuDrawing({ menu, icons, onRegionRef, onDotRef, onSelect, selectedCommand }: Props) {
  return (
         <div
-          className={`${styles.pad} ${menu.shape === 'FOUR_WAY' ? styles.wedges : ''} ${menu.shape === 'RADIAL' ? styles.radial : ''}`}
+          className={`${styles.pad} ${menu.shape === 'FOUR_WAY' ? styles.wedges : ''} ${menu.shape === 'RADIAL' || menu.shape === 'EIGHT_WAY' ? styles.radial : ''}`}
           // One variable so labels and keys scale together; the window is
           // already sized to the pad's aspect, so the pad just fills it.
           style={{
@@ -32,7 +32,7 @@ export function MenuDrawing({ menu, icons, onRegionRef, onDotRef, onSelect, sele
             // let clip-path cut them apart, so neither may be given column and
             // row tracks: four tracks made each segment a quarter-width sliver
             // and clipped the wheel out of a box that was not the wheel.
-            ...(menu.shape === 'FOUR_WAY' || menu.shape === 'RADIAL'
+            ...(menu.shape === 'FOUR_WAY' || menu.shape === 'RADIAL' || menu.shape === 'EIGHT_WAY'
               ? {}
               : {
                   gridTemplateColumns: `repeat(${menu.columns}, 1fr)`,
@@ -43,7 +43,7 @@ export function MenuDrawing({ menu, icons, onRegionRef, onDotRef, onSelect, sele
         >
           {menu.regions.map((region, index) => {
             const wedge = menu.shape === 'FOUR_WAY' ? WEDGES[index] : null
-            const radial = menu.shape === 'RADIAL'
+            const radial = menu.shape === 'RADIAL' || menu.shape === 'EIGHT_WAY'
             const segments = menu.regions.length
             // With labels hidden the key takes the headline rather than leaving
             // the region blank, and vice versa -- turning one off should never
@@ -120,7 +120,7 @@ export function MenuDrawing({ menu, icons, onRegionRef, onDotRef, onSelect, sele
               the wheel reads as one grey ring until something is selected --
               and see radialDividerStyle for why they cannot be borders on the
               segments themselves. */}
-          {menu.shape === 'RADIAL' && (
+          {(menu.shape === 'RADIAL' || menu.shape === 'EIGHT_WAY') && (
             <div className={styles.spokes} aria-hidden="true">
               {menu.regions.map((region, index) => (
                 <span
@@ -136,6 +136,9 @@ export function MenuDrawing({ menu, icons, onRegionRef, onDotRef, onSelect, sele
               and it moves this imperatively through the ref -- so with no ref
               there is nobody to move it, and the editor preview was left with
               a permanent green blob parked in its top-left corner. */}
+          {/* The two-step trail (Overlay.dc.html) follows the dot by CSS
+              transition alone, so it costs the dot itself no latency. */}
+          {onDotRef && <><div className={styles.trail} data-trail="2" aria-hidden="true" /><div className={styles.trail} data-trail="1" aria-hidden="true" /></>}
           {onDotRef && <div className={styles.dot} ref={onDotRef} />}
           {menu.requiresClick && <div className={styles.hint}>click to confirm</div>}
         </div>

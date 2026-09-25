@@ -1,5 +1,6 @@
 import { useConfigHistory } from './useConfigHistory'
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState, type Dispatch, type SetStateAction } from 'react'
+import { defaultLayer, foldLayer, projectLayer, readLayers, writeLayers } from '../utils/layers'
 import { getKeymapValue } from '../utils/keymap'
 import { keyName } from '../constants/configKeys'
 import { useSensitivityConfig } from './useSensitivityConfig'
@@ -12,15 +13,27 @@ import { INCLUDE_ROOT } from '../utils/configIncludes'
 
 export function useKeymapConfig() {
   const history = useConfigHistory()
-  const { text: configText, setText: setConfigText } = history
+  const { text: documentText, setText: setDocumentText } = history
+  const [selectedLayer, selectLayer] = useState('')
+  const layers = useMemo(() => readLayers(documentText), [documentText])
+  const layerId = layers.some(layer => layer.id === selectedLayer) ? selectedLayer : ''
+  const includes = useConfigIncludes(defaultLayer(documentText), INCLUDE_ROOT)
+  const projection = useCallback((text: string) => projectLayer(layerId ? writeLayers(includes.resolveText(defaultLayer(text)), readLayers(text)) : text, layerId), [layerId, includes.resolveText])
+  const configText = projection(documentText)
+  const setConfigText: Dispatch<SetStateAction<string>> = useCallback(update => {
+    setDocumentText(previous => {
+      const before = projection(previous)
+      return foldLayer(previous, layerId, typeof update === 'function' ? update(before) : update, before)
+    })
+  }, [layerId, setDocumentText, projection])
+  const resetConfigHistory = useCallback((text: string) => { selectLayer(''); history.reset(text) }, [history.reset])
   const [appliedConfig, setAppliedConfig] = useState('')
 
   // A profile that imports a template is not the same thing as the text in its
   // file. Every read below goes through the resolved text so inherited settings
   // show up; writes still go to configText, so changing an inherited value
   // writes an override into this profile rather than editing the template.
-  const includes = useConfigIncludes(configText, INCLUDE_ROOT)
-  const readText = includes.effectiveText
+  const readText = projectLayer(writeLayers(includes.effectiveText, layers), layerId)
 
   const sensitivityConfig = useSensitivityConfig({ configText, readText, setConfigText })
   const touchpadConfig = useTouchpadConfig({ configText, readText, setConfigText })
@@ -37,20 +50,29 @@ export function useKeymapConfig() {
       .map(token => token.toLowerCase())
   }, [readText])
 
-  const hasPendingChanges = configText !== appliedConfig || sensitivityConfig.hasPendingSensitivityChanges
+  const hasPendingChanges = documentText !== appliedConfig || sensitivityConfig.hasPendingSensitivityChanges
   const handleCancel = () => {
     sensitivityConfig.resetPendingSensitivityChanges()
-    setConfigText(appliedConfig)
+    setDocumentText(appliedConfig)
   }
 
   return {
+    documentText, setDocumentText, layers, layerId,
+    selectCreatedLayer: selectLayer,
+    selectLayer: (id: string) => {
+      setConfigText(sensitivityConfig.finalizePendingValues())
+      sensitivityConfig.resetPendingSensitivityChanges()
+      selectLayer(id)
+    },
+    savedLayerText: projection(appliedConfig),
+    foldConfigText: (text: string) => foldLayer(documentText, layerId, text, configText),
     configText,
     // The text the runtime would execute: this profile with its imports
     // resolved in place. Read-only -- never save it over a profile.
     effectiveConfigText: readText,
-    configIncludes: includes,
+    configIncludes: { ...includes, effectiveText: readText },
     setConfigText,
-    resetConfigHistory: history.reset,
+    resetConfigHistory,
     canUndo: history.canUndo,
     canRedo: history.canRedo,
     undo: () => { sensitivityConfig.resetPendingSensitivityChanges(); history.undo() },
@@ -60,7 +82,7 @@ export function useKeymapConfig() {
     hasPendingChanges,
     handleCancel,
     ignoredGyroDevices,
-    finalizePendingValues: sensitivityConfig.finalizePendingValues,
+    finalizePendingValues: () => foldLayer(documentText, layerId, sensitivityConfig.finalizePendingValues(), configText),
     // Sensitivity slice
     sensitivityView: sensitivityConfig.sensitivityView,
     setSensitivityView: sensitivityConfig.setSensitivityView,

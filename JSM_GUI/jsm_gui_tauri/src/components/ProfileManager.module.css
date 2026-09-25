@@ -1,370 +1,150 @@
-.profileCard {
-  display: flex;
-  flex-direction: column;
-  gap: 0.9rem;
-  box-sizing: border-box;
-  max-height: calc(85vh - 4.5rem);
-  overflow-y: auto;
-  padding: 1rem 1.15rem 1.15rem;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
+/* Studio home: the configuration library (Studio Home.dc.html 8a). Rows on
+   the left, the selected configuration's facts and actions in a card beside
+   them; one column below 1100. */
+.library {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  align-items: start;
+  gap: var(--sp-6);
 }
 
-.profileCardHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin: 0;
+@media (max-width: 1099px) {
+  .library { grid-template-columns: minmax(0, 1fr); }
 }
 
-.profileFlags {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+.lists { display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; }
+
+.library .eyebrow {
+  margin: var(--sp-2) 0 0;
+  font-size: var(--fs-eyebrow);
+  line-height: var(--lh-eyebrow);
+  letter-spacing: var(--tracking-eyebrow);
+  font-weight: var(--fw-semibold);
+  color: var(--text-3);
+  text-transform: uppercase;
 }
 
-.profileWarning {
-  padding: 0.15rem 0.75rem;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 183, 77, 0.5);
-  color: #ffd695;
-  font-size: 0.85rem;
-  animation: toast-in 160ms ease forwards, toast-out 200ms ease forwards;
-  animation-delay: 0s, calc(3000ms - 200ms);
-  animation-fill-mode: forwards;
-}
+.rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-2); }
 
-.profileStatus {
-  padding: 0.15rem 0.75rem;
-  border-radius: 999px;
-  border: 1px solid rgba(104, 212, 175, 0.5);
-  color: #9ff6d8;
-  font-size: 0.85rem;
-  font-weight: 600;
-  animation: toast-in 160ms ease forwards, toast-out 200ms ease forwards;
-  animation-delay: 0s, calc(3000ms - 200ms);
-  animation-fill-mode: forwards;
-}
-
-.profileTabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.profileTab {
-  flex: 1;
-  min-width: 120px;
-}
-
-.profileNameEdit,
-.profileCopyRow label {
-  display: flex;
-  flex-direction: column;
-  font-weight: 600;
-  color: var(--text-strong);
-}
-
-.profileNameEdit {
-  gap: 0.35rem;
-}
-
-.profileNameEdit input,
-.profileCopyRow select {
-  margin-top: 0.35rem;
-  padding: 0.55rem;
-  border-radius: 8px;
-  border: 1px solid var(--border-1);
-  background: var(--bg-input);
-  color: var(--text-strong);
-  font-size: 1rem;
+.row {
   width: 100%;
-  box-sizing: border-box;
-}
-
-.profileCopyRow {
+  min-height: 88px;
   display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  align-items: flex-end;
-}
-
-.profileCopyStatus {
-  margin: 0;
-  font-size: 0.9rem;
-  color: #9fe5c2;
-  font-weight: 600;
-}
-
-.profileActions {
-  display: flex;
-  justify-content: flex-start;
-  gap: 0.75rem;
   align-items: center;
-  flex-wrap: wrap;
+  gap: var(--sp-4);
+  padding: 0 var(--sp-4);
+  border: 0;
+  border-radius: var(--r-card);
+  background: var(--surface-row);
+  color: var(--text-1);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--dur-1) var(--ease-standard), box-shadow var(--dur-2) var(--ease-standard), transform var(--dur-2) var(--ease-emphasis);
+}
+.row:hover { background: var(--surface-row-hover); }
+.row[aria-pressed='true'] { background: var(--surface-selected); box-shadow: inset 0 0 0 1px var(--accent); }
+:global(body[data-input-source='controller']) .row:focus {
+  background: var(--surface-selected);
+  box-shadow: 0 0 0 var(--focus-controller-width) var(--focus-controller), var(--shadow-lift);
+  transform: translateY(-1px);
 }
 
-.profileActions :global(.primary-btn),
-.profileActions :global(.secondary-btn),
-.profileActions :global(.ghost-btn) {
-  padding: 0.55rem 1.5rem;
+.rowIcon {
+  width: 44px;
+  height: 32px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 2px var(--line-2);
+  color: var(--text-2);
 }
 
-.profileNotApplied {
-  padding: 0.25rem 0.9rem;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 145, 145, 0.5);
-  color: #ffbbbb;
-  font-size: 0.85rem;
-  font-weight: 600;
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  margin: 0 0.5rem;
-}
+.rowText { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.rowName { font-size: var(--fs-label); line-height: var(--lh-label); font-weight: var(--fw-medium); }
+.rowSub { color: var(--text-3); font-size: var(--fs-hint); line-height: var(--lh-hint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.profileLibraryHeader {
-  display: flex;
-  justify-content: space-between;
+.tags { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--sp-1); }
+.tag {
+  height: 22px;
+  display: inline-flex;
   align-items: center;
-  gap: 1rem;
+  gap: 5px;
+  padding: 0 var(--sp-2);
+  border-radius: var(--r-sm);
+  background: var(--surface-control);
+  color: var(--text-2);
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-semibold);
+  white-space: nowrap;
 }
+.tagAccent { background: var(--accent-soft); color: var(--accent); }
+.tagOk { background: var(--ok-soft); color: var(--ok); }
+.tagWarn { background: var(--warn-soft); color: var(--warn); }
+.tagDot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 
-.profileLibraryLoading {
-  color: var(--text-muted);
-  font-size: 0.9rem;
-}
+.empty { margin: 0; color: var(--text-3); }
 
-.profileLibraryHeader h3 {
-  margin: 0;
-}
-
-.profileLibraryHeader p {
-  margin: 0.2rem 0 0;
-  color: var(--text-muted);
-  font-size: 0.9rem;
-  line-height: 1.45;
-}
-
-.profileLibraryEmpty {
-  margin: 0;
-  padding: 1rem;
-  border: 1px dashed var(--border-strong);
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--bg-input) 64%, transparent);
-  color: var(--text-mid);
-  font-size: 0.9rem;
-}
-
-.profileLibrary {
+.detail {
+  position: sticky;
+  top: var(--sp-4);
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--sp-3);
+  padding: var(--sp-5);
+  border-radius: var(--r-card);
+  background: var(--surface-row);
 }
+.detail .eyebrow { margin: 0; }
+.detailName { margin: 0; font-size: var(--fs-section); line-height: var(--lh-section); font-weight: var(--fw-semibold); }
 
-.profileLibraryList {
-  list-style: none;
-  padding: 0;
-  margin: 0.4rem 0 0;
+.facts { margin: 0; display: flex; flex-direction: column; }
+.facts > div {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: var(--sp-3);
+  padding: 10px 0;
+  box-shadow: inset 0 1px 0 var(--line-1);
+  font-size: var(--fs-body);
+}
+.facts dt { color: var(--text-3); }
+.facts dd { margin: 0; color: var(--text-1); overflow-wrap: anywhere; }
+.mono { font-family: var(--font-mono); font-size: var(--fs-hint); }
+.layerList { display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-3); }
+.layerList > span { display: inline-flex; align-items: center; gap: 6px; }
+.swatch { width: 8px; height: 8px; border-radius: 2px; }
+
+.actionGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-2); }
+.actionGrid :global(.button) { padding: 0 var(--sp-2); }
+
+.rename { display: flex; flex-direction: column; gap: var(--sp-1); color: var(--text-3); font-size: var(--fs-hint); }
+.renameRow { display: flex; gap: var(--sp-2); }
+.renameRow :global(.text-field) { flex: 1; min-width: 0; }
+
+.quiet { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--sp-1); }
+.lock { margin: 0; color: var(--warn); font-size: var(--fs-hint); }
+
+/* First run (System States 17d). */
+.welcome { display: flex; flex-direction: column; align-items: center; gap: var(--sp-3); max-width: 560px; margin: var(--sp-8) auto; text-align: center; }
+.welcomeMark { width: 88px; height: 88px; border-radius: 22px; }
+.welcome h2 { margin: var(--sp-2) 0 0; font-size: var(--fs-page); line-height: var(--lh-page); font-weight: var(--fw-semibold); }
+.welcome p { margin: 0; color: var(--text-2); font-size: var(--fs-label); line-height: var(--lh-label); }
+.welcomeChoices { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sp-2); margin-top: var(--sp-3); }
+.choice {
+  width: 170px;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--sp-1);
+  padding: var(--sp-4);
+  border: 0;
+  border-radius: var(--r-card);
+  background: var(--surface-row);
+  color: var(--text-1);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
-
-.profileLibraryItem {
-  display: flex;
-  justify-content: flex-start;
-  align-items: stretch;
-  gap: 0.5rem;
-  padding: 0.7rem;
-  border: 1px solid var(--border-1);
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--bg-input) 72%, transparent);
-  transition: border-color 0.2s ease, background-color 0.2s ease;
-}
-
-.profileLibraryItemActive {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
-}
-
-.profileLibraryName {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex: 1;
-}
-
-.profileLibraryName input {
-  flex: 1;
-  min-width: 0;
-  padding: 0.45rem 0.75rem;
-  border-radius: 8px;
-  border: 1px solid var(--border-1);
-  background: var(--bg-input);
-  color: var(--text-strong);
-  font-weight: 600;
-}
-
-.profileLibraryButtons {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-.profileLibraryActiveBadge {
-  padding: 0.5rem 1.2rem;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--accent) 55%, #ffffff 45%);
-  color: color-mix(in srgb, var(--accent) 65%, #0f1116 35%);
-  font-size: 0.85rem;
-  white-space: nowrap;
-  line-height: 1;
-}
-
-.profileLibraryAppliedBadge {
-  padding: 0.5rem 1.2rem;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--telemetry-green) 55%, #ffffff 45%);
-  color: color-mix(in srgb, var(--telemetry-green) 65%, #0f1116 35%);
-  font-size: 0.85rem;
-  white-space: nowrap;
-  line-height: 1;
-}
-
-.profileLibraryActionsRow {
-  margin-top: 0.15rem;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.profileLibraryActionsRow :global(.profile-import) {
-  display: flex;
-}
-
-.profileLibraryActionsRow :global(.primary-btn),
-.profileLibraryActionsRow :global(.secondary-btn),
-.profileLibraryActionsRow :global(.ghost-btn) {
-  min-height: 2.35rem;
-}
-
-@media (max-width: 720px) {
-  .profileLibraryHeader,
-  .profileLibraryItem {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .profileLibraryButtons,
-  .profileLibraryActionsRow,
-  .profileLibraryActionsRow :global(.profile-import),
-  .profileLibraryActionsRow :global(.primary-btn),
-  .profileLibraryActionsRow :global(.secondary-btn),
-  .profileLibraryActionsRow :global(.ghost-btn) {
-    width: 100%;
-  }
-
-  .profileLibraryActionsRow {
-    justify-content: stretch;
-  }
-}
-
-@keyframes toast-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes toast-out {
-  from {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-}
-
-/* Tool-mode density overrides */
-.profileCard {
-  gap: 0.65rem;
-  padding: 0.75rem 0.85rem 0.85rem;
-}
-
-.profileCardHeader,
-.profileLibraryHeader,
-.profileActions,
-.profileLibraryActionsRow {
-  gap: 0.5rem;
-}
-
-.profileWarning,
-.profileStatus,
-.profileNotApplied,
-.profileLibraryActiveBadge,
-.profileLibraryAppliedBadge {
-  border-radius: 6px;
-  padding: 0.22rem 0.55rem;
-  font-size: 0.76rem;
-}
-
-.profileTabs {
-  gap: 0.35rem;
-}
-
-.profileNameEdit input,
-.profileCopyRow select,
-.profileLibraryName input,
-.profileLibraryItem,
-.profileLibraryEmpty {
-  border-radius: 6px;
-}
-
-.profileNameEdit input,
-.profileCopyRow select,
-.profileLibraryName input {
-  padding: 0.38rem 0.55rem;
-  font-size: 0.86rem;
-}
-
-.profileCopyRow,
-.profileLibrary,
-.profileLibraryList {
-  gap: 0.55rem;
-}
-
-.profileActions :global(.primary-btn),
-.profileActions :global(.secondary-btn),
-.profileActions :global(.ghost-btn) {
-  padding: 0.38rem 0.78rem;
-}
-
-.profileLibraryHeader p,
-.profileLibraryLoading,
-.profileLibraryEmpty {
-  font-size: 0.8rem;
-}
-
-.profileLibraryItem {
-  padding: 0.5rem;
-  background: var(--bg-input);
-}
-
-.profileLibraryItemActive {
-  box-shadow: inset 3px 0 0 var(--accent);
-}
+.choice:hover { background: var(--surface-row-hover); }
+.choice b { font-size: var(--fs-label); font-weight: var(--fw-semibold); }
+.choice span { color: var(--text-3); font-size: var(--fs-hint); line-height: var(--lh-hint); }

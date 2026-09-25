@@ -36,7 +36,7 @@ type TouchpadGridSectionProps = {
   // set of numbered boxes. label is the human name for the action, binding is
   // what JoyShockMapper was told, extra counts further slots (hold, double).
   describeRegion?: (command: string) => { label?: string; binding: string; extra: number; icon?: string }
-  /** RECTANGLE (rows x columns) or FOUR_WAY (cardinal wedges about the centre). */
+  /** RECTANGLE, FOUR_WAY, EIGHT_WAY, or RADIAL. */
   shape?: string
   /** Fraction of the pad, centre to edge, that presses nothing in FOUR_WAY. */
   deadzone?: number
@@ -79,7 +79,8 @@ export function TouchpadGridSection({
   const { t } = useTranslation()
   const selectedCommandUpper = selectedCommand?.toUpperCase() ?? ''
   const fourWay = shape === 'FOUR_WAY'
-  const radial = shape === 'RADIAL'
+  const eightWay = shape === 'EIGHT_WAY'
+  const radial = shape === 'RADIAL' || eightWay
   const gridRows = Math.max(1, Math.ceil(gridCells / Math.max(1, gridColumns)))
 
   // Icon sets are megabytes and load lazily, so resolve whatever this grid
@@ -108,7 +109,7 @@ export function TouchpadGridSection({
   // be its own bug, and this preview used to reimplement the maths by hand.
   const liveCellIndex = (() => {
     if (!livePad?.touched) return -1
-    const count = fourWay ? 4 : gridCells
+    const count = fourWay ? 4 : eightWay ? 8 : gridCells
     return hitTestRegion(
       {
         shape: radial ? 'RADIAL' : fourWay ? 'FOUR_WAY' : 'RECTANGLE',
@@ -141,21 +142,32 @@ export function TouchpadGridSection({
               ? t('keymap.touchpadGridTitle')
               : t(side === 'left' ? 'keymap.touchpadGridTitleLeft' : 'keymap.touchpadGridTitleRight'))
         }
-        description={t('keymap.touchpadGridDescription')}
-      >
-        <p className={styles.touchpadHint}>
-          {explainer ?? (fourWay
+        // How the regions work sits behind the help button rather than as a
+        // paragraph above every pad (Configuration Pages 15c).
+        description={explainer ?? (fourWay
             ? t(
                 'keymap.touchpadGridExplainerFourWay',
                 'The pad works as a direction pad and as a stick at the same time. Touching a wedge presses whatever is bound to it, while sliding your thumb still drives the touch stick. The wedges are divided on the diagonals, so anywhere in the top quarter presses up. Click a wedge to bind it, and touch the pad to see where your finger lands.'
               )
-            : t(
+            : eightWay
+              ? t('keymap.touchpadGridExplainerEightWay', 'The pad is divided into eight bindable wedges, clockwise from up. Click a wedge to bind it, and touch the pad to see where your finger lands.')
+              : t(
                 'keymap.touchpadGridExplainer',
                 'Grid and stick splits the pad into regions you can bind separately, and treats the pad as a stick at the same time. Touching a region presses whatever is bound to it, so it works like a set of buttons drawn on the pad, while sliding your thumb still drives the touch stick. Set the rows and columns above, click a region to bind it, and touch the pad to see where your finger lands.'
               ))}
-        </p>
-        {menu ? <><button type="button" className="secondary-btn" onClick={() => window.dispatchEvent(new CustomEvent('jsm:menu-layout', { detail: `${menu.pad}${menu.layer ? ':' + menu.layer : ''}` }))}>Appearance &amp; Position</button>
-          <MenuPreview menu={menu} aspect={padAspect} selectedCommand={selectedCommand} onSelect={onSelectButton} /></> : <>
+      >
+        {/* The preview drawn by the overlay's own renderer beside the selected
+            region (Configuration Pages 15b/15c): choose a region on the left,
+            bind it on the right. */}
+        {menu ? <div className={styles.regionLayout}>
+          <div className={styles.regionStage}>
+            <MenuPreview menu={menu} aspect={padAspect} selectedCommand={selectedCommand} onSelect={onSelectButton} />
+          </div>
+          <div className={styles.regionSide}>
+            {selectedButton && <div className={styles.touchpadRegionEditor}>{renderButton(selectedButton, { defaultOpen: true })}</div>}
+            <button type="button" className="button button--tertiary button--sm" onClick={() => window.dispatchEvent(new CustomEvent('jsm:menu-layout', { detail: `${menu.pad}${menu.layer ? ':' + menu.layer : ''}` }))}>Appearance &amp; Position</button>
+          </div>
+        </div> : <>
         <div className={styles.touchpadGridPreviewWrap} style={{ ['--pad-aspect' as string]: String(padAspect) } as CSSProperties}>
         <div
           className={`${styles.touchpadGridPreview} ${fourWay ? styles.touchpadGridPreviewWedges : ''} ${radial ? styles.touchpadGridPreviewRadial : ''}`}
@@ -170,7 +182,7 @@ export function TouchpadGridSection({
                 }
           }
         >
-          {Array.from({ length: fourWay ? 4 : gridCells }).map((_, index) => {
+          {Array.from({ length: fourWay ? 4 : eightWay ? 8 : gridCells }).map((_, index) => {
             const rowIndex = Math.floor(index / gridColumns)
             const colIndex = index % gridColumns
             const button = touchpadButtons[index]
@@ -278,7 +290,7 @@ export function TouchpadGridSection({
             whose header repeated the command, the row and column and the
             bound state -- all of which the card itself already shows -- so
             reaching the binding meant opening a section inside a section. */}
-        {selectedButton && (
+        {!menu && selectedButton && (
           <div className={styles.touchpadRegionEditor}>{renderButton(selectedButton, { defaultOpen: true })}</div>
         )}
       </KeymapSection>

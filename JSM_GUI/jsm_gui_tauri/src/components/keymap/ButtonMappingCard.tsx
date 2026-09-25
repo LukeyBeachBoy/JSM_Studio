@@ -1,3 +1,4 @@
+import { InputUseBadge, InputLayerActions, LayerValueBadge, useInputUses } from '../LayerBar'
 import { ReactNode, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import keymapStyles from '../Keymap.module.css'
@@ -5,7 +6,7 @@ import { InheritedBadge } from './InheritedBadge'
 import { IconPicker } from './IconPicker'
 
 /** One binding as the compact row shows it: how it fires, and what it sends. */
-export type BindingSummaryEntry = { trigger?: string; output: string }
+export type BindingSummaryEntry = { trigger?: string; output: string; /** The binding spelled out, shown on hover. */ outputTitle?: string }
 
 type ButtonMappingCardProps = {
   command?: string
@@ -69,6 +70,7 @@ export function ButtonMappingCard({
   onOpenConfigEditor,
 }: ButtonMappingCardProps) {
   const { t } = useTranslation()
+  const inputUses = useInputUses(command)
   const detailsRef = useRef<HTMLDetailsElement>(null)
   const [draft, setDraft] = useState(label ?? '')
   const [editing, setEditing] = useState(false)
@@ -94,16 +96,17 @@ export function ButtonMappingCard({
           The output wears the same keycap as it does inside the card, so the
           row and the editor describe a binding the same way. */}
       <summary className="binding-summary">
-        {glyph}<span>{label || title}</span>
+        {glyph}<span className="binding-summary-name"><span className="binding-summary-label">{label || title}</span>{label && <span className="binding-summary-input">{title}</span>}</span>
         <span className="binding-summary-hint">
+          <InputUseBadge command={command} /><LayerValueBadge command={command} />
           {summary?.length
             ? summary.map((entry, index) => (
                 <span key={index} className="binding-summary-entry">
                   {entry.trigger && <span className="binding-summary-trigger">{entry.trigger}</span>}
-                  <kbd className={keymapStyles.commandOutputSummary}>{entry.output}</kbd>
+                  <kbd className={keymapStyles.commandOutputSummary} title={entry.outputTitle}>{entry.output}</kbd>
                 </span>
               ))
-            : t('keymap.bindingSummaryEmpty', 'Unbound')}
+            : inputUses.length ? 'Used as modifier' : t('keymap.bindingSummaryEmpty', 'Unbound')}
           {onPaste && pasteLabel && (
             <button
               type="button"
@@ -161,6 +164,7 @@ export function ButtonMappingCard({
       <div className={keymapStyles.commandList}>
         {toolbar}
         {commands}
+        <InputLayerActions command={command} />
         {addControl}
         {extras}
       </div>

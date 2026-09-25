@@ -479,13 +479,22 @@
   margin-top: 0.5rem;
 }
 
+/* A switch row: the caption, then the switch at the end of the line. */
 .touchpadCard label.touchpadCheckbox {
-  flex-direction: row;
-  justify-content: flex-start;
+  flex-direction: row-reverse;
+  justify-content: space-between;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--sp-3);
+  min-height: 60px;
+  padding: 12px var(--sp-4);
+  border-radius: var(--r-row);
+  background: transparent;
+  box-shadow: inset 0 -1px 0 var(--line-1);
+  color: var(--text-1);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-medium);
 }
-.touchpadCard label.touchpadCheckbox input { width: auto; flex: 0 0 auto; }
+.touchpadCard label.touchpadCheckbox:hover { background: var(--surface-row-hover); }
 
 /* A wheel: every segment is clipped out of the same full-size box, so they all
    share one grid cell and the clip decides what is visible. Round, and hiding
@@ -571,3 +580,40 @@
   border: 1px solid var(--touchpad-grid-cell-border);
   box-sizing: border-box;
 }
+
+.touchpadCard { border: 0; background: transparent; padding: 0; }
+.touchpadCard > label { background: var(--bg-2); padding: 12px 16px; border-radius: var(--radius-control); }
+
+.switchText { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.switchText small { color: var(--text-3); font-size: var(--fs-hint); line-height: var(--lh-hint); font-weight: var(--fw-regular); }
+
+/* Columns and rows are two full-width setting rows, not two half fields. */
+.gridSizeInputs { flex-direction: column; flex-wrap: nowrap; gap: 0; }
+
+/* Region editor (Configuration Pages 15b/15c): the pad drawn by the overlay's
+   renderer in a dark stage, the selected region's binding beside it once the
+   column is wide enough, under it when not. */
+.regionLayout {
+  container-type: inline-size;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--sp-4);
+}
+.regionStage {
+  flex: 0 1 280px;
+  min-width: 200px;
+  padding: var(--sp-3);
+  border-radius: var(--r-card);
+  background: var(--surface-sunken);
+}
+.regionStage > div { margin: 0 auto !important; }
+.regionSide {
+  flex: 1 1 260px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-2);
+}
+.regionSide > .touchpadRegionEditor { align-self: stretch; }

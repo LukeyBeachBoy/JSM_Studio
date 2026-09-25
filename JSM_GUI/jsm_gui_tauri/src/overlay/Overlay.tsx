@@ -58,6 +58,8 @@ type OverlayPacket = {
   rightStick: { x: number; y: number } | null
   touchpadWidth: number
   touchpadHeight: number
+  /** What the mapper is running, which a binding can change without Studio. */
+  activeProfile?: string | null
 }
 
 type OverlaySurfaceKey = 'LEFT' | 'RIGHT' | 'LSTICK' | 'RSTICK'
@@ -77,6 +79,8 @@ export function Overlay() {
   const rootRef = useRef<HTMLDivElement | null>(null)
   const dotRef = useRef<HTMLDivElement | null>(null)
   const regionRefs = useRef<(HTMLDivElement | null)[]>([])
+  const reloadRef = useRef<(() => void) | null>(null)
+  const liveProfileRef = useRef<string | null | undefined>(undefined)
   const menusRef = useRef(menus)
   const activeKeyRef = useRef(activeKey)
   const selectedRef = useRef(-1)
@@ -168,7 +172,11 @@ export function Overlay() {
         /* A profile that cannot be read simply shows no overlay. */
       }
     }
+    reloadRef.current = load
     load()
+    // The interval is the backstop for a file edited underneath us. A binding
+    // that swaps the configuration is caught by the packet instead, because two
+    // seconds of drawing the wrong menus is two seconds of the wrong menus.
     const timer = setInterval(load, 2000)
     return () => { cancelled = true; clearInterval(timer) }
   }, [])
@@ -180,6 +188,20 @@ export function Overlay() {
     listen<OverlayPacket>('overlay-telemetry', event => {
       if (disposed) return
       const { buttons, leftPad, rightPad } = event.payload
+      // A configuration swap invalidates every menu on screen. Drop them at
+      // once rather than drawing the old ones until the re-read lands: a menu
+      // for bindings the controller no longer has is worse than no menu.
+      const live = event.payload.activeProfile ?? null
+      if (live !== liveProfileRef.current) {
+        const first = liveProfileRef.current === undefined
+        liveProfileRef.current = live
+        if (!first) {
+          menusRef.current = {}
+          setMenus({})
+          if (rootRef.current) rootRef.current.dataset.visible = 'false'
+          reloadRef.current?.()
+        }
+      }
       // The pad's real shape, so the menu is drawn the same shape as the thing
       // under the thumb. Only re-rendered when it actually changes (a hotplug).
       const aspect = padAspect(event.payload)
@@ -273,8 +295,9 @@ export function Overlay() {
 
       // Imperative from here: no React work per packet.
       if (dotRef.current) {
-        dotRef.current.style.transform =
-          `translate(${toUnit(sample.x) * 100}cqw, ${toUnit(sample.y) * 100}cqh) translate(-50%, -50%)`
+        const transform = `translate(${toUnit(sample.x) * 100}cqw, ${toUnit(sample.y) * 100}cqh) translate(-50%, -50%)`
+        dotRef.current.style.transform = transform
+        dotRef.current.parentElement?.querySelectorAll<HTMLElement>('[data-trail]').forEach(trail => { trail.style.transform = transform })
       }
       const selected = hitTestRegion(menu, sample.x, sample.y)
       if (selected !== selectedRef.current) {

@@ -7,6 +7,7 @@ import styles from './Sticks.module.css'
 import { AppSelect } from './ui/AppSelect'
 
 type StickSettingsCardProps = {
+  keyPrefix?: string
   title: string
   innerValue: string
   outerValue: string
@@ -28,6 +29,7 @@ type StickSettingsCardProps = {
 }
 
 export function StickSettingsCard({
+  keyPrefix = '',
   title,
   innerValue,
   outerValue,
@@ -52,7 +54,7 @@ export function StickSettingsCard({
       {title && <h3>{title}</h3>}
       <label>
         {t('stickModes.stickMode')}
-        <AppSelect className="app-select" value={modeValue} onChange={(event) => onModeChange(event.target.value)} disabled={disabled}>
+        <AppSelect className="app-select" setting={keyPrefix + 'STICK_MODE'} value={modeValue} onChange={(event) => onModeChange(event.target.value)} disabled={disabled}>
           <option value="">{t('common.defaultValue', { value: formatStickModeLabel('NO_MOUSE', t) })}</option>
           {selectableStickModes.map(mode => (
             <option key={mode} value={mode}>
@@ -70,7 +72,7 @@ export function StickSettingsCard({
         <div className={styles.deadzoneRow}>
           <NumberField
             label={t('stickModes.innerDeadzone')}
-            value={innerValue}
+            setting={keyPrefix + 'DEADZONE_INNER'} value={innerValue}
             onChange={onInnerChange}
             min={0}
             max={1}
@@ -80,7 +82,7 @@ export function StickSettingsCard({
           />
           <NumberField
             label={t('stickModes.outerDeadzone')}
-            value={outerValue}
+            setting={keyPrefix + 'DEADZONE_OUTER'} value={outerValue}
             onChange={onOuterChange}
             min={0}
             max={1}
@@ -90,7 +92,7 @@ export function StickSettingsCard({
           />
           <label>
             {t('stickModes.ringMode')}
-            <AppSelect className="app-select" value={ringValue} onChange={(event) => onRingChange(event.target.value)} disabled={disabled}>
+            <AppSelect className="app-select" setting={keyPrefix + 'RING_MODE'} value={ringValue} onChange={(event) => onRingChange(event.target.value)} disabled={disabled}>
               <option value="">{t('common.defaultValue', { value: t('stickModes.outer') })}</option>
               <option value="INNER">{t('stickModes.inner')}</option>
               <option value="OUTER">{t('stickModes.outer')}</option>

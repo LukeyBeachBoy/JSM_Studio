@@ -102,6 +102,7 @@ pub fn start(app: AppHandle, state: AppState) {
         let mut buffer = [0_u8; 65535];
         let mut last_ui_emit = Instant::now() - Duration::from_secs(1);
         let mut last_overlay_emit = Instant::now() - Duration::from_secs(1);
+        let mut last_came_up: Option<Instant> = None;
 
         loop {
             match socket.recv_from(&mut buffer) {
@@ -111,7 +112,10 @@ pub fn start(app: AppHandle, state: AppState) {
                         // packet. Only the expensive WebView IPC/rendering stops
                         // when another app (such as a game) has focus.
                         if state.telemetry_ui_active.load(Ordering::Relaxed)
-                            && last_ui_emit.elapsed() >= Duration::from_micros(16_667)
+                            && last_ui_emit.elapsed()
+                                >= Duration::from_micros(
+                                    state.ui_interval_us.load(Ordering::Relaxed).max(1_000),
+                                )
                         {
                             let _ = emit_telemetry_packet(&app, &packet);
                             last_ui_emit = Instant::now();
@@ -127,6 +131,23 @@ pub fn start(app: AppHandle, state: AppState) {
                                 let _ = emit_overlay_packet(&app, &packet);
                                 last_overlay_emit = Instant::now();
                             }
+                        }
+                        // Every packet, not throttled: the HUD decides for itself
+                        // how often to redraw, and a run must not be missed.
+                        crate::services::hud::on_packet(&app, &state, &packet);
+                        // The mapper sends at least a heartbeat every 0.5 s, so a
+                        // first packet or one after 3 s of silence means it has
+                        // just started (or restarted). Rate-limited so a mapper
+                        // that keeps dropping telemetry cannot loop this.
+                        let came_up = state
+                            .telemetry
+                            .lock()
+                            .map(|telemetry| telemetry.latest_received_at.map_or(true, |at| at.elapsed() > Duration::from_secs(3)))
+                            .unwrap_or(false);
+                        if came_up && last_came_up.map_or(true, |at: Instant| at.elapsed() > Duration::from_secs(10)) {
+                            last_came_up = Some(Instant::now());
+                            let app = app.clone();
+                            thread::spawn(move || crate::commands::mapper_came_up(&app));
                         }
                         update_latest_packet(&state, packet);
                     }
@@ -146,8 +167,19 @@ pub fn start(app: AppHandle, state: AppState) {
             }
 
             let _ = handle_health(&app, &state);
+            crate::services::jsm_process::report_unexpected_exit(&app, &state);
         }
     });
+}
+
+/// Called by the main window once it has measured its display, so the UI is
+/// drawn at the panel's rate rather than a fixed 60 Hz. Clamped: below 30 the
+/// preview stutters, and above 1000 it would outrun the mapper's own tick.
+pub fn set_ui_refresh_hz(state: &AppState, hz: u32) {
+    let hz = hz.clamp(30, 1_000);
+    state
+        .ui_interval_us
+        .store((1_000_000 / hz as u64).max(1), Ordering::Relaxed);
 }
 
 pub fn latest_packet(state: &AppState) -> Result<Option<Value>, String> {
@@ -175,55 +207,6 @@ pub fn stop_calibration_countdown(app: &AppHandle, state: &AppState) -> Result<(
             seconds: None,
         },
     )
-}
-
-pub fn start_calibration_countdown(
-    app: AppHandle,
-    state: AppState,
-    seconds: u32,
-) -> Result<(), String> {
-    if seconds == 0 {
-        return stop_calibration_countdown(&app, &state);
-    }
-
-    let generation = state.calibration_generation.fetch_add(1, Ordering::SeqCst) + 1;
-    emit_calibration_status(
-        &app,
-        CalibrationStatusPayload {
-            calibrating: true,
-            seconds: Some(seconds),
-        },
-    )?;
-
-    thread::spawn(move || {
-        let mut remaining = seconds;
-        while remaining > 0 {
-            thread::sleep(Duration::from_secs(1));
-            if state.calibration_generation.load(Ordering::SeqCst) != generation {
-                return;
-            }
-            remaining -= 1;
-            if remaining > 0 {
-                let _ = emit_calibration_status(
-                    &app,
-                    CalibrationStatusPayload {
-                        calibrating: true,
-                        seconds: Some(remaining),
-                    },
-                );
-            } else {
-                let _ = emit_calibration_status(
-                    &app,
-                    CalibrationStatusPayload {
-                        calibrating: false,
-                        seconds: None,
-                    },
-                );
-            }
-        }
-    });
-
-    Ok(())
 }
 
 pub fn broadcast_empty_devices(app: &AppHandle, state: &AppState) -> Result<(), String> {
@@ -303,6 +286,11 @@ fn emit_overlay_packet(app: &AppHandle, packet: &Value) -> Result<(), String> {
             "rightStick": stick("rightStick"),
             "touchpadWidth": dimension("touchpadWidth"),
             "touchpadHeight": dimension("touchpadHeight"),
+            // Which configuration the mapper is actually running. A binding can
+            // load another one without Studio knowing, and until the overlay
+            // hears about it, it keeps drawing the menus of the profile that is
+            // no longer loaded.
+            "activeProfile": packet.get("activeProfile").cloned().unwrap_or(Value::Null),
         }),
     )
     .map_err(|error| format!("Failed to emit overlay packet: {error}"))
@@ -382,5 +370,37 @@ fn clear_devices(packet: Value) -> Value {
             Value::Object(map)
         }
         _ => json!({ "devices": [] }),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::services::app_state::DEFAULT_UI_INTERVAL_US;
+
+    #[test]
+    fn the_ui_emit_rate_follows_the_reported_display_and_is_clamped() {
+        let state = AppState::default();
+        // Until the window reports, the emitter stays at the 60 Hz this was
+        // previously fixed at.
+        assert_eq!(
+            state.ui_interval_us.load(Ordering::Relaxed),
+            DEFAULT_UI_INTERVAL_US
+        );
+
+        // A high-refresh panel gets its own rate, not 60.
+        set_ui_refresh_hz(&state, 144);
+        assert_eq!(state.ui_interval_us.load(Ordering::Relaxed), 6_944);
+        set_ui_refresh_hz(&state, 240);
+        assert_eq!(state.ui_interval_us.load(Ordering::Relaxed), 4_166);
+        set_ui_refresh_hz(&state, 60);
+        assert_eq!(state.ui_interval_us.load(Ordering::Relaxed), 16_666);
+
+        // A nonsense measurement cannot stall the preview or spin the emitter:
+        // 0 would divide by zero, and a huge value would outrun the mapper.
+        set_ui_refresh_hz(&state, 0);
+        assert_eq!(state.ui_interval_us.load(Ordering::Relaxed), 33_333);
+        set_ui_refresh_hz(&state, 100_000);
+        assert_eq!(state.ui_interval_us.load(Ordering::Relaxed), 1_000);
     }
 }

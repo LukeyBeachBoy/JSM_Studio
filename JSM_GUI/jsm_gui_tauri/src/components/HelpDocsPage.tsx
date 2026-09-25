@@ -1,10 +1,10 @@
-import { isValidElement, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { isValidElement, memo, type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import ReactMarkdown, { type Components } from 'react-markdown'
 import { useTranslation } from 'react-i18next'
-import { Card } from './Card'
 import styles from './HelpDocsPage.module.css'
-import docsMarkdown from '../assets/docs/JSM-docs.md?raw'
+import readmeMarkdown from '../assets/docs/JoyShockMapper-README.md?raw'
 import { desktopBridge } from '../platform/desktopBridge'
+import type { PrimaryTab } from '../shell/pages'
 
 function slugifyBase(value: string) {
   const slug = value
@@ -108,39 +108,209 @@ function collectFindMatches(container: HTMLElement, query: string, baseClassName
   return matches
 }
 
-export function HelpDocsPage() {
+// ---------------------------------------------------------------------------
+// Topics (Tuning and Studio Pages 16k): the JoyShockMapper README, cut at its
+// ## and ### headings and gathered into the topics a player looks for, plus
+// Studio's own notes. Headings inside code fences are comments, not sections.
+
+type Section = { title: string; body: string }
+export type DocsTopic = {
+  id: string
+  title: string
+  sections: string[]
+  /** The Studio page this topic is about, and the link text to it. */
+  page?: { tab: PrimaryTab; label: string }
+  markdown?: string
+}
+
+export function splitReadme(markdown: string): Section[] {
+  const sections: Section[] = []
+  let current: Section = { title: '', body: '' }
+  let fenced = false
+  for (const line of markdown.split(/\r?\n/)) {
+    // A fence line is the backticks and an info string; ```X``` is inline code.
+    if (/^\s*(```|~~~)[^`]*$/.test(line)) fenced = !fenced
+    const heading = fenced ? null : /^(#{1,3})\s+(.+?)\s*#*$/.exec(line)
+    if (heading) {
+      sections.push(current)
+      current = { title: heading[2].trim(), body: '' }
+    }
+    current.body += `${line}\n`
+  }
+  sections.push(current)
+  return sections.filter(section => section.body.trim())
+}
+
+const STEAM_CONTROLLER_NOTES = `## Steam Controller notes
+
+Studio talks to the 2026 Steam Controller directly, so the buttons Steam Input would normally claim have JoyShockMapper names of their own.
+
+- Quick access (…): \`MISC1\`
+- Right grip and left grip: \`MISC5\` and \`MISC6\`
+- Right pad click and left pad click: \`MISC2\` and \`MISC3\`
+- L4 and L5: \`LSL\` and \`LSR\`
+- R4 and R5: \`RSR\` and \`RSL\`
+- Right pad grid and left pad grid: \`RT1\`…\`RT25\` and \`LT1\`…\`LT25\`
+
+### Grips
+
+The grips are touch sensors, not buttons: they report contact, and \`GRIP_SENSOR_RANGE\` and \`GRIP_FLICKER_GUARD\` set how firm a touch counts. A grip can stay held for a little longer after the hand lifts, with \`LEFT_GRIP_RELEASE_DELAY\` and \`RIGHT_GRIP_RELEASE_DELAY\` in milliseconds, which stops a brief lift from dropping gyro aim.
+
+### Trackpads
+
+Each pad is either a mouse (\`MOUSE\`) or a grid of regions (\`GRID_AND_STICK\`), never both at once. The mode can be modeshifted, so \`MISC2,RIGHT_TOUCHPAD_MODE = GRID_AND_STICK\` turns the right pad into a menu while its click is held. \`GRID_SHAPE\` picks a grid, four-way or eight-way wedges, or a radial menu.
+
+### Gyro
+
+The controller's firmware re-centres its gyro whenever it thinks it is lying still, and a slow, deliberate tilt can pass for still. Studio turns that off when the controller connects, so slow aim is not eaten; drift is then corrected by **Recalibrate gyro**, which cancels itself if the controller moves during the run.
+
+### Light
+
+\`LED_BRIGHTNESS\` sets the light from 0 to 100, and -1 leaves it as the controller has it. A binding can change it for a layer, for example \`LSL = "LED_BRIGHTNESS = 10"\`.
+
+### Quick access
+
+Studio's global chords start on the quick access button, so leave \`MISC1\` unbound in configurations. With **Use Studio's reserved chords** on, quick access with R5 pauses mapping and quick access with R4 recalibrates the gyro.
+`
+
+export const DOCS_TOPICS: DocsTopic[] = [
+  { id: 'start', title: 'Getting started', sections: ['JoyShockMapper', 'Installation for Players', 'Quick Start', 'Commands'] },
+  { id: 'buttons', title: 'Buttons and bindings', sections: ['Digital Inputs', 'Tap & Hold', 'Binding Modifiers', 'Simultaneous Press', 'Diagonal Press', 'Chorded Press', 'Double Press', 'Gyro Button'], page: { tab: 'buttons', label: 'Open Buttons' } },
+  { id: 'triggers', title: 'Triggers', sections: ['Analog Triggers', 'Analog to digital', 'Full pull and modes', 'Adaptive Triggers'], page: { tab: 'triggers', label: 'Open Triggers' } },
+  { id: 'gyro', title: 'Gyro', sections: ['Gyro Mouse Inputs', 'Real World Calibration', 'Prerequisites', 'Calculating the real world calibration in a 3D game', 'Calculating the real world calibration in a 2D game'], page: { tab: 'gyro', label: 'Open Gyro' } },
+  { id: 'sticks', title: 'Flick stick', sections: ['Stick Configuration', 'Standard AIM mode', 'FLICK mode and variants', 'HYBRID_AIM mode', 'Other mouse modes', 'Digital modes', 'Motion Stick and lean bindings'], page: { tab: 'joysticks', label: 'Open Joysticks' } },
+  { id: 'trackpads', title: 'Trackpads', sections: ['Touchpad', 'Touch Sticks'], page: { tab: 'touchpad', label: 'Open Trackpads' } },
+  { id: 'layers', title: 'Layers and modeshifts', sections: ['Modeshifts'], page: { tab: 'layers', label: 'Open Layers' } },
+  { id: 'virtual', title: 'Virtual controller', sections: ['ViGEm Virtual Controller', 'Xbox bindings', 'DS4 bindings', 'Virtual Controller Gyro'] },
+  { id: 'commands', title: 'Commands reference', sections: ['Miscellaneous Commands', 'Configuration Files', 'OnStartup.txt', 'OnReset.txt', 'Autoload feature', 'Autoconnect feature'] },
+  { id: 'steam', title: 'Steam Controller notes', sections: [], markdown: STEAM_CONTROLLER_NOTES, page: { tab: 'gripSensors', label: 'Open Grips' } },
+  { id: 'troubleshooting', title: 'Troubleshooting', sections: ['Troubleshooting', 'Known and Perceived Issues', 'Bluetooth connectivity'], page: { tab: 'deviceVisibility', label: 'Open Device visibility' } },
+  { id: 'about', title: 'Credits and license', sections: ['Credits', 'Helpful Resources', 'License'] },
+]
+
+// "#### 3.2 FLICK mode" reads as "FLICK mode" once it is out of the README's
+// numbered outline.
+const withoutNumber = (title: string) => title.replace(/^\d+(\.\d+)*\.?\s+/, '')
+
+export function buildTopics(markdown: string) {
+  const sections = splitReadme(markdown)
+  return DOCS_TOPICS.map(topic => {
+    if (topic.markdown) return { ...topic, markdown: topic.markdown }
+    const wanted = new Set(topic.sections.map(title => title.toLowerCase()))
+    const parts = sections.filter(section => wanted.has(withoutNumber(section.title).toLowerCase()))
+    return { ...topic, markdown: parts.map(part => part.body).join('\n') }
+  })
+}
+
+// Counted on the text as it reads, so FLICK\_TIME in the source counts as the
+// FLICK_TIME the find in the article sees.
+const countMatches = (text: string, query: string) => {
+  if (!query) return 0
+  const haystack = text.replace(/\\([\\`*_{}[\]()#+\-.!|<>])/g, '$1').toLowerCase()
+  const needle = query.toLowerCase()
+  let count = 0
+  for (let index = haystack.indexOf(needle); index >= 0; index = haystack.indexOf(needle, index + needle.length)) count++
+  return count
+}
+
+// Which topic a setting from Y on a row, or a notice, is best read in: the one
+// that mentions it most, with the connection help as a fallback.
+function topicForSetting(topics: ReturnType<typeof buildTopics>, setting?: string) {
+  if (!setting) return undefined
+  if (setting === 'connecting') return 'troubleshooting'
+  let best: { id: string; count: number } | undefined
+  for (const topic of topics) {
+    const count = countMatches(topic.markdown, setting)
+    if (count > (best?.count ?? 0)) best = { id: topic.id, count }
+  }
+  return best?.id
+}
+
+const TopicMarkdown = memo(function TopicMarkdown({ markdown, onJump }: { markdown: string; onJump: (slug: string) => void }) {
+  const slugger = createSlugger()
+  const renderHeading =
+    (Tag: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6') =>
+    (({ children }: { children?: ReactNode }) => {
+      const text = flattenText(children).trim()
+      const id = slugger(text)
+      const Shown = Tag === 'h1' || Tag === 'h2' ? 'h2' : Tag === 'h3' ? 'h3' : 'h4'
+      return <Shown id={id} className={styles.heading}>{withoutNumber(text)}</Shown>
+    }) as NonNullable<Components['h1']>
+  const components: Components = {
+    h1: renderHeading('h1'),
+    h2: renderHeading('h2'),
+    h3: renderHeading('h3'),
+    h4: renderHeading('h4'),
+    h5: renderHeading('h5'),
+    h6: renderHeading('h6'),
+    a: (({ href, children }: { href?: string; children?: ReactNode }) => {
+      const isHashLink = typeof href === 'string' && href.startsWith('#')
+      const isExternal = typeof href === 'string' && /^https?:\/\//i.test(href)
+      if (isHashLink) {
+        return <a href={href} onClick={event => { event.preventDefault(); if (href.slice(1)) onJump(href.slice(1)) }}>{children}</a>
+      }
+      if (isExternal) {
+        return <a href={href} onClick={event => { event.preventDefault(); void desktopBridge.openExternal(href) }}>{children}</a>
+      }
+      return <a href={href}>{children}</a>
+    }) as NonNullable<Components['a']>,
+  }
+  return <ReactMarkdown components={components}>{markdown}</ReactMarkdown>
+})
+
+export function HelpDocsPage({ onOpenPage, focusSetting }: { onOpenPage?: (tab: PrimaryTab) => void; focusSetting?: { setting?: string; at: number } }) {
   const { t } = useTranslation()
-  const [search, setSearch] = useState('')
+  const topics = useMemo(() => buildTopics(readmeMarkdown), [])
+  const [topicId, setTopicId] = useState(() => topicForSetting(topics, focusSetting?.setting) ?? 'start')
+  const [search, setSearch] = useState(() => (focusSetting?.setting && focusSetting.setting !== 'connecting' ? focusSetting.setting : ''))
   const [activeSlug, setActiveSlug] = useState<string | null>(null)
   const [matchCount, setMatchCount] = useState(0)
   const [activeMatchIndex, setActiveMatchIndex] = useState(-1)
-  const [stickyTopOffset, setStickyTopOffset] = useState(0)
-  const searchBarRef = useRef<HTMLDivElement | null>(null)
   const searchInputRef = useRef<HTMLInputElement | null>(null)
   const docsMarkdownRef = useRef<HTMLDivElement | null>(null)
   const findMatchesRef = useRef<HTMLElement[]>([])
   const activeMatchIndexRef = useRef(-1)
   const previousQueryRef = useRef('')
+  const previousTopicRef = useRef('')
+  const pendingSlug = useRef<string | null>(null)
 
+  const topic = topics.find(entry => entry.id === topicId) ?? topics[0]
   const normalizedQuery = search.trim()
+  const topicMatches = useMemo(
+    () => new Map(topics.map(entry => [entry.id, countMatches(entry.markdown, normalizedQuery)])),
+    [topics, normalizedQuery],
+  )
+
+  // A new Y press while the page is open moves to that setting's topic.
+  useEffect(() => {
+    if (!focusSetting?.setting) return
+    const id = topicForSetting(topics, focusSetting.setting)
+    if (id) setTopicId(id)
+    if (focusSetting.setting !== 'connecting') setSearch(focusSetting.setting)
+  }, [focusSetting, topics])
+
+  // When the query is not in the open topic, open the first topic it is in.
+  useEffect(() => {
+    if (!normalizedQuery || (topicMatches.get(topicId) ?? 0) > 0) return
+    const first = topics.find(entry => (topicMatches.get(entry.id) ?? 0) > 0)
+    if (first) setTopicId(first.id)
+  }, [normalizedQuery, topicMatches, topicId, topics])
 
   const scrollElementIntoView = useCallback((el: HTMLElement) => {
     const shellMain = document.querySelector<HTMLElement>('.shell-scroll')
-    const searchBarBottom = searchBarRef.current?.getBoundingClientRect().bottom ?? 0
-    const extraGap = 10
-
+    const extraGap = 96
     if (shellMain) {
       const shellRect = shellMain.getBoundingClientRect()
       const targetRect = el.getBoundingClientRect()
-      const offsetFromShellTop = Math.max(0, searchBarBottom - shellRect.top) + extraGap
-      const targetTop = shellMain.scrollTop + (targetRect.top - shellRect.top) - offsetFromShellTop
+      const targetTop = shellMain.scrollTop + (targetRect.top - shellRect.top) - extraGap
       shellMain.scrollTo({ top: Math.max(0, targetTop), behavior: 'instant' })
       return
     }
+    el.scrollIntoView({ block: 'center' })
+  }, [])
 
-    const targetRect = el.getBoundingClientRect()
-    const targetTop = window.scrollY + targetRect.top - searchBarBottom - extraGap
-    window.scrollTo({ top: Math.max(0, targetTop), behavior: 'instant' })
+  const scrollToTop = useCallback(() => {
+    document.querySelector<HTMLElement>('.shell-scroll')?.scrollTo({ top: 0, behavior: 'instant' })
   }, [])
 
   const setFindActiveMatch = useCallback(
@@ -151,24 +321,14 @@ export function HelpDocsPage() {
         setActiveMatchIndex(-1)
         return
       }
-
       const wrappedIndex = ((index % matches.length) + matches.length) % matches.length
-      matches.forEach((match, i) => {
-        if (i === wrappedIndex) {
-          match.classList.add(styles.findMatchActive)
-        } else {
-          match.classList.remove(styles.findMatchActive)
-        }
-      })
-
+      matches.forEach((match, i) => match.classList.toggle(styles.findMatchActive, i === wrappedIndex))
       activeMatchIndexRef.current = wrappedIndex
       setActiveMatchIndex(wrappedIndex)
-
       if (shouldScroll) {
         requestAnimationFrame(() => {
           const currentMatch = findMatchesRef.current[wrappedIndex]
-          if (!currentMatch) return
-          scrollElementIntoView(currentMatch)
+          if (currentMatch) scrollElementIntoView(currentMatch)
         })
       }
     },
@@ -179,266 +339,192 @@ export function HelpDocsPage() {
     (query: string, resetToFirst: boolean) => {
       const container = docsMarkdownRef.current
       if (!container) return
-
       clearFindHighlights(container)
       findMatchesRef.current = []
-
       if (!query) {
         setMatchCount(0)
         activeMatchIndexRef.current = -1
         setActiveMatchIndex(-1)
         return
       }
-
       const matches = collectFindMatches(container, query, styles.findMatch)
       findMatchesRef.current = matches
       setMatchCount(matches.length)
-
       if (matches.length === 0) {
         activeMatchIndexRef.current = -1
         setActiveMatchIndex(-1)
         return
       }
-
       const targetIndex = resetToFirst ? 0 : Math.min(activeMatchIndexRef.current, matches.length - 1)
       setFindActiveMatch(targetIndex < 0 ? 0 : targetIndex, resetToFirst)
     },
     [setFindActiveMatch],
   )
 
+  // Find runs within the open article; the topic list counts the rest.
   const goToRelativeMatch = useCallback(
     (direction: number) => {
-      if (findMatchesRef.current.length === 0) return
-      const startIndex = activeMatchIndexRef.current >= 0 ? activeMatchIndexRef.current : 0
-      setFindActiveMatch(startIndex + direction, true)
+      const matches = findMatchesRef.current
+      const current = activeMatchIndexRef.current
+      const next = current + direction
+      if (matches.length && next >= 0 && next < matches.length) {
+        setFindActiveMatch(next, true)
+        return
+      }
+      // Past either end, carry on in the next topic that has the query.
+      const withMatches = topics.filter(entry => (topicMatches.get(entry.id) ?? 0) > 0)
+      if (withMatches.length <= 1) {
+        if (matches.length) setFindActiveMatch(next, true)
+        return
+      }
+      const at = withMatches.findIndex(entry => entry.id === topicId)
+      const target = withMatches[(at + direction + withMatches.length) % withMatches.length]
+      previousQueryRef.current = ''
+      if (docsMarkdownRef.current) clearFindHighlights(docsMarkdownRef.current)
+      setTopicId(target.id)
     },
-    [setFindActiveMatch],
+    [setFindActiveMatch, topics, topicMatches, topicId],
   )
 
-  const scrollToTop = useCallback(() => {
-    const shellMain = document.querySelector<HTMLElement>('.shell-scroll')
-    if (shellMain) {
-      shellMain.scrollTo({ top: 0, behavior: 'instant' })
-      return
-    }
-    window.scrollTo({ top: 0, behavior: 'instant' })
-  }, [])
-
-  useEffect(() => {
+  useLayoutEffect(() => {
     const trimmedQuery = search.trim()
-    const resetToFirst = trimmedQuery !== previousQueryRef.current
+    // A new query, or a topic opened to follow one, starts at its first match.
+    const resetToFirst = trimmedQuery !== previousQueryRef.current || topicId !== previousTopicRef.current
     previousQueryRef.current = trimmedQuery
+    previousTopicRef.current = topicId
     rebuildFindMatches(trimmedQuery, resetToFirst)
-  }, [search, activeSlug, rebuildFindMatches])
+  }, [search, topicId, activeSlug, rebuildFindMatches])
 
+  // A new topic opens at its top, or at the heading a link asked for.
   useEffect(() => {
-    const header = document.querySelector<HTMLElement>('.responsive-header')
-    if (!header) {
-      setStickyTopOffset(0)
-      return
+    const slug = pendingSlug.current
+    pendingSlug.current = null
+    if (slug) {
+      requestAnimationFrame(() => {
+        const el = docsMarkdownRef.current?.querySelector<HTMLElement>(`[id="${CSS.escape(slug)}"]`)
+        if (el) scrollElementIntoView(el)
+      })
+    } else if (!search.trim()) {
+      scrollToTop()
     }
-
-    const updateOffset = () => {
-      const style = window.getComputedStyle(header)
-      const visible = style.display !== 'none' && style.visibility !== 'hidden'
-      setStickyTopOffset(visible ? Math.ceil(header.getBoundingClientRect().height) : 0)
-    }
-
-    updateOffset()
-
-    const resizeObserver = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(updateOffset) : null
-    resizeObserver?.observe(header)
-    window.addEventListener('resize', updateOffset)
-
-    return () => {
-      resizeObserver?.disconnect()
-      window.removeEventListener('resize', updateOffset)
-    }
-  }, [])
+  }, [topicId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const isFindShortcut = (event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === 'f'
       if (!isFindShortcut) return
       event.preventDefault()
-      const input = searchInputRef.current
-      if (!input) return
-      input.focus()
-      input.select()
+      searchInputRef.current?.focus()
+      searchInputRef.current?.select()
     }
-
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [])
 
+  // README links point at its own anchors, which may be in another topic now.
   const jumpToSection = useCallback(
     (slug: string) => {
       const normalized = decodeURIComponent(slug).replace(/^#/, '').trim().toLowerCase()
-      // Clear find highlights before the state change so React reconciles against a clean DOM
-      if (docsMarkdownRef.current) {
-        clearFindHighlights(docsMarkdownRef.current)
-      }
+      if (docsMarkdownRef.current) clearFindHighlights(docsMarkdownRef.current)
       setActiveSlug(normalized)
+      const holder = topics.find(entry => {
+        const slugger = createSlugger()
+        return splitReadme(entry.markdown).some(section => slugger(section.title) === normalized)
+      })
+      if (holder && holder.id !== topicId) {
+        pendingSlug.current = normalized
+        setTopicId(holder.id)
+        return
+      }
       requestAnimationFrame(() => {
-        let el = document.getElementById(normalized)
-        if (!el) {
-          const headings = Array.from(document.querySelectorAll<HTMLElement>('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]'))
-          el =
-            headings.find(node => {
-              const text = (node.textContent ?? '').trim()
-              return slugifyBase(text) === normalized
-            }) ?? null
-        }
-        if (!el) return
-        scrollElementIntoView(el)
+        const el = docsMarkdownRef.current?.querySelector<HTMLElement>(`[id="${CSS.escape(normalized)}"]`)
+        if (el) scrollElementIntoView(el)
       })
     },
-    [scrollElementIntoView],
+    [scrollElementIntoView, topics, topicId],
   )
 
   useEffect(() => {
     const container = docsMarkdownRef.current
     if (!container) return
-    container.querySelectorAll<HTMLElement>(`.${styles.headingActive}`).forEach(el => {
-      el.classList.remove(styles.headingActive)
-    })
+    container.querySelectorAll<HTMLElement>(`.${styles.headingActive}`).forEach(el => el.classList.remove(styles.headingActive))
     if (!activeSlug) return
-    const activeEl = container.querySelector<HTMLElement>(`[id="${CSS.escape(activeSlug)}"]`)
-    activeEl?.classList.add(styles.headingActive)
-  }, [activeSlug])
+    container.querySelector<HTMLElement>(`[id="${CSS.escape(activeSlug)}"]`)?.classList.add(styles.headingActive)
+  }, [activeSlug, topicId])
 
-  const markdownComponents = useMemo<Components>(() => {
-    const slugger = createSlugger()
-    const renderHeading =
-      (Tag: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6') =>
-      (({ children }: { children?: ReactNode }) => {
-        const text = flattenText(children).trim()
-        const id = slugger(text)
-        return (
-          <Tag id={id} className={styles.heading}>
-            {children}
-          </Tag>
-        )
-      }) as NonNullable<Components['h1']>
-
-    return {
-      h1: renderHeading('h1'),
-      h2: renderHeading('h2'),
-      h3: renderHeading('h3'),
-      h4: renderHeading('h4'),
-      h5: renderHeading('h5'),
-      h6: renderHeading('h6'),
-      a: (({ href, children }: { href?: string; children?: ReactNode }) => {
-        const isHashLink = typeof href === 'string' && href.startsWith('#')
-        const isExternal = typeof href === 'string' && /^https?:\/\//i.test(href)
-        if (isHashLink) {
-          return (
-            <a
-              href={href}
-              onClick={(event) => {
-                event.preventDefault()
-                const hash = href.slice(1)
-                if (!hash) return
-                jumpToSection(hash)
-              }}
-            >
-              {children}
-            </a>
-          )
-        }
-        if (isExternal) {
-          return (
-            <a
-              href={href}
-              onClick={(event) => {
-                event.preventDefault()
-                void desktopBridge.openExternal(href)
-              }}
-            >
-              {children}
-            </a>
-          )
-        }
-        return <a href={href}>{children}</a>
-      }) as NonNullable<Components['a']>,
-    }
-  }, [jumpToSection])
+  const jumpRef = useRef(jumpToSection)
+  jumpRef.current = jumpToSection
+  const onJump = useCallback((slug: string) => jumpRef.current(slug), [])
 
   return (
-    <Card className={`control-panel ${styles.helpCard}`}>
-      <div ref={searchBarRef} className={styles.searchBar} style={stickyTopOffset > 0 ? { top: `${stickyTopOffset}px` } : undefined}>
-        <div className={styles.headerRow}>
-          <h2>{t('help.title')}</h2>
-        </div>
+    <div className={styles.docs}>
+      <nav className={styles.topics} aria-label="Documentation topics">
         <label className={styles.searchField}>
-          <span>{t('help.searchDocumentation')}</span>
+          <span className={styles.srOnly}>{t('help.searchDocumentation')}</span>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true"><circle cx="6" cy="6" r="4.25" /><path d="m9.2 9.2 3.3 3.3" /></svg>
           <input
             ref={searchInputRef}
-            type="text"
+            type="search"
+            aria-label={t('help.searchDocumentation')}
             placeholder={t('help.searchPlaceholder')}
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            onKeyDown={(event) => {
+            onChange={event => setSearch(event.target.value)}
+            onKeyDown={event => {
+              if (event.key === 'Escape' && search) { event.preventDefault(); setSearch(''); return }
               if (event.key !== 'Enter') return
               event.preventDefault()
-              if (event.shiftKey) {
-                goToRelativeMatch(-1)
-                return
-              }
-              if (normalizedQuery) {
-                goToRelativeMatch(1)
-              }
+              if (normalizedQuery) goToRelativeMatch(event.shiftKey ? -1 : 1)
             }}
           />
         </label>
-        <div className={styles.searchControls}>
-          <div className={styles.findStatus}>
-            {normalizedQuery
-              ? matchCount > 0
+        {normalizedQuery && (
+          <div className={styles.findRow}>
+            <span className={styles.findStatus} aria-live="polite">
+              {matchCount > 0
                 ? t('help.findStatusMatches', { current: activeMatchIndex + 1, total: matchCount })
-                : t('help.findStatusNoMatches')
-              : t('help.findStatusTypeToFind')}
-          </div>
-          <div className={styles.findButtons}>
-            <button
-              type="button"
-              className={styles.findNavButton}
-              onClick={() => {
-                setSearch('')
-                searchInputRef.current?.focus()
-              }}
-              disabled={!search}
-            >
-              {t('common.clear')}
+                : t('help.findStatusNoMatches')}
+            </span>
+            <button type="button" className="icon-button" aria-label={t('common.previous')} title={t('common.previous')} onClick={() => goToRelativeMatch(-1)} disabled={matchCount === 0}>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m3.5 8.5 3.5-3.5 3.5 3.5" /></svg>
             </button>
-            <button
-              type="button"
-              className={styles.findNavButton}
-              onClick={() => goToRelativeMatch(-1)}
-              disabled={!normalizedQuery || matchCount === 0}
-            >
-              {t('common.previous')}
-            </button>
-            <button
-              type="button"
-              className={styles.findNavButton}
-              onClick={() => goToRelativeMatch(1)}
-              disabled={!normalizedQuery || matchCount === 0}
-            >
-              {t('common.next')}
-            </button>
-            <button type="button" className={styles.findNavButton} onClick={scrollToTop}>
-              {t('common.top')}
+            <button type="button" className="icon-button" aria-label={t('common.next')} title={t('common.next')} onClick={() => goToRelativeMatch(1)} disabled={matchCount === 0}>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m3.5 5.5 3.5 3.5 3.5-3.5" /></svg>
             </button>
           </div>
+        )}
+        <div className={styles.topicList} role="tablist" aria-orientation="vertical">
+          {topics.map(entry => {
+            const count = topicMatches.get(entry.id) ?? 0
+            const dim = Boolean(normalizedQuery) && count === 0
+            return (
+              <button
+                key={entry.id}
+                type="button"
+                role="tab"
+                aria-selected={entry.id === topic.id}
+                className={styles.topic}
+                data-dim={dim || undefined}
+                onClick={() => { setActiveSlug(null); setTopicId(entry.id) }}
+              >
+                <span>{entry.title}</span>
+                {normalizedQuery && count > 0 && <span className={styles.topicCount}>{count}</span>}
+              </button>
+            )
+          })}
         </div>
-      </div>
+      </nav>
 
-      <div className={styles.docsViewport}>
+      <article className={styles.article} aria-label={topic.title}>
+        <span className={styles.eyebrow}>{topic.title}</span>
         <div ref={docsMarkdownRef} className={styles.docsMarkdown}>
-          <ReactMarkdown components={markdownComponents}>{docsMarkdown}</ReactMarkdown>
+          <TopicMarkdown key={topic.id} markdown={topic.markdown} onJump={onJump} />
         </div>
-      </div>
-    </Card>
+        {topic.page && onOpenPage && (
+          <button type="button" className={styles.pageLink} onClick={() => onOpenPage(topic.page!.tab)}>
+            {topic.page.label} ›
+          </button>
+        )}
+      </article>
+    </div>
   )
 }

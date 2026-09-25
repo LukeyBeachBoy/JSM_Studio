@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { desktopBridge } from '../platform/desktopBridge'
 import {
   extractIncludePaths,
@@ -89,7 +89,9 @@ export function useConfigIncludes(configText: string, rootPath: string) {
     return resolveIncludes(rootPath, { ...files, [rootPath]: configText })
   }, [configText, files, rootPath, directIncludes.length])
 
+  const resolveText = useCallback((text: string) => resolveIncludes(rootPath, { ...files, [rootPath]: text }).effectiveText, [files, rootPath])
   return {
+    resolveText,
     resolution,
     // The text every read should go through. Identical to the profile's own
     // text when it imports nothing, so the no-imports case is untouched.

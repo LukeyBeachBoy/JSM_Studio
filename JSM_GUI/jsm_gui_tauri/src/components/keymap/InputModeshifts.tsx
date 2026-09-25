@@ -581,7 +581,7 @@ function ModeshiftCard({ trigger, ...props }: Props & { trigger: string }) {
 
       {target.mode && <label className={styles.selectField}>Shifted mode
 
-        <AppSelect aria-label="Shifted mode" value={mode} onChange={event => write(target.mode!.key, event.target.value)}>
+        <AppSelect setting={trigger + ',' + target.mode!.key} aria-label="Shifted mode" value={mode} onChange={event => write(target.mode!.key, event.target.value)}>
 
           {target.mode.options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
 

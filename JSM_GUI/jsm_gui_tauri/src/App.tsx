@@ -1,5 +1,13 @@
-import { Menu } from './components/ui/Menu'
+import { LayerBar, LayerUsageContext, InputUsageInspector } from './components/LayerBar'
+import { LayersPage } from './components/LayersPage'
+import { AssociationsPage } from './components/AssociationsPage'
+import { MapperDown, ConfigErrors, type ConfigError } from './components/SystemNotices'
+import type { MapperExit, LayerStack } from './platform/desktopBridge'
+import { writeLayers, defaultLayer, layerEntries, readLayerActions, setLayerActions } from './utils/layers'
+import { SettingOrigins, SettingsInventory } from './components/SettingOrigin'
+import { controllerDisplayName, controllerVisualFamily } from './utils/controllerStatus'
 import { PollingSettings } from './components/PollingSettings'
+import { ControllerPreferences } from './components/ControllerPreferences'
 import { flushSync } from 'react-dom'
 import { appliedProfileLabel } from './utils/appliedProfile'
 import { ConfigScope } from './components/ConfigScope'
@@ -13,23 +21,6 @@ import { inputPage, normalizePreviewInput } from './utils/inputNavigation'
 // tauri.conf.json is what the installer is built from.
 import tauriConf from '../src-tauri/tauri.conf.json'
 import sideNavStyles from './components/SideNav.module.css'
-import {
-  OverviewIcon,
-  ConsoleIcon,
-  ButtonsIcon,
-  DPadIcon,
-  TriggersIcon,
-  JoystickIcon,
-  TrackpadIcon,
-  GyroIcon,
-  TuneIcon,
-  GripIcon,
-  TimingIcon,
-  SparkleIcon,
-  EyeIcon,
-  DocumentIcon,
-  ChordIcon,
-} from './components/NavIcons'
 import { ThemeToggle } from './components/ThemeToggle'
 import themeToggleStyles from './components/ThemeToggle.module.css'
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
@@ -45,8 +36,10 @@ import { useProfileLibrary } from './hooks/useProfileLibrary'
 import { useKeymapConfig } from './hooks/useKeymapConfig'
 import { useCalibration } from './hooks/useCalibration'
 import { ToastHost } from './components/ToastHost'
+import { LongOperationHost } from './components/LongOperation'
+import { FocusGlide } from './components/FocusGlide'
 import { desktopBridge } from './platform/desktopBridge'
-import { updateKeymapEntry } from './utils/keymap'
+import { getKeymapValue, removeKeymapEntry, updateKeymapEntry } from './utils/keymap'
 import { parseBindingLabels, setBindingLabel } from './utils/bindingLabels'
 import { parseBindingIcons, setBindingIcon } from './utils/bindingIcons'
 import { resolveTouchpadGrids, touchpadGridCommands } from './utils/touchpadGrids'
@@ -54,17 +47,21 @@ import { showToast } from './utils/toast'
 import { includeDisplayName } from './utils/configIncludes'
 import { LanguageSelect } from './components/LanguageSelect'
 import { useKeyboardNav } from './hooks/useKeyboardNav'
-import { ControllerGlyphBar } from './components/ControllerGlyphBar'
 import { AppSelect } from './components/ui/AppSelect'
-import { PageSideNav } from './components/keymap/PageSideNav'
 import { TRACKPAD_ANCHORS } from './constants/trackpadAnchors'
 import { controllerHasTwoTrackpads } from './utils/controllerStatus'
+import { useSectionScrollSpy } from './hooks/useSectionScrollSpy'
 
 
-// One page per physical control, the way Steam Input splits them up, instead of
-// one page carrying every binding on the controller.
-type ControlTab = 'buttons' | 'dpad' | 'triggers' | 'joysticks'
-type PrimaryTab = ControlTab | 'gyro' | 'touchpad' | 'globalChords' | 'sensors' | 'gripSensors' | 'timing' | 'debugConsole' | 'ai' | 'help' | 'deviceVisibility' | 'overview' | 'settings' | 'menuLayout'
+import { TitleBar, layerColor, type MappingPlateState, type TitleBarProfile, type VirtualOutput } from './shell/TitleBar'
+import { PageTabs, type ControllerStatus } from './shell/PageTabs'
+import { SectionList, scrollToSection, useDiscoveredSections, type ShellSection } from './shell/SectionList'
+import { NavDrawer } from './shell/NavDrawer'
+import { HintCapsule } from './shell/HintCapsule'
+import { useShellWidth } from './shell/useShellWidth'
+import { isFramelessWindow } from './shell/windowControls'
+import { useControllerNavigation } from './nav/useControllerNavigation'
+import { isStudioPage, pageMeta, pageOrder, type ControlTab, type PrimaryTab } from './shell/pages'
 
 // Which of KeymapControls' button groups each control page is about.
 const CONTROL_TAB_SECTIONS: Record<ControlTab, string[]> = {
@@ -73,12 +70,32 @@ const CONTROL_TAB_SECTIONS: Record<ControlTab, string[]> = {
   triggers: ['triggers'],
   joysticks: ['leftStick', 'rightStick'],
 }
-// Page Up / Page Down (controller triggers) walk this order.
-const PAGE_ORDER: PrimaryTab[] = [
-  'overview', 'buttons', 'dpad', 'triggers', 'joysticks', 'touchpad', 'gyro', 'globalChords',
-  'sensors', 'gripSensors', 'timing', 'ai', 'debugConsole', 'deviceVisibility', 'settings', 'menuLayout', 'help',
+
+// The section list for pages KeymapControls lays out as one long column: it
+// renders each group under a matching `mapping-section-<key>` id, and the
+// shell's section list scrolls to it.
+const SUB_NAV_GROUPS: Record<ControlTab, { key: string; titleKey: string }[]> = {
+  buttons: [
+    { key: 'face', titleKey: 'keymap.faceButtonsTitle' },
+    { key: 'bumpers', titleKey: 'keymap.bumpersTitle' },
+    { key: 'center', titleKey: 'keymap.centerButtonsTitle' },
+    { key: 'paddles', titleKey: 'keymap.paddlesTitle' },
+    { key: 'extra', titleKey: 'keymap.extraButtonsTitle' },
+  ],
+  dpad: [{ key: 'dpad', titleKey: 'keymap.dpadTitle' }],
+  triggers: [{ key: 'triggers', titleKey: 'keymap.triggersTitle' }],
+  joysticks: [
+    { key: 'leftStick', titleKey: 'keymap.leftStickTitle' },
+    { key: 'rightStick', titleKey: 'keymap.rightStickTitle' },
+  ],
+}
+const TRACKPAD_TUNING_SECTIONS = [
+  { id: 'touch-smoothing', label: 'Motion' },
+  { id: 'touch-release', label: 'Press & release' },
+  { id: 'touch-glide', label: 'Trackball' },
+  { id: 'touch-haptics', label: 'Haptics' },
+  { id: 'touch-accel', label: 'Acceleration' },
 ]
-type GyroSubTab = 'behavior' | 'sensitivity' | 'noise'
 
 const asNumber = (value: unknown) => (typeof value === 'number' ? value : undefined)
 const formatNumber = (value: number | undefined, digits = 2) =>
@@ -193,130 +210,6 @@ const LazyPanelFallback = ({ title, compact = false }: LazyPanelFallbackProps) =
   </div>
 )
 
-type PrimaryNavProps = {
-  primaryTab: PrimaryTab
-  setPrimaryTab: (tab: PrimaryTab) => void
-  includeHelp?: boolean
-  /** Icon-only rail: labels move to the tooltip and accessible name. */
-  collapsed?: boolean
-}
-
-const VIRTUAL_OUTPUT_LABELS = { NONE: 'Disabled', XBOX: 'Xbox', DS4: 'DualShock 4' } as const
-
-const NAV_COLLAPSED_KEY = 'jsm.sidebarCollapsed'
-
-const editorIcon = {
-  width: 18, height: 18, viewBox: '0 0 24 24', 'aria-hidden': true, fill: 'none',
-  stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round',
-} as const
-
-const UndoIcon = () => (
-  <svg {...editorIcon}><path d="m8 4-5 5 5 5" /><path d="M3 9h11a6 6 0 0 1 0 12h-3" /></svg>
-)
-
-const RedoIcon = () => (
-  <svg {...editorIcon}><path d="m16 4 5 5-5 5" /><path d="M21 9H10a6 6 0 0 0 0 12h3" /></svg>
-)
-
-// A floppy disk: the outline, the shutter at the top and the label below.
-const SaveIcon = () => (
-  <svg {...editorIcon}>
-    <path d="M20 21H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h12l5 5v12a1 1 0 0 1-1 1Z" />
-    <path d="M7 3v6h9V3M7 21v-7h10v7M13 5v2" />
-  </svg>
-)
-
-const ChevronDown = () => (
-  <svg {...editorIcon} width="12" height="12" viewBox="0 0 16 16"><path d="M4 6.5 8 10.5l4-4" /></svg>
-)
-
-// A chevron pointing the way the rail will move, which is the one thing the
-// button needs to say without a label.
-const CollapseIcon = ({ collapsed }: { collapsed: boolean }) => (
-  <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor"
-    strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="1.5" y="2" width="13" height="12" rx="2" />
-    <path d="M5.5 2v12" />
-    <path d={collapsed ? 'm9 6 2 2-2 2' : 'm11 6-2 2 2 2'} />
-  </svg>
-)
-
-// One list, rather than fifteen near-identical buttons: the collapsed rail is
-// then a rendering choice rather than fifteen more places to keep in step.
-const NAV_SECTIONS: { groupKey: string; items: { tab: PrimaryTab; labelKey: string; Icon: () => JSX.Element }[] }[] = [
-  {
-    groupKey: 'app.nav.controlsGroup',
-    items: [
-      { tab: 'overview', labelKey: 'app.nav.overview', Icon: OverviewIcon },
-      { tab: 'buttons', labelKey: 'app.nav.buttons', Icon: ButtonsIcon },
-      { tab: 'dpad', labelKey: 'app.nav.dpad', Icon: DPadIcon },
-      { tab: 'triggers', labelKey: 'app.nav.triggers', Icon: TriggersIcon },
-      { tab: 'joysticks', labelKey: 'app.nav.joysticks', Icon: JoystickIcon },
-      { tab: 'touchpad', labelKey: 'app.nav.trackpads', Icon: TrackpadIcon },
-      { tab: 'gyro', labelKey: 'app.nav.gyro', Icon: GyroIcon },
-    ],
-  },
-  {
-    groupKey: 'app.nav.tuningGroup',
-    items: [
-      { tab: 'sensors', labelKey: 'app.nav.sensors', Icon: TuneIcon },
-      { tab: 'gripSensors', labelKey: 'app.nav.gripSensors', Icon: GripIcon },
-      { tab: 'menuLayout', labelKey: 'app.nav.menuLayout', Icon: TrackpadIcon },
-      { tab: 'timing', labelKey: 'app.nav.timing', Icon: TimingIcon },
-      { tab: 'ai', labelKey: 'app.nav.aiAssistant', Icon: SparkleIcon },
-    ],
-  },
-  {
-    groupKey: 'app.nav.settingsGroup',
-    items: [
-      { tab: 'settings', labelKey: 'app.nav.preferences', Icon: TuneIcon },
-      { tab: 'debugConsole', labelKey: 'app.nav.debugConsole', Icon: ConsoleIcon },
-      { tab: 'globalChords', labelKey: 'app.nav.globalChords', Icon: ChordIcon },
-      { tab: 'deviceVisibility', labelKey: 'app.nav.deviceVisibility', Icon: EyeIcon },
-    ],
-  },
-]
-
-const PrimaryNav = ({ primaryTab, setPrimaryTab, includeHelp = false, collapsed = false }: PrimaryNavProps) => {
-  const { t } = useTranslation()
-
-  // Collapsed, the label is gone from the screen but not from the button: it
-  // stays the accessible name and the hover tooltip, so an icon that reads
-  // ambiguously is still identifiable without expanding the rail.
-  const renderItem = ({ tab, labelKey, Icon }: { tab: PrimaryTab; labelKey: string; Icon: () => JSX.Element }) => (
-    <button
-      key={tab}
-      className={`${sideNavStyles.navItem} ${primaryTab === tab ? sideNavStyles.active : ''}`}
-      onClick={() => setPrimaryTab(tab)}
-      title={collapsed ? t(labelKey) : undefined}
-      aria-label={collapsed ? t(labelKey) : undefined}
-    >
-      <span className={sideNavStyles.navItemIcon}><Icon /></span>
-      {!collapsed && <span className={sideNavStyles.navItemLabel}>{t(labelKey)}</span>}
-    </button>
-  )
-
-  return (
-    <div className={sideNavStyles.navGroup}>
-      {NAV_SECTIONS.map(section => (
-        <div className={sideNavStyles.navSection} key={section.groupKey}>
-          {/* The grouping survives collapsing -- the rule stands in for the
-              heading, so the rail still reads as three sets rather than one
-              undifferentiated column of icons. */}
-          {collapsed
-            ? <div className={sideNavStyles.navSectionRule} aria-hidden="true" />
-            : <div className={sideNavStyles.navSectionLabel}>{t(section.groupKey)}</div>}
-          {section.items.map(renderItem)}
-        </div>
-      ))}
-      {includeHelp && renderItem({ tab: 'help', labelKey: 'app.nav.documentation', Icon: DocumentIcon })}
-    </div>
-  )
-}
-
-type NavSettingsProps = {
-  compactThemeToggle?: boolean
-}
 
 // Registers a Windows Scheduled Task rather than a Registry Run entry -- see
 // desktopBridge.getAutostartEnabled/setAutostartEnabled and
@@ -371,6 +264,35 @@ function TrackpadOverlayToggle() {
     </button>
   )
 }
+// Whether the calibration HUD appears over games (Preferences 16j).
+function CalibrationHudToggle() {
+  const [enabled, setEnabled] = useState(true)
+  const [pending, setPending] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    desktopBridge.getRuntimeMappingState()
+      .then(state => { if (!cancelled) setEnabled(state?.calibrationHudEnabled !== false) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
+  const handleChange = async (next: boolean) => {
+    setPending(true)
+    setEnabled(next)
+    const state = await desktopBridge.setCalibrationHudEnabled(next)
+    if (!state) setEnabled(!next)
+    setPending(false)
+  }
+  return (
+    <button type="button" className={`${themeToggleStyles.themeToggle} ${enabled ? themeToggleStyles.on : ''} ${sideNavStyles.navThemeToggle}`}
+      aria-pressed={enabled} aria-label="Calibration HUD" disabled={pending} onClick={() => void handleChange(!enabled)}>
+      <span className={themeToggleStyles.labelGroup}>
+        <span className={themeToggleStyles.text}>Calibration HUD</span>
+      </span>
+      <span className={themeToggleStyles.switch} aria-hidden="true"><span className={themeToggleStyles.thumb} /></span>
+    </button>
+  )
+}
+
 function AutostartToggle() {
   const { t } = useTranslation()
   const [enabled, setEnabled] = useState(false)
@@ -474,16 +396,6 @@ function ControllerNavToggle() {
   )
 }
 
-const NavSettings = ({ compactThemeToggle = false }: NavSettingsProps) => (
-  <div className={sideNavStyles.navSettings}>
-    <LanguageSelect className={sideNavStyles.navLanguageSelect} />
-    <ThemeToggle compact={compactThemeToggle} className={sideNavStyles.navThemeToggle} />
-    <ControllerNavToggle />
-    <TrackpadOverlayToggle />
-    <AutostartToggle />
-  </div>
-)
-
 function App() {
   const { t } = useTranslation()
   const { sample, isCalibrating, countdown } = useTelemetry()
@@ -497,6 +409,12 @@ function App() {
   const [configWindowDragging, setConfigWindowDragging] = useState(false)
   const [mappingEnabled, setMappingEnabled] = useState(true)
   const [autoloadEnabled, setAutoloadEnabled] = useState(true)
+  const [reservedChords, setReservedChords] = useState(false)
+  // A reserved chord can turn mapping off or on from the controller.
+  useEffect(() => desktopBridge.onRuntimeMappingState(state => {
+    setMappingEnabled(state.mappingEnabled)
+    setReservedChords(!!state.reservedChords)
+  }), [])
   const [controllerNavEnabled, setControllerNavEnabled] = useState(true)
   const [runtimeMappingBusy, setRuntimeMappingBusy] = useState(false)
   const [calibrationTurns, setCalibrationTurns] = useState('1')
@@ -506,41 +424,73 @@ function App() {
     window.addEventListener('jsm:menu-layout', open)
     return () => window.removeEventListener('jsm:menu-layout', open)
   }, [])
-  const [primaryTab, setPrimaryTab] = useState<PrimaryTab>('overview')
-  // Remembered per machine. Reading storage can throw outright in a locked-down
-  // webview, so a failure just means the rail starts open.
-  const [navCollapsed, setNavCollapsed] = useState(() => {
-    try { return localStorage.getItem(NAV_COLLAPSED_KEY) === '1' } catch { return false }
-  })
+  // Y on a setting with no description yet opens the documentation, at the
+  // topic that setting is explained in.
+  const [docsFocus, setDocsFocus] = useState<{ setting?: string; at: number } | undefined>()
   useEffect(() => {
-    try { localStorage.setItem(NAV_COLLAPSED_KEY, navCollapsed ? '1' : '0') } catch { /* preference is not worth failing over */ }
-  }, [navCollapsed])
+    const open = (event: Event) => {
+      const setting = (event as CustomEvent<{ setting?: string } | undefined>).detail?.setting
+      setDocsFocus({ setting, at: Date.now() })
+      setPrimaryTab('help')
+    }
+    window.addEventListener('jsm:open-docs', open)
+    return () => window.removeEventListener('jsm:open-docs', open)
+  }, [])
+  const [primaryTab, setPrimaryTabState] = useState<PrimaryTab>('overview')
+  // Page change slides 16px in the direction of travel along the tab order.
+  const [pageDirection, setPageDirection] = useState<'forward' | 'back'>('forward')
+  // The configuration page Studio's back chip returns to.
+  const lastConfigPage = useRef<PrimaryTab>('overview')
+  const setPrimaryTab = useCallback((next: PrimaryTab | ((previous: PrimaryTab) => PrimaryTab)) => {
+    setPrimaryTabState(previous => {
+      const target = typeof next === 'function' ? next(previous) : next
+      if (target !== previous) {
+        const order = pageOrder(previous)
+        setPageDirection(order.indexOf(target) < order.indexOf(previous) ? 'back' : 'forward')
+        if (!isStudioPage(previous)) lastConfigPage.current = previous
+      }
+      return target
+    })
+  }, [])
+  const returnToInput = useRef<(() => void) | null>(null)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [layerManagerOpen, setLayerManagerOpen] = useState(false)
+  const shellWidth = useShellWidth()
+  const frameless = useMemo(isFramelessWindow, [])
+  useEffect(() => { if (shellWidth !== 'narrow') setDrawerOpen(false) }, [shellWidth])
 
   const stepPage = useCallback((delta: 1 | -1) => {
     setPrimaryTab(prev => {
-      const index = Math.max(0, PAGE_ORDER.indexOf(prev))
-      return PAGE_ORDER[(index + delta + PAGE_ORDER.length) % PAGE_ORDER.length]
+      const order = pageOrder(prev)
+      const index = Math.max(0, order.indexOf(prev))
+      return order[(index + delta + order.length) % order.length]
     })
-  }, [])
+  }, [setPrimaryTab])
   const closeFloatingWindows = useCallback(() => {
     if (isConfigDrawerOpen) {
       setConfigDrawerOpen(false)
       return true
     }
+    if (isAutoloadModalOpen) { setAutoloadModalOpen(false); return true }
+    if (drawerOpen) { setDrawerOpen(false); return true }
+    if (returnToInput.current) { const restore = returnToInput.current; returnToInput.current = null; restore(); return true }
+    if (primaryTab !== 'overview') { setPrimaryTab(isStudioPage(primaryTab) ? lastConfigPage.current : 'overview'); return true }
     return false
-  }, [isConfigDrawerOpen])
-  const { modalOpen } = useKeyboardNav({ onPageStep: stepPage, onEscape: closeFloatingWindows, activePage: primaryTab })
+  }, [isConfigDrawerOpen, isAutoloadModalOpen, drawerOpen, primaryTab, setPrimaryTab])
+  useKeyboardNav({ onPageStep: stepPage, onEscape: closeFloatingWindows, activePage: primaryTab })
 
   useEffect(() => {
     const handler = (event: Event) => setControllerNavEnabled(Boolean((event as CustomEvent<boolean>).detail))
     window.addEventListener('jsm:controller-nav', handler)
     return () => window.removeEventListener('jsm:controller-nav', handler)
   }, [])
-  const [gyroSubTab, setGyroSubTab] = useState<GyroSubTab>('behavior')
   const [selectedMappingCommand, setSelectedMappingCommand] = useState<string | null>('N')
   const [inputRequest, setInputRequest] = useState<{ command: string } | null>(null)
   const navigateInput = (raw: string) => {
-    const command = normalizePreviewInput(raw)
+    const from = primaryTab, scroll = document.querySelector('.shell-scroll')?.scrollTop ?? 0, fromLayer = layerId
+    returnToInput.current = () => { selectLayer(fromLayer); setPrimaryTab(from); requestAnimationFrame(() => { const pane = document.querySelector('.shell-scroll'); if (pane) pane.scrollTop = scroll; document.querySelector<HTMLElement>(`[data-overview-input="${CSS.escape(raw)}"]`)?.focus({ preventScroll: true }) }) }
+    if (/^(GYRO_|MIN_GYRO|MAX_GYRO)/.test(raw)) { setPrimaryTab('gyro'); return }
+    const command = normalizePreviewInput(/^(LEFT|RIGHT)_(TOUCHPAD|GRID)/.test(raw) ? raw.startsWith('LEFT') ? 'LEFT_PAD' : 'RIGHT_PAD' : raw === 'ZL_MODE' ? 'ZL' : raw === 'ZR_MODE' ? 'ZR' : raw)
     setSelectedMappingCommand(command)
     setPrimaryTab(inputPage(command))
     setInputRequest({ command })
@@ -567,9 +517,11 @@ function App() {
 
   const [showHidHideElevationModal, setShowHidHideElevationModal] = useState(false)
   const configWindowRef = useRef<HTMLDivElement | null>(null)
+  const importInputRef = useRef<HTMLInputElement | null>(null)
+  const [sourceFocusLine, setSourceFocusLine] = useState<{ line: number; nonce: number } | null>(null)
   const configWindowDragRef = useRef<{ pointerId: number; offsetX: number; offsetY: number } | null>(null)
   const {
-    configText,
+    configText, documentText, setDocumentText, layers, layerId, selectLayer, selectCreatedLayer, savedLayerText, foldConfigText,
     effectiveConfigText,
     configIncludes,
     setConfigText,
@@ -804,6 +756,9 @@ function App() {
     handleScrollSensChange,
     resetPendingSensitivityChanges,
   } = useKeymapConfig()
+  // What activates a layer lives on the inputs, so it is read from the text
+  // rather than from the layers themselves.
+  const layerActions = useMemo(() => readLayerActions(documentText, layers), [documentText, layers])
 
   // The gyro's activation button can be a touch grid cell, so it has to see the
   // same cells the Trackpads page builds -- LT1.. and RT1.. on a two-pad
@@ -857,6 +812,45 @@ function App() {
     [t]
   )
 
+  // The section list (LB/RB): the groups of the page on screen. Pages that
+  // lay out as one long column list their anchors here and a scroll-spy lights
+  // the one at the top; Gyro still switches views; any other page is read
+  // from its own data-section markers.
+  const scrollSections = useMemo<{ id: string; label: string }[]>(() => {
+    // Triggers read per hand, then calibration (Configuration Pages 15a).
+    if (primaryTab === 'triggers') return [
+      { id: 'trigger-left', label: t('keymap.leftTriggerTitle', 'Left trigger') },
+      { id: 'trigger-right', label: t('keymap.rightTriggerTitle', 'Right trigger') },
+      { id: 'trigger-calibration', label: 'Calibration' },
+    ]
+    // Joysticks: each stick, then whichever mode settings are in use (15b).
+    if (primaryTab === 'joysticks') {
+      const modes = { left: stickModes?.left.mode ?? '', right: stickModes?.right.mode ?? '' }
+      const side = (test: (mode: string) => boolean) => (['left', 'right'] as const).find(key => test(modes[key]))
+      const flick = side(mode => /^(AIM|HYBRID_AIM|FLICK|FLICK_ONLY|ROTATE_ONLY)$/.test(mode))
+      const radial = side(mode => mode === 'RADIAL_MENU')
+      return [
+        { id: 'mapping-section-leftStick', label: t('keymap.leftStickTitle') },
+        { id: 'mapping-section-rightStick', label: t('keymap.rightStickTitle') },
+        ...(flick ? [{ id: `stick-extras-${flick}`, label: 'Flick and aim' }] : []),
+        ...(radial ? [{ id: `stick-extras-${radial}`, label: 'Radial menu' }] : []),
+      ]
+    }
+    if (primaryTab in SUB_NAV_GROUPS) {
+      return SUB_NAV_GROUPS[primaryTab as ControlTab].map(({ key, titleKey }) => ({ id: `mapping-section-${key}`, label: t(titleKey) }))
+    }
+    if (primaryTab === 'touchpad' && hasTwoTrackpads) return trackpadRailItems.map(({ id, label }) => ({ id, label }))
+    if (primaryTab === 'sensors') return TRACKPAD_TUNING_SECTIONS
+    return []
+  }, [primaryTab, hasTwoTrackpads, trackpadRailItems, stickModes, t])
+  const discoveredSections = useDiscoveredSections(primaryTab)
+  const spiedSections = scrollSections.length ? scrollSections : discoveredSections
+  const activeSectionId = useSectionScrollSpy(spiedSections.map(section => section.id))
+  const shellSections = useMemo<ShellSection[]>(() => {
+    return spiedSections.map(section => ({ ...section, active: activeSectionId === section.id, onSelect: () => scrollToSection(section.id) }))
+  }, [spiedSections, activeSectionId])
+  const currentSection = shellSections.find(section => section.active)
+
   const {
     libraryProfiles,
     isLibraryLoading,
@@ -875,8 +869,8 @@ function App() {
     handleCopyActiveProfile,
   } = useProfileLibrary({
     resetConfigHistory,
-    configText,
-    setConfigText,
+    configText: documentText,
+    setConfigText: setDocumentText,
     setAppliedConfig,
     setStatusMessage,
     resetPendingSensitivityChanges: resetPendingSensitivityChanges,
@@ -1050,14 +1044,16 @@ function App() {
     if (hasPendingChanges) { setPendingProfileSwitch(name); return }
     void handleLoadProfileFromLibrary(name)
   }
-  const resolveProfileSwitch = async (choice: 'save' | 'discard') => {
+  // Keep leaves the edits as a draft of that configuration, restored when you
+  // come back to it (useProfileLibrary keeps drafts per configuration).
+  const resolveProfileSwitch = async (choice: 'save' | 'discard' | 'keep') => {
     const name = pendingProfileSwitch
     if (!name) return
     setPendingProfileSwitch(null)
     // Save what is on screen, including any value still being typed, before it
     // is replaced -- the same finalize step the Save button runs.
     if (choice === 'save' && !await saveConfig({ textOverride: finalizePendingValues?.() ?? configText })) return
-    void handleLoadProfileFromLibrary(name)
+    void handleLoadProfileFromLibrary(name, choice === 'discard')
   }
 
   const handleApplyWithFinalize = () => {
@@ -1076,6 +1072,7 @@ function App() {
       setMappingEnabled(state.mappingEnabled)
       setAutoloadEnabled(state.autoloadEnabled)
       setControllerNavEnabled(state.controllerNavEnabled)
+      setReservedChords(!!state.reservedChords)
     }).catch(error => {
       console.error('Failed to load runtime mapping state', error)
     })
@@ -1210,164 +1207,293 @@ function App() {
     setConfigWindowDragging(false)
   }
 
-  const renderGyroNav = () => (
-    <div className="subnav">
-      <button className={`pill-tab ${gyroSubTab === 'behavior' ? 'active' : ''}`} onClick={() => setGyroSubTab('behavior')}>
-        {t('app.tabs.gyroBehavior')}
-      </button>
-      <button className={`pill-tab ${gyroSubTab === 'sensitivity' ? 'active' : ''}`} onClick={() => setGyroSubTab('sensitivity')}>
-        {t('app.tabs.sensitivity')}
-      </button>
-      <button className={`pill-tab ${gyroSubTab === 'noise' ? 'active' : ''}`} onClick={() => setGyroSubTab('noise')}>
-        {t('app.tabs.noiseAndSteadying')}
-      </button>
-    </div>
+  // ---- Shell context: what the title bar, tabs and capsule describe.
+  const device = sample?.devices?.[0]
+  const controllerFamily = controllerVisualFamily(device?.type)
+  const appliedName = mappingEnabled ? appliedProfileLabel(sample?.activeProfile, appliedProfileName)?.replace(/.txt$/i, '') ?? null : null
+  const templateNames = useMemo(() => new Set(configIncludes.imports.map(includeDisplayName)), [configIncludes.imports])
+  const titleBarProfiles = useMemo<TitleBarProfile[]>(() => libraryProfiles.map(name => ({
+    name,
+    template: templateNames.has(name),
+    description: name === currentLibraryProfile
+      ? [configIncludes.imports.length ? `Imports ${configIncludes.imports.map(includeDisplayName).join(', ')}` : '', layers.length ? `${layers.length} layer${layers.length === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · ') || undefined
+      : templateNames.has(name) && currentLibraryProfile ? `Imported by ${currentLibraryProfile}` : undefined,
+  })), [libraryProfiles, templateNames, currentLibraryProfile, configIncludes.imports, layers.length])
+  const titleBarLayers = useMemo(() => layers.map((layer, index) => {
+    const verbs = layerActions.filter(action => action.layerId === layer.id)
+    const verbText: Record<string, string> = { hold: 'Held by', toggle: 'Toggled by', apply: 'Applied by', remove: 'Removed by' }
+    return {
+      id: layer.id,
+      name: layer.name,
+      colorIndex: index,
+      description: verbs.length ? verbs.map(action => `${verbText[action.verb] ?? action.verb} ${action.input}`).join(' · ') : 'Not bound to an input',
+    }
+  }), [layers, layerActions])
+  const [testing, setTesting] = useState(false)
+
+  // ---- System states the backend reports (System States 17c, 17e).
+  // The mapper stopping by itself: known on launch, and announced when it
+  // happens. A launch clears it.
+  // The mapper's live layer stack, for the Layers page.
+  const [layerStack, setLayerStack] = useState<LayerStack | null>(null)
+  useEffect(() => {
+    void desktopBridge.getLayerStack().then(stack => { if (stack) setLayerStack(stack) })
+    return desktopBridge.onLayerStack(setLayerStack)
+  }, [])
+  const [mapperExit, setMapperExit] = useState<MapperExit | null>(null)
+  const [mapperRestarting, setMapperRestarting] = useState(false)
+  useEffect(() => {
+    void desktopBridge.getMapperStatus().then(status => { if (status && !status.running && status.exit) setMapperExit(status.exit) })
+    return desktopBridge.onMapperStatus(status => setMapperExit(status.running ? null : status.exit ?? null))
+  }, [])
+  const restartMapper = async () => {
+    setMapperRestarting(true)
+    try {
+      await desktopBridge.launchJSM()
+      setMapperExit(null)
+    } catch (error) {
+      showToast(`Could not restart the mapper: ${error instanceof Error ? error.message : String(error)}`, 'error')
+    } finally {
+      setMapperRestarting(false)
+    }
+  }
+  // Lines of the running configuration the mapper could not use, as it
+  // reports them. Matched on the file name: the mapper and Studio spell the
+  // path differently.
+  const baseName = (path: string) => path.split(/[\\/]/).pop()?.toLowerCase() ?? ''
+  const configErrors = useMemo(() => {
+    const reported = (sample?.configErrors as ConfigError[] | undefined) ?? []
+    const running = typeof sample?.activeProfile === 'string' ? baseName(sample.activeProfile) : ''
+    return running ? reported.filter(error => baseName(error.profile) === running) : []
+  }, [sample?.configErrors, sample?.activeProfile])
+  const configErrorsKey = configErrors.map(error => `${error.file}:${error.line}:${error.text}`).join('|')
+  const [dismissedConfigErrors, setDismissedConfigErrors] = useState('')
+  const openSourceAtError = (error: ConfigError) => {
+    // The applied file carries header lines the editor does not show, so find
+    // the line by its text and fall back to the reported number.
+    const lines = documentText.split(/\r?\n/)
+    const index = lines.findIndex(line => line.trim() === error.text.trim())
+    setSourceFocusLine({ line: index >= 0 ? index + 1 : error.line, nonce: Date.now() })
+    setConfigWindowPosition(null)
+    setConfigDrawerOpen(true)
+  }
+  // How a calibration run ended, wherever it was started from.
+  useEffect(() => desktopBridge.onGyroCalibrationResult(result => {
+    if (result.ok) showToast('Gyro calibrated')
+    else if (result.reason === 'moved') showToast(`Calibration cancelled at ${result.reached ?? 0}%: the controller moved. Put it down and calibrate again.`, 'error')
+  }), [])
+
+  // A mapper that is not running maps nothing, whatever the switch says.
+  const mappingPlate: MappingPlateState = mapperExit
+    ? 'off'
+    : !device
+    ? 'disconnected'
+    : !mappingEnabled
+      ? 'off'
+      : testing
+        ? 'testing'
+        : autoloadEnabled && controllerNavEnabled ? 'studio' : 'on'
+  // ---- Test mode: the configuration runs inside Studio until View + Menu is
+  // held, Esc is pressed, or Return to Studio is clicked. Starting it applies
+  // the configuration being edited, which is what "Testing <name>" promises.
+  // On exit, focus returns to what had it before the test: the last thing
+  // focused in the page, since reaching Test itself moved focus to the bar.
+  const lastPageFocus = useRef<HTMLElement | null>(null)
+  useEffect(() => {
+    const remember = (event: FocusEvent) => {
+      const target = event.target as HTMLElement
+      if (target.closest?.('.shell-body')) lastPageFocus.current = target
+    }
+    document.addEventListener('focusin', remember)
+    return () => document.removeEventListener('focusin', remember)
+  }, [])
+  const testReturnFocus = useRef<HTMLElement | null>(null)
+  const exitTest = useCallback(() => {
+    setTesting(false)
+    void desktopBridge.resumeStudioNavigation()
+    const back = testReturnFocus.current
+    testReturnFocus.current = null
+    requestAnimationFrame(() => { if (back?.isConnected) back.focus({ preventScroll: true }) })
+  }, [])
+  const startTest = async () => {
+    testReturnFocus.current = lastPageFocus.current
+    // Told first, so this Apply leaves the configuration with the controller.
+    await desktopBridge.setStudioTesting(true)
+    await runEditorAction('apply')
+    setTesting(true)
+  }
+  // However the test ends (Return, Esc, View + Menu, leaving the window),
+  // Apply goes back to handing the controller to Studio.
+  useEffect(() => { if (!testing) void desktopBridge.setStudioTesting(false) }, [testing])
+  useEffect(() => {
+    if (!testing) return
+    let left = false
+    const key = (event: KeyboardEvent) => {
+      if (!event.isTrusted || event.key !== 'Escape') return
+      event.preventDefault()
+      event.stopPropagation()
+      exitTest()
+    }
+    // Leaving Studio hands the pad to whatever comes to the front, and coming
+    // back reloads the navigation profile through AutoLoad: the test is over.
+    const blur = () => { left = true }
+    const focus = () => { if (left) setTesting(false) }
+    window.addEventListener('keydown', key, true)
+    window.addEventListener('blur', blur)
+    window.addEventListener('focus', focus)
+    return () => {
+      window.removeEventListener('keydown', key, true)
+      window.removeEventListener('blur', blur)
+      window.removeEventListener('focus', focus)
+    }
+  }, [testing, exitTest])
+
+  // LB / RB step through the section list. A section still scrolling into
+  // place counts as current, so quick presses keep advancing.
+  const lastSectionJump = useRef<{ id: string; at: number } | null>(null)
+  const stepSection = useCallback((delta: 1 | -1) => {
+    if (!shellSections.length) return
+    const recent = lastSectionJump.current && performance.now() - lastSectionJump.current.at < 900 ? lastSectionJump.current.id : null
+    const from = shellSections.findIndex(section => recent ? section.id === recent : section.active)
+    const target = shellSections[Math.min(shellSections.length - 1, Math.max(0, (from < 0 ? 0 : from + delta)))]
+    lastSectionJump.current = { id: target.id, at: performance.now() }
+    target.onSelect()
+  }, [shellSections])
+
+  useControllerNavigation({
+    enabled: mappingPlate === 'studio',
+    testing,
+    onPageStep: stepPage,
+    onSectionStep: stepSection,
+    onExitTest: exitTest,
+  })
+
+  const controllerStatus: ControllerStatus = device
+    ? {
+        kind: 'connected',
+        name: controllerDisplayName(device.type),
+        battery: typeof device.batteryPercent === 'number' && device.batteryPercent >= 0 && (device.batteryState ?? 0) > 0 && device.batteryState !== 2
+          ? device.batteryState === 3 ? `Charging ${device.batteryPercent}%` : `${device.batteryPercent}%`
+          : undefined,
+      }
+    : { kind: 'searching' }
+  const editApplied = () => {
+    const name = appliedProfileLabel(sample?.activeProfile, appliedProfileName)
+    if (name) requestLoadProfile(name.replace(/.txt$/i, ''))
+    else showToast('The applied profile source is unavailable.', 'error')
+  }
+  const calibratingReason = `Calibrating${countdown != null ? ` · ${countdown}s` : '…'}`
+  const saveIdleReason = isCalibrating ? calibratingReason : editorBusy ? 'Working…' : !currentLibraryProfile ? 'Choose a configuration to save' : !hasPendingChanges ? 'No unsaved changes' : null
+  const applyIdleReason = isCalibrating ? calibratingReason : editorBusy ? 'Working…' : !currentLibraryProfile ? 'Choose a configuration to apply' : null
+
+  const renderTitleBar = () => (
+    <TitleBar
+      width={shellWidth}
+      frameless={frameless}
+      onOpenStudio={() => setPrimaryTab('configurations')}
+      editingName={currentLibraryProfile}
+      dirty={hasPendingChanges}
+      profiles={titleBarProfiles}
+      appliedName={appliedName}
+      onSelectProfile={requestLoadProfile}
+      onOpenLibrary={() => setPrimaryTab('configurations')}
+      editingDisabled={isCalibrating}
+      layers={titleBarLayers}
+      layerId={layerId}
+      onSelectLayer={selectLayer}
+      onManageLayers={() => setLayerManagerOpen(true)}
+      onEditApplied={editApplied}
+      mapping={mappingPlate}
+      mappingBusy={runtimeMappingBusy}
+      onToggleMapping={() => { void handleToggleMappingEnabled() }}
+      output={(virtualControllerType as VirtualOutput) ?? 'NONE'}
+      onOutputChange={value => handleVirtualControllerTypeChange(value)}
+      onBindWholeController={() => handleBindGamepadPassthrough(virtualControllerType === 'DS4' ? 'DS4' : 'XBOX')}
+      onTest={() => void startTest()}
+      onExitTest={exitTest}
+      canUndo={canUndo && !isCalibrating}
+      canRedo={canRedo && !isCalibrating}
+      onUndo={undo}
+      onRedo={redo}
+      saveIdleReason={saveIdleReason}
+      applyIdleReason={applyIdleReason}
+      onSave={() => void runEditorAction('save')}
+      onApply={() => void runEditorAction('apply')}
+    />
   )
 
-  const renderUtilityBar = () => (
-    <div className="utility-bar">
-      <div className={`utility-mapping-switch ${mappingEnabled ? 'is-enabled' : 'is-paused'}`}>
-        <label className={`mapping-toggle-control ${mappingEnabled ? 'is-enabled' : 'is-paused'}`}>
-          <input
-            type="checkbox"
-            checked={mappingEnabled}
-            disabled={runtimeMappingBusy}
-            aria-label={t('app.profileSummary.mappingOutput')}
-            onChange={() => {
-              void handleToggleMappingEnabled()
-            }}
-          />
-          <span className="mapping-toggle-slider" aria-hidden="true" />
-          <span className="mapping-toggle-state">
-            {mappingEnabled ? t('app.profileSummary.mappingOutputOn') : t('app.profileSummary.mappingOutputPaused')}
-          </span>
-        </label>
-      </div>
-
-      <div className="utility-profile-group">
-        <button type="button" className="utility-applied" aria-live="polite" disabled={!mappingEnabled}
-          title="Edit the Currently Applied Profile" onClick={() => {
-            const name = appliedProfileLabel(sample?.activeProfile, appliedProfileName)
-            if (name) requestLoadProfile(name.replace(/\.txt$/i, ''))
-            else showToast('The applied profile source is unavailable.', 'error')
-          }}>
-          {mappingEnabled
-            ? t('app.profileSummary.appliedLabel', {
-                name:
-                  appliedProfileLabel(sample?.activeProfile, appliedProfileName) ?? t('app.profileSummary.unknownProfile'),
-              })
-            : t('app.profileSummary.mappingPausedShort')}
-        </button>
-        {/* One profile-wide control for what the whole configuration outputs,
-            with the one action that rewrites every binding for it living in
-            the same menu -- it is a thing you do to this setting, not a fourth
-            choice of setting. */}
-        <div className="utility-output">
-          <span id="virtual-output-label">Output</span>
-          <Menu
-            ariaLabel="Virtual Controller Output"
-            align="start"
-            trigger={
-              <button type="button" className="app-select utility-output-trigger" aria-labelledby="virtual-output-label">
-                {VIRTUAL_OUTPUT_LABELS[virtualControllerType] ?? VIRTUAL_OUTPUT_LABELS.NONE}
-              </button>
-            }
-            items={[
-              ...(Object.keys(VIRTUAL_OUTPUT_LABELS) as (keyof typeof VIRTUAL_OUTPUT_LABELS)[]).map(value => ({
-                label: VIRTUAL_OUTPUT_LABELS[value],
-                hint: value === virtualControllerType ? "Current" : undefined,
-                onSelect: () => handleVirtualControllerTypeChange(value),
-              })),
-              { kind: "separator" as const },
-              {
-                label: "Bind Whole Controller",
-                hint: "Replace the standard bindings with their virtual gamepad equivalents",
-                disabled: virtualControllerType === "NONE",
-                onSelect: () => handleBindGamepadPassthrough(virtualControllerType === "DS4" ? "DS4" : "XBOX"),
-              },
-            ]}
-          />
-        </div>
-        {/* One control, not two. The name is the quick-glance indicator of what
-            you are editing, and pressing it opens the one place that switches,
-            renames, creates and deletes configurations -- the dropdown beside a
-            separate Manage button was a second way to do the same thing. */}
-        <button
-          type="button"
-          className="profile-chip"
-          title={`${t('app.profileSummary.editingTitle')}: ${currentLibraryProfile ?? t('app.profileSummary.selectProfile')}`}
-          aria-label={`${t('app.profileSummary.editingTitle')}: ${currentLibraryProfile ?? t('app.profileSummary.selectProfile')}`}
-          disabled={isCalibrating}
-          onClick={() => setProfileModalOpen(true)}
-          aria-haspopup="dialog"
-        >
-          <span className="profile-chip-name">{currentLibraryProfile ?? t('app.profileSummary.selectProfile')}</span>
-          {hasPendingChanges && <span className="profile-chip-dot" aria-hidden="true" />}
-          <ChevronDown />
-        </button>
-      </div>
-
-      {/* One toolbar with a clear order of importance: the configuration you
-          are editing leads, then managing configurations, then the two
-          occasional escape hatches as quiet ghost buttons. Four equal-weight
-          buttons in a row gave no clue which one you normally want. */}
-      <div className="utility-actions">
-        <button className="icon-btn" disabled={!canUndo || isCalibrating} onClick={undo}
-          title={`${t('app.profileSummary.undo')} (Ctrl+Z)`} aria-label={t('app.profileSummary.undo')}><UndoIcon /></button>
-        <button className="icon-btn" disabled={!canRedo || isCalibrating} onClick={redo}
-          title={`${t('app.profileSummary.redo')} (Ctrl+Shift+Z)`} aria-label={t('app.profileSummary.redo')}><RedoIcon /></button>
-        {/* Save writes the configuration being edited back to its own file;
-            Apply sends it to the controller. Naming what each one acts on beats
-            one button that did both to something you had to infer. */}
-        <button className="icon-btn" disabled={isCalibrating || editorBusy || !currentLibraryProfile}
-          onClick={() => void runEditorAction('save')}
-          title={currentLibraryProfile
-            ? `${t('app.profileSummary.saveNamed', { name: currentLibraryProfile })} (Ctrl+S)`
-            : t('app.profileSummary.saveConfiguration')}
-          aria-label={t('app.profileSummary.saveConfiguration')}><SaveIcon /></button>
-        {hasPendingChanges && <span className="pill pill--warning">{t('app.profileSummary.unsavedChanges')}</span>}
-        <button className="primary-btn" disabled={isCalibrating || editorBusy || !currentLibraryProfile}
-          onClick={() => void runEditorAction('apply')}
-          title={currentLibraryProfile
-            ? `${t('app.profileSummary.applyNamed', { name: currentLibraryProfile })} (Ctrl+Shift+A)`
-            : t('app.profileSummary.applyEditingConfiguration')}>
-          {t('app.profileSummary.applyEditingConfiguration')}
-        </button>
-        <button className="ghost-btn" onClick={() => setAutoloadModalOpen(true)}>
-          {t('app.profileSummary.autoloadManager')}
-        </button>
-        <button
-          className="ghost-btn"
-          onClick={() => {
-            setConfigWindowPosition(null)
-            setConfigDrawerOpen(true)
-          }}
-        >
-          {t('app.profileSummary.openSourceConfig')}
-        </button>
-        <button className="ghost-btn" onClick={handleOpenConfigDirectory}>
-          {t('app.profileSummary.openConfigDirectory')}
-        </button>
-        {isCalibrating ? (
-          <span className="calibration-pill calibration-pill-inline utility-calibration-pill">
-            {t('app.recalibration.calibratingCountdown', { seconds: countdown ?? '-' })}
-          </span>
-        ) : (
-          <button className="primary-btn" onClick={handleRecalibrate} disabled={recalibrating}>
-            {recalibrating ? t('app.recalibration.recalibrating') : t('app.recalibration.recalibrateGyro')}
-          </button>
-        )}
-      </div>
-    </div>
-  )
+  const renderProfileManager = () => (<ProfileManager
+                currentProfileName={currentLibraryProfile}
+                appliedProfileName={appliedProfileName}
+                hasPendingChanges={hasPendingChanges}
+                isCalibrating={isCalibrating}
+                profileApplied={currentLibraryProfile === appliedProfileName && documentText === runtimeConfig}
+                onImportProfile={handleImportProfile}
+                libraryProfiles={libraryProfiles}
+                libraryLoading={isLibraryLoading}
+                editedProfileNames={editedLibraryNames}
+                onProfileNameChange={handleLibraryProfileNameChange}
+                onRenameProfile={handleRenameProfile}
+                onDeleteProfile={handleDeleteLibraryProfile}
+                onAddProfile={handleCreateProfile}
+                onLoadLibraryProfile={requestLoadProfile}
+                onCopyActiveProfile={handleCopyActiveProfile}
+                templateNames={templateNames}
+                editingDetails={{
+                  output: virtualControllerType === 'XBOX' ? 'Virtual Xbox' : virtualControllerType === 'DS4' ? 'Virtual DualShock 4' : 'Keyboard and mouse only',
+                  imports: [...templateNames],
+                  layers: layers.map((layer, index) => ({ name: layer.name, color: layerColor(index) })),
+                }}
+                onApply={handleApplyWithFinalize}
+                onShowInFolder={handleOpenConfigDirectory}
+                onEditSource={() => { setConfigWindowPosition(null); setConfigDrawerOpen(true) }}
+              />)
 
   const renderPrimaryContent = () => {
-    if (primaryTab === 'settings') return <div className="settings-page">
-      <h2>Settings</h2><PollingSettings global text={configText} effectiveText={configIncludes.effectiveText} onChange={setConfigText} /><section><h3>App Preferences</h3><NavSettings /></section>
-      {/* The control and the action that goes with it both live in the profile
-          header now, so this says where rather than carrying a second copy. */}
-      <section><h3>Controller Output</h3><p>Choose the virtual controller, and bind the whole controller to it, from the Output menu in the profile header. Mouse and keyboard bindings can be used alongside gamepad output.</p></section></div>
-    if (primaryTab === 'menuLayout') return <div className="settings-page"><h2>Menu Layout</h2>
+    if (primaryTab === 'configurations') return <div className="settings-page configuration-library">
+      <Suspense fallback={<LazyPanelFallback title="Configurations" />}>{renderProfileManager()}</Suspense>
+    </div>
+    if (primaryTab === 'associations') return <AssociationsPage libraryProfiles={libraryProfiles} autoloadEnabled={autoloadEnabled}
+      runtimeBusy={runtimeMappingBusy} onAutoloadEnabledChange={handleAutoloadEnabledChange} />
+    if (primaryTab === 'layers') {
+      // Live only when the mapper is running the configuration on this page.
+      const running = typeof sample?.activeProfile === 'string' ? sample.activeProfile : ''
+      const runningName = running.split(/[\\/]/).pop()?.replace(/\.txt$/i, '') ?? ''
+      const isThis = !!currentLibraryProfile && runningName.toLowerCase() === currentLibraryProfile.toLowerCase()
+      const stack = isThis ? (layerStack && layerStack.profile.split(/[\\/]/).pop()?.replace(/\.txt$/i, '').toLowerCase() === runningName.toLowerCase() ? layerStack : { profile: running, layers: [] }) : null
+      return <LayersPage text={documentText} layers={layers} selected={layerId} onChange={setDocumentText} onSelect={selectCreatedLayer} disabled={isCalibrating} family={controllerVisualFamily(sample?.devices?.[0]?.type)}
+        liveStack={mapperExit ? null : stack} liveProfileName={!isThis && runningName ? runningName : null} />
+    }
+    // Preferences (Tuning and Studio Pages 16j): appearance and startup on the
+    // left, the controller on the right.
+    if (primaryTab === 'settings') return <div className="prefs-columns">
+      <div className="prefs-column">
+        <h3 className="prefs-eyebrow">Appearance</h3>
+        <div className={sideNavStyles.navSettings}>
+          <LanguageSelect className={sideNavStyles.navLanguageSelect} />
+          <ThemeToggle className={sideNavStyles.navThemeToggle} />
+        </div>
+        <h3 className="prefs-eyebrow">Startup</h3>
+        <div className={sideNavStyles.navSettings}><AutostartToggle /></div>
+        <ControllerPreferences part="sounds" />
+        <p className="settings-version">JSM Studio v{tauriConf.version}</p>
+      </div>
+      <div className="prefs-column">
+        <h3 className="prefs-eyebrow">Controller</h3>
+        <div className={sideNavStyles.navSettings}>
+          <ControllerNavToggle />
+          <TrackpadOverlayToggle />
+          <CalibrationHudToggle />
+        </div>
+        <ControllerPreferences part="calibration" />
+        <PollingSettings global text={configText} effectiveText={configIncludes.effectiveText} onChange={setConfigText} />
+        {/* Set where it is used, so this says where rather than carrying a second copy. */}
+        <div className="prefs-link-row">
+          <span><b>Virtual output</b><small>Set from the Mapping plate in the title bar, where Bind whole controller lives too.</small></span>
+        </div>
+      </div>
+    </div>
+    if (primaryTab === 'menuLayout') return <div className="settings-page">
       <OverlayLayoutSection selectedMenu={selectedMenu} readText={configIncludes.effectiveText} onChange={setConfigText}
         padAspect={padAspectFromDevices(sample?.devices)} hasPendingChanges={hasPendingChanges}
         onApply={handleApplyWithFinalize} onCancel={handleCancel} />
@@ -1375,11 +1501,13 @@ function App() {
 
     if (primaryTab === 'gyro') {
       return (
-        <div className="page-with-subnav">
-          <div className="page-subnav">{renderGyroNav()}</div>
-          {gyroSubTab === 'behavior' && (
+        <>
+          {/* One page, three sections (Gyro.dc.html): the section list jumps
+              between them rather than switching views. */}
+          <section id="gyro-general" className="page-section" data-section={t('app.tabs.gyroBehavior')}>
             <Suspense fallback={<LazyPanelFallback title={t('app.tabs.gyroBehavior')} />}>
               <GyroBehaviorControls
+                devices={sample?.devices}
                 sensitivity={sensitivity}
                 gyroActivationMode={gyroActivation.mode}
                 gyroActivationButton={gyroActivation.button}
@@ -1410,8 +1538,8 @@ function App() {
                 appliedSampleHz={telemetryValues.sampleHz}
               />
             </Suspense>
-          )}
-          {gyroSubTab === 'sensitivity' && (
+          </section>
+          <section id="gyro-sensitivity" className="page-section" data-section={t('app.tabs.sensitivity')}>
             <Suspense fallback={<LazyPanelFallback title={t('app.tabs.sensitivity')} />}>
               <SensitivityControls
                 sensitivity={sensitivity}
@@ -1459,8 +1587,8 @@ function App() {
                 onAccelCurveLinkChange={handleAccelCurveLinkChange}
               />
             </Suspense>
-          )}
-          {gyroSubTab === 'noise' && (
+          </section>
+          <section id="gyro-noise" className="page-section" data-section={t('app.tabs.noiseAndSteadying')}>
             <Suspense fallback={<LazyPanelFallback title={t('app.tabs.noiseAndSteadying')} />}>
               <NoiseSteadyingControls
                 sensitivity={sensitivity}
@@ -1490,13 +1618,17 @@ function App() {
                 }}
               />
             </Suspense>
-          )}
-        </div>
+          </section>
+        </>
       )
     }
 
     if (primaryTab === 'timing') {
+      // Timing on the left, polling and where it comes from on the right (16d).
+      const turboPeriod = Number.parseFloat(getKeymapValue(configText, 'TURBO_PERIOD') ?? '')
       return (
+        <div className="timing-columns">
+        <div className="timing-main">
         <Suspense fallback={<LazyPanelFallback title={t('app.nav.timing')} />}>
           <KeymapControls
             onConfigTextChange={setConfigText}
@@ -1542,6 +1674,17 @@ function App() {
             lockMessage={lockMessage}
           />
         </Suspense>
+        {/* TURBO_PERIOD is milliseconds between repeats; read as repeats per second. */}
+        <NumberField setting="TURBO_PERIOD" label="Turbo rate" unit="/s"
+          value={Number.isFinite(turboPeriod) && turboPeriod > 0 ? String(Math.round(1000 / turboPeriod)) : ''}
+          placeholder="12" min={1} max={60} step={1}
+          hint="Repeats per second while a turbo binding is held. Stored as TURBO_PERIOD, the milliseconds between repeats."
+          onChange={value => setConfigText(previous => value === '' ? removeKeymapEntry(previous, 'TURBO_PERIOD') : updateKeymapEntry(previous, 'TURBO_PERIOD', [String(Math.round(1000 / Math.max(1, Number(value))))]))} />
+        </div>
+        <aside className="timing-side">
+          <PollingSettings text={configText} effectiveText={configIncludes.effectiveText} onChange={setConfigText} importName={[...templateNames][0] ?? null} />
+        </aside>
+        </div>
       )
     }
 
@@ -1917,29 +2060,23 @@ function App() {
         </Suspense>
       )
 
-      // The trackpads page is one tall column of Left pad, Right pad and the
-      // shared buttons, so it gets its own index down the side. The two tuning
-      // pages are short enough not to need one.
-      if (primaryTab === 'sensors') return <div className="page-with-rail">
-        <PageSideNav ariaLabel="Trackpad tuning sections" items={[
-          { id: 'touch-smoothing', label: 'Motion' }, { id: 'touch-release', label: 'Press & release' },
-          { id: 'touch-glide', label: 'Trackball' }, { id: 'touch-haptics', label: 'Haptics' }, { id: 'touch-accel', label: 'Acceleration' },
-        ]} /><div className="page-rail-content">{panel}</div></div>
-      if (primaryTab !== 'touchpad' || !hasTwoTrackpads) return panel
-      return (
-        <div className="page-with-rail">
-          <PageSideNav ariaLabel={t('app.nav.trackpads')} items={trackpadRailItems} />
-          <div className="page-rail-content">{panel}</div>
-        </div>
-      )
+      // Jumping between Left pad / Right pad / tuning sections is now the
+      // sidebar's job (see subNavByTab below); these pages just render their
+      // one tall column.
+      return panel
     }
 
     if (primaryTab === 'overview') {
       return (
         <OverviewPage
+          configName={currentLibraryProfile}
+          onSelectLayer={selectLayer}
+          disabled={isCalibrating}
           devices={sample?.devices}
           onNavigate={(target) => setPrimaryTab(target)}
           onSelectCommand={navigateInput}
+          onRecalibrate={() => { void handleRecalibrate() }}
+          recalibrating={recalibrating || isCalibrating}
           // The diagram is read-only and should show what the controller
           // actually does, imported bindings included.
           configText={effectiveConfigText}
@@ -1950,7 +2087,12 @@ function App() {
     if (primaryTab === 'globalChords') {
       return (
         <Suspense fallback={<LazyPanelFallback title={t('app.nav.globalChords')} />}>
-          <GlobalChordsPage devices={sample?.devices} onChordsChanged={() => { void refreshLibraryProfiles() }} />
+          <GlobalChordsPage devices={sample?.devices} onChordsChanged={() => { void refreshLibraryProfiles() }}
+            reservedChords={reservedChords} onReservedChordsChange={async enabled => {
+              const next = await desktopBridge.setReservedChords(enabled)
+              if (next) setReservedChords(!!next.reservedChords)
+              else showToast('Could not change the reserved chords.', 'error')
+            }} />
         </Suspense>
       )
     }
@@ -1981,7 +2123,7 @@ function App() {
             hasPendingChanges={hasPendingChanges}
             onReplaceConfig={setConfigText}
             onApplyGeneratedConfig={async (nextConfig) => {
-              await applyConfig({ textOverride: nextConfig })
+              await applyConfig({ textOverride: foldConfigText(nextConfig) })
             }}
           />
         </Suspense>
@@ -1991,7 +2133,7 @@ function App() {
     if (primaryTab === 'help') {
       return (
         <Suspense fallback={<LazyPanelFallback title={t('app.nav.documentation')} />}>
-          <HelpDocsPage />
+          <HelpDocsPage focusSetting={docsFocus} onOpenPage={setPrimaryTab} />
         </Suspense>
       )
     }
@@ -1999,58 +2141,115 @@ function App() {
     return null
   }
 
+  const meta = pageMeta(primaryTab)
+  const studioPage = isStudioPage(primaryTab)
+  const configName = currentLibraryProfile ?? t('app.profileSummary.unsavedProfile', 'Unsaved')
+  const eyebrow = studioPage
+    ? 'Studio'
+    : primaryTab === 'overview'
+      ? `${configName} · ${device ? controllerDisplayName(device.type) : 'Controller'}`
+      : primaryTab === 'layers'
+        ? configName
+        : `${configName} · ${meta.group === 'tuning' ? 'Tuning' : 'Controls'}`
+  const pageActions = primaryTab === 'gyro'
+    ? <><span className="telemetry-chip" title="Live gyro speed and sample rate"><span className="telemetry-chip__dot" aria-hidden="true" />{telemetryValues.omega} °/s · {telemetryValues.sampleHz} Hz</span><button type="button" className="button button--secondary" onClick={handleRecalibrate} disabled={recalibrating || isCalibrating}>{recalibrating ? t('app.recalibration.recalibrating') : t('app.recalibration.recalibrateGyro')}</button></>
+    : primaryTab === 'layers'
+      ? <button type="button" className="button button--secondary" onClick={() => setLayerManagerOpen(true)}>Manage layers</button>
+      : primaryTab === 'globalChords'
+        ? <button type="button" className="button button--primary" onClick={() => window.dispatchEvent(new Event('jsm:add-chord'))}>+ Add chord</button>
+      : primaryTab === 'associations'
+        ? <button type="button" className="button button--primary" onClick={() => setAutoloadModalOpen(true)}>+ Add app</button>
+      : primaryTab === 'configurations'
+        ? <>
+            {/* Import reads a .txt from anywhere into the library. */}
+            <input ref={importInputRef} type="file" accept=".txt,.cfg,.ini,*/*" hidden onChange={async event => {
+              const file = event.target.files?.[0]
+              if (file) handleImportProfile(file.name, await file.text())
+              event.target.value = ''
+            }} />
+            <button type="button" className="button button--secondary" onClick={() => importInputRef.current?.click()}>Import</button>
+            <button type="button" className="button button--primary" onClick={handleCreateProfile}>+ New configuration</button>
+          </>
+        : null
+
   return (
-    <div className={`app-shell ${navCollapsed ? 'nav-collapsed' : ''}`}>
+    <div className="app-shell" data-width={shellWidth}>
       <ToastHost />
+      <LongOperationHost />
+      <FocusGlide />
       <Suspense fallback={null}>
         <UpdateBanner />
       </Suspense>
-      {/* Desktop sidebar */}
-      <aside className={`${sideNavStyles.sideNav} ${navCollapsed ? sideNavStyles.collapsed : ''}`}>
-        <div className={sideNavStyles.navBrandRow}>
-          {!navCollapsed && <div className={sideNavStyles.navBrand}>{t('common.appName')}</div>}
-          <button
-            type="button"
-            className={sideNavStyles.navCollapseToggle}
-            onClick={() => setNavCollapsed(value => !value)}
-            title={t(navCollapsed ? 'app.nav.expandSidebar' : 'app.nav.collapseSidebar')}
-            aria-label={t(navCollapsed ? 'app.nav.expandSidebar' : 'app.nav.collapseSidebar')}
-            aria-expanded={!navCollapsed}
-          >
-            <CollapseIcon collapsed={navCollapsed} />
-          </button>
+      {renderTitleBar()}
+      {testing ? (
+        <div className="test-banner" role="status">
+          <span className="test-banner__dot" aria-hidden="true" />
+          <b>Testing {currentLibraryProfile ?? 'configuration'}</b>
+          <span className="test-banner__text">Your controller is running the profile. Studio navigation is paused.</span>
+          <span className="test-banner__exit">Hold <b className="hint-pill">View</b><span>+</span><b className="hint-pill">Menu</b> or press Esc to return</span>
         </div>
-        <PrimaryNav primaryTab={primaryTab} setPrimaryTab={setPrimaryTab} includeHelp collapsed={navCollapsed} />
-        <div className={sideNavStyles.navFooter}>
-          <button type="button" className="ghost-btn" onClick={() => setPrimaryTab('settings')} aria-label="Settings"><TuneIcon />{!navCollapsed && ' Settings'}</button>
-          {!navCollapsed && <div className={sideNavStyles.navVersion}>v{tauriConf.version}</div>}
-        </div>
-      </aside>
-      {/* Narrow-width sticky header */}
-      <div className="responsive-header">
-        <div className={sideNavStyles.navHeaderRow}>
-          <div>
-            <div className={sideNavStyles.navBrand}>{t('common.appName')}</div>
-            <PrimaryNav primaryTab={primaryTab} setPrimaryTab={setPrimaryTab} includeHelp />
-          </div>
-          <button type="button" className="ghost-btn" onClick={() => setPrimaryTab('settings')}>Settings</button>
-        </div>
-      </div>
-      <div className="shell-main">
-        {renderUtilityBar()}
-        <div className="shell-scroll"><div className="content-grid">
-          <main className="main-pane"><ConfigBaseline.Provider value={{ text: configText, saved: appliedConfig, onChange: text => { resetPendingSensitivityChanges(); setConfigText(text) } }}>
+      ) : <div />}
+      <PageTabs
+        width={shellWidth}
+        current={primaryTab}
+        onSelect={setPrimaryTab}
+        status={controllerStatus}
+        sectionLabel={currentSection?.label}
+        drawerOpen={drawerOpen}
+        onOpenDrawer={() => setDrawerOpen(true)}
+        returnLabel={`${configName} · ${t(pageMeta(lastConfigPage.current).labelKey, pageMeta(lastConfigPage.current).label)}`}
+        onReturn={() => setPrimaryTab(lastConfigPage.current)}
+      />
+      <div className="shell-body" data-width={shellWidth} data-sections={shellSections.length > 0 ? 'true' : 'false'}>
+        {shellWidth !== 'narrow' && shellSections.length > 0 && <SectionList sections={shellSections} ariaLabel={`${t(meta.labelKey, meta.label)} sections`} />}
+        <div className="shell-content">
+          <div className="shell-scroll">
+            <div key={primaryTab} className={`shell-page page${primaryTab === 'overview' ? ' page--wide' : ''}${['associations', 'globalChords', 'deviceVisibility'].includes(primaryTab) ? ' page--narrow' : ''}`} data-direction={pageDirection}>
+              {mapperExit && !studioPage
+                ? <MapperDown exit={mapperExit} restarting={mapperRestarting} onRestart={() => void restartMapper()} onOpenConsole={() => setPrimaryTab('debugConsole')} />
+                : <>
+              <header className="page-header">
+                <div className="page-header__text">
+                  <span className="page-header__eyebrow">{eyebrow}</span>
+                  <h1 className="page-header__title">{t(meta.labelKey, meta.label)}</h1>
+                  <p className="page-header__purpose">{t(`shell.purpose.${primaryTab}`, meta.purpose)}</p>
+                </div>
+                {pageActions && <div className="page-header__actions">{pageActions}</div>}
+              </header>
+          <main className="main-pane page-body">
+            {mapperExit && studioPage && <MapperDown compact exit={mapperExit} restarting={mapperRestarting} onRestart={() => void restartMapper()} onOpenConsole={() => setPrimaryTab('debugConsole')} />}
+            {!studioPage && configErrors.length > 0 && dismissedConfigErrors !== configErrorsKey && (
+              <ConfigErrors errors={configErrors} appliedText={runtimeConfig} onOpenSource={openSourceAtError} onDismiss={() => setDismissedConfigErrors(configErrorsKey)} />
+            )}
+            <ConfigBaseline.Provider value={{ text: configText, saved: savedLayerText, onChange: text => { resetPendingSensitivityChanges(); setConfigText(text) } }}>
+            <LayerUsageContext.Provider value={{ text: effectiveConfigText, layers, actions: layerActions, selected: layers.find(layer => layer.id === layerId), onChangeLayers: next => setDocumentText(previous => writeLayers(previous, next)), onSetActions: (input, next) => setDocumentText(previous => setLayerActions(previous, input, next)), onSelect: selectLayer, onNavigate: navigateInput, disabled: isCalibrating }}>
+            <SettingOrigins.Provider value={{ text: effectiveConfigText, own: layerId ? Object.entries(layers.find(l => l.id === layerId)?.overrides ?? {}).map(([k,v]) => `${k} = ${v}`).join('\n') : defaultLayer(documentText), base: configIncludes.resolveText(defaultLayer(documentText).split(/\r?\n/).filter(line => !line.includes('=')).join('\n')), origins: configIncludes.resolution?.origins ?? {}, layer: layers.find(l => l.id === layerId)?.name, disabled: isCalibrating, reset: key => { resetPendingSensitivityChanges(); setDocumentText(previous => layerId ? writeLayers(previous, layers.map(l => { if(l.id !== layerId) return l; const overrides = {...l.overrides}; delete overrides[key]; return {...l, overrides} })) : previous.split(/\r?\n/).filter(line => !Object.prototype.hasOwnProperty.call(layerEntries(line), key)).join('\n')) } }}>
+            <InputUsageInspector />
+            <LayerBar text={documentText} layers={layers} selected={layerId} managing={layerManagerOpen} onChange={setDocumentText} onSelect={selectCreatedLayer} disabled={isCalibrating} family={controllerVisualFamily(sample?.devices?.[0]?.type)} onClose={() => setLayerManagerOpen(false)} />
             {(primaryTab === 'gyro' || primaryTab === 'sensors' || primaryTab === 'gripSensors') && <TuningClipboard kind={primaryTab === 'gyro' ? 'gyro' : primaryTab === 'sensors' ? 'trackpad' : 'grip'} text={configText} onChange={text => { resetPendingSensitivityChanges(); setConfigText(text) }} disabled={isCalibrating} />}
-            {primaryTab === 'timing' && <PollingSettings text={configText} effectiveText={configIncludes.effectiveText} onChange={setConfigText} />}
             <ConfigScope match={primaryTab === 'gyro' ? /^(GYRO_|MIN_GYRO|MAX_GYRO|ACCEL_|SMOOTH_|CUTOFF_|ONE_EURO|ANGLE_|DECEL_|ROLL_|IN_GAME|REAL_WORLD)/ : /./}>{renderPrimaryContent()}</ConfigScope>
+            <ConfigScope match={primaryTab === 'gyro' ? /^(GYRO_|MIN_GYRO|MAX_GYRO|ACCEL_|SMOOTH_|CUTOFF_|ONE_EURO|ANGLE_|DECEL_|ROLL_|IN_GAME|REAL_WORLD)/ : /./}>{!studioPage && <SettingsInventory />}</ConfigScope>
+            </SettingOrigins.Provider>
+            </LayerUsageContext.Provider>
           </ConfigBaseline.Provider></main>
-        </div></div>
-        <ControllerGlyphBar
-          devices={sample?.devices}
-          modalOpen={modalOpen}
-          enabled={mappingEnabled && autoloadEnabled && controllerNavEnabled}
-        />
+                </>}
+            </div>
+          </div>
+          <HintCapsule width={shellWidth} family={controllerFamily} controller={Boolean(device)} />
+        </div>
       </div>
+      {shellWidth === 'narrow' && (
+        <NavDrawer
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          current={primaryTab}
+          onSelect={setPrimaryTab}
+          onOpenStudio={() => setPrimaryTab('configurations')}
+          sections={shellSections}
+          eyebrow={configName}
+          status={controllerStatus}
+        />
+      )}
       {isConfigDrawerOpen && (
         <div
           ref={configWindowRef}
@@ -2102,14 +2301,15 @@ function App() {
           <div className="config-source-window-body">
             <Suspense fallback={<LazyPanelFallback title={profileFileLabel} compact />}>
               <ConfigEditor
-                value={configText}
+                value={documentText}
                 label={profileFileLabel}
                 disabled={isCalibrating}
                 hasPendingChanges={hasPendingChanges}
                 statusMessage={null}
-                onChange={setConfigText}
+                onChange={setDocumentText}
                 onApply={handleApplyWithFinalize}
                 onCancel={handleCancel}
+                focusLine={sourceFocusLine}
               />
             </Suspense>
           </div>
@@ -2244,11 +2444,11 @@ function App() {
             inGameSens={String(sensitivity.inGameSens ?? '')}
             onClose={() => setIsRwcGuideModalOpen(false)}
             onApplyRwc={(rwc, sens) => {
-              const baseText = finalizePendingValues ? finalizePendingValues() : configText
+              const baseText = configText
               const withRwc = updateKeymapEntry(baseText, 'REAL_WORLD_CALIBRATION', [parseFloat(rwc)])
               const withSens = updateKeymapEntry(withRwc, 'IN_GAME_SENS', [parseFloat(sens)])
               setConfigText(withSens)
-              applyConfig({ textOverride: withSens })
+              applyConfig({ textOverride: foldConfigText(withSens) })
             }}
           />
         </Suspense>
@@ -2257,7 +2457,7 @@ function App() {
         <div className="modal-overlay modal-overlay--over">
           <div className="modal-card unsaved-modal" role="alertdialog" aria-modal="true" aria-labelledby="unsaved-switch-title">
             <div className="modal-header">
-              <h3 id="unsaved-switch-title">{t('app.unsavedSwitch.title')}</h3>
+              <h3 id="unsaved-switch-title">{t('app.unsavedSwitch.title', { current: currentLibraryProfile ?? t('app.profileSummary.unsavedProfile') })}</h3>
             </div>
             <p className="unsaved-modal-body">
               {t('app.unsavedSwitch.body', {
@@ -2265,15 +2465,21 @@ function App() {
                 next: pendingProfileSwitch,
               })}
             </p>
-            <div className="unsaved-modal-actions">
-              <button className="ghost-btn" onClick={() => setPendingProfileSwitch(null)}>
+            {/* Components 13.13: Cancel, Discard and Switch, Keep Draft and
+                Switch. Save and Switch stays as well, so there is still a way
+                to write the edits to the file on the way out. */}
+            <div className="unsaved-modal-actions confirm-dialog__actions">
+              <button className="button button--tertiary" onClick={() => setPendingProfileSwitch(null)}>
                 {t('common.cancel')}
               </button>
-              <button className="secondary-btn" onClick={() => void resolveProfileSwitch('discard')}>
+              <button className="button button--danger" onClick={() => void resolveProfileSwitch('discard')}>
                 {t('app.unsavedSwitch.discard')}
               </button>
-              <button className="primary-btn" onClick={() => void resolveProfileSwitch('save')}>
+              <button className="button button--secondary" onClick={() => void resolveProfileSwitch('save')}>
                 {t('app.unsavedSwitch.saveAndSwitch')}
+              </button>
+              <button className="button button--primary" autoFocus onClick={() => void resolveProfileSwitch('keep')}>
+                {t('app.unsavedSwitch.keepDraft')}
               </button>
             </div>
           </div>
@@ -2289,23 +2495,7 @@ function App() {
               </button>
             </div>
             <Suspense fallback={<LazyPanelFallback title={t('app.profilesModal.title')} compact />}>
-              <ProfileManager
-                currentProfileName={currentLibraryProfile}
-                appliedProfileName={appliedProfileName}
-                hasPendingChanges={hasPendingChanges}
-                isCalibrating={isCalibrating}
-                profileApplied={currentLibraryProfile === appliedProfileName && configText === runtimeConfig}
-                onImportProfile={handleImportProfile}
-                libraryProfiles={libraryProfiles}
-                libraryLoading={isLibraryLoading}
-                editedProfileNames={editedLibraryNames}
-                onProfileNameChange={handleLibraryProfileNameChange}
-                onRenameProfile={handleRenameProfile}
-                onDeleteProfile={handleDeleteLibraryProfile}
-                onAddProfile={handleCreateProfile}
-                onLoadLibraryProfile={requestLoadProfile}
-                onCopyActiveProfile={handleCopyActiveProfile}
-              />
+              {renderProfileManager()}
             </Suspense>
           </div>
         </div>
@@ -2317,7 +2507,7 @@ function App() {
             autoloadEnabled={autoloadEnabled}
             runtimeBusy={runtimeMappingBusy}
             onAutoloadEnabledChange={handleAutoloadEnabledChange}
-            onClose={() => setAutoloadModalOpen(false)}
+            onClose={() => { setAutoloadModalOpen(false); window.dispatchEvent(new Event('jsm:associations-changed')) }}
           />
         </Suspense>
       )}
@@ -2326,3 +2516,5 @@ function App() {
 }
 
 export default App
+
+import './styles/controller-workspace.css'

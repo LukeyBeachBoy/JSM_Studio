@@ -4,6 +4,7 @@ import { desktopBridge, type NamedProfile } from '../platform/desktopBridge'
 import { ensureHeaderLines, sanitizeImportedConfig } from '../utils/config'
 import { parseConfigText, serializeConfig } from '../utils/configSerializer'
 import { showToast } from '../utils/toast'
+import { OperationCancelled, runLongOperation, throwIfCancelled } from '../components/LongOperation'
 
 type Options = { textOverride?: string; profileNameOverride?: string; profilePathOverride?: string; normalize?: boolean }
 type Params = {
@@ -51,9 +52,12 @@ export function useProfileLibrary({ resetConfigHistory, configText, setConfigTex
   // Profiles that appear without the app's help: a .txt copied into the folder
   // by hand, one deleted outside the app, or a sync client.
   useEffect(() => desktopBridge.onLibraryProfilesChanged(applyLibraryProfileList), [applyLibraryProfileList])
-  const selectProfile = useCallback((profile: NamedProfile) => {
+  const selectProfile = useCallback((profile: NamedProfile, discardPrevious = false) => {
     const previous = editor.current
-    if (previous.currentLibraryProfile) drafts.current.set(previous.currentLibraryProfile, previous.configText)
+    if (previous.currentLibraryProfile) {
+      if (discardPrevious) drafts.current.delete(previous.currentLibraryProfile)
+      else drafts.current.set(previous.currentLibraryProfile, previous.configText)
+    }
     resetPendingSensitivityChanges()
     setCurrentLibraryProfile(profile.name)
     setActiveProfilePath(profile.path)
@@ -70,11 +74,11 @@ export function useProfileLibrary({ resetConfigHistory, configText, setConfigTex
     })
   }, [refreshLibraryProfiles, selectProfile])
 
-  const handleLoadProfileFromLibrary = async (name: string) => {
+  const handleLoadProfileFromLibrary = async (name: string, discardPrevious = false) => {
     const request = ++selection.current
     const profile = await desktopBridge.loadLibraryProfile(name)
     if (!profile) { report(t('messages.loadProfileFailed'), true); return null }
-    if (request === selection.current) selectProfile({ ...profile, path: `profiles-library/${profile.name}.txt` })
+    if (request === selection.current) selectProfile({ ...profile, path: `profiles-library/${profile.name}.txt` }, discardPrevious)
     return profile.content
   }
   const finishSave = (name: string | null, text: string, source: string) => {
@@ -158,14 +162,38 @@ export function useProfileLibrary({ resetConfigHistory, configText, setConfigTex
     }
     report(t('messages.profileDeleted', { profileName: name }))
   }
+  // Behind the progress dialog (System States 17f): each step says what it is
+  // doing, and Cancel before the file is opened takes the new copy back out.
   const handleImportProfile = async (fileName: string, content: string) => {
-    const profile = await desktopBridge.createLibraryProfile(fileName.replace(/\.[^/.]+$/, ''))
-    if (!profile) { report(t('messages.importProfileFailed'), true); return }
-    const result = await desktopBridge.saveLibraryProfile(profile.name, sanitizeImportedConfig(content))
-    if (!result) { report(t('messages.importProfileFailed'), true); return }
-    await refreshLibraryProfiles()
-    await handleLoadProfileFromLibrary(profile.name)
-    report(t('messages.profileImported', { profileName: profile.name }))
+    const baseName = fileName.replace(/\.[^/.]+$/, '')
+    const sanitized = sanitizeImportedConfig(content)
+    const lineCount = sanitized.split(/\r?\n/).filter(line => line.trim() && !line.trim().startsWith('#')).length
+    let created: string | null = null
+    try {
+      await runLongOperation(`Importing ${baseName}…`, async ({ progress, signal }) => {
+        progress(0.1, 'Creating the configuration')
+        const profile = await desktopBridge.createLibraryProfile(baseName)
+        if (!profile) { report(t('messages.importProfileFailed'), true); return }
+        created = profile.name
+        throwIfCancelled(signal)
+        progress(0.4, `Writing ${lineCount} ${lineCount === 1 ? 'line' : 'lines'}`)
+        const result = await desktopBridge.saveLibraryProfile(profile.name, sanitized)
+        if (!result) { report(t('messages.importProfileFailed'), true); return }
+        throwIfCancelled(signal)
+        progress(0.7, 'Updating the library')
+        await refreshLibraryProfiles()
+        throwIfCancelled(signal)
+        progress(0.9, `Opening ${profile.name}`)
+        await handleLoadProfileFromLibrary(profile.name)
+        progress(1)
+        report(t('messages.profileImported', { profileName: profile.name }))
+      }, { cancellable: true })
+    } catch (error) {
+      if (!(error instanceof OperationCancelled)) throw error
+      if (created) await desktopBridge.deleteLibraryProfile(created)
+      await refreshLibraryProfiles()
+      report(`Import of ${baseName} cancelled.`)
+    }
   }
   const handleCopyActiveProfile = async () => {
     const profile = await desktopBridge.copyActiveProfile()

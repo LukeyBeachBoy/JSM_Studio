@@ -11,7 +11,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  await page.addInitScript(() => {
   // Desktop imports Base. W is inherited; N is set in both, so the profile's
   // own value must win; S exists only in the profile.
-  const template='TICK_TIME = 1\nN = ENTER\nW = R\n';
+  const template='TICK_TIME = 1\nN = ENTER\nW = R\nRIGHT_TOUCHPAD_MODE = GRID_AND_STICK\nRIGHT_GRID_SIZE = 3 3\nRT1 = A\n';
   const profiles={Desktop:'RESET_MAPPINGS\nprofiles-library/Base.txt\nN = SPACE\nS = TAB\n'};
   window.__saved=[];
   window.electronAPI={
@@ -63,6 +63,35 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  assert.equal(await south.locator('kbd').first().innerText(), 'Tab');
  assert.equal(await south.getByRole('button',{name:/Inherited from/}).count(), 0);
 
+ // TODO-1: the indicator belongs on every control that exposes a value, not
+ // only on button cards. A mode dropdown, a settings field and a grid cell all
+ // take their effective value from the same import here.
+ await page.getByRole('button',{name:'Trackpads',exact:true}).click();
+ const originOf = key => page.locator(`[data-setting-origin="${key}"]`).first();
+ await originOf('RIGHT_TOUCHPAD_MODE').waitFor();
+ for (const key of ['RIGHT_TOUCHPAD_MODE','RIGHT_GRID_SIZE','RT1'])
+   assert.match(await originOf(key).innerText(), /Inherited . Base/,
+     `${key} must say where its effective value comes from`);
+
+ // Overriding one value claims that control alone; the rest stay inherited.
+ const columns = page.getByRole('textbox',{name:'Columns',exact:true});
+ await columns.fill('2'); await columns.press('Tab');
+ await originOf('RIGHT_GRID_SIZE').getByRole('button').waitFor();
+ // An override is marked as one (design: origin marker).
+ assert.equal(await originOf('RIGHT_GRID_SIZE').locator('small').innerText(), 'Override');
+ assert.match(await originOf('RIGHT_TOUCHPAD_MODE').innerText(), /Inherited . Base/,
+   'editing the grid size must not mark the mode dropdown as owned');
+ assert.match(await originOf('RT1').innerText(), /Inherited . Base/,
+   'editing the grid size must not mark the inherited grid cell as owned');
+
+ // ...and the value can be handed back to the import from the control itself.
+ await originOf('RIGHT_GRID_SIZE').getByRole('button',{name:'Use inherited',exact:true}).click();
+ assert.match(await originOf('RIGHT_GRID_SIZE').innerText(), /Inherited . Base/);
+ assert.equal(await columns.inputValue(), '3', 'restoring inheritance restores the imported value');
+
+ await page.getByRole('button',{name:'Buttons',exact:true}).click();
+ await west.locator(':scope > summary').click();
+
  // The badge routes to the config editor, the only place the import is visible.
  await badge.click();
  const editor = page.locator('.config-source-window textarea');
@@ -73,6 +102,6 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
    'the editor must show the profile, not the imported file inlined into it');
 
  assert.deepEqual(errors, [], `page errors: ${errors.join(', ')}`);
- console.log('PASS: inherited bindings are shown and marked, overrides win, and the profile text stays its own');
+ console.log('PASS: inherited bindings, settings fields, mode dropdowns and grid cells are all marked, per-control override and restore, overrides win, and the profile text stays its own');
  } finally { await browser.close(); }
 })();

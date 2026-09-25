@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Card } from './Card'
+import { AdvancedDisclosure } from './AdvancedDisclosure'
 import { NumberField } from './NumberField'
 import styles from './AiMappingPage.module.css'
 import {
@@ -25,6 +25,8 @@ type ChatEntry = {
   role: 'user' | 'assistant'
   content: string
   result?: AiGenerateResponse
+  /** The configuration the proposal was made against, for its diff. */
+  base?: string
 }
 
 const DEFAULT_SETTINGS: AiSettings = {
@@ -32,6 +34,19 @@ const DEFAULT_SETTINGS: AiSettings = {
   model: '',
   baseUrl: '',
   temperature: 0.2,
+}
+
+// What a proposal changes, as config lines: removed then added. Header lines
+// Studio manages itself are left out; the rest is what the model changed.
+const HEADER = /^(TELEMETRY_ENABLED|TELEMETRY_PORT|AUTOCONNECT|RESET_MAPPINGS)\b/
+const diffLines = (before: string, after: string) => {
+  const clean = (text: string) => text.split(/\r?\n/).map(line => line.trim()).filter(line => line && !HEADER.test(line))
+  const old = clean(before), next = clean(after)
+  const oldSet = new Set(old), nextSet = new Set(next)
+  return [
+    ...old.filter(line => !nextSet.has(line)).map(line => ({ kind: 'removed' as const, line })),
+    ...next.filter(line => !oldSet.has(line)).map(line => ({ kind: 'added' as const, line })),
+  ]
 }
 
 const createEntryId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
@@ -203,6 +218,7 @@ export function AiMappingPage({
           role: 'assistant',
           content: nextResult.summary || t('ai.emptySummary'),
           result: nextResult,
+          base: currentConfigForRequest ?? '',
         },
       ])
     } catch (error) {
@@ -237,237 +253,116 @@ export function AiMappingPage({
     setErrorMessage(null)
   }
 
+  const latestProposal = [...messages].reverse().find(message => message.role === 'assistant' && message.result)
+  const settingsReady = Boolean(settings.apiKey.trim() && settings.model.trim() && settings.baseUrl.trim())
+
+  // AI assistant (Tuning and Studio Pages 16e): a conversation. Each answer is
+  // a proposal -- the change as config lines -- applied only when you say so.
   return (
     <div className={styles.page}>
-      <Card className={styles.toolbarCard}>
-        <div className={styles.toolbar}>
-          <div className={styles.toolbarTitle}>
-            <h2>{t('ai.title')}</h2>
-            <p className="field-description">{t('ai.description')}</p>
-          </div>
-
-          <label className={styles.toolbarField}>
+      <AdvancedDisclosure label={t('ai.apiSettingsTitle')} summary={settingsReady ? `${settings.model} · ${settings.baseUrl}` : 'Not set up yet'} defaultOpen={settingsLoaded && !settingsReady}>
+        <div className={styles.settingsGrid}>
+          <label className={styles.field}>
             <span>{t('ai.apiKeyLabel')}</span>
-            <input
-              className={styles.compactInput}
-              type="password"
-              placeholder={t('ai.apiKeyPlaceholder')}
-              value={settings.apiKey}
-              onChange={event => setSettings(current => ({ ...current, apiKey: event.target.value }))}
-            />
+            <input className="text-field" type="password" placeholder={t('ai.apiKeyPlaceholder')} value={settings.apiKey}
+              onChange={event => setSettings(current => ({ ...current, apiKey: event.target.value }))} />
           </label>
-
-          <label className={styles.toolbarField}>
+          <label className={styles.field}>
             <span>{t('ai.modelLabel')}</span>
-            <input
-              className={styles.compactInput}
-              type="text"
-              placeholder={t('ai.modelPlaceholder')}
-              value={settings.model}
-              onChange={event => setSettings(current => ({ ...current, model: event.target.value }))}
-            />
+            <input className="text-field" type="text" placeholder={t('ai.modelPlaceholder')} value={settings.model}
+              onChange={event => setSettings(current => ({ ...current, model: event.target.value }))} />
           </label>
-
-          <label className={styles.toolbarField}>
+          <label className={styles.field}>
             <span>{t('ai.baseUrlLabel')}</span>
-            <input
-              className={styles.compactInput}
-              type="url"
-              placeholder={t('ai.baseUrlPlaceholder')}
-              value={settings.baseUrl}
-              onChange={event => setSettings(current => ({ ...current, baseUrl: event.target.value }))}
-            />
+            <input className="text-field" type="url" placeholder={t('ai.baseUrlPlaceholder')} value={settings.baseUrl}
+              onChange={event => setSettings(current => ({ ...current, baseUrl: event.target.value }))} />
           </label>
-
-          <NumberField
-            className={`${styles.toolbarField} ${styles.temperatureField}`}
-            label={t('ai.temperatureLabel')}
-            value={settings.temperature}
-            onChange={raw => {
-              const nextValue = Number.parseFloat(raw)
-              setSettings(current => ({
-                ...current,
-                temperature: Number.isFinite(nextValue) ? nextValue : current.temperature,
-              }))
-            }}
-            min={0}
-            max={2}
-            step={0.1}
-            coarseStep={0.5}
-          />
-
-          <button
-            type="button"
-            className={`secondary-btn ${styles.compactButton}`}
-            onClick={() => void persistSettings()}
-            disabled={savingSettings}
-          >
+        </div>
+        <NumberField label={t('ai.temperatureLabel')} value={settings.temperature} hint={t('ai.temperatureHint')}
+          onChange={raw => {
+            const nextValue = Number.parseFloat(raw)
+            setSettings(current => ({ ...current, temperature: Number.isFinite(nextValue) ? nextValue : current.temperature }))
+          }}
+          min={0} max={2} step={0.1} coarseStep={0.5} />
+        <div className={styles.settingsFooter}>
+          <span className={styles.note}>{t('ai.apiSettingsDescription')} {t('ai.providerNote')}</span>
+          <button type="button" className="button button--secondary" onClick={() => void persistSettings()} disabled={savingSettings}>
             {savingSettings ? t('ai.savingSettings') : t('ai.saveSettings')}
           </button>
         </div>
-      </Card>
+      </AdvancedDisclosure>
 
-      {errorMessage && <div className={styles.errorBanner}>{errorMessage}</div>}
+      {errorMessage && <div className={styles.errorBanner} role="alert">{errorMessage}</div>}
 
-      <div className={styles.workspace}>
-        <Card className={`${styles.chatCard} control-panel`}>
-          <div className={styles.panelHeader}>
-            <div>
-              <h3>{t('ai.conversationTitle')}</h3>
-              <p className="field-description">{t('ai.conversationDescription')}</p>
-            </div>
-            <div className={styles.panelMeta}>
-              {hasAssistantDraft && <span className="pill pill--success">{t('ai.configUpdated')}</span>}
-              <button type="button" className="ghost-btn" onClick={handleResetConversation}>
-                {t('ai.newConversation')}
-              </button>
-            </div>
+      <div ref={chatViewportRef} className={styles.chat} aria-live="polite">
+        {messages.length === 0 && !generating && (
+          <div className={styles.empty}>
+            <b>{t('ai.emptyConversationTitle')}</b>
+            <p>{t('ai.emptyConversationDescription')}</p>
           </div>
-
-          <div className={styles.chatControls}>
-            <label className={styles.baseToggle}>
-              <input
-                type="checkbox"
-                checked={includeCurrentConfig}
-                onChange={event => setIncludeCurrentConfig(event.target.checked)}
-              />
-              <div>
-                <div className={styles.baseToggleTitle}>{t('ai.useCurrentProfile')}</div>
-                <div className="field-description">
-                  {hasAssistantDraft
-                    ? t('ai.followupUsesDraft')
-                    : configText.trim()
-                      ? t('ai.useCurrentProfileHint', {
-                          profileName: currentProfileName ?? t('app.profileSummary.unsavedProfile'),
-                        })
-                      : t('ai.useCurrentProfileUnavailable')}
-                </div>
-                {!hasAssistantDraft && includeCurrentConfig && hasPendingChanges && (
-                  <div className={styles.inlineWarning}>{t('ai.includePendingChanges')}</div>
-                )}
-              </div>
-            </label>
-            {!settingsLoaded && <span className="field-description">{t('ai.loadingSettings')}</span>}
-          </div>
-
-          <div ref={chatViewportRef} className={styles.chatViewport}>
-            {messages.length === 0 && !generating ? (
-              <div className={styles.emptyState}>
-                <div className={styles.emptyStateTitle}>{t('ai.emptyConversationTitle')}</div>
-                <p className="field-description">{t('ai.emptyConversationDescription')}</p>
-              </div>
-            ) : (
-              messages.map(message => (
-                <article
-                  key={message.id}
-                  className={`${styles.message} ${message.role === 'user' ? styles.userMessage : styles.assistantMessage}`}
-                >
-                  <div className={styles.messageRole}>
-                    {message.role === 'user' ? t('ai.userRole') : t('ai.assistantRole')}
-                  </div>
-                  <div className={styles.messageContent}>{message.content}</div>
-                  {message.role === 'assistant' && message.result && (
-                    <div className={styles.messageDetails}>
-                      {message.result.assumptions.length > 0 && (
-                        <div className={styles.messageBlock}>
-                          <div className={styles.messageBlockTitle}>{t('ai.assumptions')}</div>
-                          <ul className={styles.messageList}>
-                            {message.result.assumptions.map((item, index) => (
-                              <li key={`${message.id}-assumption-${index}`}>{item}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                      {message.result.warnings.length > 0 && (
-                        <div className={styles.messageBlock}>
-                          <div className={styles.messageBlockTitle}>{t('ai.warnings')}</div>
-                          <ul className={styles.messageList}>
-                            {message.result.warnings.map((item, index) => (
-                              <li key={`${message.id}-warning-${index}`}>{item}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
+        )}
+        {messages.map(message => message.role === 'user'
+          ? <div key={message.id} className={styles.userBubble}>{message.content}</div>
+          : (
+            <article key={message.id} className={styles.proposal}>
+              <p className={styles.proposalText}>{message.content}</p>
+              {message.result && (() => {
+                const changes = diffLines(message.base ?? '', message.result.configText)
+                const isLatest = message === latestProposal
+                return <>
+                  {changes.length > 0
+                    ? <pre className={styles.diff} aria-label="Proposed change">{changes.slice(0, 14).map((change, index) =>
+                        <span key={index} className={change.kind === 'added' ? styles.added : styles.removed}>{change.kind === 'added' ? '+ ' : '− '}{change.line}{'\n'}</span>)}
+                        {changes.length > 14 && <span className={styles.more}>…and {changes.length - 14} more lines{'\n'}</span>}
+                      </pre>
+                    : <p className={styles.note}>No lines changed.</p>}
+                  {message.result.assumptions.length > 0 && <div className={styles.block}><b>{t('ai.assumptions')}</b><ul>{message.result.assumptions.map((item, index) => <li key={index}>{item}</li>)}</ul></div>}
+                  {message.result.warnings.length > 0 && <div className={`${styles.block} ${styles.warn}`}><b>{t('ai.warnings')}</b><ul>{message.result.warnings.map((item, index) => <li key={index}>{item}</li>)}</ul></div>}
+                  {isLatest && (
+                    <div className={styles.proposalActions}>
+                      <button type="button" className="button button--primary" onClick={() => void handleApplyGeneratedConfig()} disabled={applying}>{applying ? t('ai.applyingToJsm') : 'Apply change'}</button>
+                      <button type="button" className="button button--secondary" onClick={handleReplaceEditor}>Edit in editor</button>
+                      <button type="button" className="button button--tertiary" onClick={handleResetConversation}>Discard</button>
                     </div>
                   )}
-                </article>
-              ))
-            )}
-
-            {generating && (
-              <article className={`${styles.message} ${styles.assistantMessage} ${styles.pendingMessage}`}>
-                <div className={styles.messageRole}>{t('ai.assistantRole')}</div>
-                <div className={styles.messageContent}>{t('ai.generating')}</div>
-              </article>
-            )}
-          </div>
-
-          <div className={styles.composer}>
-            <label className={styles.composerLabel}>
-              <span>{t('ai.promptLabel')}</span>
-              <textarea
-                className={styles.promptInput}
-                value={composer}
-                placeholder={t('ai.promptPlaceholder')}
-                onChange={event => setComposer(event.target.value)}
-                onKeyDown={event => {
-                  if (event.key === 'Enter' && !event.shiftKey) {
-                    event.preventDefault()
-                    if (!generating) {
-                      void handleSend()
-                    }
-                  }
-                }}
-              />
-            </label>
-
-            <div className={styles.composerActions}>
-              <span className="field-description">{t('ai.providerNote')}</span>
-              <button
-                type="button"
-                className="primary-btn"
-                onClick={() => void handleSend()}
-                disabled={!settingsLoaded || generating}
-              >
-                {generating ? t('ai.generating') : t('ai.send')}
-              </button>
-            </div>
-          </div>
-        </Card>
-
-        <Card className={`${styles.previewCard} control-panel`}>
-          <div className={styles.panelHeader}>
-            <div>
-              <h3>{t('ai.currentDraftTitle')}</h3>
-              <p className="field-description">
-                {hasAssistantDraft ? t('ai.currentDraftDescription') : t('ai.currentEditorDescription')}
-              </p>
-            </div>
-            <div className={styles.previewMeta}>
-              {settings.model && hasAssistantDraft && <span className="pill pill--success">{t('ai.modelUsed', { model: settings.model })}</span>}
-            </div>
-          </div>
-
-          <div className={styles.previewActions}>
-            <button type="button" className="secondary-btn" onClick={handleReplaceEditor}>
-              {t('ai.replaceEditor')}
-            </button>
-            <button
-              type="button"
-              className="primary-btn"
-              onClick={() => void handleApplyGeneratedConfig()}
-              disabled={applying}
-            >
-              {applying ? t('ai.applyingToJsm') : t('ai.applyToJsm')}
-            </button>
-          </div>
-
-          <label className={styles.previewLabel}>
-            <span>{t('ai.currentConfigPreview')}</span>
-            <textarea className={styles.resultPreview} value={previewConfig} readOnly />
-          </label>
-        </Card>
+                </>
+              })()}
+            </article>
+          ))}
+        {generating && <article className={`${styles.proposal} ${styles.pending}`}><p className={styles.proposalText}>{t('ai.generating')}</p></article>}
       </div>
+
+      <label className={styles.baseSwitch}>
+        <input type="checkbox" checked={includeCurrentConfig} onChange={event => setIncludeCurrentConfig(event.target.checked)} />
+        <span>
+          <span>{t('ai.useCurrentProfile')}</span>
+          <small>{hasAssistantDraft
+            ? t('ai.followupUsesDraft')
+            : configText.trim()
+              ? t('ai.useCurrentProfileHint', { profileName: currentProfileName ?? t('app.profileSummary.unsavedProfile') })
+              : t('ai.useCurrentProfileUnavailable')}
+            {!hasAssistantDraft && includeCurrentConfig && hasPendingChanges ? ` ${t('ai.includePendingChanges')}` : ''}</small>
+        </span>
+      </label>
+
+      <div className={styles.composer}>
+        <textarea className={styles.prompt} value={composer} rows={1} aria-label={t('ai.promptLabel')}
+          placeholder="Ask for a mapping change"
+          onChange={event => setComposer(event.target.value)}
+          onKeyDown={event => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+              event.preventDefault()
+              if (!generating) void handleSend()
+            }
+          }} />
+        <button type="button" className="button button--secondary" onClick={() => void handleSend()} disabled={!settingsLoaded || generating}>
+          {generating ? t('ai.generating') : t('ai.send')}
+        </button>
+      </div>
+
+      <AdvancedDisclosure label={t('ai.currentDraftTitle')} summary={hasAssistantDraft ? t('ai.currentDraftDescription') : t('ai.currentEditorDescription')}>
+        <textarea className={styles.preview} value={previewConfig} readOnly aria-label={t('ai.currentConfigPreview')} />
+      </AdvancedDisclosure>
     </div>
   )
 }
