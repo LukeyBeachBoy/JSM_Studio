@@ -7,14 +7,16 @@ import { useTranslation } from 'react-i18next'
 import type { TelemetryDevice } from '../hooks/useTelemetry'
 import { BatteryIndicator } from './BatteryIndicator'
 import { InputGlyph } from './glyphs/InputGlyph'
-import { controllerVisualFamily, controllerButtonLabel, controllerDisplayName } from '../utils/controllerStatus'
+import { controllerVisualFamily, controllerButtonLabel, controllerDisplayName, getPressedControllerCommandSet } from '../utils/controllerStatus'
 import { Icon } from './icons/Icon'
 import { AppSelect } from './ui/AppSelect'
 import { ControllerStatusSvg } from './ControllerStatusSvg'
 import { NoController } from './NoController'
+import { SettingOrigins } from './SettingOrigin'
+import { desktopBridge } from '../platform/desktopBridge'
 import { FACE_BUTTONS, DPAD_BUTTONS, BUMPER_BUTTONS, TRIGGER_BUTTONS, CENTER_BUTTONS, PADDLE_BUTTONS, MINI_BUTTONS, MISC_BUTTONS, LEFT_STICK_BUTTONS, RIGHT_STICK_BUTTONS, TOUCH_BUTTONS, TOUCH_STICK_BUTTONS } from '../keymap/schema'
 import { controllerSupportsInput } from '../utils/controllerStatus'
-import { getButtonBindingRows, getKeymapValue } from '../utils/keymap'
+import { getButtonBindingRows, getKeymapValue, isTrackballBindingPresent } from '../utils/keymap'
 import { parseBindingLabels } from '../utils/bindingLabels'
 import styles from './OverviewPage.module.css'
 
@@ -33,11 +35,20 @@ type OverviewPageProps = {
   /** The configuration being edited, named by the no-controller state. */
   configName?: string | null
   recalibrating?: boolean
+  /** The virtual output the configuration starts, named by the connecting state (17b). */
+  virtualOutput?: string
 }
 
 const definitions = [...FACE_BUTTONS, ...DPAD_BUTTONS, ...BUMPER_BUTTONS, ...TRIGGER_BUTTONS, ...CENTER_BUTTONS, ...PADDLE_BUTTONS, ...MINI_BUTTONS, ...MISC_BUTTONS, ...LEFT_STICK_BUTTONS, ...RIGHT_STICK_BUTTONS, ...TOUCH_BUTTONS, ...TOUCH_STICK_BUTTONS]
 /** A layer action is not a binding and should not read like one. */
-type OverviewLine = { text: string; kind?: 'layer' | 'relation' }
+type OverviewLine = { text: string; kind?: 'layer' | 'relation' | 'setting' }
+
+// Inputs whose glyph carries no letter (grips, View, Menu, Steam, Quick
+// Access): an unbound one is named, since the glyph alone would not say
+// which it is. A lettered paddle just reads "Available".
+const UNLETTERED = new Set(['MISC5', 'MISC6', '-', '+', 'HOME', 'MISC1', 'MISC4', 'MIC', 'CAPTURE'])
+const GRIPS: Record<string, 'leftGrip' | 'rightGrip'> = { MISC6: 'leftGrip', MISC5: 'rightGrip' }
+const SPARK_SAMPLES = 60
 
 const inputName = (command: string, family: ReturnType<typeof controllerVisualFamily>) => {
   const definition = definitions.find(button => button.command === command)
@@ -50,7 +61,14 @@ const inputName = (command: string, family: ReturnType<typeof controllerVisualFa
 // these labels to depend on.
 const describeLine = (binding: string, t: TFunction) => describeBinding(binding, t)
 
-export function OverviewPage({ devices, onNavigate, configText, onSelectCommand, onSelectLayer, disabled, onRecalibrate, recalibrating, configName }: OverviewPageProps) {
+const titleCase = (value: string) => value.toLowerCase().replace(/_/g, ' ').replace(/^./, c => c.toUpperCase())
+
+// The mode line on a band card (Overview.dc.html): what the stick or pad is
+// doing, in words, with the count that matters for that mode.
+const STICK_MODES: Record<string, string> = { NO_MOUSE: 'Directions', AIM: 'Aim', HYBRID_AIM: 'Hybrid aim', FLICK: 'Flick stick', FLICK_ONLY: 'Flick only', ROTATE_ONLY: 'Rotate only', MOUSE_RING: 'Mouse ring', MOUSE_AREA: 'Mouse area', SCROLL_WHEEL: 'Scroll wheel', RADIAL_MENU: 'Radial menu', LEFT_STICK: 'Left stick', RIGHT_STICK: 'Right stick' }
+const PAD_MODES: Record<string, string> = { MOUSE: 'Mouse', GRID_AND_STICK: 'Button pad', MOUSE_RING: 'Mouse ring', MOUSE_JOYSTICK: 'Mouse joystick', NO_MOUSE: 'Directions', SCROLL_WHEEL: 'Scroll wheel', RADIAL_MENU: 'Radial menu' }
+
+export function OverviewPage({ devices, onNavigate, configText, onSelectCommand, onSelectLayer, disabled, onRecalibrate, recalibrating, configName, virtualOutput }: OverviewPageProps) {
   const { t } = useTranslation()
   const device = devices?.[0]
   // A controller that appears while the page is open gets about a second of
@@ -70,13 +88,22 @@ export function OverviewPage({ devices, onNavigate, configText, onSelectCommand,
     return () => { window.clearTimeout(done); window.clearTimeout(settled) }
   }, [present])
   const { layers, selected } = useContext(LayerUsageContext)
+  const origins = useContext(SettingOrigins)
   const [hoveredCommand, setHoveredCommand] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState('all')
   const [modifier, setModifier] = useState('')
   const [showDiagram, setShowDiagram] = useState(true)
+  // Inputs a global chord holds: they read "Reserved by global chord".
+  const [reserved, setReserved] = useState<Set<string>>(() => new Set())
+  useEffect(() => {
+    let live = true
+    desktopBridge.listGlobalChords().then(chords => { if (live) setReserved(new Set(chords.flatMap(chord => chord.buttons.map(button => button.toUpperCase())))) }).catch(() => {})
+    return () => { live = false }
+  }, [])
 
   const family = controllerVisualFamily(device?.type)
+  const pressed = useMemo(() => getPressedControllerCommandSet(device), [device])
 
   const bindings = useMemo(() => {
     const text = configText ?? ''
@@ -99,7 +126,7 @@ export function OverviewPage({ devices, onNavigate, configText, onSelectCommand,
       // Modifier relationships are separate lines; don't dump entire setting lists into a binding.
       const relationships = inputUsage(text, command, layers)
       relationships.filter(use => !['shift', 'chord'].includes(use.kind))
-        .forEach(use => lines.push({ text: use.label, kind: use.kind === 'layer' ? 'layer' : undefined }))
+        .forEach(use => lines.push({ text: use.label, kind: use.kind === 'layer' ? 'layer' : use.kind === 'setting' ? 'setting' : undefined }))
       const shifts = relationships.filter(use => use.kind === 'shift')
       const chords = relationships.filter(use => use.kind === 'chord')
       // A count answers nothing: "1 changed inputs / settings" tells you there
@@ -175,41 +202,81 @@ export function OverviewPage({ devices, onNavigate, configText, onSelectCommand,
     [bindings, configText, layers],
   )
 
-  const mode = (key: string) => (getKeymapValue(configText ?? '', key) || '').toLowerCase().replace(/_/g, ' ')
   const value = (key: string) => getKeymapValue(configText ?? '', key) ?? ''
+  const mode = (key: string) => value(key).toUpperCase()
   const triggerThreshold = Number.parseFloat(value('TRIGGER_THRESHOLD')) || 0
+
+  // Where a value comes from (Components 13.8), as a dot: solid for an
+  // override of an inherited value, hollow for one taken from an import.
+  const ownEntries = useMemo(() => layerEntries(origins.own), [origins.own])
+  const baseEntries = useMemo(() => layerEntries(origins.base), [origins.base])
+  const originOf = (key: string): { kind: 'override' | 'inherited'; title: string } | null => {
+    const own = Object.prototype.hasOwnProperty.call(ownEntries, key)
+    const source = origins.origins[key]
+    const imported = source && source !== '<editor>' ? source.split('/').pop()?.replace(/\.txt$/i, '') : null
+    if (origins.layer) return own ? { kind: 'override', title: `Override · ${origins.layer}` } : imported || Object.prototype.hasOwnProperty.call(baseEntries, key) ? { kind: 'inherited', title: 'Inherited from Default' } : null
+    if (own) return imported || Object.prototype.hasOwnProperty.call(baseEntries, key) ? { kind: 'override', title: 'Override' } : null
+    return imported ? { kind: 'inherited', title: `Inherited from ${imported}` } : null
+  }
+  const originDot = (key: string) => {
+    const origin = originOf(key)
+    return origin ? <span className={styles.originDot} data-origin={origin.kind} title={origin.title} /> : null
+  }
+  // The dot with its source named, for a tile (a marker's reset button
+  // cannot sit inside the tile's own button).
+  const originMark = (key: string) => {
+    const origin = originOf(key)
+    if (!origin) return null
+    return <span className={styles.originMark} data-origin={origin.kind}><span className={styles.originDot} data-origin={origin.kind} />{origin.kind === 'override' ? 'Override' : origin.title.replace(/^Inherited from /, '')}</span>
+  }
 
   // How many inputs each filter would show, for the chip counts.
   const overrideCount = Object.keys(selected?.overrides ?? {}).filter(key => !key.startsWith('#')).length
   const availableCount = Object.values(bindings).filter(entry => !entry.used).length
 
-  // One callout: glyph, what it does, and -- when the configuration names the
-  // action -- its output as a keycap on the right. Relations and layer actions
-  // stay as their own lines so what an input changes is always spelled out.
+  // One callout (48 high): glyph, the action and a detail line, the origin
+  // dot and output keycap on the right. A trigger folds its full pull into
+  // the line ("Soft pull · full pull Left Shift") with the live pull under it.
   const callout = (command: string, compact = false) => {
     const entry = bindings[command]
     const plain = entry.lines.filter(line => !line.kind)
-    const keycap = entry.name && plain[0] && plain[0].text.length <= 16 && !plain[0].text.includes(':') ? plain[0].text : null
-    const title = entry.name ?? plain[0]?.text ?? null
-    const rest = entry.lines.filter(line => line.text !== title && line.text !== keycap)
+    const settingLines = entry.lines.filter(line => line.kind === 'setting')
+    const activation = !entry.name && !plain.length && settingLines.find(line => /^(Enable|Disable) gyro/.test(line.text))
+    const keycap = activation ? activation.text.replace(/^(Enable|Disable)/, '$1s') : entry.name && plain[0] && plain[0].text.length <= 16 && !plain[0].text.includes(':') ? plain[0].text : null
     const trigger = command === 'ZL' || command === 'ZR'
+    const fullPull = trigger ? bindings[command + 'F'] : undefined
+    const title = activation ? inputName(command, family) : entry.name ?? plain[0]?.text ?? null
+    const rest = entry.lines.filter(line => line.text !== title && line.text !== keycap && line !== activation)
+    const grip = GRIPS[command]
+    const gripHeld = grip ? Boolean(device?.status?.[grip]?.pressed) || pressed.has(command) : false
+    const detail = activation
+      ? (gripHeld ? `Held · gyro ${/Enable/.test(activation.text) ? 'on' : 'off'}` : `Hold to ${/Enable/.test(activation.text) ? 'enable' : 'disable'} gyro`)
+      : trigger && (fullPull?.used || command.endsWith('F'))
+        ? `Soft pull · full pull ${fullPull?.name ?? fullPull?.lines.find(line => !line.kind)?.text ?? 'unbound'}`
+        : command.endsWith('F') ? 'Full pull'
+        : rest.filter(line => !line.kind).map(line => line.text).join(' · ')
     const pull = trigger ? (command === 'ZL' ? device?.status?.triggers.left : device?.status?.triggers.right) ?? 0 : 0
-    return <div key={command} className={styles.inputRow}><button type="button" className={`${styles.callout} ${compact ? styles.calloutCompact : ''}`} data-overview-input={command}
+    const unbound = !title
+    const named = UNLETTERED.has(command)
+    return <div key={command} className={styles.inputRow}><button type="button" className={`${styles.callout} ${compact ? styles.calloutCompact : ''} ${unbound ? styles.calloutAvailable : ''}`} data-overview-input={command}
       data-hints="A:Edit;X:Show affected;Y:Search;B:Back"
       aria-label={command + ': ' + labels[command]} title={inputName(command, family) + '\n' + inputUses(configText ?? '', command, layers).join('\n')}
       onClick={() => onSelectCommand?.(command)}
       onFocus={() => setHoveredCommand(command)} onBlur={() => setHoveredCommand(null)}
       onMouseEnter={() => setHoveredCommand(command)} onMouseLeave={() => setHoveredCommand(null)}>
-      <InputGlyph command={command} family={family} size={compact ? 24 : 28} />
+      <InputGlyph command={command} family={family} size={compact ? 20 : 28} className={styles.glyph} />
       <span className={styles.bindingText}>
-        {title ? <strong className={styles.calloutTitle}>{title}</strong> : <span className={`${styles.calloutTitle} ${styles.unbound}`}>Available in this layer</span>}
-        {command.endsWith('F') && <small>Full pull</small>}
-        {rest.map((line, index) => (
-          <span key={index} className={line.kind === 'layer' ? styles.layerLine : line.kind === 'relation' ? styles.relationLine : styles.detailLine}>
+        {title
+          ? <strong className={styles.calloutTitle}>{title}</strong>
+          : <span className={`${styles.calloutTitle} ${styles.unbound}`}>{named ? inputName(command, family) : 'Available'}</span>}
+        {unbound && named && <span className={styles.detailLine}>{reserved.has(command) ? 'Reserved by global chord' : 'Unbound'}</span>}
+        {detail && <span className={styles.detailLine}>{detail}</span>}
+        {rest.filter(line => line.kind && line.kind !== 'setting').map((line, index) => (
+          <span key={index} className={line.kind === 'layer' ? styles.layerLine : styles.relationLine}>
             {line.kind === 'layer' && <LayerIcon />}{line.text}
           </span>
         ))}
-        {!title && !entry.lines.length && <span className={styles.detailLine}>{inputName(command, family)}</span>}
+        {!activation && rest.filter(line => line.kind === 'setting').map((line, index) => <span key={'s' + index} className={styles.detailLine}>{line.text}</span>)}
         {trigger && device && (
           <span className={styles.triggerMeter} aria-hidden="true">
             <span className={styles.triggerMeterFill} style={{ transform: `scaleX(${Math.max(0, Math.min(1, pull))})` }} />
@@ -218,8 +285,30 @@ export function OverviewPage({ devices, onNavigate, configText, onSelectCommand,
         )}
         <LayerValueBadge command={command} />
       </span>
-      {keycap && <kbd className={styles.valuePill}>{keycap}</kbd>}
+      {(keycap || originOf(command)) && (
+        <span className={styles.valueSide}>
+          {originDot(command)}
+          {keycap && <kbd className={`${styles.valuePill} ${activation ? styles.valuePillJsm : ''}`}>{keycap}</kbd>}
+          {keycap && !activation && plain.length > 1 && <span className={styles.more}>+{plain.length - 1}</span>}
+        </span>
+      )}
     </button>{entry.hasUses && <button type="button" className={styles.inspect} aria-label={`Show uses of ${command}`} onClick={() => window.dispatchEvent(new CustomEvent('jsm:input-uses', { detail: command }))}>Inspect uses</button>}</div>
+  }
+
+  const modeLine = (modeKey: string | undefined, items: string[]) => {
+    const overrides = items.filter(command => Object.keys(selected?.overrides ?? {}).some(key => key === command || key.endsWith(',' + command))).length
+    const bound = items.filter(command => bindings[command]?.used).length
+    if (!modeKey) return `${bound} bound${overrides ? ` · ${overrides} override${overrides === 1 ? '' : 's'}` : ''}`
+    const raw = mode(modeKey)
+    if (!raw) return ''
+    const regions = items.filter(command => /^[LR]?[TM]\d+$/.test(command)).length
+    if (modeKey.includes('STICK')) {
+      const segments = Number.parseInt(value(modeKey.replace('_MODE', '_MENU_SIZE')), 10) || regions
+      return raw === 'RADIAL_MENU' ? `Radial menu · ${segments} segments` : STICK_MODES[raw] ?? titleCase(raw)
+    }
+    if (raw === 'GRID_AND_STICK') return `${regions}-way button pad`
+    const name = PAD_MODES[raw] ?? titleCase(raw)
+    return regions ? `${name} · ${regions} click region${regions === 1 ? '' : 's'}` : name
   }
 
   const group = (id: string, title: string, commands: string[], modeKey?: string, modeCommand?: string, variant: 'column' | 'card' = 'column') => {
@@ -227,16 +316,24 @@ export function OverviewPage({ devices, onNavigate, configText, onSelectCommand,
       const entry = bindings[command]
       if (!entry || (!showUnbound && filter !== 'available' && !entry.used)) return false
       if (id !== 'other-hardware' && !controllerSupportsInput(device, command)) return false
+      // A trigger's full pull is told on the trigger's own row.
+      if ((command === 'ZLF' || command === 'ZRF') && bindings[command.slice(0, 2)]?.used && filter === 'all' && !query) return false
       if (filter === 'available' && entry.used) return false
       if (filter === 'overrides' && !Object.keys(selected?.overrides ?? {}).some(key => key === command || key.endsWith(',' + command))) return false
       if (modifier && !inputUsage(configText ?? '', modifier, layers).some(use => use.target === command || use.target.endsWith(',' + command))) return false
       return !query || [inputName(command, family), command, entry.name, ...entry.lines.map(line => line.text)].join(' ').toLowerCase().includes(query.toLowerCase())
     })
-    const modeLabel = modeKey ? mode(modeKey) : ''
-    if (!items.length && (!modeLabel || query || filter !== 'all' || modifier)) return null
+    const line = variant === 'card' ? modeLine(modeKey, commands.filter(command => bindings[command])) : ''
+    if (!items.length && (!line || query || filter !== 'all' || modifier)) return null
     return <section className={variant === 'card' ? styles.overviewCard : styles.bindingGroup} aria-label={title} data-overview-group={id} key={id}>
-      <h3>{title}</h3>
-      {modeLabel && <button type="button" className={styles.mode} onClick={() => onSelectCommand?.(modeCommand!)}>{modeLabel}</button>}
+      {variant === 'card'
+        ? <header className={styles.cardHead}>
+            <h3>{title}</h3>
+            {line && (modeCommand
+              ? <button type="button" className={styles.mode} onClick={() => onSelectCommand?.(modeCommand)}>{line}</button>
+              : <span className={styles.mode}>{line}</span>)}
+          </header>
+        : <h3>{title}</h3>}
       <div className={styles.callouts}>
         {items.map(command => callout(command, variant === 'card'))}
       </div>
@@ -252,21 +349,37 @@ export function OverviewPage({ devices, onNavigate, configText, onSelectCommand,
   const speedHistory = useRef<number[]>([])
   useEffect(() => {
     if (!gyro) return
-    speedHistory.current = [...speedHistory.current.slice(-59), speed]
+    speedHistory.current = [...speedHistory.current.slice(-(SPARK_SAMPLES - 1)), speed]
   })
   const sparkline = (() => {
     const values = speedHistory.current
     if (values.length < 2) return ''
     const top = Math.max(60, ...values)
-    return values.map((sample, index) => `${(index / 59) * 240},${46 - (sample / top) * 42}`).join(' ')
+    return values.map((sample, index) => `${(index / (SPARK_SAMPLES - 1)) * 240},${40 - (sample / top) * 34}`).join(' ')
   })()
   const gyroOn = value('GYRO_ON'), gyroOff = value('GYRO_OFF')
-  const activation = gyroOn ? `Hold ${inputName(gyroOn, family)} to enable` : gyroOff ? `Hold ${inputName(gyroOff, family)} to disable` : 'Always on'
-  const sens = value('GYRO_SENS') || [value('MIN_GYRO_SENS'), value('MAX_GYRO_SENS')].filter(Boolean).join(' – ') || '—'
+  const activation = gyroOn ? `Hold ${inputName(gyroOn, family).toLowerCase()} to enable` : gyroOff ? `Hold ${inputName(gyroOff, family).toLowerCase()} to disable` : 'Always on'
+  const outputName = { LEFT_STICK: 'Left stick', RIGHT_STICK: 'Right stick' }[mode('GYRO_OUTPUT')] ?? 'Mouse'
+  const pair = (raw: string) => raw.trim().split(/\s+/).filter(Boolean)
+  const staticSens = pair(value('GYRO_SENS')), minSens = pair(value('MIN_GYRO_SENS')), maxSens = pair(value('MAX_GYRO_SENS'))
+  const sens = staticSens.length ? `${staticSens[0]} / ${staticSens[1] ?? staticSens[0]}` : minSens.length || maxSens.length ? `${minSens[0] ?? '—'} – ${maxSens[0] ?? '—'}` : '—'
+  const sensKey = staticSens.length ? 'GYRO_SENS' : minSens.length ? 'MIN_GYRO_SENS' : 'MAX_GYRO_SENS'
   const invert = (key: string) => /INVERT/i.test(value(key)) ? 'On' : 'Off'
+  const rightPadModeKey = value('RIGHT_TOUCHPAD_MODE') ? 'RIGHT_TOUCHPAD_MODE' : 'TOUCHPAD_MODE'
+  const rightPadMode = PAD_MODES[mode(rightPadModeKey)] ?? (mode(rightPadModeKey) ? titleCase(mode(rightPadModeKey)) : 'Mouse')
+  const trackball = isTrackballBindingPresent(configText ?? '')
 
   return (
     <div className={styles.page}>
+      {/* The search sits on the page header's right (Overview.dc.html); the
+          header is the shell's, so the field is placed over it from here. */}
+      {/* Y reaches search from anywhere; entering the page lands on the
+          first callout, not in a text field the pad cannot type into. */}
+      <label className={styles.search} data-pad-keys="Y" data-nav-entry-skip="">
+        <Icon name="search" size={16} />
+        <input type="search" aria-label="Search bindings" placeholder="Find an input, action or key" value={query} onChange={e => setQuery(e.target.value)} />
+        <kbd className={styles.searchKey} aria-hidden="true">Y</kbd>
+      </label>
       <div className={styles.filterBar} role="toolbar" aria-label="Filter bindings">
         {([['all', 'All bindings', null], ['overrides', 'Overrides', overrideCount], ['available', 'Available', availableCount]] as const).map(([id, label, count]) => (
           <button key={id} type="button" className={styles.filterChip} aria-pressed={filter === id} onClick={() => setFilter(id)}>
@@ -283,13 +396,9 @@ export function OverviewPage({ devices, onNavigate, configText, onSelectCommand,
         <button type="button" className={styles.toggleChip} aria-pressed={showUnbound} onClick={() => setShowUnbound(value => !value)}><span className={styles.toggleMark} aria-hidden="true" />Show unbound</button>
         <button type="button" className={styles.toggleChip} aria-pressed={showDetails} onClick={() => setShowDetails(value => !value)}><span className={styles.toggleMark} aria-hidden="true" />Details</button>
         <button type="button" className={styles.toggleChip} aria-pressed={showDiagram} onClick={() => setShowDiagram(v => !v)}><span className={styles.toggleMark} aria-hidden="true" />Controller</button>
-        <label className={styles.search} data-pad-keys="Y">
-          <Icon name="search" size={16} />
-          <input type="search" aria-label="Search bindings" placeholder="Find an input, action or key" value={query} onChange={e => setQuery(e.target.value)} />
-        </label>
       </div>
       {layers.length > 0 && (
-        <div className={styles.layerTabs} role="group" aria-label="Preview layer">
+        <div className={styles.layerTabs} role="group" aria-label="Preview layer" data-nav-entry-skip="">
           <button type="button" aria-pressed={!selected} disabled={disabled} onClick={() => onSelectLayer?.('')}>Default</button>
           {layers.map((layer, index) => <button key={layer.id} type="button" disabled={disabled} aria-pressed={selected?.id === layer.id} onClick={() => onSelectLayer?.(layer.id)}>
             <span className={styles.layerSwatch} style={{ background: `var(--layer-${(index % 3) + 1})` }} aria-hidden="true" /><LayerIcon />{layer.name}
@@ -299,21 +408,19 @@ export function OverviewPage({ devices, onNavigate, configText, onSelectCommand,
 
       <section className={`${styles.hero} ${!showDiagram ? styles.noDiagram : ''}`} aria-label="Controller">
         <div className={styles.calloutColumn}>
-          {group('left-shoulder', 'Left shoulder & grip', ['L', 'ZL', 'ZLF', 'LMINI', 'MISC6'])}
-          {group('left-back', 'Left back buttons', ['LSL', 'LSR'])}
+          {group('left-shoulder', 'Left shoulder & grip', ['ZL', 'ZLF', 'L', 'LSL', 'LSR', 'LMINI', 'MISC6'])}
           {group('left-middle', 'Left middle', ['-', 'HOME'])}
         </div>
         {showDiagram && <div className={styles.diagram} data-arrived={arrived || undefined}>
           {device && connecting
-            ? <NoController configName={configName} connecting={{ name: controllerDisplayName(device.type), detail: `SDL · ${controllerDisplayName(device.type)}` }} />
+            ? <NoController configName={configName} connecting={{ name: controllerDisplayName(device.type), detail: `SDL · ${controllerDisplayName(device.type)}`, output: virtualOutput }} />
             : device
             ? <ControllerStatusSvg device={device} boundCommands={boundCommands} bindingLabels={labels} selectedCommand={hoveredCommand} onSelectCommand={onSelectCommand} showRawTelemetry={showDetails} />
             : <NoController configName={configName} onKeepEditing={() => document.querySelector<HTMLElement>('[aria-label="Controller"] button, [aria-label="Controller"] summary')?.focus()} />}
           {device && !connecting && <div className={styles.diagramStatus}><BatteryIndicator percent={device.batteryPercent} state={device.batteryState} /></div>}
         </div>}
         <div className={styles.calloutColumn}>
-          {group('right-shoulder', 'Right shoulder & grip', ['R', 'ZR', 'ZRF', 'RMINI', 'MISC5'])}
-          {group('right-back', 'Right back buttons', ['RSR', 'RSL'])}
+          {group('right-shoulder', 'Right shoulder & grip', ['ZR', 'ZRF', 'R', 'RSR', 'RSL', 'RMINI', 'MISC5'])}
           {group('right-middle', 'Right middle', ['+', 'MISC1', 'MIC', 'MISC4'])}
         </div>
       </section>
@@ -332,19 +439,20 @@ export function OverviewPage({ devices, onNavigate, configText, onSelectCommand,
         <button type="button" className={`${styles.quickTile} ${styles.quickTileGyro}`} aria-label="Gyro summary" onClick={() => onNavigate('gyro')}>
           <span className={styles.quickMain}>
             <span className={styles.quickEyebrow}>Gyro</span>
-            <span className={styles.quickValue}>{activation} · {mode('GYRO_OUTPUT') || 'mouse'}</span>
+            <span className={styles.quickValue}>{activation} · {outputName}</span>
             <span className={styles.quickStats}>
-              <span><small>Sensitivity</small>{sens}</span>
-              <span><small>Real world cal.</small>{value('REAL_WORLD_CALIBRATION') || '—'}</span>
-              <span><small>Space</small>{mode('GYRO_SPACE') || 'local'}</span>
+              <span><small>Sensitivity</small><b>{sens} {originDot(sensKey)}</b></span>
+              <span><small>Real world cal.</small><b>{value('REAL_WORLD_CALIBRATION') || '—'}</b></span>
+              <span><small>Space</small><b>{mode('GYRO_SPACE') ? titleCase(mode('GYRO_SPACE')) : 'Local'}</b></span>
             </span>
           </span>
           <span className={styles.quickLive} aria-hidden={!device}>
             <span className={styles.quickLiveHead}><small>Speed</small><b>{device ? `${Math.round(speed)} °/s` : '—'}</b></span>
             <svg className={styles.sparkline} viewBox="0 0 240 48" preserveAspectRatio="none" aria-hidden="true">
+              <line x1="0" y1="40" x2="240" y2="40" className={styles.sparklineBase} />
               {sparkline && <polyline points={sparkline} />}
             </svg>
-            <small>{device ? 'live' : 'No controller'}</small>
+            <span className={styles.quickLiveFoot}><span>{device ? `${SPARK_SAMPLES} samples` : ''}</span><span>{device ? 'live' : 'No controller'}</span></span>
           </span>
         </button>
         <button type="button" className={styles.quickTile} onClick={() => onNavigate('gyro')}>
@@ -354,12 +462,12 @@ export function OverviewPage({ devices, onNavigate, configText, onSelectCommand,
         </button>
         <button type="button" className={styles.quickTile} onClick={() => onNavigate('touchpad')}>
           <span className={styles.quickEyebrow}>Right pad</span>
-          <span className={styles.quickValue}>{mode('RIGHT_TOUCHPAD_MODE') || mode('TOUCHPAD_MODE') || 'mouse'}</span>
-          <small>Select to change</small>
+          <span className={styles.quickValue}>{rightPadMode}{trackball ? ' · Trackball' : ''}</span>
+          <small>{originMark(rightPadModeKey) ?? 'Select to change'}</small>
         </button>
         <button type="button" className={`${styles.quickTile} ${styles.quickTileAction}`} disabled={!onRecalibrate || recalibrating} onClick={onRecalibrate}>
           <span className={styles.quickEyebrow}>Calibration</span>
-          <span className={styles.quickValue}>{recalibrating ? 'Recalibrating…' : 'Recalibrate gyro'}</span>
+          <span className={styles.quickAction}>{recalibrating ? 'Recalibrating…' : 'Recalibrate gyro'}</span>
         </button>
       </section>
 

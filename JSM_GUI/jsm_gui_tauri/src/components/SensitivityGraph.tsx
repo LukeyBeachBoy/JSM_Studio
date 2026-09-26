@@ -105,7 +105,9 @@ export function SensitivityGraph(props: SensitivityGraphProps) {
   const hoverCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const axisRef = useRef<AxisLayout | null>(null)
   const [hoverSpeed, setHoverSpeed] = useState<number | null>(null)
-  const { theme } = useTheme()
+  // The colour actually on screen: "system" alone would not redraw the canvas
+  // when the OS flips between light and dark.
+  const { resolved: theme } = useTheme()
   const {
     minThreshold,
     maxThreshold,
@@ -146,15 +148,17 @@ export function SensitivityGraph(props: SensitivityGraphProps) {
     ctx.resetTransform()
     ctx.scale(ratio, ratio)
 
-    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#6fa7ff'
-    const liveSensColor = accent
-    const liveOutputColor = getComputedStyle(document.documentElement).getPropertyValue('--telemetry-green').trim() || '#87ff9d'
-
+    // The design tokens (HANDOFF "Token migration"); the well, hairline and
+    // text steps the surrounding rows use, so the graph sits in the page.
     const styles = getComputedStyle(document.documentElement)
-    const bg = styles.getPropertyValue('--bg-input').trim() || '#0f0f0f'
-    const grid = styles.getPropertyValue('--border-1').trim() || '#2d2d2d'
-    const labelColor = styles.getPropertyValue('--text-mid').trim() || '#aaa'
-    const axisColor = styles.getPropertyValue('--text-muted').trim() || '#999'
+    const token = (name: string, fallback: string) => styles.getPropertyValue(name).trim() || fallback
+    const accent = token('--accent', '#6fa7ff')
+    const liveSensColor = accent
+    const liveOutputColor = token('--telemetry', '#87ff9d')
+    const bg = token('--surface-sunken', '#0f0f0f')
+    const grid = token('--line-1', '#2d2d2d')
+    const labelColor = token('--text-2', '#aaa')
+    const axisColor = token('--text-3', '#999')
     ctx.fillStyle = bg
     ctx.fillRect(0, 0, baseWidth, baseHeight)
     ctx.strokeStyle = grid
@@ -381,9 +385,9 @@ export function SensitivityGraph(props: SensitivityGraphProps) {
 
     const cssStyles = getComputedStyle(document.documentElement)
     const accent = cssStyles.getPropertyValue('--accent').trim() || '#6fa7ff'
-    const textMid = cssStyles.getPropertyValue('--text-mid').trim() || '#aaa'
-    const bgInput = cssStyles.getPropertyValue('--bg-input').trim() || '#0f0f0f'
-    const border1 = cssStyles.getPropertyValue('--border-1').trim() || '#2d2d2d'
+    const textMid = cssStyles.getPropertyValue('--text-2').trim() || '#aaa'
+    const bgInput = cssStyles.getPropertyValue('--surface-raised').trim() || '#0f0f0f'
+    const border1 = cssStyles.getPropertyValue('--line-1').trim() || '#2d2d2d'
 
     const safeMinSensX = minSensX ?? 0
     const safeMaxSensX = maxSensX ?? safeMinSensX

@@ -54,7 +54,8 @@ const PROFILE = [
     assert.match(rowText, /2 modeshifts/, 'the row must say how many shifts change this input');
 
     // --- the shifted card is the normal card --------------------------------
-    await page.locator('details').filter({ hasText: 'Modeshift · L' }).first().locator(':scope > summary').click();
+    // The shift is edited from the input's own editor (Binding Editor 7a).
+    await north.locator(':scope > summary').click();
     const shifted = page.locator('[data-input-command="L,N"]');
     await shifted.waitFor();
     assert.equal(await shifted.count(), 1, 'a shifted card must be separately addressable from the normal one');
@@ -73,9 +74,9 @@ const PROFILE = [
     );
     await page.keyboard.press('Escape');
 
-    await shifted.getByRole('button',{name:'Advanced command settings',exact:true}).first().click();
+    await shifted.getByRole('button',{name:'Command options',exact:true}).first().click();
     // The editing capabilities the reduced version did not have.
-    for (const name of [/Add another trigger/i, /Capture/i]) {
+    for (const name of [/Add command/i, /Capture/i]) {
       assert.ok(await shifted.getByRole('button', { name }).count() >= 1, `the shifted card is missing ${name}`);
     }
     assert.equal(await shifted.getByRole('combobox', { name: /Output/i }).count(), 1, 'no output-kind picker in a shift');
@@ -83,7 +84,7 @@ const PROFILE = [
 
     // A shift has no second condition to hang a chord on, so it must not offer
     // to make one: the line would be written where this card cannot show it.
-    await shifted.getByRole('button', { name: /Add another trigger/i }).click();
+    await shifted.getByRole('button', { name: /Add command/i }).click();
     const addItems = (await page.getByRole('menuitem').allInnerTexts()).map(text => text.trim());
     assert.ok(!addItems.some(item => /chord/i.test(item)), `a shift must not offer chords: ${addItems.join(', ')}`);
     await page.keyboard.press('Escape');
@@ -109,9 +110,9 @@ const PROFILE = [
     // Editing one command must not take the other with it: both live on one
     // config line, and the old shifted editor wrote that line from a single
     // binding expression.
-    await shifted.getByRole('button', { name: /Add another trigger/i }).click();
+    await shifted.getByRole('button', { name: /Add command/i }).click();
     await page.getByRole('menuitem', { name: 'Hold', exact: true }).click();
-    await shifted.getByRole('button',{name:'Advanced command settings',exact:true}).nth(1).click();
+    await shifted.getByRole('button',{name:'Command options',exact:true}).nth(1).click();
     const outputs = shifted.getByRole('textbox', { name: /Output value/i });
     await outputs.nth(1).waitFor();
     await outputs.nth(1).fill('M');

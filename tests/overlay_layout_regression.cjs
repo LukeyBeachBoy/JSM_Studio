@@ -133,7 +133,7 @@ assert.equal(mismatches, 0, `${mismatches} of ${cases.length} coordinates disagr
 // --- placement directives ----------------------------------------------------
 // reveal is per surface: a pad menu has always appeared on contact, a stick
 // wheel only once the stick reaches the ring. DEF is the pad shape.
-const DEF = { showLabels: true, showKeys: true, fontSize: 14, reveal: 'touch' };
+const DEF = { showLabels: true, showKeys: true, showIcons: true, fontSize: 14, reveal: 'touch' };
 const config = [
   '# @overlay RIGHT at 0.82 0.74 size 300',
   '# @overlay LEFT at 0.18 0.74',
@@ -179,11 +179,13 @@ assert.equal(parseOverlayPlacements('# @overlay LEFT at 0.2 0.8 font 900').LEFT.
   'absurd font size is clamped rather than making one region fill the screen');
 
 // Options survive a round trip, and defaults are not written back as noise.
-const styled = setOverlayPlacement('', 'LEFT', '', { x: 0.2, y: 0.8, size: 240, showLabels: true, showKeys: false, fontSize: 20 });
+const styled = setOverlayPlacement('', 'LEFT', '', { x: 0.2, y: 0.8, size: 240, showLabels: true, showKeys: false, showIcons: false, fontSize: 20 });
 assert.match(styled, /keys off/, 'non-default option is written');
 assert.doesNotMatch(styled, /labels on/, 'a default must not be written back as clutter');
 assert.deepEqual(parseOverlayPlacements(styled).LEFT,
-  { x: 0.2, y: 0.8, size: 240, showLabels: true, showKeys: false, fontSize: 20, reveal: 'touch' }, 'round trip');
+  { x: 0.2, y: 0.8, size: 240, showLabels: true, showKeys: false, showIcons: false, fontSize: 20, reveal: 'touch' }, 'round trip');
+assert.match(styled, / icons off\b/, 'hiding icons is written to the line');
+assert.ok(!/icons/.test(setOverlayPlacement('', 'LEFT', '', { x: 0.2, y: 0.8, size: 240, showLabels: true, showKeys: true, fontSize: 14 })), 'a placement from before the option existed writes no icons option');
 // The placement handed to setOverlayPlacement above predates `reveal` and has no
 // such field. Writing it raw put the literal "show undefined" into the profile.
 assert.doesNotMatch(styled, /show undefined/, 'a missing option must not be written as a word');

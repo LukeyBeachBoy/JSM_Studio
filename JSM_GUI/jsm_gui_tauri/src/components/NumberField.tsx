@@ -1,6 +1,5 @@
 import { settingHelp } from '../utils/settingHelp'
 import { SettingOrigin } from './SettingOrigin'
-import { HelpButton } from './HelpButton'
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { PAD_EVENT, type PadEventDetail } from '../nav/useControllerNavigation'
 import { useTranslation } from 'react-i18next'
@@ -83,6 +82,10 @@ export function NumberField({
   const [draft, setDraft] = useState<string>(value === undefined || value === null ? '' : String(value))
   const [editing, setEditing] = useState(false)
   const rowRef = useRef<HTMLDivElement>(null)
+  // The raw value when the slider's adjust mode began, so B puts back exactly
+  // that: an unset setting stays unset instead of being written as its default.
+  const adjustStart = useRef<NumberFieldProps['value']>(value)
+  const rawText = (raw: NumberFieldProps['value']) => raw === undefined || raw === null ? '' : String(raw)
 
   // Y opens this setting's help, or the documentation when it has none yet
   // (HANDOFF.md, "Help that degrades").
@@ -93,9 +96,7 @@ export function NumberField({
       const { button } = (event as CustomEvent<PadEventDetail>).detail
       if (button !== 'Y') return
       event.preventDefault()
-      const helpButton = row.querySelector<HTMLButtonElement>('.help-button')
-      if (helpButton) helpButton.click()
-      else window.dispatchEvent(new CustomEvent('jsm:open-docs', { detail: { setting } }))
+      window.dispatchEvent(new CustomEvent('jsm:open-docs', { detail: { setting } }))
     }
     row.addEventListener(PAD_EVENT, onPad)
     return () => row.removeEventListener(PAD_EVENT, onPad)
@@ -165,7 +166,7 @@ export function NumberField({
       ref={rowRef}
       className={`setting-row ${styles.field} ${layout === 'inline' ? styles.inline : ''} ${disabled ? styles.disabled : ''} ${className}`.trim()}
       data-capture-ignore="true"
-      data-hints={help ? 'A:Adjust;Y:Help;B:Back' : 'A:Adjust;Y:Documentation;B:Back'}
+      data-hints="A:Adjust;Y:Documentation;B:Back"
     >
       <div className={styles.head}>
         {/* The help button belongs to the label, not to the row: left on its
@@ -175,12 +176,21 @@ export function NumberField({
           <label className={styles.label} htmlFor={inputId}>
             {label}
           </label>
-          {help && <HelpButton title={typeof label === 'string' ? label : 'Setting help'}>{help}</HelpButton>}
+          {/* The description sits under the row (Gyro.dc.html), so a "?" beside the
+              label would only repeat it; a row with no description yet wears
+              the frame's help dot instead, and Y opens the documentation. */}
+          {!help && <span className={styles.helpDot} title="No description yet" aria-hidden="true">?</span>}
         </span>
         {/* Fine / coarse sits with the value, so showing it on hover moves
             nothing and the slider keeps the full width. */}
+        {/* The row is one stop for the pad: the slider. A enters it, X swaps
+            fine/coarse while adjusting, and the pad cannot type -- so the
+            toggle and the text box are skipped by the arrow walk (the mouse
+            and Tab still reach them). Landing on the text box used to hand
+            it Up/Down, which changed the value instead of moving on. */}
         <button
           type="button"
+          data-nav-skip
           className={`${styles.stepToggle} ${coarse ? styles.stepToggleCoarse : ''}`}
           onClick={() => setCoarse(prev => !prev)}
           disabled={disabled}
@@ -196,6 +206,7 @@ export function NumberField({
             className={styles.valueInput}
             type="text"
             inputMode="decimal"
+            data-nav-skip
             value={draft}
             placeholder={placeholder ?? (defaultValue !== undefined ? String(defaultValue) : undefined)}
             disabled={disabled}
@@ -223,6 +234,8 @@ export function NumberField({
           ariaLabel={typeof label === 'string' ? label : undefined}
           onToggleFine={() => setCoarse(prev => !prev)}
           coarse={coarse}
+          onAdjustStart={() => { adjustStart.current = value }}
+          onRevert={() => onChange(rawText(adjustStart.current))}
         />
       </div>
       {help

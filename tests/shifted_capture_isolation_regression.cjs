@@ -66,11 +66,12 @@ assert.ok(normalIds.some(id => shiftedIds.includes(id)), 'the ids no longer coll
     await page.locator('.profile-chip').waitFor();
     await page.getByRole('button', { name: 'Buttons', exact: true }).click();
 
-    await page.locator('details').filter({ hasText: 'Modeshift ·' }).first().locator(':scope > summary').click();
+    // The shift is edited from the input's own editor (Binding Editor 7a).
+    await page.locator('details[data-input-command="S"] > summary').first().click();
     const shifted = page.locator('[data-input-command="RSR,S"]').first();
     const normal = page.locator('details[data-input-command="S"]').first();
     await shifted.locator(':scope > summary').click();
-    await shifted.getByRole('button',{name:'Advanced command settings',exact:true}).first().click();
+    await shifted.getByRole('button',{name:'Command options',exact:true}).first().click();
     await shifted.getByRole('textbox', { name: /Output value/i }).first().waitFor();
 
     // --- capture on the shifted card -----------------------------------------

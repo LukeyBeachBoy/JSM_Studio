@@ -1,69 +1,43 @@
-.telemetryBanner {
-  border: 1px solid var(--border-1);
-  border-radius: 12px;
-  padding: 1rem;
-  margin: 1rem 0 1.5rem;
-  background-color: var(--bg-input);
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-
-.telemetryHeading {
-  margin: 0;
-  font-weight: 600;
-  color: var(--telemetry-green);
-}
-
-.telemetrySubheading {
-  margin: 0;
-  font-size: 0.9rem;
-  color: var(--text-mid);
-}
-
+/* Live gyro readouts (Gyro Diagnostics): one sunken tile per figure, the
+   value in the telemetry colour and the mono face the header chip uses. */
 .telemetryReadouts {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 0.8rem;
-  font-size: 0.95rem;
+  gap: var(--sp-2);
 }
 
 .telemetryNode {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-}
-
-.telemetryNode + .telemetryNode {
-  display: flex;
+  gap: var(--sp-1);
+  min-width: 0;
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
+  background: var(--surface-sunken);
 }
 
 .telemetryLabel {
-  font-size: 0.85rem;
-  color: var(--text-muted);
+  font-size: var(--fs-eyebrow);
+  line-height: var(--lh-eyebrow);
+  letter-spacing: var(--tracking-eyebrow);
+  font-weight: var(--fw-semibold);
+  color: var(--text-3);
   text-transform: uppercase;
-  font-weight: 600;
 }
 
 .telemetryValue {
-  font-weight: 600;
-  color: var(--text-strong);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--telemetry);
+  font-family: var(--font-mono);
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
-.telemetryInline {
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  padding: 0;
-}
+.telemetryDot { width: 6px; height: 6px; border-radius: 50%; background: var(--telemetry); }
 
-.telemetryInline :global(.telemetry-banner) {
-  margin: 0;
-  padding: 0;
-  border: none;
-  border-radius: 0;
-  background: transparent;
-}
-
-.telemetryBanner { border: 0; border-radius: var(--radius-control); margin: 0; background: transparent; padding: 0; }
+/* Inside a setting row the readouts are the row's control, with no frame of their own. */
+.telemetryInline { min-width: 0; }

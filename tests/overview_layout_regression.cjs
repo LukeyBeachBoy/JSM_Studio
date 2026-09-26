@@ -80,9 +80,13 @@ RM2 = 2
   await page.locator('.profile-chip').filter({hasText:'Wardogs'}).waitFor();
   const input=command=>page.locator(`[data-overview-input="${command}"]`);
   const group=id=>page.locator(`[data-overview-group="${id}"]`);
-  for(const [id,commands] of Object.entries({'left-shoulder':['L','ZL','ZLF'],'left-back':['LSL','LSR'],'left-middle':['-'],'right-middle':['+'],'left-stick':['LUP','L3'],'dpad':['UP','DOWN'],'right-stick':['R3','RM1'],'face':['N','S'],'left-pad':['LT1'],'right-pad':['RT1','MISC2']})) {
+  for(const [id,commands] of Object.entries({'left-shoulder':['L','ZL','LSL','LSR'],'left-middle':['-'],'right-middle':['+'],'left-stick':['LUP','L3'],'dpad':['UP','DOWN'],'right-stick':['R3','RM1'],'face':['N','S'],'left-pad':['LT1'],'right-pad':['RT1','MISC2']})) {
    for(const command of commands) assert.equal(await group(id).locator(`[data-overview-input="${command}"]`).count(),1,`${command} in ${id}`);
   }
+  // Overview.dc.html: the paddles sit with the shoulder and grip, and a trigger's
+  // full pull is told on the trigger's own row rather than as a second callout.
+  assert.equal(await input('ZLF').count(),0,'the full pull folds into the trigger row');
+  assert.match(await input('ZL').innerText(),/full pull Left Shift/);
   // Names follow the connected controller, so wait for its telemetry first.
   await page.waitForFunction(()=>/Hold R4: Squad push-to-talk/.test(document.querySelector('[data-overview-input="N"]')?.innerText ?? ''));
   assert.match(await input('N').innerText(),/Hold R4: Squad push-to-talk/);

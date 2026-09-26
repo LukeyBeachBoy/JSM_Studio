@@ -1,0 +1,44 @@
+/* Gyro (Gyro.dc.html): a column of sections, each a heading over setting rows
+   separated by hairlines. The page frame (1040 content, 40 sides) is the
+   shell's; sections and rows only add the 4px rhythm between rows. */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  min-width: 0;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  min-width: 0;
+}
+
+/* Section heading: 17/24 600, aligned with the rows' 16px inset. */
+.heading {
+  margin: var(--sp-5) 0 var(--sp-1);
+  padding: 0 var(--sp-4);
+  font-size: var(--fs-section);
+  line-height: var(--lh-section);
+  font-weight: var(--fw-semibold);
+  color: var(--text-1);
+}
+.section:first-child .heading { margin-top: 0; }
+/* The heading's own top margin is the whole gap between sections
+   (Gyro.dc.html); the shell's panel-page spacing would double it. */
+.page .section + .section { margin-top: 0; }
+
+/* Calibrating: the page reads but does not take edits until it finishes. */
+.lockNote {
+  margin: 0;
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-row);
+  background: var(--warn-soft);
+  color: var(--warn);
+  font-size: var(--fs-hint);
+  line-height: var(--lh-hint);
+}
+.locked .section { opacity: var(--disabled-opacity); pointer-events: none; }
+
+.actions { margin-top: var(--sp-5); padding: 0 var(--sp-4); }

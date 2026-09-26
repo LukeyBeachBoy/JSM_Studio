@@ -5,4 +5,6 @@ export const TRACKPAD_ANCHORS = {
   left: 'trackpad-left',
   right: 'trackpad-right',
   buttons: 'trackpad-buttons',
+  /** The right pad's "Other controller types" row (15c), when it has anything. */
+  other: 'trackpad-other',
 } as const

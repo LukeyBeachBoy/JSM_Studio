@@ -3,6 +3,7 @@ import { NumberField } from './NumberField'
 import { AppSelect } from './ui/AppSelect'
 import { desktopBridge, type ControllerPreferences as Preferences } from '../platform/desktopBridge'
 import { showToast } from '../utils/toast'
+import { getPreferenceSnapshot, patchRuntimePreferences } from '../platform/preferenceStore'
 
 // Steam's own names for the Steam Controller's built-in tunes, in script order
 // (SettingController_HapticSound_0..13). Script 12 is also what Steam's
@@ -46,21 +47,25 @@ function SoundPicker({ label, value, hint, onChange }: { label: string; value: n
   )
 }
 
+const fromRuntime = (state: Partial<Preferences>): Preferences => ({
+  gyroCalibrationSeconds: state.gyroCalibrationSeconds ?? DEFAULTS.gyroCalibrationSeconds,
+  gyroCalibrationDelay: state.gyroCalibrationDelay ?? DEFAULTS.gyroCalibrationDelay,
+  connectSound: state.connectSound ?? DEFAULTS.connectSound,
+  shutdownSound: state.shutdownSound ?? DEFAULTS.shutdownSound,
+})
+
 export function ControllerPreferences({ part = 'all' }: { part?: 'all' | 'calibration' | 'sounds' }) {
-  const [prefs, setPrefs] = useState<Preferences>(DEFAULTS)
-  const [ready, setReady] = useState(false)
+  // Read at startup (preferenceStore), so the page opens on the real values.
+  const cached = getPreferenceSnapshot().runtime
+  const [prefs, setPrefs] = useState<Preferences>(() => cached ? fromRuntime(cached) : DEFAULTS)
+  const [ready, setReady] = useState(!!cached)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     let cancelled = false
     desktopBridge.getRuntimeMappingState().then(state => {
       if (cancelled) return
-      setPrefs({
-        gyroCalibrationSeconds: state.gyroCalibrationSeconds ?? DEFAULTS.gyroCalibrationSeconds,
-        gyroCalibrationDelay: state.gyroCalibrationDelay ?? DEFAULTS.gyroCalibrationDelay,
-        connectSound: state.connectSound ?? DEFAULTS.connectSound,
-        shutdownSound: state.shutdownSound ?? DEFAULTS.shutdownSound,
-      })
+      setPrefs(fromRuntime(state))
       setReady(true)
     }).catch(error => showToast(String(error), 'error'))
     return () => { cancelled = true }
@@ -71,6 +76,7 @@ export function ControllerPreferences({ part = 'all' }: { part?: 'all' | 'calibr
   const update = (patch: Partial<Preferences>) => {
     const next = { ...prefs, ...patch }
     setPrefs(next)
+    patchRuntimePreferences(next)
     if (saveTimer.current) clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(() => {
       desktopBridge.setControllerPreferences(next).catch(error => showToast(String(error), 'error'))

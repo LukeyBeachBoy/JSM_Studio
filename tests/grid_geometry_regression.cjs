@@ -32,6 +32,18 @@ const CONFIG = [
     const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
+    // A library with one configuration: an empty library now shows the first-run
+    // welcome (System States 17d) instead of a list with "Edit source".
+    await page.addInitScript(() => {
+      const profiles = { Test: 'RESET_MAPPINGS\n' };
+      window.electronAPI = {
+        getActiveProfile: async () => ({ name: 'Test', path: 'profiles-library/Test.txt', content: profiles.Test }),
+        listLibraryProfiles: async () => Object.keys(profiles),
+        loadLibraryProfile: async name => ({ name, content: profiles[name] ?? '' }),
+        saveLibraryProfile: async (name, content) => { profiles[name] = content; return { name } },
+        applyProfile: async path => ({ path, mappingEnabled: true }),
+      };
+    });
     await page.goto(URL);
 
     // Drive the config editor the way a person would, so this exercises the

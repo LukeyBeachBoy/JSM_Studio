@@ -36,10 +36,11 @@ const mount = async (page, profile) => {
   await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
   await page.locator('.profile-chip').waitFor();
   await page.getByRole('button', { name: 'Buttons', exact: true }).click();
-  await page.locator('details').filter({ hasText: 'Modeshift ·' }).first().locator(':scope > summary').click();
+  // The shift is edited from the input's own editor (Binding Editor 7a).
+  await page.locator('details[data-input-command="S"] > summary').first().click();
   const row = page.locator('[data-input-command="RSR,S"]').first();
   await row.locator(':scope > summary').click();
-  await row.getByRole('button',{name:'Advanced command settings',exact:true}).first().click();
+  await row.getByRole('button',{name:'Command options',exact:true}).first().click();
   return row;
 };
 

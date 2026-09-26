@@ -14,6 +14,15 @@ type SliderProps = {
   /** X while adjusting switches between fine and coarse steps. */
   onToggleFine?: () => void
   coarse?: boolean
+  /** Adjust mode is entered: the owner may snapshot what B should put back. */
+  onAdjustStart?: () => void
+  /**
+   * B while adjusting. Without it the slider writes back the number it
+   * started from, which turns a setting that was unset (showing its default)
+   * into one set to that default. An owner that knows the raw value restores
+   * it exactly.
+   */
+  onRevert?: () => void
 }
 
 const TICKS = 21
@@ -26,13 +35,13 @@ const TICKS = 21
 // Adjust mode (Gyro.dc.html): arrows move focus until the slider is entered with
 // Enter / A; then Left and Right change the value, X switches fine / coarse,
 // Enter keeps it and Escape / B puts back the value adjusting started from.
-export function Slider({ value, onValueChange, min, max, step, disabled, ariaLabel, className = '', onToggleFine, coarse }: SliderProps) {
+export function Slider({ value, onValueChange, min, max, step, disabled, ariaLabel, className = '', onToggleFine, coarse, onAdjustStart, onRevert }: SliderProps) {
   const [adjusting, setAdjusting] = useState(false)
   const startValue = useRef(value)
   const announce = () => window.dispatchEvent(new Event('jsm:interaction-hint'))
-  const begin = () => { startValue.current = value; setAdjusting(true); announce() }
+  const begin = () => { startValue.current = value; onAdjustStart?.(); setAdjusting(true); announce() }
   const end = (revert: boolean) => {
-    if (revert && startValue.current !== value) onValueChange(startValue.current)
+    if (revert && startValue.current !== value) { if (onRevert) onRevert(); else onValueChange(startValue.current) }
     setAdjusting(false)
     announce()
   }
@@ -47,9 +56,15 @@ export function Slider({ value, onValueChange, min, max, step, disabled, ariaLab
         }
         if (event.key === 'Escape' && adjusting) { event.preventDefault(); event.stopPropagation(); end(true); return }
         if ((event.key === 'x' || event.key === 'X') && adjusting && onToggleFine) { event.preventDefault(); event.stopPropagation(); onToggleFine(); return }
-        if (event.key.startsWith('Arrow') && !adjusting) {
+        // Adjusting is a horizontal control: Left/Right change the value. Up
+        // and Down keep it and move on, the way a console settings list reads
+        // -- they used to nudge the value too, so walking down a page of
+        // sliders changed every one the pad passed through.
+        const vertical = event.key === 'ArrowUp' || event.key === 'ArrowDown'
+        if (event.key.startsWith('Arrow') && (!adjusting || vertical)) {
           // Suppress Radix's adjustment, then let the global directional navigator move focus.
           event.preventDefault(); event.stopPropagation()
+          if (adjusting) end(false)
           window.dispatchEvent(new CustomEvent('jsm:navigate-direction', { detail: event.key }))
         }
       }}

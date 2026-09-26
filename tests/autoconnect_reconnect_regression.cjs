@@ -261,6 +261,67 @@ check('bug 5: idle rescan only while nothing is open, and never in a settle wind
   assert.match(JSLWRAPPER_H, /virtual void RescanDevices\(\)\s*\{\s*\}/, 'the wrapper interface needs a no-op default for other backends');
 });
 
+// Bug 6 -- a controller switched off stayed "connected" for the rest of the
+// session. SDL removes the joystick but keeps the open gamepad object valid,
+// answering with its last state, so the poll kept reporting it and Studio kept
+// drawing it. The device count does drop -- but not inside the settle window,
+// and the chord that powers a Steam Controller off follows a profile load,
+// which (when it touches VIRTUAL_CONTROLLER) has just reconnected. The loss was
+// absorbed as our own churn; nothing ever closed the dead controller.
+check('bug 6: an open controller SDL reports gone reconnects, even inside the settle window', () => {
+  assert.match(JSLWRAPPER_H, /int disconnected = 0;/,
+    'the census does not count opened controllers SDL no longer considers connected');
+  const census = censusBody();
+  assert.ok(census.includes('SDL_GamepadConnected'),
+    'the census never asks SDL whether an open gamepad is still connected, so a pad switched ' +
+    'off after it was opened is reported with its last state forever');
+  const body = pollBody();
+  const at = body.indexOf('census.disconnected');
+  assert.ok(at >= 0, 'AutoConnectPoll ignores controllers SDL reports disconnected');
+  const settleGate = body.search(/if\s*\(\s*settleTicks\s*>\s*0\s*\)/);
+  assert.ok(settleGate >= 0, 'the settle window gate is gone');
+  assert.ok(at < settleGate,
+    'the disconnect check sits behind the settle window, so a controller powered off in the ' +
+    'seconds after a profile load is absorbed as our own churn and held open');
+  const block = body.slice(at, settleGate);
+  assert.ok(block.includes('reconnect('), 'a disconnected controller does not reconnect');
+  assert.ok(block.indexOf('lastSize = realSize') < block.indexOf('reconnect('),
+    'the disconnect path reconnects without resyncing lastSize, so the count trigger fires ' +
+    'again on the same loss once the window ends');
+});
+
+// Bug 7 -- a controller switched on inside the settle window was never opened.
+// The window resyncs lastSize every tick, so a device count that moved inside
+// it is adopted as the new normal and the count trigger never sees it. Studio's
+// launch and every Apply or focus change load a profile, and a profile that
+// touches VIRTUAL_CONTROLLER reconnects -- so a pad turned on in the six
+// seconds after any of those sat listed and unopened until the next churn
+// (alt-tabbing to another app, as it happens) reconnected for other reasons.
+check('bug 7: a controller that arrives inside the settle window is opened when it ends', () => {
+  const body = pollBody();
+  const settle = methodBody(body, /if\s*\(\s*settleTicks\s*>\s*0\s*\)\s*/);
+  assert.ok(settle.includes('reconnect('),
+    'the settle window ends without asking whether a device arrived during it');
+  assert.ok(settle.includes('census.failedToOpen == 0'),
+    'the settle-end catch-up does not exclude devices the connect attempt tried and could not ' +
+    'open -- those are the bounded retry\'s job, and re-arming on them here is a loop');
+  assert.ok(settle.includes('realSize > census.opened'),
+    'the catch-up does not compare real devices listed against real devices opened');
+  assert.ok(!settle.includes('census.listed > census.opened') && !settle.includes('census.listed - census.opened'),
+    'the catch-up compares the raw SDL list against the open map, which counts our own virtual pad forever');
+  assert.ok(settle.includes('caughtUp'),
+    'the catch-up is not one-shot per count change, so a device that is listed but never ours ' +
+    'to open (an unselected controller in manual mode) reconnects the session at the end of every window');
+  assert.ok(settle.indexOf('caughtUp = true') < settle.indexOf('reconnect('),
+    'the catch-up marks itself used only after reconnecting, so a reconnect that fails re-fires');
+  const count = body.slice(body.indexOf('lastSize != realSize'), countBranchEnd(body));
+  assert.ok(count.includes('caughtUp = false'),
+    'a genuine device-count change does not re-enable the catch-up, so the second controller ' +
+    'switched on inside a settle window this session is never opened');
+  assert.match(settle, /settleTicks\s*==\s*0\s*&&/,
+    'the catch-up runs before the window has ended, reacting to our own churn mid-settle');
+});
+
 for (const [name, fn] of checks) {
   try {
     fn();

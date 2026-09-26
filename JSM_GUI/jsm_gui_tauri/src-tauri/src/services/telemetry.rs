@@ -100,14 +100,19 @@ pub fn start(app: AppHandle, state: AppState) {
         silence_udp_connection_reset(&socket);
         let _ = socket.set_read_timeout(Some(Duration::from_millis(TELEMETRY_HEALTH_CHECK_MS)));
         let mut buffer = [0_u8; 65535];
-        let mut last_ui_emit = Instant::now() - Duration::from_secs(1);
-        let mut last_overlay_emit = Instant::now() - Duration::from_secs(1);
+        // "A second ago", so the first packet is emitted at once. Subtracting
+        // from an Instant panics when the clock has not been up that long.
+        let a_second_ago = Instant::now().checked_sub(Duration::from_secs(1)).unwrap_or_else(Instant::now);
+        let mut last_ui_emit = a_second_ago;
+        let mut last_overlay_emit = a_second_ago;
         let mut last_came_up: Option<Instant> = None;
+        let mut presses = PressLatch::default();
 
         loop {
             match socket.recv_from(&mut buffer) {
                 Ok((size, _)) => match serde_json::from_slice::<Value>(&buffer[..size]) {
-                    Ok(packet) => {
+                    Ok(mut packet) => {
+                        presses.observe(&packet);
                         // Global chords and connection health still receive every
                         // packet. Only the expensive WebView IPC/rendering stops
                         // when another app (such as a game) has focus.
@@ -117,6 +122,7 @@ pub fn start(app: AppHandle, state: AppState) {
                                     state.ui_interval_us.load(Ordering::Relaxed).max(1_000),
                                 )
                         {
+                            presses.stamp(&mut packet);
                             let _ = emit_telemetry_packet(&app, &packet);
                             last_ui_emit = Instant::now();
                         }
@@ -228,6 +234,46 @@ pub fn broadcast_empty_devices(app: &AppHandle, state: &AppState) -> Result<(), 
     };
 
     emit_telemetry_packet(app, &packet)
+}
+
+/// Buttons pressed since the UI was last sent a packet. The UI gets packets at
+/// the display rate, not the mapper's, so a tap that goes down and up between
+/// two of them never appears in either -- and a D-pad hammered quickly loses
+/// presses. Each device's `status.pressedSince` carries every button that went
+/// down in that gap (bits as in `status.buttons`), whether or not it is still
+/// held, so the pad navigator can count every press.
+#[derive(Default)]
+struct PressLatch {
+    previous: std::collections::HashMap<i64, u64>,
+    pending: std::collections::HashMap<i64, u64>,
+}
+
+impl PressLatch {
+    fn devices(packet: &Value) -> impl Iterator<Item = (i64, u64)> + '_ {
+        packet.get("devices").and_then(Value::as_array).into_iter().flatten().filter_map(|device| {
+            let handle = device.get("handle").and_then(Value::as_i64).unwrap_or(0);
+            let buttons = device.get("status")?.get("buttons")?.as_u64()?;
+            Some((handle, buttons))
+        })
+    }
+
+    fn observe(&mut self, packet: &Value) {
+        for (handle, buttons) in Self::devices(packet) {
+            let before = self.previous.insert(handle, buttons).unwrap_or(buttons);
+            *self.pending.entry(handle).or_default() |= buttons & !before;
+        }
+    }
+
+    fn stamp(&mut self, packet: &mut Value) {
+        let Some(devices) = packet.get_mut("devices").and_then(Value::as_array_mut) else { return };
+        for device in devices {
+            let handle = device.get("handle").and_then(Value::as_i64).unwrap_or(0);
+            let pressed = self.pending.remove(&handle).unwrap_or(0);
+            if let Some(status) = device.get_mut("status").and_then(Value::as_object_mut) {
+                status.insert("pressedSince".into(), json!(pressed));
+            }
+        }
+    }
 }
 
 fn emit_telemetry_packet(app: &AppHandle, packet: &Value) -> Result<(), String> {
@@ -375,6 +421,21 @@ fn clear_devices(packet: Value) -> Value {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn a_tap_between_ui_packets_is_still_reported() {
+        let packet = |buttons: u64| json!({ "devices": [{ "handle": 1, "status": { "buttons": buttons } }] });
+        let mut latch = super::PressLatch::default();
+        latch.observe(&packet(0));
+        latch.observe(&packet(0b10)); // DOWN goes down...
+        latch.observe(&packet(0)); // ...and up again before the UI hears of it
+        let mut ui = packet(0);
+        latch.stamp(&mut ui);
+        assert_eq!(ui["devices"][0]["status"]["pressedSince"], 0b10);
+        let mut next = packet(0);
+        latch.stamp(&mut next);
+        assert_eq!(next["devices"][0]["status"]["pressedSince"], 0, "reported once");
+    }
+
     use super::*;
     use crate::services::app_state::DEFAULT_UI_INTERVAL_US;
 

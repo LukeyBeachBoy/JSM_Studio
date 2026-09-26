@@ -48,7 +48,7 @@ export function MenuDrawing({ menu, icons, onRegionRef, onDotRef, onSelect, sele
             // With labels hidden the key takes the headline rather than leaving
             // the region blank, and vice versa -- turning one off should never
             // produce an unreadable menu.
-            const art = region.icon ? icons[region.icon] : undefined
+            const art = region.icon && menu.placement.showIcons !== false ? icons[region.icon] : undefined
             const content = (
               <>
                 {art && (

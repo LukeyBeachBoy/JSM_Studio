@@ -186,7 +186,16 @@ export function updateKeymapEntry(text: string, key: string, values: Array<numbe
 
   const nextLine = `${key} = ${formatted}`
   const lines = text.split(/\r?\n/)
-  const index = lines.findIndex(line => line.trim().toUpperCase().startsWith(`${key.toUpperCase()} =`))
+  // The LAST assignment, to match how matchKeyLine reads: with a key set twice
+  // in a hand-edited file, replacing the first left the last one winning and
+  // the edit reading back as if it had done nothing. The pattern tolerates
+  // `KEY=value` too, which the old `startsWith('KEY =')` missed and so appended
+  // a duplicate to.
+  const pattern = new RegExp(`^\\s*${escapeKey(key)}\\s*=`, 'i')
+  let index = -1
+  for (let at = lines.length - 1; at >= 0; at -= 1) {
+    if (pattern.test(lines[at])) { index = at; break }
+  }
   if (index >= 0) {
     lines[index] = nextLine
   } else {
@@ -196,13 +205,10 @@ export function updateKeymapEntry(text: string, key: string, values: Array<numbe
 }
 
 export function removeKeymapEntry(text: string, key: string) {
-  const lines = text.split(/\r?\n/)
   const pattern = new RegExp(`^\\s*${escapeKey(key)}\\s*=`, 'i')
-  const index = lines.findIndex(line => pattern.test(line))
-  if (index >= 0) {
-    lines.splice(index, 1)
-  }
-  return lines.join('\n')
+  // Every assignment, not the first: clearing a setting that a hand-edited
+  // file repeats left the later line in force, so the value came straight back.
+  return text.split(/\r?\n/).filter(line => !pattern.test(line)).join('\n')
 }
 
 function stripInlineComment(value?: string) {

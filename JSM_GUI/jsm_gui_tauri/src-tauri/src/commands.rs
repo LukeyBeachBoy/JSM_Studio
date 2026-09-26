@@ -42,6 +42,8 @@ pub struct LoadLibraryProfileResult {
 pub struct DeleteLibraryProfileResult {
     success: bool,
     fallback: Option<NamedProfile>,
+    /// The file went to the recycle bin rather than being removed outright.
+    recycled: bool,
 }
 
 #[derive(Serialize)]
@@ -97,7 +99,14 @@ pub struct CalibrationCommandResult {
     output: String,
 }
 
-#[tauri::command]
+// A plain sync command runs inside the WebView's IPC callback, on the main
+// thread: while it runs, no window message is handled and every emit --
+// telemetry, HUD, overlay, mapper-status -- sits in the event loop's queue.
+// Commands that spawn a process (the console injector, msiexec, schtasks),
+// sleep between retries, or restart the mapper are marked `async`, which
+// moves them onto the runtime's worker threads. Ones that only touch files
+// or the overlay/HUD windows stay put.
+#[tauri::command(async)]
 pub fn launch_jsm(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -109,7 +118,7 @@ pub fn launch_jsm(
     jsm_process::launch_jsm(&app, state.inner())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn terminate_jsm(app: AppHandle, state: State<'_, AppState>) -> CommandResult<()> {
     jsm_process::terminate_jsm(&app, state.inner())
 }
@@ -161,7 +170,7 @@ pub fn minimize_temporarily(window: Window) -> CommandResult<()> {
     Ok(())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn apply_profile(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -208,7 +217,7 @@ pub fn get_runtime_mapping_state(app: AppHandle) -> CommandResult<runtime::Runti
     runtime::get_runtime_mapping_state(&app)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn set_mapping_enabled(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -219,7 +228,7 @@ pub fn set_mapping_enabled(
     Ok(runtime_state)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn set_autoload_enabled(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -237,7 +246,7 @@ pub fn set_autoload_enabled(
     Ok(runtime_state)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn set_controller_nav_enabled(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -279,6 +288,26 @@ pub fn delete_global_chord(app: AppHandle, id: String) -> CommandResult<Vec<runt
 #[tauri::command]
 pub fn list_autoload_rules(app: AppHandle) -> CommandResult<Vec<runtime::AutoloadRule>> {
     runtime::list_autoload_rules(&app)
+}
+
+/// Apps with a window, for "+ Add app". Walks every top-level window and a
+/// process snapshot, so it runs off the main thread.
+#[tauri::command(async)]
+pub fn list_running_processes() -> CommandResult<Vec<crate::services::processes::RunningProcess>> {
+    crate::services::processes::list()
+}
+
+#[tauri::command]
+pub fn get_autoload_fallback(app: AppHandle) -> CommandResult<runtime::AutoloadFallback> {
+    runtime::get_autoload_fallback(&app)
+}
+
+#[tauri::command]
+pub fn set_autoload_fallback(
+    app: AppHandle,
+    fallback: runtime::AutoloadFallback,
+) -> CommandResult<runtime::AutoloadFallback> {
+    runtime::set_autoload_fallback(&app, fallback)
 }
 
 #[tauri::command]
@@ -357,37 +386,70 @@ fn keep_studio_navigation(app: &AppHandle, state: &AppState, runtime_state: &run
 /// foreground app changes and only for apps with a rule, so Studio does the
 /// handover itself rather than trusting it: coming to the front, the
 /// navigation profile takes the pad (and any Test is over); leaving for an app
-/// without its own rule, the applied configuration comes back -- otherwise
-/// that app would be left with the navigation profile, which maps nothing.
-/// Apps with a rule are left to AutoLoad, which loads theirs.
+/// without its own rule, the fallback configuration loads when one is set,
+/// otherwise the applied configuration comes back -- either way that app is
+/// not left with the navigation profile, which maps nothing. Apps with a rule
+/// are left to AutoLoad, which loads theirs; Studio only notes the time.
 pub(crate) fn studio_focus_changed(app: &AppHandle, focused: bool) {
+    use std::sync::atomic::Ordering::Relaxed;
     let state = tauri::Manager::state::<AppState>(app);
     if focused {
-        state.studio_testing.store(false, std::sync::atomic::Ordering::Relaxed);
+        state.studio_testing.store(false, Relaxed);
+        state.handover_foreground_pid.store(0, Relaxed);
         hand_pad_to_studio(app);
         return;
     }
     let Ok(runtime_state) = runtime::get_runtime_mapping_state(app) else { return };
-    if !(runtime_state.mapping_enabled && runtime_state.autoload_enabled && runtime_state.controller_nav_enabled) {
-        return;
-    }
-    if !jsm_process::is_running(state.inner()).unwrap_or(false) {
-        return;
+    if !(runtime_state.mapping_enabled && runtime_state.autoload_enabled) {
+        return; // AutoLoad is off: no rule fires and nothing is handed over.
     }
     // Let the new window settle in front before asking who it is.
     std::thread::sleep(std::time::Duration::from_millis(120));
-    if state.telemetry_ui_active.load(std::sync::atomic::Ordering::Relaxed) {
+    if state.telemetry_ui_active.load(Relaxed) {
         return; // Studio came straight back.
     }
-    let foreground = jsm_process::foreground_process_stem();
+    if !jsm_process::is_running(state.inner()).unwrap_or(false) {
+        return; // No mapper, so no rule fired and nothing to load into.
+    }
     let own = runtime::app_process_stem();
-    match foreground {
-        Some(stem) if own.as_deref().is_some_and(|own| own.eq_ignore_ascii_case(&stem)) => {}
-        Some(stem) if runtime::has_live_autoload_rule(app, &stem) => {}
-        _ => {
-            let profile = runtime::effective_profile_for_state(&runtime_state);
-            let _ = inject_profile_with_retry(app, state.inner(), &profile);
+    let (pid, stem) = match jsm_process::foreground_process() {
+        Some((_, stem)) if own.as_deref().is_some_and(|own| own.eq_ignore_ascii_case(&stem)) => return,
+        Some((_, stem)) if runtime::has_live_autoload_rule(app, &stem) => {
+            if let Err(error) = runtime::record_autoload_match(app, &stem) {
+                eprintln!("Could not record the AutoLoad match for {stem}: {error}");
+            }
+            return;
         }
+        Some(found) => found,
+        // Nobody identifiable in front (the desktop, a secure window): the
+        // applied configuration, as before.
+        None => (0, String::new()),
+    };
+    if !(runtime_state.controller_nav_enabled || runtime_state.autoload_fallback_enabled) {
+        return; // Studio never took the pad and no fallback is wanted.
+    }
+    // Once per foreground change: a window can lose and regain activation
+    // several times while it comes up, and every load is a RESET_MAPPINGS.
+    if pid != 0 && state.handover_foreground_pid.swap(pid, Relaxed) == pid {
+        return;
+    }
+    let testing = state.studio_testing.load(Relaxed);
+    let fallback = if pid != 0 && !testing {
+        runtime::autoload_fallback_profile_path(app, &runtime_state)
+    } else {
+        None
+    };
+    let loaded = match &fallback {
+        Some(path) => {
+            let injected = inject_profile_with_retry(app, state.inner(), path).unwrap_or(false);
+            eprintln!("AutoLoad fallback for {stem} (pid {pid}): {} {path}", if injected { "loaded" } else { "could not load" });
+            injected
+        }
+        None => false,
+    };
+    if !loaded && runtime_state.controller_nav_enabled {
+        let profile = runtime::effective_profile_for_state(&runtime_state);
+        let _ = inject_profile_with_retry(app, state.inner(), &profile);
     }
 }
 
@@ -417,6 +479,19 @@ fn hand_pad_to_studio(app: &AppHandle) {
     let _ = inject_profile_with_retry(app, state.inner(), runtime::APP_NAVIGATION_FILE_NAME);
 }
 
+/// A tick, click or rumble on the controller for Studio's own UI (selecting,
+/// stepping sections and pages). Only while Studio's window is in front and
+/// not testing: otherwise a configuration owns the pad and a stray tick would
+/// land in a game. In-memory checks only -- this runs on every D-pad move, and
+/// Studio only asks while its navigation has the pad.
+#[tauri::command]
+pub fn controller_feedback(state: State<'_, AppState>, effect: u8, intensity: f32, side: u8, rumble_ms: u32, rumble: f32) {
+    use std::sync::atomic::Ordering::Relaxed;
+    if state.telemetry_ui_active.load(Relaxed) && !state.studio_testing.load(Relaxed) {
+        crate::services::feedback::send(effect, intensity, side, rumble_ms, rumble);
+    }
+}
+
 /// Test mode starts or ends. While it runs, Apply leaves the configuration
 /// with the controller.
 #[tauri::command]
@@ -429,7 +504,7 @@ pub fn set_studio_testing(state: State<'_, AppState>, testing: bool) {
 /// foreground app changes, and Studio stays in front throughout a test, so it
 /// has to be loaded explicitly. Does nothing unless the navigation rule is
 /// live (mapping, AutoLoad and controller navigation all on).
-#[tauri::command]
+#[tauri::command(async)]
 pub fn resume_studio_navigation(app: AppHandle, state: State<'_, AppState>) -> CommandResult<bool> {
     let runtime_state = runtime::get_runtime_mapping_state(&app)?;
     if !(runtime_state.mapping_enabled && runtime_state.autoload_enabled && runtime_state.controller_nav_enabled) {
@@ -464,7 +539,7 @@ fn inject_console_command_with_retry(
     Ok(false)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn recalibrate_gyro(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -483,7 +558,7 @@ pub fn recalibrate_gyro(
 
 /// Saves the gyro calibration timing and controller sounds, and hands them to
 /// the running mapper at once rather than waiting for the next profile load.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn set_controller_preferences(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -494,7 +569,7 @@ pub fn set_controller_preferences(
     Ok(saved)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn play_controller_sound(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -591,13 +666,19 @@ pub fn library_delete_profile(
     app: AppHandle,
     name: String,
 ) -> CommandResult<DeleteLibraryProfileResult> {
-    let fallback = runtime::delete_library_profile(&app, &name)?
-        .map(|(path, content)| named_profile(path, content));
+    let deleted = runtime::delete_library_profile(&app, &name)?;
+    let fallback = deleted.fallback.map(|(path, content)| named_profile(path, content));
 
     Ok(DeleteLibraryProfileResult {
         success: true,
         fallback,
+        recycled: deleted.recycled,
     })
+}
+
+#[tauri::command]
+pub fn library_list_profile_meta(app: AppHandle) -> CommandResult<Vec<runtime::LibraryProfileMeta>> {
+    runtime::list_library_profile_meta(&app)
 }
 
 #[tauri::command]
@@ -606,7 +687,7 @@ pub fn library_copy_active_profile(app: AppHandle) -> CommandResult<NamedProfile
     Ok(named_profile(path, content))
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn load_calibration_preset(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -648,7 +729,7 @@ pub fn save_calibration_preset(
     Ok(SimpleSuccessResult { success: true })
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn run_calibration_command(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -662,7 +743,7 @@ pub fn run_calibration_command(
     })
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn list_jsm_controllers(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -711,7 +792,7 @@ pub fn list_jsm_controllers(
     Err(last_error.unwrap_or_else(|| "LIST_CONTROLLERS response was not captured.".to_string()))
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn reconnect_jsm_controllers(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -853,7 +934,7 @@ pub fn get_backend_choice(app: AppHandle) -> CommandResult<String> {
     runtime::read_backend_choice(&app)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn set_backend_choice(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -890,7 +971,7 @@ pub fn get_latest_telemetry_sample(state: State<'_, AppState>) -> CommandResult<
     telemetry::latest_packet(state.inner())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn get_hidhide_status(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -899,7 +980,7 @@ pub fn get_hidhide_status(
     hidhide::get_status(&app, latest_packet.as_ref())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn set_hidhide_active(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -909,7 +990,7 @@ pub fn set_hidhide_active(
     hidhide::set_active(&app, active, latest_packet.as_ref())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn set_hidhide_device_hidden(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -920,7 +1001,7 @@ pub fn set_hidhide_device_hidden(
     hidhide::set_device_hidden(&app, &instance_id, hidden, latest_packet.as_ref())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn sync_hidhide_whitelist(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -929,7 +1010,7 @@ pub fn sync_hidhide_whitelist(
     hidhide::sync_whitelist(&app, latest_packet.as_ref())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn install_bundled_hidhide(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -938,7 +1019,7 @@ pub fn install_bundled_hidhide(
     hidhide::install_bundled(&app, latest_packet.as_ref())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn open_hidhide_client(app: AppHandle) -> CommandResult<()> {
     hidhide::open_configuration_client(&app)
 }
@@ -956,12 +1037,12 @@ pub fn open_config_directory(app: AppHandle) -> CommandResult<()> {
     Ok(())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn start_input_debug_hook(app: AppHandle) -> CommandResult<input_debug::InputDebugHookStatus> {
     input_debug::start(app)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn stop_input_debug_hook() -> CommandResult<input_debug::InputDebugHookStatus> {
     input_debug::stop()
 }
@@ -1001,12 +1082,12 @@ pub async fn generate_ai_mapping(
     ai::generate_mapping(&app, request).await
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn get_autostart_enabled() -> CommandResult<bool> {
     autostart::is_autostart_enabled()
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn set_autostart_enabled(enabled: bool) -> CommandResult<()> {
     autostart::set_autostart_enabled(enabled)
 }

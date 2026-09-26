@@ -1887,6 +1887,9 @@
 .bindingsToolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
 .commandEmptyState { color: var(--text-3); font-size: var(--fs-hint); }
 .commandWarningText { padding: 0 var(--sp-3) var(--sp-2); color: var(--warn); font-size: var(--fs-hint); }
+/* The command's origin ("From Default", "Override") sits under its summary
+   row, inset like the row's own content rather than on the card's edge. */
+.commandCard > :global(.setting-origin) { display: flex; padding: 0 var(--sp-3) var(--sp-2); }
 
 /* Section headings (Buttons Content): name and count, 17/24. */
 .keymapSection { display: flex; flex-direction: column; gap: var(--sp-2); }
@@ -1937,15 +1940,6 @@
 .lightBarClearBtn { height: 28px; padding: 0 var(--sp-3); border: 0; border-radius: var(--r-pill); background: transparent; color: var(--text-2); font-size: var(--fs-hint); font-weight: var(--fw-semibold); }
 .lightBarClearBtn:hover { background: var(--surface-row-hover); color: var(--text-1); }
 
-@media (min-width: 1280px) {
-  .mappingListSplit {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: start;
-    gap: var(--sp-6);
-  }
-}
-
 /* The live plot beside the stick's settings; they wrap under it when narrow. */
 /* Trigger calibration (15a). */
 .triggerCalibration { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-2); margin-top: var(--sp-5); }
@@ -1969,3 +1963,337 @@
   .sensorColumns > :global(#touch-accel) { grid-column: 2; grid-row: 1; }
   .sensorColumns > :global(#touch-haptics) { grid-column: 2; grid-row: 2; }
 }
+
+/* ============ Binding row (Buttons Content, Components 13.6) ============
+   Glyph badge 28, title over the input's long name, origin marker and the
+   value pill in the right-hand column. */
+.glyphBadge {
+  width: var(--glyph-md);
+  height: var(--glyph-md);
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  color: var(--text-1);
+}
+.glyphBadge svg { width: var(--glyph-md); height: var(--glyph-md); }
+.unboundTitle { color: var(--text-3); }
+
+.valuePill {
+  min-width: 28px;
+  height: var(--control-h-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  padding: 0 var(--sp-3);
+  border: 0;
+  border-radius: var(--r-sm);
+  background: var(--surface-control);
+  color: var(--text-1);
+  font-family: var(--font-ui);
+  font-size: var(--fs-hint);
+  font-weight: var(--fw-semibold);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.valuePillKey { box-shadow: inset 0 -2px 0 var(--line-2); }
+.valuePillMulti { box-shadow: none; }
+.valuePillMore { color: var(--text-3); }
+.valuePillLayer { box-shadow: none; }
+.valuePillJsm { background: var(--accent-soft); color: var(--accent); box-shadow: none; }
+.valuePillQuiet { font-size: var(--fs-hint); color: var(--text-3); white-space: nowrap; }
+.layerSwatch { width: 8px; height: 8px; border-radius: 2px; flex: none; }
+
+
+/* ============ Binding editor (Binding Editor 7a) ============ */
+.editorHead { min-height: 64px; }
+.editorTitle { font-size: var(--fs-section); line-height: var(--lh-section); font-weight: var(--fw-semibold); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.editorHeadActions { display: inline-flex; align-items: center; gap: 2px; flex: none; }
+.faceHint {
+  width: 18px;
+  height: 18px;
+  display: inline-grid;
+  place-items: center;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--text-1);
+  color: var(--surface-frame);
+  font-size: 11px;
+  font-weight: var(--fw-bold);
+  font-style: normal;
+}
+.editorBody { display: flex; flex-direction: column; gap: var(--sp-5); padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+.editorSection { display: flex; flex-direction: column; gap: var(--sp-2); }
+/* Modeshifts and Layer actions, one above the other. Side by side they were
+   two boxes of different heights with their add buttons at different depths,
+   which read as misaligned rather than as a pair. */
+.editorPanels { display: flex; flex-direction: column; gap: var(--sp-3); }
+.editorBody { container-type: inline-size; }
+.editorPanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  min-width: 0;
+  padding: var(--sp-4);
+  border-radius: var(--r-row);
+  background: var(--surface-canvas);
+}
+.editorPanelEmpty { font-size: var(--fs-hint); line-height: var(--lh-hint); color: var(--text-3); }
+/* Every panel: title and count, a line of what it is, the list, one add. */
+.editorPanelHead { display: flex; align-items: center; gap: var(--sp-2); }
+.editorPanelCount { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; display: inline-grid; place-items: center; background: var(--surface-control); color: var(--text-2); font-size: 11px; font-weight: var(--fw-semibold); }
+.editorPanelAddButton svg,
+.editorPanel :global(.layer-action-add-button) svg { margin-right: 6px; }
+.editorPanelAdd { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.editorPanelAdd > :global(label), .editorPanelAdd > :global(.app-select) { flex: 1 1 200px; }
+.editorPanelRemove { margin-left: auto; color: var(--error); }
+.editorPanelRemove:hover:not(:disabled) { color: var(--error); background: var(--error-soft); }
+/* A layer action is a row: the layer's colour, what it does, Remove. */
+.editorPanel :global(.input-layer-actions--panel) { display: flex; flex-direction: column; gap: var(--sp-2); }
+.editorPanel :global(.layer-action-item) { display: flex; align-items: center; gap: var(--sp-3); min-height: 44px; padding: 4px 6px 4px 14px; border-radius: var(--r-md); background: var(--surface-row); }
+.editorPanel :global(.layer-action-swatch) { flex: 0 0 auto; width: 10px; height: 10px; border-radius: 50%; }
+.editorPanel :global(.layer-action-name) { flex: 1 1 auto; min-width: 0; padding: 0; border: 0; background: none; color: var(--text-1); font-size: var(--fs-label); text-align: left; cursor: pointer; }
+.editorPanel :global(.layer-action-name b) { font-weight: var(--fw-semibold); color: var(--text-2); margin-right: 4px; }
+.editorPanel :global(.layer-action-name:hover) { text-decoration: underline; }
+.editorPanel :global(.layer-action-remove) { color: var(--error); }
+.editorPanel :global(.layer-action-remove:hover:not(:disabled)) { color: var(--error); background: var(--error-soft); }
+.editorPanel :global(.layer-action-add) { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.editorPanel :global(.layer-action-note) { font-size: var(--fs-hint); color: var(--text-3); }
+.editorPanel :global(.input-layer-actions) { margin-top: 0; border-top: 0; padding-top: 0; }
+.editorPanel :global(.input-layer-actions details > summary) {
+  height: 32px;
+  display: inline-flex;
+  padding: 0 var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--surface-control);
+  color: var(--text-1);
+  font-size: var(--fs-hint);
+  font-weight: var(--fw-semibold);
+}
+.editorPanel :global(.input-layer-actions details > summary::before) { content: '+'; width: auto; height: auto; border: 0; margin: 0 6px 0 0; transform: none; }
+.editorPanel :global(.input-layer-actions details[open] > summary::before) { content: '−'; transform: none; }
+.advancedNote { margin: 0; font-size: var(--fs-hint); line-height: var(--lh-hint); color: var(--text-3); }
+
+.modeshiftRow { display: flex; flex-direction: column; gap: var(--sp-2); }
+/* A shift inside an input's editor: the accent edge the Trackpads page uses. */
+.modeshiftRow { padding-left: var(--sp-3); box-shadow: inset 3px 0 0 var(--accent); }
+.modeshiftRowHead { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-label); color: var(--text-2); }
+.modeshiftRowHead b { color: var(--text-1); font-weight: var(--fw-semibold); }
+.modeshiftRowHead svg { width: 20px; height: 20px; color: var(--text-1); }
+.modeshiftAdd { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-hint); color: var(--text-2); }
+.modeshiftAdd > select, .modeshiftAdd > :global(.app-select) { flex: 1 1 auto; }
+
+/* Command rows (7a): grip · activation · → · action pill · label · actions.
+   The action pill never gives up width below its own keycaps: the label field
+   beside it is the one that shrinks (a narrow editor clipped the output). */
+.commandSummary {
+  display: grid;
+  grid-template-columns: 16px auto 16px minmax(min-content, auto) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--sp-3);
+  min-height: 52px;
+  padding: 0 var(--sp-3);
+}
+.commandGrip { width: 16px; display: inline-grid; place-items: center; color: var(--text-4); }
+.commandGrip svg { width: 16px; height: 16px; }
+.commandArrow { text-align: center; }
+.commandLabelSlot { min-width: 0; display: flex; align-items: center; gap: var(--sp-2); }
+.commandLabelSlot .buttonLabelInput { min-width: 120px; max-width: none; width: 100%; }
+.commandSummary .commandSummaryMain { min-width: 0; }
+.commandSummary .commandActions { margin-left: 0; }
+.commandSummary .commandTriggerBadgeSelect { min-width: 112px; }
+@media (max-width: 900px) {
+  .commandSummary { grid-template-columns: 16px auto 16px minmax(0, 1fr) auto; padding: var(--sp-2) var(--sp-3); }
+  .commandSummary .commandActions { grid-row: 1; grid-column: -2 / -1; }
+  .commandLabelSlot { grid-row: 2; grid-column: 2 / -1; }
+}
+
+/* Y on a row: the details popover, a small raised card under the row. */
+.detailsPopover {
+  position: fixed;
+  z-index: var(--z-menu);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border-radius: var(--r-card);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-menu);
+  color: var(--text-1);
+  font-size: var(--fs-hint);
+  line-height: var(--lh-hint);
+}
+.detailsPopoverHead { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); }
+.detailsPopoverTitle { font-size: var(--fs-label); font-weight: var(--fw-semibold); }
+.detailsPopoverList { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--sp-1) var(--sp-4); margin: 0; }
+.detailsPopoverList dt { color: var(--text-3); }
+.detailsPopoverList dd { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); color: var(--text-2); }
+
+/* A group headed by an eyebrow rather than a title (15d DIRECTIONS). */
+.groupEyebrow .keymapSectionHeading h3 { font-size: var(--fs-eyebrow); line-height: var(--lh-eyebrow); letter-spacing: var(--tracking-eyebrow); text-transform: uppercase; color: var(--text-3); }
+.groupEyebrow .keymapSectionCount { display: none; }
+
+/* An open editor in a narrow column folds the command row's label under it. */
+.commandCard { container-type: inline-size; }
+@container (max-width: 720px) {
+  /* Two rows: the command and its actions, then its name. The actions stay on
+     the first row (auto-placed after the label they fell into the 16px grip
+     column and stacked), and the rows get the padding the single row got from
+     its min-height, so the controls do not sit on the card's edge. */
+  .commandSummary { grid-template-columns: 16px auto 16px minmax(0, 1fr) auto; padding: var(--sp-2) var(--sp-3); }
+  .commandSummary .commandActions { grid-row: 1; grid-column: -2 / -1; }
+  .commandLabelSlot { grid-row: 2; grid-column: 2 / -1; }
+}
+/* Narrower still (a pad's settings column at 1024): Timing, more and Remove
+   left the action itself about 20px. They take a row of their own, under the
+   name, so the command row keeps its output readable. */
+@container (max-width: 560px) {
+  .commandSummary .commandActions { grid-row: 3; grid-column: 2 / -1; justify-self: end; }
+}
+.editorSection > .addCommandRow { flex-direction: row; justify-content: flex-start; }
+
+/* ============ Triggers (Configuration Pages 15a) ============ */
+.groupNoHeader > .keymapSectionHeader { display: none; }
+.triggerBehaviourRow { flex-direction: row; flex-wrap: wrap; align-items: center; gap: var(--sp-3) 14px; min-height: 56px; padding: 10px 14px; background: var(--surface-row); box-shadow: none; }
+.triggerBehaviourText { flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.triggerBehaviourTitle { font-size: var(--fs-label); line-height: var(--lh-label); font-weight: var(--fw-medium); color: var(--text-1); }
+.triggerBehaviourHint { font-size: 12px; line-height: 17px; color: var(--text-3); }
+.triggerBehaviourWarning { font-size: 12px; line-height: 17px; color: var(--warn); }
+.triggerBehaviourRow :global(button[role='combobox']) { width: auto; min-width: 150px; max-width: 320px; flex: none; }
+.triggerBehaviourRow :global(.setting-origin) { flex: none; }
+.triggerNote {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 12px 14px;
+  border-radius: var(--r-row);
+  box-shadow: inset 0 0 0 1px var(--line-1);
+  color: var(--text-2);
+  font-size: var(--fs-hint);
+  line-height: var(--lh-hint);
+}
+.triggerNote svg { flex: none; }
+.triggerNote b { color: var(--text-1); font-weight: var(--fw-semibold); }
+
+/* ============ Joysticks (Configuration Pages 15b) ============ */
+.stickSection { display: flex; flex-direction: column; gap: var(--sp-2); min-width: 0; }
+.stickEyebrow { display: flex; align-items: baseline; gap: 10px; padding: 0 4px 4px; }
+.stickEyebrowDetail { font-size: 12px; color: var(--text-3); }
+.stickEyebrowAction { margin-left: auto; }
+.stickLayout { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 14px; align-items: start; }
+@media (max-width: 720px) { .stickLayout { grid-template-columns: minmax(0, 1fr); } }
+.stickPlotCard { min-width: 0; }
+.stickPlotCard > figure { width: 100%; padding: 0; background: transparent; }
+.stickPlotCard > figure svg { width: 100%; height: auto; }
+.stickWheel { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.stickWheel > div:first-child { border-radius: 18px; background: var(--surface-sunken); overflow: hidden; }
+.stickWheelEmpty { padding: var(--sp-4); border-radius: 18px; background: var(--surface-sunken); color: var(--text-3); font-size: var(--fs-hint); line-height: var(--lh-hint); }
+.stickReadout { font-family: var(--font-mono); font-size: 11px; color: var(--text-3); }
+.stickRows { display: flex; flex-direction: column; gap: var(--sp-2); min-width: 0; }
+.stickRow { flex-direction: row; flex-wrap: wrap; align-items: center; gap: var(--sp-2) 14px; min-height: 56px; padding: 10px 14px; background: var(--surface-row); box-shadow: none; }
+.stickRowText { flex: 1 1 160px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.stickRowTitle { font-size: var(--fs-label); line-height: var(--lh-label); font-weight: var(--fw-medium); color: var(--text-1); }
+.stickRowHint { font-size: 12px; line-height: 17px; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stickRow :global(button[role='combobox']) { width: auto; min-width: 150px; max-width: 320px; flex: none; }
+.stickRowDetails { min-width: 0; }
+.stickRowSummary { cursor: pointer; list-style: none; }
+.stickRowSummary::-webkit-details-marker { display: none; }
+.stickRowChevron { width: 7px; height: 7px; margin: 0 3px; border-right: 2px solid var(--text-3); border-bottom: 2px solid var(--text-3); transform: rotate(-45deg); transition: transform var(--dur-2) var(--ease-emphasis); }
+.stickRowDetails[open] > .stickRowSummary .stickRowChevron { transform: rotate(45deg); }
+.stickRowBody { display: flex; flex-direction: column; gap: var(--sp-2); padding: var(--sp-2) 0 var(--sp-2) var(--sp-4); }
+.stickRingRow { min-height: 52px; display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); padding: 8px 14px; border-radius: var(--r-row); color: var(--text-1); font-size: var(--fs-label); font-weight: var(--fw-medium); }
+.stickRingRow > :global(.app-select) { max-width: 220px; }
+.valuePillNumber { min-width: 56px; height: 28px; display: inline-flex; align-items: center; justify-content: center; padding: 0 12px; border-radius: var(--r-pill); background: var(--surface-control); font-size: var(--fs-hint); font-weight: var(--fw-semibold); font-variant-numeric: tabular-nums; color: var(--text-1); }
+.stickExtras { display: flex; flex-direction: column; gap: var(--sp-2); margin-top: var(--sp-3); }
+
+/* ============ Trackpads (Configuration Pages 15c) ============ */
+.padSection { display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; }
+/* The pads stack (one per row, SideSplit stack), so each has the page's full
+   width: the preview takes a steady share and the settings -- a whole region
+   editor among them -- get the rest. It never drops below a readable 168px. */
+.padLayout { grid-template-columns: clamp(168px, 28%, 280px) minmax(0, 1fr); gap: var(--sp-5); }
+/* A row hint that explains what to do next may take two lines. */
+.stickRowHintWrap { white-space: normal; overflow: visible; }
+/* Pinned while that pad's settings scroll past it: the preview is where a
+   region is picked, and the region editor below it runs long. */
+/* The preview and the link to its look travel together, pinned beside the
+   settings while they scroll. */
+.padStageColumn { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: var(--sp-2); position: sticky; top: var(--sp-4); }
+@media (max-width: 720px) { .padStageColumn { position: static; } }
+.padStage { width: 100%; min-width: 0; border-radius: 36px; background: var(--surface-sunken); overflow: hidden; }
+.padStageLink { gap: 6px; color: var(--text-2); }
+/* A pad that is not a menu: what touching it does, in the pad's own shape. */
+.padStageArt {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  padding: var(--sp-4);
+  color: var(--text-3);
+  font-size: var(--fs-hint);
+  line-height: var(--lh-hint);
+  text-align: center;
+}
+.padStageArt svg { color: var(--text-2); opacity: .8; }
+/* Menu appearance sits among the pad's rows; its footer names where the
+   position lives and takes you there. */
+.menuAppearance > summary > svg { flex: 0 0 auto; color: var(--text-2); }
+.menuAppearanceFoot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-2) var(--sp-3); padding: var(--sp-2) 14px 0; font-size: var(--fs-hint); line-height: var(--lh-hint); color: var(--text-3); }
+.padStage > div { margin: 0; }
+.padStageEmpty { position: relative; width: 100%; }
+.padStageDot { position: absolute; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%; background: var(--telemetry); box-shadow: 0 0 0 7px var(--telemetry-soft); pointer-events: none; }
+.padSwitchRow { cursor: pointer; }
+.padSwitch {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 44px;
+  height: 26px;
+  flex: none;
+  margin: 0;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--surface-control);
+  position: relative;
+  cursor: pointer;
+  transition: background var(--dur-2) var(--ease-standard);
+}
+.padSwitch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--text-2); transition: transform var(--dur-2) var(--ease-emphasis), background var(--dur-2) var(--ease-standard); }
+.padSwitch:checked { background: var(--accent); }
+.padSwitch:checked::after { transform: translateX(18px); background: var(--text-on-accent); }
+.padSwitch:focus-visible { outline: 2px solid var(--focus-keyboard); outline-offset: var(--focus-offset); }
+.padSection :global(.button--tertiary) { align-self: flex-start; }
+
+/* Light bar (Press timing page): preset swatches the pad can walk, then a hex field. */
+.lightBarPicker { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); }
+.lightBarSwatches { display: flex; gap: 6px; }
+.lightBarSwatch { width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .25); cursor: pointer; }
+.lightBarSwatch[aria-checked='true'] { box-shadow: 0 0 0 2px var(--surface-canvas), 0 0 0 4px var(--text-1); }
+.lightBarSwatch:focus-visible { outline: 2px solid var(--focus-keyboard); outline-offset: 2px; }
+.lightBarHex { height: 32px; display: inline-flex; align-items: center; gap: 2px; padding: 0 var(--sp-3); border-radius: var(--r-md); background: var(--surface-sunken); box-shadow: inset 0 0 0 1px var(--line-1); color: var(--text-3); font-family: var(--font-mono); font-size: var(--fs-hint); }
+.lightBarHex input { width: 7ch; border: 0; background: transparent; color: var(--text-1); font: inherit; }
+.lightBarHex input:focus { outline: none; }
+.lightBarHex:focus-within { box-shadow: inset 0 0 0 1px var(--focus-keyboard); }
+
+/* The open editor's header wraps its actions under the name in a narrow column. */
+.editorHead { grid-template-columns: auto minmax(120px, 1fr) auto 16px; }
+.editorHead :global(.binding-summary-hint) { flex-wrap: wrap; justify-content: flex-end; max-width: none; }
+.keymapRow { container-type: inline-size; }
+@container (max-width: 640px) {
+  .editorHead { grid-template-columns: auto minmax(0, 1fr) 16px; grid-template-areas: 'glyph name chevron' 'hint hint hint'; row-gap: var(--sp-2); padding-top: var(--sp-2); padding-bottom: var(--sp-2); }
+  .editorHead > .glyphBadge { grid-area: glyph; }
+  .editorHead > :global(.binding-summary-name) { grid-area: name; }
+  .editorHead > :global(.binding-summary-hint) { grid-area: hint; justify-content: flex-start; }
+  .editorHead::after { grid-area: chevron; }
+}
+
+/* A select with the chosen mode's icon on its trigger. */
+.iconSelect { position: relative; display: inline-flex; flex: none; }
+.iconSelectIcon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-1); }
+.iconSelect > .iconSelectTrigger, .iconSelect > :global(button[role='combobox']) { padding-left: 38px; }
+/* The open editor's summary line: what it sends, then the count of everything else. */
+.editorSummaryLine { display: flex; align-items: center; gap: var(--sp-2); }
+.editorSummaryKey { height: 20px; display: inline-flex; align-items: center; padding: 0 var(--sp-2); border: 0; border-radius: var(--r-xs); background: var(--surface-control); color: var(--text-2); font-family: var(--font-ui); font-size: var(--fs-micro); font-weight: var(--fw-semibold); }

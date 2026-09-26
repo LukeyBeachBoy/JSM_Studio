@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { BindingSlot, BindingWriteMode } from '../utils/keymap'
 import { keyboardEventToBinding, mouseButtonToBinding, shouldIgnoreCapture, wheelEventToBinding } from './bindings'
 
@@ -102,7 +102,9 @@ export const useBindingCapture = (
     }
   }, [captureTarget, onBindingChange])
 
-  const beginCapture = (
+  // Stable between renders: these are handed to every binding card, and the
+  // cards are memoised against telemetry re-rendering the page every frame.
+  const beginCapture = useCallback((
     button: string,
     slot: BindingSlot,
     rowId: string,
@@ -117,26 +119,26 @@ export const useBindingCapture = (
     }
     setCaptureLabel(label)
     setCaptureTarget({ key, button, slot, rowId, modifier, writeMode })
-  }
+  }, [suppressKey])
 
-  const beginValueCapture = (key: string, label: string, onCaptured: (value: string) => void) => {
+  const beginValueCapture = useCallback((key: string, label: string, onCaptured: (value: string) => void) => {
     if (suppressKey === key) {
       setSuppressKey(null)
       return
     }
     setCaptureLabel(label)
     setCaptureTarget({ key, onCaptured })
-  }
+  }, [suppressKey])
 
-  const cancelCapture = () => {
+  const cancelCapture = useCallback(() => {
     setCaptureTarget(null)
     setSuppressKey(null)
-  }
+  }, [])
 
-  const isCapturing = (button: string, slot: BindingSlot, rowId?: string) =>
-    captureTarget?.button === button && captureTarget.slot === slot && (!rowId || captureTarget.rowId === rowId)
+  const isCapturing = useCallback((button: string, slot: BindingSlot, rowId?: string) =>
+    captureTarget?.button === button && captureTarget.slot === slot && (!rowId || captureTarget.rowId === rowId), [captureTarget])
 
-  const isCapturingValue = (key: string) => captureTarget?.key === key && Boolean(captureTarget?.onCaptured)
+  const isCapturingValue = useCallback((key: string) => captureTarget?.key === key && Boolean(captureTarget?.onCaptured), [captureTarget])
 
   return {
     captureLabel,

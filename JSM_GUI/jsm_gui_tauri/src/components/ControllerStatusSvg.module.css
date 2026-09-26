@@ -49,12 +49,9 @@
   pointer-events: none;
 }
 
-.triggerReadout {
-  fill: var(--text-muted);
-  font: 600 16px ui-monospace, SFMono-Regular, Menlo, monospace;
-  text-anchor: middle;
-  dominant-baseline: central;
-  pointer-events: none;
+.backLegendReadout {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
 }
 
 .interactive {
@@ -374,6 +371,23 @@
 .backSpotBound { stroke: var(--text-3); stroke-dasharray: none; }
 .backSpotPressed { fill: color-mix(in srgb, var(--telemetry) 30%, transparent); stroke: var(--telemetry); stroke-width: 2.5; stroke-dasharray: none; }
 .backSpotSelected { fill: color-mix(in srgb, var(--accent) 35%, transparent); stroke: var(--focus-controller); stroke-width: 3; stroke-dasharray: none; }
+/* Bumpers and triggers on the back view fill the art's own outlines. A bumper
+   press matches the front view's; a trigger fills with its pull (--pull, 0..1),
+   reaching the same strength at a full pull. */
+.backPart {
+  fill: transparent;
+  stroke: none;
+  stroke-linejoin: round;
+  cursor: pointer;
+  transition: fill var(--dur-1) var(--ease-standard);
+}
+.backPart:hover { fill: var(--accent-soft); }
+.backPartPressed,
+.backPartPressed:hover { fill: color-mix(in srgb, var(--telemetry) 55%, transparent); }
+.backTriggerLive,
+.backTriggerLive:hover { fill: var(--telemetry); fill-opacity: calc(.1 + var(--pull, 0) * .45); }
+.backPartSelected { stroke: var(--focus-controller); stroke-width: 3; }
+.backPartSelected:not(.backPartPressed):not(.backTriggerLive) { fill: color-mix(in srgb, var(--accent) 35%, transparent); }
 .backLegend { display: flex; flex-direction: column; gap: 6px; font-size: var(--fs-micro); color: var(--text-3); }
 .backLegendTitle { letter-spacing: var(--tracking-eyebrow); font-weight: var(--fw-semibold); text-transform: uppercase; }
 .backLegendItem { display: flex; align-items: center; gap: 6px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

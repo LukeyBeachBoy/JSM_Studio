@@ -1,17 +1,119 @@
 import { HelpButton } from './HelpButton'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SensitivityValues } from '../utils/keymap'
 import type { GyroActivationMode } from '../utils/gyroActivation'
 import { buildModifierOptions, resolveModifierOptionLabel } from '../utils/modifierOptions'
 import { controllerVisualFamily } from '../utils/controllerStatus'
-import { Card } from './Card'
-import { SectionActions } from './SectionActions'
 import { NumberField } from './NumberField'
-import { AdvancedDisclosure } from './AdvancedDisclosure'
+import { SettingOrigin, SettingPrefix } from './SettingOrigin'
+import { Select, type SelectOption } from './ui/Select'
+import { InputGlyph } from './glyphs/InputGlyph'
+import { PAD_EVENT, type PadEventDetail } from '../nav/useControllerNavigation'
 import { controllerLabel, formatVidPid } from '../utils/controllers'
 import styles from './Gyro.module.css'
-import { AppSelect } from './ui/AppSelect'
+
+// The Gyro page's building blocks and its General, Calibration, Orientation
+// and Connected-controllers sections (Gyro.dc.html, the settings-page
+// template). Numeric rows are NumberField; everything else is a GyroSettingRow
+// with the same shape: label, origin marker and value on the top line, the
+// control under it, the description underneath, hairlines between rows.
+
+type GyroSettingRowProps = {
+  /** The JSM setting the row edits, for the origin marker and Y's documentation. */
+  setting?: string
+  label: string
+  help?: ReactNode
+  description?: ReactNode
+  /** A wide control under the head (segmented control). */
+  control?: ReactNode
+  /** A value-sized control on the head's right (select pill, value pill). */
+  value?: ReactNode
+  /** What the pad's buttons do while the row has focus. */
+  hints?: string
+  className?: string
+}
+
+export function GyroSettingRow({ setting, label, help, description, control, value, hints, className = '' }: GyroSettingRowProps) {
+  const rowRef = useRef<HTMLDivElement>(null)
+  // Y opens the row's help, or the documentation when it has none yet
+  // (HANDOFF.md, "Help that degrades"), the same as a NumberField row.
+  useEffect(() => {
+    const row = rowRef.current
+    if (!row) return
+    const onPad = (event: Event) => {
+      const { button } = (event as CustomEvent<PadEventDetail>).detail
+      if (button !== 'Y') return
+      event.preventDefault()
+      const helpButton = row.querySelector<HTMLButtonElement>('.help-button')
+      if (helpButton) helpButton.click()
+      else window.dispatchEvent(new CustomEvent('jsm:open-docs', { detail: { setting } }))
+    }
+    row.addEventListener(PAD_EVENT, onPad)
+    return () => row.removeEventListener(PAD_EVENT, onPad)
+  }, [setting])
+  return (
+    <div ref={rowRef} className={`setting-row ${styles.row} ${className}`.trim()} data-capture-ignore="true"
+      data-hints={hints ?? (help || description ? 'A:Select;Y:Help;B:Back' : 'A:Select;Y:Documentation;B:Back')}>
+      <div className={styles.head}>
+        <span className={styles.labelGroup}>
+          <span className={styles.label}>{label}</span>
+          {help && <HelpButton title={label}>{help}</HelpButton>}
+        </span>
+        <SettingOrigin setting={setting} />
+        {value}
+      </div>
+      {control}
+      {description
+        ? <p className={styles.desc}>{description}</p>
+        : <p className={`${styles.desc} ${styles.descMissing}`}>No description yet · {setting ?? label} · Y opens documentation</p>}
+    </div>
+  )
+}
+
+type SegmentedProps<T extends string> = {
+  value: T
+  options: { value: T; label: string; disabled?: boolean }[]
+  onChange: (value: T) => void
+  disabled?: boolean
+  ariaLabel: string
+}
+
+/** A full-width segmented control (Components: 36 high, 3px inset). */
+export function Segmented<T extends string>({ value, options, onChange, disabled, ariaLabel }: SegmentedProps<T>) {
+  return (
+    <div className={`segmented ${styles.segmented}`} role="group" aria-label={ariaLabel}>
+      {options.map(option => (
+        <button key={option.value} type="button" aria-pressed={value === option.value} disabled={disabled || option.disabled}
+          onClick={() => onChange(option.value)}>
+          {option.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/** Off / On as a two-way segmented control, for the page's boolean settings. */
+export function OnOff({ value, onChange, disabled, ariaLabel }: { value: boolean; onChange: (on: boolean) => void; disabled?: boolean; ariaLabel: string }) {
+  const { t } = useTranslation()
+  return (
+    <Segmented ariaLabel={ariaLabel} value={value ? 'ON' : 'OFF'} disabled={disabled} onChange={next => onChange(next === 'ON')}
+      options={[{ value: 'OFF', label: t('common.off') }, { value: 'ON', label: t('common.on') }]} />
+  )
+}
+
+type SelectPillProps = {
+  value: string
+  options: SelectOption[]
+  onChange: (value: string) => void
+  disabled?: boolean
+  ariaLabel: string
+}
+
+/** The select as a 28px pill on the row's value side (Gyro.dc.html, Output). */
+export function SelectPill({ value, options, onChange, disabled, ariaLabel }: SelectPillProps) {
+  return <Select className={styles.selectPill} value={value} options={options} onValueChange={onChange} disabled={disabled} ariaLabel={ariaLabel} />
+}
 
 const GYRO_SPACE_OPTIONS = [
   { value: 'LOCAL', labelKey: 'gyro.spaces.local' },
@@ -20,293 +122,256 @@ const GYRO_SPACE_OPTIONS = [
   { value: 'WORLD_TURN', labelKey: 'gyro.spaces.worldTurn' },
 ]
 
-const GYRO_ACTIVATION_MODE_OPTIONS: Array<{ value: GyroActivationMode; labelKey: string }> = [
-  { value: 'always_on', labelKey: 'gyro.activationAlwaysOn' },
-  { value: 'hold_on', labelKey: 'gyro.activationHoldOn' },
-  { value: 'hold_off', labelKey: 'gyro.activationHoldOff' },
-  { value: 'always_off', labelKey: 'gyro.activationAlwaysOff' },
-]
+const GRIP_INPUTS = new Set(['MISC5', 'MISC6', 'GRIP_L', 'GRIP_R'])
 
-type GyroBehaviorControlsProps = {
+export type GyroDevice = {
+  handle: number
+  type: number
+  split?: number
+  vid?: number
+  pid?: number
+}
+
+export type GyroGeneralSectionProps = {
   sensitivity: SensitivityValues
   gyroActivationMode: GyroActivationMode
   gyroActivationButton: string
   touchpadMode: string
   touchpadGridCells: number
   touchpadGridCommands?: string[]
-  isCalibrating: boolean
-  statusMessage?: string | null
-  devices?: {
-    handle: number
-    type: number
-    split?: number
-    vid?: number
-    pid?: number
-  }[]
-  ignoredDevices?: string[]
-  onToggleIgnoreDevice?: (vid: number, pid: number, ignore: boolean) => void
-  onInGameSensChange: (value: string) => void
-  onRealWorldCalibrationChange: (value: string) => void
-  onTickTimeChange: (value: string) => void
-  onGyroSpaceChange: (value: string) => void
-  onGyroAxisXChange: (value: string) => void
-  onGyroAxisYChange: (value: string) => void
-  onGyroOutputChange: (value: string) => void
+  devices?: GyroDevice[]
+  disabled?: boolean
   onGyroActivationModeChange: (mode: GyroActivationMode, fallbackButton?: string) => void
   onGyroActivationButtonChange: (button: string) => void
+  onGyroOutputChange: (value: string) => void
   counterOsMouseSpeed: boolean
   onCounterOsMouseSpeedChange: (enabled: boolean) => void
-  onOpenCalibration?: () => void
-  onOpenRwcGuide?: () => void
-  hasPendingChanges: boolean
-  onApply: () => void
-  onCancel: () => void
-  lockMessage?: string
-  appliedSampleHz?: string
 }
 
-export function GyroBehaviorControls({
+export function GyroGeneralSection({
   sensitivity,
   gyroActivationMode,
   gyroActivationButton,
   touchpadMode,
   touchpadGridCells,
   touchpadGridCommands,
-  isCalibrating,
-  statusMessage,
   devices,
-  ignoredDevices,
-  onToggleIgnoreDevice,
-  onInGameSensChange,
-  onRealWorldCalibrationChange,
-  onGyroSpaceChange,
-  onGyroAxisXChange,
-  onGyroAxisYChange,
-  onGyroOutputChange,
+  disabled,
   onGyroActivationModeChange,
   onGyroActivationButtonChange,
+  onGyroOutputChange,
   counterOsMouseSpeed,
   onCounterOsMouseSpeedChange,
-  onOpenCalibration,
-  onOpenRwcGuide,
-  hasPendingChanges,
-  onApply,
-  onCancel,
-  lockMessage,
-}: GyroBehaviorControlsProps) {
+}: GyroGeneralSectionProps) {
   const { t } = useTranslation()
+  const family = controllerVisualFamily(devices?.[0]?.type)
   // A pad in grid mode is what makes its cells bindable, and on a two-pad
   // controller that is decided per pad -- so the caller passes the cells it
   // actually built rather than this page deriving them from the shared mode.
   const isTouchpadGridActive = touchpadMode === 'GRID_AND_STICK' || (touchpadGridCommands?.length ?? 0) > 0
-  const activationButtonOptions = useMemo(() => {
-    const options = buildModifierOptions(
+  const activationButtonOptions = useMemo<SelectOption[]>(() => {
+    const options: SelectOption[] = buildModifierOptions(
       isTouchpadGridActive,
       isTouchpadGridActive ? touchpadGridCells : 0,
       touchpadGridCommands
-    ).map(option => ({
-      value: option.value,
-      label: resolveModifierOptionLabel(option, t, controllerVisualFamily(devices?.[0]?.type)),
-      disabled: option.disabled,
-    }))
+    ).map(option => {
+      // "Right grip — right grip sensor": the name is the label, the rest is
+      // the list's hint, so the pill stays one short name.
+      const [label, hint] = resolveModifierOptionLabel(option, t, family).split(/\s+—\s+/)
+      return { value: option.value, label, hint, disabled: option.disabled, icon: <InputGlyph command={option.value} family={family} size={20} /> }
+    })
     if (gyroActivationButton && !options.some(option => option.value === gyroActivationButton)) {
-      options.push({ value: gyroActivationButton, label: gyroActivationButton, disabled: false })
+      options.push({ value: gyroActivationButton, label: gyroActivationButton, icon: <InputGlyph command={gyroActivationButton} family={family} size={20} /> })
     }
     return options
-  }, [gyroActivationButton, isTouchpadGridActive, t, touchpadGridCells, touchpadGridCommands, devices])
+  }, [gyroActivationButton, isTouchpadGridActive, t, touchpadGridCells, touchpadGridCommands, family])
   const fallbackActivationButton =
     activationButtonOptions.find(option => option.value === 'R3' && !option.disabled)?.value ??
     activationButtonOptions.find(option => !option.disabled)?.value ??
     'R3'
   const selectedActivationButton = gyroActivationButton || fallbackActivationButton
   const usesActivationButton = gyroActivationMode === 'hold_on' || gyroActivationMode === 'hold_off'
-  const gyroDrivesMouse = !sensitivity.gyroOutput
+  const activationSetting = gyroActivationMode === 'hold_off' ? 'GYRO_OFF' : 'GYRO_ON'
+  const activationDescription = {
+    always_on: t('gyroPage.activationDescAlwaysOn'),
+    hold_on: t('gyroPage.activationDescHoldOn'),
+    hold_off: t('gyroPage.activationDescHoldOff'),
+    always_off: t('gyroPage.activationDescAlwaysOff'),
+  }[gyroActivationMode]
+  const output = sensitivity.gyroOutput ?? ''
+  const stickName = output === 'LEFT_STICK' ? t('gyroPage.outputLeftStick') : t('gyroPage.outputRightStick')
 
   return (
-    <Card className="control-panel" lockable locked={isCalibrating} lockMessage={lockMessage ?? t('messages.lockMessage')}>
-      <h2>{t('gyro.title')}</h2>
-      {(onOpenCalibration || onOpenRwcGuide) && (
-        <div className="flex-inputs">
-          {onOpenRwcGuide && (
-            <button type="button" className="primary-btn full-width-btn" onClick={onOpenRwcGuide} disabled={isCalibrating}>
-              {t('gyro.easyCalibrationMethod')}
-            </button>
-          )}
-          {onOpenCalibration && (
-            <button type="button" className="secondary-btn full-width-btn" onClick={onOpenCalibration} disabled={isCalibrating}>
-              {t('gyro.manualCalibration')}
-            </button>
-          )}
-        </div>
+    <>
+      <GyroSettingRow setting={activationSetting} label={t('gyroPage.activation')} description={activationDescription}
+        hints="A:Choose;Y:Help;B:Back"
+        control={
+          <Segmented<GyroActivationMode> ariaLabel={t('gyroPage.activation')} value={gyroActivationMode} disabled={disabled}
+            onChange={mode => onGyroActivationModeChange(mode, selectedActivationButton)}
+            options={[
+              { value: 'always_on', label: t('gyroPage.activationAlwaysOn') },
+              { value: 'hold_on', label: t('gyroPage.activationHoldOn') },
+              { value: 'hold_off', label: t('gyroPage.activationHoldOff') },
+              { value: 'always_off', label: t('gyroPage.activationAlwaysOff') },
+            ]} />
+        } />
+      <GyroSettingRow setting={activationSetting} label={t('gyroPage.activationInput')}
+        description={!usesActivationButton ? t('gyroPage.activationInputIdle') : GRIP_INPUTS.has(selectedActivationButton) ? t('gyroPage.activationInputGripDesc') : t('gyroPage.activationInputDesc')}
+        hints="A:Open;Y:Help;B:Back"
+        value={<SelectPill ariaLabel={t('gyroPage.activationInput')} value={selectedActivationButton} options={activationButtonOptions}
+          onChange={onGyroActivationButtonChange} disabled={disabled || !usesActivationButton} />} />
+      <GyroSettingRow setting="GYRO_OUTPUT" label={t('gyroPage.output')}
+        description={output ? t('gyroPage.outputStickDesc', { stick: stickName.toLowerCase() }) : t('gyroPage.outputDesc')}
+        hints="A:Open;Y:Help;B:Back"
+        value={<SelectPill ariaLabel={t('gyroPage.output')} value={output || 'MOUSE'} disabled={disabled}
+          options={[
+            { value: 'MOUSE', label: t('gyroPage.outputMouse') },
+            { value: 'LEFT_STICK', label: t('gyroPage.outputLeftStick') },
+            { value: 'RIGHT_STICK', label: t('gyroPage.outputRightStick') },
+          ]}
+          onChange={next => onGyroOutputChange(next === 'MOUSE' ? '' : next)} />} />
+      {!output && (
+        <GyroSettingRow setting="COUNTER_OS_MOUSE_SPEED" label={t('gyroPage.counterOsMouseSpeed')} description={t('gyroPage.counterOsMouseSpeedDesc')}
+          hints="A:Choose;Y:Help;B:Back"
+          control={<OnOff ariaLabel={t('gyroPage.counterOsMouseSpeed')} value={counterOsMouseSpeed} onChange={onCounterOsMouseSpeedChange} disabled={disabled} />} />
       )}
-      <div className="flex-inputs">
-        <label>
-          <span className="field-caption">{t('gyro.activationMode')}
-          <HelpButton title="Gyro Activation">{t('gyro.activationHint')}</HelpButton></span>
-          <AppSelect
-            className="app-select"
-            setting={gyroActivationMode === 'hold_off' ? 'GYRO_OFF' : 'GYRO_ON'} value={gyroActivationMode}
-            onChange={(event) =>
-              onGyroActivationModeChange(event.target.value as GyroActivationMode, selectedActivationButton)
-            }
-            disabled={isCalibrating}
-          >
-            {GYRO_ACTIVATION_MODE_OPTIONS.map(option => (
-              <option key={option.value} value={option.value}>
-                {t(option.labelKey)}
-              </option>
-            ))}
-          </AppSelect>
-        </label>
-        <label>
-          <span className="field-caption">{t('gyro.activationButton')}
-          <HelpButton title="Activation Button">{t('gyro.activationButtonHint')}</HelpButton></span>
-          <AppSelect
-            className="app-select"
-            setting={gyroActivationMode === 'hold_off' ? 'GYRO_OFF' : 'GYRO_ON'} value={selectedActivationButton}
-            onChange={(event) => onGyroActivationButtonChange(event.target.value)}
-            disabled={isCalibrating || !usesActivationButton}
-          >
-            {activationButtonOptions.map(option => (
-              <option key={option.value} value={option.value} disabled={option.disabled}>
-                {option.label}
-              </option>
-            ))}
-          </AppSelect>
-        </label>
-      </div>
-      <div className="flex-inputs">
-        <label>
-          <span className="field-caption">{t('gyro.gyroOutput')}
-          <HelpButton title="Gyro Output">{t('gyro.gyroOutputHint')}</HelpButton></span>
-          <AppSelect setting="GYRO_OUTPUT" className="app-select" value={sensitivity.gyroOutput ?? ''} onChange={(e) => onGyroOutputChange(e.target.value)}>
-            <option value="">{t('gyro.gyroOutputMouse')} ({t('common.default')})</option>
-            <option value="LEFT_STICK">{t('gyro.gyroOutputLeftStick')}</option>
-            <option value="RIGHT_STICK">{t('gyro.gyroOutputRightStick')}</option>
-          </AppSelect>
-        </label>
-      </div>
-      {/* Real-world calibration and in-game sensitivity scale the *mouse* the
-          gyro produces. When the gyro is driving a virtual stick instead they
-          do nothing, so they fold away rather than inviting a pointless edit. */}
-      {gyroDrivesMouse ? (
-        <div className="flex-inputs">
-          <NumberField setting="REAL_WORLD_CALIBRATION"
-            label={t('gyro.realWorldCalibration')}
-            value={sensitivity.realWorldCalibration}
-            onChange={onRealWorldCalibrationChange}
-            min={0}
-            max={10000}
-            step={0.1}
-            coarseStep={100}
-          />
-          <NumberField setting="IN_GAME_SENS"
-            label={t('gyro.inGameSensitivity')}
-            value={sensitivity.inGameSens}
-            onChange={onInGameSensChange}
-            min={0}
-            max={100}
-            step={0.1}
-            defaultValue={1}
-          />
-        </div>
-      ) : (
-        <p className="field-description">{t('gyro.stickOutputNote', 'Calibration and in-game sensitivity apply when the gyro drives the mouse. With a stick output, tune the stick’s own settings instead.')}</p>
-      )}
-      <AdvancedDisclosure label="Orientation & output options">
-        <div className="flex-inputs">
-          <label>
-            {t('gyro.gyroSpace')} <HelpButton title="Gyro Space">Local uses the controller’s own axes. Player Turn combines yaw and roll relative to your grip; World Turn turns around gravity’s vertical axis. Choose a space that keeps turning natural as you tilt the controller.</HelpButton>
-            <AppSelect setting="GYRO_SPACE" className="app-select" value={sensitivity.gyroSpace ?? ''} onChange={(e) => onGyroSpaceChange(e.target.value)}>
-              <option value="">{t('common.useDefault')}</option>
-              {GYRO_SPACE_OPTIONS.map(option => (
-                <option key={option.value} value={option.value}>
-                  {t(option.labelKey)}
-                </option>
-              ))}
-            </AppSelect>
-          </label>
-        </div>
-        <div className="flex-inputs">
-          <label>
-            {t('gyro.gyroAxisX')}
-            <AppSelect setting="GYRO_AXIS_X" className="app-select" value={sensitivity.gyroAxisX ?? ''} onChange={(e) => onGyroAxisXChange(e.target.value)}>
-              <option value="">{t('common.default')}</option>
-              <option value="INVERTED">{t('gyro.inverted')}</option>
-            </AppSelect>
-          </label>
-          <label>
-            {t('gyro.gyroAxisY')}
-            <AppSelect setting="GYRO_AXIS_Y" className="app-select" value={sensitivity.gyroAxisY ?? ''} onChange={(e) => onGyroAxisYChange(e.target.value)}>
-              <option value="">{t('common.default')}</option>
-              <option value="INVERTED">{t('gyro.inverted')}</option>
-            </AppSelect>
-          </label>
-        </div>
-        {gyroDrivesMouse && (
-          <div className="flex-inputs">
-            <label>
-              {t('gyro.counterOsMouseSpeed')}
-              <p className="field-description">{t('gyro.counterOsMouseSpeedHint')}</p>
-              <AppSelect setting="COUNTER_OS_MOUSE_SPEED"
-                className="app-select"
-                value={counterOsMouseSpeed ? 'ON' : 'OFF'}
-                onChange={(event) => onCounterOsMouseSpeedChange(event.target.value === 'ON')}
-                disabled={isCalibrating}
-              >
-                <option value="OFF">{t('common.offDefault')}</option>
-                <option value="ON">{t('common.on')}</option>
-              </AppSelect>
-            </label>
-          </div>
-        )}
-      </AdvancedDisclosure>
-      {devices && devices.length > 0 && (
-        <div className="flex-inputs">
-          <label>
-            {t('gyro.connectedControllers')}
-            <p className="field-description">{t('gyro.connectedControllersHint')}</p>
-            <div className={styles.controllerList}>
-              {devices.map(dev => {
-                const id = formatVidPid(dev.vid, dev.pid)
-                const isIgnored = id ? ignoredDevices?.includes(id.toLowerCase()) : false
-                const disabled = !dev.vid || !dev.pid
-                return (
-                  <div key={dev.handle} className={styles.controllerCard}>
-                    <div className={styles.controllerEntry}>
-                      {controllerLabel(dev.type, t)}
-                      {id && <span className={styles.controllerVidpid}>: {id}</span>}
-                    </div>
-                    <label className={styles.toggleSwitch}>
-                      <span className={styles.toggleLabel}>{t('gyro.ignoreGyroOutput')}</span>
-                      <div className={styles.toggleWrapper}>
-                        <input
-                          type="checkbox"
-                          disabled={disabled}
-                          checked={Boolean(isIgnored)}
-                          onChange={(event) => {
-                            if (!dev.vid || !dev.pid) return
-                            onToggleIgnoreDevice?.(dev.vid, dev.pid, event.target.checked)
-                          }}
-                        />
-                        <span className={styles.toggleSlider} />
-                      </div>
-                    </label>
-                  </div>
-                )
-              })}
-            </div>
-          </label>
-        </div>
-      )}
-      <SectionActions
-        hasPendingChanges={hasPendingChanges}
-        statusMessage={statusMessage}
-        onApply={onApply}
-        onCancel={onCancel}
-        applyDisabled={isCalibrating}
-        className="control-actions"
+    </>
+  )
+}
+
+export type GyroCalibrationSectionProps = {
+  sensitivity: SensitivityValues
+  disabled?: boolean
+  onInGameSensChange: (value: string) => void
+  onRealWorldCalibrationChange: (value: string) => void
+  onOpenCalibration?: () => void
+  onOpenRwcGuide?: () => void
+}
+
+export function GyroCalibrationSection({ sensitivity, disabled, onInGameSensChange, onRealWorldCalibrationChange, onOpenCalibration, onOpenRwcGuide }: GyroCalibrationSectionProps) {
+  const { t } = useTranslation()
+  // Real world calibration and in-game sensitivity scale the *mouse* the gyro
+  // produces. When the gyro drives a virtual stick they do nothing, so the
+  // section says so instead of inviting a pointless edit.
+  if (sensitivity.gyroOutput) return <p className={styles.note}>{t('gyroPage.stickOutputNote')}</p>
+  return (
+    <>
+      <NumberField setting="REAL_WORLD_CALIBRATION"
+        label={t('gyroPage.realWorldCalibration')}
+        value={sensitivity.realWorldCalibration}
+        onChange={onRealWorldCalibrationChange}
+        min={0}
+        max={10000}
+        step={0.1}
+        coarseStep={100}
+        disabled={disabled}
+        hint={
+          <>
+            {t('gyroPage.realWorldCalibrationDesc')}{' '}
+            {onOpenRwcGuide
+              ? <button type="button" className={styles.link} onClick={onOpenRwcGuide} disabled={disabled}>{t('gyroPage.easyGuide')}</button>
+              : t('gyroPage.easyGuide')}
+            {' '}{t('gyroPage.realWorldCalibrationDescTail')}
+            {onOpenCalibration && <> · <button type="button" className={styles.link} onClick={onOpenCalibration} disabled={disabled}>{t('gyroPage.calculateManually')}</button></>}
+          </>
+        }
       />
-    </Card>
+      <NumberField setting="IN_GAME_SENS"
+        label={t('gyroPage.inGameSensitivity')}
+        value={sensitivity.inGameSens}
+        onChange={onInGameSensChange}
+        min={0}
+        max={100}
+        step={0.1}
+        defaultValue={1}
+        disabled={disabled}
+        hint={t('gyroPage.inGameSensitivityDesc')}
+      />
+    </>
+  )
+}
+
+export type GyroOrientationSectionProps = {
+  sensitivity: SensitivityValues
+  /** "BUTTON," while the shifted sensitivity set is being edited, for the roll row. */
+  sensitivityPrefix?: string
+  disabled?: boolean
+  onGyroSpaceChange: (value: string) => void
+  onGyroAxisXChange: (value: string) => void
+  onGyroAxisYChange: (value: string) => void
+  onRollContributionChange: (value: string) => void
+}
+
+export function GyroOrientationSection({ sensitivity, sensitivityPrefix = '', disabled, onGyroSpaceChange, onGyroAxisXChange, onGyroAxisYChange, onRollContributionChange }: GyroOrientationSectionProps) {
+  const { t } = useTranslation()
+  const axisOptions = [{ value: '', label: t('gyroPage.axisNormal') }, { value: 'INVERTED', label: t('gyroPage.axisInverted') }]
+  const showRollContribution = sensitivity.gyroSpace?.trim().toUpperCase() === 'YAW_PLUS_ROLL'
+  return (
+    <>
+      <GyroSettingRow setting="GYRO_SPACE" label={t('gyroPage.gyroSpace')} description={t('gyroPage.gyroSpaceDesc')} hints="A:Open;Y:Help;B:Back"
+        value={<SelectPill ariaLabel={t('gyroPage.gyroSpace')} value={sensitivity.gyroSpace || 'DEFAULT'} disabled={disabled}
+          options={[{ value: 'DEFAULT', label: t('gyroPage.gyroSpaceDefault') }, ...GYRO_SPACE_OPTIONS.map(option => ({ value: option.value, label: t(option.labelKey) }))]}
+          onChange={next => onGyroSpaceChange(next === 'DEFAULT' ? '' : next)} />} />
+      <GyroSettingRow setting="GYRO_AXIS_X" label={t('gyroPage.axisHorizontal')} description={t('gyroPage.axisHorizontalDesc')} hints="A:Choose;Y:Help;B:Back"
+        control={<Segmented ariaLabel={t('gyroPage.axisHorizontal')} value={sensitivity.gyroAxisX ?? ''} options={axisOptions} onChange={onGyroAxisXChange} disabled={disabled} />} />
+      <GyroSettingRow setting="GYRO_AXIS_Y" label={t('gyroPage.axisVertical')} description={t('gyroPage.axisVerticalDesc')} hints="A:Choose;Y:Help;B:Back"
+        control={<Segmented ariaLabel={t('gyroPage.axisVertical')} value={sensitivity.gyroAxisY ?? ''} options={axisOptions} onChange={onGyroAxisYChange} disabled={disabled} />} />
+      {showRollContribution && (
+        <SettingPrefix prefix={sensitivityPrefix}>
+          <NumberField setting="ROLL_CONTRIBUTION"
+            label={t('gyroPage.rollContribution')}
+            value={sensitivity.rollContribution}
+            onChange={onRollContributionChange}
+            min={-100}
+            max={100}
+            step={1}
+            unit="%"
+            disabled={disabled}
+            hint={t('gyroPage.rollContributionDesc')}
+          />
+        </SettingPrefix>
+      )}
+    </>
+  )
+}
+
+export type GyroDevicesSectionProps = {
+  devices?: GyroDevice[]
+  ignoredDevices?: string[]
+  disabled?: boolean
+  onToggleIgnoreDevice?: (vid: number, pid: number, ignore: boolean) => void
+}
+
+/** Every controller the mapper sees, each with its own "ignore gyro" switch. */
+export function GyroDevicesSection({ devices, ignoredDevices, disabled, onToggleIgnoreDevice }: GyroDevicesSectionProps) {
+  const { t } = useTranslation()
+  if (!devices || devices.length === 0) return null
+  return (
+    <GyroSettingRow label={t('gyroPage.connectedControllers')} description={t('gyroPage.connectedControllersDesc')} hints="A:Toggle;Y:Help;B:Back"
+      control={
+        <div className={styles.controllerList}>
+          {devices.map(dev => {
+            const id = formatVidPid(dev.vid, dev.pid)
+            const isIgnored = id ? ignoredDevices?.includes(id.toLowerCase()) : false
+            const unaddressable = !dev.vid || !dev.pid
+            return (
+              <div key={dev.handle} className={styles.controllerCard}>
+                <span className={styles.controllerEntry}>
+                  {controllerLabel(dev.type, t)}
+                  {id && <span className={styles.controllerVidpid}>{id}</span>}
+                </span>
+                {/* A real button, so the pad's spatial navigation can land on
+                    it; a hidden checkbox is skipped as invisible. */}
+                <button type="button" role="switch" aria-checked={Boolean(isIgnored)} className={styles.toggleSwitch}
+                  disabled={disabled || unaddressable}
+                  onClick={() => { if (dev.vid && dev.pid) onToggleIgnoreDevice?.(dev.vid, dev.pid, !isIgnored) }}>
+                  <span className={styles.toggleLabel}>{t('gyroPage.ignoreGyroOutput')}</span>
+                  <span className={styles.toggleSlider} aria-hidden="true" />
+                </button>
+              </div>
+            )
+          })}
+        </div>
+      } />
   )
 }

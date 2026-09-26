@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Icon } from '../icons/Icon'
 import { useTranslation } from 'react-i18next'
 import { BindingCommand, BindingCommandPatch } from '../../utils/bindingCommands'
@@ -17,6 +17,7 @@ import {
   type VirtualControllerType,
 } from '../../utils/virtualController'
 import { describeBinding, explainBinding } from '../../utils/bindingDescription'
+import { ReorderGrip } from './ButtonMappingCard'
 
 type Option = { value: string; label: string; disabled?: boolean }
 
@@ -39,14 +40,16 @@ type BindingCommandCardProps = {
   onRemove: (command: BindingCommand) => void
   onDuplicate: (command: BindingCommand) => void
   onCopy?: (command: BindingCommand) => void
-  /** Selection mode is on: show a checkbox instead of the normal actions. */
-  selectable?: boolean
-  selected?: boolean
-  onToggleSelected?: (command: BindingCommand) => void
   onCapture: (command: BindingCommand) => void
   onEnableVirtualController?: () => void
   onRename?: () => void
-  /** Chords are edited in the group's modeshift panel, so this card cannot keep one. */
+  /** Y on the row: the input's details popover. */
+  onDetails?: () => void
+  /** The input's name field, on its first command (7a). */
+  labelField?: ReactNode
+  /** What B does from here, for the hint capsule: "Close RB". */
+  closeLabel?: string
+  /** Chords are edited in the input's modeshift panel, so this card cannot keep one. */
   chordsLiveInModeshifts?: boolean
 }
 
@@ -81,12 +84,12 @@ export function BindingCommandCard({
   onRemove,
   onDuplicate,
   onCopy,
-  selectable,
-  selected,
-  onToggleSelected,
   onCapture,
   onEnableVirtualController,
   onRename,
+  onDetails,
+  labelField,
+  closeLabel = 'Back',
   chordsLiveInModeshifts,
 }: BindingCommandCardProps) {
   const { t } = useTranslation()
@@ -143,28 +146,38 @@ export function BindingCommandCard({
     command.source.kind === 'row' && (isDraftRow || RETARGETABLE_TRIGGER_KINDS.includes(command.triggerKind))
   const triggerGroups = isDraftRow
     ? buildTriggerGroups(t)
-        // Where the group's modeshift panel owns chords, a chord made here is
+        // Where the input's modeshift panel owns chords, a chord made here is
         // filtered straight back out of the card and lost. Do not offer it.
         .map(group => ({ ...group, options: group.options.filter(option => !(chordsLiveInModeshifts && option.value === 'chord')) }))
         .filter(group => group.options.length > 0)
     : [{ options: RETARGETABLE_TRIGGER_KINDS.map(value => ({ value, label: t(TRIGGER_LABEL_KEYS[value]) })) }]
 
+  // X on the pad captures a key for this command (Binding Editor 7a), the
+  // same as X inside the picker. Only a written or draft row can take one:
+  // a gyro special or a stick shift has no key to capture into.
+  const canCaptureHere = command.source.kind === 'row' && command.triggerKind !== 'stickShift'
+  const captureHint = canCaptureHere ? 'X:Capture;' : ''
+  const detailsHint = onDetails ? 'Y:Details;' : ''
+  const canChange = command.isRoundTripSafe && command.triggerKind !== 'stickShift'
+  const isTextEntry = (target: EventTarget | null) => {
+    const element = target as HTMLElement | null
+    return Boolean(element && (element.matches('input, textarea, select, [contenteditable="true"]')))
+  }
+
   return (
     <div className={keymapStyles.commandCard}
+      data-pad-keys={`${canCaptureHere ? 'X' : ''}${onDetails ? 'Y' : ''}` || undefined}
+      data-hints={`A:${canChange ? 'Change action' : 'Edit'};${captureHint}${detailsHint}B:${closeLabel}`}
+      onKeyDown={event => {
+        if (event.defaultPrevented || isTextEntry(event.target)) return
+        if (canCaptureHere && (event.key === 'x' || event.key === 'X')) { event.preventDefault(); onCapture(command); return }
+        if (onDetails && (event.key === 'y' || event.key === 'Y')) { event.preventDefault(); onDetails() }
+      }}
       onContextMenu={event => { event.preventDefault(); setMenuOpen(true) }}
       onPointerDown={event => { if (event.pointerType === 'touch') holdTimer.current = setTimeout(() => setMenuOpen(true), 600) }}
       onPointerUp={cancelHold} onPointerCancel={cancelHold} onPointerMove={cancelHold}>
       <div className={keymapStyles.commandSummary}>
-        {selectable && (
-          <input
-            type="checkbox"
-            className={keymapStyles.commandSelectCheckbox}
-            checked={!!selected}
-            data-capture-ignore="true"
-            aria-label={t('keymap.bindingsSelect')}
-            onChange={() => onToggleSelected?.(command)}
-          />
-        )}
+        <ReorderGrip />
         {canRetargetTrigger ? (
           <Select
             className={`${keymapStyles.commandTriggerBadge} ${keymapStyles.commandTriggerBadgeSelect}`}
@@ -192,14 +205,20 @@ export function BindingCommandCard({
         ) : (
           <span className={keymapStyles.commandTriggerBadge}>{triggerLabel}</span>
         )}
-        <button type="button" className={keymapStyles.commandSummaryMain} aria-label={`Choose action: ${summaryOutput}`} onClick={() => command.isRoundTripSafe && command.triggerKind !== 'stickShift' ? setPickerOpen(true) : setExpanded(!expanded)}>
+        <span className={keymapStyles.commandArrow} aria-hidden="true">→</span>
+        <button type="button" className={keymapStyles.commandSummaryMain} aria-label={`Choose action: ${summaryOutput}`}
+          data-hints={`A:${canChange ? 'Change action' : 'Edit'};${captureHint}${detailsHint}B:${closeLabel}`}
+          onClick={() => canChange ? setPickerOpen(true) : setExpanded(!expanded)}>
           {conditionLabel && <span className={keymapStyles.commandConditionBadge}>{conditionLabel}</span>}
-          <span className={keymapStyles.commandArrow} aria-hidden="true">→</span>
           <kbd className={keymapStyles.commandOutputSummary} title={explainBinding(command.outputValue, t)}>{summaryOutput}</kbd>
           {!command.isRoundTripSafe && <span className={keymapStyles.commandRawBadge}>{t('keymap.commandRawSyntax')}</span>}
         </button>
+        <span className={keymapStyles.commandLabelSlot}>{labelField}</span>
         <div className={keymapStyles.commandActions} data-capture-ignore="true">
-          <button type="button" className="ghost-btn" aria-label="Advanced command settings" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}><Icon name="timing" size={16} />Timing</button>
+          {/* What this opens is the output's kind and value and how it behaves
+              (tap once, toggle, on release). It was labelled Timing, and there
+              is no timing in it: the press windows are shared, under Tuning. */}
+          <button type="button" className="ghost-btn" aria-label="Command options" aria-expanded={expanded} onClick={() => setExpanded(!expanded)} data-hints={`A:${expanded ? 'Hide options' : 'Options'};B:${closeLabel}`}><Icon name="tuning" size={16} />{t('keymap.commandOptions', 'Options')}</button>
           <Menu open={menuOpen} onOpenChange={setMenuOpen} ariaLabel={t('keymap.commandActionsAriaLabel')}
             trigger={<button type="button" className="ghost-btn" aria-label={t('keymap.commandActionsAriaLabel')}><Icon name="more" size={18} /></button>}
             items={[
@@ -207,7 +226,7 @@ export function BindingCommandCard({
               { label: t('keymap.commandCopy'), disabled: !onCopy, onSelect: () => onCopy?.(command) },
               { label: t('keymap.commandDuplicate'), onSelect: () => onDuplicate(command) },
             ]} />
-          <button type="button" className={keymapStyles.advancedRemoveBtn} onClick={() => onRemove(command)}>
+          <button type="button" className={keymapStyles.advancedRemoveBtn} onClick={() => onRemove(command)} data-hints={`A:Remove;B:${closeLabel}`}>
             {t('keymap.removeBinding')}
           </button>
         </div>

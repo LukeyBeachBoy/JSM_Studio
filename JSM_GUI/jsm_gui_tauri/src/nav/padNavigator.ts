@@ -27,6 +27,13 @@ export type NavAction =
 export type PadSnapshot = {
   /** JSM command names currently down: S E W N L R ZL ZR UP DOWN LEFT RIGHT - + … */
   buttons: ReadonlySet<string>
+  /**
+   * Commands that went down since the previous snapshot, held or not
+   * (telemetry's `pressedSince`). Snapshots arrive at the display rate, so a
+   * quick tap can start and end between two of them; this is how it still
+   * counts. Absent from older mappers, which only lose such taps.
+   */
+  pressedSince?: ReadonlySet<string>
   leftStick: { x: number; y: number }
   rightStick: { x: number; y: number }
   triggers: { left: number; right: number }
@@ -47,11 +54,29 @@ export const EXIT_TEST_MS = 600
 
 const STICK_ON = 0.55
 const STICK_OFF = 0.35
-const TRIGGER_ON = 0.6
-const TRIGGER_OFF = 0.35
+// A page turns a little under half way (about 15,700 of 32,767). At 0.6 the
+// page turned well short of the full pull the Triggers page draws, yet still
+// felt like a long reach; this is a soft pull, meant as one. Released below
+// 0.28, so a trigger resting part way cannot chatter between pages.
+const TRIGGER_ON = 0.48
+const TRIGGER_OFF = 0.28
 const SCROLL_DEADZONE = 0.2
 /** Pixels per second at full right-stick deflection. */
 const SCROLL_SPEED = 1600
+
+const ALL_BUTTONS: PadButton[] = ['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'VIEW', 'MENU']
+
+const dpadDirection = (buttons: ReadonlySet<string>): Direction | null =>
+  buttons.has('UP') ? 'up' : buttons.has('DOWN') ? 'down' : buttons.has('LEFT') ? 'left' : buttons.has('RIGHT') ? 'right' : null
+
+/** The left stick's direction, with hysteresis against the one it had. */
+const stickDirection = ({ x, y }: { x: number; y: number }, previous: Direction | null): Direction | null => {
+  const magnitude = Math.hypot(x, y)
+  if (magnitude < STICK_OFF) return null
+  if (magnitude < STICK_ON && !previous) return null
+  // Positive y is up on the wire (see ControllerStatusSvg's Stick).
+  return Math.abs(x) > Math.abs(y) ? (x > 0 ? 'right' : 'left') : (y > 0 ? 'up' : 'down')
+}
 
 type RepeatState = { direction: Direction; since: number; next: number; count: number }
 
@@ -66,9 +91,20 @@ export class PadNavigator {
   /** View and Menu were down together at some point in this press. */
   private chordSeen = false
   private lastTime: number | null = null
+  /** The next snapshot only records what is held; nothing it holds fires. */
+  private latched = false
 
-  /** Forget everything held, e.g. when the window loses focus mid-press. */
-  reset() {
+  /**
+   * Forget everything held, e.g. when the window loses focus mid-press.
+   *
+   * With `latch`, whatever is still down when reading resumes is taken as
+   * already handled and fires only after it is released and pressed again.
+   * Studio stops reading while something else owns the pad -- a global chord
+   * swapped in, another configuration loaded -- and the buttons used there
+   * are usually still held the moment it hands back: RT clicking the mouse in
+   * a chord configuration must not also turn the page when the chord ends.
+   */
+  reset(latch = false) {
     this.held.clear()
     this.stickDirection = null
     this.repeat = null
@@ -78,6 +114,7 @@ export class PadNavigator {
     this.exitFired = false
     this.chordSeen = false
     this.lastTime = null
+    this.latched = latch
   }
 
   /**
@@ -122,16 +159,38 @@ export class PadNavigator {
       return actions
     }
 
+    // ---- Reading resumes after something else owned the pad: record what is
+    // held, fire nothing. The D-pad or stick direction still held is parked
+    // until it is let go.
+    if (this.latched) {
+      this.latched = false
+      this.held = down
+      this.backSince = down.has('B') ? now : null
+      this.backFired = down.has('B')
+      if (!down.has('VIEW') && !down.has('MENU')) this.chordSeen = false
+      else this.chordSeen = true
+      const parked = dpadDirection(pad.buttons) ?? stickDirection(pad.leftStick, null)
+      this.stickDirection = stickDirection(pad.leftStick, null)
+      this.repeat = parked ? { direction: parked, since: now, next: Infinity, count: 0 } : null
+      return actions
+    }
+
     // ---- Presses fire on the way down. View and Menu wait for release, so
     // holding both for the exit chord does not also jump to the title bar.
-    for (const button of down) {
-      if (this.held.has(button)) continue
-      if (button === 'VIEW' || button === 'MENU') continue
-      actions.push({ kind: 'press', button })
+    // A press that began (and maybe ended) between two snapshots still counts
+    // once: fast taps must never be dropped.
+    const tapped = (button: PadButton) => {
+      const command = button === 'LT' ? 'ZL' : button === 'RT' ? 'ZR' : BUTTONS[button as keyof typeof BUTTONS]
+      return Boolean(command && pad.pressedSince?.has(command))
     }
-    for (const button of this.held) {
-      if (down.has(button) || (button !== 'VIEW' && button !== 'MENU')) continue
-      if (!this.chordSeen) actions.push({ kind: 'press', button })
+    for (const button of ALL_BUTTONS) {
+      if (button === 'VIEW' || button === 'MENU') continue
+      if ((down.has(button) && !this.held.has(button)) || tapped(button)) actions.push({ kind: 'press', button })
+    }
+    for (const button of ['VIEW', 'MENU'] as const) {
+      const released = this.held.has(button) && !down.has(button)
+      const tappedBetween = tapped(button) && !down.has(button) && !this.held.has(button)
+      if ((released || tappedBetween) && !this.chordSeen) actions.push({ kind: 'press', button })
     }
     if (!down.has('VIEW') && !down.has('MENU')) this.chordSeen = false
 
@@ -149,19 +208,16 @@ export class PadNavigator {
     this.held = down
 
     // ---- Movement: D-pad first, else the left stick past its threshold.
-    const dpad: Direction | null = pad.buttons.has('UP') ? 'up' : pad.buttons.has('DOWN') ? 'down'
-      : pad.buttons.has('LEFT') ? 'left' : pad.buttons.has('RIGHT') ? 'right' : null
-    const { x, y } = pad.leftStick
-    const magnitude = Math.hypot(x, y)
-    if (magnitude < STICK_OFF) this.stickDirection = null
-    else if (magnitude >= STICK_ON || this.stickDirection) {
-      // Positive y is up on the wire (see ControllerStatusSvg's Stick).
-      this.stickDirection = Math.abs(x) > Math.abs(y) ? (x > 0 ? 'right' : 'left') : (y > 0 ? 'up' : 'down')
-    }
+    const dpad = dpadDirection(pad.buttons)
+    this.stickDirection = stickDirection(pad.leftStick, this.stickDirection)
     const direction = dpad ?? this.stickDirection
+    // A D-pad tap that went down between snapshots: gone again, or let go and
+    // pressed again while this sample still shows it held.
+    const dpadTap = pad.pressedSince ? dpadDirection(pad.pressedSince) : null
     if (!direction) {
       this.repeat = null
-    } else if (!this.repeat || this.repeat.direction !== direction) {
+      if (dpadTap) actions.push({ kind: 'move', direction: dpadTap, repeat: false })
+    } else if (!this.repeat || this.repeat.direction !== direction || (dpad && dpadTap === dpad)) {
       this.repeat = { direction, since: now, next: now + REPEAT_DELAY_MS, count: 0 }
       actions.push({ kind: 'move', direction, repeat: false })
     } else if (now >= this.repeat.next) {

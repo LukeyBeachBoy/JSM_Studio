@@ -75,3 +75,19 @@ body,
   color: var(--text-3);
   font: var(--fw-regular) var(--fs-hint) / var(--lh-hint) var(--font-ui);
 }
+
+/* The render-error card (components/ErrorBoundary.tsx): the boot card with
+   the error's message and a way back. */
+.error-card { max-width: 520px; align-items: flex-start; }
+.error-card .boot-copy { gap: var(--sp-2); }
+.error-card__detail {
+  margin: var(--sp-2) 0 0;
+  padding: var(--sp-3);
+  border-radius: var(--r-sm);
+  background: var(--surface-sunken);
+  color: var(--error);
+  font: var(--fw-regular) var(--fs-hint) / var(--lh-hint) var(--font-mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.error-card__actions { display: flex; gap: var(--sp-2); margin-top: var(--sp-2); }

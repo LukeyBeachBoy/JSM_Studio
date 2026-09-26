@@ -154,7 +154,10 @@ pub fn save_settings(app: &AppHandle, input: AiSettingsInput) -> Result<AiSettin
     ensure_parent_dir(&path)?;
     let content = serde_json::to_string_pretty(&settings)
         .map_err(|error| format!("Failed to serialize AI settings: {error}"))?;
-    fs::write(path, content).map_err(|error| format!("Failed to save AI settings: {error}"))?;
+    // Atomic like every other file under the app data dir: a crash mid-write
+    // must not leave the key unparseable, which read back as "not set up".
+    crate::runtime::write_file_atomically(&path, content)
+        .map_err(|error| format!("Failed to save AI settings: {error}"))?;
     Ok(settings)
 }
 

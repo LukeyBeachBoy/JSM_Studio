@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { desktopBridge, type GlobalChord } from '../platform/desktopBridge'
 import type { TelemetryDevice } from '../hooks/useTelemetry'
@@ -51,9 +51,13 @@ const profilePathFromName = (name: string) => `${PROFILE_PREFIX}${name}.txt`
 let idCounter = 0
 const nextId = () => `chord-${Date.now().toString(36)}-${(idCounter += 1)}`
 
-// Studio's own chords, from any configuration (runtime.rs RESERVED_CHORDS).
+// Studio's own chords, from any configuration (services/global_chords.rs
+// RESERVED_CHORDS: Quick Access + R5, Quick Access + R4). The frame's "Quick
+// Access alone opens the Studio quick menu" row is left out: nothing in the
+// runtime opens a menu on Quick Access alone; a fresh install binds it to the
+// "Quick Access Chord" configuration, which is an ordinary chord listed above.
 const RESERVED = [
-  { name: 'Pause mapping', description: 'Turns mapping off and on again from anywhere', buttons: ['MISC1', 'RSL'] },
+  { name: 'Pause mapping', description: 'Toggles mapping on and off from anywhere', buttons: ['MISC1', 'RSL'] },
   { name: 'Calibrate gyro', description: 'Starts the calibration HUD', buttons: ['MISC1', 'RSR'] },
 ]
 
@@ -73,6 +77,19 @@ export function GlobalChordsPage({ onChordsChanged, devices, reservedChords = fa
   const [loaded, setLoaded] = useState(false)
   const [busy, setBusy] = useState(false)
   const [open, setOpen] = useState<string | null>(null)
+  // A destructive confirmation starts on Cancel (System States 17g): it is the
+  // dialog's first control, which useKeyboardNav focuses when the overlay
+  // appears. Focusing it here instead would run before that hook records the
+  // Remove button as where to return, and B would leave focus nowhere.
+  const [confirming, setConfirming] = useState<GlobalChord | null>(null)
+  // Disabling the fieldset while a save is in flight drops focus; the pad
+  // would otherwise restart from the top of the page after every chip.
+  const focusReturn = useRef<HTMLElement | null>(null)
+  useEffect(() => {
+    if (busy || !focusReturn.current) return
+    if (focusReturn.current.isConnected) focusReturn.current.focus()
+    focusReturn.current = null
+  }, [busy])
   // The header's "+ Add chord" asks for a new one.
   useEffect(() => {
     const add = () => void addNewChord()
@@ -88,6 +105,10 @@ export function GlobalChordsPage({ onChordsChanged, devices, reservedChords = fa
       setChords(chordList)
       setProfiles(profileList)
       setLoaded(true)
+    }).catch(() => {
+      if (disposed) return
+      setLoaded(true)
+      showToast(t('globalChords.saveFailed'), 'error')
     })
     return () => {
       disposed = true
@@ -95,6 +116,7 @@ export function GlobalChordsPage({ onChordsChanged, devices, reservedChords = fa
   }, [])
 
   const persist = async (chord: GlobalChord) => {
+    focusReturn.current = document.activeElement as HTMLElement | null
     setBusy(true)
     try { const next = await desktopBridge.saveGlobalChord(chord); setChords(next); onChordsChanged?.() }
     catch { showToast(t('globalChords.saveFailed'), 'error') }
@@ -159,7 +181,7 @@ export function GlobalChordsPage({ onChordsChanged, devices, reservedChords = fa
   // configuration while it is held. The row says which buttons and which
   // configuration; opening it picks the buttons.
   return (
-    <fieldset className={styles.page} disabled={busy} style={{ border: 0, minWidth: 0, padding: 0 }}>
+    <fieldset className={styles.page} disabled={busy} aria-busy={!loaded || undefined} style={{ border: 0, minWidth: 0, padding: 0 }}>
       <span className={styles.eyebrow}>Swap while held</span>
       {loaded && chords.length === 0 ? (
         <div className={styles.empty}>{t('globalChords.noChords')}</div>
@@ -171,10 +193,10 @@ export function GlobalChordsPage({ onChordsChanged, devices, reservedChords = fa
             return (
               <div className={styles.row} key={chord.id} data-open={expanded || undefined}>
                 <div className={styles.rowHead}>
-                  <button type="button" className={styles.rowMain} aria-expanded={expanded} onClick={() => setOpen(expanded ? null : chord.id)}>
+                  <button type="button" className={styles.rowMain} aria-expanded={expanded} onClick={() => setOpen(expanded ? null : chord.id)} data-hints="A:Edit;B:Back">
                     <span className={styles.rowText}>
                       <span className={styles.rowName}>{name}</span>
-                      <span className={styles.rowSub}>{chord.buttons.length ? `Loads ${name} while held; releasing returns` : t('globalChords.pickButtonHint')}</span>
+                      <span className={styles.rowSub}>{chord.buttons.length ? 'Swaps in while held; release to return' : t('globalChords.pickButtonHint')}</span>
                     </span>
                     {keys(chord.buttons)}
                   </button>
@@ -203,7 +225,7 @@ export function GlobalChordsPage({ onChordsChanged, devices, reservedChords = fa
                     </div>
                     <div className={styles.pickerFooter}>
                       <span className={styles.note}>{t('globalChords.editHint')}</span>
-                      <button type="button" className="button button--danger button--sm" onClick={() => void remove(chord.id)}>{t('globalChords.remove')}</button>
+                      <button type="button" className="button button--danger button--sm" onClick={() => setConfirming(chord)}>{t('globalChords.remove')}</button>
                     </div>
                   </div>
                 )}
@@ -246,6 +268,23 @@ export function GlobalChordsPage({ onChordsChanged, devices, reservedChords = fa
           </div>
         ))}
       </div>
+
+      {/* Escape must preventDefault, or the same press also reaches the
+          page's own handler once the overlay is gone and backs out of Studio. */}
+      {confirming && (
+        <div className="modal-overlay modal-overlay--over" onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); setConfirming(null) } }}>
+          <div className="modal-card confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="delete-chord-title" aria-describedby="delete-chord-body">
+            <h3 id="delete-chord-title">Remove the {profileNameFromPath(confirming.profilePath)} chord?</h3>
+            <p id="delete-chord-body">
+              {confirming.buttons.length ? `${confirming.buttons.map(buttonLabel).join(' + ')} stops swapping to it.` : 'It has no buttons yet.'} <strong>{profileNameFromPath(confirming.profilePath)}</strong> stays in your library.
+            </p>
+            <div className="confirm-dialog__actions">
+              <button type="button" className="button button--secondary" data-modal-close onClick={() => setConfirming(null)}>{t('common.cancel')}</button>
+              <button type="button" className="button button--danger-solid" onClick={() => { const id = confirming.id; setConfirming(null); void remove(id) }}>{t('globalChords.remove')}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </fieldset>
   )
 }

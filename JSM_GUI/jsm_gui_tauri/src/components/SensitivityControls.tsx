@@ -2,44 +2,26 @@ import { SettingPrefix } from './SettingOrigin'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { buildModifierOptions, resolveModifierOptionLabel } from '../utils/modifierOptions'
+import { controllerVisualFamily } from '../utils/controllerStatus'
 import { StaticSensForm } from './StaticSensForm'
 import { AccelSensForm } from './AccelSensForm'
-import { Card } from './Card'
-import { TelemetrySample } from '../hooks/useTelemetry'
-import { CurvePreview } from './CurvePreview'
-import { SectionActions } from './SectionActions'
 import { SensitivityValues } from '../utils/keymap'
 import type { AccelCurveLink } from '../utils/accelCurve'
-import { AppSelect } from './ui/AppSelect'
+import { GyroSettingRow, Segmented, SelectPill } from './GyroBehaviorControls'
+import { InputGlyph } from './glyphs/InputGlyph'
+import type { SelectOption } from './ui/Select'
 
-type SensitivityControlsProps = {
+export type GyroSensitivitySectionProps = {
   sensitivity: SensitivityValues
   modeshiftSensitivity?: SensitivityValues
-  isCalibrating: boolean
-  statusMessage?: string | null
-  accelCurve?: string
-  naturalVHalf?: number
-  powerVRef?: number
-  powerExponent?: number
-  sigmoidMid?: number
-  sigmoidWidth?: number
-  jumpTau?: number
+  disabled?: boolean
   mode: 'static' | 'accel'
   sensitivityView: 'base' | 'modeshift'
-  hasPendingChanges: boolean
-  sample: TelemetrySample | null
-  telemetry: {
-    omega: string
-    sensX: string
-    sensY: string
-    timestamp: string
-  }
   touchpadMode: string
   touchpadGridCells: number
+  devices?: { type: number }[]
   onModeChange: (mode: 'static' | 'accel') => void
   onSensitivityViewChange: (view: 'base' | 'modeshift') => void
-  onApply: () => void
-  onCancel: () => void
   onAccelCurveChange: (value: string) => void
   onNaturalVHalfChange: (value: string) => void
   onPowerVRefChange: (value: string) => void
@@ -55,29 +37,26 @@ type SensitivityControlsProps = {
   onMaxSensYChange: (value: string) => void
   onStaticSensXChange: (value: string) => void
   onStaticSensYChange: (value: string) => void
-  onRollContributionChange: (value: string) => void
   modeshiftButton: string | null
   onModeshiftButtonChange: (value: string) => void
-  lockMessage?: string
   accelCurveLink?: string
   onAccelCurveLinkChange?: (value: AccelCurveLink) => void
 }
 
-export function SensitivityControls({
+// The Sensitivity section (Gyro.dc.html): the mode is a row with a segmented
+// control rather than a view switch, the shift input a select pill, and the
+// values follow as rows of the same template.
+export function GyroSensitivitySection({
   sensitivity,
-  isCalibrating,
-  statusMessage,
+  modeshiftSensitivity,
+  disabled,
   mode,
   sensitivityView,
-  hasPendingChanges,
-  sample,
-  telemetry,
   touchpadMode,
   touchpadGridCells,
+  devices,
   onModeChange,
   onSensitivityViewChange,
-  onApply,
-  onCancel,
   onAccelCurveChange,
   onNaturalVHalfChange,
   onPowerVRefChange,
@@ -93,71 +72,54 @@ export function SensitivityControls({
   onMaxSensYChange,
   onStaticSensXChange,
   onStaticSensYChange,
-  onRollContributionChange,
   modeshiftButton,
   onModeshiftButtonChange,
-  lockMessage,
   accelCurveLink,
   onAccelCurveLinkChange,
-}: SensitivityControlsProps) {
+}: GyroSensitivitySectionProps) {
   const { t } = useTranslation()
-  const displaySensitivity = sensitivity
+  const family = controllerVisualFamily(devices?.[0]?.type)
+  const shifted = sensitivityView === 'modeshift' && Boolean(modeshiftButton)
+  const displaySensitivity = shifted && modeshiftSensitivity ? modeshiftSensitivity : sensitivity
 
   const isTouchpadGridActive = touchpadMode === 'GRID_AND_STICK'
-  const modifierOptions = useMemo(() => {
-    return buildModifierOptions(isTouchpadGridActive, isTouchpadGridActive ? touchpadGridCells : 0).map(option => ({
-      value: option.value,
-      label: resolveModifierOptionLabel(option, t),
-      disabled: option.disabled,
-    }))
-  }, [isTouchpadGridActive, t, touchpadGridCells])
-
-  const modeshiftOptions = useMemo(
-    () => [{ value: '', label: t('common.noModeShift'), disabled: false }, ...modifierOptions],
-    [modifierOptions, t]
-  )
+  const modeshiftOptions = useMemo<SelectOption[]>(() => {
+    const options = buildModifierOptions(isTouchpadGridActive, isTouchpadGridActive ? touchpadGridCells : 0).map(option => {
+      const [label, hint] = resolveModifierOptionLabel(option, t, family).split(/\s+—\s+/)
+      return { value: option.value, label, hint, disabled: option.disabled, icon: <InputGlyph command={option.value} family={family} size={20} /> }
+    })
+    return [{ value: 'NONE', label: t('common.noModeShift') }, ...options]
+  }, [isTouchpadGridActive, t, touchpadGridCells, family])
+  const modeshiftName = modeshiftButton ? modeshiftOptions.find(option => option.value === modeshiftButton)?.label ?? modeshiftButton : ''
 
   return (
-    <SettingPrefix prefix={sensitivityView === 'modeshift' && modeshiftButton ? modeshiftButton + ',' : ''}><Card className="control-panel" lockable locked={isCalibrating} lockMessage={lockMessage ?? t('messages.lockMessage')}>
-      <h2>{t('sensitivity.title')}</h2>
-      <div className="mode-toggle">
-        <button className={`pill-tab ${mode === 'static' ? 'active' : ''}`} onClick={() => onModeChange('static')}>
-          {t('sensitivity.staticSensitivity')}
-        </button>
-        <button className={`pill-tab ${mode === 'accel' ? 'active' : ''}`} onClick={() => onModeChange('accel')}>
-          {t('sensitivity.accelerationCurve')}
-        </button>
-      </div>
-      <div className="sensitivity-shift-row">
-        <label>{t('sensitivity.modeShiftButton')}</label>
-        <AppSelect value={modeshiftButton ?? ''} onChange={(event) => onModeshiftButtonChange(event.target.value)} data-testid="sensitivity-shift-select">
-          {modeshiftOptions.map(option => (
-            <option key={option.value || 'none'} value={option.value} disabled={option.disabled}>
-              {option.label}
-            </option>
-          ))}
-        </AppSelect>
-      </div>
+    <SettingPrefix prefix={shifted && modeshiftButton ? modeshiftButton + ',' : ''}>
+      <GyroSettingRow label={t('gyroPage.sensitivityMode')} description={t('gyroPage.sensitivityModeDesc')} hints="A:Choose;Y:Help;B:Back"
+        control={
+          <Segmented<'static' | 'accel'> ariaLabel={t('gyroPage.sensitivityMode')} value={mode} disabled={disabled} onChange={onModeChange}
+            options={[{ value: 'static', label: t('gyroPage.modeStatic') }, { value: 'accel', label: t('gyroPage.modeAccel') }]} />
+        } />
+      <GyroSettingRow label={t('gyroPage.shiftInput')} description={t('gyroPage.shiftInputDesc')} hints="A:Open;Y:Help;B:Back"
+        value={<SelectPill ariaLabel={t('gyroPage.shiftInput')} value={modeshiftButton ?? 'NONE'} options={modeshiftOptions} disabled={disabled}
+          onChange={next => onModeshiftButtonChange(next === 'NONE' ? '' : next)} />} />
       {modeshiftButton && (
-        <div className="mode-toggle secondary">
-          <button className={`pill-tab ${sensitivityView === 'base' ? 'active' : ''}`} onClick={() => onSensitivityViewChange('base')}>
-            {t('sensitivity.baseValues')}
-          </button>
-          <button className={`pill-tab ${sensitivityView === 'modeshift' ? 'active' : ''}`} onClick={() => onSensitivityViewChange('modeshift')}>
-            {t('sensitivity.modeShift')}
-          </button>
-        </div>
+        <GyroSettingRow label={t('gyroPage.shiftView')} description={t('gyroPage.shiftViewDesc', { input: modeshiftName })} hints="A:Choose;Y:Help;B:Back"
+          control={
+            <Segmented<'base' | 'modeshift'> ariaLabel={t('gyroPage.shiftView')} value={sensitivityView} disabled={disabled} onChange={onSensitivityViewChange}
+              options={[{ value: 'base', label: t('gyroPage.shiftViewBase') }, { value: 'modeshift', label: t('gyroPage.shiftViewShifted') }]} />
+          } />
       )}
       {mode === 'static' ? (
         <StaticSensForm
           sensitivity={displaySensitivity}
+          disabled={disabled}
           onChangeX={onStaticSensXChange}
           onChangeY={onStaticSensYChange}
-          onRollContributionChange={onRollContributionChange}
         />
       ) : (
         <AccelSensForm
           sensitivity={displaySensitivity}
+          disabled={disabled}
           onCurveChange={onAccelCurveChange}
           onNaturalVHalfChange={onNaturalVHalfChange}
           onPowerVRefChange={onPowerVRefChange}
@@ -171,20 +133,10 @@ export function SensitivityControls({
           onMinSensYChange={onMinSensYChange}
           onMaxSensXChange={onMaxSensXChange}
           onMaxSensYChange={onMaxSensYChange}
-          onRollContributionChange={onRollContributionChange}
           accelCurveLink={accelCurveLink}
           onAccelCurveLinkChange={onAccelCurveLinkChange}
         />
       )}
-      <SectionActions
-        hasPendingChanges={hasPendingChanges}
-        statusMessage={statusMessage}
-        onApply={onApply}
-        onCancel={onCancel}
-        applyDisabled={isCalibrating}
-        className="control-actions"
-      />
-      <CurvePreview sensitivity={sensitivity} sample={sample} hasPendingChanges={hasPendingChanges} telemetry={telemetry} />
-    </Card></SettingPrefix>
+    </SettingPrefix>
   )
 }

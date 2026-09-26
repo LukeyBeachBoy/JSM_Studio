@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     fs,
     path::{Path, PathBuf},
 };
@@ -26,6 +27,13 @@ const BACKEND_FILE_NAME: &str = "backend.json";
 const GUI_STATE_FILE_NAME: &str = "gui-state.json";
 const HIDHIDE_STATE_FILE_NAME: &str = "hidhide-state.json";
 const AI_SETTINGS_FILE_NAME: &str = "ai-settings.json";
+const AUTOLOAD_MATCHES_FILE_NAME: &str = "autoload-matches.json";
+/// Names Windows reserves for devices, with or without an extension: a file
+/// called CON.txt cannot be created, and NUL.txt swallows every write.
+const WINDOWS_RESERVED_NAMES: [&str; 22] = [
+    "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+    "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+];
 const LEGACY_APP_IDENTIFIER: &str = "com.evanmclean.jsmcustomcurve";
 const STARTUP_FILE_NAME: &str = "OnStartUp.txt";
 const CALIBRATION_COMMAND_FILE_NAME: &str = "RecalibrateGyro.txt";
@@ -136,6 +144,22 @@ pub struct RuntimeMappingState {
     /// "off" is not a choice about this feature and is reset to on once.
     #[serde(default)]
     pub studio_navigation_migrated: bool,
+    /// The library configuration loaded when the front app has no AutoLoad
+    /// rule of its own (Associations, "Desktop · Fallback"). JoyShockMapper's
+    /// AutoLoad leaves whatever was last loaded in that case, so Studio does
+    /// the load itself from the focus watcher.
+    #[serde(default)]
+    pub autoload_fallback_profile: Option<String>,
+    #[serde(default)]
+    pub autoload_fallback_enabled: bool,
+}
+
+/// The fallback as the UI sees it: a library profile name, or none.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutoloadFallback {
+    pub profile_name: Option<String>,
+    pub enabled: bool,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -153,6 +177,26 @@ pub struct AutoloadRule {
     /// mapper's AutoLoad does not match, so pausing is a rename and loses nothing.
     #[serde(default)]
     pub paused: bool,
+    /// Unix milliseconds of the last time this app came to the front while the
+    /// rule was live, from `autoload-matches.json`. Left out when never seen.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_matched_at_ms: Option<u64>,
+}
+
+/// A library profile's file facts, for the Configurations page.
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibraryProfileMeta {
+    pub name: String,
+    pub modified_at_ms: u64,
+}
+
+/// What `delete_library_profile` did: whether the file went to the recycle bin
+/// (or was removed outright when that failed), and the configuration made
+/// active in its place, if any.
+pub struct DeletedProfile {
+    pub recycled: bool,
+    pub fallback: Option<(String, String)>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -321,7 +365,32 @@ pub fn list_library_profiles(app: &AppHandle) -> Result<Vec<String>, String> {
 /// calibration command file, the navigation rule -- which has no business
 /// repeating on a timer, or racing a save the user just made.
 pub fn list_library_profile_names(app: &AppHandle) -> Result<Vec<String>, String> {
-    let mut names = Vec::new();
+    Ok(list_library_profile_entries(app)?.into_iter().map(|(name, _)| name).collect())
+}
+
+/// The same files as `list_library_profiles`, with each file's last write as
+/// Unix milliseconds. A file whose time cannot be read reports 0 rather than
+/// dropping out of the list: the Configurations page still has to show it.
+pub fn list_library_profile_meta(app: &AppHandle) -> Result<Vec<LibraryProfileMeta>, String> {
+    ensure_required_files(app)?;
+    Ok(list_library_profile_entries(app)?
+        .into_iter()
+        .map(|(name, path)| LibraryProfileMeta {
+            name,
+            modified_at_ms: fs::metadata(&path)
+                .and_then(|meta| meta.modified())
+                .ok()
+                .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
+                .map(|elapsed| elapsed.as_millis() as u64)
+                .unwrap_or(0),
+        })
+        .collect())
+}
+
+/// Every configuration in the library as (name, path), sorted by name; the
+/// one listing behind the names, the meta and the profile watcher.
+fn list_library_profile_entries(app: &AppHandle) -> Result<Vec<(String, PathBuf)>, String> {
+    let mut entries_out = Vec::new();
     let entries = fs::read_dir(profile_library_dir(app)?)
         .map_err(|error| format!("Failed to read profile library: {error}"))?;
 
@@ -339,17 +408,17 @@ pub fn list_library_profile_names(app: &AppHandle) -> Result<Vec<String>, String
             if stem == APPLIED_PREVIEW_NAME {
                 continue;
             }
-            names.push(stem.to_string());
+            entries_out.push((stem.to_string(), path.clone()));
         }
     }
 
-    names.sort_by(|left, right| {
+    entries_out.sort_by(|(left, _), (right, _)| {
         left.to_ascii_lowercase()
             .cmp(&right.to_ascii_lowercase())
             .then_with(|| left.cmp(right))
     });
 
-    Ok(names)
+    Ok(entries_out)
 }
 
 pub fn save_library_profile(app: &AppHandle, name: &str, content: &str) -> Result<String, String> {
@@ -393,12 +462,16 @@ pub fn rename_library_profile(
         return Err("New profile name cannot be empty.".to_string());
     }
 
-    if safe_old.eq_ignore_ascii_case(&safe_new) {
+    if safe_old == safe_new {
         let relative = relative_profile_path_from_name(&safe_old);
         let content = fs::read_to_string(absolute_profile_path(app, &relative)?)
             .map_err(|error| format!("Failed to load profile during rename: {error}"))?;
         return Ok((relative, content));
     }
+    // "wardogs" -> "Wardogs" is a real rename: NTFS keeps the case, the
+    // listing shows it, and a rule or chord pointing at the old spelling is
+    // matched ignoring case below. It used to be treated as a no-op.
+    let case_only = safe_old.eq_ignore_ascii_case(&safe_new);
 
     let existing = list_library_profiles(app)?;
     let has_conflict = existing
@@ -418,8 +491,13 @@ pub fn rename_library_profile(
     ensure_file(&old_absolute, "")?;
     // A plain rename can fail on Windows while something still holds the file
     // open (the backend that just loaded it, a sync client, an indexer). Copy
-    // the contents across and drop the original in that case.
+    // the contents across and drop the original in that case -- except for a
+    // case-only rename, where old and new are the same file and the copy
+    // then the remove would delete it.
     if let Err(rename_error) = fs::rename(&old_absolute, &new_absolute) {
+        if case_only {
+            return Err(format!("Failed to rename profile: {rename_error}"));
+        }
         fs::copy(&old_absolute, &new_absolute)
             .map_err(|error| format!("Failed to rename profile: {rename_error} ({error})"))?;
         fs::remove_file(&old_absolute)
@@ -458,7 +536,7 @@ pub fn copy_active_profile(app: &AppHandle) -> Result<(String, String), String> 
 pub fn delete_library_profile(
     app: &AppHandle,
     name: &str,
-) -> Result<Option<(String, String)>, String> {
+) -> Result<DeletedProfile, String> {
     ensure_required_files(app)?;
     let safe_name = sanitize_profile_name(name);
     let relative = relative_profile_path_from_name(&safe_name);
@@ -467,7 +545,17 @@ pub fn delete_library_profile(
     if active.eq_ignore_ascii_case(&relative) || list_global_chords(app)?.iter().any(|chord| chord.profile_path.eq_ignore_ascii_case(&relative)) {
         return Err("Configuration is in use. Apply another configuration and remove chord references first.".into());
     }
-    fs::remove_file(absolute).map_err(|error| format!("Failed to delete profile: {error}"))?;
+    // The recycle bin first, so a wrong click is undoable from Explorer. The
+    // shell can refuse (a volume with no bin, a path it cannot resolve); then
+    // the file goes outright and the caller is told which happened.
+    let recycled = match trash::delete(&absolute) {
+        Ok(()) => true,
+        Err(error) => {
+            eprintln!("Recycle bin refused {}: {error}; removing outright", absolute.display());
+            fs::remove_file(&absolute).map_err(|error| format!("Failed to delete profile: {error}"))?;
+            false
+        }
+    };
 
     let active = read_runtime_mapping_state(app)?.active_profile_path;
     if active.eq_ignore_ascii_case(&relative) {
@@ -477,15 +565,15 @@ pub fn delete_library_profile(
             set_active_profile_state(app, &fallback_relative)?;
             let content = fs::read_to_string(absolute_profile_path(app, &fallback_relative)?)
                 .map_err(|error| format!("Failed to read fallback profile: {error}"))?;
-            return Ok(Some((fallback_relative, content)));
+            return Ok(DeletedProfile { recycled, fallback: Some((fallback_relative, content)) });
         }
 
         set_active_profile_state(app, DEFAULT_PROFILE_RELATIVE)?;
         ensure_file(&absolute_profile_path(app, DEFAULT_PROFILE_RELATIVE)?, "")?;
-        return Ok(Some((DEFAULT_PROFILE_RELATIVE.to_string(), String::new())));
+        return Ok(DeletedProfile { recycled, fallback: Some((DEFAULT_PROFILE_RELATIVE.to_string(), String::new())) });
     }
 
-    Ok(None)
+    Ok(DeletedProfile { recycled, fallback: None })
 }
 
 pub fn read_calibration_preset(app: &AppHandle) -> Result<String, String> {
@@ -576,7 +664,8 @@ pub fn list_autoload_rules(app: &AppHandle) -> Result<Vec<AutoloadRule>, String>
     for entry in entries {
         let entry = entry.map_err(|error| format!("Failed to read AutoLoad entry: {error}"))?;
         let path = entry.path();
-        if path.extension().and_then(|ext| ext.to_str()) != Some("txt") {
+        // A paused rule is `<app>.txt.paused`: still a rule, shown switched off.
+        if !is_autoload_rule_file(&path) {
             continue;
         }
         if path
@@ -587,6 +676,11 @@ pub fn list_autoload_rules(app: &AppHandle) -> Result<Vec<AutoloadRule>, String>
             continue;
         }
         rules.push(autoload_rule_from_path(app, &path)?);
+    }
+
+    let matches = read_autoload_matches(app);
+    for rule in &mut rules {
+        rule.last_matched_at_ms = matches.get(&rule.process_name.to_ascii_lowercase()).copied();
     }
 
     rules.sort_by(|left, right| {
@@ -648,9 +742,19 @@ pub fn sanitize_profile_name(raw_name: &str) -> String {
     let normalized = cleaned.trim_end_matches(['.', ' ']);
     if normalized.is_empty() {
         "Profile".to_string()
+    } else if is_windows_reserved_name(normalized) {
+        // Keep what was typed recognisable rather than swapping in "Profile".
+        format!("{normalized}_")
     } else {
         normalized.to_string()
     }
+}
+
+/// Windows applies the reservation to the part before the first dot, so
+/// "con", "CON.txt" and "Con.old" are all the console.
+fn is_windows_reserved_name(name: &str) -> bool {
+    let head = name.split('.').next().unwrap_or_default().trim();
+    WINDOWS_RESERVED_NAMES.iter().any(|reserved| reserved.eq_ignore_ascii_case(head))
 }
 
 pub fn runtime_dir(app: &AppHandle) -> Result<PathBuf, String> {
@@ -815,6 +919,85 @@ pub fn has_live_autoload_rule(app: &AppHandle, process_stem: &str) -> bool {
     })
 }
 
+/// Last time each rule's app came to the front while its rule was live,
+/// keyed by lower-cased process name. Studio's own record: JoyShockMapper
+/// does not report AutoLoad hits, and the focus watcher already asks who took
+/// the front, so the answer is written down there.
+fn autoload_matches_file(app: &AppHandle) -> Result<PathBuf, String> {
+    Ok(app_data_dir(app)?.join(AUTOLOAD_MATCHES_FILE_NAME))
+}
+
+fn read_autoload_matches(app: &AppHandle) -> HashMap<String, u64> {
+    // Missing or unparseable is an empty record, not an error: this is a
+    // convenience column, and a bad file must not take the Associations page
+    // down with it.
+    autoload_matches_file(app)
+        .ok()
+        .and_then(|path| fs::read_to_string(path).ok())
+        .and_then(|raw| serde_json::from_str::<HashMap<String, u64>>(&raw).ok())
+        .unwrap_or_default()
+}
+
+/// Records that `process_stem`'s rule just fired, as Unix milliseconds.
+pub fn record_autoload_match(app: &AppHandle, process_stem: &str) -> Result<(), String> {
+    let mut matches = read_autoload_matches(app);
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|elapsed| elapsed.as_millis() as u64)
+        .unwrap_or(0);
+    matches.insert(process_stem.to_ascii_lowercase(), now);
+    let path = autoload_matches_file(app)?;
+    let content = serde_json::to_string_pretty(&matches)
+        .map_err(|error| format!("Failed to serialize AutoLoad matches: {error}"))?;
+    write_file_atomically(&path, content).map_err(|error| format!("Failed to write {}: {error}", path.display()))
+}
+
+pub fn get_autoload_fallback(app: &AppHandle) -> Result<AutoloadFallback, String> {
+    let state = read_runtime_mapping_state(app)?;
+    Ok(AutoloadFallback {
+        profile_name: state.autoload_fallback_profile,
+        enabled: state.autoload_fallback_enabled,
+    })
+}
+
+/// Stores the fallback. The name is sanitized like any library name and must
+/// exist when given; "enabled" with no name is allowed (nothing loads until a
+/// configuration is picked) so the switch and the picker can be set in
+/// either order.
+pub fn set_autoload_fallback(app: &AppHandle, fallback: AutoloadFallback) -> Result<AutoloadFallback, String> {
+    ensure_required_files(app)?;
+    let profile_name = match fallback.profile_name.as_deref().map(str::trim) {
+        Some(name) if !name.is_empty() => {
+            let safe = sanitize_profile_name(name);
+            if !library_profile_path(app, &safe)?.is_file() {
+                return Err(format!("Profile does not exist: {safe}"));
+            }
+            Some(safe)
+        }
+        _ => None,
+    };
+    let mut state = read_runtime_mapping_state(app)?;
+    state.autoload_fallback_profile = profile_name;
+    state.autoload_fallback_enabled = fallback.enabled;
+    persist_runtime_mapping_state(app, &state)?;
+    Ok(AutoloadFallback {
+        profile_name: state.autoload_fallback_profile,
+        enabled: state.autoload_fallback_enabled,
+    })
+}
+
+/// The library path the focus watcher loads for an app without a rule, when
+/// the fallback is on, named, and its file is still there. None otherwise.
+pub fn autoload_fallback_profile_path(app: &AppHandle, state: &RuntimeMappingState) -> Option<String> {
+    if !state.autoload_fallback_enabled {
+        return None;
+    }
+    let name = state.autoload_fallback_profile.as_deref()?;
+    let safe = sanitize_profile_name(name);
+    let relative = relative_profile_path_from_name(&safe);
+    absolute_profile_path(app, &relative).ok()?.is_file().then_some(relative)
+}
+
 fn calibration_preset_path(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(calibration_dir(app)?.join("_3Dcalibrate.txt"))
 }
@@ -871,7 +1054,7 @@ fn ensure_parent_dir(path: &Path) -> Result<(), String> {
 /// volume, where Windows replaces atomically as far as any reader is
 /// concerned. Its extension is deliberately not `.txt`, so a half-written
 /// profile can never show up in the library listing.
-fn write_file_atomically(path: impl AsRef<Path>, content: impl AsRef<str>) -> Result<(), String> {
+pub(crate) fn write_file_atomically(path: impl AsRef<Path>, content: impl AsRef<[u8]>) -> Result<(), String> {
     let path = path.as_ref();
     ensure_parent_dir(path)?;
     let temp = path.with_extension(format!("jsmtmp{}", std::process::id()));
@@ -897,6 +1080,19 @@ fn write_file_atomically(path: impl AsRef<Path>, content: impl AsRef<str>) -> Re
     }
     let _ = fs::remove_file(&temp);
     Err(format!("Failed to replace {}: {last}", path.display()))
+}
+
+/// `write_file_atomically`, skipped when the file already holds `content`.
+/// `ensure_required_files` runs on nearly every command, and each generated
+/// file it rewrote was a rename JoyShockMapper could be reading across, plus a
+/// changed mtime for anything watching the folder. Same treatment the
+/// navigation profile already got.
+fn write_file_if_changed(path: impl AsRef<Path>, content: impl AsRef<[u8]>) -> Result<(), String> {
+    let path = path.as_ref();
+    if fs::read(path).ok().as_deref() == Some(content.as_ref()) {
+        return Ok(());
+    }
+    write_file_atomically(path, content)
 }
 
 fn ensure_file(path: &Path, default_content: &str) -> Result<(), String> {
@@ -1087,16 +1283,20 @@ fn ensure_runtime_support_files(app: &AppHandle, backend: &str) -> Result<(), St
         copy_file_if_missing(&backend_dir.join(file_name), &runtime_root.join(file_name))?;
     }
 
+    // This runs on nearly every command, including the ones that fire when
+    // Studio's window comes to the front -- the very moment AutoLoad (and
+    // hand_pad_to_studio) tell the mapper to read this file. fs::copy truncates
+    // the target first, so a reader in that window gets an empty or partial
+    // navigation profile. Replace it atomically, and only when it changed.
     let navigation_source = backend_dir.join(APP_NAVIGATION_FILE_NAME);
-    if navigation_source.exists() {
-        fs::copy(&navigation_source, runtime_root.join(APP_NAVIGATION_FILE_NAME))
-            .map(|_| ())
+    if let Ok(bundled) = fs::read(&navigation_source) {
+        write_file_if_changed(runtime_root.join(APP_NAVIGATION_FILE_NAME), &bundled)
             .map_err(|error| format!("Failed to refresh {APP_NAVIGATION_FILE_NAME}: {error}"))?;
     }
 
     // App-owned defaults are separate from user-authored OnReset hooks.
     let defaults = runtime_root.join("StudioDefaults.txt");
-    write_file_atomically(defaults, studio_defaults_text(&read_runtime_mapping_state(app)?))
+    write_file_if_changed(defaults, studio_defaults_text(&read_runtime_mapping_state(app)?))
         .map_err(|error| format!("Failed to write controller defaults: {error}"))?;
 
     Ok(())
@@ -1120,7 +1320,7 @@ fn sync_app_navigation_rule(app: &AppHandle, state: &RuntimeMappingState) -> Res
     let path = autoload_rule_path(app, &stem)?;
     if state.controller_nav_enabled {
         ensure_parent_dir(&path)?;
-        write_file_atomically(&path, format!("{APP_NAVIGATION_FILE_NAME}\n"))
+        write_file_if_changed(&path, format!("{APP_NAVIGATION_FILE_NAME}\n"))
             .map_err(|error| format!("Failed to write controller navigation rule: {error}"))
     } else if path.exists() {
         fs::remove_file(&path)
@@ -1348,14 +1548,14 @@ fn get_startup_autoload_enabled(app: &AppHandle) -> Result<Option<bool>, String>
 fn write_startup_file(app: &AppHandle, state: &RuntimeMappingState) -> Result<(), String> {
     let path = startup_file(app)?;
     ensure_parent_dir(&path)?;
-    write_file_atomically(&path, startup_file_text(state))
+    write_file_if_changed(&path, startup_file_text(state))
         .map_err(|error| format!("Failed to write startup file: {error}"))
 }
 
 fn ensure_mapping_disabled_file(app: &AppHandle) -> Result<(), String> {
     let path = mapping_disabled_file(app)?;
     ensure_parent_dir(&path)?;
-    write_file_atomically(path, mapping_disabled_text())
+    write_file_if_changed(path, mapping_disabled_text())
         .map_err(|error| format!("Failed to write mapping disabled profile: {error}"))
 }
 
@@ -1433,6 +1633,8 @@ fn default_runtime_mapping_state(app: &AppHandle) -> Result<RuntimeMappingState,
         reserved_chords: false,
         calibration_hud_enabled: true,
         studio_navigation_migrated: true,
+        autoload_fallback_profile: None,
+        autoload_fallback_enabled: false,
     })
 }
 
@@ -1478,7 +1680,7 @@ fn set_active_profile_state(app: &AppHandle, relative: &str) -> Result<(), Strin
 fn write_calibration_command_file(app: &AppHandle) -> Result<(), String> {
     let path = calibration_command_file(app)?;
     ensure_parent_dir(&path)?;
-    write_file_atomically(&path, calibration_command_text())
+    write_file_if_changed(&path, calibration_command_text())
         .map_err(|error| format!("Failed to write calibration command file: {error}"))
 }
 
@@ -1529,6 +1731,7 @@ fn autoload_rule_from_path(app: &AppHandle, path: &Path) -> Result<AutoloadRule,
             missing_profile,
             built_in,
             paused,
+            last_matched_at_ms: None,
         });
     }
 
@@ -1541,6 +1744,7 @@ fn autoload_rule_from_path(app: &AppHandle, path: &Path) -> Result<AutoloadRule,
         missing_profile: false,
         built_in,
         paused,
+        last_matched_at_ms: None,
     })
 }
 
@@ -1574,7 +1778,8 @@ fn update_autoload_profile_references(
     {
         let entry = entry.map_err(|error| format!("Failed to read AutoLoad entry: {error}"))?;
         let path = entry.path();
-        if path.extension().and_then(|ext| ext.to_str()) != Some("txt") {
+        // Paused rules included: resuming one must not point at the old name.
+        if !is_autoload_rule_file(&path) {
             continue;
         }
         let content = fs::read_to_string(&path).unwrap_or_default();
@@ -1588,6 +1793,14 @@ fn update_autoload_profile_references(
     }
 
     Ok(())
+}
+
+/// `<app>.txt` or its paused form `<app>.txt.paused`.
+fn is_autoload_rule_file(path: &Path) -> bool {
+    path.file_name()
+        .and_then(|value| value.to_str())
+        .map(str::to_ascii_lowercase)
+        .is_some_and(|name| name.ends_with(".txt") || name.ends_with(".txt.paused"))
 }
 
 fn sanitize_process_name(raw_name: &str) -> Result<String, String> {
@@ -1618,6 +1831,8 @@ fn sanitize_process_name(raw_name: &str) -> Result<String, String> {
 
     if cleaned.is_empty() {
         Err("Process name cannot be empty.".to_string())
+    } else if is_windows_reserved_name(&cleaned) {
+        Err(format!("{cleaned} is a name Windows reserves for a device."))
     } else {
         Ok(cleaned)
     }
@@ -1836,6 +2051,34 @@ mod tests {
         // list_library_profile_names hides the preview by file stem, so the two
         // constants have to describe the same file.
         assert!(APPLIED_PREVIEW_RELATIVE.ends_with(&format!("/{APPLIED_PREVIEW_NAME}.txt")));
+    }
+
+    #[test]
+    fn reserved_device_names_never_become_file_names() {
+        // CON.txt cannot be created and NUL.txt swallows every write, so a
+        // profile keeps its spelling with a mark, and a rule is refused.
+        assert_eq!(sanitize_profile_name("CON"), "CON_");
+        assert_eq!(sanitize_profile_name("nul.old"), "nul.old_");
+        assert_eq!(sanitize_profile_name("Console"), "Console");
+        assert_eq!(sanitize_profile_name("COM10"), "COM10");
+        assert!(sanitize_process_name("com1").is_err());
+        assert!(sanitize_process_name("lpt9.exe").is_err());
+        assert_eq!(sanitize_process_name("Conan.exe").as_deref(), Ok("Conan"));
+    }
+
+    #[test]
+    fn an_unchanged_generated_file_is_left_alone() {
+        let dir = std::env::temp_dir().join(format!("jsm-unchanged-{}", std::process::id()));
+        let _ = fs::create_dir_all(&dir);
+        let path = dir.join("OnStartUp.txt");
+        write_file_if_changed(&path, "A\n").expect("first write");
+        let first = fs::metadata(&path).and_then(|meta| meta.modified()).expect("mtime");
+        std::thread::sleep(std::time::Duration::from_millis(30));
+        write_file_if_changed(&path, "A\n").expect("same content");
+        assert_eq!(fs::metadata(&path).and_then(|meta| meta.modified()).expect("mtime"), first);
+        write_file_if_changed(&path, "B\n").expect("new content");
+        assert_eq!(fs::read_to_string(&path).expect("read"), "B\n");
+        let _ = fs::remove_dir_all(&dir);
     }
 
     #[test]

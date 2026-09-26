@@ -1,147 +1,123 @@
-import { HelpButton } from './HelpButton'
 import { useTranslation } from 'react-i18next'
 import { SensitivityValues } from '../utils/keymap'
-import { Card } from './Card'
-import { SectionActions } from './SectionActions'
+import { TelemetrySample } from '../hooks/useTelemetry'
 import { TelemetryBanner } from './TelemetryBanner'
 import { NumberField } from './NumberField'
+import { CurvePreview } from './CurvePreview'
+import { GyroSettingRow, OnOff, GyroDevicesSection, type GyroDevice } from './GyroBehaviorControls'
 import telemetryStyles from './Telemetry.module.css'
-import { AppSelect } from './ui/AppSelect'
 
-type NoiseSteadyingControlsProps = {
+// The Noise & steadying, Dampening and Diagnostics sections of the Gyro page
+// (Gyro.dc.html). Every row is the page's template: NumberField for numbers,
+// GyroSettingRow with an Off / On control for switches.
+
+export type GyroNoiseSectionProps = {
   sensitivity: SensitivityValues
-  isCalibrating: boolean
-  hasPendingChanges: boolean
-  statusMessage?: string | null
-  onApply: () => void
-  onCancel: () => void
-  lockMessage?: string
-  onCutoffSpeedChange: (value: string) => void
-  onCutoffRecoveryChange: (value: string) => void
-  onSmoothTimeChange: (value: string) => void
-  onSmoothThresholdChange: (value: string) => void
-  onSmoothingDecayChange: (value: string) => void
+  disabled?: boolean
   onOneEuroFilterChange: (value: string) => void
   onOneEuroMinCutoffChange: (value: string) => void
   onOneEuroSpeedCoeffChange: (value: string) => void
   onAngleSnapChange: (value: string) => void
   onAngleSnapSmoothChange: (value: string) => void
-  onDecelBrakeStrengthChange: (value: string) => void
-  onDecelBrakeThresholdChange: (value: string) => void
-  onGyroClickDampenChange: (value: string) => void
-  telemetry: {
-    omega: string
-    timestamp: string
-    sampleHz?: string
-  }
 }
 
-export function NoiseSteadyingControls({
+export function GyroNoiseSection({
   sensitivity,
-  isCalibrating,
-  hasPendingChanges,
-  statusMessage,
-  onApply,
-  onCancel,
-  lockMessage,
-  onCutoffSpeedChange,
-  onCutoffRecoveryChange,
-  onSmoothTimeChange,
-  onSmoothThresholdChange,
-  onSmoothingDecayChange,
+  disabled,
   onOneEuroFilterChange,
   onOneEuroMinCutoffChange,
   onOneEuroSpeedCoeffChange,
   onAngleSnapChange,
   onAngleSnapSmoothChange,
+}: GyroNoiseSectionProps) {
+  const { t } = useTranslation()
+  return (
+    <>
+      <GyroSettingRow setting="ONE_EURO_FILTER" label={t('gyroPage.oneEuroFilter')} description={t('gyroPage.oneEuroFilterDesc')} hints="A:Choose;Y:Help;B:Back"
+        control={<OnOff ariaLabel={t('gyroPage.oneEuroFilter')} value={Boolean(sensitivity.oneEuroFilter)} disabled={disabled} onChange={on => onOneEuroFilterChange(on ? 'ON' : 'OFF')} />} />
+      {sensitivity.oneEuroFilter && (
+        <>
+          <NumberField setting="ONE_EURO_MIN_CUTOFF" label={t('gyroPage.oneEuroMinCutoff')} value={sensitivity.oneEuroMinCutoff} onChange={onOneEuroMinCutoffChange} min={0} max={20} step={0.1} defaultValue={6} unit="Hz" disabled={disabled} hint={t('gyroPage.oneEuroMinCutoffDesc')} />
+          <NumberField setting="ONE_EURO_SPEED_COEFF" label={t('gyroPage.oneEuroSpeedCoeff')} value={sensitivity.oneEuroSpeedCoeff} onChange={onOneEuroSpeedCoeffChange} min={0} max={2} step={0.01} defaultValue={0.3} disabled={disabled} hint={t('gyroPage.oneEuroSpeedCoeffDesc')} />
+        </>
+      )}
+      <NumberField setting="GYRO_ANGLE_SNAP" label={t('gyroPage.angleSnap')} value={sensitivity.angleSnap} onChange={onAngleSnapChange} min={0} max={45} step={0.1} unit="°" disabled={disabled} hint={t('gyroPage.angleSnapDesc')} />
+      <GyroSettingRow setting="GYRO_ANGLE_SNAP_EASE" label={t('gyroPage.angleSnapEase')} description={t('gyroPage.angleSnapEaseDesc')} hints="A:Choose;Y:Help;B:Back"
+        control={<OnOff ariaLabel={t('gyroPage.angleSnapEase')} value={(sensitivity.angleSnapEase ?? 'OFF').toUpperCase() === 'ON'} disabled={disabled} onChange={on => onAngleSnapSmoothChange(on ? 'ON' : 'OFF')} />} />
+    </>
+  )
+}
+
+export type GyroDampeningSectionProps = {
+  sensitivity: SensitivityValues
+  disabled?: boolean
+  onCutoffSpeedChange: (value: string) => void
+  onCutoffRecoveryChange: (value: string) => void
+  onSmoothTimeChange: (value: string) => void
+  onSmoothThresholdChange: (value: string) => void
+  onSmoothingDecayChange: (value: string) => void
+  onDecelBrakeStrengthChange: (value: string) => void
+  onDecelBrakeThresholdChange: (value: string) => void
+  onGyroClickDampenChange: (value: string) => void
+}
+
+export function GyroDampeningSection({
+  sensitivity,
+  disabled,
+  onCutoffSpeedChange,
+  onCutoffRecoveryChange,
+  onSmoothTimeChange,
+  onSmoothThresholdChange,
+  onSmoothingDecayChange,
   onDecelBrakeStrengthChange,
   onDecelBrakeThresholdChange,
   onGyroClickDampenChange,
-  telemetry,
-}: NoiseSteadyingControlsProps) {
+}: GyroDampeningSectionProps) {
   const { t } = useTranslation()
-
   return (
-    <Card className="control-panel" lockable locked={isCalibrating} lockMessage={lockMessage ?? t('messages.lockMessage')}>
-      <div className="section-header">
-        <h2 className="section-title">{t('noise.title')}</h2>
-        <p className="section-caption compact">{t('noise.caption')}</p>
-      </div>
-      <details className="instrument-panel"><summary>Live gyro diagnostics</summary><div className={telemetryStyles.telemetryInline}>
-        <TelemetryBanner {...telemetry} />
-      </div></details>
-      <div className="flex-inputs">
-        <NumberField setting="GYRO_CUTOFF_SPEED" label={t('noise.deadzone')} value={sensitivity.cutoffSpeed} onChange={onCutoffSpeedChange} min={0} max={5} step={0.01} unit="°/s" />
-        <NumberField setting="GYRO_CUTOFF_RECOVERY" label={t('noise.steadying')} value={sensitivity.cutoffRecovery} onChange={onCutoffRecoveryChange} min={0} max={5} step={0.01} unit="°/s" />
-      </div>
-      <div className="flex-inputs">
-        <NumberField setting="GYRO_SMOOTH_TIME" label={t('noise.smoothTime')} value={sensitivity.smoothTime} onChange={onSmoothTimeChange} min={0} max={0.03} step={0.001} unit="s" />
-        <NumberField setting="GYRO_SMOOTH_THRESHOLD" label={t('noise.smoothThreshold')} value={sensitivity.smoothThreshold} onChange={onSmoothThresholdChange} min={0} max={50} step={1} unit="°/s" />
-      </div>
-      <div className="flex-inputs">
-        <label>
-          <span className="field-caption">{t('noise.smoothingDecay')}
-          <HelpButton title="Gyro Smoothing Decay">Chooses how smoothing is applied. Off averages a fixed number of recent samples; on decays the old value continuously, which does not depend on the polling interval and so behaves the same whatever it is set to. Both use the same smooth time and threshold.</HelpButton></span>
-          <AppSelect setting="GYRO_SMOOTHING_DECAY" value={sensitivity.smoothingDecay ?? 'OFF'} onChange={(e) => onSmoothingDecayChange(e.target.value)}>
-            <option value="OFF">{t('common.off')}</option>
-            <option value="ON">{t('common.on')}</option>
-          </AppSelect>
-        </label>
-        <label>
-          <span className="field-caption">{t('noise.oneEuroFilter')}
-          <HelpButton title="One Euro Filter">An adaptive low-pass filter: it smooths heavily while you are moving slowly and gets out of the way as you speed up, so resting jitter is damped without adding lag to a flick. Turning it on reveals its two controls.</HelpButton></span>
-          <AppSelect value={sensitivity.oneEuroFilter ? 'ON' : 'OFF'} onChange={(e) => onOneEuroFilterChange(e.target.value)}>
-            <option value="OFF">{t('common.off')}</option>
-            <option value="ON">{t('common.on')}</option>
-          </AppSelect>
-        </label>
-      </div>
-      {sensitivity.oneEuroFilter && (
-        <div className="flex-inputs">
-          <NumberField setting="ONE_EURO_MIN_CUTOFF" label={t('noise.oneEuroMinCutoff')} value={sensitivity.oneEuroMinCutoff} onChange={onOneEuroMinCutoffChange} min={0} max={20} step={0.1} defaultValue={6} unit="Hz" />
-          <NumberField setting="ONE_EURO_SPEED_COEFF" label={t('noise.oneEuroSpeedCoeff')} value={sensitivity.oneEuroSpeedCoeff} onChange={onOneEuroSpeedCoeffChange} min={0} max={2} step={0.01} defaultValue={0.3} />
-        </div>
-      )}
-      <div className="flex-inputs">
-        <NumberField setting="GYRO_ANGLE_SNAP" label={t('noise.angleSnapping')} value={sensitivity.angleSnap} onChange={onAngleSnapChange} min={0} max={45} step={0.1} unit="°" />
-        <label>
-          <span className="field-caption">{t('noise.easeAngleSnapping')}
-          <HelpButton title="Ease Angle Snapping">How angle snapping takes hold. Off snaps as soon as you are inside the angle; on fades the snap in across it, so aim is pulled level gradually rather than jumping.</HelpButton></span>
-          <AppSelect setting="GYRO_ANGLE_SNAP_EASE" className="app-select" value={sensitivity.angleSnapEase ?? 'OFF'} onChange={(e) => onAngleSnapSmoothChange(e.target.value)}>
-            <option value="OFF">{t('common.off')}</option>
-            <option value="ON">{t('common.on')}</option>
-          </AppSelect>
-        </label>
-      </div>
-      <div className="flex-inputs">
-        <NumberField setting="DECEL_BRAKE_STRENGTH" label={t('noise.decelBrakeStrength')} value={sensitivity.decelBrakeStrength} onChange={onDecelBrakeStrengthChange} min={0} max={1} step={0.01} />
-        <NumberField setting="DECEL_BRAKE_THRESHOLD" label={t('noise.decelBrakeThreshold')} value={sensitivity.decelBrakeThreshold} onChange={onDecelBrakeThresholdChange} min={1} max={60} step={0.5} defaultValue={25} unit="°/s" />
-      </div>
-      {/* Not gyro noise as such -- the gyro is reporting a real movement. It just
-          isn't one you meant, which is what the rest of this page is about. */}
-      <div className="flex-inputs">
-        <NumberField setting="GYRO_CLICK_DAMPEN"
-          label={t('noise.gyroClickDampen', 'Trackpad press damping')}
-          value={sensitivity.gyroClickDampen}
-          onChange={onGyroClickDampenChange}
-          min={0}
-          max={1}
-          step={0.05}
-          coarseStep={0.25}
-          hint={t(
-            'noise.gyroClickDampenHint',
-            'Pressing a trackpad shoves the whole controller, and the gyro reports that shove as if you had aimed. If you pan with a pad and correct with the gyro, the jolt lands twice. This is how much gyro output the press takes away — 1 freezes the gyro while the pad is clicked. It shares the Damping pressure setting on the Trackpad tuning page, so it can start easing in before the click registers. 0 turns it off.'
-          )}
-        />
-      </div>
-      <SectionActions
-        hasPendingChanges={hasPendingChanges}
-        statusMessage={statusMessage}
-        onApply={onApply}
-        onCancel={onCancel}
-        applyDisabled={isCalibrating}
-        className="control-actions"
-      />
-    </Card>
+    <>
+      <NumberField setting="GYRO_CUTOFF_SPEED" label={t('gyroPage.cutoffSpeed')} value={sensitivity.cutoffSpeed} onChange={onCutoffSpeedChange} min={0} max={5} step={0.01} unit="°/s" disabled={disabled} hint={t('gyroPage.cutoffSpeedDesc')} />
+      <NumberField setting="GYRO_CUTOFF_RECOVERY" label={t('gyroPage.cutoffRecovery')} value={sensitivity.cutoffRecovery} onChange={onCutoffRecoveryChange} min={0} max={5} step={0.01} unit="°/s" disabled={disabled} hint={t('gyroPage.cutoffRecoveryDesc')} />
+      <NumberField setting="GYRO_SMOOTH_TIME" label={t('gyroPage.smoothTime')} value={sensitivity.smoothTime} onChange={onSmoothTimeChange} min={0} max={0.03} step={0.001} unit="s" disabled={disabled} hint={t('gyroPage.smoothTimeDesc')} />
+      <NumberField setting="GYRO_SMOOTH_THRESHOLD" label={t('gyroPage.smoothThreshold')} value={sensitivity.smoothThreshold} onChange={onSmoothThresholdChange} min={0} max={50} step={1} unit="°/s" disabled={disabled} hint={t('gyroPage.smoothThresholdDesc')} />
+      <GyroSettingRow setting="GYRO_SMOOTHING_DECAY" label={t('gyroPage.smoothingDecay')} description={t('gyroPage.smoothingDecayDesc')} hints="A:Choose;Y:Help;B:Back"
+        control={<OnOff ariaLabel={t('gyroPage.smoothingDecay')} value={(sensitivity.smoothingDecay ?? 'OFF').toUpperCase() === 'ON'} disabled={disabled} onChange={on => onSmoothingDecayChange(on ? 'ON' : 'OFF')} />} />
+      <NumberField setting="DECEL_BRAKE_STRENGTH" label={t('gyroPage.decelBrakeStrength')} value={sensitivity.decelBrakeStrength} onChange={onDecelBrakeStrengthChange} min={0} max={1} step={0.01} disabled={disabled} hint={t('gyroPage.decelBrakeStrengthDesc')} />
+      <NumberField setting="DECEL_BRAKE_THRESHOLD" label={t('gyroPage.decelBrakeThreshold')} value={sensitivity.decelBrakeThreshold} onChange={onDecelBrakeThresholdChange} min={1} max={60} step={0.5} defaultValue={25} unit="°/s" disabled={disabled} hint={t('gyroPage.decelBrakeThresholdDesc')} />
+      {/* Not gyro noise as such -- the gyro is reporting a real movement. It
+          just isn't one you meant, which is what the rest of this section is about. */}
+      <NumberField setting="GYRO_CLICK_DAMPEN" label={t('gyroPage.clickDampen')} value={sensitivity.gyroClickDampen} onChange={onGyroClickDampenChange} min={0} max={1} step={0.05} coarseStep={0.25} disabled={disabled} hint={t('gyroPage.clickDampenDesc')} />
+    </>
+  )
+}
+
+export type GyroDiagnosticsSectionProps = {
+  sensitivity: SensitivityValues
+  sample: TelemetrySample | null
+  hasPendingChanges: boolean
+  telemetry: {
+    omega: string
+    sensX: string
+    sensY: string
+    timestamp: string
+    sampleHz?: string
+  }
+  devices?: GyroDevice[]
+  ignoredDevices?: string[]
+  disabled?: boolean
+  onToggleIgnoreDevice?: (vid: number, pid: number, ignore: boolean) => void
+}
+
+/** The live readouts, the sensitivity curve with the live turn on it, and the connected controllers. */
+export function GyroDiagnosticsSection({ sensitivity, sample, hasPendingChanges, telemetry, devices, ignoredDevices, disabled, onToggleIgnoreDevice }: GyroDiagnosticsSectionProps) {
+  const { t } = useTranslation()
+  return (
+    <>
+      <GyroSettingRow label={t('gyroPage.telemetry')} description={t('telemetry.livePacketsStreaming')} hints="Y:Help;B:Back"
+        control={<div className={telemetryStyles.telemetryInline}><TelemetryBanner omega={telemetry.omega} timestamp={telemetry.timestamp} sampleHz={telemetry.sampleHz} /></div>} />
+      <GyroSettingRow label={t('gyroPage.curvePreview')} description={t('gyroPage.curvePreviewDesc')} hints="Y:Help;B:Back"
+        control={<CurvePreview sensitivity={sensitivity} sample={sample} hasPendingChanges={hasPendingChanges} telemetry={telemetry} />} />
+      <GyroDevicesSection devices={devices} ignoredDevices={ignoredDevices} disabled={disabled} onToggleIgnoreDevice={onToggleIgnoreDevice} />
+    </>
   )
 }

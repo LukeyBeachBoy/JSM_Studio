@@ -65,7 +65,11 @@ export function setBindingLabel(text: string, command: string, label: string, op
 
   // Keep labels next to the binding they describe when that line exists, so a
   // hand-edited config still reads top to bottom.
-  const bindingIndex = lines.findIndex(line => new RegExp(`^\\s*${key.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}\\s*(,|\\+|\\*|=)`, 'i').test(line))
+  // Escaped the same way bindingIcons does it. The old character class was
+  // mis-nested and escaped nothing, so naming the Plus button built the regex
+  // `^\s*+` and threw "Nothing to repeat" from inside a state updater.
+  const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const bindingIndex = lines.findIndex(line => new RegExp(`^\\s*${escaped}\\s*(,|\\+|\\*|=)`, 'i').test(line))
   if (bindingIndex >= 0) {
     lines.splice(bindingIndex, 0, nextLine)
     return lines.join('\n')

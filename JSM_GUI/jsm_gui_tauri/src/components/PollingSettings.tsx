@@ -3,6 +3,7 @@ import { NumberField } from './NumberField'
 import { desktopBridge } from '../platform/desktopBridge'
 import { getKeymapValue, removeKeymapEntry, updateKeymapEntry } from '../utils/keymap'
 import { showToast } from '../utils/toast'
+import { getPreferenceSnapshot, patchRuntimePreferences } from '../platform/preferenceStore'
 import styles from './PollingSettings.module.css'
 
 const help = 'Time JoyShockMapper waits between reading controller state, in milliseconds. This affects the whole controller, including gyro and trackpads. A shorter interval can reduce latency but increases processing work; it does not change the hardware report rate. The backend uses whole milliseconds.'
@@ -17,9 +18,11 @@ export function PollingSettings({ text, effectiveText, onChange, global = false,
   /** The import the inherited value comes from, when there is one. */
   importName?: string | null
 }) {
-  const [defaultMs, setDefaultMs] = useState(3)
-  const [pending, setPending] = useState(3)
-  const [ready, setReady] = useState(false)
+  // Read at startup (preferenceStore), so the page opens on the real value.
+  const cachedMs = getPreferenceSnapshot().runtime ? getPreferenceSnapshot().runtime?.defaultPollingMs ?? 3 : null
+  const [defaultMs, setDefaultMs] = useState(cachedMs ?? 3)
+  const [pending, setPending] = useState(cachedMs ?? 3)
+  const [ready, setReady] = useState(cachedMs !== null)
   const [saving, setSaving] = useState(false)
   useEffect(() => {
     let cancelled = false
@@ -39,7 +42,7 @@ export function PollingSettings({ text, effectiveText, onChange, global = false,
       <div className={styles.actions}>
         <button type="button" className="button button--secondary" disabled={!ready || saving || pending === defaultMs} onClick={async () => {
           setSaving(true)
-          try { const result = await desktopBridge.setDefaultPollingMs(pending); setDefaultMs(result.defaultPollingMs ?? pending); showToast('Polling default saved. Apply a profile to activate it.', 'success') }
+          try { const result = await desktopBridge.setDefaultPollingMs(pending); setDefaultMs(result.defaultPollingMs ?? pending); patchRuntimePreferences({ defaultPollingMs: result.defaultPollingMs ?? pending }); showToast('Polling default saved. Apply a profile to activate it.', 'success') }
           catch (error) { showToast(String(error), 'error') }
           finally { setSaving(false) }
         }}>Save Default</button>

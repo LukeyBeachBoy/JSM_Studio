@@ -1,25 +1,19 @@
-/* This div previously carried a plain string className with no CSS behind it
-   anywhere in the app, so its stacked .flex-inputs rows (curve source, curve
-   type, the sensitivity/gain outputs, min/max speed) had zero gap between
-   them -- ordinary block divs touching edge to edge. That is what made the
-   Gyro acceleration-curve page read as everything "bunched together": the
-   rows never lost their own internal layout, only the space between them.
-   --space-3 matches the rhythm .control-panel already uses between ITS direct
-   children, so this reads as a continuation of the same page rather than a
-   denser or looser box nested inside it. */
+/* The curve editor is a run of setting rows (curve source, curve type, the
+   outputs, the speed range, then the shape's own parameters), separated by
+   the rows' hairlines only, so it continues the page's template. */
 .editor {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  min-width: 0;
 }
 
-.fieldLabel {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.fieldLabel :global(.help-button) {
+/* Inheriting the other side's shape: the shape rows fold away and one line
+   says where to change it. */
+.note {
   margin: 0;
-  flex: 0 0 auto;
+  padding: var(--sp-3) var(--sp-4);
+  color: var(--text-3);
+  font-size: var(--fs-hint);
+  line-height: var(--lh-hint);
+  box-shadow: inset 0 -1px 0 var(--line-1);
 }

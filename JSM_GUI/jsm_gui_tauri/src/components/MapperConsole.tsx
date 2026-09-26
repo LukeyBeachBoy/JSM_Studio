@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { desktopBridge } from '../platform/desktopBridge'
+import { PAD_EVENT, type PadEventDetail } from '../nav/useControllerNavigation'
 import styles from './MapperConsole.module.css'
 
 type Line = { at: number; text: string; kind?: 'command' | 'output' }
@@ -37,6 +38,21 @@ export function MapperConsole({ consoleText }: { consoleText?: string }) {
   const seen = useRef<string[]>([])
   const viewport = useRef<HTMLDivElement | null>(null)
   const follow = useRef(true)
+  const input = useRef<HTMLInputElement | null>(null)
+  const host = useRef<HTMLElement | null>(null)
+
+  // Y on the console focuses the command line (16i "Y Type").
+  useEffect(() => {
+    const element = host.current
+    if (!element) return
+    const onPad = (event: Event) => {
+      if ((event as CustomEvent<PadEventDetail>).detail.button !== 'Y') return
+      event.preventDefault()
+      input.current?.focus()
+    }
+    element.addEventListener(PAD_EVENT, onPad)
+    return () => element.removeEventListener(PAD_EVENT, onPad)
+  }, [])
 
   useEffect(() => {
     const next = (consoleText ?? '').split(/\r?\n/).filter(line => line.trim())
@@ -59,24 +75,27 @@ export function MapperConsole({ consoleText }: { consoleText?: string }) {
     setLines(current => [...current, { at: Date.now(), text: `> ${text}`, kind: 'command' as const }].slice(-MAX_LINES))
     try {
       const result = await desktopBridge.runCalibrationCommand(text)
-      const output = result.output.split(/\r?\n/).map(line => line.trimEnd()).filter(Boolean)
+      const output = (result.output ?? '').split(/\r?\n/).map(line => line.trimEnd()).filter(Boolean)
       const now = Date.now()
       setLines(current => [...current, ...(output.length ? output : [result.success ? '(done)' : 'The mapper did not take the command. Is it running?'])
         .map(line => ({ at: now, text: line, kind: 'output' as const }))].slice(-MAX_LINES))
       setCommand('')
+    } catch (error) {
+      // The answer belongs in the log, where the command went.
+      setLines(current => [...current, { at: Date.now(), text: `Could not send it: ${error instanceof Error ? error.message : String(error)}`, kind: 'output' as const }].slice(-MAX_LINES))
     } finally {
       setSending(false)
     }
   }
 
   return (
-    <section className={styles.console} aria-label="JoyShockMapper console">
+    <section ref={host} className={styles.console} aria-label="JoyShockMapper console" data-hints="A:Send;Y:Type;B:Back">
       <div className={styles.toolbar}>
         <span className={styles.meta}>{paused ? 'Paused · new lines are not shown' : 'Live'}</span>
-        <button type="button" className="button button--secondary button--sm" onClick={() => setPaused(value => !value)}>{paused ? 'Resume' : 'Pause'}</button>
-        <button type="button" className="button button--tertiary button--sm" onClick={() => setLines([])} disabled={!lines.length}>Clear</button>
+        <button type="button" className="button button--secondary button--sm" onClick={() => setPaused(value => !value)} data-hints="A:Pause / resume;Y:Type;B:Back">{paused ? 'Resume' : 'Pause'}</button>
+        <button type="button" className="button button--ghost button--sm" onClick={() => setLines([])} disabled={!lines.length} data-hints="A:Clear;Y:Type;B:Back">Clear</button>
       </div>
-      <div ref={viewport} className={styles.log} tabIndex={0} role="log" aria-live="polite" aria-label="JoyShockMapper live console"
+      <div ref={viewport} className={styles.log} tabIndex={0} role="log" aria-live="polite" aria-label="JoyShockMapper live console" data-hints="MOVE:Scroll;Y:Type;B:Back"
         onScroll={event => { const element = event.currentTarget; follow.current = element.scrollTop + element.clientHeight >= element.scrollHeight - 8 }}>
         {lines.length === 0
           ? <span className={styles.waiting}>{consoleText ? 'Nothing new since this page opened.' : 'Waiting for console output from JoyShockMapper…'}</span>
@@ -89,7 +108,7 @@ export function MapperConsole({ consoleText }: { consoleText?: string }) {
       </div>
       <form className={styles.commandLine} onSubmit={event => { event.preventDefault(); void send() }}>
         <span className={styles.prompt} aria-hidden="true">›</span>
-        <input aria-label="Command to send to JoyShockMapper" placeholder="A command, e.g. RESET_MAPPINGS or LIST_CONTROLLERS" value={command}
+        <input ref={input} aria-label="Command to send to JoyShockMapper" placeholder="A command, e.g. RESET_MAPPINGS or LIST_CONTROLLERS" value={command}
           onChange={event => setCommand(event.target.value)} spellCheck={false} />
         <button type="submit" className="button button--secondary button--sm" disabled={sending || !command.trim()}>{sending ? 'Sending…' : 'Send'}</button>
       </form>

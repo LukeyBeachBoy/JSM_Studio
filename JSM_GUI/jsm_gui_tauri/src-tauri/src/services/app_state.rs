@@ -1,5 +1,5 @@
 use std::{
-    sync::{atomic::{AtomicBool, AtomicU64}, Arc, Mutex},
+    sync::{atomic::{AtomicBool, AtomicU32, AtomicU64}, Arc, Mutex},
     time::Instant,
 };
 
@@ -198,6 +198,10 @@ pub struct AppState {
     /// Studio's Test mode is running: the configuration being edited has the
     /// controller inside Studio, so Apply must not hand it back to navigation.
     pub studio_testing: Arc<AtomicBool>,
+    /// The pid of the last app the focus watcher loaded a configuration for
+    /// after Studio lost focus to it; 0 once Studio is back in front. A
+    /// second focus-lost event for the same app must not load again.
+    pub handover_foreground_pid: Arc<AtomicU32>,
 }
 
 /// 240 Hz until the overlay reports what its display actually does. Chosen over
@@ -216,6 +220,7 @@ impl Default for AppState {
             calibration_generation: Arc::new(AtomicU64::new(0)),
             telemetry_ui_active: Arc::new(AtomicBool::new(false)),
             studio_testing: Arc::new(AtomicBool::new(false)),
+            handover_foreground_pid: Arc::new(AtomicU32::new(0)),
             overlay_active: Arc::new(AtomicBool::new(false)),
             overlay_interval_us: Arc::new(AtomicU64::new(DEFAULT_OVERLAY_INTERVAL_US)),
             ui_interval_us: Arc::new(AtomicU64::new(DEFAULT_UI_INTERVAL_US)),

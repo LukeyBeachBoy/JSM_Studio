@@ -25,6 +25,7 @@
 }
 
 .rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-2); }
+.item { position: relative; }
 
 .row {
   width: 100%;
@@ -49,6 +50,16 @@
   box-shadow: 0 0 0 var(--focus-controller-width) var(--focus-controller), var(--shadow-lift);
   transform: translateY(-1px);
 }
+
+/* Y opens the row's options; the mouse finds the same menu on hover. */
+.options {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  opacity: 0;
+  transition: opacity var(--dur-1) var(--ease-standard);
+}
+.item:hover .options, .options:focus-visible, .options[data-state='open'] { opacity: 1; }
 
 .rowIcon {
   width: 44px;
@@ -115,12 +126,25 @@
 .layerList > span { display: inline-flex; align-items: center; gap: 6px; }
 .swatch { width: 8px; height: 8px; border-radius: 2px; }
 
-.actionGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-2); }
-.actionGrid :global(.button) { padding: 0 var(--sp-2); }
+/* A · Edit, Apply / Duplicate, Rename: two by two. */
+.actionGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2); }
+.actionGrid :global(.button) { padding: 0 var(--sp-2); gap: var(--sp-2); }
+.faceKey {
+  width: 20px;
+  height: 20px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--surface-frame);
+  color: var(--text-1);
+  font-size: 11px;
+  font-weight: var(--fw-semibold);
+}
+:global(.button--primary) .faceKey { background: var(--text-on-accent); color: var(--accent); }
 
-.rename { display: flex; flex-direction: column; gap: var(--sp-1); color: var(--text-3); font-size: var(--fs-hint); }
-.renameRow { display: flex; gap: var(--sp-2); }
-.renameRow :global(.text-field) { flex: 1; min-width: 0; }
+/* Rename opens in place of the name, on demand. */
+.rename { display: flex; align-items: center; gap: var(--sp-2); }
+.rename :global(.text-field) { flex: 1; min-width: 0; }
 
 .quiet { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--sp-1); }
 .lock { margin: 0; color: var(--warn); font-size: var(--fs-hint); }
@@ -133,6 +157,7 @@
 .welcomeChoices { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sp-2); margin-top: var(--sp-3); }
 .choice {
   width: 170px;
+  min-height: 90px;
   display: flex;
   flex-direction: column;
   gap: var(--sp-1);
@@ -144,7 +169,12 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
+  transition: background var(--dur-1) var(--ease-standard), box-shadow var(--dur-2) var(--ease-standard);
 }
 .choice:hover { background: var(--surface-row-hover); }
+:global(body[data-input-source='controller']) .choice:focus {
+  background: var(--surface-selected);
+  box-shadow: 0 0 0 var(--focus-controller-width) var(--focus-controller), var(--shadow-lift);
+}
 .choice b { font-size: var(--fs-label); font-weight: var(--fw-semibold); }
 .choice span { color: var(--text-3); font-size: var(--fs-hint); line-height: var(--lh-hint); }

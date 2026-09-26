@@ -1,50 +1,163 @@
-.list { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
-
-/* A modeshift is one of this input group's rows, so it is framed like one: the
-   summary carries its own padding and the card carries none, which is what left
-   a closed card with a band of empty space under its title. The accent edge is
-   the only thing that marks it out from an ordinary row. */
-.card {
+/* Modeshifts: a headed group under the pad or stick they belong to. A control
+   can have several, so the group is counted and each shift is a banner of its
+   own -- accent edge, accent wash, "While X is held" -- rather than one more
+   grey row in the settings column where it read as a setting. */
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
   min-width: 0;
-  padding: 0;
-  border: 1px solid var(--border-1);
-  border-left: 3px solid var(--accent);
-  border-radius: 10px;
-  background: var(--bg-elevated);
+  margin-top: var(--sp-3);
 }
 
-/* Everything below the summary. One frame around the lot rather than a border
-   per field: the rows inside already have their own. */
+.groupHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2) var(--sp-3);
+  padding: 0 4px;
+}
+.groupTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-eyebrow);
+  line-height: var(--lh-eyebrow);
+  letter-spacing: var(--tracking-eyebrow);
+  font-weight: var(--fw-semibold);
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+.groupTitle :global(.help-button) { margin: 0; }
+.groupCount {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  display: inline-grid;
+  place-items: center;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 11px;
+  letter-spacing: 0;
+}
+.groupNote {
+  flex: 1 1 220px;
+  min-width: 0;
+  font-size: var(--fs-hint);
+  line-height: var(--lh-hint);
+  color: var(--text-3);
+}
+.groupHead > :global(.button) { margin-left: auto; }
+.groupHead :global(.button) svg,
+.remove svg { margin-right: 6px; }
+
+.addRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--sp-3);
+  padding: var(--sp-3) 14px;
+  border-radius: var(--r-row);
+  background: var(--surface-row);
+}
+
+/* One shift. The accent is what tells it apart from the pad's own rows. */
+.card {
+  min-width: 0;
+  border-radius: var(--r-row);
+  background: var(--surface-row);
+  box-shadow: inset 3px 0 0 var(--accent);
+  overflow: clip;
+}
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 64px;
+  padding: 10px 14px 10px 17px;
+  background: var(--accent-soft);
+  cursor: pointer;
+  list-style: none;
+}
+.cardHead::-webkit-details-marker { display: none; }
+.cardHead:hover { background: color-mix(in srgb, var(--accent) 20%, transparent); }
+.cardGlyph {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--surface-control);
+  color: var(--text-1);
+}
+.cardText { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.cardTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  font-size: var(--fs-label);
+  line-height: var(--lh-label);
+  color: var(--text-2);
+}
+.cardTitle b { color: var(--text-1); font-weight: var(--fw-semibold); }
+.cardBadge {
+  margin-right: 4px;
+  padding: 1px 7px;
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--text-on-accent);
+  font-size: 10px;
+  line-height: 16px;
+  font-weight: var(--fw-semibold);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.cardSummary {
+  font-size: 12px;
+  line-height: 17px;
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cardChevron {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-right: 1.5px solid var(--text-3);
+  border-bottom: 1.5px solid var(--text-3);
+  transform: rotate(-45deg);
+  transition: transform .15s;
+}
+.card[open] > .cardHead .cardChevron { transform: rotate(45deg); }
+
 .body {
   display: flex;
   flex-direction: column;
-  gap: 0.9rem;
-  padding: 0.35rem 0.85rem 0.95rem;
-  border-top: 1px solid var(--border-1);
+  gap: var(--sp-3);
+  padding: var(--sp-4) 14px var(--sp-4) 17px;
 }
 
-.summaryMode { text-transform: capitalize; }
+/* Held input, the shifted mode where there is one, and Remove -- one line. */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--sp-3);
+}
+.heldField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 220px;
+  font-size: var(--fs-hint);
+  color: var(--text-3);
+}
+.remove { margin-left: auto; color: var(--error); }
+.remove:hover:not(:disabled) { color: var(--error); background: var(--error-soft); }
 
-.heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
-.heading h4 { margin: 0; display: inline-flex; align-items: center; gap: 0.4rem; }
-.heading :global(.help-button) { margin: 0; }
-
-/* The trigger picker: caption and its "Required" note on one line, the control
-   on the next and full width. The three were sharing a row, which is what put
-   the label hard against the top of the card with nothing between them. */
-.selectField { display: grid; gap: 0.4rem; justify-items: start; }
-.caption { display: flex; align-items: baseline; gap: 0.45rem; }
-.selectField > :global(button[role='combobox']) { width: 100%; }
-
-.required, .hint { font-size: 0.8rem; color: var(--text-muted); }
-.hint { margin: 0; line-height: 1.5; }
-.dimensions { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: 1rem; }
+.hint { margin: 0; font-size: var(--fs-hint); line-height: var(--lh-hint); color: var(--text-3); }
 .bindings { display: flex; flex-direction: column; gap: 8px; }
-.binding { min-width: 0; }
-.binding h5 { margin: 0 0 0.65rem; font-size: 0.9rem; }
-.grid { display: grid; gap: 0.5rem; }
-.cell { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; min-width: 0; min-height: 5rem; padding: 0.75rem; background: var(--bg-input); border: 1px solid var(--border-1); border-radius: 8px; color: var(--text-strong); cursor: pointer; }
-.cell span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cell[aria-pressed='true'] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--bg-input)); }
-.cell.live { box-shadow: inset 0 0 0 2px var(--telemetry-green); }
-.add { align-self: flex-start; }

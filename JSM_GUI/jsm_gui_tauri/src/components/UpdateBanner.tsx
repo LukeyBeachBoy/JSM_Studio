@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { desktopBridge } from '../platform/desktopBridge'
+import { focusPageStart } from './SystemNotices'
 import styles from './Misc.module.css'
 
 type UpdateState =
@@ -16,9 +17,13 @@ export function UpdateBanner() {
   const [update, setUpdate] = useState<UpdateState>({ phase: 'idle' })
   const [dismissed, setDismissed] = useState(false)
   const [progress, setProgress] = useState(0)
+  // The version the listeners see; a state updater must stay pure, and
+  // StrictMode runs it twice, which would start two installs.
+  const versionRef = useRef('')
 
   useEffect(() => {
     const removeAvailable = desktopBridge.onUpdateAvailable((version) => {
+      versionRef.current = version
       setUpdate({ phase: 'available', version })
       setDismissed(false)
     })
@@ -26,13 +31,11 @@ export function UpdateBanner() {
       setProgress(percent)
     })
     const removeDownloaded = desktopBridge.onUpdateDownloaded(() => {
-      setUpdate(current => {
-        const version = 'version' in current ? current.version ?? '' : ''
-        void desktopBridge.installUpdate().catch(error => {
-          console.error('Failed to install JSM Studio update', error)
-          setUpdate({ phase: 'error', version })
-        })
-        return { phase: 'installing', version }
+      const version = versionRef.current
+      setUpdate({ phase: 'installing', version })
+      void desktopBridge.installUpdate().catch(error => {
+        console.error('Failed to install JSM Studio update', error)
+        setUpdate({ phase: 'error', version })
       })
     })
     const checkTimer = window.setTimeout(() => {
@@ -85,7 +88,7 @@ export function UpdateBanner() {
         </button>
       )}
       {(update.phase === 'available' || update.phase === 'error') && (
-        <button type="button" className={styles.updateBannerLater} onClick={() => setDismissed(true)}>Later</button>
+        <button type="button" className={styles.updateBannerLater} onClick={() => { setDismissed(true); focusPageStart() }}>Later</button>
       )}
     </div>
   )

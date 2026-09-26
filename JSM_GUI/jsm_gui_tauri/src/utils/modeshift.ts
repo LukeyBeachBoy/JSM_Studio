@@ -25,6 +25,8 @@ export function padModeshiftSettings(keyPrefix: 'LEFT' | 'RIGHT') {
   return [
     'TOUCHPAD_MODE',
     'GRID_SIZE',
+    'GRID_SHAPE',
+    'GRID_DEADZONE',
     'GRID_REQUIRES_CLICK',
     'TOUCHPAD_SENS',
     'TOUCHPAD_DUAL_STAGE_MODE',

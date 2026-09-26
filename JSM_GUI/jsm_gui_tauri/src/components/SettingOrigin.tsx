@@ -40,11 +40,36 @@ export function SettingOrigin({ setting }: { setting?: string }) {
   </span>
 }
 
-/** A complete per-value view also covers advanced settings and imported rows. */
-export function SettingsInventory() {
+/** Values & inheritance: every value in the configuration with where it comes
+ *  from, including advanced settings and imported rows. Most people never need
+ *  it, so it is a dialog opened from the title bar's configuration menu rather
+ *  than a panel under every page. Opened on a page with a narrower scope (Gyro),
+ *  it starts filtered to that page's settings, with a way to see them all. */
+export function SettingsInventory({ open, onClose, pageLabel }: { open: boolean; onClose: () => void; pageLabel?: string }) {
   const context = useContext(SettingOrigins), scope = useContext(DirtyScope)
   const [query, setQuery] = useState('')
-  const values = Object.entries(layerEntries(context.text)).filter(([key]) => !key.startsWith('#') && (!scope || scope.test(key.split(',').pop()!)))
-  if (!context.layer && !Object.values(context.origins).some(source => source !== '<editor>')) return null
-  return <details className="settings-inventory"><summary>Values & inheritance · {values.length} settings and bindings</summary><input type="search" aria-label="Find inherited value" placeholder="Find a setting or binding" value={query} onChange={e => setQuery(e.target.value)} />{values.filter(([key,value]) => `${readableSetting(key)} ${value}`.toLowerCase().includes(query.toLowerCase())).map(([key,value]) => <div className="setting-inventory-row" key={key}><span title={key}>{readableSetting(key)}</span><span>{value}</span><SettingOrigin setting={key} /></div>)}</details>
+  const [pageOnly, setPageOnly] = useState(true)
+  if (!open) return null
+  const scoped = !!scope && scope.source !== '.' && pageOnly
+  const values = Object.entries(layerEntries(context.text)).filter(([key]) => !key.startsWith('#') && (!scoped || scope!.test(key.split(',').pop()!)))
+  const shown = values.filter(([key, value]) => `${readableSetting(key)} ${key} ${value}`.toLowerCase().includes(query.toLowerCase()))
+  const inherits = !!context.layer || Object.values(context.origins).some(source => source !== '<editor>')
+  return <div className="modal-overlay">
+    <section className="modal-card settings-inventory" role="dialog" aria-modal="true" aria-labelledby="settings-inventory-title">
+      <div className="modal-header"><h3 id="settings-inventory-title">Values & inheritance</h3><button type="button" className="button button--ghost button--sm" data-modal-close onClick={onClose}>Close</button></div>
+      <p className="settings-inventory__note">{inherits
+        ? `Where each of the ${values.length} settings and bindings comes from: ${context.layer ? `${context.layer} or Default` : 'this configuration or an import'}.`
+        : `Nothing is inherited: all ${values.length} settings and bindings are set in this configuration.`}</p>
+      <div className="settings-inventory__filters">
+        <input className="text-field" type="search" aria-label="Find inherited value" placeholder="Find a setting or binding" value={query} onChange={e => setQuery(e.target.value)} />
+        {scope && scope.source !== '.' && pageLabel && <label className="settings-inventory__scope">
+          <input type="checkbox" checked={pageOnly} onChange={e => setPageOnly(e.target.checked)} /> {pageLabel} only
+        </label>}
+      </div>
+      <div className="settings-inventory__rows">
+        {shown.map(([key, value]) => <div className="setting-inventory-row" key={key}><span title={key}>{readableSetting(key)}</span><span>{value}</span><SettingOrigin setting={key} /></div>)}
+        {!shown.length && <p className="settings-inventory__empty">No setting or binding matches.</p>}
+      </div>
+    </section>
+  </div>
 }

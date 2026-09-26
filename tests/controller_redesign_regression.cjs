@@ -44,8 +44,10 @@ const fs = require('node:fs');
  await drag.click(); await page.getByRole('option',{name:/None selected|Use default/i}).click();
  await page.keyboard.press('Control+s');
  assert.ok(!/LEFT_TOUCH_STICK_MODE = AIM/.test(await page.evaluate(()=>window.__lastSaved)));
- const appearance = left.getByRole('button',{name:'Appearance & Position',exact:true});
- await appearance.click();
+ // A menu's look is edited beside its preview; where it sits on screen is
+ // still the Menu layout page, one step on from there.
+ await left.getByRole('button',{name:'Menu appearance',exact:true}).click();
+ await left.getByRole('button',{name:'Position on screen',exact:true}).click();
  await page.getByRole('heading',{name:'Menu layout',exact:true}).waitFor();
  await page.screenshot({path:path.join(__dirname,'../tmp/redesign-menus.png'),fullPage:true});
  // Preferences is a Studio page now, behind the app mark (design: Studio Home).

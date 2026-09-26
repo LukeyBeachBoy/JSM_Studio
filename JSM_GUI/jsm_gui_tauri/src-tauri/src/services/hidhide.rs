@@ -1990,7 +1990,9 @@ mod imp {
     fn extract_hex_component(value: &str, marker: &str) -> Option<u16> {
         let start = value.find(marker)? + marker.len();
         let end = start.saturating_add(4).min(value.len());
-        u16::from_str_radix(&value[start..end], 16).ok()
+        // `get`, not a slice: an instance id is not guaranteed ASCII, and a
+        // range ending inside a multi-byte character would panic.
+        u16::from_str_radix(value.get(start..end)?, 16).ok()
     }
 
     fn guid_to_string(guid: &GUID) -> String {

@@ -85,7 +85,12 @@
 }
 .segmented > [data-selected='true'],
 .segmented > [aria-pressed='true'],
-.segmented > [aria-checked='true'] { background: var(--surface-control); color: var(--text-1); }
+.segmented > [aria-checked='true'] { background: var(--surface-control); color: var(--text-1); box-shadow: var(--shadow-lift); }
+/* In light the control step and the sunken track are the same grey, so the
+   selected segment would vanish into its track; it sits raised instead. */
+:root[data-theme='light'] .segmented > [data-selected='true'],
+:root[data-theme='light'] .segmented > [aria-pressed='true'],
+:root[data-theme='light'] .segmented > [aria-checked='true'] { background: var(--surface-raised); }
 .segmented > [data-selected='true'][data-tone='telemetry'] { background: var(--telemetry-soft); color: var(--telemetry); }
 .segmented--tiny { padding: 2px; }
 .segmented--tiny > * { height: 26px; }
@@ -332,8 +337,10 @@ input[type='checkbox']:not([class*='SelectCheckbox']):focus-visible { outline: n
 .confirm-dialog__actions .button--tertiary:first-child { margin-right: auto; }
 
 /* ---- Focus glide (HANDOFF focus model): the pad's ring is one shared
-   highlight (components/FocusGlide) that translates between controls; the
-   control under it keeps its fill and lift but drops its own ring. */
+   highlight (components/FocusGlide) that moves between controls; the
+   control under it keeps its fill and lift but drops its own ring. Its
+   position, size and radius are driven per frame from script; only the
+   fade in on arriving somewhere new is a transition. */
 .focus-glide {
   position: fixed;
   left: 0;
@@ -342,11 +349,23 @@ input[type='checkbox']:not([class*='SelectCheckbox']):focus-visible { outline: n
   pointer-events: none;
   box-shadow: 0 0 0 var(--focus-controller-width) var(--focus-controller), var(--shadow-lift);
   opacity: 0;
-  will-change: transform;
+  transition: opacity var(--dur-2) var(--ease-standard);
+  will-change: transform, width, height;
 }
 .focus-glide[data-shape='pill'] { box-shadow: 0 0 0 2px var(--surface-canvas), 0 0 0 4px var(--focus-controller); }
 .focus-glide[data-visible='true'] { opacity: 1; }
-.focus-glide[data-animate='true'] { transition: transform var(--dur-3) var(--ease-emphasis); }
+.focus-glide[data-visible='false'] { transition: none; }
+.focus-glide[data-clipped='true'] { visibility: hidden; }
 body[data-focus-glide] [data-glide-target]:focus,
 body[data-focus-glide] [data-glide-target]:focus-within { box-shadow: none !important; }
+/* A row of several choices (a segmented control) keeps its selected fill but
+   not a ring of its own: the one ring sits on the choice the pad is on, so it
+   reads as "A picks this", not as two competing outlines. */
+body[data-focus-glide] .setting-row:focus-within:not([data-glide-target]) { box-shadow: none; }
+/* The choice the pad is on, before A picks it: lifted out of the track so
+   it previews as a candidate, distinct from the selected one. */
+body[data-input-source='controller'] .segmented > :focus:not([aria-pressed='true']):not([data-selected='true']):not([aria-checked='true']) {
+  background: color-mix(in srgb, var(--focus-controller) 24%, transparent);
+  color: var(--text-1);
+}
 body:not([data-input-source='controller']) .focus-glide { display: none; }

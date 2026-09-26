@@ -142,5 +142,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  :root { --dur-1: 0ms; --dur-2: 0ms; --dur-3: 120ms; --dur-4: 120ms; --stagger: 0ms; }
+  /* JSM Studio: :root[data-theme] added to the handoff's selector. The theme
+     blocks above are :root[data-theme=...], which outrank a bare :root, so
+     with the theme attribute set reduced motion was silently ignored. */
+  :root, :root[data-theme] { --dur-1: 0ms; --dur-2: 0ms; --dur-3: 120ms; --dur-4: 120ms; --stagger: 0ms; }
 }

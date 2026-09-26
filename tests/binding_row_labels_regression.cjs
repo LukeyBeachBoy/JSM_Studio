@@ -75,26 +75,30 @@ const STEAM = 24;
     // A keyboard output reads as the key's own legend.
     assert.match(await rowText('S'), /Space/);
 
-    // A trigger picker names its input the same way.
-    const modeshift = page.locator('details').filter({ hasText: 'Modeshift ·' }).first();
-    const shiftRow = (await modeshift.locator(':scope > summary').innerText()).replace(/\s+/g, ' ').trim();
-    assert.ok(!/RSR|Paddle 1/.test(shiftRow), `the trigger should use the pad's own name: ${shiftRow}`);
-    assert.match(shiftRow, /R4/, `a Steam Controller calls it R4: ${shiftRow}`);
-
     // --- the value sits in its own right-hand column ------------------------
     // Not "roughly right of centre": every row's value must start at the same
     // x, which is what makes the outputs readable as a column.
     // Measure the settled layout, not a frame of the page sliding in.
     await page.waitForFunction(() => document.getAnimations().every(animation => animation.playState !== 'running'));
-    const rows = page.locator('details[data-input-command] > summary .binding-summary-hint');
+    // Top-level rows only: a shifted card ("RSR,N") is nested inside its input's editor now.
+    const rowSummaries = page.locator('details[data-input-command]:not([data-input-command*=","]) > summary');
+    const rows = rowSummaries.locator('.binding-summary-hint');
     const lefts = [];
     for (let i = 0; i < 3; i++) {
-      const row = await page.locator('details[data-input-command] > summary').nth(i).boundingBox();
+      const row = await rowSummaries.nth(i).boundingBox();
       const hint = await rows.nth(i).boundingBox();
       assert.ok(hint.x > row.x + row.width * 0.5, `the value is adrift in the middle of the row (${hint.x} of ${row.x}..${row.x + row.width})`);
       lefts.push(Math.round(hint.x + hint.width));
     }
     assert.equal(new Set(lefts).size, 1, `the values do not line up as a column: ${lefts.join(', ')}`);
+
+    // --- a modeshift names its trigger the same way --------------------------
+    // The shift lives in the input's own editor (Binding Editor 7a).
+    await page.locator('details[data-input-command="N"] > summary').first().click();
+    const shiftRow = (await page.locator('details[data-input-command="N"] [class*=modeshiftRowHead]').first().innerText()).replace(/\s+/g, ' ').trim();
+    assert.ok(!/RSR|Paddle 1/.test(shiftRow), `the trigger should use the pad's own name: ${shiftRow}`);
+    assert.match(shiftRow, /R4/, `a Steam Controller calls it R4: ${shiftRow}`);
+    await page.locator('[data-input-command="RSR,N"]').first().waitFor();
 
     // --- no phantom thumb in the editor preview -----------------------------
     // Scoped to the content pane: the header carries its own unrelated status

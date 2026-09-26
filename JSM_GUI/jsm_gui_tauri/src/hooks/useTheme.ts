@@ -1,52 +1,85 @@
 import { useEffect, useState, useCallback } from 'react'
 
-type Theme = 'dark' | 'light'
+/** The choice: Dark, Light, or follow the OS (Preferences 16j). */
+export type Theme = 'dark' | 'light' | 'system'
+export type ResolvedTheme = 'dark' | 'light'
 
 const STORAGE_KEY = 'jsm-theme'
+const THEMES: Theme[] = ['dark', 'light', 'system']
+
+const query = () => (typeof window !== 'undefined' && typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-color-scheme: light)') : null)
+const systemTheme = (): ResolvedTheme => (query()?.matches ? 'light' : 'dark')
+const resolve = (theme: Theme): ResolvedTheme => (theme === 'system' ? systemTheme() : theme)
+const readStored = (): Theme => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    return THEMES.includes(stored as Theme) ? (stored as Theme) : 'dark'
+  } catch { return 'dark' }
+}
+const paint = (theme: Theme) => { document.documentElement.dataset.theme = resolve(theme) }
+
+/**
+ * Paint the stored choice before the first render, and keep "System" in step
+ * with the OS for the life of the window. The hook below used to be the only
+ * thing that applied the choice, and it only runs on pages that show the
+ * theme (Preferences, the gyro graph): Light reverted to dark on every
+ * launch until one of those pages was opened.
+ */
+export function initTheme() {
+  paint(readStored())
+  query()?.addEventListener?.('change', () => { if (readStored() === 'system') paint('system') })
+}
 
 export function useTheme() {
   const [theme, setTheme] = useState<Theme>('dark')
+  const [resolved, setResolved] = useState<ResolvedTheme>('dark')
 
   const apply = useCallback((next: Theme, broadcast = true) => {
     setTheme(next)
-    localStorage.setItem(STORAGE_KEY, next)
-    document.documentElement.dataset.theme = next
+    setResolved(resolve(next))
+    try { localStorage.setItem(STORAGE_KEY, next) } catch { /* private mode */ }
+    paint(next)
     if (broadcast && typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent<Theme>('jsm-theme-changed', { detail: next }))
     }
   }, [])
 
   useEffect(() => {
-    const stored = (localStorage.getItem(STORAGE_KEY) as Theme | null)
-    const initial = stored ?? 'dark'
-    apply(initial, false)
+    apply(readStored(), false)
 
     const onStorage = (event: StorageEvent) => {
-      if (event.key === STORAGE_KEY && event.newValue) {
+      if (event.key === STORAGE_KEY && event.newValue && THEMES.includes(event.newValue as Theme)) {
         const next = event.newValue as Theme
         setTheme(next)
-        document.documentElement.dataset.theme = next
+        setResolved(resolve(next))
+        paint(next)
       }
     }
-
     const onCustom = (event: Event) => {
       const next = (event as CustomEvent<Theme>).detail
-      if (next) {
-        setTheme(next)
-      }
+      if (next) { setTheme(next); setResolved(resolve(next)) }
     }
+    // System follows the OS as it changes, not just at launch.
+    const media = query()
+    const onMedia = () => {
+      if (readStored() !== 'system') return
+      setResolved(systemTheme())
+      paint('system')
+    }
+    media?.addEventListener?.('change', onMedia)
 
     window.addEventListener('storage', onStorage)
     window.addEventListener('jsm-theme-changed', onCustom as EventListener)
     return () => {
+      media?.removeEventListener?.('change', onMedia)
       window.removeEventListener('storage', onStorage)
       window.removeEventListener('jsm-theme-changed', onCustom as EventListener)
     }
   }, [apply])
 
   const toggle = useCallback(() => {
-    apply(theme === 'dark' ? 'light' : 'dark')
-  }, [apply, theme])
+    apply(resolved === 'dark' ? 'light' : 'dark')
+  }, [apply, resolved])
 
-  return { theme, setTheme: apply, toggle }
+  return { theme, resolved, setTheme: apply, toggle }
 }

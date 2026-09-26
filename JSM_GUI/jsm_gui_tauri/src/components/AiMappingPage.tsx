@@ -11,6 +11,11 @@ import {
 } from '../platform/desktopBridge'
 import { ensureHeaderLines } from '../utils/config'
 import { showToast } from '../utils/toast'
+import { describeBinding } from '../utils/bindingDescription'
+import { inputDefinitions } from '../utils/layers'
+import { controllerButtonLabel } from '../utils/controllerStatus'
+import { InputGlyph } from './glyphs/InputGlyph'
+import { useLastSeenController } from '../hooks/useLastSeenController'
 
 type AiMappingPageProps = {
   configText: string
@@ -36,17 +41,37 @@ const DEFAULT_SETTINGS: AiSettings = {
   temperature: 0.2,
 }
 
-// What a proposal changes, as config lines: removed then added. Header lines
-// Studio manages itself are left out; the rest is what the model changed.
+// What a proposal changes, as a binding diff (16e): one row per key whose
+// value changed -- the input's glyph, the old action, the new action -- with
+// the raw line under it. Header lines Studio manages itself are left out.
 const HEADER = /^(TELEMETRY_ENABLED|TELEMETRY_PORT|AUTOCONNECT|RESET_MAPPINGS)\b/
-const diffLines = (before: string, after: string) => {
-  const clean = (text: string) => text.split(/\r?\n/).map(line => line.trim()).filter(line => line && !HEADER.test(line))
-  const old = clean(before), next = clean(after)
-  const oldSet = new Set(old), nextSet = new Set(next)
-  return [
-    ...old.filter(line => !nextSet.has(line)).map(line => ({ kind: 'removed' as const, line })),
-    ...next.filter(line => !oldSet.has(line)).map(line => ({ kind: 'added' as const, line })),
-  ]
+type Change = { key: string; before?: string; after?: string }
+const assignments = (text: string) => {
+  const map = new Map<string, string>()
+  const other: string[] = []
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim()
+    if (!line || line.startsWith('#') || HEADER.test(line)) continue
+    const match = /^([^=]+?)\s*=\s*(.*)$/.exec(line)
+    if (match) map.set(match[1].trim().toUpperCase(), match[2].trim())
+    else other.push(line)
+  }
+  return { map, other }
+}
+const diffBindings = (before: string, after: string): Change[] => {
+  const old = assignments(before), next = assignments(after)
+  const changes: Change[] = []
+  for (const [key, value] of next.map) if (old.map.get(key) !== value) changes.push({ key, before: old.map.get(key), after: value })
+  for (const [key, value] of old.map) if (!next.map.has(key)) changes.push({ key, before: value })
+  const oldOther = new Set(old.other), nextOther = new Set(next.other)
+  for (const line of next.other) if (!oldOther.has(line)) changes.push({ key: line, after: '' })
+  for (const line of old.other) if (!nextOther.has(line)) changes.push({ key: line, before: '' })
+  return changes
+}
+/** The input a key names: the last command of a chord, or none for a setting. */
+const inputOf = (key: string) => {
+  const command = key.split(',').pop()?.trim().toUpperCase() ?? ''
+  return inputDefinitions.find(button => button.command === command) ?? null
 }
 
 const createEntryId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
@@ -79,6 +104,7 @@ export function AiMappingPage({
   onApplyGeneratedConfig,
 }: AiMappingPageProps) {
   const { t, i18n } = useTranslation()
+  const { family } = useLastSeenController()
   const [settings, setSettings] = useState<AiSettings>(DEFAULT_SETTINGS)
   const [composer, setComposer] = useState('')
   const [includeCurrentConfig, setIncludeCurrentConfig] = useState(true)
@@ -233,15 +259,22 @@ export function AiMappingPage({
     }
   }
 
-  const handleReplaceEditor = () => {
+  // "Edit in Buttons" (16e): the proposal goes into the editor as a draft,
+  // and the Buttons page opens on it. App listens for jsm:navigate-page.
+  const handleEditInButtons = () => {
     onReplaceConfig(previewConfig)
     showToast(t('messages.aiEditorReplaced'))
+    window.dispatchEvent(new CustomEvent('jsm:navigate-page', { detail: 'buttons' }))
   }
 
   const handleApplyGeneratedConfig = async () => {
     setApplying(true)
     try {
       await onApplyGeneratedConfig(previewConfig)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      setErrorMessage(message)
+      showToast(message, 'error')
     } finally {
       setApplying(false)
     }
@@ -307,21 +340,46 @@ export function AiMappingPage({
             <article key={message.id} className={styles.proposal}>
               <p className={styles.proposalText}>{message.content}</p>
               {message.result && (() => {
-                const changes = diffLines(message.base ?? '', message.result.configText)
+                const changes = diffBindings(message.base ?? '', message.result.configText)
                 const isLatest = message === latestProposal
                 return <>
                   {changes.length > 0
-                    ? <pre className={styles.diff} aria-label="Proposed change">{changes.slice(0, 14).map((change, index) =>
-                        <span key={index} className={change.kind === 'added' ? styles.added : styles.removed}>{change.kind === 'added' ? '+ ' : '− '}{change.line}{'\n'}</span>)}
-                        {changes.length > 14 && <span className={styles.more}>…and {changes.length - 14} more lines{'\n'}</span>}
-                      </pre>
+                    ? <div className={styles.diff} aria-label="Proposed change">
+                        {changes.slice(0, 12).map((change, index) => {
+                          const input = inputOf(change.key)
+                          const setting = change.after === '' || change.before === ''
+                          const label = input ? controllerButtonLabel(input, family) : change.key
+                          const chord = change.key.includes(',') ? change.key.split(',').slice(0, -1).map(part => { const button = inputOf(part); return button ? controllerButtonLabel(button, family) : part }).join(' + ') + ' + ' : ''
+                          return (
+                            <div key={index} className={styles.change}>
+                              <div className={styles.changeRow}>
+                                {input
+                                  ? <InputGlyph command={input.command} family={family} size={22} className={styles.changeGlyph} />
+                                  : <span className={styles.changeKey}>{setting ? 'cmd' : 'set'}</span>}
+                                {/* The glyph already reads the input; the text only adds the chord or a setting's name. */}
+                                {(chord || !input) && <span className={styles.changeLabel}>{chord}{label}</span>}
+                                {!setting && <>
+                                  <span className={styles.changeOld}>{change.before !== undefined ? describeBinding(change.before, t) : 'Available'}</span>
+                                  <span className={styles.changeArrow} aria-hidden="true">→</span>
+                                  <span className={change.after !== undefined ? styles.changeNew : styles.changeOld}>{change.after !== undefined ? describeBinding(change.after, t) : 'Unbound'}</span>
+                                </>}
+                              </div>
+                              <code className={styles.changeRaw}>
+                                {change.before !== undefined && <span className={styles.removed}>− {change.key}{change.before === '' ? '' : ` = ${change.before}`}{'\n'}</span>}
+                                {change.after !== undefined && <span className={styles.added}>+ {change.key}{change.after === '' ? '' : ` = ${change.after}`}</span>}
+                              </code>
+                            </div>
+                          )
+                        })}
+                        {changes.length > 12 && <span className={styles.more}>…and {changes.length - 12} more changes</span>}
+                      </div>
                     : <p className={styles.note}>No lines changed.</p>}
                   {message.result.assumptions.length > 0 && <div className={styles.block}><b>{t('ai.assumptions')}</b><ul>{message.result.assumptions.map((item, index) => <li key={index}>{item}</li>)}</ul></div>}
                   {message.result.warnings.length > 0 && <div className={`${styles.block} ${styles.warn}`}><b>{t('ai.warnings')}</b><ul>{message.result.warnings.map((item, index) => <li key={index}>{item}</li>)}</ul></div>}
                   {isLatest && (
                     <div className={styles.proposalActions}>
-                      <button type="button" className="button button--primary" onClick={() => void handleApplyGeneratedConfig()} disabled={applying}>{applying ? t('ai.applyingToJsm') : 'Apply change'}</button>
-                      <button type="button" className="button button--secondary" onClick={handleReplaceEditor}>Edit in editor</button>
+                      <button type="button" className="button button--primary" onClick={() => void handleApplyGeneratedConfig()} disabled={applying} data-hints="A:Apply change;Y:Type;B:Back">{applying ? t('ai.applyingToJsm') : 'Apply change'}</button>
+                      <button type="button" className="button button--secondary" onClick={handleEditInButtons}>Edit in Buttons</button>
                       <button type="button" className="button button--tertiary" onClick={handleResetConversation}>Discard</button>
                     </div>
                   )}

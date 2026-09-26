@@ -16,10 +16,11 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.cache
  await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
  await page.locator('.profile-chip').filter({hasText:'Dense'}).waitFor();
  const north=()=>page.locator('details[data-input-command="N"]').first();
- assert.match(await page.locator('[data-overview-input="MISC5"]').innerText(),/Enable gyro/);
+ // Overview.dc.html: the grip row is named, with the activation as its pill ("Enables gyro").
+ assert.match(await page.locator('[data-overview-input="MISC5"]').innerText(),/Enables gyro/);
  assert.match(await page.locator('[data-overview-input="ZL"]').innerText(),/Analog left trigger/);
- await page.getByRole('button',{name:'Show uses of MISC5',exact:true}).click();
- const dialog=page.getByRole('dialog',{name:'Uses of MISC5'});
+ await page.getByRole('button',{name:'Show uses of Right grip',exact:true}).click(); // MISC5, named as the pad names it
+ const dialog=page.getByRole('dialog',{name:'Uses of Right grip'});
  await dialog.waitFor();assert.ok(await dialog.evaluate(e=>e.contains(document.activeElement)));
  await page.keyboard.press('Escape');await dialog.waitFor({state:'hidden'});
  await page.getByRole('toolbar',{name:'Filter bindings'}).getByRole('button',{name:/^Available/}).click();
@@ -32,7 +33,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.cache
  await overviewNorth.waitFor();assert.equal(await overviewNorth.evaluate(e=>e===document.activeElement),true,'Back restores originating input focus');
  await overviewNorth.click();
  // Output/value fields fold behind the advanced-settings gear now.
- await north().getByRole('button',{name:'Advanced command settings',exact:true}).first().click();
+ await north().getByRole('button',{name:'Command options',exact:true}).first().click();
  const output=north().locator('input[class*="valueInput"]').first();await output.fill('P');await output.press('Tab');
  const choose=async name=>{await page.locator('.profile-chip').click();await page.getByRole('menuitem').filter({has:page.locator('[class*=itemLabel]').getByText(name,{exact:true})}).click()};
  const closeLibrary=async()=>{const close=page.locator('.profile-modal [data-modal-close]');if(await close.count())await close.click()};

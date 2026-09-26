@@ -56,14 +56,14 @@ const fs = require('node:fs');
  await dialog.getByRole('button',{name:'Keyboard',exact:true}).click();
  await shot('action-picker-keyboard');
  // Tab wrapping stays in the modal.
- const advanced=dialog.getByRole('button',{name:'Advanced command settings',exact:true});
+ const advanced=dialog.getByRole('button',{name:'Command options',exact:true});
  await advanced.focus(); await page.keyboard.press('Tab');
  assert.equal(await dialog.evaluate(el=>el.contains(document.activeElement)),true);
  await dialog.getByRole('button',{name:'K',exact:true}).click();
  await page.keyboard.press('Control+s');
  await page.waitForFunction(()=>/^N = K$/m.test(window.__lastSaved));
  assert.deepEqual(await page.evaluate(()=>window.__calls),['save'],'selecting/saving an action must not apply it');
- await north.getByRole('button',{name:'Advanced command settings',exact:true}).click();
+ await north.getByRole('button',{name:'Command options',exact:true}).click();
  await north.getByRole('combobox',{name:'Output',exact:true}).waitFor();
  await north.getByRole('button',{name:'Capture',exact:true}).click();
  await page.waitForFunction(()=>document.body.dataset.bindingCapture==='true');
@@ -75,8 +75,8 @@ const fs = require('node:fs');
  await shot('button-advanced');
  // Controller slider edit mode changes values; ordinary arrows navigate.
  await nav('Gyro');
- await page.getByRole('button',{name:'Noise & Steadying',exact:true}).click();
- await page.getByText('Live gyro diagnostics',{exact:true}).click();
+ await page.getByRole('button',{name:'Noise & steadying',exact:true}).click();
+ // The Diagnostics section is always open now (Gyro.dc.html); no disclosure to click.
  const slider=page.getByRole('slider').first();
  await slider.focus(); const original=await slider.getAttribute('aria-valuenow');
  await page.keyboard.press('Enter'); await page.keyboard.press('ArrowRight');

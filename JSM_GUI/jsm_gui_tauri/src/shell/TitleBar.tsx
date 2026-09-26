@@ -21,8 +21,12 @@ type TitleBarProps = {
   dirty: boolean
   profiles: TitleBarProfile[]
   appliedName: string | null
+  /** Layers the mapper has active on the applied configuration right now (JSM Shell 3d). */
+  appliedLayers?: { name: string; color: string }[]
   onSelectProfile: (name: string) => void
   onOpenLibrary: () => void
+  /** Values & inheritance: where each value in the configuration comes from. */
+  onShowInheritance?: () => void
   editingDisabled?: boolean
 
   layers: TitleBarLayer[]
@@ -128,6 +132,9 @@ export function TitleBar(props: TitleBarProps) {
     ...(templates.length ? [{ kind: 'label' as const, label: 'Templates' }, ...templates.map(profileItem)] : []),
     { kind: 'separator' },
     { label: 'Open configuration library', navigates: true, onSelect: props.onOpenLibrary },
+    ...(props.onShowInheritance && props.editingName
+      ? [{ label: 'Values & inheritance…', description: 'Where each value comes from', onSelect: props.onShowInheritance }]
+      : []),
   ]
 
   // ---- Layer menu (2c): switches the editing layer only.
@@ -220,7 +227,7 @@ export function TitleBar(props: TitleBarProps) {
         width={320}
         items={layerItems}
         trigger={
-          <button type="button" className="context-segment context-segment--layer" disabled={props.editingDisabled} aria-label={`Editing layer: ${currentLayer?.name ?? 'Default'}`}>
+          <button type="button" className="context-segment context-segment--layer" disabled={props.editingDisabled} aria-label={`Editing layer: ${currentLayer?.name ?? 'Default'}`} data-hints="A:Open;B:Back">
             <span className="context-segment__key">Layer</span>
             {currentLayer && <span className="context-segment__swatch" style={{ background: layerColor(currentLayer.colorIndex) }} aria-hidden="true" />}
             <b>{currentLayer?.name ?? 'Default'}</b>
@@ -241,6 +248,11 @@ export function TitleBar(props: TitleBarProps) {
             <span className="context-segment__strong">{props.appliedName}</span>
             <span className="context-segment__tag">Not editing · select to edit</span>
           </>}
+          {props.appliedName && props.appliedLayers && props.appliedLayers.length > 0 && props.appliedLayers.map(layer => (
+            <span key={layer.name} className="context-segment__layer" style={{ color: layer.color }} title={`${layer.name} is active`}>
+              <span className="context-segment__swatch" style={{ background: layer.color }} aria-hidden="true" />{layer.name}
+            </span>
+          ))}
         </button>
       )}
 
@@ -267,22 +279,22 @@ export function TitleBar(props: TitleBarProps) {
       {mapping === 'testing'
         ? <button type="button" className="button button--secondary button--sm button--test-exit" onClick={props.onExitTest}>Return to Studio</button>
         : mapping === 'studio' && (
-          <button type="button" className="button button--ghost button--sm button--test" onClick={props.onTest} title="Run the configuration while Studio is focused">
+          <button type="button" className="button button--ghost button--sm button--test" onClick={props.onTest} title="Run the configuration while Studio is focused" data-hints="A:Test configuration;B:Back">
             <Icon name="test" size={16} />Test
           </button>
         )}
 
       <div className="titlebar__history">
-        <button type="button" className="icon-button" disabled={!props.canUndo} onClick={props.onUndo}
+        <button type="button" className="icon-button" disabled={!props.canUndo} onClick={props.onUndo} data-hints="A:Undo;B:Back"
           title={`${t('app.profileSummary.undo', 'Undo')} (Ctrl+Z)`} aria-label={t('app.profileSummary.undo', 'Undo')}><Icon name="undo" size={18} /></button>
-        <button type="button" className="icon-button" disabled={!props.canRedo} onClick={props.onRedo}
+        <button type="button" className="icon-button" disabled={!props.canRedo} onClick={props.onRedo} data-hints="A:Redo;B:Back"
           title={`${t('app.profileSummary.redo', 'Redo')} (Ctrl+Shift+Z)`} aria-label={t('app.profileSummary.redo', 'Redo')}><Icon name="redo" size={18} /></button>
       </div>
-      <button type="button" className="button button--secondary button--sm" aria-disabled={props.saveIdleReason ? true : undefined}
+      <button type="button" className="button button--secondary button--sm" aria-disabled={props.saveIdleReason ? true : undefined} data-hints="A:Save;B:Back"
         data-reason={props.saveIdleReason ?? undefined} title={withReason(props.editingName ? t('app.profileSummary.saveNamed', { name: props.editingName }) : t('app.profileSummary.saveConfiguration', 'Save'), 'Ctrl+S', props.saveIdleReason)}
         aria-label={t('app.profileSummary.saveConfiguration', 'Save configuration')}
         onClick={() => { if (!props.saveIdleReason) props.onSave() }}>Save</button>
-      <button type="button" className="button button--primary button--sm primary-btn" aria-disabled={props.applyIdleReason ? true : undefined}
+      <button type="button" className="button button--primary button--sm primary-btn" aria-disabled={props.applyIdleReason ? true : undefined} data-hints="A:Apply;B:Back"
         data-reason={props.applyIdleReason ?? undefined} title={withReason(props.editingName ? t('app.profileSummary.applyNamed', { name: props.editingName }) : t('app.profileSummary.applyEditingConfiguration', 'Apply'), 'Ctrl+Shift+A', props.applyIdleReason)}
         onClick={() => { if (!props.applyIdleReason) props.onApply() }}>Apply</button>
 

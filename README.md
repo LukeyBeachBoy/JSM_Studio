@@ -222,8 +222,8 @@ npm install
 npm run tauri:dev:admin
 ```
 
-When the JoyShockMapper submodule changes, rebuild the bundled SDL runtime
-before packaging:
+To refresh the bundled SDL runtime separately during development (installer
+builds already do this automatically):
 
 ```powershell
 npm run build:joyshockmapper
@@ -236,17 +236,21 @@ for the fork synchronization procedure.
 
 ### Build Installer
 
+From the repository root, double-click **build-installer.cmd** or run:
+
 ```powershell
-cd JSM_GUI/jsm_gui_tauri
-npm run tauri:build
+.\build-installer.cmd
 ```
 
-After building, installers are usually found at:
+This builds the current local frontend, Rust backend, SDL JoyShockMapper, and
+console helper, then creates an NSIS installer and SHA-256 checksum in:
 
 ```text
 JSM_GUI/jsm_gui_tauri/src-tauri/target/release/bundle/nsis/
-JSM_GUI/jsm_gui_tauri/src-tauri/target/release/bundle/msi/
 ```
+
+See [Building a Windows installer](docs/building-installer.md) for prerequisites,
+version changes, faster repeat builds, and troubleshooting.
 
 ## Release
 

@@ -64,14 +64,18 @@ const fs = require('node:fs');
  // A trigger is named for the controller that is connected, so the mocked
  // Steam Controller calls its top-left bumper LB rather than "L1 / LB".
  await page.getByRole('option',{name:/top-left bumper/}).click();
- const shiftCard = right.locator('details[aria-label="Right trackpad modeshift"]').first();
- const shiftMode = shiftCard.getByRole('combobox',{name:/^Mode(?!shift)/});
+ // The shift is the pad section itself, so its mode picker is the pad's own.
+ const shiftCard = right.locator('details[data-modeshift="L"]');
+ assert.match(await shiftCard.locator(':scope > summary').innerText(),/While\s+LB\s+is held/,'the shift is announced by its held input');
+ const shiftMode = shiftCard.getByRole('combobox',{name:/pad Mode$/});
  await shiftMode.waitFor();
  assert.match(await shiftMode.innerText(),/Mouse/,'a new shift should inherit the pad’s current mode');
  await shiftMode.click();
  await page.getByRole('option',{name:'Grid and Stick',exact:true}).click();
  await right.getByRole('textbox',{name:'Columns',exact:true}).waitFor();
- await right.getByRole('button',{name:/Region 1|Cell 1|RT1/}).first().waitFor();
+ // Nothing is bound in the shift yet, so there is no menu to draw; the
+ // region's own row is there, keyed by the shifted input.
+ await shiftCard.locator('details[data-input-command="L,RT1"]').waitFor();
  await page.keyboard.press('Control+s');
  await page.waitForFunction(()=>/L\s*,\s*RIGHT_TOUCHPAD_MODE = GRID_AND_STICK/.test(window.__lastSaved));
  // Tuning pages sit behind the Tuning tab's menu.
@@ -79,10 +83,8 @@ const fs = require('node:fs');
  await page.getByRole('menuitem',{name:'Trackpad tuning'}).click();
  await page.getByRole('navigation',{name:'Trackpad tuning sections'}).waitFor();
  await page.getByText('420.00 px/s',{exact:true}).waitFor();
- await page.locator('#touch-release').getByRole('button',{name:'Help: Lift-off protection',exact:true}).click();
- await page.getByRole('dialog').waitFor();
- await page.keyboard.press('Escape');
- assert.equal(await page.getByRole('dialog').count(),0);
+ // A setting's description sits under its row (Gyro.dc.html); there is no help dialog to open.
+ await page.locator('#touch-release').getByText(/Below this finger speed/).waitFor();
  const artifacts=path.resolve(__dirname,'../tmp/feedback-review'); fs.mkdirSync(artifacts,{recursive:true});
  await page.evaluate(()=>{document.querySelector('.shell-scroll').scrollTop=0});
  await page.screenshot({path:path.join(artifacts,'trackpad-tuning.png'),fullPage:true});

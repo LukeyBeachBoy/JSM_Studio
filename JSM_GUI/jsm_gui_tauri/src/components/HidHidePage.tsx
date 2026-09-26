@@ -7,6 +7,7 @@ import {
   type HidHideStatus,
 } from '../platform/desktopBridge'
 import { showToast } from '../utils/toast'
+import { getVirtualControllerType, type VirtualControllerType } from '../utils/virtualController'
 import { AdvancedDisclosure } from './AdvancedDisclosure'
 import { runLongOperation } from './LongOperation'
 import styles from './ControllerStatusPage.module.css'
@@ -15,7 +16,12 @@ const HIDHIDE_RELEASES_URL = 'https://github.com/nefarius/HidHide/releases/lates
 
 type HidHidePageProps = {
   telemetryDevices?: TelemetryDevice[]
+  /** The applied configuration's virtual output; read from the active
+      profile when not given (16h "Virtual Xbox controller" row). */
+  virtualOutput?: VirtualControllerType
 }
+
+const VIRTUAL_NAME: Record<VirtualControllerType, string | null> = { XBOX: 'Virtual Xbox controller', DS4: 'Virtual DualShock 4 controller', NONE: null }
 
 const getErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : String(error)
@@ -31,12 +37,20 @@ const getHidHideMatchKey = (device: Pick<HidHideDevice, 'vendorId' | 'productId'
 // open most often, for a feature you touch rarely. Moved to its own page
 // under a Settings section, mirroring Steam Input keeping controller hiding
 // under its own Controllers settings rather than on the live status view.
-export function HidHidePage({ telemetryDevices }: HidHidePageProps) {
+export function HidHidePage({ telemetryDevices, virtualOutput }: HidHidePageProps) {
   const { t } = useTranslation()
   const [status, setStatus] = useState<HidHideStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [busyKey, setBusyKey] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [appliedOutput, setAppliedOutput] = useState<VirtualControllerType>('NONE')
+  useEffect(() => {
+    if (virtualOutput !== undefined) return
+    let disposed = false
+    void desktopBridge.getActiveProfile().then(profile => { if (!disposed && profile) setAppliedOutput(getVirtualControllerType(profile.content)) }).catch(() => {})
+    return () => { disposed = true }
+  }, [virtualOutput])
+  const virtualName = VIRTUAL_NAME[virtualOutput ?? appliedOutput]
 
   const telemetryKeys = useMemo(() => {
     const keys = new Set<string>()
@@ -238,26 +252,39 @@ export function HidHidePage({ telemetryDevices }: HidHidePageProps) {
             ? t('controllerStatus.hidHidePartiallyHidden')
             : `Visible to games${device.likelyCurrentController ? ' · JSM reads it directly' : ''}`
     return (
-      <div key={device.instanceId} className={styles.deviceRow} data-hidden={device.hidden || undefined}>
+      <div key={device.instanceId} className={styles.deviceRow} data-hidden={device.hidden || undefined} data-hints="A:Edit;B:Back">
         <span className={styles.deviceDot} data-state={device.hidden ? 'hidden' : device.present ? 'visible' : 'away'} aria-hidden="true" />
         <span className={styles.deviceText}>
           <span className={styles.deviceName}>{device.displayName}</span>
           <span className={styles.deviceSub}>{sub}</span>
+          {/* Hidden by something other than Studio: said in full, not in a tooltip. */}
+          {external && <span className={styles.deviceSub}>{t('controllerStatus.hidHideHiddenExternallyHint')}</span>}
         </span>
         {external
-          ? <span className={styles.deviceNote} title={t('controllerStatus.hidHideHiddenExternallyHint')}>{t('controllerStatus.hidHideHiddenExternally')}</span>
+          ? <span className={styles.deviceNote}>{t('controllerStatus.hidHideHiddenExternally')}</span>
           : <button type="button" className={`button ${device.hidden || device.stale ? 'button--secondary' : 'button--primary'}`} onClick={() => handleToggleDevice(device)} disabled={actionDisabled}>
               {actionBusy ? t('common.refreshing') : actionLabel}
             </button>}
       </div>
     )
   }
+  // The virtual controller JSM creates (16h): games are meant to see it.
+  const virtualRow = virtualName && (
+    <div className={styles.deviceRow} data-hints="B:Back">
+      <span className={styles.deviceDot} data-state="virtual" aria-hidden="true" />
+      <span className={styles.deviceText}>
+        <span className={styles.deviceName}>{virtualName}</span>
+        <span className={styles.deviceSub}>Created by JSM · always visible</span>
+      </span>
+      <span className={styles.deviceNote}>Virtual</span>
+    </div>
+  )
 
   // Device visibility (Tuning and Studio Pages 16h): what games can see, as
   // Connected and Hidden, one action each; the driver's own tools sit under
   // Advanced.
   return (
-    <div className={styles.page}>
+    <div className={styles.page} aria-busy={(loading && !status) || undefined}>
       {status?.installed && !status.requiresElevation && (
         <label className={styles.filterSwitch}>
           <input type="checkbox" checked={status.active} disabled={hidHideControlsLocked} onChange={handleToggleActive} />
@@ -299,7 +326,7 @@ export function HidHidePage({ telemetryDevices }: HidHidePageProps) {
           {status.active && status.inverse && <p className={styles.notice}>{t('controllerStatus.hidHideInverseHint')}</p>}
           {status.active && status.steamAllowed && <p className={`${styles.notice} ${styles.noticeWarn}`}>{t('controllerStatus.hidHideSteamAllowed')}</p>}
           <span className={styles.eyebrow}>Connected</span>
-          {connected.length ? <div className={styles.rows}>{connected.map(deviceRow)}</div>
+          {connected.length || virtualRow ? <div className={styles.rows}>{connected.map(deviceRow)}{virtualRow}</div>
             : <p className={styles.note}>{decoratedDevices.length ? 'Every connected controller is hidden.' : t('controllerStatus.hidHideNoDevices')}</p>}
           {hidden.length > 0 && <>
             <span className={styles.eyebrow}>Hidden</span>
@@ -309,11 +336,16 @@ export function HidHidePage({ telemetryDevices }: HidHidePageProps) {
       )}
 
       {status?.installed && (
-        <AdvancedDisclosure summary="Driver tools, the allow-list, how it works">
+        <AdvancedDisclosure summary="Device interface paths, HidHide allow-list">
           <p className={styles.note}>HidHide is the Windows driver that filters access to controllers. Connected means Windows detects the device, not that games can see it. Partially hidden means some of a device’s interfaces are hidden and others are not. Filtering must be on for hiding to take effect.</p>
           {!status.requiresElevation && <>
             <p className={styles.note}>{t('controllerStatus.hidHideReconnectHint')}</p>
           </>}
+          {decoratedDevices.length > 0 && (
+            <dl className={styles.pathList} aria-label="Device interface paths">
+              {decoratedDevices.map(device => <div key={device.instanceId}><dt>{device.displayName}</dt><dd>{device.instanceId}</dd></div>)}
+            </dl>
+          )}
           <div className={styles.toolRow}>
             <span className={`${styles.chip} ${status.whitelistSynced ? styles.chipOk : styles.chipWarn}`}>
               {status.whitelistSynced ? t('controllerStatus.hidHideWhitelistReady') : t('controllerStatus.hidHideWhitelistNeedsRepair')}

@@ -130,7 +130,7 @@ pub fn on_packet(app: &AppHandle, state: &AppState, packet: &Value) {
         }
         let phase_changed = phase != hud.phase;
         hud.phase = phase;
-        if phase_changed || hud.last_emit.map_or(true, |at| now - at >= EMIT_INTERVAL) {
+        if phase_changed || hud.last_emit.map_or(true, |at| now.saturating_duration_since(at) >= EMIT_INTERVAL) {
             let _ = app.emit_to(
                 HUD_LABEL,
                 "hud-calibration",
@@ -150,7 +150,9 @@ pub fn on_packet(app: &AppHandle, state: &AppState, packet: &Value) {
             }
             return;
         }
-        let second = (remaining_ms + 999) / 1000;
+        // The packet's number is whatever the mapper sent; do not let an odd
+        // one overflow here.
+        let second = remaining_ms.saturating_add(999) / 1000;
         if phase_changed || hud.second != Some(second) {
             hud.second = Some(second);
             let _ = emit_calibration_status(
@@ -177,7 +179,7 @@ pub fn on_packet(app: &AppHandle, state: &AppState, packet: &Value) {
         }
         let _ = crate::services::telemetry::stop_calibration_countdown(app, state);
     }
-    if hud.visible && hud.finished_at.map_or(true, |at| now - at >= LINGER) {
+    if hud.visible && hud.finished_at.map_or(true, |at| now.saturating_duration_since(at) >= LINGER) {
         hide(app);
         hud.visible = false;
     }

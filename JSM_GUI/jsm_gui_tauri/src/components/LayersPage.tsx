@@ -1,12 +1,14 @@
-import { useState } from 'react'
-import { convertModeshifts, inputUsage, inputDefinitions, readableSetting, writeLayers, actionsForLayer, readLayerActions, type ConfigLayer, type LayerVerb } from '../utils/layers'
-import { controllerButtonLabel, type ControllerVisualFamily } from '../utils/controllerStatus'
+import { useEffect, useRef, useState } from 'react'
+import { convertModeshifts, inputUsage, inputDefinitions, readableSetting, writeLayers, actionsForLayer, readLayerActions, describeLayerActivation, type ConfigLayer } from '../utils/layers'
+import { type ControllerVisualFamily } from '../utils/controllerStatus'
+import { inputDisplayName } from '../keymap/inputNames'
 import { layerColor } from '../shell/TitleBar'
+import { PAD_EVENT, type PadEventDetail } from '../nav/useControllerNavigation'
 import { AppSelect } from './ui/AppSelect'
+import { DeleteLayerConfirm } from './LayerBar'
 import type { LayerStack } from '../platform/desktopBridge'
 import './Layers.css'
 
-const VERB_PHRASE: Record<LayerVerb, string> = { hold: 'Held by', toggle: 'Toggled by', apply: 'Applied by', remove: 'Removed by' }
 /** Inputs whose modeshifts can be lifted into a layer. */
 const modeshiftSources = inputDefinitions.filter(b => !/^(L|R|T)(UP|DOWN|LEFT|RIGHT|RING)$/.test(b.command))
 
@@ -23,19 +25,39 @@ export function LayersPage({ text, layers, selected, onChange, onSelect, disable
 }) {
   const [name, setName] = useState('')
   const [source, setSource] = useState('RSR')
+  // A destructive confirmation (System States 17g) starts on Cancel: the
+  // dialog's first control, which useKeyboardNav focuses when it appears.
+  const [deleting, setDeleting] = useState<ConfigLayer | null>(null)
+  const rowsRef = useRef<HTMLDivElement | null>(null)
   const current = layers.find(layer => layer.id === selected)
   const actions = readLayerActions(text, layers)
+  // X on a stack row makes it the editing layer (Configuration Pages 15e
+  // "X Edit this layer"); A opens it as before.
+  useEffect(() => {
+    const host = rowsRef.current
+    if (!host) return
+    const onPad = (event: Event) => {
+      if ((event as CustomEvent<PadEventDetail>).detail.button !== 'X') return
+      const row = (event.target as HTMLElement | null)?.closest<HTMLElement>('[data-layer-id]')
+      if (!row) return
+      event.preventDefault()
+      onSelect?.(row.dataset.layerId ?? '')
+    }
+    host.addEventListener(PAD_EVENT, onPad)
+    return () => host.removeEventListener(PAD_EVENT, onPad)
+  })
   const taken = (value: string) => layers.some(layer => layer.name.toLowerCase() === value.toLowerCase())
   const duplicateName = !!name.trim() && (taken(name.trim()) || name.trim().toLowerCase() === 'default')
   const update = (layer: ConfigLayer) => onChange(writeLayers(text, layers.map(item => item.id === layer.id ? layer : item)))
   const moving = inputUsage(text, source, []).filter(use => use.kind === 'shift').length
-  const inputName = (command: string) => {
-    const button = inputDefinitions.find(b => b.command === command)
-    return button ? controllerButtonLabel(button, family) : command
-  }
-  const boundBy = (layer: ConfigLayer) => {
-    const mine = actionsForLayer(actions, layer.id)
-    return mine.length ? mine.map(action => `${VERB_PHRASE[action.verb]} ${inputName(action.input)}`).join(' · ') : 'Not bound to an input yet'
+  const inputName = (command: string) => inputDisplayName(command, family)
+  const boundBy = (layer: ConfigLayer) => describeLayerActivation(actions, layer.id, inputName, 'Not bound to an input yet')
+  // Override keys are JSM names: an input reads as the pad names it, a label
+  // annotation as what it labels, a setting as words.
+  const overrideName = (key: string) => {
+    const label = key.match(/^#\s*@(label|icon|overlay)\s+(.+)$/i)
+    if (label) return `${label[1][0].toUpperCase()}${label[1].slice(1).toLowerCase()} · ${label[1].toLowerCase() === 'overlay' ? label[2] : inputName(label[2])}`
+    return inputDefinitions.some(b => b.command === key) || /^[LR]?[TM]\d+$/.test(key) || /[,+]/.test(key.slice(1)) ? inputName(key) : readableSetting(key)
   }
   const overrideCount = (layer: ConfigLayer) => {
     const count = Object.keys(layer.overrides).length
@@ -84,13 +106,13 @@ export function LayersPage({ text, layers, selected, onChange, onSelect, disable
 
       <section id="layers-list" className="page-section" data-section="Layers">
         <h3 className="layer-eyebrow">Layers · stack order</h3>
-        <div className="layer-rows">
-          <button type="button" className="layer-row" aria-current={!current ? 'true' : undefined} onClick={() => onSelect?.('')} disabled={disabled}>
+        <div className="layer-rows" ref={rowsRef}>
+          <button type="button" className="layer-row" aria-current={!current ? 'true' : undefined} onClick={() => onSelect?.('')} disabled={disabled} data-layer-id="" data-hints="A:Edit;X:Edit this layer;B:Back">
             <span className="layer-row__swatch layer-row__swatch--base" aria-hidden="true" />
             <span className="layer-row__text"><span className="layer-row__name">Default</span><span className="layer-row__sub">Base bindings; every layer inherits them</span></span>
             {!current && <span className="layer-row__tag">Editing</span>}
           </button>
-          {layers.map((layer, index) => <button type="button" key={layer.id} className="layer-row" aria-current={layer.id === selected ? 'true' : undefined} onClick={() => onSelect?.(layer.id)} disabled={disabled}>
+          {layers.map((layer, index) => <button type="button" key={layer.id} className="layer-row" aria-current={layer.id === selected ? 'true' : undefined} onClick={() => onSelect?.(layer.id)} disabled={disabled} data-layer-id={layer.id} data-hints="A:Edit;X:Edit this layer;B:Back">
             <span className="layer-row__swatch" style={{ background: layerColor(index) }} aria-hidden="true" />
             <span className="layer-row__text"><span className="layer-row__name">{layer.name}</span><span className="layer-row__sub">{boundBy(layer)}</span></span>
             <span className="layer-row__count">{overrideCount(layer)}</span>
@@ -126,8 +148,7 @@ export function LayersPage({ text, layers, selected, onChange, onSelect, disable
                   else event.target.value = current.name
                 }} />
             </label>
-            <button type="button" className="button button--danger" disabled={disabled}
-              onClick={() => { onChange(writeLayers(text, layers.filter(l => l.id !== current.id))); onSelect?.('') }}>Delete layer</button>
+            <button type="button" className="button button--danger" disabled={disabled} onClick={() => setDeleting(current)}>Delete layer</button>
           </div>
           <label className="layer-switch">
             <input type="checkbox" checked={!!current.suppressHolds} disabled={disabled}
@@ -139,7 +160,7 @@ export function LayersPage({ text, layers, selected, onChange, onSelect, disable
           </label>
           {Object.keys(current.overrides).length
             ? <div className="layer-override-rows">{Object.entries(current.overrides).map(([key, value]) => <div className="layer-override" key={key}>
-                <span className="layer-override__name" title={key}>{readableSetting(key)}</span>
+                <span className="layer-override__name" title={key}>{overrideName(key)}</span>
                 <span className="layer-override__value">{value}</span>
                 <button type="button" className="button button--tertiary" disabled={disabled} onClick={() => {
                   const overrides = { ...current.overrides }; delete overrides[key]; update({ ...current, overrides })
@@ -150,7 +171,7 @@ export function LayersPage({ text, layers, selected, onChange, onSelect, disable
             <label>Move modeshifts into {current.name} from
               <AppSelect className="app-select" aria-label="Move modeshifts from" value={source} disabled={disabled}
                 onChange={event => setSource(event.target.value)}>
-                {modeshiftSources.map(button => <option key={button.command} value={button.command}>{controllerButtonLabel(button, family)} ({button.command})</option>)}
+                {modeshiftSources.map(button => <option key={button.command} value={button.command}>{inputName(button.command)}</option>)}
               </AppSelect>
               <small>Takes what this input already modeshifts and makes it this layer’s changes. Default keeps every other input.</small>
             </label>
@@ -164,5 +185,7 @@ export function LayersPage({ text, layers, selected, onChange, onSelect, disable
         </>}
       </section>
     </section>
+    {deleting && <DeleteLayerConfirm layer={deleting} onCancel={() => setDeleting(null)}
+      onConfirm={() => { const layer = deleting; setDeleting(null); onChange(writeLayers(text, layers.filter(l => l.id !== layer.id))); if (layer.id === selected) onSelect?.('') }} />}
   </div>
 }

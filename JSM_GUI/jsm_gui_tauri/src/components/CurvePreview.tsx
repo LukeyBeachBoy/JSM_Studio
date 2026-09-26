@@ -63,10 +63,10 @@ export function CurvePreview({ sensitivity, sample, hasPendingChanges, telemetry
       />
       <div className={graphStyles.graphLiveReadout}>
         <span>
-          {t('curvePreview.gyroSpeed')}: <strong>{telemetry.omega} deg/s</strong>
+          {t('curvePreview.gyroSpeed')} <strong>{telemetry.omega} °/s</strong>
         </span>
         <span>
-          {t('curvePreview.activeSensitivity')}: <strong>{telemetry.sensX}/{telemetry.sensY}</strong>
+          {t('curvePreview.activeSensitivity')} <strong>{telemetry.sensX} / {telemetry.sensY}</strong>
         </span>
       </div>
     </div>

@@ -45,23 +45,22 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  assert.equal(await west.locator('kbd').first().innerText(), 'R',
    'an inherited binding must be visible, not blank');
 
- // ...and marked, so it is findable in the editor.
- const badge = west.getByRole('button',{name:/Inherited from Base/});
+ // ...and marked with the row's origin marker (Buttons Content), which names the file.
+ const badge = west.locator('.origin-marker[data-origin="inherited"]').first();
  assert.equal(await badge.count(), 1, 'inherited binding is not marked');
- assert.match(await badge.getAttribute('title'), /writes an override into this profile/,
-   'the badge must say what editing it will do');
+ assert.match(await badge.innerText(), /Inherited . Base/, 'the marker must name where the value comes from');
 
  // The profile's own value wins over the imported one, and is not marked.
  const north = cardFor('N');
  assert.equal(await north.locator('kbd').first().innerText(), 'Space',
    'the profile overrides the import; the import must not win');
- assert.equal(await north.getByRole('button',{name:/Inherited from/}).count(), 0,
+ assert.equal(await north.locator('.origin-marker[data-origin="inherited"]').count(), 0,
    'an overridden binding is owned, not inherited');
 
  // A binding only the profile sets is untouched and unmarked.
  const south = cardFor('S');
  assert.equal(await south.locator('kbd').first().innerText(), 'Tab');
- assert.equal(await south.getByRole('button',{name:/Inherited from/}).count(), 0);
+ assert.equal(await south.locator('.origin-marker[data-origin="inherited"]').count(), 0);
 
  // TODO-1: the indicator belongs on every control that exposes a value, not
  // only on button cards. A mode dropdown, a settings field and a grid cell all
@@ -92,8 +91,11 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  await page.getByRole('button',{name:'Buttons',exact:true}).click();
  await west.locator(':scope > summary').click();
 
- // The badge routes to the config editor, the only place the import is visible.
- await badge.click();
+ // The import line is visible in the source editor, opened from the
+ // configuration's detail panel in Studio (Studio Home 8a); the row's origin
+ // marker is a label, not a link, and "Use inherited" sits beside it in the editor.
+ await page.locator('.titlebar__brand').click();
+ await page.getByRole('button',{name:'Edit source',exact:true}).click();
  const editor = page.locator('.config-source-window textarea');
  await editor.waitFor();
  const shown = await editor.inputValue();

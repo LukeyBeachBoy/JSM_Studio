@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState, type MutableRefObject } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Card } from './Card'
 import { MapperConsole } from './MapperConsole'
 import { AdvancedDisclosure } from './AdvancedDisclosure'
 import styles from './MappingDebugPage.module.css'
 import { desktopBridge, type InputDebugEvent, type InputDebugHookStatus } from '../platform/desktopBridge'
+import { showToast } from '../utils/toast'
 
 type MappingDebugPageProps = {
   consoleText?: string
@@ -83,6 +83,9 @@ export function MappingDebugPage({ consoleText, configText, appliedConfig, hasPe
     if (!status.running) return undefined
 
     const handleKeyEvent = (event: KeyboardEvent) => {
+      // The pad navigates through synthetic key events; swallowing those
+      // here would leave it unable to reach Stop capture.
+      if (!event.isTrusted) return
       event.preventDefault()
       event.stopImmediatePropagation()
       event.stopPropagation()
@@ -133,6 +136,8 @@ export function MappingDebugPage({ consoleText, configText, appliedConfig, hasPe
       const nextStatus = await desktopBridge.startInputDebugHook()
       runningRef.current = nextStatus.running
       setStatus(nextStatus)
+    } catch (error) {
+      showToast(`Could not start input capture: ${error instanceof Error ? error.message : String(error)}`, 'error')
     } finally {
       setIsBusy(false)
     }
@@ -146,6 +151,8 @@ export function MappingDebugPage({ consoleText, configText, appliedConfig, hasPe
       activeInputsRef.current = {}
       setActiveInputs({})
       setStatus(nextStatus)
+    } catch (error) {
+      showToast(`Could not stop input capture: ${error instanceof Error ? error.message : String(error)}`, 'error')
     } finally {
       setIsBusy(false)
     }
@@ -161,17 +168,16 @@ export function MappingDebugPage({ consoleText, configText, appliedConfig, hasPe
       {/* Windows' own view of the keyboard and mouse, after mapping: a
           diagnostic tool, so it is folded away (16i). */}
       <AdvancedDisclosure label="Input capture" summary={status.running ? 'Capturing keyboard and mouse events' : 'Keyboard and mouse events Windows sees after mapping'}>
-      <Card className={styles.card}>
-        <div className={styles.header}>
-          <div className={styles.titleBlock}>
-            <h2>{t('mappingDebug.title')}</h2>
-            <p className={styles.description}>{t('mappingDebug.description')}</p>
+      <div className={`setting-row ${styles.captureRow}`}>
+        <div className={styles.rowHead}>
+          <div className={styles.rowText}>
+            <span className={styles.rowTitle}>{t('mappingDebug.title')}</span>
+            <span className={styles.description}>{t('mappingDebug.description')} {t('mappingDebug.limitDescription')}</span>
           </div>
-          <span className={`${styles.statusBadge} ${status.running ? styles.statusRunning : styles.statusStopped}`}>
+          <span className={`${styles.statusChip} ${status.running ? styles.statusRunning : ''}`}>
             {statusLabel}
           </span>
         </div>
-        <p className={styles.description}>{t('mappingDebug.limitDescription')}</p>
         {hasPendingConfigText && <div className={styles.warning}>{t('mappingDebug.pendingConfigWarning')}</div>}
         {status.supported && status.message && <div className={styles.warning}>{status.message}</div>}
         {!status.supported ? (
@@ -180,40 +186,30 @@ export function MappingDebugPage({ consoleText, configText, appliedConfig, hasPe
             <p className={styles.description}>{t('mappingDebug.unsupportedDescription', { platform: status.platform })}</p>
           </div>
         ) : (
-          <>
-            <div className={styles.controls}>
-              <button type="button" className="primary-btn" onClick={handleStart} disabled={isBusy || status.running}>
-                {t('mappingDebug.startCapture')}
-              </button>
-              <button type="button" className="secondary-btn" onClick={handleStop} disabled={isBusy || !status.running}>
-                {t('mappingDebug.stopCapture')}
-              </button>
-              <button type="button" className="secondary-btn" onClick={() => setIsPaused(value => !value)} disabled={!status.running}>
-                {isPaused ? t('mappingDebug.resumeLogging') : t('mappingDebug.pauseLogging')}
-              </button>
-              <button type="button" className="ghost-btn" onClick={handleClear} disabled={events.length === 0}>
-                {t('mappingDebug.clearLog')}
-              </button>
-            </div>
-            <div className={styles.filterGroup} role="group" aria-label={t('mappingDebug.filterLabel')}>
-              <button
-                type="button"
-                className={`${styles.filterButton} ${injectedOnly ? styles.filterButtonActive : ''}`}
-                onClick={() => setInjectedOnly(true)}
-              >
+          <div className={styles.controls}>
+            <button type="button" className="button button--primary" onClick={handleStart} disabled={isBusy || status.running}>
+              {t('mappingDebug.startCapture')}
+            </button>
+            <button type="button" className="button button--secondary" onClick={handleStop} disabled={isBusy || !status.running}>
+              {t('mappingDebug.stopCapture')}
+            </button>
+            <button type="button" className="button button--secondary" onClick={() => setIsPaused(value => !value)} disabled={!status.running}>
+              {isPaused ? t('mappingDebug.resumeLogging') : t('mappingDebug.pauseLogging')}
+            </button>
+            <button type="button" className="button button--ghost" onClick={handleClear} disabled={events.length === 0}>
+              {t('mappingDebug.clearLog')}
+            </button>
+            <div className="segmented" role="group" aria-label={t('mappingDebug.filterLabel')}>
+              <button type="button" aria-pressed={injectedOnly} onClick={() => setInjectedOnly(true)}>
                 {t('mappingDebug.filterInjected')}
               </button>
-              <button
-                type="button"
-                className={`${styles.filterButton} ${!injectedOnly ? styles.filterButtonActive : ''}`}
-                onClick={() => setInjectedOnly(false)}
-              >
+              <button type="button" aria-pressed={!injectedOnly} onClick={() => setInjectedOnly(false)}>
                 {t('mappingDebug.filterAll')}
               </button>
             </div>
-          </>
+          </div>
         )}
-      </Card>
+      </div>
 
       <div className={styles.grid}>
         <section className={styles.panel}>

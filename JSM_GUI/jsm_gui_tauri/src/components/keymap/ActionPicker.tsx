@@ -1,4 +1,4 @@
-import { useContext, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useContext, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import type { BindingCommand, BindingCommandPatch, BindingOutputKind } from '../../utils/bindingCommands'
@@ -112,6 +112,55 @@ export function ActionPicker({ inputLabel, layerInput, command, virtualControlle
     ? Object.values(choices).flat().filter(choice => `${choice.label} ${choice.token} ${choice.describe}`.toLowerCase().includes(query.trim().toLowerCase())).slice(0, 60)
     : null
 
+  // The first thing the pad can pick: the current action, else the first one
+  // in the open category.
+  const focusContent = () => {
+    const content = rootRef.current?.querySelector<HTMLElement>('.action-picker__content')
+    const target = content?.querySelector<HTMLElement>('button[aria-pressed="true"]:not(:disabled)') ?? content?.querySelector<HTMLElement>('button:not(:disabled)')
+    target?.focus()
+    return Boolean(target)
+  }
+
+  // Focus starts on an action, not in the search box. The dialog observer in
+  // useKeyboardNav lands on the first focusable, which is the search input --
+  // and there the D-pad does nothing (arrows belong to a text field) while B
+  // closes the whole picker, so a pad had no way to choose anything. The same
+  // goes for a category change while an action was focused: the old content
+  // unmounts, focus drops to the body, and the next move would have entered
+  // the page behind the dialog.
+  const refocus = useRef(false)
+  const opening = useRef(true)
+  useEffect(() => {
+    if (opening.current) {
+      // A microtask later, so useKeyboardNav's dialog observer -- queued by
+      // the mount itself -- has first recorded the command this picker
+      // opened from as where focus returns on close. StrictMode runs this
+      // effect twice on mount; the flag keeps the second run out of the way.
+      queueMicrotask(() => { opening.current = false; focusContent() })
+      return
+    }
+    const active = document.activeElement
+    const wanted = refocus.current
+    refocus.current = false
+    if (!wanted && active && active !== document.body && rootRef.current?.contains(active)) return
+    focusContent()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category, results === null])
+
+  // Leaving the search field: Down moves to the first result, Escape clears
+  // the search and goes back to the actions rather than closing the picker.
+  const onSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'ArrowDown' || (event.key === 'Enter' && results?.length)) {
+      event.preventDefault()
+      focusContent()
+    } else if (event.key === 'Escape') {
+      event.preventDefault()
+      // The results are about to unmount, so the actions are focused once the
+      // category's own content is back rather than a button that is going.
+      if (query) { refocus.current = true; setQuery('') } else focusContent()
+    }
+  }
+
   // LB / RB change category, X captures, Y searches (the pad reaches an open
   // picker as `jsm:pad` events, since a dialog owns the pad while it is open).
   useEffect(() => {
@@ -151,7 +200,14 @@ export function ActionPicker({ inputLabel, layerInput, command, virtualControlle
 
   return createPortal(<div className="modal-overlay action-picker-overlay" data-capture-ignore="true">
     <section ref={rootRef} className="action-picker" role="dialog" aria-modal="true" aria-labelledby={title}
-      data-hints={`A:Choose;${onCapture ? 'X:Capture;' : ''}Y:Search;B:Back;LB/RB:Category`}>
+      data-hints={`A:Choose;${onCapture ? 'X:Capture;' : ''}Y:Search;B:Back;LB/RB:Category`}
+      // The keyboard's Y, as the capsule says; the pad's Y arrives as a pad event.
+      onKeyDown={event => {
+        if ((event.key === 'y' || event.key === 'Y') && !event.defaultPrevented && !(event.target as HTMLElement).matches('input, textarea')) {
+          event.preventDefault()
+          searchRef.current?.focus()
+        }
+      }}>
       <header className="action-picker__header">
         <div className="action-picker__title">
           {command.physicalInput && <InputGlyph command={command.physicalInput} size={36} />}
@@ -163,8 +219,13 @@ export function ActionPicker({ inputLabel, layerInput, command, virtualControlle
         {current && <span className="action-picker__current">Current <kbd className="action-pill">{current}</kbd></span>}
         <label className="action-picker__search">
           <Icon name="search" size={16} />
-          <input ref={searchRef} type="search" value={query} placeholder="Search all actions" aria-label="Search all actions"
-            onChange={event => setQuery(event.target.value)} />
+          {/* Out of the focus walk (Y, the keyboard's Y or a click reach it):
+              as the dialog's first field it is where the focus engine landed
+              on open, and App's focusin handler then selects a text field a
+              frame later -- which re-focuses it, undoing the move onto an
+              action that the design starts from. */}
+          <input ref={searchRef} type="search" tabIndex={-1} value={query} placeholder="Search all actions" aria-label="Search all actions"
+            onChange={event => setQuery(event.target.value)} onKeyDown={onSearchKeyDown} />
         </label>
         <button type="button" className="ghost-btn" data-modal-close onClick={onClose}>{category === 'Layers' ? 'Done' : 'Cancel'}</button>
       </header>
@@ -201,7 +262,7 @@ export function ActionPicker({ inputLabel, layerInput, command, virtualControlle
               <button type="button" className="icon-button" aria-label="Brighter" disabled={led >= 100} onClick={() => setLed(value => Math.min(100, value + 10))}>+</button>
               {choiceButton(choices.JSM.find(choice => choice.key === 'led')!, { className: 'action-choice action-led__set', content: 'Use' })}
             </div>
-            <p className="action-picker-note">Haptics, console commands and raw expressions are available in Advanced command settings.</p></>}
+            <p className="action-picker-note">Haptics, console commands and raw expressions are available under Command options.</p></>}
           {!results && category === 'Configurations' && <div className="action-grid">{choices.Configurations.map(choice => choiceButton(choice))}</div>}
         </div>
         <aside className="picker-detail" aria-live="polite">
@@ -213,7 +274,7 @@ export function ActionPicker({ inputLabel, layerInput, command, virtualControlle
               : 'Keys with a dot are already bound; choosing one keeps both.'}</span>
             <span className="picker-detail__raw">Raw token <code>{detail.token}</code></span>
           </> : <span className="picker-detail__note">Move to an action to see what it sends.</span>}
-          <button type="button" className="secondary-btn" onClick={() => { onClose(); onAdvanced() }}>Advanced command settings</button>
+          <button type="button" className="secondary-btn" onClick={() => { onClose(); onAdvanced() }}>Command options</button>
         </aside>
       </div>
     </section>

@@ -166,11 +166,54 @@
 @media (min-width: 1280px) { .timing-columns { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
 .timing-main, .timing-side { min-width: 0; display: flex; flex-direction: column; gap: var(--sp-2); }
 
-.unsaved-modal { width: min(460px, 92vw); }
-
-.unsaved-modal-body { margin: 0 0 18px; line-height: 1.6; color: var(--text-mid); }
-
-.unsaved-modal-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+/* Unsaved-changes guard: a console-style stack of choices, each a full-width
+   row with a label and one line of consequence. Recommended first (accent),
+   destructive last (error), Cancel in the header and on B. */
+.unsaved-modal { width: min(500px, calc(100vw - 32px)); gap: var(--sp-4); }
+.unsaved-modal .modal-header { margin-right: calc(var(--sp-2) * -1); }
+.unsaved-modal .modal-header h3 { overflow-wrap: anywhere; }
+.unsaved-modal-body { margin: 0; color: var(--text-2); font-size: var(--fs-body); line-height: var(--lh-body); }
+.unsaved-choices { display: flex; flex-direction: column; gap: var(--sp-2); margin-top: var(--sp-1); }
+.unsaved-choice {
+  width: 100%;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border: 0;
+  border-radius: var(--r-row);
+  background: var(--surface-row);
+  color: var(--text-1);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--dur-1) var(--ease-standard), box-shadow var(--dur-2) var(--ease-standard), transform var(--dur-1) var(--ease-standard);
+}
+.unsaved-choice:hover { background: var(--surface-row-hover); }
+.unsaved-choice:focus { background: var(--surface-selected); }
+.unsaved-choice:active { transform: scale(.99); }
+.unsaved-choice__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.unsaved-choice__label { font-size: var(--fs-label); line-height: var(--lh-label); font-weight: var(--fw-semibold); }
+.unsaved-choice__hint { color: var(--text-3); font-size: var(--fs-hint); line-height: var(--lh-hint); }
+.unsaved-choice__tag {
+  flex: none;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--sp-2);
+  border-radius: var(--r-sm);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-semibold);
+}
+.unsaved-choice--recommended { box-shadow: inset 3px 0 0 var(--accent); }
+.unsaved-choice--danger { margin-top: var(--sp-2); background: transparent; box-shadow: inset 0 0 0 1px var(--line-1); }
+.unsaved-choice--danger .unsaved-choice__label { color: var(--error); }
+.unsaved-choice--danger:hover,
+.unsaved-choice--danger:focus { background: var(--error-soft); box-shadow: none; }
+@media (prefers-reduced-motion: reduce) { .unsaved-choice:active { transform: none; } }
 
 
 
@@ -312,16 +355,17 @@ details[data-input-command] { display: block; padding: 0; width: 100%; }
 
 
 @media(max-width: 800px) { .binding-detail { grid-template-columns: 1fr; } }
-.settings-inventory {
-  margin: var(--sp-4) 0;
-  border: 0;
-  border-radius: var(--r-row);
-  box-shadow: inset 0 0 0 1px var(--line-1);
-  padding: var(--sp-3) var(--sp-4);
+/* Values & inheritance (title bar · configuration menu): a dialog. */
+.modal-card.settings-inventory {
+  width: min(760px, 92vw);
   color: var(--text-2);
-  font-size: var(--fs-hint);
 }
-.settings-inventory > input { margin: 12px 0; width: 100%; }
+.settings-inventory__note { margin: 0; font-size: var(--fs-hint); line-height: var(--lh-hint); color: var(--text-3); }
+.settings-inventory__filters { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; }
+.settings-inventory__filters input[type="search"] { flex: 1 1 240px; min-width: 0; }
+.settings-inventory__scope { display: inline-flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-hint); white-space: nowrap; }
+.settings-inventory__rows { font-size: var(--fs-hint); }
+.settings-inventory__empty { margin: 0; padding: var(--sp-3) 0; color: var(--text-3); }
 .setting-inventory-row {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;

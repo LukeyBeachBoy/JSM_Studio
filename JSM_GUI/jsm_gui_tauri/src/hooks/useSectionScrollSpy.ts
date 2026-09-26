@@ -35,18 +35,24 @@ export function useSectionScrollSpy(ids: string[]): string | null {
         const top = target ? target.getBoundingClientRect().top - fold : -1
         if (target && top >= 0 && top < scrollerEl.clientHeight) { setActiveId(chosen); return }
       }
-      let best: { id: string; distance: number } | null = null
-      for (const id of ids) {
+      // The current section is the one the top of the view is in: the last
+      // to have reached the fold. Picking whichever top was nearest below the
+      // fold was right only while sections were short -- on the stacked
+      // trackpads it lit "Right trackpad" while the left pad filled the view.
+      // Sections side by side share a top; the one asked for wins the tie.
+      const tops = ids.flatMap(id => {
         const target = document.getElementById(id)
-        if (!target) continue
-        const top = target.getBoundingClientRect().top - fold
-        // A section already scrolled past still counts -- at the very bottom of
-        // a short page nothing else can reach the fold -- but never ahead of one
-        // that is actually on screen.
-        const distance = top >= 0 ? top : Math.abs(top) + 10000
-        if (!best || distance < best.distance - 2 || (id === chosen && Math.abs(distance - best.distance) <= 2)) best = { id, distance }
-      }
-      if (best) setActiveId(best.id)
+        // A jump lands a section its scroll-margin below the fold; that counts.
+        return target ? [{ id, top: target.getBoundingClientRect().top - fold - (Number.parseFloat(getComputedStyle(target).scrollMarginTop) || 0) }] : []
+      })
+      if (!tops.length) return
+      const reached = tops.filter(entry => entry.top <= 2)
+      const pool = reached.length
+        ? reached.filter(entry => entry.top >= Math.max(...reached.map(other => other.top)) - 2)
+        // Nothing has reached the fold yet (the page header is above them all):
+        // the first one down.
+        : tops.filter(entry => entry.top <= Math.min(...tops.map(other => other.top)) + 2)
+      setActiveId((pool.find(entry => entry.id === chosen) ?? pool[0]).id)
     }
 
     const onPicked = (event: Event) => {

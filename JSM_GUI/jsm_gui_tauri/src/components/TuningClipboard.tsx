@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { scopedConfig, replaceScope } from '../utils/configScopes'
-import { HelpButton } from './HelpButton'
 import { showToast } from '../utils/toast'
 
 const TUNING_KEYS = {
@@ -9,6 +8,12 @@ const TUNING_KEYS = {
   gyro: /^(?:(?:MIN_|MAX_)?GYRO_|ACCEL_|ROLL_CONTRIBUTION|IN_GAME_SENS|REAL_WORLD_CALIBRATION|CUTOFF_|SMOOTH_|ONE_EURO_|ANGLE_SNAP|DECEL_BRAKE)/,
 }
 type Kind = keyof typeof TUNING_KEYS
+
+// What the buttons do, said where the pad and the mouse both meet it: the
+// capsule reads data-hints, the mouse reads the tooltip.
+const EXPLAIN = 'Copy these settings, open another configuration, and paste them there. Pasting replaces that tuning section, including defaults; you can undo it before saving. Button bindings stay as they are.'
+
+/** Copy / Paste tuning, as page-header actions on the Gyro and Tuning pages. */
 export function TuningClipboard({ kind, text, onChange, disabled }: { kind: Kind; text: string; onChange: (text: string) => void; disabled?: boolean }) {
   const [busy, setBusy] = useState(false)
   const copy = async () => {
@@ -29,9 +34,8 @@ export function TuningClipboard({ kind, text, onChange, disabled }: { kind: Kind
     } catch { showToast(`Copy ${kind} tuning from another configuration first.`, 'error') }
     finally { setBusy(false) }
   }
-  return <div className="editor-tools">
-    <button className="ghost-btn" onClick={() => void copy()} disabled={disabled || busy}>Copy tuning</button>
-    <button className="ghost-btn" onClick={() => void paste()} disabled={disabled || busy}>Paste tuning</button>
-    <HelpButton title="Copy tuning">Copy these settings, open another configuration, and paste them here. Pasting replaces this tuning section, including defaults. You can undo it before saving. Button bindings stay as they are.</HelpButton>
-  </div>
+  return <>
+    <button type="button" className="button button--ghost" title={EXPLAIN} data-hints="A:Copy tuning;B:Back" onClick={() => void copy()} disabled={disabled || busy}>Copy tuning</button>
+    <button type="button" className="button button--ghost" title={EXPLAIN} data-hints="A:Paste tuning;B:Back" onClick={() => void paste()} disabled={disabled || busy}>Paste tuning</button>
+  </>
 }

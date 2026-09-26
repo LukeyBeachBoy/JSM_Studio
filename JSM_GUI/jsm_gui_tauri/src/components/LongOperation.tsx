@@ -81,6 +81,7 @@ export function LongOperationHost() {
   const operation = useSyncExternalStore(subscribe, snapshot, snapshot)
   const [visible, setVisible] = useState(false)
   const cancelRef = useRef<HTMLButtonElement | null>(null)
+  const dialogRef = useRef<HTMLDivElement | null>(null)
   const returnFocus = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
@@ -99,14 +100,18 @@ export function LongOperationHost() {
       return
     }
     returnFocus.current = document.activeElement as HTMLElement | null
-    cancelRef.current?.focus()
+    // With nothing to cancel, the dialog itself holds focus so A cannot
+    // press whatever was focused behind it.
+    ;(cancelRef.current ?? dialogRef.current)?.focus()
   }, [visible])
 
   if (!operation || !visible) return null
   const percent = operation.fraction === undefined ? undefined : Math.round(Math.max(0, Math.min(1, operation.fraction)) * 100)
+  // data-focus-trap keeps the pad's arrows, bumpers and triggers inside the
+  // dialog while it is up, like any other overlay (useKeyboardNav).
   return (
-    <div className={styles.backdrop}>
-      <div className={styles.dialog} role="alertdialog" aria-modal="true" aria-labelledby="long-operation-title" aria-busy="true"
+    <div className={styles.backdrop} data-focus-trap="true">
+      <div ref={dialogRef} tabIndex={-1} className={styles.dialog} role="alertdialog" aria-modal="true" aria-labelledby="long-operation-title" aria-busy="true"
         onKeyDown={event => { if (event.key === 'Escape' && operation.cancel) { event.preventDefault(); operation.cancel() } }}>
         <span id="long-operation-title" className={styles.title}>{operation.title}</span>
         <div className={styles.track} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} aria-valuetext={percent === undefined ? operation.detail : `${percent}%`}>
@@ -120,7 +125,7 @@ export function LongOperationHost() {
         </div>
         <div className={styles.actions}>
           {operation.cancel
-            ? <button ref={cancelRef} type="button" className="button button--tertiary" onClick={operation.cancel} disabled={operation.cancelling}>Cancel</button>
+            ? <button ref={cancelRef} type="button" className="button button--tertiary" data-modal-close onClick={operation.cancel} disabled={operation.cancelling}>Cancel</button>
             : <span className={styles.noCancel}>This can't be stopped part way.</span>}
         </div>
       </div>

@@ -6,6 +6,7 @@ import { GYRO_ACCEL_DEFAULTS, type AccelCurveLink } from '../utils/accelCurve'
 
 type AccelSensFormProps = {
   sensitivity: SensitivityValues
+  disabled?: boolean
   onCurveChange: (value: string) => void
   onNaturalVHalfChange: (value: string) => void
   onPowerVRefChange: (value: string) => void
@@ -19,15 +20,16 @@ type AccelSensFormProps = {
   onMinSensYChange: (value: string) => void
   onMaxSensXChange: (value: string) => void
   onMaxSensYChange: (value: string) => void
-  onRollContributionChange: (value: string) => void
   accelCurveLink?: string
   onAccelCurveLinkChange?: (value: AccelCurveLink) => void
 }
 
 // The gyro's acceleration curve: the shared AccelCurveEditor with the gyro's
-// own outputs (min/max sensitivity per axis) slotted in.
+// own outputs (minimum and maximum sensitivity per axis) slotted in, labelled
+// and described as Gyro.dc.html has them.
 export function AccelSensForm({
   sensitivity,
+  disabled,
   onCurveChange,
   onNaturalVHalfChange,
   onPowerVRefChange,
@@ -41,17 +43,16 @@ export function AccelSensForm({
   onMinSensYChange,
   onMaxSensXChange,
   onMaxSensYChange,
-  onRollContributionChange,
   accelCurveLink,
   onAccelCurveLinkChange,
 }: AccelSensFormProps) {
   const { t } = useTranslation()
-  const showRollContribution = sensitivity.gyroSpace?.trim().toUpperCase() === 'YAW_PLUS_ROLL'
 
   // The gyro keeps its curve type under `accelCurve`; the shared editor reads
   // `curve`. Every field of both shapes is optional, so handing over the raw
   // sensitivity object type-checks and then silently reads as LINEAR.
   const curveShape = { ...sensitivity, curve: sensitivity.accelCurve }
+  const axis = (label: string, which: string) => `${label} (${which})`
 
   return (
     <AccelCurveEditor
@@ -60,6 +61,7 @@ export function AccelSensForm({
       inputUnit="°/s"
       inputMax={500}
       defaults={GYRO_ACCEL_DEFAULTS}
+      disabled={disabled}
       onCurveChange={onCurveChange}
       onMinThresholdChange={onMinThresholdChange}
       onMaxThresholdChange={onMaxThresholdChange}
@@ -71,27 +73,14 @@ export function AccelSensForm({
       onJumpTauChange={onJumpTauChange}
       link={accelCurveLink}
       onLinkChange={onAccelCurveLinkChange}
+      thresholdLabels={{ min: t('gyroPage.minThreshold'), max: t('gyroPage.maxThreshold') }}
+      thresholdHints={{ min: t('gyroPage.minThresholdDesc'), max: t('gyroPage.maxThresholdDesc') }}
       outputs={
         <>
-          <div className="flex-inputs">
-            <NumberField setting="MIN_GYRO_SENS" label={t('sensitivity.minSensX')} value={sensitivity.minSensX} onChange={onMinSensXChange} min={0} max={30} step={0.1} />
-            <NumberField setting="MIN_GYRO_SENS" label={t('sensitivity.minSensY')} value={sensitivity.minSensY} onChange={onMinSensYChange} min={0} max={30} step={0.1} />
-            <NumberField setting="MAX_GYRO_SENS" label={t('sensitivity.maxSensX')} value={sensitivity.maxSensX} onChange={onMaxSensXChange} min={0} max={30} step={0.1} />
-            <NumberField setting="MAX_GYRO_SENS" label={t('sensitivity.maxSensY')} value={sensitivity.maxSensY} onChange={onMaxSensYChange} min={0} max={30} step={0.1} />
-          </div>
-          {showRollContribution && (
-            <div className="flex-inputs">
-              <NumberField setting="ROLL_CONTRIBUTION"
-                label={t('sensitivity.rollContribution')}
-                value={sensitivity.rollContribution}
-                onChange={onRollContributionChange}
-                min={-100}
-                max={100}
-                step={1}
-                unit="%"
-              />
-            </div>
-          )}
+          <NumberField setting="MIN_GYRO_SENS" label={axis(t('gyroPage.minSensitivity'), t('gyroPage.axisX'))} value={sensitivity.minSensX} onChange={onMinSensXChange} min={0} max={30} step={0.1} disabled={disabled} hint={t('gyroPage.minSensitivityDesc')} />
+          <NumberField setting="MIN_GYRO_SENS" label={axis(t('gyroPage.minSensitivity'), t('gyroPage.axisY'))} value={sensitivity.minSensY} onChange={onMinSensYChange} min={0} max={30} step={0.1} disabled={disabled} hint={t('gyroPage.minSensitivityDesc')} />
+          <NumberField setting="MAX_GYRO_SENS" label={axis(t('gyroPage.maxSensitivity'), t('gyroPage.axisX'))} value={sensitivity.maxSensX} onChange={onMaxSensXChange} min={0} max={30} step={0.1} disabled={disabled} hint={t('gyroPage.maxSensitivityDesc')} />
+          <NumberField setting="MAX_GYRO_SENS" label={axis(t('gyroPage.maxSensitivity'), t('gyroPage.axisY'))} value={sensitivity.maxSensY} onChange={onMaxSensYChange} min={0} max={30} step={0.1} disabled={disabled} hint={t('gyroPage.maxSensitivityDesc')} />
         </>
       }
     />

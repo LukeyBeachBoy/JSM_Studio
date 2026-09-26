@@ -71,6 +71,8 @@ export type AutoloadRule = {
   builtIn: boolean
   /** Kept but not used (the file is renamed so AutoLoad skips it). */
   paused?: boolean
+  /** Unix milliseconds of the last time this app came to the front while the rule was on. */
+  lastMatchedAtMs?: number
 }
 
 // One global chord: hold any button in `buttons`, the configuration at
@@ -90,6 +92,29 @@ export type NamedProfile = {
 export type DeleteProfileResult = {
   success: boolean
   fallback?: NamedProfile
+  /** The file went to the recycle bin rather than being removed outright (System States 17g). */
+  recycled?: boolean
+}
+
+/** A library profile's file facts, for the Configurations page (Studio Home 8a). */
+export type LibraryProfileMeta = {
+  name: string
+  /** Unix milliseconds of the file's last write. */
+  modifiedAtMs: number
+}
+
+/** A process with a window, for picking an association's app (16f "+ Add app"). */
+export type RunningProcess = {
+  /** Executable name, e.g. Cyberpunk2077.exe. */
+  processName: string
+  pid: number
+  windowTitle?: string
+}
+
+/** The configuration loaded when the front app has no rule of its own (16f "Desktop · Fallback"). */
+export type AutoloadFallback = {
+  profileName: string | null
+  enabled: boolean
 }
 
 export type CalibrationPresetLoadResult = {
@@ -227,8 +252,13 @@ export interface DesktopBridge {
   /** Ends Test mode: loads Studio's navigation profile so the pad drives Studio again. */
   resumeStudioNavigation: () => Promise<boolean>
   setStudioTesting: (testing: boolean) => Promise<void>
+  /** A haptic tick/click (or a rumble pulse on pads without actuators) for Studio's own UI. Fire and forget. */
+  controllerFeedback: (request: ControllerFeedbackRequest) => Promise<void>
   setTrackpadOverlayEnabled: (enabled: boolean) => Promise<void>
   listAutoloadRules: () => Promise<AutoloadRule[]>
+  listRunningProcesses: () => Promise<RunningProcess[]>
+  getAutoloadFallback: () => Promise<AutoloadFallback>
+  setAutoloadFallback: (fallback: AutoloadFallback) => Promise<AutoloadFallback | null>
   saveAutoloadRule: (processName: string, profileName: string) => Promise<AutoloadRule | null>
   deleteAutoloadRule: (processName: string) => Promise<{ success: boolean }>
   setAutoloadRulePaused: (processName: string, paused: boolean) => Promise<AutoloadRule | null>
@@ -248,6 +278,7 @@ export interface DesktopBridge {
   onMapperStatus: (callback: (payload: MapperStatus) => void) => Unsubscribe
   onGyroCalibrationResult: (callback: (payload: GyroCalibrationResult) => void) => Unsubscribe
   listLibraryProfiles: () => Promise<string[]>
+  listLibraryProfileMeta: () => Promise<LibraryProfileMeta[]>
   onLibraryProfilesChanged: (callback: (profiles: string[]) => void) => Unsubscribe
   saveLibraryProfile: (name: string, content: string) => Promise<{ name: string } | null>
   loadLibraryProfile: (name: string) => Promise<{ name: string; content: string } | null>
@@ -297,6 +328,20 @@ export interface DesktopBridge {
   getAiSettings: () => Promise<AiSettings>
   saveAiSettings: (settings: AiSettingsInput) => Promise<AiSettings>
   generateAiMapping: (request: AiGenerateRequest) => Promise<AiGenerateResponse>
+}
+
+/** One UI feedback effect (JoyShockMapper StudioFeedback.h). */
+export type ControllerFeedbackRequest = {
+  /** HapticEffect ordinal: 1 TICK, 2 CLICK, ... */
+  effect: number
+  /** 0-100 haptic dial. */
+  intensity: number
+  /** 1 left, 2 right, 3 both. */
+  side: number
+  /** Rumble pulse for pads without haptic actuators; 0 for none. */
+  rumbleMs: number
+  /** 0-100 motor strength for that pulse. */
+  rumble: number
 }
 
 type TauriEventPayload<T> = { payload: T }
@@ -458,6 +503,11 @@ export const desktopBridge: DesktopBridge = {
   async setStudioTesting(testing) {
     if (isTauriWindow()) await invokeTauri<void>('set_studio_testing', { testing }).catch(() => {})
   },
+  async controllerFeedback(request) {
+    if (isTauriWindow()) { await invokeTauri<void>('controller_feedback', { ...request }).catch(() => {}); return }
+    // Web preview: the dev mock records what would have been played.
+    ;(window as unknown as { __padFeedback?: ControllerFeedbackRequest[] }).__padFeedback?.push(request)
+  },
   async resumeStudioNavigation() {
     if (isTauriWindow()) {
       return invokeTauri<boolean>('resume_studio_navigation').catch(error => {
@@ -491,6 +541,24 @@ export const desktopBridge: DesktopBridge = {
     }
     return (await getElectronAPI()?.listAutoloadRules?.()) ?? []
   },
+  async listRunningProcesses() {
+    if (isTauriWindow()) {
+      return invokeTauri<RunningProcess[]>('list_running_processes').catch(() => [])
+    }
+    return (await getElectronAPI()?.listRunningProcesses?.()) ?? []
+  },
+  async getAutoloadFallback() {
+    if (isTauriWindow()) {
+      return invokeTauri<AutoloadFallback>('get_autoload_fallback').catch(() => ({ profileName: null, enabled: false }))
+    }
+    return (await getElectronAPI()?.getAutoloadFallback?.()) ?? { profileName: null, enabled: false }
+  },
+  async setAutoloadFallback(fallback) {
+    if (isTauriWindow()) {
+      return invokeTauri<AutoloadFallback>('set_autoload_fallback', { fallback }).catch(() => null)
+    }
+    return (await getElectronAPI()?.setAutoloadFallback?.(fallback)) ?? null
+  },
   async saveAutoloadRule(processName, profileName) {
     if (isTauriWindow()) {
       return invokeTauri<AutoloadRule>('save_autoload_rule', { processName, profileName }).catch(() => null)
@@ -519,7 +587,7 @@ export const desktopBridge: DesktopBridge = {
     if (isTauriWindow()) {
       return invokeTauri<AutoloadRule>('set_autoload_rule_paused', { processName, paused }).catch(() => null)
     }
-    return null
+    return (await getElectronAPI()?.setAutoloadRulePaused?.(processName, paused)) ?? null
   },
   async deleteAutoloadRule(processName) {
     if (isTauriWindow()) {
@@ -587,6 +655,12 @@ export const desktopBridge: DesktopBridge = {
       return invokeTauri<string[]>('library_list_profiles').catch(() => [])
     }
     return (await getElectronAPI()?.listLibraryProfiles?.()) ?? []
+  },
+  async listLibraryProfileMeta() {
+    if (isTauriWindow()) {
+      return invokeTauri<LibraryProfileMeta[]>('library_list_profile_meta').catch(() => [])
+    }
+    return (await getElectronAPI()?.listLibraryProfileMeta?.()) ?? []
   },
   onLibraryProfilesChanged(callback) {
     if (isTauriWindow()) {

@@ -51,7 +51,7 @@ const original = [
   '# @label LT1 = Rifle',
   '# @icon LT1 = game-icons:ak47',
   '# @label LT2 = Pistol',
-  '# @overlay LEFT at 0.18 0.74 size 260 keys off font 18',
+  '# @overlay LEFT at 0.18 0.74 size 260 keys off icons off font 18',
   '# A hand-written note about the layout',
 ].join('\n');
 
@@ -63,7 +63,7 @@ assert.equal(parseBindingLabels(saved).LT2, 'Pistol', 'every label must survive 
 assert.equal(parseBindingIcons(saved).LT1, 'game-icons:ak47', 'an icon must survive Save');
 assert.deepEqual(
   parseOverlayPlacements(saved).LEFT,
-  { x: 0.18, y: 0.74, size: 260, showLabels: true, showKeys: false, fontSize: 18, reveal: 'touch' },
+  { x: 0.18, y: 0.74, size: 260, showLabels: true, showKeys: false, showIcons: false, fontSize: 18, reveal: 'touch' },
   'an overlay placement, with its options, must survive Save'
 );
 

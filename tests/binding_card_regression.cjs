@@ -62,11 +62,11 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  await page.getByRole('option',{name:'Hold',exact:true}).click();
  await page.waitForFunction(() => document.querySelector('[class*=commandCard] [role=combobox]')?.textContent.includes('Hold'));
 
- // Adding a trigger is one menu now, not nine buttons. It must not offer a
+ // Adding a command is one menu now ("+ Add command", 7a), not nine buttons. It must not offer a
  // chord: this group's modeshift panel owns those, and one made here would be
  // written to a line the card filters straight back out and lost.
  // The add control belongs to the input, not to one of its commands.
- await page.locator('details[data-input-command="N"]').getByRole('button',{name:'Add another trigger'}).click();
+ await page.locator('details[data-input-command="N"]').getByRole('button',{name:'Add command'}).click();
  const addItems = (await page.getByRole('menuitem').allInnerTexts()).map(text => text.trim());
  assert.ok(!addItems.some(item => /chord/i.test(item)), `the card offers a chord it cannot keep: ${addItems.join(', ')}`);
  assert.ok(addItems.includes('Advanced'), `the rare kinds should stay behind a submenu: ${addItems.join(', ')}`);

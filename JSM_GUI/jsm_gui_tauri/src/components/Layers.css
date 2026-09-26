@@ -14,20 +14,66 @@
 .layer-selector .layer-manage { margin-left: auto; white-space: nowrap; }
 /* Managing layers is a dialog, not a slab pushed into the page above the
    controller: it is something you open, do one thing in, and close. */
-.layer-modal { display: grid; gap: 14px; width: min(560px, 92vw); max-height: 82vh; overflow: auto; font-size: 13px; }
-.layer-modal-note { margin: 0; color: var(--text-muted); line-height: 1.5; }
-.layer-create { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
-.layer-create label { display: flex; align-items: center; gap: 6px; }
-.layer-create small { width: 100%; color: #ffcf8f; }
-.layer-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-.layer-list li { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 10px; border: 1px solid var(--border-1); border-radius: 8px; }
-.layer-list li[aria-current=true] { border-color: var(--accent); }
-.layer-list li > input { flex: 1 1 140px; }
-.layer-list details { width: 100%; }
+.layer-modal { width: min(600px, calc(100vw - 32px)); max-height: min(85vh, 760px); gap: var(--sp-5); font-size: var(--fs-body); }
+.layer-modal .modal-header { margin: calc(var(--sp-1) * -1) calc(var(--sp-2) * -1) 0 0; }
+.layer-modal-note { margin: 0; color: var(--text-3); }
+.layer-field-label { color: var(--text-2); font-size: var(--fs-hint); line-height: var(--lh-hint); font-weight: var(--fw-medium); }
+.layer-create { display: flex; flex-direction: column; gap: var(--sp-2); }
+.layer-create__row { display: flex; align-items: center; gap: var(--sp-2); }
+.layer-create__row .text-field { flex: 1 1 auto; min-width: 0; }
+.layer-create__row .button { flex: none; }
+.layer-create__error { color: var(--warn); font-size: var(--fs-hint); }
+.layer-modal-section { display: flex; flex-direction: column; gap: var(--sp-2); }
+.layer-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-2); }
+.layer-list li { display: flex; flex-direction: column; gap: var(--sp-1); padding: var(--sp-3); border-radius: var(--r-row); background: var(--surface-row); }
+.layer-list li[aria-current=true] { box-shadow: inset 0 0 0 1px var(--accent); }
+.layer-list__row { display: flex; align-items: center; gap: var(--sp-2); }
+.layer-list__row .text-field { flex: 1 1 auto; min-width: 0; }
+.layer-list__row .layer-row__tag, .layer-list__row .button { flex: none; }
+.layer-list__none { margin: 0 var(--sp-2) var(--sp-2); color: var(--text-3); font-size: var(--fs-hint); line-height: var(--lh-hint); }
+.layer-modal .layer-override { min-height: 44px; padding: 0 var(--sp-2); gap: var(--sp-3); box-shadow: inset 0 -1px 0 var(--line-1); }
+.layer-modal .layer-override:last-child { box-shadow: none; }
+.layer-modal .layer-override .button, .layer-modal .layer-override .layer-override__value { flex: none; }
+/* The overrides disclosure uses the design's chevron, not the UA triangle. */
+.layer-list__overrides > summary {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 0 var(--sp-2);
+  border-radius: var(--r-md);
+  color: var(--text-2);
+  font-size: var(--fs-hint);
+  font-weight: var(--fw-medium);
+  list-style: none;
+  cursor: pointer;
+}
+.layer-list__overrides > summary::-webkit-details-marker { display: none; }
+.layer-list__overrides > summary::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  margin: 0 4px 0 2px;
+  border-right: 2px solid var(--text-3);
+  border-bottom: 2px solid var(--text-3);
+  transform: rotate(-45deg);
+  transition: transform var(--dur-2) var(--ease-emphasis);
+}
+.layer-list__overrides[open] > summary::before { transform: rotate(45deg); }
+.layer-list__overrides > summary:hover { background: var(--surface-row-hover); color: var(--text-1); }
 .layer-empty { margin: 0; color: var(--text-muted); }
+.layer-modal .layer-empty { padding: var(--sp-5) var(--sp-4); border-radius: var(--r-row); background: var(--surface-row); text-align: center; }
 .layer-from-modeshifts { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding-top: 10px; border-top: 1px solid var(--border-1); }
 .layer-from-modeshifts label { display: flex; align-items: center; gap: 6px; }
 .layer-from-modeshifts small { width: 100%; color: var(--text-muted); }
+/* The label + select is the shared setting row (components.css); the Move
+   button sits under it at the end. */
+.layer-modal .layer-from-modeshifts { justify-content: flex-end; gap: var(--sp-2); padding-top: var(--sp-3); border-top-color: var(--line-1); }
+#layer-management.layer-modal .layer-from-modeshifts > label { flex: 1 1 100%; padding: var(--sp-2) 0; box-shadow: none; background: transparent; }
+@media (max-width: 520px) {
+  .layer-create__row, .layer-list__row { flex-wrap: wrap; }
+  .layer-create__row .text-field, .layer-list__row .text-field { flex-basis: 100%; }
+}
 @media (max-width: 1060px) {
   .layer-selector { position: sticky; top: 0; z-index: 20; }
 }
@@ -136,11 +182,7 @@ body[data-input-source='controller'] .layer-row:focus { background: var(--surfac
 .layer-page-content .layer-from-modeshifts > label { flex: 1 1 360px; }
 
 /* The Manage layers dialog and the inline controls, on the design tokens. */
-.layer-modal { gap: var(--sp-4); font-size: var(--fs-body); }
 .layer-modal-note, .layer-empty { color: var(--text-3); }
-.layer-create small { color: var(--warn); }
-.layer-list li { border: 0; border-radius: var(--r-row); background: var(--surface-row); padding: var(--sp-3); }
-.layer-list li[aria-current=true] { box-shadow: inset 0 0 0 1px var(--accent); }
 .layer-from-modeshifts { border-top-color: var(--line-1); }
 .layer-from-modeshifts small { color: var(--text-3); }
 .layer-binding-row button { border: 0; border-radius: var(--r-md); background: var(--surface-control); color: var(--text-1); }

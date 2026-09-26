@@ -56,7 +56,9 @@ pub fn compose(app: &AppHandle, layers: &[PreparedLayer], ids: &[String]) -> Res
     let parent = Path::new(&first.profile_path).parent().ok_or("Missing layer directory")?;
     let path = parent.join(format!("{}-{}.txt", hash.finish(), name.trim_end_matches([' ', '.'])));
     let root = runtime::runtime_dir(app)?;
-    fs::write(root.join(&path), content).map_err(|e| e.to_string())?;
+    // The mapper is told to load this the moment it is written, and it may
+    // still be reading an identically named one from an earlier stack.
+    runtime::write_file_atomically(root.join(&path), content)?;
     Ok(Some(path.to_string_lossy().replace('\\', "/")))
 }
 
@@ -164,7 +166,7 @@ pub fn prepare(app: &AppHandle, source: &str) -> Result<Vec<PreparedLayer>, Stri
             content.push_str(&format!("{key}{separator}{value}\n"));
         }
         content.push_str("TELEMETRY_ENABLED = ON\nTELEMETRY_PORT = 8974\n");
-        fs::write(root.join(&path), content).map_err(|e| e.to_string())?;
+        runtime::write_file_atomically(root.join(&path), content)?;
         let inputs = |verb: &str| actions.iter().filter(|a| a.layer_id == layer.id && a.verb == verb).map(|a| a.input.clone()).collect::<Vec<_>>();
         result.push(PreparedLayer { id: layer.id.clone(), holds: inputs("hold"), applies: inputs("apply"), removes: inputs("remove"), toggles: inputs("toggle"), profile_path: path, name: layer.name.clone(), base: base.clone(), overrides: layer.overrides, suppress_holds: layer.suppress_holds });
     }

@@ -35,6 +35,8 @@
 
 .body { margin: 0; color: var(--text-2); font-size: var(--fs-label); line-height: var(--lh-label); }
 .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sp-2); margin-top: var(--sp-2); }
+/* "Searching every 2 s · last seen 4 min ago" under the actions. */
+.searching { margin-top: var(--sp-1); color: var(--text-3); font-size: var(--fs-hint); line-height: var(--lh-hint); }
 
 /* 17b: connecting. Solid accent outline, a 260px line that fills in a second. */
 .connecting .outline {

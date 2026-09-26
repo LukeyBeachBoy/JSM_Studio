@@ -695,6 +695,329 @@ the existing regression suite green.
   SDL's gamepad subsystem every 3 s while nothing is open
   (`RescanDevices`), covered by bug 5 in
   `tests/autoconnect_reconnect_regression.cjs`. Needs a hardware check.
+- **2026-09-26, audit pass (uncommitted):** a walk of the redesign with the
+  scripted pad (`window.__pad` under `?mock`) against the handoff frames, plus
+  four parallel code audits (binding editor, hooks/utils, Studio pages, Rust).
+  Fixed, frontend: StrictMode's second effect run focused the first filter
+  chip on launch (`useKeyboardNav`); Left/Right could not walk the title bar
+  because Radix triggers claimed arrows; the first D-pad press on a page
+  landed on a "?" help button and then walked the column of them (help
+  buttons are skipped by the arrow walk; Y still opens help); LT wrapped from
+  Overview to AI assistant (clamped); arrows are now scope-aware per the
+  focus model (title bar ↔ tabs ↔ page ↔ sections crossings are fixed, Up/Down
+  read the page as rows so a select on the right and a slider on the left of
+  consecutive rows are both visited); Up/Down on a closed Select or Menu
+  trigger move focus instead of opening (A opens); Up/Down leave a single-line
+  text field; the narrow drawer ping-ponged focus 60×/s (unstable `onClose`
+  dep); focus glide re-measures after a dialog's scale-in; a render error no
+  longer blanks the window (`ErrorBoundary` in main.tsx); the Applied segment
+  shows the live layer stack and reads "Nothing applied" while the mapper is
+  down; slider B-revert writes back the raw value so an unset setting stays
+  unset, and `hasPendingChanges` compares canonical text so touch-and-revert
+  is not "unsaved"; toasts stack (4 s, errors 8 s, click dismisses); section
+  names follow the frames (Face buttons, Menu buttons, Back paddles). Naming
+  the Plus/Menu button crashed (`setBindingLabel` regex escape); a
+  `# @layer` with a primitive `overrides` threw on edit; layer actions were
+  dropped by a cache keyed on text alone; `updateKeymapEntry` edited the
+  first of a duplicated key while reads took the last; the action picker
+  opened on the search box; X captures in the editor; input capture on the
+  Debug console swallowed the pad; the long-operation dialog did not trap
+  focus; Escape on a delete confirm also left Studio; Remove chord / remove
+  association got the 17g confirm; the update banner could start two
+  installs; several bridge calls had no catch. Rust: AppNavigation.txt was
+  refreshed with a truncating copy on every command (now atomic, only when
+  changed); layer files written atomically; `.txt.paused` rules were invisible
+  to the list and to renames; terminate/launch race under the process lock;
+  25 blocking commands run off the main thread (`#[tauri::command(async)]`).
+  Tests: `layers_browser_regression` opens the layer menu with Enter now.
+- Still open from the audit (deviations, not bugs): Trackpads (15c) region
+  editor on the live preview, Joysticks (15b) card layout and "X Test
+  segment", D-Pad mode (15d, no backend), binding-row origin markers and Y
+  Details on closed rows (7a), Gyro sections General/Calibration/…/Diagnostics
+  (6a) and the RWC helper buttons, Overview search in the header (5a),
+  Configurations row facts (controller, autoload, saved time) and X/Y row
+  hints (8a), 16f "last matched" and fallback row, 16j Dark/Light/System,
+  17a copy and "last seen", 17d starter choice, light-bar `<input
+  type=color>` not pad-operable, "+ Add app" needs a running-process picker
+  for pad-only use. Dead files: `BindingRow.tsx`, `AdvancedBindingEditor.tsx`,
+  `ControllerStatusPage.tsx` (its CSS module is still used).
+- Working notes: Vite on this machine can serve a stale transform after two
+  quick edits to one file (`curl` the module to check, touch it to refresh);
+  never `git stash` while several agents edit the tree.
+- **2026-09-26, second pass (uncommitted): every page and state built to
+  its frame.** Buttons/D-Pad/Triggers/Joysticks/Trackpads rows are the
+  design's binding row (title, long input name, origin marker, value pill;
+  A Edit · X Capture · Y Details · B Back), the editor is 7a (commands,
+  "+ Add command", "Capture a key", per-input Modeshifts and Layer actions,
+  "Use inherited", Advanced), Triggers is 15a (behaviour row, live raw count,
+  Threshold & release after the bar, "Calibrate triggers" header action,
+  analog passthrough rows), Joysticks is 15b (plot card + Mode/Directions/
+  Click/Deadzone rows, radial wheel with segment rows, X Test segment),
+  Trackpads is 15c (region editor on the live preview, X Next region, Click
+  required, Trackball, Other controller types under `trackpad-other`), the
+  light bar is a swatch grid. Gyro is one page in the settings template
+  (`GyroPage.tsx`: General · Calibration · Sensitivity · Noise & steadying ·
+  Orientation · Dampening · Diagnostics; the "?" help button is gone from
+  rows that show their description, the frame's help dot marks rows without
+  one). Overview 5a (header search with Y badge, callout subtitles, origin
+  dots, band mode lines, quick tiles). Studio: Configurations 8a (row facts,
+  tags, "saved n min ago", A Edit · X Apply · Y Options, inline rename),
+  first run 17d (`?mock&empty`; bundled starter in `constants/fpsTemplate.ts`),
+  Associations 16f (last matched, Desktop fallback row, switches, running-
+  process picker in "+ Add app"), 16g copy, 16h virtual-controller row, 16i
+  card, 16j Dark/Light/System, 16e binding diff + "Edit in Buttons", 17a/17b
+  copy with "last seen", 17g recycle-bin wording, focus after banner dismiss,
+  Layers row hints and delete confirm. Backend: `library_list_profile_meta`,
+  `list_running_processes`, `AutoloadRule.lastMatchedAtMs`
+  (`autoload-matches.json`), `get/set_autoload_fallback` (loads the fallback
+  when the front app has no rule; **needs a hardware check**), recycle-bin
+  delete via the `trash` crate, bounded wait after TerminateProcess, reserved
+  device names refused, case-only rename, content-compare before rewriting
+  generated files. Not built, by decision: the D-Pad "Mode" row (no backend)
+  and 16g's "Quick Access alone opens the Studio quick menu" row (no such
+  menu exists). Dead files removed: `BindingRow.tsx`,
+  `AdvancedBindingEditor.tsx`, `ControllerStatusPage.tsx`; `StickSettingsCard.tsx`
+  and `BindingLabelLegend.tsx` are now unused but kept. Tests updated to the
+  new structure: binding_card, shifted_binding_parity/imports,
+  shifted_capture_isolation, load_config_binding, binding_row_labels,
+  overview_layout, usability_audit, editor_feedback, grid_geometry,
+  steam_workspace, layers_browser.
+- **2026-09-26, polish pass (uncommitted):** unnamed binding rows title
+  themselves by the input ("Y button" beside [F]; "Menu button / Unbound")
+  instead of repeating the value pill; entering a page lands on the first
+  row, never a toolbar, header action, search field or "Bind to WASD"
+  (`pageEntryTarget`, `data-nav-entry-skip`); Copy / Paste tuning moved into
+  the page header; the capsule keeps LB/RB and LT/RT on every row, names
+  each action once, and refreshes when a page's section list appears;
+  Associations switches say "A Turn on / off". Theme: the stored choice is
+  now painted at launch (`initTheme` in main.tsx; before, Light reverted to
+  dark until Preferences was opened), which exposed two selector bugs, both
+  fixed: the compact 184px section width and prefers-reduced-motion were
+  outranked by `:root[data-theme=…]` (design-tokens.css deviates from the
+  handoff there, with a comment). Light mode reviewed and kept: the handoff's
+  light tokens carry it; the selected segment is raised in light, where
+  control and track were the same grey. Joysticks: "Directions / Unbound"
+  instead of four dashes, stick modeshifts sit in the rows column.
+  Trackpads: the preview shrinks to 168–220px so the right pad's rows stop
+  wrapping; the click-regions hint wraps. The pad preview's "1–4" were the
+  mock's key bindings, not missing labels. Tests: 50/52 with the installed
+  JSM Studio running; app_navigation_profile and mapper_config_errors spawn
+  their own JoyShockMapper and time out while another one holds the
+  controller (both passed earlier today with nothing running).
+
+- **2026-09-26 (Luke: "inconsistent with recognising my steam controller is
+  connected/disconnected"):** both symptoms were the mapper's AutoConnect,
+  not Studio. Every reconnect opens a ~6 s settle window in which the device
+  count is resynced rather than acted on, and Studio's launch, every Apply
+  and every focus change load a profile that flips VIRTUAL_CONTROLLER (the
+  applied Cyberpunk is XBOX, AppNavigation is NONE), so each of them
+  reconnects. A pad switched on inside the window was listed but never
+  opened until the next churn (alt-tabbing, as it happened) reconnected for
+  its own reasons; a pad switched off inside it (the chord: a profile load,
+  then TURN_OFF_CONTROLLER) stayed open -- SDL keeps the gamepad object
+  valid with its last state -- and was reported for the rest of the session,
+  which is what Studio drew. Now `DeviceCensus.disconnected`
+  (`SDL_GamepadConnected`) reconnects ahead of the window on any tick, and
+  the window ends with a one-shot catch-up (`caughtUp`) when real devices
+  are listed that the connect attempt did not try. Bugs 6 and 7 in
+  `tests/autoconnect_reconnect_regression.cjs`; mapper rebuilt. **Needs a
+  hardware check**: turn the pad on within ~6 s of launching Studio or of
+  Apply; power it off through the chord, in Studio and in a game; watch the
+  console for "no longer connected" / "arrived during the settle window".
+  Follow-up worth doing: the churn itself. Each focus change unplugs and
+  replugs the virtual pad and every reconnect hands the Steam Controller to
+  Lizard Mode for a moment; AppNavigation keeping the applied
+  VIRTUAL_CONTROLLER would remove most reconnects in a session.
+---
+
+### TODO-31 — Controller navigation feedback on v3 (24 remarks)
+
+**Status:** built 2026-09-26 · uncommitted · needs a pass on real hardware
+
+**Context**
+
+Luke's playtest of the v3 shell with a real pad, with four screen recordings
+(focus ring morph, flying ring, Configurations focus order, delayed focus).
+
+**Done when**
+
+Each remark below behaves as described on a real controller in the Tauri
+build, not only in `?mock`.
+
+**What was done**
+
+- *Chord triggers also drove Studio.* While a chord is held the mapper's
+  `activeProfile` is the chord's file; Studio now only reads the pad while it
+  is AppNavigation (or Studio's AutoLoad rule), and after reading resumes,
+  anything still held is latched until released (`PadNavigator.reset(true)`).
+  `pad_navigation_browser_regression` holds RT through a chord and its end.
+- *"Applied AppNavigation".* `appliedProfileLabel` treats AppNavigation like
+  applied-preview; App's layer stack, Layers page and config errors use the
+  applied configuration behind it (`runningProfilePath`).
+- *Ring snapped size / flew in / shook on page change.* `FocusGlide` is now
+  per-frame: it follows its control live, eases position, size and radius
+  together from where it is drawn, and on entering a new scope waits for the
+  control to hold still, then fades in. Clipped to its scroll area.
+- *LB/RB spam.* One owner for page scrolling (`nav/scroller.ts`): a single
+  retargetable animation per host, with a timer fallback when frames stop.
+  Stepping counts from the section in flight (or just landed), not the spy.
+- *Scrolled, then D-pad pulled focus back.* A move from a control more than
+  70% off screen starts from what is on screen (`visibleEntry`).
+- *Segmented choices had no hover.* A row with several stops rings the choice,
+  tinted, and drops the row's own ring.
+- *D-pad speed.* Telemetry carries `pressedSince` (Rust `PressLatch`): every
+  button that went down between UI packets, so taps between display frames
+  count. Visibility checks use `checkVisibility` (~0.3–0.5 ms per move).
+- *Up/Down on sliders/number fields changed the value.* From the pad, every
+  direction on a text/number/slider moves focus; an adjusting slider keeps
+  Left/Right and leaves on Up/Down. The number box and Fine toggle are
+  `data-nav-skip`.
+- *Leave field lost the ring.* `nav/navAnchor.ts`: the left field stays the
+  anchor and keeps the ring; A re-enters it, moves continue from it.
+- *Hover for the pad.* A real pointer move over a control makes it where the
+  next pad move starts (scroll-generated pointer events are ignored).
+- *Configurations order.* `data-nav-region` keeps Up/Down inside the list or
+  the panel (also the two Preferences columns).
+- *Capsule.* View hint: "Title bar" / "Back to page"; coming back returns to
+  the last control used in the page.
+- *Focus landed, then moved.* Page entry waits for the page to settle (no
+  structural change for 90 ms, nothing `aria-busy`), matches the remembered
+  control by signature, and never overrides a move made meanwhile.
+- *Also:* Manage layers dialog styled; title-bar menus no longer pull focus
+  back behind a dialog they opened; unsaved-changes dialog is a vertical
+  console-style choice list that takes focus; Global chords rows no longer
+  squeeze their text; Preferences switches start with their stored values
+  (`platform/preferenceStore.ts`); Overview lights bumpers on the real bumper
+  outlines front and back, triggers on the back; the empty Advanced accordion
+  is gone; Values & inheritance moved to the Editing menu as a dialog;
+  paddles read L4/L5/R4/R5 everywhere; spacing in the command card.
+
+**Notes**
+
+- "Tactical map · Removed by R5" was accurate: Wardogs.txt only has
+  `# @layer-action RSL = remove …`. "Add layer action" keeps one action per
+  input per layer, so choosing Remove on R5 replaced the hold. The layer menu
+  now says "Nothing turns it on · Removed by R5". Worth deciding whether that
+  replacement should warn.
+- Rust changed (`services/telemetry.rs`): needs the Tauri app rebuilt.
+- `usability_audit_regression` waits for an "InputUseBadge" that nothing
+  renders; failing before this work.
+
+---
+
+### TODO-32 — Haptic feedback for pad navigation in Studio
+
+**Status:** built 2026-09-26 · uncommitted (Studio and the JoyShockMapper
+submodule) · not yet felt on a real controller
+
+**Context**
+
+Luke asked for a tick/rumble when selecting with A, stepping sections (LB/RB)
+and pages (LT/RT).
+
+**Done when**
+
+On the Steam Controller each of those is felt, distinct from each other, on
+the side of the hand that pressed; another pad gets a short rumble; turning it
+off in Preferences silences it; nothing is felt while a chord or a Test owns
+the pad.
+
+**What was done**
+
+- Mapper: `StudioFeedback.{h,cpp}`, a loopback UDP listener on 8976
+  (`FEEDBACK <effect> <intensity> <side> <rumbleMs> <rumble>`). The console
+  injector starts a process per command, far too slow for a tick per D-pad
+  press. Played from `joyShockPollCallback` under the controller's lock:
+  firmware haptics on the Steam Controller 2026, else a rumble pulse that a
+  later poll stops. Not gated on `RUMBLE`.
+- Studio: `controller_feedback` command (`services/feedback.rs`, reused
+  socket, only while Studio is focused and not testing); `nav/feedback.ts`
+  holds the feel table (move tick, edge dull click, select click, back tick,
+  section firm tick, page firm click) and the Off/Light/Medium/Strong setting
+  (Preferences → Controller, local storage, previews on change).
+- Only fires when the action did something; a press at the end of a list or
+  page strip gets the soft "edge" click. Section and page steps report
+  whether they moved (`stepSection`, `stepPageFromPad`).
+- Checks: `pad_navigation_browser_regression` (click per page step on its
+  side, softer at the end, nothing during a chord); Rust
+  `datagrams_match_what_the_mapper_parses`; a standalone harness compiled
+  against `StudioFeedback.cpp` sends real datagrams (scratch, not in repo).
+  The bundled `bin/SDL/JoyShockMapper.exe` was rebuilt from the dirty
+  submodule.
+
+**Notes**
+
+- The feel values are first guesses at the -24..+12 dB dial; tune in
+  `nav/feedback.ts` after trying them on the pad.
+- 2026-09-26, Luke: LT/RT paged at 60% of travel with the firmest click,
+  after a lighter bump near 38% (~12,500) that is not Studio's -- most likely
+  the controller firmware's own soft trigger click; not confirmed on hardware.
+  Paging felt like it fired early yet still needed a long reach. Now pages at
+  48% (release below 28%), and the page click is 68 / rumble 40 (was 80 / 50).
+  Both regressions pull 42% (nothing) and 50% (pages).
+
+### TODO-33 — Trackpad preview, menu sizing, joystick rows and modeshifts that stand out
+
+**Status:** built 2026-09-26 · uncommitted · needs Luke's eye on the real app
+
+**Context**
+
+Luke's review of Wardogs in Studio, ten screenshots:
+
+1. The right pad (MOUSE) previewed the four-way menu its pad-click modeshift
+   opens, so it looked like a menu. Keep the virtual menu editor inside the
+   modeshift, and make it the exact component the top level uses.
+2. "Supply crate" overflowed its wedge with nowhere nearby to fix it: size,
+   text size and icons belong where the menu is defined, not only on
+   Tuning → Menu layout. "Appearance & Position" was too quiet.
+3. Joysticks had become four dense columns; wrap to two rows like Trackpads.
+4. Modeshifts were announced as one more row ("Click regions ·
+   GRID_AND_STICK", "Add modeshift") and must stand out -- there can be
+   several. "What does 'click regions' mean?" "Pad click" -- left or right?
+5. The binding editor's Modeshifts / Layer actions panels: weird spacing, no
+   hierarchy on their buttons. "Timing" did nothing.
+6. Back paddles should show their layer actions (hold Vehicles & utility,
+   hold Comms, toggle Tactical map).
+
+**Done when**
+
+Each item above reads as described on Wardogs in the Tauri build.
+
+**What was done**
+
+- `PadSection`: a pad that is not a grid draws its mode (mouse pad icon, "Moves
+  the mouse"), never the click shift's menu; the "Click regions n" row is gone.
+  New `appearance`, `settingPrefix` and `modeshifts` props.
+- Pad modeshifts render `PadSection` itself against `TRIGGER,…` keys
+  (`PadModeshiftBody` in `InputModeshifts.tsx`), full width under the pad.
+  Shape and centre deadzone can now be shifted (`padModeshiftSettings`).
+- `InputModeshifts` is a counted "Modeshifts" group with an add button; each
+  shift is an accent banner "MODESHIFT While Right pad click is held" with what
+  it becomes ("Menu · 4-way · Ping, Melee, Inventory, Sights"). The held-input
+  picker names the pad side. Sticks use the same group, under the stick.
+- `MenuAppearance`: width, text size, action names, keys, icons (new
+  `icons off` option on the `@overlay` line, honoured by `MenuDrawing`) and
+  when the menu shows, as a row beside the menu on pads, pad shifts and stick
+  wheels, plus a "Menu appearance" link under the preview. "Position on
+  screen" goes to Menu layout, which keeps placement.
+- Joysticks: one stick per row (`mappingListSplit` removed); stick layout
+  uses the pad layout's columns.
+- Editor panels stack, each "title + count, one line, list, one add button";
+  layer actions have a panel variant (`InputLayerActions variant="panel"`).
+  "Timing" is "Options" (it opens output kind, value and behaviour; there is
+  no per-command timing in JSM).
+- Closed rows show every layer action as a coloured chip ("Hold · Vehicles &
+  utility") beside the key; a `NONE` binding no longer shows an "Unbound" pill.
+- `?mock` Wardogs mirrors the real profile's pads, paddles and layers.
+- Tests: new `pad_modeshift_presentation_regression.cjs`;
+  `controller_redesign_regression` follows Menu appearance → Position on
+  screen instead of the removed "Appearance & Position" button.
+
+**Notes**
+
+- The Menu layout page still has its own size/font/labels/keys/reveal
+  controls. Kept for now; removing them there is Luke's call.
+
 ---
 
 ## Done

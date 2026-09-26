@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AVAILABLE_ICON_SETS, listIcons, resolveIcons, type IconData } from '../../utils/iconLibrary'
 import styles from './IconPicker.module.css'
@@ -47,6 +47,11 @@ export function IconPicker({ value, onChange }: Props) {
   }, [open, set, query])
 
   const current = value ? art[value] : undefined
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  // B / Escape inside the panel shuts the panel and returns to its button.
+  // Without this the key fell through to the row's own Escape handling and
+  // folded the whole binding card away, panel and all.
+  const close = () => { setOpen(false); triggerRef.current?.focus() }
   const setLabels = useMemo(
     () => ({ lucide: t('keymap.iconSetLucide', 'General'), 'game-icons': t('keymap.iconSetGame', 'Game') }) as Record<string, string>,
     [t]
@@ -55,6 +60,7 @@ export function IconPicker({ value, onChange }: Props) {
   return (
     <div className={styles.wrap}>
       <button
+        ref={triggerRef}
         type="button"
         className={styles.trigger}
         onClick={() => setOpen(o => !o)}
@@ -77,7 +83,7 @@ export function IconPicker({ value, onChange }: Props) {
       </button>
 
       {open && (
-        <div className={styles.panel}>
+        <div className={styles.panel} onKeyDown={event => { if (event.key === 'Escape' && !event.defaultPrevented) { event.preventDefault(); close() } }}>
           <div className={styles.controls}>
             {AVAILABLE_ICON_SETS.map(prefix => (
               <button
@@ -102,7 +108,7 @@ export function IconPicker({ value, onChange }: Props) {
               <button
                 type="button"
                 className={styles.clear}
-                onClick={() => { onChange(''); setOpen(false) }}
+                onClick={() => { onChange(''); close() }}
               >
                 {t('keymap.iconClear', 'No icon')}
               </button>
@@ -121,7 +127,7 @@ export function IconPicker({ value, onChange }: Props) {
                   type="button"
                   className={`${styles.option} ${name === value ? styles.optionActive : ''}`}
                   title={name}
-                  onClick={() => { onChange(name); setOpen(false) }}
+                  onClick={() => { onChange(name); close() }}
                 >
                   {icon && (
                     <svg

@@ -88,6 +88,10 @@ body[data-input-source='controller'] .titlebar :is(button, [role='button']):focu
 .context-segment__muted { color: var(--text-3); }
 .context-segment__strong { color: var(--text-1); font-weight: var(--fw-medium); overflow: hidden; text-overflow: ellipsis; }
 .context-segment__swatch { width: 8px; height: 8px; border-radius: 2px; flex: none; }
+/* Active layers after the applied name: "Wardogs · ▪ Vehicles ▪ Comms". */
+.context-segment__layer { display: inline-flex; align-items: center; gap: 6px; font-weight: var(--fw-medium); }
+.context-segment__layer::before { content: '·'; margin-right: 2px; color: var(--text-3); font-weight: var(--fw-regular); }
+.context-segment__layer + .context-segment__layer::before { content: none; }
 .context-segment__tag {
   height: 18px;
   display: flex;

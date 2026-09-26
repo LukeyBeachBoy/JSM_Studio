@@ -1,15 +1,18 @@
+/* The sensitivity curve (Gyro Diagnostics, Trackpad tuning): legend above,
+   the canvas in a sunken well, the live figures beneath in the mono face. */
 .graphPanel {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: var(--sp-2);
+  min-width: 0;
 }
 
 .graphLegend {
   display: flex;
-  gap: 1.5rem;
-  font-size: 0.85rem;
-  color: var(--text-mid);
-  margin-bottom: 0.6rem;
+  gap: var(--sp-5);
+  font-size: var(--fs-hint);
+  line-height: var(--lh-hint);
+  color: var(--text-2);
 }
 
 .legendDot {
@@ -17,57 +20,54 @@
   width: 14px;
   height: 4px;
   border-radius: 2px;
-  margin-right: 0.35rem;
+  margin-right: 6px;
+  vertical-align: middle;
 }
 
-.legendDotSensitivity {
-  background: var(--accent);
-}
+.legendDotSensitivity { background: var(--accent); }
 
-.legendDotVelocity {
-  background: var(--telemetry-green);
-}
+.legendDotVelocity { background: var(--telemetry); }
 
 .graphPanel small {
-  color: var(--text-muted);
-  margin-top: 0.5rem;
   display: block;
+  margin-top: var(--sp-2);
+  color: var(--text-3);
 }
 
-.graphFooter {
-  margin-top: 0.85rem;
-}
+.graphFooter { margin-top: var(--sp-3); }
 
 .graphPlaceholder {
-  padding: 1rem;
-  border: 1px dashed var(--border-1);
-  border-radius: 10px;
-  color: var(--text-muted);
+  padding: var(--sp-4);
+  border: 1px dashed var(--line-1);
+  border-radius: var(--r-row);
+  color: var(--text-3);
   text-align: center;
 }
 
 .graphLiveReadout {
   display: flex;
-  gap: 1rem;
-  font-size: 0.9rem;
-  color: var(--text-strong);
+  gap: var(--sp-5);
+  color: var(--text-3);
+  font-size: var(--fs-hint);
+  line-height: var(--lh-hint);
   white-space: nowrap;
 }
 
 .graphLiveReadout span strong {
-  font-weight: 600;
-  color: var(--text-strong);
-  font-variant-numeric: tabular-nums;
   display: inline-block;
   min-width: 7ch;
+  color: var(--telemetry);
+  font-family: var(--font-mono);
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
 }
 
 .legacyCurveCanvas {
   width: 100%;
   height: auto;
   display: block;
-  border-radius: 12px;
-  background: var(--bg-btn);
+  border-radius: var(--r-row);
+  background: var(--surface-sunken);
 }
 
 .hoverOverlayCanvas {
@@ -76,6 +76,6 @@
   left: 0;
   width: 100%;
   height: 100%;
-  border-radius: 12px;
+  border-radius: var(--r-row);
   pointer-events: none;
 }

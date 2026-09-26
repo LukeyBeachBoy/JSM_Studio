@@ -10,11 +10,16 @@ declare interface Window {
     setCalibrationSeconds?: (seconds: number) => Promise<number>
     onCalibrationStatus?: (callback: (payload: { calibrating: boolean; seconds?: number }) => void) => () => void
     listAutoloadRules?: () => Promise<import('../platform/desktopBridge').AutoloadRule[]>
+    setAutoloadRulePaused?: (processName: string, paused: boolean) => Promise<import('../platform/desktopBridge').AutoloadRule | null>
+    listRunningProcesses?: () => Promise<import('../platform/desktopBridge').RunningProcess[]>
+    getAutoloadFallback?: () => Promise<import('../platform/desktopBridge').AutoloadFallback>
+    setAutoloadFallback?: (fallback: import('../platform/desktopBridge').AutoloadFallback) => Promise<import('../platform/desktopBridge').AutoloadFallback | null>
     getLayerStack?: () => Promise<import('../platform/desktopBridge').LayerStack | null>
     getMapperStatus?: () => Promise<import('../platform/desktopBridge').MapperStatus | null>
     onMapperStatus?: (callback: (payload: import('../platform/desktopBridge').MapperStatus) => void) => () => void
     onGyroCalibrationResult?: (callback: (payload: import('../platform/desktopBridge').GyroCalibrationResult) => void) => () => void
     listLibraryProfiles?: () => Promise<string[]>
+    listLibraryProfileMeta?: () => Promise<import('../platform/desktopBridge').LibraryProfileMeta[]>
     saveLibraryProfile?: (name: string, content: string) => Promise<{ name: string }>
     loadLibraryProfile?: (name: string) => Promise<{ name: string; content: string }>
     readConfigFile?: (path: string) => Promise<string | null>

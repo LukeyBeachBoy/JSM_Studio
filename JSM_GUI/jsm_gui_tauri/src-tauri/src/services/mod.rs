@@ -6,7 +6,9 @@ pub mod input_debug;
 pub mod jsm_process;
 pub mod hud;
 pub mod overlay;
+pub mod processes;
 pub mod telemetry;
+pub mod feedback;
 
 pub mod global_chords;
 pub mod profile_library;

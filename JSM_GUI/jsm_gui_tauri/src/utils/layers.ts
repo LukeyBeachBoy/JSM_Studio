@@ -22,6 +22,24 @@ export const actionsForLayer = (actions: LayerAction[], layerId: string) => acti
 export const actionsOnInput = (actions: LayerAction[], input: string) => actions.filter(a => a.input === input)
 export const describeAction = (action: LayerAction, layers: ConfigLayer[]) =>
   `${layerVerbLabels[action.verb]}: ${layers.find(l => l.id === action.layerId)?.name ?? action.layerId}`
+/** Names an input for people; callers pass inputDisplayName with the pad's family. */
+export type InputNamer = (command: string) => string
+const rawName: InputNamer = command => command
+/** How a layer is reached, for a one-line summary: what turns it on first
+ *  (held, toggled, applied), then what takes it off, every input listed:
+ *  "Held by L4 or R4 · Toggled by R5 · Removed by View". A layer that inputs
+ *  can only remove is never on, and says so rather than leading with the
+ *  remover as if that were how it is reached. */
+export function describeLayerActivation(actions: LayerAction[], layerId: string, name: InputNamer = rawName, unbound = 'Not bound to an input') {
+  const mine = actionsForLayer(actions, layerId)
+  if (!mine.length) return unbound
+  const phrases: [LayerVerb, string][] = [['hold', 'Held by'], ['toggle', 'Toggled by'], ['apply', 'Applied by'], ['remove', 'Removed by']]
+  const parts = phrases.flatMap(([verb, text]) => {
+    const inputs = [...new Set(mine.filter(action => action.verb === verb).map(action => name(action.input)))]
+    return inputs.length ? [`${text} ${inputs.join(' or ')}`] : []
+  })
+  return mine.some(action => action.verb !== 'remove') ? parts.join(' · ') : ['Nothing turns it on', ...parts].join(' · ')
+}
 const inputs = new Set([...FACE_BUTTONS, ...DPAD_BUTTONS, ...BUMPER_BUTTONS, ...TRIGGER_BUTTONS, ...CENTER_BUTTONS, ...PADDLE_BUTTONS, ...MINI_BUTTONS, ...MISC_BUTTONS, ...LEFT_STICK_BUTTONS, ...RIGHT_STICK_BUTTONS, ...TOUCH_BUTTONS, ...TOUCH_STICK_BUTTONS].map(b => b.command))
 export const inputDefinitions = [...FACE_BUTTONS, ...DPAD_BUTTONS, ...BUMPER_BUTTONS, ...TRIGGER_BUTTONS, ...CENTER_BUTTONS, ...PADDLE_BUTTONS, ...MINI_BUTTONS, ...MISC_BUTTONS, ...LEFT_STICK_BUTTONS, ...RIGHT_STICK_BUTTONS, ...TOUCH_BUTTONS, ...TOUCH_STICK_BUTTONS]
 export function readableSetting(key: string) {
@@ -48,15 +66,15 @@ export function configuredInputs(text: string): string[] {
   return [...commands]
 }
 export type InputUsage = { kind: 'setting' | 'shift' | 'chord' | 'layer' | 'analog'; target: string; label: string; layerId?: string }
-export function inputUsage(text: string, command: string, layers = readLayers(text)): InputUsage[] {
+export function inputUsage(text: string, command: string, layers = readLayers(text), name: InputNamer = rawName): InputUsage[] {
   const uses: InputUsage[] = actionsOnInput(readLayerActions(text, layers), command)
     .map(action => ({ kind: 'layer' as const, target: command, label: describeAction(action, layers), layerId: action.layerId }))
   for (const [key, raw] of Object.entries(layerEntries(text))) {
     if (key.startsWith('#')) continue
     const value = raw.split('#')[0].trim(), parts = key.split(',')
-    if (parts.length > 1 && parts[0] === command) uses.push({ kind: 'shift', target: parts.slice(1).join(','), label: `${readableSetting(parts.slice(1).join(','))} → ${value.replace(/_/g, ' ')}` })
-    if (key.length > 1 && key.includes('+') && key.split('+').includes(command)) uses.push({ kind: 'chord', target: key, label: `Together ${key}: ${value}` })
-    if (/^(GYRO_ON|GYRO_OFF|[A-Z_]+_(ON|OFF|BUTTON|TRIGGER))$/.test(parts[parts.length - 1]) && value.split(/\s+/).includes(command)) uses.push({ kind: 'setting', target: key, label: readableSetting(parts[parts.length - 1]) + (parts.length > 1 ? ` (hold ${parts[0]})` : '') })
+    if (parts.length > 1 && parts[0] === command) uses.push({ kind: 'shift', target: parts.slice(1).join(','), label: `${inputs.has(parts.slice(1).join(',')) ? name(parts.slice(1).join(',')) : readableSetting(parts.slice(1).join(','))} → ${value.replace(/_/g, ' ')}` })
+    if (key.length > 1 && key.includes('+') && key.split('+').includes(command)) uses.push({ kind: 'chord', target: key, label: `Together ${name(key)}: ${value}` })
+    if (/^(GYRO_ON|GYRO_OFF|[A-Z_]+_(ON|OFF|BUTTON|TRIGGER))$/.test(parts[parts.length - 1]) && value.split(/\s+/).includes(command)) uses.push({ kind: 'setting', target: key, label: readableSetting(parts[parts.length - 1]) + (parts.length > 1 ? ` (hold ${name(parts[0])})` : '') })
     if (key === `${command}_MODE` && /^X_[LR]T$/.test(value)) uses.push({ kind: 'analog', target: key, label: `Analog ${command === 'ZL' ? 'left' : 'right'} trigger → Xbox` })
   }
   return uses
@@ -74,7 +92,9 @@ export function readLayers(text: string): ConfigLayer[] {
       // required here. The legacy fields are read by readLayerActions and are
       // simply carried until the next write drops them.
       const legacy = (value: unknown) => value === undefined || typeof value === 'string'
-      if (typeof layer.id === 'string' && typeof layer.name === 'string' && layer.overrides &&
+      // overrides must be an object: Object.values() accepts a number or a
+      // string, but foldLayer then writes into it, which throws on a primitive.
+      if (typeof layer.id === 'string' && typeof layer.name === 'string' && layer.overrides && typeof layer.overrides === 'object' &&
         legacy(layer.trigger) && legacy(layer.applyTrigger) && legacy(layer.removeTrigger) &&
         Object.values(layer.overrides).every(v => typeof v === 'string') && !layers.some(l => l.id === layer.id)) layers.push(layer)
     } catch { /* Preserve unrecognized metadata verbatim. */ }
@@ -82,24 +102,38 @@ export function readLayers(text: string): ConfigLayer[] {
   return layers
 }
 const actionMarker = /^\s*#\s*@layer-action\s+(\S+)\s*=\s*(\S+)\s+(\S+)\s*$/i
-/** Activation, from the annotations and from the fields older profiles used. */
-const ACTION_CACHE = new Map<string, LayerAction[]>()
-export function readLayerActions(text: string, layers = readLayers(text)): LayerAction[] {
+// Only the annotation lines are cached, before any layer filter: the result
+// of readLayerActions depends on which layers the caller passes, and caching
+// it by text alone meant a lookup with no layers (inputUsage counting shifts)
+// filled the cache with an empty list that every later reader of the same
+// text -- the layer bar, the overview -- then got back as "no activation".
+const ACTION_CACHE = new Map<string, readonly LayerAction[]>()
+function annotatedActions(text: string): readonly LayerAction[] {
   const cacheable = text.includes('\n')
   const hit = cacheable ? ACTION_CACHE.get(text) : undefined
   if (hit) return hit
+  const actions: LayerAction[] = []
+  for (const line of text.split(/\r?\n/)) {
+    const match = line.match(actionMarker)
+    if (!match) continue
+    const verb = match[2].toLowerCase() as LayerVerb
+    if (layerVerbs.includes(verb)) actions.push({ input: match[1].toUpperCase(), verb, layerId: match[3] })
+  }
+  if (cacheable) {
+    ACTION_CACHE.set(text, Object.freeze(actions))
+    if (ACTION_CACHE.size > 8) ACTION_CACHE.delete(ACTION_CACHE.keys().next().value!)
+  }
+  return actions
+}
+/** Activation, from the annotations and from the fields older profiles used. */
+export function readLayerActions(text: string, layers = readLayers(text)): LayerAction[] {
   const actions: LayerAction[] = []
   const add = (input: string, verb: LayerVerb, layerId: string) => {
     if (!input || !layers.some(layer => layer.id === layerId)) return
     if (actions.some(a => a.input === input && a.verb === verb && a.layerId === layerId)) return
     actions.push({ input, verb, layerId })
   }
-  for (const line of text.split(/\r?\n/)) {
-    const match = line.match(actionMarker)
-    if (!match) continue
-    const verb = match[2].toLowerCase() as LayerVerb
-    if (layerVerbs.includes(verb)) add(match[1].toUpperCase(), verb, match[3])
-  }
+  for (const action of annotatedActions(text)) add(action.input, action.verb, action.layerId)
   // A profile written before activation moved to the input still carries it on
   // the layer. Read it so nothing breaks; it is dropped on the next write.
   for (const layer of layers) {
@@ -110,10 +144,6 @@ export function readLayerActions(text: string, layers = readLayers(text)): Layer
       if (apply) add(apply.toUpperCase(), 'apply', layer.id)
       if (remove) add(remove.toUpperCase(), 'remove', layer.id)
     }
-  }
-  if (cacheable) {
-    ACTION_CACHE.set(text, actions)
-    if (ACTION_CACHE.size > 8) ACTION_CACHE.delete(ACTION_CACHE.keys().next().value!)
   }
   return actions
 }
@@ -225,7 +255,7 @@ export function convertModeshifts(text: string, layer: ConfigLayer, trigger: str
   }
   return writeLayers(retained.join('\n'), [...readLayers(text), layer])
 }
-export function inputUses(text: string, command: string, layers = readLayers(text)): string[] {
+export function inputUses(text: string, command: string, layers = readLayers(text), name: InputNamer = rawName): string[] {
   const uses = actionsOnInput(readLayerActions(text, layers), command).map(action => describeAction(action, layers))
   const targets = new Set<string>(), shifted = new Set<string>(), chords = new Set<string>()
   for (const key of Object.keys(layerEntries(text)).filter(key => !key.startsWith('#'))) {
@@ -238,9 +268,9 @@ export function inputUses(text: string, command: string, layers = readLayers(tex
     // A literal + is the Plus button; only interior + separates a simultaneous chord.
     if (key.length > 1 && key.includes('+') && key.split('+').includes(command)) chords.add(key)
   }
-  if (targets.size) uses.push(`Shift trigger: ${[...targets].join(', ')}`)
-  if (shifted.size) uses.push(`Modeshift: hold ${[...shifted].join(' / ')}`)
-  if (chords.size) uses.push(`Chord: ${[...chords].join(', ')}`)
-  inputUsage(text, command, []).filter(use => use.kind === 'setting' || use.kind === 'analog').forEach(use => uses.push(use.label))
+  if (targets.size) uses.push(`Shift trigger: ${[...targets].map(target => inputs.has(target) ? name(target) : target).join(', ')}`)
+  if (shifted.size) uses.push(`Modeshift: hold ${[...shifted].map(name).join(' / ')}`)
+  if (chords.size) uses.push(`Chord: ${[...chords].map(name).join(', ')}`)
+  inputUsage(text, command, [], name).filter(use => use.kind === 'setting' || use.kind === 'analog').forEach(use => uses.push(use.label))
   return uses
 }

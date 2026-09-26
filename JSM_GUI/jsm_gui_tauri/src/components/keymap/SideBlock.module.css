@@ -58,5 +58,7 @@
   gap: var(--sp-6);
 }
 @media (min-width: 1280px) {
-  .split { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .split:not(.stack) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+/* Stacked sides are each a full-width block; a wider gap says "next hand". */
+.stack { gap: var(--sp-8); }

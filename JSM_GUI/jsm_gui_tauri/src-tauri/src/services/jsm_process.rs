@@ -132,31 +132,64 @@ pub fn launch_jsm(app: &AppHandle, state: &AppState) -> Result<(), String> {
 }
 
 pub fn terminate_jsm(app: &AppHandle, state: &AppState) -> Result<(), String> {
-    let child = {
+    // The lock is held through the kill and the sweep below, not just while
+    // taking the child out: launch_jsm also runs from the reserved-chord
+    // worker and from commands on the runtime's worker threads, and a launch
+    // slipping in between would spawn a mapper that the sweep then kills while
+    // the state still tracks it -- reported to the UI as the mapper having
+    // died on its own.
+    {
         let mut process_state = lock_process_state(state)?;
         sync_child_state(&mut process_state)?;
         #[cfg(target_os = "windows")]
         let _ = process_state.job.take();
-        process_state.child.take()
-    };
+        if let Some(mut child) = process_state.child.take() {
+            let _ = child.kill();
+            // Bounded: `wait` blocks for ever if TerminateProcess was refused
+            // (the mapper stuck in a driver call, or already gone with a
+            // stale handle), and this holds the process lock -- every
+            // command touching the mapper would hang behind it. After the
+            // budget the stray sweep below finishes the job.
+            wait_for_exit_bounded(&mut child, std::time::Duration::from_secs(5));
+        }
 
-    if let Some(mut child) = child {
-        let _ = child.kill();
-        let _ = child.wait();
-    }
-
-    // Stopping has to mean stopping. A mapper we lost track of would otherwise
-    // keep remapping the controller with the toggle showing "off", which reads
-    // as the switch doing nothing at all.
-    if let Ok(backend) = runtime::read_backend_choice(app) {
-        if let Ok(executable) = runtime::jsm_executable_path(app, &backend) {
-            terminate_stray_mappers(&executable, None);
+        // Stopping has to mean stopping. A mapper we lost track of would
+        // otherwise keep remapping the controller with the toggle showing
+        // "off", which reads as the switch doing nothing at all.
+        if let Ok(backend) = runtime::read_backend_choice(app) {
+            if let Ok(executable) = runtime::jsm_executable_path(app, &backend) {
+                terminate_stray_mappers(&executable, None);
+            }
         }
     }
 
     telemetry::broadcast_empty_devices(app, state)?;
     telemetry::stop_calibration_countdown(app, state)?;
     Ok(())
+}
+
+/// Polls `try_wait` until the child is gone or `budget` runs out.
+#[cfg(target_os = "windows")]
+fn wait_for_exit_bounded(child: &mut ManagedProcess, budget: std::time::Duration) {
+    let started = std::time::Instant::now();
+    while started.elapsed() < budget {
+        match child.try_wait() {
+            Ok(Some(_)) | Err(_) => return,
+            Ok(None) => std::thread::sleep(std::time::Duration::from_millis(50)),
+        }
+    }
+    eprintln!("JoyShockMapper (pid {}) did not exit within {budget:?} of being terminated", child.id());
+}
+
+#[cfg(not(target_os = "windows"))]
+fn wait_for_exit_bounded(child: &mut std::process::Child, budget: std::time::Duration) {
+    let started = std::time::Instant::now();
+    while started.elapsed() < budget {
+        match child.try_wait() {
+            Ok(Some(_)) | Err(_) => return,
+            Ok(None) => std::thread::sleep(std::time::Duration::from_millis(50)),
+        }
+    }
 }
 
 /// Whether the mapper is running, and if it stopped by itself, how.
@@ -337,10 +370,10 @@ fn terminate_stray_mappers(executable: &Path, keep_pid: Option<u32>) {
     }
 }
 
-/// The file stem of the foreground window's process ("Cyberpunk2077"), the
-/// name AutoLoad matches rules against.
+/// The foreground window's process: its pid and the file stem of its
+/// executable ("Cyberpunk2077"), the name AutoLoad matches rules against.
 #[cfg(target_os = "windows")]
-pub fn foreground_process_stem() -> Option<String> {
+pub fn foreground_process() -> Option<(u32, String)> {
     use windows_sys::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowThreadProcessId};
     let window = unsafe { GetForegroundWindow() };
     if window.is_null() {
@@ -351,16 +384,17 @@ pub fn foreground_process_stem() -> Option<String> {
     if pid == 0 {
         return None;
     }
-    process_image_path(pid)?.file_stem()?.to_str().map(str::to_string)
+    let stem = process_image_path(pid)?.file_stem()?.to_str()?.to_string();
+    Some((pid, stem))
 }
 
 #[cfg(not(target_os = "windows"))]
-pub fn foreground_process_stem() -> Option<String> {
+pub fn foreground_process() -> Option<(u32, String)> {
     None
 }
 
 #[cfg(target_os = "windows")]
-fn process_image_path(pid: u32) -> Option<std::path::PathBuf> {
+pub(crate) fn process_image_path(pid: u32) -> Option<std::path::PathBuf> {
     let handle = unsafe { OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid) };
     if handle.is_null() {
         return None;

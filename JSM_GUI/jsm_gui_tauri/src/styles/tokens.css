@@ -125,5 +125,8 @@
 }
 
 @media (max-width: 1279px) {
-  :root { --shell-section-w: 184px; }
+  /* :root[data-theme] too: the themed blocks above outrank a bare :root, and
+     the theme is painted on <html> from launch, so without it the compact
+     width never applied. */
+  :root, :root[data-theme] { --shell-section-w: 184px; }
 }

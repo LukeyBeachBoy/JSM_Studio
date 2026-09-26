@@ -160,7 +160,8 @@ export function useProfileLibrary({ resetConfigHistory, configText, setConfigTex
       if (names[0]) await handleLoadProfileFromLibrary(names[0])
       else { setCurrentLibraryProfile(null); setConfigText(''); setAppliedConfig(''); setActiveProfilePath('') }
     }
-    report(t('messages.profileDeleted', { profileName: name }))
+    // System States 17g: say where the file went, not just that it is gone.
+    report(result.recycled ? `${name} moved to the recycle bin.` : `${name} removed from your configuration folder.`)
   }
   // Behind the progress dialog (System States 17f): each step says what it is
   // doing, and Cancel before the file is opened takes the new copy back out.

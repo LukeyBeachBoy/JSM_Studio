@@ -1,20 +1,6 @@
 /* Associations (Tuning and Studio Pages 16f). */
 .page { display: flex; flex-direction: column; gap: var(--sp-4); }
 
-.masterSwitch {
-  display: flex;
-  flex-direction: row-reverse;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--sp-4);
-  padding: var(--sp-3) var(--sp-4);
-  border-radius: var(--r-row);
-  background: var(--surface-row);
-  cursor: pointer;
-}
-.masterSwitch > span { display: flex; flex-direction: column; gap: 2px; color: var(--text-1); font-size: var(--fs-label); font-weight: var(--fw-medium); }
-.masterSwitch small { color: var(--text-3); font-size: var(--fs-hint); font-weight: var(--fw-regular); }
-
 .rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-2); }
 .row {
   min-height: 64px;
@@ -24,10 +10,17 @@
   padding: var(--sp-2) var(--sp-4);
   border-radius: var(--r-card);
   background: var(--surface-row);
-  transition: background var(--dur-1) var(--ease-standard);
+  transition: background var(--dur-1) var(--ease-standard), box-shadow var(--dur-2) var(--ease-standard), transform var(--dur-2) var(--ease-emphasis);
 }
 .row:hover { background: var(--surface-row-hover); }
 .row:focus-within { background: var(--surface-row-hover); }
+/* The pad's focus is the whole row (16f): selected fill + ring. */
+:global(body[data-input-source='controller']) .row:focus-within {
+  background: var(--surface-selected);
+  box-shadow: 0 0 0 var(--focus-controller-width) var(--focus-controller), var(--shadow-lift);
+  transform: translateY(-1px);
+}
+:global(body[data-input-source='controller']) .row :focus { box-shadow: none; }
 .row[data-paused] .name, .row[data-paused] .appIcon { opacity: .55; }
 
 .appIcon { width: 36px; height: 36px; flex: none; display: grid; place-items: center; border-radius: var(--r-md); background: var(--surface-control); color: var(--text-2); }
@@ -35,10 +28,45 @@
 .name { color: var(--text-1); font-size: var(--fs-label); font-weight: var(--fw-medium); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sub { color: var(--text-3); font-size: var(--fs-hint); }
 .loads { display: flex; align-items: center; gap: var(--sp-2); }
-.loads > button[role='combobox'] { min-width: 180px; }
+.loads > button[role='combobox'] { min-width: 160px; }
 .loadsLabel { color: var(--text-3); font-size: var(--fs-hint); }
 .remove { color: var(--text-3); }
 .remove:hover { color: var(--error); }
+.removeSpacer { width: 32px; flex: none; }
+
+/* Toggle (Components 13.9): 52 × 30, thumb 22, accent when on. */
+.switch {
+  position: relative;
+  width: 52px;
+  height: 30px;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--surface-control);
+  cursor: pointer;
+  transition: background-color var(--dur-2) var(--ease-standard);
+}
+.switch:disabled { opacity: var(--disabled-opacity); cursor: default; }
+.switch[data-on] { background: var(--accent); }
+.thumb {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--text-2);
+  transition: transform var(--dur-2) var(--ease-emphasis), background-color var(--dur-2) var(--ease-standard);
+}
+.switch[data-on] .thumb { transform: translateX(22px); background: var(--text-on-accent); }
+.switch:focus-visible { outline: 2px solid var(--focus-keyboard); outline-offset: 2px; }
+
+.masterRow { flex-direction: row; align-items: center; justify-content: space-between; gap: var(--sp-4); background: var(--surface-row); box-shadow: none; }
 
 .note, .empty { margin: 0; color: var(--text-3); font-size: var(--fs-body); }
 .empty { padding: var(--sp-6); border-radius: var(--r-card); background: var(--surface-row); text-align: center; }
+
+@media (prefers-reduced-motion: reduce) {
+  .thumb, .switch, .row { transition: none; }
+}

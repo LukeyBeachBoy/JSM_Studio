@@ -17,9 +17,13 @@ export function useKeymapConfig() {
   const [selectedLayer, selectLayer] = useState('')
   const layers = useMemo(() => readLayers(documentText), [documentText])
   const layerId = layers.some(layer => layer.id === selectedLayer) ? selectedLayer : ''
-  const includes = useConfigIncludes(defaultLayer(documentText), INCLUDE_ROOT)
+  // Memoized because this hook re-renders with every telemetry frame, and each
+  // of these is a full pass over the profile (split, a regex per line, a
+  // JSON.parse per layer). The text only changes when the profile is edited.
+  const baseText = useMemo(() => defaultLayer(documentText), [documentText])
+  const includes = useConfigIncludes(baseText, INCLUDE_ROOT)
   const projection = useCallback((text: string) => projectLayer(layerId ? writeLayers(includes.resolveText(defaultLayer(text)), readLayers(text)) : text, layerId), [layerId, includes.resolveText])
-  const configText = projection(documentText)
+  const configText = useMemo(() => projection(documentText), [projection, documentText])
   const setConfigText: Dispatch<SetStateAction<string>> = useCallback(update => {
     setDocumentText(previous => {
       const before = projection(previous)
@@ -33,7 +37,7 @@ export function useKeymapConfig() {
   // file. Every read below goes through the resolved text so inherited settings
   // show up; writes still go to configText, so changing an inherited value
   // writes an override into this profile rather than editing the template.
-  const readText = projectLayer(writeLayers(includes.effectiveText, layers), layerId)
+  const readText = useMemo(() => projectLayer(writeLayers(includes.effectiveText, layers), layerId), [includes.effectiveText, layers, layerId])
 
   const sensitivityConfig = useSensitivityConfig({ configText, readText, setConfigText })
   const touchpadConfig = useTouchpadConfig({ configText, readText, setConfigText })
@@ -50,7 +54,14 @@ export function useKeymapConfig() {
       .map(token => token.toLowerCase())
   }, [readText])
 
-  const hasPendingChanges = documentText !== appliedConfig || sensitivityConfig.hasPendingSensitivityChanges
+  // Compared in the form an edit leaves the text in. The first edit folds the
+  // document through writeLayers, which re-emits the layer block and trims
+  // the end, so a hand-written file that was touched and put back (a slider
+  // adjusted and reverted with B, a value cleared again) differed from the
+  // loaded text by layout alone and read as unsaved for good.
+  const canonical = useCallback((text: string) => writeLayers(text, readLayers(text)), [])
+  const textChanged = useMemo(() => documentText !== appliedConfig && canonical(documentText) !== canonical(appliedConfig), [documentText, appliedConfig, canonical])
+  const hasPendingChanges = textChanged || sensitivityConfig.hasPendingSensitivityChanges
   const handleCancel = () => {
     sensitivityConfig.resetPendingSensitivityChanges()
     setDocumentText(appliedConfig)

@@ -64,8 +64,9 @@ const fs = require('node:fs');
   const card=page.locator(`details[data-input-command="${command}"]`).first();
   await card.waitFor();
   if(await card.getAttribute('open')===null) await card.locator('summary').first().click();
-  const details=card.locator('details').filter({hasText:'Add layer action'}).first();
-  if(await details.getAttribute('open')===null) await details.locator('summary').click();
+  // The editor's Layer actions panel: one add button, then the two pickers.
+  const details=card.locator('section[aria-label$="layer actions"]').first();
+  await details.getByRole('button',{name:'Add layer action',exact:true}).click();
   await details.getByRole('combobox',{name:'Layer action',exact:true}).click();
   await page.getByRole('option',{name:verb,exact:true}).click();
   await details.getByRole('combobox',{name:'Layer action destination',exact:true}).click();
@@ -79,7 +80,8 @@ const fs = require('node:fs');
  // Creating a layer binds nothing: moving an input's modeshifts into it is a
  // separate, explicit act, and so is binding something to turn it on.
  await page.getByRole('combobox',{name:'Move modeshifts from',exact:true}).click();
- await page.getByRole('option',{name:/\(RSR\)/}).click();
+ // RSR, named as players name the paddle.
+ await page.getByRole('option',{name:'R4',exact:true}).click();
  await page.getByRole('button',{name:/^Move \d+ assignment/}).click();
  assert.equal(await pickerName(),'Comms','creation selects the new layer');
  await chooseLayer('Comms');
@@ -120,7 +122,7 @@ const fs = require('node:fs');
  const northOutput=north.locator('summary kbd').first();
  assert.equal(await northOutput.innerText(),'J');
  await north.locator('summary').first().click();
- await north.getByRole('button',{name:'Advanced command settings',exact:true}).first().click();
+ await north.getByRole('button',{name:'Command options',exact:true}).first().click();
  const output=north.locator('input[class*="valueInput"]').first();
  await output.fill('K');
  // A pointer switch must commit any focused input before projecting the next layer.
@@ -132,7 +134,7 @@ const fs = require('node:fs');
  await chooseLayer('Default');
  assert.equal(await northOutput.innerText(),'Space');
  // Keyboard: the menu opens on the current layer; End reaches the last layer.
- await picker.focus(); await page.keyboard.press('ArrowDown');
+ await picker.focus(); await page.keyboard.press('Enter'); // Down walks to the page tabs now (focus model); Enter / A opens.
  await layerItem('Comms').waitFor();
  await page.waitForFunction(()=>document.activeElement?.getAttribute('role')==='menuitem');
  await page.keyboard.press('End');
@@ -183,7 +185,7 @@ const fs = require('node:fs');
  // looking at the dropdown. The output list offers outputs.
  const northCard = page.locator('details[data-input-command="N"]').first();
  if (await northCard.getAttribute('open') === null) await northCard.locator('summary').first().click();
- await northCard.getByRole('button',{name:'Advanced command settings',exact:true}).first().click();
+ await northCard.getByRole('button',{name:'Command options',exact:true}).first().click();
  const outputKind = northCard.getByRole('combobox',{name:'Output'}).first();
  await outputKind.click();
  const offered = await page.getByRole('option').evaluateAll(es => es.map(e => e.textContent.trim()));
@@ -225,6 +227,8 @@ const fs = require('node:fs');
  assert.ok((await page.evaluate(()=>window.__lastSaved)).includes('# @layer-action LSL = hold '),'it is on the input instead');
  assert.equal(renamed.overrides.RIGHT_TOUCHPAD_SENS,undefined);
  await page.getByRole('button',{name:'Delete layer',exact:true}).click();
+ // Deleting asks first (System States 17g): Cancel is focused, Delete confirms.
+ await page.locator('.modal-overlay--over').getByRole('button',{name:'Delete',exact:true}).click();
  assert.equal(await pickerName(),'Default');
  await page.keyboard.press('Control+s');
  await page.waitForFunction(()=>!window.__lastSaved.includes('@layer'));

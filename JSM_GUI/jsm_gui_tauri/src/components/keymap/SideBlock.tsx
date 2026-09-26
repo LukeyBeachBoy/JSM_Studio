@@ -21,8 +21,13 @@ type SideBlockProps = {
 // scan -- you had to read every label to know which hand it was about.
 // Left and right sit side by side at 1440 and stack at 1024 (Configuration
 // Pages.dc.html): one column per hand, so each reads top to bottom.
-export function SideSplit({ children }: { children: ReactNode }) {
-  return <div className={styles.split}>{children}</div>
+//
+// `stack` keeps them one above the other at every width, for sides that are
+// already two columns inside (a trackpad: preview beside its settings). Split
+// again into hands, each settings column was left ~300px at 1440 and the
+// region editor inside it clipped its own buttons and values.
+export function SideSplit({ children, stack = false }: { children: ReactNode; stack?: boolean }) {
+  return <div className={`${styles.split} ${stack ? styles.stack : ''}`.trim()}>{children}</div>
 }
 
 export function SideBlock({ side, title, description, id, header = true, children }: SideBlockProps) {

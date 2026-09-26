@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { scrollHostTo } from '../nav/scroller'
 
 export type ShellSection = { id: string; label: string; active: boolean; onSelect: () => void }
 
@@ -13,6 +14,11 @@ type SectionListProps = {
  * fill; there is no second highlight for focus, the ring does that.
  */
 export function SectionList({ sections, ariaLabel }: SectionListProps) {
+  // Pages discover their sections after they mount, often after focus has
+  // already landed; the capsule only offers LB/RB Section once the list is
+  // there, so tell it when that changes.
+  const count = sections.length
+  useEffect(() => { window.dispatchEvent(new Event('jsm:interaction-hint')) }, [count])
   return (
     <nav className="section-list" data-focus-scope="sections" aria-label={ariaLabel}>
       {sections.map(section => (
@@ -39,17 +45,14 @@ export const scrollToSection = (id: string, attempt = 0) => {
   // right sit side by side both are equally near the top, and position alone
   // would always answer "the left one".
   window.dispatchEvent(new CustomEvent(SECTION_PICKED_EVENT, { detail: id }))
-  target.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })
-  // Any other programmatic scroll -- a lazy page focusing its first control,
-  // say -- cancels a smooth scroll where it stands. Once it should have
-  // arrived, finish the jump if it did not.
-  window.setTimeout(() => {
-    const host = target.closest<HTMLElement>('.shell-scroll')
-    if (!host || !target.isConnected) return
-    const offset = target.getBoundingClientRect().top - host.getBoundingClientRect().top
-    const atEnd = host.scrollTop + host.clientHeight >= host.scrollHeight - 2
-    if (Math.abs(offset) > 4 && !(atEnd && offset > 0)) target.scrollIntoView({ block: 'start' })
-  }, 700)
+  const host = target.closest<HTMLElement>('.shell-scroll')
+  if (!host) { target.scrollIntoView({ block: 'start' }); return }
+  // Through the page's one scroll animation (nav/scroller.ts): pressing LB/RB
+  // again before this one lands retargets it from where it is, rather than
+  // several smooth scrolls and a catch-up timer pulling the page about.
+  const margin = Number.parseFloat(getComputedStyle(target).scrollMarginTop) || 0
+  const top = host.scrollTop + target.getBoundingClientRect().top - host.getBoundingClientRect().top - margin
+  scrollHostTo(host, top, { smooth: true, section: id })
 }
 
 /**

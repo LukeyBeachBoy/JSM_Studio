@@ -22,4 +22,6 @@ if (-not $cmakePath) {
 }
 
 & $cmakePath -S $sourceDir -B $buildDir
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 & $cmakePath --build $buildDir --config Release
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

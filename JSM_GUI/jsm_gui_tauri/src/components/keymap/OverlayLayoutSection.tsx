@@ -1,5 +1,5 @@
 import { MenuPreview } from './MenuPreview'
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { KeymapSection } from '../KeymapSection'
 import { NumberField } from '../NumberField'
@@ -105,6 +105,44 @@ export function OverlayLayoutSection(props: Props) {
 
   const endDrag = () => { dragRef.current = null }
 
+  // Moving a menu was pointer-only: the boxes took focus but every key just
+  // selected them, so the pad and keyboard had no way to place one. Adjust
+  // mode, the same as a slider's (ui/Slider): A / Enter enters it, the arrows
+  // nudge, X switches fine and coarse steps, Enter keeps, Escape / B puts the
+  // menu back where it started. The capsule reads it from data-adjusting.
+  const [adjusting, setAdjusting] = useState<{ key: string; start: OverlayPlacement } | null>(null)
+  const [coarse, setCoarse] = useState(false)
+  const announce = () => window.dispatchEvent(new Event('jsm:interaction-hint'))
+  const endAdjust = (revert: boolean) => {
+    if (!adjusting) return
+    if (revert) write(adjusting.key, adjusting.start)
+    setAdjusting(null)
+    announce()
+  }
+  const onMenuKeyDown = (key: string) => (event: KeyboardEvent<HTMLDivElement>) => {
+    const menu = menus[key]
+    if (!menu || event.defaultPrevented) return
+    const active = adjusting?.key === key
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      if (active) endAdjust(false)
+      else { setSelected(key); setAdjusting({ key, start: { ...menu.placement } }); announce() }
+      return
+    }
+    if (!active) return
+    if (event.key === 'Escape') { event.preventDefault(); endAdjust(true); return }
+    if (event.key === 'x' || event.key === 'X') { event.preventDefault(); setCoarse(value => !value); announce(); return }
+    const step = coarse ? 0.02 : 0.005
+    const nudge: Record<string, [number, number]> = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }
+    const delta = nudge[event.key]
+    if (!delta) return
+    event.preventDefault()
+    write(key, {
+      x: Math.min(1, Math.max(0, menu.placement.x + delta[0])),
+      y: Math.min(1, Math.max(0, menu.placement.y + delta[1])),
+    })
+  }
+
   // Menu layout (Tuning and Studio Pages 16c): the editor on the left, the
   // live preview -- drawn by the overlay's own renderer -- on the right.
   return (
@@ -188,8 +226,14 @@ export function OverlayLayoutSection(props: Props) {
                       width: `${widthPct}%`,
                       height: `${heightPct}%`,
                     }}
+                    data-adjusting={adjusting?.key === key ? 'true' : undefined}
+                    data-coarse={adjusting?.key === key && coarse ? 'true' : undefined}
+                    data-pad-keys="X"
+                    data-hints="A:Move;B:Back"
                     onPointerDown={onPointerDown(key, 'move')}
-                    onKeyDown={() => setSelected(key)}
+                    onFocus={() => setSelected(key)}
+                    onBlur={() => { if (adjusting?.key === key) endAdjust(false) }}
+                    onKeyDown={onMenuKeyDown(key)}
                   >
                     <span className={styles.menuName}>
                       {t(...SURFACE_SHORT[pad])}

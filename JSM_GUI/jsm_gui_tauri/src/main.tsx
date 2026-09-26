@@ -3,6 +3,11 @@ import ReactDOM from 'react-dom/client'
 import './index.css'
 import { initI18n } from './i18n'
 import appIcon from './assets/app-icon.svg'
+import { ErrorBoundary } from './components/ErrorBoundary'
+import { initTheme } from './hooks/useTheme'
+
+// Before anything draws, so a Light or System choice never flashes dark.
+initTheme()
 
 const rootElement = document.getElementById('root')
 
@@ -14,7 +19,8 @@ const root = ReactDOM.createRoot(rootElement)
 
 const App = React.lazy(async () => {
   if (import.meta.env.DEV && new URLSearchParams(window.location.search).has('mock')) {
-    ;(await import('./dev/mockDesktop')).installMockDesktop()
+    const mock = await import('./dev/mockDesktop')
+    mock.installMockDesktop()
   }
   const [appModule] = await Promise.all([
     import('./App.tsx'),
@@ -39,8 +45,10 @@ const bootFallback = (
 
 root.render(
   <React.StrictMode>
-    <React.Suspense fallback={bootFallback}>
-      <App />
-    </React.Suspense>
+    <ErrorBoundary>
+      <React.Suspense fallback={bootFallback}>
+        <App />
+      </React.Suspense>
+    </ErrorBoundary>
   </React.StrictMode>,
 )

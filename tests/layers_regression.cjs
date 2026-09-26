@@ -14,7 +14,7 @@ function load(file) {
   return mod.exports;
 }
 
-const {readLayers,writeLayers,projectLayer,foldLayer,convertModeshifts,inputUses,layerEntries,readLayerActions,setLayerActions} = load('JSM_GUI/jsm_gui_tauri/src/utils/layers.ts');
+const {readLayers,writeLayers,projectLayer,foldLayer,convertModeshifts,inputUses,layerEntries,readLayerActions,setLayerActions,describeLayerActivation} = load('JSM_GUI/jsm_gui_tauri/src/utils/layers.ts');
 const {parseConfigText,serializeConfig} = load('JSM_GUI/jsm_gui_tauri/src/utils/configSerializer.ts');
 const source = 'RESET_MAPPINGS\nN = SPACE\nRSR = NONE\nRSR,N = J\nRSR,W = U\nLSL,N = H\n# @label RSR,N = Squad talk\n# @overlay RIGHT:RSR at 0.5 0.5 size 300\n';
 let text=convertModeshifts(source,{id:'comms',name:'Comms',overrides:{}},'RSR');
@@ -72,6 +72,13 @@ assert.deepEqual(readLayerActions(sanitizeImportedConfig(withActions)),actions,'
 assert.deepEqual(inputUses(withActions,'RSR'),['Apply layer: Vehicles']);
 assert.deepEqual(inputUses(withActions,'LSL'),['Remove layer: Vehicles']);
 assert.deepEqual(inputUses(withActions,'RSL'),['Apply layer: Vehicles'],'a second input may drive the same layer');
+// The one-line summary (title bar layer menu, Layers page) leads with what
+// turns the layer on, lists every input, and names them as the pad does.
+const paddles = {RSR:'R4',RSL:'R5',LSL:'L4',LSR:'L5'}, pad = input => paddles[input] ?? input;
+assert.equal(describeLayerActivation(actions,'vehicles',pad),'Applied by R4 or R5 · Removed by L4');
+assert.equal(describeLayerActivation([{input:'RSL',verb:'remove',layerId:'map'},{input:'LSL',verb:'hold',layerId:'map'},{input:'RSR',verb:'toggle',layerId:'map'}],'map',pad),'Held by L4 · Toggled by R4 · Removed by R5','activation first, whatever order it was bound in');
+assert.equal(describeLayerActivation([{input:'RSL',verb:'remove',layerId:'map'}],'map',pad),'Nothing turns it on · Removed by R5','a layer inputs can only remove says so');
+assert.equal(describeLayerActivation([],'map',pad),'Not bound to an input');
 assert.equal(layerEntries(projectLayer(withActions,'vehicles')).N,'J');
 
 // setLayerActions replaces one input and leaves the others alone.

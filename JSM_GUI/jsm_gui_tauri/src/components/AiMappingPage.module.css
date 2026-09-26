@@ -55,20 +55,38 @@
 .pending { opacity: .7; }
 .proposalText { margin: 0; color: var(--text-1); font-size: var(--fs-body); line-height: var(--lh-body); white-space: pre-wrap; }
 
+/* The binding diff (16e): glyph · old action → new action, raw line under. */
 .diff {
   margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
   padding: var(--sp-3) var(--sp-4);
   border-radius: var(--r-row);
   background: var(--surface-sunken);
-  font-family: var(--font-mono);
-  font-size: var(--fs-hint);
-  line-height: 1.7;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
 }
+.change { display: flex; flex-direction: column; gap: var(--sp-1); }
+.changeRow { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); color: var(--text-1); font-size: var(--fs-body); }
+.changeGlyph { flex: none; color: var(--text-1); }
+.changeKey { width: 22px; flex: none; color: var(--text-3); font-family: var(--font-mono); font-size: var(--fs-micro); text-align: center; }
+.changeLabel { font-weight: var(--fw-medium); }
+.changeOld { color: var(--text-3); }
+.changeArrow { color: var(--text-3); }
+.changeNew {
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--sp-2);
+  border-radius: var(--r-sm);
+  background: var(--warn-soft);
+  color: var(--warn);
+  font-size: var(--fs-hint);
+  font-weight: var(--fw-medium);
+}
+.changeRaw { display: block; padding-left: 30px; font-family: var(--font-mono); font-size: var(--fs-micro); line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
 .added { color: var(--ok); }
 .removed { color: var(--error); }
-.more { color: var(--text-3); }
+.more { color: var(--text-3); font-size: var(--fs-hint); }
 
 .block { color: var(--text-2); font-size: var(--fs-hint); }
 .block b { color: var(--text-1); font-weight: var(--fw-semibold); }

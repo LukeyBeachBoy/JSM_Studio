@@ -28,9 +28,9 @@ assert.deepEqual(kinds(nav.update(pad(['E', 'W', 'N', 'L', 'R']), 48)).sort(), [
 
 // Triggers page on a firm pull, with hysteresis so a half-released pull does not chatter.
 nav = new PadNavigator();
-assert.deepEqual(kinds(nav.update(pad([], { triggers: { left: 0, right: 0.5 } }), 0)), []);
-assert.deepEqual(kinds(nav.update(pad([], { triggers: { left: 0, right: 0.7 } }), 16)), ['RT']);
-assert.deepEqual(kinds(nav.update(pad([], { triggers: { left: 0, right: 0.45 } }), 32)), [], 'still held above the release point');
+assert.deepEqual(kinds(nav.update(pad([], { triggers: { left: 0, right: 0.4 } }), 0)), [], 'short of the page-turn point');
+assert.deepEqual(kinds(nav.update(pad([], { triggers: { left: 0, right: 0.5 } }), 16)), ['RT'], 'a soft pull, a little under half way, turns the page');
+assert.deepEqual(kinds(nav.update(pad([], { triggers: { left: 0, right: 0.3 } }), 32)), [], 'still held above the release point');
 assert.deepEqual(kinds(nav.update(pad([], { triggers: { left: 0, right: 0.2 } }), 48)), []);
 assert.deepEqual(kinds(nav.update(pad([], { triggers: { left: 0, right: 0.7 } }), 64)), ['RT'], 'released, pulled again');
 
@@ -84,5 +84,27 @@ assert.deepEqual(kinds(nav.update(pad([], { rightStick: { x: 0, y: -0.1 } }), 16
 const slow = nav.update(pad([], { rightStick: { x: 0, y: -0.5 } }), 32).find(a => a.kind === 'scroll');
 const fast = nav.update(pad([], { rightStick: { x: 0, y: -1 } }), 48).find(a => a.kind === 'scroll');
 assert.ok(slow.dy > 0 && fast.dy > slow.dy * 2, `down on the stick scrolls down, faster when pushed further: ${slow.dy}, ${fast.dy}`);
+
+// Taps that start and end between two snapshots (telemetry reaches the UI at
+// the display rate) still count, once each.
+nav = new PadNavigator();
+const tap = (buttons, since, at) => kinds(nav.update(pad(buttons, { pressedSince: new Set(since) }), at));
+assert.deepEqual(tap([], ['DOWN'], 0), ['down'], 'a D-pad tap entirely between snapshots moves');
+assert.deepEqual(tap(['DOWN'], ['DOWN'], 16), ['down'], 'the next tap, still down in this snapshot, moves once');
+assert.deepEqual(tap(['DOWN'], ['DOWN'], 32), ['down'], 'released and pressed again between snapshots moves again');
+assert.deepEqual(tap(['DOWN'], [], 48), [], 'held with no new press waits for the repeat');
+assert.deepEqual(tap([], ['S'], 64), ['A'], 'a face-button tap between snapshots presses');
+assert.deepEqual(tap(['S'], ['S'], 80), ['A'], 'a press seen both ways fires once');
+assert.deepEqual(tap([], ['-'], 96), ['VIEW'], 'View tapped between snapshots acts as its release');
+
+// After a reset with latch (a global chord handed the pad back), what is still
+// held fires nothing until it is let go and pressed again.
+nav = new PadNavigator();
+nav.update(pad([]), 0);
+nav.reset(true);
+assert.deepEqual(kinds(nav.update(pad(['ZR', 'DOWN'], { triggers: { left: 0, right: 1 } }), 16)), [], 'RT and the D-pad still held from the chord do nothing');
+assert.deepEqual(kinds(nav.update(pad(['ZR', 'DOWN'], { triggers: { left: 0, right: 1 } }), 16 + REPEAT_DELAY_MS * 2)), [], 'and do not repeat');
+assert.deepEqual(kinds(nav.update(pad([]), 1000)), []);
+assert.deepEqual(kinds(nav.update(pad(['ZR'], { triggers: { left: 0, right: 1 } }), 1016)), ['RT'], 'pulled again, it pages');
 
 console.log('PASS: presses on the way down, trigger hysteresis, accelerating repeat, stick movement, View/Menu on release, hold-B escape, test-mode exit chord, right-stick scroll');

@@ -166,15 +166,20 @@ def test_steam_layout_does_not_reuse_dualsense_geometry():
     D-pad and face buttons and swallowed their clicks."""
     check('DUALSENSE_PATHS' not in steam,
           'the Steam layout must not position overlays with DUALSENSE_PATHS')
-    check('shoulderTrigger(' in steam and 'shoulderBumper(' in steam,
-          'shoulder overlays must use the measured STEAM_SHOULDER geometry')
+    check('STEAM_FRONT_BUMPER_PATHS.left' in steam and 'STEAM_FRONT_BUMPER_PATHS.right' in steam,
+          "bumper overlays must fill the artwork's own bumper outlines (STEAM_FRONT_BUMPER_PATHS)")
 
 
 def test_shoulder_overlays_clear_the_face_controls():
-    band = re.search(r'const SHOULDER_BUMPER_Y = (%s)' % NUM, tsx)
-    height = re.search(r'const SHOULDER_BUMPER_H = (%s)' % NUM, tsx)
-    check(band and height, 'shoulder band constants missing')
-    bottom = float(band.group(1)) + float(height.group(1))
+    # The bumpers are subpaths of the artwork, in its own space; place them with
+    # the same transform the overlay uses. Absolute M/C commands only, so every
+    # second number is a y (control points bound the curve from outside).
+    placed = re.search(r"const STEAM_FRONT_ART_TRANSFORM = 'translate\((%s) (%s)\) scale\((%s)\)'" % (NUM, NUM, NUM), tsx)
+    paths = re.search(r'const STEAM_FRONT_BUMPER_PATHS = \{(.*?)\} as const', tsx, re.S)
+    check(placed and paths, 'front bumper geometry missing')
+    scale, ty = float(placed.group(3)), float(placed.group(2))
+    ys = [float(n) for d in re.findall(r"'(M[^']+)'", paths.group(1)) for n in re.findall(NUM, d)[1::2]]
+    bottom = max(ys) * scale + ty
     tops = []
     for m in re.finditer(r'<ButtonBubble\s+cx=\{%s\}\s+cy=\{(%s)\}(.*?)/>' % (NUM, NUM), steam, re.S):
         r = re.search(r'radius=\{(%s)\}' % NUM, m.group(2))

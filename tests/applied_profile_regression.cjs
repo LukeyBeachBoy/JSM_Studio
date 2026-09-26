@@ -13,4 +13,7 @@ assert.equal(appliedProfileLabel('profiles-library/The Finals.txt', 'Cyberpunk')
 assert.equal(appliedProfileLabel(undefined, 'Cyberpunk'), 'Cyberpunk');
 assert.equal(appliedProfileLabel('', 'Cyberpunk'), 'Cyberpunk');
 assert.equal(appliedProfileLabel('applied-preview', null), null, 'never substitute the currently edited profile');
+for (const nav of ['AppNavigation.txt', 'C:\\Users\\x\\JSM\\AppNavigation.txt', 'appnavigation']) {
+  assert.equal(appliedProfileLabel(nav, 'Cyberpunk'), 'Cyberpunk', "Studio's navigation profile is never shown as applied");
+}
 console.log('PASS: preview telemetry shows the actual applied name, with real auto-switch names preserved');

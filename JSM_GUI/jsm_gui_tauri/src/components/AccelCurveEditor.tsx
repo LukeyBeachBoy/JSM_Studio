@@ -1,9 +1,7 @@
-import { HelpButton } from './HelpButton'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NumberField } from './NumberField'
-import { AdvancedDisclosure } from './AdvancedDisclosure'
-import { AppSelect } from './ui/AppSelect'
+import { GyroSettingRow, SelectPill } from './GyroBehaviorControls'
 import styles from './AccelCurveEditor.module.css'
 import {
   ACCEL_CURVE_TYPES,
@@ -38,13 +36,16 @@ export type AccelCurveEditorProps = {
   onLinkChange?: (value: AccelCurveLink) => void
   /** The output rows (gyro sens X/Y, trackpad min/max gain). Rendered above the thresholds. */
   outputs?: ReactNode
+  /** The speed-range rows' names and descriptions, when the page has its own copy for them. */
+  thresholdLabels?: { min: string; max: string }
+  thresholdHints?: { min: ReactNode; max: ReactNode }
   disabled?: boolean
 }
 
-// One editor for both acceleration curves. The *shape* (curve type and its
-// parameters) is what can be shared: when this side inherits the other's, the
-// shape controls fold away and only the speed range and outputs stay, since
-// those are always this side's own.
+// One editor for both acceleration curves, drawn as setting rows. The *shape*
+// (curve type and its parameters) is what can be shared: when this side
+// inherits the other's, the shape rows fold away and only the speed range and
+// outputs stay, since those are always this side's own.
 export function AccelCurveEditor({
   side,
   values,
@@ -63,6 +64,8 @@ export function AccelCurveEditor({
   link,
   onLinkChange,
   outputs,
+  thresholdLabels,
+  thresholdHints,
   disabled,
 }: AccelCurveEditorProps) {
   const { t } = useTranslation()
@@ -175,76 +178,50 @@ export function AccelCurveEditor({
   return (
     <div className={styles.editor}>
       {onLinkChange && (
-        <div className="flex-inputs">
-          <label>
-            <span className={styles.fieldLabel}>
-              {t('accelCurve.linkLabel')}
-              <HelpButton title={t('accelCurve.linkLabel')}>{t('accelCurve.linkHint')}</HelpButton>
-            </span>
-            <AppSelect className="app-select" value={activeLink} onChange={event => onLinkChange(event.target.value as AccelCurveLink)} disabled={disabled}>
-              {linkOptions.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </AppSelect>
-          </label>
-        </div>
+        <GyroSettingRow setting="ACCEL_CURVE_LINK" label={t('accelCurve.linkLabel')} description={t('accelCurve.linkHint')} hints="A:Open;Y:Help;B:Back"
+          value={<SelectPill ariaLabel={t('accelCurve.linkLabel')} value={activeLink} options={linkOptions} disabled={disabled}
+            onChange={next => onLinkChange(next as AccelCurveLink)} />} />
       )}
 
       {inherits ? (
-        <p className="field-description">{t('accelCurve.inheritingNote', { other: otherName })}</p>
+        <p className={styles.note}>{t('accelCurve.inheritingNote', { other: otherName })}</p>
       ) : (
-        <div className="flex-inputs">
-          <label>
-            {t('sensitivity.accelerationCurveLabel')}
-            <AppSelect className="app-select" value={curve} onChange={event => onCurveChange(event.target.value)} disabled={disabled}>
-              {ACCEL_CURVE_TYPES.map(type => (
-                <option key={type} value={type}>
-                  {t(`sensitivity.curves.${type.toLowerCase()}`)}
-                </option>
-              ))}
-            </AppSelect>
-          </label>
-        </div>
+        <GyroSettingRow setting="ACCEL_CURVE" label={t('sensitivity.accelerationCurveLabel')} description={t('gyroPage.curveTypeDesc')} hints="A:Open;Y:Help;B:Back"
+          value={<SelectPill ariaLabel={t('sensitivity.accelerationCurveLabel')} value={curve} disabled={disabled}
+            options={ACCEL_CURVE_TYPES.map(type => ({ value: type, label: t(`sensitivity.curves.${type.toLowerCase()}`) }))}
+            onChange={onCurveChange} />} />
       )}
 
       {outputs}
 
-      <div className="flex-inputs">
-        <NumberField setting="MIN_GYRO_THRESHOLD"
-          label={t('accelCurve.minSpeed')}
-          value={values.minThreshold}
-          onChange={onMinThresholdChange}
-          min={0}
-          max={inputMax}
-          step={speedStep}
-          coarseStep={coarse}
-          unit={inputUnit}
-          placeholder={defaults.minThreshold !== undefined ? String(defaults.minThreshold) : undefined}
-          hint={t('accelCurve.minSpeedHint')}
-          disabled={disabled}
-        />
-        <NumberField setting="MAX_GYRO_THRESHOLD"
-          label={t('accelCurve.maxSpeed')}
-          value={values.maxThreshold}
-          onChange={onMaxThresholdChange}
-          min={0}
-          max={inputMax}
-          step={speedStep}
-          coarseStep={coarse}
-          unit={inputUnit}
-          placeholder={defaults.maxThreshold !== undefined ? String(defaults.maxThreshold) : undefined}
-          hint={t('accelCurve.maxSpeedHint')}
-          disabled={disabled}
-        />
-      </div>
+      <NumberField setting="MIN_GYRO_THRESHOLD"
+        label={thresholdLabels?.min ?? t('accelCurve.minSpeed')}
+        value={values.minThreshold}
+        onChange={onMinThresholdChange}
+        min={0}
+        max={inputMax}
+        step={speedStep}
+        coarseStep={coarse}
+        unit={inputUnit}
+        placeholder={defaults.minThreshold !== undefined ? String(defaults.minThreshold) : undefined}
+        hint={thresholdHints?.min ?? t('accelCurve.minSpeedHint')}
+        disabled={disabled}
+      />
+      <NumberField setting="MAX_GYRO_THRESHOLD"
+        label={thresholdLabels?.max ?? t('accelCurve.maxSpeed')}
+        value={values.maxThreshold}
+        onChange={onMaxThresholdChange}
+        min={0}
+        max={inputMax}
+        step={speedStep}
+        coarseStep={coarse}
+        unit={inputUnit}
+        placeholder={defaults.maxThreshold !== undefined ? String(defaults.maxThreshold) : undefined}
+        hint={thresholdHints?.max ?? t('accelCurve.maxSpeedHint')}
+        disabled={disabled}
+      />
 
-      {shapeParams && curve !== 'LINEAR' && curve !== 'QUADRATIC' && (
-        <AdvancedDisclosure label={t('accelCurve.shapeParams')} defaultOpen>
-          <div className="flex-inputs">{shapeParams}</div>
-        </AdvancedDisclosure>
-      )}
+      {shapeParams && curve !== 'LINEAR' && curve !== 'QUADRATIC' && shapeParams}
     </div>
   )
 }

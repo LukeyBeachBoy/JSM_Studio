@@ -5,15 +5,29 @@
 const profiles: Record<string, string> = {
   Wardogs: [
     'RESET_MAPPINGS',
-    'IMPORT "profiles-library/FPS Template.txt"',
+    'profiles-library/FPS Template.txt',
     'S = SPACE', 'E = C', 'W = R', 'N = F',
     'L = G', 'R = MMOUSE', 'ZL = RMOUSE', 'ZR = LMOUSE',
-    'LEFT_TOUCHPAD_MODE = GRID_AND_STICK', 'LEFT_GRID_SIZE = 2 2', 'LT1 = 1', 'LT2 = 2', 'LT3 = 3', 'LT4 = 4',
-    'RIGHT_TOUCHPAD_MODE = MOUSE', 'GYRO_ON = MISC5', 'IN_GAME_SENS = 2.3',
+    // Luke's real Wardogs shape: a four-way left pad, a mouse right pad whose
+    // click shifts it into a four-way menu, paddles that only drive layers.
+    'LEFT_TOUCHPAD_MODE = GRID_AND_STICK', 'LEFT_GRID_SHAPE = FOUR_WAY', 'LEFT_GRID_REQUIRES_CLICK = ON', 'LEFT_GRID_DEADZONE = 0.15',
+    'LT1 = R', 'LT2 = B', 'LT3 = V', 'LT4 = G',
+    'RIGHT_TOUCHPAD_MODE = MOUSE', 'RIGHT_TOUCHPAD_SENS = 2.5', 'RIGHT_GRID_SHAPE = FOUR_WAY', 'RIGHT_GRID_DEADZONE = 0.15',
+    'MISC2,RIGHT_TOUCHPAD_MODE = GRID_AND_STICK',
+    'RT1 = MMOUSE', 'RT2 = V', 'RT3 = TAB', 'RT4 = Z',
+    'GYRO_ON = MISC5', 'IN_GAME_SENS = 2.3',
+    'LSL = NONE', 'RSR = NONE', 'RSL = !M\\',
     'RIGHT_STICK_MODE = RADIAL_MENU', 'RIGHT_STICK_MENU_SIZE = 8', 'RM1 = 1', 'RM2 = 2', 'RM3 = 3', 'RM4 = 4',
-    '# @layer {"id":"veh","name":"Vehicles","overrides":{"N":"E"}}',
+    '# @label LT1 = Rotate', '# @label LT2 = Snap', '# @label LT3 = Dismantle', '# @label LT4 = Supply crate',
+    '# @label RT1 = Ping', '# @label RT2 = Melee', '# @label RT3 = Inventory', '# @label RT4 = Sights',
+    '# @label RSL = Tactical map',
+    '# @overlay LEFT at 0.2 0.75 size 240', '# @overlay RIGHT:MISC2 at 0.8 0.75 size 286',
+    '# @layer {"id":"veh","name":"Vehicles & utility","overrides":{"N":"H"}}',
     '# @layer {"id":"map","name":"Tactical map","suppressHolds":true,"overrides":{"S":"M"}}',
-    '# @layer-action LSL = hold veh', '# @layer-action L3 = toggle map',
+    '# @layer {"id":"comms","name":"Comms","overrides":{"E":"K"}}',
+    // Several inputs per layer, and a layer only an input removes (what the
+    // title bar and Layers page describe as "Nothing turns it on").
+    '# @layer-action LSL = hold veh', '# @layer-action RSR = hold comms', '# @layer-action RSL = toggle map', '# @layer-action - = remove map',
   ].join('\n') + '\n',
   'FPS Template': 'RESET_MAPPINGS\nS = SPACE\nUP = 1\nDOWN = 2\n',
   Cyberpunk: 'RESET_MAPPINGS\nS = SPACE\nZL = RMOUSE\n',
@@ -26,8 +40,12 @@ const BITS: Record<string, number> = { UP: 0, DOWN: 1, LEFT: 2, RIGHT: 3, '+': 4
 
 // window.__pad.press(['S']) taps A; .hold(['-', '+']) and .release() for chords;
 // .stick / .trigger for analog input. Drives Studio's native navigation.
-const pad = { held: new Set<string>(), leftStick: { x: 0, y: 0 }, rightStick: { x: 0, y: 0 }, triggers: { left: 0, right: 0 } }
+// .live(path) sets what the mapper says it is running: Studio's navigation
+// profile while its window is in front (as the real mapper does), or e.g. a
+// chord's configuration while one is held, which Studio must not navigate on.
+const pad = { held: new Set<string>(), leftStick: { x: 0, y: 0 }, rightStick: { x: 0, y: 0 }, triggers: { left: 0, right: 0 }, live: 'AppNavigation.txt' }
 const padApi = {
+  live: (path: string) => { pad.live = path },
   hold: (commands: string[]) => { commands.forEach(command => pad.held.add(command)) },
   release: (commands?: string[]) => { if (commands) commands.forEach(command => pad.held.delete(command)); else pad.held.clear() },
   press: (commands: string[], ms = 90) => new Promise<void>(resolve => { padApi.hold(commands); setTimeout(() => { padApi.release(commands); setTimeout(resolve, 60) }, ms) }),
@@ -36,6 +54,8 @@ const padApi = {
 }
 
 export function installMockDesktop() {
+  // What the pad would have felt (nav/feedback.ts), for checking by hand or test.
+  ;(window as unknown as { __padFeedback: unknown[] }).__padFeedback = []
   const w = window as unknown as Record<string, unknown>
   // Telemetry only draws while the window has focus; a preview pane or a
   // second monitor would otherwise never see the controller.
@@ -44,19 +64,44 @@ export function installMockDesktop() {
   Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' })
   ;(window as unknown as { __pad: typeof padApi }).__pad = padApi
   const mockUpdate: { progress?: (percent: number) => void; done?: () => void } = {}
+  const mockFallback = { profileName: 'Gamepad', enabled: true }
+  const mockAutostart = { enabled: true }
+  // Association rules, mutable so pausing one under ?mock shows in the list.
+  const mockRules: { processName: string; fileName: string; kind: string; profileName: string; missingProfile: boolean; builtIn: boolean; paused?: boolean; lastMatchedAtMs?: number }[] = [
+    { processName: 'JSM Studio', fileName: 'JSM Studio.txt', kind: 'profile', profileName: 'AppNavigation', missingProfile: false, builtIn: true },
+    { processName: 'Wardogs', fileName: 'Wardogs.txt', kind: 'profile', profileName: 'Wardogs', missingProfile: false, builtIn: false, lastMatchedAtMs: Date.now() - 12 * 60_000 },
+    { processName: 'Cyberpunk2077', fileName: 'Cyberpunk2077.txt', kind: 'profile', profileName: 'Cyberpunk', missingProfile: false, builtIn: false, lastMatchedAtMs: Date.now() - 26 * 3_600_000 },
+    { processName: 'steamwebhelper', fileName: 'steamwebhelper.txt.paused', kind: 'profile', profileName: 'Gamepad', missingProfile: false, builtIn: false, paused: true },
+  ]
   w.electronAPI = {
-    getActiveProfile: async () => ({ name: 'Wardogs', path: 'profiles-library/Wardogs.txt', content: profiles.Wardogs }),
-    listLibraryProfiles: async () => Object.keys(profiles),
+    // ?mock&empty previews the first run (System States 17d): no library, nothing applied.
+    getActiveProfile: async () => new URLSearchParams(location.search).has('empty') ? null : ({ name: 'Wardogs', path: 'profiles-library/Wardogs.txt', content: profiles.Wardogs }),
+    listLibraryProfiles: async () => new URLSearchParams(location.search).has('empty') ? [] : Object.keys(profiles),
     loadLibraryProfile: async (name: string) => ({ name, content: profiles[name] ?? '' }),
+    // Imports resolve through this, so Wardogs' FPS Template shows as a
+    // template in the library and its settings read as inherited.
+    readConfigFile: async (path: string) => profiles[path.replace(/^.*[\\/]/, '').replace(/\.txt$/i, '')] ?? null,
     saveLibraryProfile: async (name: string, content: string) => { profiles[name] = content; return { name } },
     applyProfile: async (path: string) => ({ path, mappingEnabled: true }),
-    listAutoloadRules: async () => [
-      { processName: 'JSM Studio', fileName: 'JSM Studio.txt', kind: 'profile', profileName: 'AppNavigation', missingProfile: false, builtIn: true },
-      { processName: 'Wardogs', fileName: 'Wardogs.txt', kind: 'profile', profileName: 'Wardogs', missingProfile: false, builtIn: false },
-      { processName: 'Cyberpunk2077', fileName: 'Cyberpunk2077.txt', kind: 'profile', profileName: 'Cyberpunk', missingProfile: false, builtIn: false },
-      { processName: 'steamwebhelper', fileName: 'steamwebhelper.txt.paused', kind: 'profile', profileName: 'Gamepad', missingProfile: false, builtIn: false, paused: true },
-    ],
+    listLibraryProfileMeta: async () => Object.keys(profiles).map((name, index) => ({ name, modifiedAtMs: Date.now() - (index + 1) * 11 * 60_000 })),
+    listRunningProcesses: async () => [{ processName: 'Wardogs.exe', pid: 4120, windowTitle: 'Wardogs' }, { processName: 'Cyberpunk2077.exe', pid: 5280, windowTitle: 'Cyberpunk 2077' }, { processName: 'explorer.exe', pid: 1932, windowTitle: 'File Explorer' }],
+    // Answers late and differs from the switch's old default, so ?mock shows
+    // whether Preferences opens on the real value (preferenceStore).
+    getAutostartEnabled: async () => { await new Promise(resolve => window.setTimeout(resolve, 250)); return mockAutostart.enabled },
+    setAutostartEnabled: async (enabled: boolean) => { mockAutostart.enabled = enabled; return true },
+    getAutoloadFallback: async () => mockFallback,
+    setAutoloadFallback: async (fallback: { profileName: string | null; enabled: boolean }) => { Object.assign(mockFallback, fallback); return mockFallback },
+    listAutoloadRules: async () => mockRules.map(rule => ({ ...rule })),
+    setAutoloadRulePaused: async (processName: string, paused: boolean) => {
+      const rule = mockRules.find(candidate => candidate.processName === processName)
+      if (!rule) return null
+      rule.paused = paused
+      rule.fileName = paused ? `${processName}.txt.paused` : `${processName}.txt`
+      return { ...rule }
+    },
     // ?mock&mapperdown previews the mapper having stopped by itself.
+    // The mapper's live layer stack (title bar Applied segment, Layers page).
+    getLayerStack: async () => ({ profile: 'profiles-library/Wardogs.txt', layers: [{ id: 'veh', name: 'Vehicles' }] }),
     getMapperStatus: async () => new URLSearchParams(location.search).has('mapperdown')
       ? { running: false, exit: { exitCode: 3, stoppedAtMs: Date.now() - 60_000, lastLine: 'Loaded Wardogs.txt' } }
       : { running: true },
@@ -85,7 +130,7 @@ export function installMockDesktop() {
         const wave = (speed: number, phase = 0) => Math.sin(t * speed + phase)
         callback({
           console: 'Mapper ready\nLoaded Wardogs.txt (imports FPS Template)',
-          activeProfile: 'profiles-library/Wardogs.txt',
+          activeProfile: pad.live,
           // ?mock&configerror previews a line the mapper could not use.
           configErrors: new URLSearchParams(location.search).has('configerror')
             ? [{ profile: 'profiles-library/Wardogs.txt', file: 'profiles-library/Wardogs.txt', line: 3, text: 'MISC9 = F', reason: 'unknown command MISC9' }]

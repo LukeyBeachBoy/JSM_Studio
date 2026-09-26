@@ -55,6 +55,8 @@ export type OverlayPlacement = {
   showLabels: boolean
   /** Show the key/button each region is bound to. */
   showKeys: boolean
+  /** Draw the icons regions were given. Off leaves the text alone in the slice. */
+  showIcons: boolean
   /** Label font size in logical pixels; keys are drawn slightly smaller. */
   fontSize: number
   /**
@@ -116,7 +118,7 @@ const OVERLAY_LINE =
 const OPTION = (name: string) => new RegExp(`\\b${name}\\s+([A-Za-z0-9.]+)\\b`, 'i')
 
 /** Sensible corners: each pad's menu sits under the thumb that drives it. */
-const DEFAULTS = { size: 280, showLabels: true, showKeys: true, fontSize: 14 }
+const DEFAULTS = { size: 280, showLabels: true, showKeys: true, showIcons: true, fontSize: 14 }
 const DEFAULT_PLACEMENT: Record<OverlaySurface, OverlayPlacement> = {
   // A pad menu has always appeared the moment a thumb lands, and a stick wheel
   // only once the stick is pushed far enough to pick something. Those stay the
@@ -156,12 +158,20 @@ export function parseOverlayPlacements(text: string): Record<string, OverlayPlac
       const value = Number.parseFloat(raw ?? '')
       return Number.isFinite(value) ? Math.min(hi, Math.max(lo, value)) : fallback
     }
+    // `at . .` matches the pattern but parses to NaN, and clamp01(NaN) is NaN:
+    // the menu would be positioned at "NaN%". Fall back to the surface's
+    // default the way every option below does.
+    const coordinate = (raw: string, fallback: number) => {
+      const value = Number.parseFloat(raw)
+      return Number.isFinite(value) ? clamp01(value) : fallback
+    }
     out[layer ? `${pad}:${layer}` : pad] = {
-      x: clamp01(Number.parseFloat(match[3])),
-      y: clamp01(Number.parseFloat(match[4])),
+      x: coordinate(match[3], DEFAULT_PLACEMENT[pad as OverlaySurface].x),
+      y: coordinate(match[4], DEFAULT_PLACEMENT[pad as OverlaySurface].y),
       size: num('size', 120, 900, DEFAULTS.size),
       showLabels: bool(OPTION('labels').exec(rest)?.[1], DEFAULTS.showLabels),
       showKeys: bool(OPTION('keys').exec(rest)?.[1], DEFAULTS.showKeys),
+      showIcons: bool(OPTION('icons').exec(rest)?.[1], DEFAULTS.showIcons),
       fontSize: num('font', 8, 48, DEFAULTS.fontSize),
       reveal: reveal(OPTION('show').exec(rest)?.[1], pad as OverlaySurface),
     }
@@ -184,6 +194,9 @@ export function setOverlayPlacement(
     `size ${Math.round(placement.size)}`,
     placement.showLabels === DEFAULTS.showLabels ? '' : `labels ${placement.showLabels ? 'on' : 'off'}`,
     placement.showKeys === DEFAULTS.showKeys ? '' : `keys ${placement.showKeys ? 'on' : 'off'}`,
+    // A placement built before this option existed has no showIcons at all,
+    // which reads as the default rather than as "off".
+    placement.showIcons === false ? 'icons off' : '',
     placement.fontSize === DEFAULTS.fontSize ? '' : `font ${Math.round(placement.fontSize)}`,
     // Normalised, not read straight off the object: a caller holding a
     // placement built before this field existed has no reveal at all, and
@@ -236,7 +249,7 @@ export function hitTestRegion(menu: OverlayMenu, x: number, y: number): number {
     if (limit > 0 && f(Math.hypot(dx, dy)) <= limit) return -1
     // atan2(dx, -dy) is 0 pointing up and grows clockwise; half a segment of
     // bias centres segment 0 on up rather than starting its edge there.
-    const TAU = f(6.2831853071795864769)
+    const TAU = f(2 * Math.PI)
     const step = f(TAU / segments)
     let angle = f(f(Math.atan2(dx, -dy)) + f(step * 0.5))
     while (angle < 0) angle = f(angle + TAU)

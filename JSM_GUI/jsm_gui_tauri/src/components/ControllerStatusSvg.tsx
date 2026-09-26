@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type CSSProperties } from 'react'
 import { STEAM_BACK_ART, STEAM_FRONT_ART } from './controllerArt'
 import type { TelemetryDevice } from '../hooks/useTelemetry'
 import { InputMark } from './glyphs/inputMarks'
@@ -51,6 +51,8 @@ type PathButtonProps = SharedControlProps & {
   label: string
   labelX: number
   labelY: number
+  /** Applied to the shape only, for paths lifted straight out of the artwork. */
+  transform?: string
 }
 
 type StickProps = SharedControlProps & {
@@ -360,6 +362,7 @@ function PathButton({
   selected = false,
   onSelect,
   title,
+  transform,
 }: PathButtonProps) {
   return (
     <g className={join(muted && styles.sideMuted, onSelect && styles.interactive)} onClick={onSelect}>
@@ -373,6 +376,7 @@ function PathButton({
           pressed && styles.controlPressed
         )}
         d={d}
+        transform={transform}
       />
       <text
         className={join(
@@ -474,63 +478,55 @@ function TriggerPath({
   )
 }
 
-// Rounded-rect path data, for the overlay components that take a `d` rather than
-// x/y/width/height.
-function roundedRectPath(x: number, y: number, w: number, h: number, r: number) {
-  const rr = Math.min(r, w / 2, h / 2)
-  return `M${x + rr},${y}h${w - 2 * rr}a${rr},${rr} 0 0 1 ${rr},${rr}v${h - 2 * rr}a${rr},${rr} 0 0 1 ${-rr},${rr}h${-(w - 2 * rr)}a${rr},${rr} 0 0 1 ${-rr},${-rr}v${-(h - 2 * rr)}a${rr},${rr} 0 0 1 ${rr},${-rr}z`
-}
-
-// The shoulder humps, measured off the body outline of steam-controller-front.svg
-// (left x[195.6,346.6] y[6.8,57.8], right x[773.5,924.0] y[6.8,56.5]).
+// The bumpers and triggers, as the artwork itself draws them. Each `d` below is
+// one subpath of the `--art-line` path in the generated art (controllerArt.ts,
+// from steam-controller-front.svg / steam-controller-back.svg): the gap that
+// path leaves for a part is exactly that part's face, so filling the same
+// outline lights the drawn part and nothing else. Re-copy them if the artwork
+// is regenerated; never approximate them with rectangles again.
 //
-// The front artwork does not depict the triggers at all -- they sit behind the
-// bumpers -- so each hump carries two stacked bands: the trigger on top with its
-// analog fill, the bumper below it. Before this, the Steam layout reused
-// DUALSENSE_PATHS, which drew large lens shapes straight across the D-pad and the
-// face buttons. Those overlays are interactive and are painted after the buttons,
-// so they were also swallowing clicks meant for UP/DOWN/LEFT/RIGHT and N/E/S/W.
-const STEAM_SHOULDER = {
-  left: { x: 196, w: 151 },
-  right: { x: 773.5, w: 150.5 },
+// The front view shows the bumpers only. The triggers sit behind them and are
+// not in the front artwork at all; drawing trigger bands there put two bars on
+// each shoulder hump that matched nothing on the controller. Presses and pulls
+// of both are shown on the back view, where both parts are drawn.
+//
+// Front: in the art's own space, placed by the same transform the artwork's
+// group uses (left hump x[195.6,346.6] y[6.8,57.8] once placed).
+const STEAM_FRONT_ART_TRANSFORM = 'translate(42.43417 0) scale(2.3510972)'
+const STEAM_FRONT_BUMPER_PATHS = {
+  left: 'M129.382 7.86903C125.901 5.04028 123.661 3.08243 118.827 2.92995C115.572 2.82728 112.385 2.95603 109.136 3.0644C105.4 4.07018 101.654 4.28203 98.0498 5.16455C87.5228 7.74208 73.0873 11.3159 66.866 20.9758C66.4188 21.6703 65.4993 23.7752 65.1383 24.5874C71.1418 21.1321 72.672 20.2301 79.043 17.7622C86.4963 14.143 97.9708 12.6025 106.092 10.8694C113.952 9.19218 121.474 9.03155 129.382 7.86903Z',
+  right: 'M320.438 3.04245C314.193 4.7123 315.638 4.40565 310.948 7.8373C327.983 9.81368 353.983 12.2806 369.035 20.7569C370.983 21.898 372.955 22.9957 374.953 24.0491C374.658 23.2555 373.587 20.2985 373.182 19.7494C370.51 16.1414 365.392 12.9389 361.31 11.1395C352.217 7.1317 341.765 4.5944 331.955 3.09525C329.835 2.77163 322.612 2.92318 320.438 3.04245Z',
 } as const
-const SHOULDER_TRIGGER_Y = 7
-const SHOULDER_TRIGGER_H = 24
-const SHOULDER_BUMPER_Y = 33
-const SHOULDER_BUMPER_H = 25
+// Where a bumper's name sits with Details on: over the thick end of the part.
+const STEAM_FRONT_BUMPER_LABELS = {
+  left: { x: 268, y: 22 },
+  right: { x: 851, y: 22 },
+} as const
 
-function shoulderTrigger(side: keyof typeof STEAM_SHOULDER) {
-  const { x, w } = STEAM_SHOULDER[side]
-  return {
-    d: roundedRectPath(x, SHOULDER_TRIGGER_Y, w, SHOULDER_TRIGGER_H, 11),
-    fillX: x + 6,
-    fillY: SHOULDER_TRIGGER_Y + 6,
-    fillWidth: w - 12,
-    labelX: x + w / 2,
-    labelY: SHOULDER_TRIGGER_Y + SHOULDER_TRIGGER_H / 2,
-  }
-}
+// Back: in the unmirrored back art's space. The back view draws that art inside
+// a mirroring group so the controller's left stays on the left, and these go in
+// the same group. So the controller's LEFT parts are the ones at the art's
+// right edge (x 306-374), matching the L4/L5 paddle hotspots on the left of the
+// drawing. The right trigger's face is drawn as two subpaths.
+const STEAM_BACK_SHOULDER_PATHS = {
+  left: {
+    bumper: 'M317.787 8.08931C312.547 8.74231 305.347 11.475 305.925 17.8821C306.175 20.6592 305.422 29.505 306.375 31.5637L306.707 31.3962C307.275 29.562 308.045 28.5567 309.745 27.639C319.807 22.2075 347.767 26.427 358.622 29.7735C359.265 29.9717 359.89 30.224 360.505 30.4937C361.475 30.9007 362.68 31.3437 363.597 31.8137C366.805 33.4565 370.2 34.4632 373.43 36.0307C370.88 32.889 370.507 28.8692 368.152 26.0127C356.332 11.6709 335.612 6.74786 317.787 8.08931Z',
+    trigger: 'M373.677 53.9877C374.1 50.5095 373.73 44.6052 372.347 41.41C371.19 40.7005 370.812 38.9482 369.79 37.8407C367.157 34.9897 363.322 32.6375 359.647 31.3902C345.447 26.5712 328.985 25.2205 314.177 27.0582C312.207 27.3025 308.932 28.6317 307.885 30.448C306.042 33.4265 307.172 37.2892 307.892 40.475C306.965 41.1892 306.837 42.3875 306.712 43.5022C305.997 49.8755 310.885 54.0195 315.377 57.52C323.395 63.768 332.895 68.1585 343.062 69.2007C350.885 69.976 359.052 69.5495 366.55 66.9802C367.157 66.772 369.402 66.0342 369.865 65.7525C371.102 65.0677 372.835 64.1707 374.012 63.452C374.062 61.5865 374.34 56.5242 373.767 55.0425C373.027 55.5202 371.422 56.5022 370.627 56.1602C368.687 55.3245 366.257 53.7127 364.382 52.7092C362.235 51.5735 359.98 50.658 357.647 49.9772C348.357 47.2005 337.642 46.5867 327.915 46.1432C321.217 45.8377 313.407 47.8805 308.285 41.8655C308.177 41.7382 307.94 40.6885 307.892 40.475C309.725 41.524 310.982 43.7565 314.542 44.6727C318.462 45.6817 321.972 45.1857 325.972 45.174C329.142 45.1857 332.312 45.261 335.48 45.3997C341.727 45.6917 349.48 46.9467 355.672 48.3782C358.752 49.077 361.722 50.1882 364.505 51.682C366.21 52.6125 369.495 54.7645 371.207 55.2037C372.182 55.1425 372.837 54.5532 373.677 53.9877Z',
+  },
+  right: {
+    bumper: 'M123.864 32.0842C123.036 28.0485 123.696 19.0268 122.968 13.4429C118.105 7.24479 109.18 7.93604 102.092 8.11574C80.0375 9.69586 57.6822 16.8711 55.1232 42.1742C58.782 35.2612 63.0657 32.5195 70.4992 29.733C70.7665 29.6327 71.0342 29.5875 71.3147 29.5315C76.4152 28.3267 83.3355 26.2457 88.7035 25.691C96.0765 24.9291 106.131 24.9575 113.576 25.6275C115.356 25.7877 118.685 26.9977 120.429 27.6325C121.817 29.198 122.655 30.3747 123.864 32.0842Z',
+    trigger: 'M54.8335 54.0885C55.6175 54.562 56.448 55.0935 57.264 55.4967C60.1342 53.8762 68.958 48.7425 72.311 48.4387C78.3987 47.5467 84.4322 45.5732 90.6655 45.3085C94.469 45.1015 98.2615 45.2292 102.069 45.1857C108.86 45.1085 116.327 46.5015 121.166 40.4357C123.016 38.1167 122.651 35.3255 122.759 32.4715L120.746 29.2805C114.216 25.6755 105.888 26.1482 98.4912 26.3665C85.9107 26.835 62.6592 28.7875 56.274 42.3902C55.3092 44.4455 54.6482 50.749 54.7672 53.1567C54.783 53.4677 54.805 53.7782 54.8335 54.0885Z'
+      + 'M122.521 39.1572C118.81 47.8867 109.238 46.0812 101.303 46.0502C90.091 46.0065 78.667 47.4165 67.9727 50.9012C65.317 51.766 59.679 55.1175 57.1947 56.5745C55.846 55.8717 55.3707 55.555 54.167 54.6215C54.5652 60.8377 52.1262 62.016 57.9982 65.4697C69.4222 70.991 86.1647 70.6385 98.1455 66.1852C107.536 62.6947 126.645 52.5457 122.886 39.657C122.829 39.4625 122.658 39.2992 122.521 39.1572Z',
+  },
+} as const
 
 // Whether a full-pull binding can ever fire comes down to whether the trigger
 // reaches the top of its axis, and no rounded decimal shows that: one count
 // short of the maximum still prints as 1.0000. So report the raw count the
 // telemetry float was divided down from, against the maximum it has to reach.
+// Listed with Details on in the back view's legend, beside the triggers it reads.
 const TRIGGER_AXIS_MAX = 32767
-const TRIGGER_READOUT_Y = SHOULDER_BUMPER_Y + SHOULDER_BUMPER_H + 14
-function TriggerReadout({ x, value }: { x: number; value: number }) {
-  return <text className={styles.triggerReadout} x={x} y={TRIGGER_READOUT_Y}>
-    {Math.round(value * TRIGGER_AXIS_MAX)}/{TRIGGER_AXIS_MAX}
-  </text>
-}
-
-function shoulderBumper(side: keyof typeof STEAM_SHOULDER) {
-  const { x, w } = STEAM_SHOULDER[side]
-  return {
-    d: roundedRectPath(x, SHOULDER_BUMPER_Y, w, SHOULDER_BUMPER_H, 12),
-    labelX: x + w / 2,
-    labelY: SHOULDER_BUMPER_Y + SHOULDER_BUMPER_H / 2,
-  }
-}
+const triggerReadout = (value: number) => `${Math.round(value * TRIGGER_AXIS_MAX)}/${TRIGGER_AXIS_MAX}`
 
 // Measured directly from the paths in steam-controller-front.svg, expressed in the
 // same 1117x750 space the artwork now uses. Do not hand-tune these: re-measure the
@@ -585,9 +581,21 @@ const BACK_HOTSPOTS: { command: string; label: string; cx: number; cy: number; r
   { command: 'RSL', label: 'R5', cx: 344, cy: 235, rx: 15, ry: 23 },
 ]
 
-function SteamBackView({ pressed, boundCommands, selectedCommand, onSelectCommand, bindingLabels }: {
+const BACK_SHOULDERS = [
+  { side: 'left', bumper: 'L', bumperTitle: 'Left bumper', triggers: LEFT_TRIGGER_COMMANDS, triggerTitle: 'Left trigger' },
+  { side: 'right', bumper: 'R', bumperTitle: 'Right bumper', triggers: RIGHT_TRIGGER_COMMANDS, triggerTitle: 'Right trigger' },
+] as const
+
+// Below this a resting trigger's noise would flicker the fill on and off.
+const TRIGGER_PULL_FLOOR = 0.02
+
+function SteamBackView({ pressed, boundCommands, selectedCommand, onSelectCommand, bindingLabels, triggers, triggerLabels, showRawTelemetry = false }: {
   pressed: Set<string>; boundCommands?: Set<string>; selectedCommand?: string | null
   onSelectCommand?: (command: string) => void; bindingLabels?: Record<string, string>
+  /** Analog pull of each trigger, 0..1. */
+  triggers: { left: number; right: number }
+  triggerLabels: { left: string; right: string }
+  showRawTelemetry?: boolean
 }) {
   const isPressed = (command: string) => pressed.has(command) || (command === 'MISC6' && pressed.has('GRIP_L')) || (command === 'MISC5' && pressed.has('GRIP_R'))
   const isSelected = (command: string) => selectedCommand === command || (command === 'MISC6' && selectedCommand === 'GRIP_L') || (command === 'MISC5' && selectedCommand === 'GRIP_R')
@@ -596,6 +604,27 @@ function SteamBackView({ pressed, boundCommands, selectedCommand, onSelectComman
     <div className={styles.backView}>
       <svg className={styles.backArt} viewBox="0 0 428 319" role="img" aria-label="Steam Controller back, mirrored">
         <g transform="translate(428 0) scale(-1 1)" dangerouslySetInnerHTML={{ __html: STEAM_BACK_ART }} />
+        {/* Bumpers and triggers, filling the art's own outlines: in the same
+            mirroring group, so they cannot drift off the drawn parts. A trigger
+            fills with its pull; a bumper is on or off. */}
+        <g transform="translate(428 0) scale(-1 1)">
+          {BACK_SHOULDERS.map(({ side, bumper, bumperTitle, triggers: triggerCommands, triggerTitle }) => {
+            const pull = clamp(triggers[side], 0, 1)
+            return (
+              <g key={side}>
+                <path className={join(styles.backPart, pull > TRIGGER_PULL_FLOOR && styles.backTriggerLive, isAnySelected(triggerCommands, selectedCommand) && styles.backPartSelected)}
+                  style={{ '--pull': pull } as CSSProperties} d={STEAM_BACK_SHOULDER_PATHS[side].trigger}
+                  onClick={() => onSelectCommand?.(pickCommand(triggerCommands, boundCommands, selectedCommand))}>
+                  <title>{triggerTitle}</title>
+                </path>
+                <path className={join(styles.backPart, pressed.has(bumper) && styles.backPartPressed, selectedCommand === bumper && styles.backPartSelected)}
+                  d={STEAM_BACK_SHOULDER_PATHS[side].bumper} onClick={() => onSelectCommand?.(bumper)}>
+                  <title>{bumperTitle}</title>
+                </path>
+              </g>
+            )
+          })}
+        </g>
         {BACK_HOTSPOTS.map(spot => (
           <ellipse key={spot.command} className={join(styles.backSpot, boundCommands?.has(spot.command) && styles.backSpotBound, isPressed(spot.command) && styles.backSpotPressed, isSelected(spot.command) && styles.backSpotSelected)}
             cx={spot.cx} cy={spot.cy} rx={spot.rx} ry={spot.ry} onClick={() => onSelectCommand?.(spot.command)}>
@@ -609,6 +638,12 @@ function SteamBackView({ pressed, boundCommands, selectedCommand, onSelectComman
           <span key={spot.command} className={styles.backLegendItem}>
             <span className={join(styles.backLegendMark, isPressed(spot.command) && styles.backLegendMarkLive)} aria-hidden="true" />
             {isPressed(spot.command) && spot.command.startsWith('MISC') ? spot.label + ' held' : (spot.label + ' ' + (bindingLabels?.[spot.command] ?? '').split(' · ')[0]).trim()}
+          </span>
+        ))}
+        {showRawTelemetry && BACK_SHOULDERS.map(({ side }) => (
+          <span key={side} className={join(styles.backLegendItem, styles.backLegendReadout)}>
+            <span className={join(styles.backLegendMark, triggers[side] > TRIGGER_PULL_FLOOR && styles.backLegendMarkLive)} aria-hidden="true" />
+            {triggerLabels[side]} {triggerReadout(clamp(triggers[side], 0, 1))}
           </span>
         ))}
       </div>
@@ -741,16 +776,13 @@ export function ControllerStatusSvg({ bindingLabels,
                         <ButtonBubble cx={382} cy={77} radius={15} command="-" family={family} label="-" pressed={pressed.has('-')} bound={boundCommands?.has('-')} selected={selectedCommand === '-'} onSelect={() => onSelectCommand?.('-')} title="View button" />
                         <ButtonBubble cx={730} cy={77} radius={15} command="+" family={family} label="+" pressed={pressed.has('+')} bound={boundCommands?.has('+')} selected={selectedCommand === '+'} onSelect={() => onSelectCommand?.('+')} title="Menu button" />
 
-            {/* Bumpers/triggers, on the artwork's own shoulder humps */}
-            <TriggerPath {...shoulderTrigger('left')} compact label={leftTriggerLabel} value={leftTrigger} muted={!hasLeftSide} bound={leftTriggerBound} selected={leftTriggerSelected} onSelect={hasLeftSide ? () => onSelectCommand?.(pickCommand(LEFT_TRIGGER_COMMANDS, boundCommands, selectedCommand)) : undefined} title="Left trigger" />
-            {showRawTelemetry && hasLeftSide && <TriggerReadout x={shoulderTrigger('left').labelX} value={leftTrigger} />}
-            <PathButton {...shoulderBumper('left')} compact label={controllerButtonGlyph(device.type, 'L')} pressed={pressed.has('L')} muted={!hasLeftSide} bound={boundCommands?.has('L')} selected={selectedCommand === 'L'} onSelect={hasLeftSide ? () => onSelectCommand?.('L') : undefined} title="Left bumper" />
-            <TriggerPath {...shoulderTrigger('right')} compact label={rightTriggerLabel} value={rightTrigger} muted={!hasRightSide} bound={rightTriggerBound} selected={rightTriggerSelected} onSelect={hasRightSide ? () => onSelectCommand?.(pickCommand(RIGHT_TRIGGER_COMMANDS, boundCommands, selectedCommand)) : undefined} title="Right trigger" />
-            {showRawTelemetry && hasRightSide && <TriggerReadout x={shoulderTrigger('right').labelX} value={rightTrigger} />}
-            <PathButton {...shoulderBumper('right')} compact label={controllerButtonGlyph(device.type, 'R')} pressed={pressed.has('R')} muted={!hasRightSide} bound={boundCommands?.has('R')} selected={selectedCommand === 'R'} onSelect={hasRightSide ? () => onSelectCommand?.('R') : undefined} title="Right bumper" />
+            {/* Bumpers only, filling the artwork's own bumper outlines. The triggers
+                are not visible from the front; they are on the back view. */}
+            <PathButton d={STEAM_FRONT_BUMPER_PATHS.left} transform={STEAM_FRONT_ART_TRANSFORM} labelX={STEAM_FRONT_BUMPER_LABELS.left.x} labelY={STEAM_FRONT_BUMPER_LABELS.left.y} compact label={controllerButtonGlyph(device.type, 'L')} pressed={pressed.has('L')} muted={!hasLeftSide} bound={boundCommands?.has('L')} selected={selectedCommand === 'L'} onSelect={hasLeftSide ? () => onSelectCommand?.('L') : undefined} title="Left bumper" />
+            <PathButton d={STEAM_FRONT_BUMPER_PATHS.right} transform={STEAM_FRONT_ART_TRANSFORM} labelX={STEAM_FRONT_BUMPER_LABELS.right.x} labelY={STEAM_FRONT_BUMPER_LABELS.right.y} compact label={controllerButtonGlyph(device.type, 'R')} pressed={pressed.has('R')} muted={!hasRightSide} bound={boundCommands?.has('R')} selected={selectedCommand === 'R'} onSelect={hasRightSide ? () => onSelectCommand?.('R') : undefined} title="Right bumper" />
 
           </svg>
-          <SteamBackView pressed={pressed} boundCommands={boundCommands} selectedCommand={selectedCommand} onSelectCommand={onSelectCommand} bindingLabels={bindingLabels} />
+          <SteamBackView pressed={pressed} boundCommands={boundCommands} selectedCommand={selectedCommand} onSelectCommand={onSelectCommand} bindingLabels={bindingLabels} triggers={{ left: leftTrigger, right: rightTrigger }} triggerLabels={{ left: leftTriggerLabel, right: rightTriggerLabel }} showRawTelemetry={showRawTelemetry} />
         </div>
       )
   }

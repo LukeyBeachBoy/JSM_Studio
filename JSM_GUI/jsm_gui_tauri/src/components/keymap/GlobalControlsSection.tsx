@@ -4,6 +4,7 @@ import keymapStyles from '../Keymap.module.css'
 import { SectionActions } from '../SectionActions'
 import { NumberField } from '../NumberField'
 import { AppSelect } from '../ui/AppSelect'
+import { LightBarPicker } from './LightBarPicker'
 
 type GlobalControlsSectionProps = {
   holdPressTimeSeconds: number
@@ -113,19 +114,7 @@ export function GlobalControlsSection({
                 {lightBarColor ? t('keymap.lightBarColorSet', { value: lightBarColor.slice(1).toLowerCase() }) : t('keymap.lightBarColorDefault')}
               </span>
             </div>
-            <div className={keymapStyles.globalControlInputGroup}>
-              <input
-                type="color"
-                value={lightBarColor ?? '#ffffff'}
-                onChange={(e) => onLightBarChange(e.target.value)}
-                className={keymapStyles.lightBarColorPicker}
-              />
-              {lightBarColor && (
-                <button type="button" className={keymapStyles.lightBarClearBtn} onClick={() => onLightBarChange(null)}>
-                  {t('common.clear')}
-                </button>
-              )}
-            </div>
+            <LightBarPicker value={lightBarColor} onChange={onLightBarChange} disabled={applyDisabled} />
           </div>
           <div className={keymapStyles.globalControlRow} data-capture-ignore="true">
             <div className={keymapStyles.globalControlText}>

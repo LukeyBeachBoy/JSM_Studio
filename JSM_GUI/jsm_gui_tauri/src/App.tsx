@@ -3,13 +3,14 @@ import { LayersPage } from './components/LayersPage'
 import { AssociationsPage } from './components/AssociationsPage'
 import { MapperDown, ConfigErrors, type ConfigError } from './components/SystemNotices'
 import type { MapperExit, LayerStack } from './platform/desktopBridge'
-import { writeLayers, defaultLayer, layerEntries, readLayerActions, setLayerActions } from './utils/layers'
+import { writeLayers, defaultLayer, layerEntries, readLayerActions, setLayerActions, describeLayerActivation } from './utils/layers'
+import { inputDisplayName } from './keymap/inputNames'
 import { SettingOrigins, SettingsInventory } from './components/SettingOrigin'
 import { controllerDisplayName, controllerVisualFamily } from './utils/controllerStatus'
 import { PollingSettings } from './components/PollingSettings'
 import { ControllerPreferences } from './components/ControllerPreferences'
 import { flushSync } from 'react-dom'
-import { appliedProfileLabel } from './utils/appliedProfile'
+import { appliedProfileLabel, isStudioNavigationProfile } from './utils/appliedProfile'
 import { ConfigScope } from './components/ConfigScope'
 import { ConfigBaseline } from './hooks/configContext'
 import { TuningClipboard } from './components/TuningClipboard'
@@ -22,6 +23,7 @@ import { inputPage, normalizePreviewInput } from './utils/inputNavigation'
 import tauriConf from '../src-tauri/tauri.conf.json'
 import sideNavStyles from './components/SideNav.module.css'
 import { ThemeToggle } from './components/ThemeToggle'
+import { ControllerFeedbackSetting } from './components/ControllerFeedbackSetting'
 import themeToggleStyles from './components/ThemeToggle.module.css'
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -39,6 +41,7 @@ import { ToastHost } from './components/ToastHost'
 import { LongOperationHost } from './components/LongOperation'
 import { FocusGlide } from './components/FocusGlide'
 import { desktopBridge } from './platform/desktopBridge'
+import { usePreferences, patchRuntimePreferences, setCachedAutostart, primePreferences } from './platform/preferenceStore'
 import { getKeymapValue, removeKeymapEntry, updateKeymapEntry } from './utils/keymap'
 import { parseBindingLabels, setBindingLabel } from './utils/bindingLabels'
 import { parseBindingIcons, setBindingIcon } from './utils/bindingIcons'
@@ -49,6 +52,7 @@ import { LanguageSelect } from './components/LanguageSelect'
 import { useKeyboardNav } from './hooks/useKeyboardNav'
 import { AppSelect } from './components/ui/AppSelect'
 import { TRACKPAD_ANCHORS } from './constants/trackpadAnchors'
+import { TOUCH_BUTTONS, TOUCH_STICK_BUTTONS } from './keymap/schema'
 import { controllerHasTwoTrackpads } from './utils/controllerStatus'
 import { useSectionScrollSpy } from './hooks/useSectionScrollSpy'
 
@@ -56,12 +60,13 @@ import { useSectionScrollSpy } from './hooks/useSectionScrollSpy'
 import { TitleBar, layerColor, type MappingPlateState, type TitleBarProfile, type VirtualOutput } from './shell/TitleBar'
 import { PageTabs, type ControllerStatus } from './shell/PageTabs'
 import { SectionList, scrollToSection, useDiscoveredSections, type ShellSection } from './shell/SectionList'
+import { sectionInFlight } from './nav/scroller'
 import { NavDrawer } from './shell/NavDrawer'
 import { HintCapsule } from './shell/HintCapsule'
 import { useShellWidth } from './shell/useShellWidth'
 import { isFramelessWindow } from './shell/windowControls'
 import { useControllerNavigation } from './nav/useControllerNavigation'
-import { isStudioPage, pageMeta, pageOrder, type ControlTab, type PrimaryTab } from './shell/pages'
+import { ALL_PAGES, isStudioPage, pageMeta, pageOrder, type ControlTab, type PrimaryTab } from './shell/pages'
 
 // Which of KeymapControls' button groups each control page is about.
 const CONTROL_TAB_SECTIONS: Record<ControlTab, string[]> = {
@@ -133,19 +138,9 @@ const getDefaultFloatingWindowPosition = (width: number, height: number): Floati
     height
   )
 
-const GyroBehaviorControls = lazy(async () => {
-  const module = await import('./components/GyroBehaviorControls')
-  return { default: module.GyroBehaviorControls }
-})
-
-const SensitivityControls = lazy(async () => {
-  const module = await import('./components/SensitivityControls')
-  return { default: module.SensitivityControls }
-})
-
-const NoiseSteadyingControls = lazy(async () => {
-  const module = await import('./components/NoiseSteadyingControls')
-  return { default: module.NoiseSteadyingControls }
+const GyroPage = lazy(async () => {
+  const module = await import('./components/GyroPage')
+  return { default: module.GyroPage }
 })
 
 const KeymapControls = lazy(async () => {
@@ -216,130 +211,92 @@ const LazyPanelFallback = ({ title, compact = false }: LazyPanelFallbackProps) =
 // src-tauri/src/services/autostart.rs for why that's the version that
 // actually launches without a UAC prompt at every logon.
 
+// Read the Preferences page's values as soon as the app loads, so the page
+// mounts with them rather than asking (and visibly changing) on every visit.
+void primePreferences()
+
+// One Preferences switch. `value` is null while the backend has not answered
+// yet (only the first moments after launch: preferenceStore reads everything at
+// startup). The switch only animates changes the user makes; a value that
+// arrives from the backend lands in place rather than sliding on by itself.
+function PreferenceSwitch({ label, value, pending, onToggle }: { label: string; value: boolean | null; pending: boolean; onToggle: (next: boolean) => void }) {
+  const [touched, setTouched] = useState(false)
+  const on = value === true
+  return (
+    <button
+      type="button"
+      className={`${themeToggleStyles.themeToggle} ${on ? themeToggleStyles.on : ''} ${touched ? '' : themeToggleStyles.instant} ${value === null ? themeToggleStyles.unknown : ''} ${sideNavStyles.navThemeToggle}`}
+      aria-pressed={value === null ? undefined : on}
+      aria-busy={value === null || undefined}
+      aria-label={label}
+      disabled={pending || value === null}
+      onClick={() => { setTouched(true); onToggle(!on) }}
+    >
+      <span className={themeToggleStyles.labelGroup}>
+        <span className={themeToggleStyles.text}>{label}</span>
+      </span>
+      <span className={themeToggleStyles.switch} aria-hidden="true">
+        <span className={themeToggleStyles.thumb} />
+      </span>
+    </button>
+  )
+}
+
 // Opens or closes the trackpad overlay: a separate always-on-top window that
 // draws the live pad menu over the game. It is a plain window, not a hook into
 // anything, so it can only be composited over a game running BORDERLESS
 // windowed -- exclusive fullscreen will hide it.
 function TrackpadOverlayToggle() {
   const { t } = useTranslation()
-  const [enabled, setEnabled] = useState(false)
+  const { runtime } = usePreferences()
   const [pending, setPending] = useState(false)
-
-  // Read the persisted state back, or the switch would say "off" while the
-  // overlay is actually up.
-  useEffect(() => {
-    let cancelled = false
-    desktopBridge.getRuntimeMappingState()
-      .then(s => { if (!cancelled) setEnabled(Boolean(s?.trackpadOverlayEnabled)) })
-      .catch(() => {})
-    return () => { cancelled = true }
-  }, [])
-
   const handleChange = async (next: boolean) => {
     setPending(true)
-    setEnabled(next)
+    patchRuntimePreferences({ trackpadOverlayEnabled: next })
     try {
       await desktopBridge.setTrackpadOverlayEnabled(next)
     } catch {
-      setEnabled(!next)
+      patchRuntimePreferences({ trackpadOverlayEnabled: !next })
     }
     setPending(false)
   }
-
-  return (
-    <button
-      type="button"
-      className={`${themeToggleStyles.themeToggle} ${enabled ? themeToggleStyles.on : ''} ${sideNavStyles.navThemeToggle}`}
-      aria-pressed={enabled}
-      aria-label={t('app.nav.trackpadOverlay', 'Trackpad overlay')}
-      disabled={pending}
-      onClick={() => handleChange(!enabled)}
-    >
-      <span className={themeToggleStyles.labelGroup}>
-        <span className={themeToggleStyles.text}>{t('app.nav.trackpadOverlay', 'Trackpad overlay')}</span>
-      </span>
-      <span className={themeToggleStyles.switch} aria-hidden="true">
-        <span className={themeToggleStyles.thumb} />
-      </span>
-    </button>
-  )
+  return <PreferenceSwitch label={t('app.nav.trackpadOverlay', 'Trackpad overlay')} value={runtime ? Boolean(runtime.trackpadOverlayEnabled) : null}
+    pending={pending} onToggle={next => void handleChange(next)} />
 }
 // Whether the calibration HUD appears over games (Preferences 16j).
 function CalibrationHudToggle() {
-  const [enabled, setEnabled] = useState(true)
+  const { runtime } = usePreferences()
   const [pending, setPending] = useState(false)
-  useEffect(() => {
-    let cancelled = false
-    desktopBridge.getRuntimeMappingState()
-      .then(state => { if (!cancelled) setEnabled(state?.calibrationHudEnabled !== false) })
-      .catch(() => {})
-    return () => { cancelled = true }
-  }, [])
   const handleChange = async (next: boolean) => {
     setPending(true)
-    setEnabled(next)
+    patchRuntimePreferences({ calibrationHudEnabled: next })
     const state = await desktopBridge.setCalibrationHudEnabled(next)
-    if (!state) setEnabled(!next)
+    if (!state) patchRuntimePreferences({ calibrationHudEnabled: !next })
     setPending(false)
   }
-  return (
-    <button type="button" className={`${themeToggleStyles.themeToggle} ${enabled ? themeToggleStyles.on : ''} ${sideNavStyles.navThemeToggle}`}
-      aria-pressed={enabled} aria-label="Calibration HUD" disabled={pending} onClick={() => void handleChange(!enabled)}>
-      <span className={themeToggleStyles.labelGroup}>
-        <span className={themeToggleStyles.text}>Calibration HUD</span>
-      </span>
-      <span className={themeToggleStyles.switch} aria-hidden="true"><span className={themeToggleStyles.thumb} /></span>
-    </button>
-  )
+  return <PreferenceSwitch label="Calibration HUD" value={runtime ? runtime.calibrationHudEnabled !== false : null}
+    pending={pending} onToggle={next => void handleChange(next)} />
 }
 
 function AutostartToggle() {
   const { t } = useTranslation()
-  const [enabled, setEnabled] = useState(false)
+  const { autostart } = usePreferences()
   const [pending, setPending] = useState(false)
-
-  useEffect(() => {
-    let cancelled = false
-    desktopBridge.getAutostartEnabled().then(value => {
-      if (!cancelled) setEnabled(value)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
   const handleChange = async (next: boolean) => {
     setPending(true)
-    const previous = enabled
-    setEnabled(next)
+    const previous = autostart ?? !next
+    setCachedAutostart(next)
     const success = await desktopBridge.setAutostartEnabled(next)
     setPending(false)
     if (!success) {
       // Revert the optimistic flip and say so -- a silent failure here would
       // leave someone thinking Windows will start the app for them when it
       // won't, which they'd only discover the next time they reboot.
-      setEnabled(previous)
+      setCachedAutostart(previous)
       showToast(t('messages.autostartFailed'), 'error')
     }
   }
-
-  return (
-    <button
-      type="button"
-      className={`${themeToggleStyles.themeToggle} ${enabled ? themeToggleStyles.on : ''} ${sideNavStyles.navThemeToggle}`}
-      aria-pressed={enabled}
-      aria-label={t('app.nav.startWithWindows')}
-      disabled={pending}
-      onClick={() => handleChange(!enabled)}
-    >
-      <span className={themeToggleStyles.labelGroup}>
-        <span className={themeToggleStyles.text}>{t('app.nav.startWithWindows')}</span>
-      </span>
-      <span className={themeToggleStyles.switch} aria-hidden="true">
-        <span className={themeToggleStyles.thumb} />
-      </span>
-    </button>
-  )
+  return <PreferenceSwitch label={t('app.nav.startWithWindows')} value={autostart} pending={pending} onToggle={next => void handleChange(next)} />
 }
 
 // Installs / removes the AutoLoad rule that maps the controller to keyboard
@@ -347,53 +304,25 @@ function AutostartToggle() {
 // Needs AutoLoad on to do anything, which the toggle's hint says.
 function ControllerNavToggle() {
   const { t } = useTranslation()
-  const [enabled, setEnabled] = useState(true)
+  const { runtime } = usePreferences()
   const [pending, setPending] = useState(false)
-
-  useEffect(() => {
-    let cancelled = false
-    desktopBridge.getRuntimeMappingState().then(state => {
-      if (!cancelled) setEnabled(state.controllerNavEnabled)
-    }).catch(() => {})
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
   const handleChange = async (next: boolean) => {
     setPending(true)
-    const previous = enabled
-    setEnabled(next)
+    const previous = runtime?.controllerNavEnabled ?? !next
+    patchRuntimePreferences({ controllerNavEnabled: next })
     try {
       const state = await desktopBridge.setControllerNavEnabled(next)
-      setEnabled(state.controllerNavEnabled)
+      patchRuntimePreferences({ controllerNavEnabled: state.controllerNavEnabled })
       window.dispatchEvent(new CustomEvent('jsm:controller-nav', { detail: state.controllerNavEnabled }))
     } catch (error) {
       console.error('Failed to update controller navigation', error)
-      setEnabled(previous)
+      patchRuntimePreferences({ controllerNavEnabled: previous })
       showToast(t('messages.controllerNavUpdateFailed'), 'error')
     } finally {
       setPending(false)
     }
   }
-
-  return (
-    <button
-      type="button"
-      className={`${themeToggleStyles.themeToggle} ${enabled ? themeToggleStyles.on : ''} ${sideNavStyles.navThemeToggle}`}
-      aria-pressed={enabled}
-      aria-label={t('app.nav.controllerNav')}
-      disabled={pending}
-      onClick={() => handleChange(!enabled)}
-    >
-      <span className={themeToggleStyles.labelGroup}>
-        <span className={themeToggleStyles.text}>{t('app.nav.controllerNav')}</span>
-      </span>
-      <span className={themeToggleStyles.switch} aria-hidden="true">
-        <span className={themeToggleStyles.thumb} />
-      </span>
-    </button>
-  )
+  return <PreferenceSwitch label={t('app.nav.controllerNav')} value={runtime ? runtime.controllerNavEnabled : null} pending={pending} onToggle={next => void handleChange(next)} />
 }
 
 function App() {
@@ -433,8 +362,14 @@ function App() {
       setDocsFocus({ setting, at: Date.now() })
       setPrimaryTab('help')
     }
+    // Pages ask to go elsewhere by name (the AI assistant's "Edit in Buttons").
+    const goto = (event: Event) => {
+      const tab = (event as CustomEvent<PrimaryTab | undefined>).detail
+      if (tab && ALL_PAGES.some(page => page.tab === tab)) setPrimaryTab(tab)
+    }
+    window.addEventListener('jsm:navigate-page', goto)
     window.addEventListener('jsm:open-docs', open)
-    return () => window.removeEventListener('jsm:open-docs', open)
+    return () => { window.removeEventListener('jsm:open-docs', open); window.removeEventListener('jsm:navigate-page', goto) }
   }, [])
   const [primaryTab, setPrimaryTabState] = useState<PrimaryTab>('overview')
   // Page change slides 16px in the direction of travel along the tab order.
@@ -455,6 +390,8 @@ function App() {
   const returnToInput = useRef<(() => void) | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [layerManagerOpen, setLayerManagerOpen] = useState(false)
+  // Values & inheritance: a dialog from the title bar's configuration menu.
+  const [inventoryOpen, setInventoryOpen] = useState(false)
   const shellWidth = useShellWidth()
   const frameless = useMemo(isFramelessWindow, [])
   useEffect(() => { if (shellWidth !== 'narrow') setDrawerOpen(false) }, [shellWidth])
@@ -463,7 +400,9 @@ function App() {
     setPrimaryTab(prev => {
       const order = pageOrder(prev)
       const index = Math.max(0, order.indexOf(prev))
-      return order[(index + delta + order.length) % order.length]
+      // The strip has ends: LT on Overview stays put rather than wrapping to
+      // the last Tuning page, which is behind a menu and read as a random jump.
+      return order[Math.min(order.length - 1, Math.max(0, index + delta))]
     })
   }, [setPrimaryTab])
   const closeFloatingWindows = useCallback(() => {
@@ -649,7 +588,6 @@ function App() {
     handleDecelBrakeStrengthChange,
     handleDecelBrakeThresholdChange,
     handleGyroClickDampenChange,
-    handleTickTimeChange,
     handleHoldPressTimeChange,
     handleDoublePressWindowChange,
     handleSimPressWindowChange,
@@ -803,13 +741,24 @@ function App() {
     return devices.some(device => controllerHasTwoTrackpads(device.type))
   }, [sample?.devices])
 
+  // Bindings for a shared-pad controller's inputs (TOUCH, CAPTURE …) that a
+  // two-pad controller does not have: shown under "Other controllers" (15c),
+  // and listed as a section only while the configuration carries one.
+  const hasOtherControllerTouchBindings = useMemo(() => {
+    const commands = [...TOUCH_BUTTONS, ...TOUCH_STICK_BUTTONS].map(button => button.command)
+    return effectiveConfigText.split(/\r?\n/).some(line => {
+      const match = /^\s*([A-Z0-9_]+)\s*=/i.exec(line)
+      return Boolean(match && commands.includes(match[1].toUpperCase()))
+    })
+  }, [effectiveConfigText])
   const trackpadRailItems = useMemo(
     () => [
       { id: TRACKPAD_ANCHORS.left, tag: 'L', label: t('keymap.leftTrackpadSection', 'Left trackpad') },
       { id: TRACKPAD_ANCHORS.right, tag: 'R', label: t('keymap.rightTrackpadSection', 'Right trackpad') },
       { id: TRACKPAD_ANCHORS.buttons, label: t('keymap.touchButtonsTitle') },
+      ...(hasOtherControllerTouchBindings ? [{ id: TRACKPAD_ANCHORS.other, label: 'Other controllers' }] : []),
     ],
-    [t]
+    [t, hasOtherControllerTouchBindings]
   )
 
   // The section list (LB/RB): the groups of the page on screen. Pages that
@@ -875,6 +824,16 @@ function App() {
     setStatusMessage,
     resetPendingSensitivityChanges: resetPendingSensitivityChanges,
   })
+  // First run (System States 17d): an empty library opens on the
+  // Configurations page, where the welcome panel offers a starting point.
+  // Asked once, directly: the library hook's loading flag flips true and back
+  // inside one batched render when the listing answers at once, so nothing
+  // downstream can tell "loaded and empty" from "not loaded yet".
+  useEffect(() => {
+    let disposed = false
+    void desktopBridge.listLibraryProfiles().then(names => { if (!disposed && names.length === 0) setPrimaryTab('configurations') }).catch(() => {})
+    return () => { disposed = true }
+  }, [setPrimaryTab])
   const {
     isCalibrationModalOpen,
     calibrationCounterOs,
@@ -953,12 +912,12 @@ function App() {
       }
       if (target instanceof HTMLInputElement) {
         if (target.disabled || target.readOnly || !isTextInput(target)) return
-        requestAnimationFrame(() => target.select())
+        requestAnimationFrame(() => { if (document.activeElement === target) target.select() })
       } else if (target instanceof HTMLTextAreaElement) {
         if (target.disabled || target.readOnly) return
         const skipAutoSelect = target.closest('.config-panel')
         if (skipAutoSelect) return
-        requestAnimationFrame(() => target.select())
+        requestAnimationFrame(() => { if (document.activeElement === target) target.select() })
       }
     }
     window.addEventListener('focusin', handleFocusIn)
@@ -1211,6 +1170,12 @@ function App() {
   const device = sample?.devices?.[0]
   const controllerFamily = controllerVisualFamily(device?.type)
   const appliedName = mappingEnabled ? appliedProfileLabel(sample?.activeProfile, appliedProfileName)?.replace(/.txt$/i, '') ?? null : null
+  // What games get. While Studio is in front the mapper runs AppNavigation,
+  // which is Studio's own and never shown; the configuration behind it is the
+  // one that counts as running.
+  const runningProfilePath = isStudioNavigationProfile(sample?.activeProfile)
+    ? (appliedProfileName ? `profiles-library/${appliedProfileName.replace(/\.txt$/i, '')}.txt` : '')
+    : typeof sample?.activeProfile === 'string' ? sample.activeProfile : ''
   const templateNames = useMemo(() => new Set(configIncludes.imports.map(includeDisplayName)), [configIncludes.imports])
   const titleBarProfiles = useMemo<TitleBarProfile[]>(() => libraryProfiles.map(name => ({
     name,
@@ -1219,16 +1184,12 @@ function App() {
       ? [configIncludes.imports.length ? `Imports ${configIncludes.imports.map(includeDisplayName).join(', ')}` : '', layers.length ? `${layers.length} layer${layers.length === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · ') || undefined
       : templateNames.has(name) && currentLibraryProfile ? `Imported by ${currentLibraryProfile}` : undefined,
   })), [libraryProfiles, templateNames, currentLibraryProfile, configIncludes.imports, layers.length])
-  const titleBarLayers = useMemo(() => layers.map((layer, index) => {
-    const verbs = layerActions.filter(action => action.layerId === layer.id)
-    const verbText: Record<string, string> = { hold: 'Held by', toggle: 'Toggled by', apply: 'Applied by', remove: 'Removed by' }
-    return {
-      id: layer.id,
-      name: layer.name,
-      colorIndex: index,
-      description: verbs.length ? verbs.map(action => `${verbText[action.verb] ?? action.verb} ${action.input}`).join(' · ') : 'Not bound to an input',
-    }
-  }), [layers, layerActions])
+  const titleBarLayers = useMemo(() => layers.map((layer, index) => ({
+    id: layer.id,
+    name: layer.name,
+    colorIndex: index,
+    description: describeLayerActivation(layerActions, layer.id, command => inputDisplayName(command, controllerFamily)),
+  })), [layers, layerActions, controllerFamily])
   const [testing, setTesting] = useState(false)
 
   // ---- System states the backend reports (System States 17c, 17e).
@@ -1240,6 +1201,20 @@ function App() {
     void desktopBridge.getLayerStack().then(stack => { if (stack) setLayerStack(stack) })
     return desktopBridge.onLayerStack(setLayerStack)
   }, [])
+  // The layers active on the applied configuration, for the title bar's
+  // Applied segment ("Wardogs · Vehicles · Comms", JSM Shell 3d). Only when the
+  // stack the mapper reports is for the file that is running; coloured by
+  // their position in the editing configuration when that is the same file.
+  const appliedLayers = useMemo(() => {
+    const running = runningProfilePath
+    const stackFile = layerStack?.profile.split(/[\\/]/).pop()?.toLowerCase() ?? ''
+    if (!running || !layerStack || !stackFile || stackFile !== running.split(/[\\/]/).pop()?.toLowerCase()) return []
+    const editingIsApplied = Boolean(currentLibraryProfile) && stackFile.replace(/\.txt$/i, '') === currentLibraryProfile?.toLowerCase()
+    return layerStack.layers.map(layer => {
+      const index = editingIsApplied ? layers.findIndex(candidate => candidate.id === layer.id) : -1
+      return { name: layer.name, color: index >= 0 ? layerColor(index) : 'var(--text-2)' }
+    })
+  }, [layerStack, runningProfilePath, currentLibraryProfile, layers])
   const [mapperExit, setMapperExit] = useState<MapperExit | null>(null)
   const [mapperRestarting, setMapperRestarting] = useState(false)
   useEffect(() => {
@@ -1263,9 +1238,9 @@ function App() {
   const baseName = (path: string) => path.split(/[\\/]/).pop()?.toLowerCase() ?? ''
   const configErrors = useMemo(() => {
     const reported = (sample?.configErrors as ConfigError[] | undefined) ?? []
-    const running = typeof sample?.activeProfile === 'string' ? baseName(sample.activeProfile) : ''
+    const running = runningProfilePath ? baseName(runningProfilePath) : ''
     return running ? reported.filter(error => baseName(error.profile) === running) : []
-  }, [sample?.configErrors, sample?.activeProfile])
+  }, [sample?.configErrors, runningProfilePath])
   const configErrorsKey = configErrors.map(error => `${error.file}:${error.line}:${error.text}`).join('|')
   const [dismissedConfigErrors, setDismissedConfigErrors] = useState('')
   const openSourceAtError = (error: ConfigError) => {
@@ -1348,22 +1323,35 @@ function App() {
     }
   }, [testing, exitTest])
 
-  // LB / RB step through the section list. A section still scrolling into
-  // place counts as current, so quick presses keep advancing.
-  const lastSectionJump = useRef<{ id: string; at: number } | null>(null)
+  // LB / RB step through the section list. A section the page is still
+  // scrolling to counts as current (nav/scroller.ts knows which), so quick
+  // presses keep advancing from the last one asked for, not from whatever
+  // the scroll spy saw mid-flight.
+  // Returns whether it moved, so the pad can feel the end of the list.
   const stepSection = useCallback((delta: 1 | -1) => {
-    if (!shellSections.length) return
-    const recent = lastSectionJump.current && performance.now() - lastSectionJump.current.at < 900 ? lastSectionJump.current.id : null
-    const from = shellSections.findIndex(section => recent ? section.id === recent : section.active)
+    if (!shellSections.length) return false
+    const inFlight = sectionInFlight()
+    const from = shellSections.findIndex(section => inFlight ? section.id === inFlight : section.active)
     const target = shellSections[Math.min(shellSections.length - 1, Math.max(0, (from < 0 ? 0 : from + delta)))]
-    lastSectionJump.current = { id: target.id, at: performance.now() }
+    if (target.id === inFlight || (!inFlight && target.active)) return false
     target.onSelect()
+    return true
   }, [shellSections])
+  // LT / RT from the pad: the same step as Page Up / Down, reporting whether
+  // it moved (the strip has ends) for the haptic.
+  const stepPageFromPad = useCallback((delta: 1 | -1) => {
+    const order = pageOrder(primaryTab)
+    const index = Math.max(0, order.indexOf(primaryTab))
+    const next = order[Math.min(order.length - 1, Math.max(0, index + delta))]
+    if (next === primaryTab) return false
+    setPrimaryTab(next)
+    return true
+  }, [primaryTab, setPrimaryTab])
 
   useControllerNavigation({
     enabled: mappingPlate === 'studio',
     testing,
-    onPageStep: stepPage,
+    onPageStep: stepPageFromPad,
     onSectionStep: stepSection,
     onExitTest: exitTest,
   })
@@ -1394,9 +1382,12 @@ function App() {
       editingName={currentLibraryProfile}
       dirty={hasPendingChanges}
       profiles={titleBarProfiles}
-      appliedName={appliedName}
+      // A mapper that has stopped applies nothing (System States 17c).
+      appliedName={mapperExit ? null : appliedName}
+      appliedLayers={mapperExit ? undefined : appliedLayers}
       onSelectProfile={requestLoadProfile}
       onOpenLibrary={() => setPrimaryTab('configurations')}
+      onShowInheritance={() => setInventoryOpen(true)}
       editingDisabled={isCalibrating}
       layers={titleBarLayers}
       layerId={layerId}
@@ -1447,6 +1438,19 @@ function App() {
                 onApply={handleApplyWithFinalize}
                 onShowInFolder={handleOpenConfigDirectory}
                 onEditSource={() => { setConfigWindowPosition(null); setConfigDrawerOpen(true) }}
+                // X / Apply on a row that is not being edited (Studio Home 8a):
+                // open it through the unsaved guard, then apply it. With edits
+                // pending the guard's dialog takes over and the apply waits for
+                // the person's answer.
+                onApplyLibraryProfile={async name => {
+                  if (name === currentLibraryProfile) { void runEditorAction('apply'); return }
+                  if (hasPendingChanges) { requestLoadProfile(name); return }
+                  const profile = await desktopBridge.loadLibraryProfile(name)
+                  if (!profile) { showToast(t('messages.loadProfileFailed'), 'error'); return }
+                  await handleLoadProfileFromLibrary(name)
+                  await applyConfig({ textOverride: profile.content, profileNameOverride: name })
+                }}
+                family={controllerFamily}
               />)
 
   const renderPrimaryContent = () => {
@@ -1457,7 +1461,7 @@ function App() {
       runtimeBusy={runtimeMappingBusy} onAutoloadEnabledChange={handleAutoloadEnabledChange} />
     if (primaryTab === 'layers') {
       // Live only when the mapper is running the configuration on this page.
-      const running = typeof sample?.activeProfile === 'string' ? sample.activeProfile : ''
+      const running = runningProfilePath
       const runningName = running.split(/[\\/]/).pop()?.replace(/\.txt$/i, '') ?? ''
       const isThis = !!currentLibraryProfile && runningName.toLowerCase() === currentLibraryProfile.toLowerCase()
       const stack = isThis ? (layerStack && layerStack.profile.split(/[\\/]/).pop()?.replace(/\.txt$/i, '').toLowerCase() === runningName.toLowerCase() ? layerStack : { profile: running, layers: [] }) : null
@@ -1467,7 +1471,8 @@ function App() {
     // Preferences (Tuning and Studio Pages 16j): appearance and startup on the
     // left, the controller on the right.
     if (primaryTab === 'settings') return <div className="prefs-columns">
-      <div className="prefs-column">
+      {/* Each column is its own region for the pad's Up/Down. */}
+      <div className="prefs-column" data-nav-region="appearance">
         <h3 className="prefs-eyebrow">Appearance</h3>
         <div className={sideNavStyles.navSettings}>
           <LanguageSelect className={sideNavStyles.navLanguageSelect} />
@@ -1478,12 +1483,13 @@ function App() {
         <ControllerPreferences part="sounds" />
         <p className="settings-version">JSM Studio v{tauriConf.version}</p>
       </div>
-      <div className="prefs-column">
+      <div className="prefs-column" data-nav-region="controller">
         <h3 className="prefs-eyebrow">Controller</h3>
         <div className={sideNavStyles.navSettings}>
           <ControllerNavToggle />
           <TrackpadOverlayToggle />
           <CalibrationHudToggle />
+          <ControllerFeedbackSetting className={sideNavStyles.navThemeToggle} />
         </div>
         <ControllerPreferences part="calibration" />
         <PollingSettings global text={configText} effectiveText={configIncludes.effectiveText} onChange={setConfigText} />
@@ -1500,126 +1506,81 @@ function App() {
     </div>
 
     if (primaryTab === 'gyro') {
+      // The settings-page template (Gyro.dc.html): GyroPage draws the seven
+      // sections; each carries data-section, which is how the section list
+      // finds them.
       return (
-        <>
-          {/* One page, three sections (Gyro.dc.html): the section list jumps
-              between them rather than switching views. */}
-          <section id="gyro-general" className="page-section" data-section={t('app.tabs.gyroBehavior')}>
-            <Suspense fallback={<LazyPanelFallback title={t('app.tabs.gyroBehavior')} />}>
-              <GyroBehaviorControls
-                devices={sample?.devices}
-                sensitivity={sensitivity}
-                gyroActivationMode={gyroActivation.mode}
-                gyroActivationButton={gyroActivation.button}
-                touchpadMode={touchpadModeValue}
-                touchpadGridCells={gyroGridCommands.length}
-                touchpadGridCommands={gyroGridCommands}
-                isCalibrating={isCalibrating}
-                statusMessage={statusMessage}
-                ignoredDevices={ignoredGyroDevices}
-                onToggleIgnoreDevice={handleToggleIgnoreGyroDevice}
-                onInGameSensChange={handleInGameSensChange}
-                onRealWorldCalibrationChange={handleRealWorldCalibrationChange}
-                onTickTimeChange={handleTickTimeChange}
-                onGyroSpaceChange={handleGyroSpaceChange}
-                onGyroAxisXChange={handleGyroAxisXChange}
-                onGyroAxisYChange={handleGyroAxisYChange}
-                onGyroOutputChange={handleGyroOutputChange}
-                onGyroActivationModeChange={handleGyroActivationModeChange}
-                onGyroActivationButtonChange={handleGyroActivationButtonChange}
-                counterOsMouseSpeed={counterOsMouseSpeedEnabled}
-                onCounterOsMouseSpeedChange={handleCounterOsMouseSpeedChange}
-                onOpenCalibration={handleOpenCalibration}
-                onOpenRwcGuide={() => setIsRwcGuideModalOpen(true)}
-                hasPendingChanges={hasPendingChanges}
-                onApply={handleApplyWithFinalize}
-                onCancel={handleCancel}
-                lockMessage={lockMessage}
-                appliedSampleHz={telemetryValues.sampleHz}
-              />
-            </Suspense>
-          </section>
-          <section id="gyro-sensitivity" className="page-section" data-section={t('app.tabs.sensitivity')}>
-            <Suspense fallback={<LazyPanelFallback title={t('app.tabs.sensitivity')} />}>
-              <SensitivityControls
-                sensitivity={sensitivity}
-                modeshiftSensitivity={modeshiftSensitivity}
-                isCalibrating={isCalibrating}
-                statusMessage={statusMessage}
-                accelCurve={sensitivity.accelCurve}
-                naturalVHalf={sensitivity.naturalVHalf}
-                powerVRef={sensitivity.powerVRef}
-                powerExponent={sensitivity.powerExponent}
-                sigmoidMid={sensitivity.sigmoidMid}
-                sigmoidWidth={sensitivity.sigmoidWidth}
-                jumpTau={sensitivity.jumpTau}
-                mode={currentMode}
-                sensitivityView={sensitivityView}
-                hasPendingChanges={hasPendingChanges}
-                sample={sample}
-                telemetry={telemetryValues}
-                touchpadMode={touchpadModeValue}
-                touchpadGridCells={gyroGridCommands.length}
-                onModeChange={(mode) => handleModeSelection(mode, activeSensitivityPrefix)}
-                onSensitivityViewChange={setSensitivityView}
-                onApply={handleApplyWithFinalize}
-                onCancel={handleCancel}
-                onAccelCurveChange={handleAccelCurveChange}
-                onNaturalVHalfChange={handleNaturalVHalfChange}
-                onPowerVRefChange={handlePowerVRefChange}
-                onPowerExponentChange={handlePowerExponentChange}
-                onSigmoidMidChange={handleSigmoidMidChange}
-                onSigmoidWidthChange={handleSigmoidWidthChange}
-                onJumpTauChange={handleJumpTauChange}
-                onMinThresholdChange={handleThresholdChange('MIN_GYRO_THRESHOLD')}
-                onMaxThresholdChange={handleThresholdChange('MAX_GYRO_THRESHOLD')}
-                onMinSensXChange={handleDualSensChange('MIN_GYRO_SENS', 0)}
-                onMinSensYChange={handleDualSensChange('MIN_GYRO_SENS', 1)}
-                onMaxSensXChange={handleDualSensChange('MAX_GYRO_SENS', 0)}
-                onMaxSensYChange={handleDualSensChange('MAX_GYRO_SENS', 1)}
-                onStaticSensXChange={handleStaticSensChange(0)}
-                onStaticSensYChange={handleStaticSensChange(1)}
-                onRollContributionChange={handleRollContributionChange}
-                modeshiftButton={sensitivityModeshiftButton}
-                onModeshiftButtonChange={handleSensitivityModeshiftButtonChange}
-                lockMessage={lockMessage}
-                accelCurveLink={accelCurveLinkValue}
-                onAccelCurveLinkChange={handleAccelCurveLinkChange}
-              />
-            </Suspense>
-          </section>
-          <section id="gyro-noise" className="page-section" data-section={t('app.tabs.noiseAndSteadying')}>
-            <Suspense fallback={<LazyPanelFallback title={t('app.tabs.noiseAndSteadying')} />}>
-              <NoiseSteadyingControls
-                sensitivity={sensitivity}
-                isCalibrating={isCalibrating}
-                statusMessage={statusMessage}
-                hasPendingChanges={hasPendingChanges}
-                onApply={handleApplyWithFinalize}
-                onCancel={handleCancel}
-                lockMessage={lockMessage}
-                onCutoffSpeedChange={handleCutoffSpeedChange}
-                onCutoffRecoveryChange={handleCutoffRecoveryChange}
-                onSmoothTimeChange={handleSmoothTimeChange}
-                onSmoothThresholdChange={handleSmoothThresholdChange}
-                onSmoothingDecayChange={handleSmoothingDecayChange}
-                onOneEuroFilterChange={handleOneEuroFilterChange}
-                onOneEuroMinCutoffChange={handleOneEuroMinCutoffChange}
-                onOneEuroSpeedCoeffChange={handleOneEuroSpeedCoeffChange}
-                onAngleSnapChange={handleAngleSnapChange}
-                onAngleSnapSmoothChange={handleAngleSnapSmoothChange}
-                onDecelBrakeStrengthChange={handleDecelBrakeStrengthChange}
-                onDecelBrakeThresholdChange={handleDecelBrakeThresholdChange}
-                onGyroClickDampenChange={handleGyroClickDampenChange}
-                telemetry={{
-                  omega: telemetryValues.omega,
-                  timestamp: telemetryValues.timestamp,
-                  sampleHz: telemetryValues.sampleHz,
-                }}
-              />
-            </Suspense>
-          </section>
-        </>
+        <Suspense fallback={<LazyPanelFallback title={t(pageMeta('gyro').labelKey, pageMeta('gyro').label)} />}>
+          <GyroPage
+            devices={sample?.devices}
+            sensitivity={sensitivity}
+            modeshiftSensitivity={modeshiftSensitivity}
+            gyroActivationMode={gyroActivation.mode}
+            gyroActivationButton={gyroActivation.button}
+            touchpadMode={touchpadModeValue}
+            touchpadGridCells={gyroGridCommands.length}
+            touchpadGridCommands={gyroGridCommands}
+            isCalibrating={isCalibrating}
+            statusMessage={statusMessage}
+            ignoredDevices={ignoredGyroDevices}
+            onToggleIgnoreDevice={handleToggleIgnoreGyroDevice}
+            onInGameSensChange={handleInGameSensChange}
+            onRealWorldCalibrationChange={handleRealWorldCalibrationChange}
+            onGyroSpaceChange={handleGyroSpaceChange}
+            onGyroAxisXChange={handleGyroAxisXChange}
+            onGyroAxisYChange={handleGyroAxisYChange}
+            onGyroOutputChange={handleGyroOutputChange}
+            onGyroActivationModeChange={handleGyroActivationModeChange}
+            onGyroActivationButtonChange={handleGyroActivationButtonChange}
+            counterOsMouseSpeed={counterOsMouseSpeedEnabled}
+            onCounterOsMouseSpeedChange={handleCounterOsMouseSpeedChange}
+            onOpenCalibration={handleOpenCalibration}
+            onOpenRwcGuide={() => setIsRwcGuideModalOpen(true)}
+            hasPendingChanges={hasPendingChanges}
+            onApply={handleApplyWithFinalize}
+            onCancel={handleCancel}
+            lockMessage={lockMessage}
+            mode={currentMode}
+            sensitivityView={sensitivityView}
+            sample={sample}
+            telemetry={telemetryValues}
+            onModeChange={(mode: 'static' | 'accel') => handleModeSelection(mode, activeSensitivityPrefix)}
+            onSensitivityViewChange={setSensitivityView}
+            onAccelCurveChange={handleAccelCurveChange}
+            onNaturalVHalfChange={handleNaturalVHalfChange}
+            onPowerVRefChange={handlePowerVRefChange}
+            onPowerExponentChange={handlePowerExponentChange}
+            onSigmoidMidChange={handleSigmoidMidChange}
+            onSigmoidWidthChange={handleSigmoidWidthChange}
+            onJumpTauChange={handleJumpTauChange}
+            onMinThresholdChange={handleThresholdChange('MIN_GYRO_THRESHOLD')}
+            onMaxThresholdChange={handleThresholdChange('MAX_GYRO_THRESHOLD')}
+            onMinSensXChange={handleDualSensChange('MIN_GYRO_SENS', 0)}
+            onMinSensYChange={handleDualSensChange('MIN_GYRO_SENS', 1)}
+            onMaxSensXChange={handleDualSensChange('MAX_GYRO_SENS', 0)}
+            onMaxSensYChange={handleDualSensChange('MAX_GYRO_SENS', 1)}
+            onStaticSensXChange={handleStaticSensChange(0)}
+            onStaticSensYChange={handleStaticSensChange(1)}
+            onRollContributionChange={handleRollContributionChange}
+            modeshiftButton={sensitivityModeshiftButton}
+            onModeshiftButtonChange={handleSensitivityModeshiftButtonChange}
+            accelCurveLink={accelCurveLinkValue}
+            onAccelCurveLinkChange={handleAccelCurveLinkChange}
+            onCutoffSpeedChange={handleCutoffSpeedChange}
+            onCutoffRecoveryChange={handleCutoffRecoveryChange}
+            onSmoothTimeChange={handleSmoothTimeChange}
+            onSmoothThresholdChange={handleSmoothThresholdChange}
+            onSmoothingDecayChange={handleSmoothingDecayChange}
+            onOneEuroFilterChange={handleOneEuroFilterChange}
+            onOneEuroMinCutoffChange={handleOneEuroMinCutoffChange}
+            onOneEuroSpeedCoeffChange={handleOneEuroSpeedCoeffChange}
+            onAngleSnapChange={handleAngleSnapChange}
+            onAngleSnapSmoothChange={handleAngleSnapSmoothChange}
+            onDecelBrakeStrengthChange={handleDecelBrakeStrengthChange}
+            onDecelBrakeThresholdChange={handleDecelBrakeThresholdChange}
+            onGyroClickDampenChange={handleGyroClickDampenChange}
+          />
+        </Suspense>
       )
     }
 
@@ -2080,6 +2041,7 @@ function App() {
           // The diagram is read-only and should show what the controller
           // actually does, imported bindings included.
           configText={effectiveConfigText}
+          virtualOutput={virtualControllerType === 'XBOX' ? 'virtual Xbox' : virtualControllerType === 'DS4' ? 'virtual DualShock 4' : undefined}
         />
       )
     }
@@ -2098,7 +2060,7 @@ function App() {
     }
 
     if (primaryTab === 'deviceVisibility') {
-      return <HidHidePage telemetryDevices={sample?.devices} />
+      return <HidHidePage telemetryDevices={sample?.devices} virtualOutput={virtualControllerType} />
     }
 
     if (primaryTab === 'debugConsole') {
@@ -2151,10 +2113,15 @@ function App() {
       : primaryTab === 'layers'
         ? configName
         : `${configName} · ${meta.group === 'tuning' ? 'Tuning' : 'Controls'}`
+  const tuningKind = primaryTab === 'gyro' ? 'gyro' as const : primaryTab === 'sensors' ? 'trackpad' as const : primaryTab === 'gripSensors' ? 'grip' as const : null
   const pageActions = primaryTab === 'gyro'
     ? <><span className="telemetry-chip" title="Live gyro speed and sample rate"><span className="telemetry-chip__dot" aria-hidden="true" />{telemetryValues.omega} °/s · {telemetryValues.sampleHz} Hz</span><button type="button" className="button button--secondary" onClick={handleRecalibrate} disabled={recalibrating || isCalibrating}>{recalibrating ? t('app.recalibration.recalibrating') : t('app.recalibration.recalibrateGyro')}</button></>
     : primaryTab === 'layers'
       ? <button type="button" className="button button--secondary" onClick={() => setLayerManagerOpen(true)}>Manage layers</button>
+    : primaryTab === 'triggers'
+      // Configuration Pages 15a: the trigger calibration flow lives on the
+      // page; the header button just starts it.
+      ? <button type="button" className="button button--secondary" onClick={() => window.dispatchEvent(new Event('jsm:calibrate-triggers'))}>Calibrate triggers</button>
       : primaryTab === 'globalChords'
         ? <button type="button" className="button button--primary" onClick={() => window.dispatchEvent(new Event('jsm:add-chord'))}>+ Add chord</button>
       : primaryTab === 'associations'
@@ -2214,7 +2181,13 @@ function App() {
                   <h1 className="page-header__title">{t(meta.labelKey, meta.label)}</h1>
                   <p className="page-header__purpose">{t(`shell.purpose.${primaryTab}`, meta.purpose)}</p>
                 </div>
-                {pageActions && <div className="page-header__actions">{pageActions}</div>}
+                {(pageActions || tuningKind) && <div className="page-header__actions">
+                  {/* Copy and paste of a tuning page sit with the page's other
+                      actions, not above its first row: that was where the pad
+                      landed on entering the page. */}
+                  {tuningKind && <TuningClipboard kind={tuningKind} text={configText} onChange={text => { resetPendingSensitivityChanges(); setConfigText(text) }} disabled={isCalibrating} />}
+                  {pageActions}
+                </div>}
               </header>
           <main className="main-pane page-body">
             {mapperExit && studioPage && <MapperDown compact exit={mapperExit} restarting={mapperRestarting} onRestart={() => void restartMapper()} onOpenConsole={() => setPrimaryTab('debugConsole')} />}
@@ -2222,13 +2195,12 @@ function App() {
               <ConfigErrors errors={configErrors} appliedText={runtimeConfig} onOpenSource={openSourceAtError} onDismiss={() => setDismissedConfigErrors(configErrorsKey)} />
             )}
             <ConfigBaseline.Provider value={{ text: configText, saved: savedLayerText, onChange: text => { resetPendingSensitivityChanges(); setConfigText(text) } }}>
-            <LayerUsageContext.Provider value={{ text: effectiveConfigText, layers, actions: layerActions, selected: layers.find(layer => layer.id === layerId), onChangeLayers: next => setDocumentText(previous => writeLayers(previous, next)), onSetActions: (input, next) => setDocumentText(previous => setLayerActions(previous, input, next)), onSelect: selectLayer, onNavigate: navigateInput, disabled: isCalibrating }}>
+            <LayerUsageContext.Provider value={{ text: effectiveConfigText, layers, actions: layerActions, selected: layers.find(layer => layer.id === layerId), onChangeLayers: next => setDocumentText(previous => writeLayers(previous, next)), onSetActions: (input, next) => setDocumentText(previous => setLayerActions(previous, input, next)), onSelect: selectLayer, onNavigate: navigateInput, disabled: isCalibrating, family: controllerFamily }}>
             <SettingOrigins.Provider value={{ text: effectiveConfigText, own: layerId ? Object.entries(layers.find(l => l.id === layerId)?.overrides ?? {}).map(([k,v]) => `${k} = ${v}`).join('\n') : defaultLayer(documentText), base: configIncludes.resolveText(defaultLayer(documentText).split(/\r?\n/).filter(line => !line.includes('=')).join('\n')), origins: configIncludes.resolution?.origins ?? {}, layer: layers.find(l => l.id === layerId)?.name, disabled: isCalibrating, reset: key => { resetPendingSensitivityChanges(); setDocumentText(previous => layerId ? writeLayers(previous, layers.map(l => { if(l.id !== layerId) return l; const overrides = {...l.overrides}; delete overrides[key]; return {...l, overrides} })) : previous.split(/\r?\n/).filter(line => !Object.prototype.hasOwnProperty.call(layerEntries(line), key)).join('\n')) } }}>
             <InputUsageInspector />
             <LayerBar text={documentText} layers={layers} selected={layerId} managing={layerManagerOpen} onChange={setDocumentText} onSelect={selectCreatedLayer} disabled={isCalibrating} family={controllerVisualFamily(sample?.devices?.[0]?.type)} onClose={() => setLayerManagerOpen(false)} />
-            {(primaryTab === 'gyro' || primaryTab === 'sensors' || primaryTab === 'gripSensors') && <TuningClipboard kind={primaryTab === 'gyro' ? 'gyro' : primaryTab === 'sensors' ? 'trackpad' : 'grip'} text={configText} onChange={text => { resetPendingSensitivityChanges(); setConfigText(text) }} disabled={isCalibrating} />}
             <ConfigScope match={primaryTab === 'gyro' ? /^(GYRO_|MIN_GYRO|MAX_GYRO|ACCEL_|SMOOTH_|CUTOFF_|ONE_EURO|ANGLE_|DECEL_|ROLL_|IN_GAME|REAL_WORLD)/ : /./}>{renderPrimaryContent()}</ConfigScope>
-            <ConfigScope match={primaryTab === 'gyro' ? /^(GYRO_|MIN_GYRO|MAX_GYRO|ACCEL_|SMOOTH_|CUTOFF_|ONE_EURO|ANGLE_|DECEL_|ROLL_|IN_GAME|REAL_WORLD)/ : /./}>{!studioPage && <SettingsInventory />}</ConfigScope>
+            <ConfigScope match={primaryTab === 'gyro' ? /^(GYRO_|MIN_GYRO|MAX_GYRO|ACCEL_|SMOOTH_|CUTOFF_|ONE_EURO|ANGLE_|DECEL_|ROLL_|IN_GAME|REAL_WORLD)/ : /./}><SettingsInventory open={inventoryOpen} onClose={() => setInventoryOpen(false)} pageLabel={studioPage ? undefined : t(meta.labelKey, meta.label)} /></ConfigScope>
             </SettingOrigins.Provider>
             </LayerUsageContext.Provider>
           </ConfigBaseline.Provider></main>
@@ -2453,38 +2425,6 @@ function App() {
           />
         </Suspense>
       )}
-      {pendingProfileSwitch && (
-        <div className="modal-overlay modal-overlay--over">
-          <div className="modal-card unsaved-modal" role="alertdialog" aria-modal="true" aria-labelledby="unsaved-switch-title">
-            <div className="modal-header">
-              <h3 id="unsaved-switch-title">{t('app.unsavedSwitch.title', { current: currentLibraryProfile ?? t('app.profileSummary.unsavedProfile') })}</h3>
-            </div>
-            <p className="unsaved-modal-body">
-              {t('app.unsavedSwitch.body', {
-                current: currentLibraryProfile ?? t('app.profileSummary.unsavedProfile'),
-                next: pendingProfileSwitch,
-              })}
-            </p>
-            {/* Components 13.13: Cancel, Discard and Switch, Keep Draft and
-                Switch. Save and Switch stays as well, so there is still a way
-                to write the edits to the file on the way out. */}
-            <div className="unsaved-modal-actions confirm-dialog__actions">
-              <button className="button button--tertiary" onClick={() => setPendingProfileSwitch(null)}>
-                {t('common.cancel')}
-              </button>
-              <button className="button button--danger" onClick={() => void resolveProfileSwitch('discard')}>
-                {t('app.unsavedSwitch.discard')}
-              </button>
-              <button className="button button--secondary" onClick={() => void resolveProfileSwitch('save')}>
-                {t('app.unsavedSwitch.saveAndSwitch')}
-              </button>
-              <button className="button button--primary" autoFocus onClick={() => void resolveProfileSwitch('keep')}>
-                {t('app.unsavedSwitch.keepDraft')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       {isProfileModalOpen && (
         <div className="modal-overlay">
           <div className="modal-card profile-modal">
@@ -2511,6 +2451,56 @@ function App() {
           />
         </Suspense>
       )}
+      {/* The unsaved-changes guard (Components 13.13), laid out for the pad: a
+          vertical stack of large choices, recommended first and destructive
+          last. It is rendered last so it is the topmost overlay in DOM order,
+          which is the one useKeyboardNav traps: it is raised over the
+          configuration dialog, and rendered before it the pad stayed behind.
+          No autoFocus: useKeyboardNav focuses the first choice itself (Cancel
+          is a ghost button, so it is skipped) and records where focus came
+          from, so B / Escape (Cancel, via data-modal-close) returns it there. */}
+      {pendingProfileSwitch && (() => {
+        const current = currentLibraryProfile ?? t('app.profileSummary.unsavedProfile')
+        const choices = [
+          { key: 'keep', label: t('app.unsavedSwitch.keepDraft'), hint: t('app.unsavedSwitch.keepDraftHint', { current }), tone: 'recommended' },
+          { key: 'save', label: t('app.unsavedSwitch.saveAndSwitch'), hint: t('app.unsavedSwitch.saveHint', { current }), tone: 'default' },
+          { key: 'discard', label: t('app.unsavedSwitch.discard'), hint: t('app.unsavedSwitch.discardHint', { current }), tone: 'danger' },
+        ] as const
+        return (
+          <div className="modal-overlay modal-overlay--over">
+            <div className="modal-card unsaved-modal" role="alertdialog" aria-modal="true" aria-labelledby="unsaved-switch-title" aria-describedby="unsaved-switch-body">
+              <div className="modal-header">
+                <h3 id="unsaved-switch-title">{t('app.unsavedSwitch.title', { current })}</h3>
+                <button type="button" className="ghost-btn" data-modal-close onClick={() => setPendingProfileSwitch(null)}>
+                  {t('common.cancel')}
+                </button>
+              </div>
+              <p id="unsaved-switch-body" className="unsaved-modal-body">
+                {t('app.unsavedSwitch.body', { current, next: pendingProfileSwitch })}
+              </p>
+              <div className="unsaved-choices" role="group" aria-labelledby="unsaved-switch-title">
+                {choices.map(choice => (
+                  <button
+                    key={choice.key}
+                    type="button"
+                    className={`unsaved-choice unsaved-choice--${choice.tone}`}
+                    aria-labelledby={`unsaved-choice-${choice.key}`}
+                    aria-describedby={`unsaved-choice-${choice.key}-hint`}
+                    data-hints={`A:${t('app.unsavedSwitch.choose')};B:${t('common.cancel')}`}
+                    onClick={() => void resolveProfileSwitch(choice.key)}
+                  >
+                    <span className="unsaved-choice__text">
+                      <span id={`unsaved-choice-${choice.key}`} className="unsaved-choice__label">{choice.label}</span>
+                      <span id={`unsaved-choice-${choice.key}-hint`} className="unsaved-choice__hint">{choice.hint}</span>
+                    </span>
+                    {choice.tone === 'recommended' && <span className="unsaved-choice__tag">{t('app.unsavedSwitch.recommended')}</span>}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }

@@ -14,10 +14,15 @@
 .row { border-radius: var(--r-card); background: var(--surface-row); }
 .row[data-open] { box-shadow: inset 0 0 0 1px var(--accent); }
 .row[data-off] { opacity: .55; }
+/* The name and subtitle take the row's flexible space; the configuration
+   select keeps a bounded width beside it. The select's trigger is width:100%
+   by default, which as a flex item made it swallow the row and squeeze the
+   text to a word per line. Narrow rows stack the select under the text. */
+.rows { container-type: inline-size; }
 .rowHead { min-height: 64px; display: flex; align-items: center; gap: var(--sp-3); padding: 0 var(--sp-4) 0 0; }
-.rowHead > button[role='combobox'] { min-width: 180px; }
+.rowHead > button[role='combobox'] { flex: 0 0 auto; width: clamp(180px, 30%, 280px); min-width: 0; }
 .rowMain {
-  flex: 1;
+  flex: 1 1 0;
   min-width: 0;
   min-height: 64px;
   display: flex;
@@ -34,10 +39,11 @@
 }
 span.rowMain { cursor: default; }
 button.rowMain:hover { background: var(--surface-row-hover); }
-.rowText { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.rowName { font-size: var(--fs-label); font-weight: var(--fw-medium); }
-.rowSub { color: var(--text-3); font-size: var(--fs-hint); }
-.keys { display: inline-flex; align-items: center; gap: var(--sp-1); color: var(--text-1); }
+.rowText { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: var(--sp-3) 0; }
+.rowName { font-size: var(--fs-label); line-height: var(--lh-label); font-weight: var(--fw-medium); overflow-wrap: anywhere; }
+.rowSub { color: var(--text-3); font-size: var(--fs-hint); line-height: var(--lh-hint); }
+/* Glyphs never shrink under the text; "No buttons yet" stays on one line. */
+.keys { flex: none; display: inline-flex; align-items: center; gap: var(--sp-1); color: var(--text-1); white-space: nowrap; }
 .key { display: inline-flex; align-items: center; gap: var(--sp-1); }
 .plus { color: var(--text-3); font-size: var(--fs-hint); }
 .unset { color: var(--text-3); font-size: var(--fs-hint); }
@@ -64,8 +70,14 @@ button.rowMain:hover { background: var(--surface-row-hover); }
 .pickerFooter { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); margin-top: var(--sp-1); }
 .note { color: var(--text-3); font-size: var(--fs-hint); line-height: var(--lh-hint); }
 .empty { padding: var(--sp-5); border-radius: var(--r-card); background: var(--surface-row); color: var(--text-3); text-align: center; }
-.addBar { display: flex; align-items: center; justify-content: flex-end; gap: var(--sp-3); }
-.addBar > button[role='combobox'] { min-width: 220px; }
+/* Lines up under the rows' selects: same inset, same width. */
+.addBar { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: var(--sp-2) var(--sp-3); padding: 0 var(--sp-4); }
+.addBar > .note { flex: 0 1 auto; min-width: 0; }
+.addBar > button[role='combobox'] { flex: 0 0 auto; width: clamp(180px, 30%, 280px); max-width: 100%; }
+@container (max-width: 560px) {
+  .rowHead { flex-direction: column; align-items: stretch; gap: 0; padding: 0 0 var(--sp-3); }
+  .rowHead > button[role='combobox'] { width: auto; margin: 0 var(--sp-4); }
+}
 .switchRow {
   display: flex;
   flex-direction: row-reverse;

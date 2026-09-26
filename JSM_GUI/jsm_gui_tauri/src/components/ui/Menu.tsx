@@ -118,11 +118,22 @@ function renderItems(items: MenuItem[]) {
 export function Menu({ trigger, items, align = 'start', ariaLabel, open, onOpenChange, width, search, empty }: MenuProps) {
   const contentRef = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
   const hasItems = items.some(item => item.kind !== 'separator' && item.kind !== 'label')
 
   return (
     <RadixMenu.Root open={open} onOpenChange={onOpenChange}>
-      <RadixMenu.Trigger asChild aria-label={ariaLabel}>
+      <RadixMenu.Trigger ref={triggerRef} asChild aria-label={ariaLabel}
+        // Radix opens the menu on Down. Down from a title-bar segment or a
+        // page tab is meant to move focus (HANDOFF.md, "Focus model": Down
+        // from the title bar returns to the tab), so Up/Down navigate and
+        // A / Enter / Space open.
+        onKeyDown={event => {
+          if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return
+          if (event.currentTarget.getAttribute('data-state') === 'open') return
+          event.preventDefault()
+          window.dispatchEvent(new CustomEvent('jsm:navigate-direction', { detail: event.key }))
+        }}>
         {trigger}
       </RadixMenu.Trigger>
       <RadixMenu.Portal>
@@ -134,6 +145,25 @@ export function Menu({ trigger, items, align = 'start', ariaLabel, open, onOpenC
           collisionPadding={16}
           style={width ? { width } : undefined}
           data-pad-keys={search ? 'Y' : undefined}
+          // A row that opens a dialog (Manage layers…, a configuration switch
+          // that raises the unsaved-changes guard) has already had focus put
+          // inside that dialog by useKeyboardNav when the menu finishes
+          // closing. Radix would then return focus to the trigger, behind the
+          // scrim, leaving the pad outside the dialog. Keep it in the dialog,
+          // and give it back to the trigger once the dialog closes.
+          onCloseAutoFocus={event => {
+            const overlay = (document.activeElement as HTMLElement | null)?.closest<HTMLElement>('.modal-overlay, [data-focus-trap="true"]')
+            if (!overlay) return
+            event.preventDefault()
+            const trigger = triggerRef.current
+            const observer = new MutationObserver(() => {
+              if (overlay.isConnected) return
+              observer.disconnect()
+              const active = document.activeElement
+              if (trigger?.isConnected && (!active || active === document.body)) trigger.focus()
+            })
+            observer.observe(document.body, { childList: true, subtree: true })
+          }}
           // Focus lands on the current value rather than the first row
           // (HANDOFF.md, "Focus model"), synchronously as focus enters the list.
           // Radix runs this before its own entry focus and skips that when

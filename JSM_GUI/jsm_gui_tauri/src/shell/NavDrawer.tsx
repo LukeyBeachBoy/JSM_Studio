@@ -27,6 +27,13 @@ export function NavDrawer({ open, onClose, current, onSelect, onOpenStudio, sect
   const [tuningOpen, setTuningOpen] = useState(() => isTuningPage(current))
   const panel = useRef<HTMLElement>(null)
   const opener = useRef<HTMLElement | null>(null)
+  // Read through a ref: the effect below must run once per opening. App
+  // re-renders on every telemetry frame and hands down a fresh onClose each
+  // time; with it in the dependency list the effect re-ran per frame, and its
+  // cleanup put focus back on the drawer button while the re-run put it back
+  // in the drawer, so the pad's focus ping-ponged 60 times a second.
+  const close = useRef(onClose)
+  close.current = onClose
 
   useEffect(() => {
     if (!open) return
@@ -35,7 +42,7 @@ export function NavDrawer({ open, onClose, current, onSelect, onOpenStudio, sect
       panel.current?.querySelector<HTMLElement>('[aria-current="true"], [aria-current="page"]')?.focus()
     })
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); onClose() }
+      if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close.current() }
     }
     window.addEventListener('keydown', onKey, true)
     return () => {
@@ -43,7 +50,7 @@ export function NavDrawer({ open, onClose, current, onSelect, onOpenStudio, sect
       window.removeEventListener('keydown', onKey, true)
       if (opener.current?.isConnected) opener.current.focus({ preventScroll: true })
     }
-  }, [open, onClose])
+  }, [open])
 
   if (!open) return null
   const label = (tab: PrimaryTab) => t(pageMeta(tab).labelKey, pageMeta(tab).label)
@@ -102,3 +109,4 @@ export function NavDrawer({ open, onClose, current, onSelect, onOpenStudio, sect
     </div>
   )
 }
+

@@ -1,6 +1,30 @@
+/* Theme (Preferences 16j): a setting row with the Dark / Light / System
+   segmented control on the right. */
+.row {
+  display: flex;
+  width: 100%;
+  min-height: var(--row-h-compact);
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  padding: 10px var(--sp-4);
+  border-radius: var(--r-row);
+  background: var(--surface-row);
+  color: var(--text-1);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-medium);
+}
+.row:hover { background: var(--surface-row-hover); }
+:global(body[data-input-source='controller']) .row:focus-within {
+  background: var(--surface-selected);
+  box-shadow: 0 0 0 var(--focus-controller-width) var(--focus-controller), var(--shadow-lift);
+}
+.row.compact { padding: var(--sp-2); }
+
 /* A labelled switch row (Components 13.9 toggle inside a 13.5 setting row):
    the label on the left, a 52 × 30 switch on the right. Off is a control-grey
-   track with a text-2 thumb; on is the accent with a dark thumb. */
+   track with a text-2 thumb; on is the accent with a dark thumb. Other
+   preference toggles in App.tsx share these classes. */
 .themeToggle {
   display: flex;
   width: 100%;
@@ -90,6 +114,13 @@
 .compact .text {
   display: none;
 }
+
+/* A switch only animates a change the user made. A value that arrives from the
+   backend (the first read, or a refresh) lands in place: a switch sliding on
+   by itself reads as the app changing a setting. Unknown reads as unknown. */
+.instant .thumb, .instant .switch { transition: none; }
+.unknown .switch { opacity: 0.5; }
+.unknown .thumb { opacity: 0; }
 
 @media (prefers-reduced-motion: reduce) {
   .thumb, .switch { transition: none; }

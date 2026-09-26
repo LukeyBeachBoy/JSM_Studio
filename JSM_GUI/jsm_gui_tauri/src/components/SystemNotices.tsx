@@ -7,6 +7,22 @@ export type ConfigError = { profile: string; file: string; line: number; text: s
 const clock = (ms: number) => new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
 const fileName = (path: string) => path.split(/[\\/]/).pop()?.replace(/\.txt$/i, '') ?? path
 
+/**
+ * After a banner's Dismiss or Later removes the control that had focus, land
+ * on the page's first control rather than on body (System States 17h): from
+ * body the next pad press would restart the walk from the top of the shell.
+ * Runs after React has taken the banner out.
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- a DOM helper the banners share
+export const focusPageStart = () => {
+  requestAnimationFrame(() => {
+    if (document.activeElement && document.activeElement !== document.body) return
+    const page = document.querySelector('.main-pane') ?? document.querySelector('.shell-scroll')
+    const first = page?.querySelector<HTMLElement>('button:not([disabled]):not([tabindex="-1"]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])')
+    first?.focus()
+  })
+}
+
 type MapperDownProps = {
   exit: MapperExit
   restarting?: boolean
@@ -79,7 +95,7 @@ export function ConfigErrors({ errors, appliedText, onOpenSource, onDismiss }: C
         )}
         <div className={styles.actions}>
           <button type="button" className="button button--primary" onClick={() => onOpenSource(first)}>Open source editor at line {first.line}</button>
-          <button type="button" className="button button--secondary" onClick={onDismiss}>Dismiss</button>
+          <button type="button" className="button button--secondary" onClick={() => { onDismiss(); focusPageStart() }}>Dismiss</button>
         </div>
       </div>
       <pre className={styles.code} aria-label={`Line ${first.line} and the lines around it`}>

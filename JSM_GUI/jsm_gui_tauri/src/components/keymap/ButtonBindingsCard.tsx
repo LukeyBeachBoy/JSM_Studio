@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { memo, useContext, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   BindingCommand,
@@ -26,7 +26,6 @@ import {
 import keymapStyles from '../Keymap.module.css'
 import {
   MODIFIER_SLOT_TYPES,
-  getButtonDescription,
   getActionSpecialOptionList,
   getDefaultModifierForButton,
   getSpecialOptionList,
@@ -39,7 +38,15 @@ import { Menu, type MenuItem } from '../ui/Menu'
 import { controllerButtonLabel, type ControllerVisualFamily } from '../../utils/controllerStatus'
 import { InputGlyph } from '../glyphs/InputGlyph'
 
-import { ButtonMappingCard } from './ButtonMappingCard'
+import { ButtonMappingCard, type BindingSummaryEntry } from './ButtonMappingCard'
+import { BindingLabelField } from './BindingLabelField'
+import { IconPicker } from './IconPicker'
+import { InputModeshiftPanel } from './InputModeshiftPanel'
+import { InputLayerActions, LayerUsageContext } from '../LayerBar'
+import { actionsOnInput } from '../../utils/layers'
+import { inputLongName, inputShortName } from '../../keymap/inputNames'
+import type { InputModeshiftsProps } from './InputModeshifts'
+import { TRIGGER_LABEL_KEYS } from './triggerKinds'
 import { getVirtualControllerLogicalOutput, type VirtualControllerType } from '../../utils/virtualController'
 import { describeBinding, explainBinding } from '../../utils/bindingDescription'
 
@@ -121,6 +128,15 @@ type ButtonBindingsCardProps = {
   /** The row's name where the block around it already names the input, like
       "Soft pull" inside Left trigger. */
   label?: string
+  /** The subtitle under that name, when the binding itself is not it. */
+  subtitle?: string
+  /** What an unbound row says instead of Unbound. */
+  emptyLabel?: string
+  /** Everything the input's modeshift panel needs; omitted where a group or
+      pad owns the shifts, and on a shifted card. */
+  modeshiftPanel?: Omit<InputModeshiftsProps, 'target' | 'initiallyOpen' | 'livePad'>
+  /** What X does on the closed row instead of capturing. */
+  xAction?: { label: string; run: () => void }
   /** How many shifts reconfigure this input; shown on its compact row. */
   modeshiftCount?: number
   /** Chord bindings are edited in this group's modeshift panel, not here. */
@@ -154,7 +170,10 @@ const triggerUsesBaseLine = (trigger: BindingTriggerKind) =>
 
 const hasOutputValue = (command: Pick<BindingCommandPreset, 'outputValue'>) => command.outputValue.trim().length > 0
 
-export const ButtonBindingsCard = ({
+// Memoised: the page around it re-renders on every telemetry frame, and a
+// card only changes with the config, the capture state or the clipboard.
+// KeymapControls keeps every prop's identity stable for the same reason.
+export const ButtonBindingsCard = memo(function ButtonBindingsCard({
   button,
   domCommand,
   rows,
@@ -189,10 +208,13 @@ export const ButtonBindingsCard = ({
   chordsLiveInModeshifts,
   defaultOpen,
   label,
+  subtitle,
+  emptyLabel,
+  modeshiftPanel,
+  xAction,
   modeshiftCount,
-  inheritedFrom,
-  onOpenConfigEditor,
-}: ButtonBindingsCardProps) => {
+  beginCapture,
+}: ButtonBindingsCardProps) {
   const { t } = useTranslation()
 
   // Captures are registered against this, and a command id is built from the
@@ -202,11 +224,9 @@ export const ButtonBindingsCard = ({
   // `domCommand` is what tells the two apart.
   const captureKeyFor = (command: BindingCommand) =>
     domCommand ? `${domCommand}:${command.id}` : command.id
-  const [selectionMode, setSelectionMode] = useState(false)
   // Parsing a draft into a real command can change its id. Keep disclosure at
   // input level so typing the first character cannot close the active editor.
   const [expandedCommands, setExpandedCommands] = useState<Set<number>>(() => new Set())
-  const [selectedIds, setSelectedIds] = useState<string[]>([])
   const buttonKey = button.command.toUpperCase()
   const specialKey = specialsByButton[button.command]
   const stickShiftEntries = useMemo(
@@ -464,21 +484,9 @@ export const ButtonBindingsCard = ({
     writeCommand(commandToPreset(command))
   }
 
-  const exitSelection = () => {
-    setSelectionMode(false)
-    setSelectedIds([])
-  }
-
-  const toggleSelected = (command: BindingCommand) => {
-    setSelectedIds(prev =>
-      prev.includes(command.id) ? prev.filter(id => id !== command.id) : [...prev, command.id]
-    )
-  }
-
   const copyCommands = (picked: BindingCommand[]) => {
     if (picked.length === 0) return
     onCopyBindings?.(picked.map(commandToPreset))
-    exitSelection()
   }
 
   // Base-line triggers (Press/Tap/Hold/...) all share one config line, so pasting
@@ -528,6 +536,18 @@ export const ButtonBindingsCard = ({
     })
   }
 
+  // X on the closed row, and "Capture a key" in the editor: the primary command
+  // takes the key, or a new Press binding is captured when there is none.
+  const capturePrimary = () => {
+    const primary = commands.find(command => command.source.kind === 'row' && command.triggerKind !== 'stickShift')
+    if (primary) {
+      captureCommand(primary)
+      return
+    }
+    const baseRow = rows.find(row => row.slot === 'tap')
+    beginCapture(button.command, 'tap', baseRow?.id ?? `${button.command}-tap`, t('keymap.anyBindingPrompt'))
+  }
+
   const handleAddCommand = (trigger: BindingTriggerKind | 'script') => {
     if (trigger === 'script') {
       addDraftCommand(createBindingCommandPreset('regular', { outputKind: 'command', outputValue: '' }))
@@ -538,20 +558,12 @@ export const ButtonBindingsCard = ({
       : undefined))
   }
 
-  // Nothing bound yet: one button, defaulting to Press, same as Steam Input's
-  // own empty-slot affordance. Changing that first command's trigger kind
-  // (Press/Tap/Hold/...) happens on the command card itself once it exists --
-  // this row is for adding a *new* trigger, so there's nothing to choose among
-  // before the first one exists. The full picker only reappears once there's
-  // already a command to add an additional simultaneous trigger alongside.
   // One button opening a menu, with the rare trigger kinds behind a submenu --
-  // Steam's own pattern. The nine buttons this replaces put every option on
-  // screen at once whether or not you wanted any of them.
-  // Where the chord slot is filtered out of the rows, the menu must not offer
-  // to make one either: it would be written to a line this card does not show,
-  // and so be lost the moment anything else on the card was edited. The same
-  // goes for the two other condition-carrying kinds, which are chords by
-  // another name.
+  // Steam's own pattern. Where the chord slot is filtered out of the rows, the
+  // menu must not offer to make one either: it would be written to a line this
+  // card does not show, and so be lost the moment anything else on the card
+  // was edited. The same goes for the two other condition-carrying kinds, which
+  // are chords by another name.
   const addMenuItems: MenuItem[] = [
     { label: t('keymap.commandTriggerRegular'), onSelect: () => handleAddCommand('regular') },
     { label: t('keymap.commandTriggerTap'), onSelect: () => handleAddCommand('tap') },
@@ -579,113 +591,114 @@ export const ButtonBindingsCard = ({
     },
   ]
 
-  const addControl =
-    commands.length === 0 ? (
-      <div className={keymapStyles.addCommandRow} data-capture-ignore="true">
-        <button type="button" className="secondary-btn" onClick={() => handleAddCommand('regular')}>
-          {t('keymap.addCommand')}
-        </button>
-      </div>
-    ) : (
-      <div className={keymapStyles.addCommandRow} data-capture-ignore="true">
-        <Menu
-          ariaLabel={t('keymap.addAnotherTrigger')}
-          items={addMenuItems}
-          trigger={
-            <button type="button" className="secondary-btn">
-              {t('keymap.addAnotherTrigger')}
-            </button>
-          }
-        />
-      </div>
-    )
+  const shortName = inputShortName(button, controllerFamily)
+  const longName = label ?? inputLongName(button, controllerFamily, t)
+  const closeLabel = `Close ${shortName}`
+  const isShifted = Boolean(domCommand?.includes(','))
 
-  const extras = (
+  // The input's own name, on its first command; beside "+ Add command" when
+  // there is none yet. One label per input in the configuration.
+  const labelField = (
     <>
-      {buttonHasTrackball && (
-        <div className={keymapStyles.trackballInline} data-capture-ignore="true">
-          <NumberField setting="TRACKBALL_DECAY"
-            label={t('keymap.trackballDecay')}
-            value={trackballDecay}
-            onChange={onTrackballDecayChange}
-            min={0}
-            max={10}
-            step={0.1}
-            coarseStep={0.5}
-            placeholder={t('common.defaultValue', { value: '1.0' })}
-          />
-        </div>
-      )}
+      {onBindingLabelChange && <BindingLabelField value={bindingLabel} onChange={value => onBindingLabelChange(button.command, value)} />}
+      {onBindingIconChange && <IconPicker value={bindingIcon ?? ''} onChange={value => onBindingIconChange(button.command, value)} />}
     </>
   )
 
-  const canSelect = commands.length > 1 && !!onCopyBindings
-  const selectedCommands = commands.filter(command => selectedIds.includes(command.id))
-  const bindingsToolbar =
-    bindingClipboard.length > 0 || canSelect ? (
-      <div className={keymapStyles.bindingsToolbar} data-capture-ignore="true">
-        {canSelect && !selectionMode && (
-          <button type="button" className="ghost-btn" onClick={() => setSelectionMode(true)}>
-            {t('keymap.bindingsSelect')}
-          </button>
-        )}
-        {selectionMode && (
-          <>
-            <button
-              type="button"
-              className="secondary-btn"
-              disabled={selectedCommands.length === 0}
-              onClick={() => copyCommands(selectedCommands)}
-            >
-              {t('keymap.bindingsCopySelected', { count: selectedCommands.length })}
+  // Nothing bound yet: one press adds a Press command, same as Steam Input's
+  // own empty-slot affordance. With a command already there the same button
+  // opens the menu of activation kinds.
+  const addControl = (
+    <div className={keymapStyles.addCommandRow} data-capture-ignore="true">
+      {commands.length === 0 ? (
+        <button type="button" className="button button--secondary button--sm" onClick={() => handleAddCommand('regular')} data-hints={`A:Add command;B:${closeLabel}`}>
+          {t('keymap.addCommand')}
+        </button>
+      ) : (
+        <Menu
+          ariaLabel={t('keymap.addCommand')}
+          items={addMenuItems}
+          trigger={
+            <button type="button" className="button button--secondary button--sm" data-hints={`A:Add command;B:${closeLabel}`}>
+              {t('keymap.addCommand')}
             </button>
-            <button type="button" className="ghost-btn" onClick={exitSelection}>
-              {t('keymap.bindingsCancelSelect')}
-            </button>
-          </>
-        )}
-        {bindingClipboard.length > 0 && !selectionMode && (
-          <button type="button" className="link-btn" onClick={pasteBindings}>
-            {t('keymap.bindingsPaste', { count: bindingClipboard.length })}
-          </button>
-        )}
-      </div>
-    ) : null
+          }
+        />
+      )}
+      <button type="button" className="button button--ghost button--sm" onClick={capturePrimary} data-hints={`A:Capture a key;B:${closeLabel}`}>
+        {t('keymap.captureAKey', 'Capture a key')}
+      </button>
+      {commands.length === 0 && labelField}
+    </div>
+  )
+
+  const extras = buttonHasTrackball ? (
+    <div className={keymapStyles.trackballInline} data-capture-ignore="true">
+      <NumberField setting="TRACKBALL_DECAY"
+        label={t('keymap.trackballDecay')}
+        value={trackballDecay}
+        onChange={onTrackballDecayChange}
+        min={0}
+        max={10}
+        step={0.1}
+        coarseStep={0.5}
+        placeholder={t('common.defaultValue', { value: '1.0' })}
+      />
+    </div>
+  ) : null
+
+  const kindLabels = commands
+    .filter(command => command.outputValue.trim().toUpperCase() !== 'NONE')
+    .map(command => t(TRIGGER_LABEL_KEYS[command.triggerKind]))
+    .filter((kind, index, all) => all.indexOf(kind) === index)
+  // NONE is how a profile says "nothing" over an imported binding, and a pill
+  // reading "Unbound" beside a row that drives a layer said the opposite of
+  // what the input does.
+  const summary: BindingSummaryEntry[] = commands
+    .filter(command => command.outputValue.trim().length > 0 && command.outputValue.trim().toUpperCase() !== 'NONE')
+    .map(command => ({
+      trigger: command.triggerKind === 'regular' ? undefined : t(TRIGGER_LABEL_KEYS[command.triggerKind]),
+      // What the game receives, in words, not how the file spells it.
+      output: describeBinding(command.outputValue, t),
+      outputTitle: explainBinding(command.outputValue, t),
+      jsm: command.outputKind === 'special' || command.source.kind === 'special' || command.source.kind === 'stickShift',
+    }))
+  const requestDetails = (element: HTMLElement | null) => element?.dispatchEvent(new CustomEvent('jsm:binding-details', { bubbles: true }))
+  const selector = `[data-input-command="${(domCommand ?? button.command).replace(/"/g, '\\"')}"]`
 
   return (
     <ButtonMappingCard
       command={domCommand ?? button.command}
-      summary={commands
-        .filter(command => command.outputValue.trim().length > 0)
-        .map(command => ({
-          trigger: command.triggerKind === 'regular' ? undefined : t(`keymap.commandTrigger${command.triggerKind.charAt(0).toUpperCase()}${command.triggerKind.slice(1)}`, command.triggerKind),
-          // What the game receives, in words, not how the file spells it.
-          output: describeBinding(command.outputValue, t),
-          outputTitle: explainBinding(command.outputValue, t),
-        }))}
+      title={longName}
+      shortName={shortName}
+      summary={summary}
+      kinds={kindLabels.join(' / ')}
       defaultOpen={defaultOpen}
       modeshiftCount={modeshiftCount}
-      onPaste={bindingClipboard.length > 0 && !selectionMode ? pasteBindings : undefined}
+      rowTitle={label}
+      rowSubtitle={subtitle}
+      emptyLabel={emptyLabel}
+      onPaste={onCopyBindings ? pasteBindings : undefined}
+      canPaste={bindingClipboard.length > 0}
       pasteLabel={t('keymap.bindingsPaste', { count: bindingClipboard.length })}
-      title={label ?? controllerButtonLabel(button, controllerFamily)}
-      glyph={<InputGlyph command={button.command} family={controllerFamily} size={19} />}
-      description={getButtonDescription(button, t)}
+      onCopyAll={onCopyBindings && commands.length > 0 ? () => copyCommands(commands) : undefined}
+      onCapture={capturePrimary}
+      xAction={xAction}
+      glyph={<InputGlyph command={button.command} family={controllerFamily} size={28} />}
       isCapturing={rowCapturing}
-      inheritedFrom={inheritedFrom}
-      onOpenConfigEditor={onOpenConfigEditor}
-      toolbar={bindingsToolbar}
       addControl={addControl}
       extras={extras}
       label={bindingLabel}
-      onLabelChange={onBindingLabelChange ? (value) => onBindingLabelChange(button.command, value) : undefined}
-      icon={bindingIcon}
-      onIconChange={onBindingIconChange ? (value) => onBindingIconChange(button.command, value) : undefined}
+      modeshifts={modeshiftPanel && !isShifted ? <InputModeshiftPanel {...modeshiftPanel} button={button} shortName={shortName} /> : undefined}
+      layerActions={!isShifted ? (
+        <LayerActionsPanel command={button.command} label={`${longName} layer actions`} />
+      ) : undefined}
       commands={
         commands.length > 0 ? (
           commands.map((command, index) => (
             <BindingCommandCard
               key={command.id}
-              layerInput={domCommand?.includes(',') ? undefined : button.command}
+              layerInput={isShifted ? undefined : button.command}
               inputLabel={controllerButtonLabel(button, controllerFamily)}
               expanded={expandedCommands.has(index)}
               onExpandedChange={open => setExpandedCommands(previous => { const next = new Set(previous); if (open) next.add(index); else next.delete(index); return next })}
@@ -702,11 +715,11 @@ export const ButtonBindingsCard = ({
               chordsLiveInModeshifts={chordsLiveInModeshifts}
               onDuplicate={duplicateCommand}
               onCopy={onCopyBindings ? (picked) => copyCommands([picked]) : undefined}
-              selectable={selectionMode}
-              selected={selectedIds.includes(command.id)}
-              onToggleSelected={toggleSelected}
-              onRename={() => document.querySelector<HTMLInputElement>(`[data-input-command="${domCommand ?? button.command}"] input[aria-label]`)?.focus()}
+              onRename={() => document.querySelector<HTMLInputElement>(`${selector} input[aria-label]`)?.focus()}
               onCapture={captureCommand}
+              onDetails={() => requestDetails(document.querySelector<HTMLElement>(selector))}
+              labelField={index === 0 ? labelField : undefined}
+              closeLabel={closeLabel}
               onEnableVirtualController={onEnableVirtualController}
             />
           ))
@@ -715,5 +728,27 @@ export const ButtonBindingsCard = ({
         )
       }
     />
+  )
+})
+
+// The LAYER ACTIONS panel (7a), the same shape as the Modeshifts panel: title
+// and count, one line of what it is, the actions, one add button.
+function LayerActionsPanel({ command, label }: { command: string; label: string }) {
+  const { t } = useTranslation()
+  const { actions } = useContext(LayerUsageContext)
+  const mine = actionsOnInput(actions, command)
+  return (
+    <section className={keymapStyles.editorPanel} aria-label={label}>
+      <div className={keymapStyles.editorPanelHead}>
+        <span className={keymapStyles.eyebrowHeading}>{t('keymap.layerActionsHeading', 'Layer actions')}</span>
+        <span className={keymapStyles.editorPanelCount}>{mine.length}</span>
+      </div>
+      <span className={keymapStyles.editorPanelEmpty}>
+        {mine.length
+          ? t('keymap.layerActionsNote', 'Layers this input turns on or off.')
+          : t('keymap.layerActionsEmpty', 'None. Hold, apply, remove or toggle a layer from this input.')}
+      </span>
+      <InputLayerActions command={command} variant="panel" />
+    </section>
   )
 }

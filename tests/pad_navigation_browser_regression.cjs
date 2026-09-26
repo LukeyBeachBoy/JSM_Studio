@@ -24,8 +24,13 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
   // Raw button bits, as utils/controllerStatus decodes them.
   const BITS={UP:0,DOWN:1,LEFT:2,RIGHT:3,'+':4,'-':5,L:8,R:9,S:12,E:13,W:14,N:15};
   window.__held=new Set(); window.__triggers={left:0,right:0};
+  // While Studio is in front the mapper runs Studio's navigation profile; a
+  // held global chord swaps its own configuration in (activeProfile follows).
+  window.__live='AppNavigation.txt';
+  // Web builds record the controller feedback they would send (nav/feedback.ts).
+  window.__padFeedback=[];
   window.telemetry={onSample:cb=>{
-   const emit=()=>cb({console:'ready',activeProfile:'profiles-library/Desktop.txt',devices:[{handle:1,type:24,supportedButtons:8589934591,
+   const emit=()=>cb({console:'ready',activeProfile:window.__live,devices:[{handle:1,type:24,supportedButtons:8589934591,
      status:{buttons:[...window.__held].reduce((m,c)=>m+2**BITS[c],0),leftStick:{x:0,y:0},rightStick:{x:0,y:0},triggers:window.__triggers,gyro:{x:0,y:0,z:0}}}]});
    emit();const timer=setInterval(emit,10);return()=>clearInterval(timer);
   }};
@@ -37,17 +42,47 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  const hold = async buttons => page.evaluate(b => b.forEach(x => window.__held.add(x)), buttons);
  const release = async buttons => page.evaluate(b => b ? b.forEach(x => window.__held.delete(x)) : window.__held.clear(), buttons);
  const press = async (...buttons) => { await hold(buttons); await page.waitForTimeout(60); await release(buttons); await page.waitForTimeout(80); };
- const pull = async side => { await page.evaluate(s => { window.__triggers[s] = 1 }, side); await page.waitForTimeout(60); await page.evaluate(s => { window.__triggers[s] = 0 }, side); await page.waitForTimeout(80); };
+ // A soft pull, half way: that is enough to turn a page (padNavigator's
+ // TRIGGER_ON), well short of the full pull the Triggers page draws.
+ const pull = async (side, amount = 0.5) => { await page.evaluate(([s, v]) => { window.__triggers[s] = v }, [side, amount]); await page.waitForTimeout(60); await page.evaluate(s => { window.__triggers[s] = 0 }, side); await page.waitForTimeout(80); };
  const title = () => page.locator('.page-header__title').innerText();
  const active = () => page.evaluate(() => { const a = document.activeElement; return { cls: String(a?.className ?? ''), text: (a?.textContent ?? '').trim().slice(0, 40), inTitlebar: Boolean(a?.closest('.titlebar')), inMain: Boolean(a?.closest('.main-pane')) }; });
 
- // RT / LT page through the tabs.
+ // RT / LT page through the tabs. Short of the page-turn point, nothing.
+ await pull('right', 0.42);
+ assert.equal(await title(), 'Overview', 'a pull under the page-turn point does not page');
+ assert.deepEqual(await page.evaluate(() => window.__padFeedback.length), 0, 'and is not felt');
  await pull('right');
  await page.waitForFunction(() => document.querySelector('.page-header__title')?.textContent === 'Buttons');
  await pull('left');
  await page.waitForFunction(() => document.querySelector('.page-header__title')?.textContent === 'Overview');
  await pull('right');
  await page.waitForFunction(() => document.querySelector('.page-header__title')?.textContent === 'Buttons');
+ // Each page step is felt on the side of the trigger pulled: a firm click.
+ const felt = async () => page.evaluate(() => window.__padFeedback.splice(0).map(f => `${f.effect}:${f.side}`));
+ assert.deepEqual(await felt(), ['2:2', '2:1', '2:2'], 'RT, LT, RT each play a click on their own side');
+ await pull('left'); await pull('left');
+ await page.waitForFunction(() => document.querySelector('.page-header__title')?.textContent === 'Overview');
+ const ends = await page.evaluate(() => window.__padFeedback.splice(0).map(f => f.intensity));
+ assert.ok(ends.length === 2 && ends[1] < ends[0], `LT on the first page is felt, but softer than a real page step: ${ends}`);
+ await pull('right');
+ await page.waitForFunction(() => document.querySelector('.page-header__title')?.textContent === 'Buttons');
+ await felt();
+
+ // A global chord held: its configuration owns the pad (RT clicks the mouse
+ // there), so Studio must not page -- not while held, and not when the chord
+ // is released with RT still pulled.
+ await page.evaluate(() => { window.__live = 'profiles-library/Quick Access Chord.txt' });
+ await page.waitForTimeout(60);
+ await page.evaluate(() => { window.__triggers.right = 1 });
+ await page.waitForTimeout(150);
+ assert.equal(await title(), 'Buttons', 'RT inside a held chord must not change page');
+ await page.evaluate(() => { window.__live = 'AppNavigation.txt' });
+ await page.waitForTimeout(150);
+ assert.equal(await title(), 'Buttons', 'RT still held as the chord ends must not change page');
+ assert.deepEqual(await felt(), [], 'and nothing is felt from Studio while the chord has the pad');
+ await page.evaluate(() => { window.__triggers.right = 0 });
+ await page.waitForTimeout(80);
 
  // The pad lands in the page, and its focus shows the controller ring.
  await press('DOWN');

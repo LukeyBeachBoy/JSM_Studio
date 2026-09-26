@@ -424,7 +424,10 @@ export function HelpDocsPage({ onOpenPage, focusSetting }: { onOpenPage?: (tab: 
   // README links point at its own anchors, which may be in another topic now.
   const jumpToSection = useCallback(
     (slug: string) => {
-      const normalized = decodeURIComponent(slug).replace(/^#/, '').trim().toLowerCase()
+      // A README anchor with a stray % is not a crash, just a link that goes nowhere.
+      let decoded = slug
+      try { decoded = decodeURIComponent(slug) } catch { /* keep as written */ }
+      const normalized = decoded.replace(/^#/, '').trim().toLowerCase()
       if (docsMarkdownRef.current) clearFindHighlights(docsMarkdownRef.current)
       setActiveSlug(normalized)
       const holder = topics.find(entry => {
