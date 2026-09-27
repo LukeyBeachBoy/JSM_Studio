@@ -6,8 +6,9 @@ import { getVirtualControllerOptions, toVirtualControllerToken, type VirtualCont
 import { keyDisplayName } from '../../utils/keyNames'
 import { loadConfigBindingValue } from '../../utils/loadConfigBinding'
 import { InputLayerActions, LayerUsageContext } from '../LayerBar'
-import { MAIN_ROWS, NAV_ROWS, NUMPAD_ROWS, MEDIA_KEYS } from './KeyboardBindingModal'
-import { mouseOptions, wheelOptions, builtInCommandOptions } from './actionCatalog'
+import { MAIN_ROWS, NAV_ROWS, NUMPAD_ROWS } from './KeyboardBindingModal'
+import { mouseOptions, wheelOptions, builtInCommandOptions, systemKeyChoices } from './actionCatalog'
+import { BindingIconArt } from './IconPicker'
 import { COMMAND_LABELS } from '../../utils/commandLabels'
 import './ActionPicker.css'
 import { HapticOutputPicker } from './HapticOutputPicker'
@@ -38,7 +39,7 @@ type Props = {
 }
 
 /** One choosable action, for the detail panel and for search. */
-type Choice = { key: string; label: string; token: string; kind: BindingOutputKind; describe: string; commit: () => void; disabled?: boolean }
+type Choice = { key: string; label: string; token: string; kind: BindingOutputKind; describe: string; commit: () => void; disabled?: boolean; icon?: string }
 
 // Every output token a configuration line already sends, so the keyboard can
 // dot the keys that are taken (choosing one keeps both).
@@ -65,7 +66,7 @@ export function ActionPicker({ inputLabel, layerInput, command, virtualControlle
   const { onSetActions, text: configText = '' } = useContext(LayerUsageContext)
   const custom = command.outputKind === 'raw' || command.outputKind === 'haptic' || (command.outputKind === 'command' && !builtInCommandOptions.includes(command.outputValue) && !/^LED_BRIGHTNESS/i.test(command.outputValue))
   // Open on the category the current action is in.
-  const systemTokens = new Set([...MEDIA_KEYS.map(key => key.token), 'SCREENSHOT'])
+  const systemTokens = new Set(systemKeyChoices.map(key => key.token))
   const [category, setCategory] = useState<Category>(
     command.outputKind === 'virtualController' ? 'Gamepad'
     : command.outputKind === 'mouse' || command.outputKind === 'wheel' ? 'Mouse'
@@ -114,7 +115,7 @@ export function ActionPicker({ inputLabel, layerInput, command, virtualControlle
       Keyboard: keys([...MAIN_ROWS, ...NAV_ROWS.filter(row => row.length)]),
       Numpad: keys(NUMPAD_ROWS),
       Layers: [],
-      System: [...MEDIA_KEYS, { token: 'SCREENSHOT', label: 'Screenshot' }].filter(key => key.token !== 'SPACER').map(keyChoice),
+      System: systemKeyChoices.map(key => ({ ...keyChoice({ token: key.token, label: t(key.labelKey, key.label) }), describe: t(key.labelKey, key.label), icon: key.icon })),
       JSM: [
         ...builtInCommandOptions.filter(token => token === 'CALIBRATE_GYRO').map(token => ({ key: `command:${token}`, label: COMMAND_LABELS[token].label, token, kind: 'command' as const, describe: COMMAND_LABELS[token].describe, commit: () => pick('command', token) })),
         ...specialOptions.map(option => ({ key: `special:${option.value}`, label: option.label, token: option.value, kind: 'special' as const, describe: option.label, disabled: option.disabled, commit: () => pick('special', option.value) })),
@@ -253,14 +254,14 @@ export function ActionPicker({ inputLabel, layerInput, command, virtualControlle
 
       <nav className="action-picker__tabs" aria-label="Action categories">
         <span className="action-picker__step" aria-hidden="true"><ButtonGlyph button="LB" size={22} /></span>
-        {categories.map(item => <button key={item} type="button" className="action-tab" aria-pressed={!results && category === item} onClick={() => { setQuery(''); setCategory(item) }}>{item}</button>)}
+        {categories.map(item => <button key={item} type="button" className="action-tab" aria-pressed={!results && category === item} onClick={() => { setQuery(''); setCategory(item) }}>{item === 'System' ? t('keymap.pickerSystemMedia', 'System & media') : item}</button>)}
         <span className="action-picker__step" aria-hidden="true"><ButtonGlyph button="RB" size={22} /></span>
         <span className="action-picker__spacer" />
         {onCapture && <button type="button" className="action-tab" onClick={() => { onClose(); onCapture() }}><ButtonGlyph button="X" size={20} />Capture</button>}
       </nav>
 
       <div className="action-picker__body">
-        <div className="action-picker__content" role="region" aria-label={results ? 'Search results' : `${category} actions`}>
+        <div className="action-picker__content" role="region" aria-label={results ? 'Search results' : `${category === 'System' ? t('keymap.pickerSystemMedia', 'System & media') : category} actions`}>
           {results && (results.length
             ? <div className="action-grid">{results.map(choice => choiceButton(choice))}</div>
             : <p className="action-picker-note">No action matches “{query}”. Custom takes any JoyShockMapper token.</p>)}
@@ -271,7 +272,8 @@ export function ActionPicker({ inputLabel, layerInput, command, virtualControlle
           {!results && category === 'Mouse' && <div className="action-grid">{choices.Mouse.map(choice => choiceButton(choice))}</div>}
           {!results && category === 'Keyboard' && <div className="action-keyboard">{[...MAIN_ROWS, ...NAV_ROWS.filter(row => row.length)].map((row, i) => <div className="action-key-row" key={i}>{row.map(keyButton)}</div>)}</div>}
           {!results && category === 'Numpad' && <div className="action-numpad">{NUMPAD_ROWS.map((row, i) => <div className="action-key-row" key={i}>{row.map(keyButton)}</div>)}</div>}
-          {!results && category === 'System' && <div className="action-grid">{choices.System.map(choice => choiceButton(choice))}</div>}
+          {/* Volume, media and Print Screen are outputs like any other (1f). */}
+          {!results && category === 'System' && <div className="action-grid action-grid--tiles">{choices.System.map(choice => choiceButton(choice, { className: 'action-choice action-tile', content: <><BindingIconArt value={choice.icon} size={20} /><span>{choice.label}</span></> }))}</div>}
           {!results && category === 'Layers' && <><p className="action-picker-note">Layer actions belong to this physical input and can run alongside its commands.</p><InputLayerActions command={layerInput} /></>}
           {!results && category === 'JSM' && <><div className="action-grid">{choices.JSM.filter(choice => choice.key !== 'led').map(choice => choiceButton(choice))}</div>
             <div className="action-led" aria-label="LED brightness" role="group">

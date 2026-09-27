@@ -231,3 +231,17 @@ body[data-input-source='controller'] .action-choice:focus {
 /* Custom: a raw expression, a console command or a haptic pulse. */
 .action-custom { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-4); max-width: 560px; }
 .action-custom__field { width: 100%; height: 44px; font-family: var(--font-mono); }
+
+/* System & media (1f): tall tiles, the key's icon over its name. */
+.action-grid--tiles { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+.action-choice.action-tile {
+  height: 124px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 16px 14px;
+  font-weight: var(--fw-semibold);
+  text-align: left;
+}
+.action-tile svg { color: var(--text-2); }

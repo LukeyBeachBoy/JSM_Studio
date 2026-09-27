@@ -92,10 +92,21 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  await picker.waitFor({state:'detached'});
  await page.waitForFunction(() => document.querySelectorAll('details[data-input-command="N"][open] [data-command-row]').length === 2);
  // Rows follow the config's order (Press lines first), so find it by its key.
- const fresh = open.locator('[data-command-row]').filter({has: page.getByRole('button',{name:'Choose action: Q'})});
- assert.equal(await fresh.count(), 1, 'the chosen action did not become a command');
+ const fresh = open.locator('[data-command-row]').nth(0);
+ assert.equal(await fresh.getByRole('button',{name:/^Choose action/}).innerText(), 'Q', 'the chosen action did not become a command');
  await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === 'Choose action: Q', null, {timeout:3000});
  assert.ok(await open.getByRole('button',{name:'Add modeshift'}).count() > 0, 'chords have nowhere else to be made');
+
+ // System keys are a picker category, "System & media" (1f), not a select in
+ // the command's settings.
+ await fresh.getByRole('button',{name:/^Choose action/}).click();
+ const systemPicker = page.getByRole('dialog',{name:'Choose an action'});
+ await systemPicker.getByRole('button',{name:'System & media',exact:true}).click();
+ const tiles = (await systemPicker.locator('.action-tile').allInnerTexts()).map(text => text.trim());
+ assert.deepEqual(tiles, ['Volume up','Volume down','Mute','Play / Pause','Next track','Previous track','Print Screen','Stop']);
+ await systemPicker.locator('.action-tile').filter({hasText:'Print Screen'}).click();
+ await systemPicker.waitFor({state:'detached'});
+ assert.equal(await fresh.getByRole('button',{name:/^Choose action/}).innerText(), 'Print Screen');
 
  assert.deepEqual(errors,[]);
  console.log('PASS: lanes card: one chip per row with every keepable kind, keycap output, cog sheets, no text-only buttons');
