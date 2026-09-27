@@ -95,11 +95,8 @@ const PROFILE = [
     await page.waitForFunction(count => document.querySelectorAll('[role=dialog]').length < count, sheets);
 
     // A shift has no second condition to hang a chord on, so it must not offer
-    // to make one: the line would be written where this card cannot show it.
-    await shifted.getByRole('button', { name: /Add command/i }).click();
-    const addItems = (await page.getByRole('menuitem').allInnerTexts()).map(text => text.trim());
-    assert.ok(!addItems.some(item => /chord/i.test(item)), `a shift must not offer chords: ${addItems.join(', ')}`);
-    await page.keyboard.press('Escape');
+    // to make one: the chip above offers no chord kind, and Add command goes
+    // straight to the picker as a Press (5).
 
     // --- writes stay inside the shift ---------------------------------------
     const choose = async (index, key) => {
@@ -125,9 +122,8 @@ const PROFILE = [
     // config line, and the old shifted editor wrote that line from a single
     // binding expression.
     await shifted.getByRole('button', { name: /Add command/i }).click();
-    await page.getByRole('menuitem', { name: 'Hold', exact: true }).click();
+    await page.getByRole('dialog', { name: 'Choose an action' }).locator('button.key-cap').filter({ hasText: /^M$/ }).click();
     await shifted.locator('[data-command-row]').nth(1).waitFor();
-    await choose(1, 'M');
     await page.keyboard.press('Control+s');
     await page.waitForFunction(() => /L,N\s*=.*M/.test(window.__lastSaved || ''));
     const both = await page.evaluate(() => window.__lastSaved);

@@ -16,8 +16,10 @@ export type ConfigLayer = {
 export const layerVerbs = ['hold', 'apply', 'remove', 'toggle'] as const
 export type LayerVerb = (typeof layerVerbs)[number]
 export type LayerAction = { input: string; verb: LayerVerb; layerId: string }
+// The UI's words for the verbs (binding card refresh 3f): apply and remove read
+// as Turn on and Turn off. The config keeps JSM's own words.
 export const layerVerbLabels: Record<LayerVerb, string> = {
-  hold: 'Hold layer', apply: 'Apply layer', remove: 'Remove layer', toggle: 'Toggle layer',
+  hold: 'Hold', apply: 'Turn on', remove: 'Turn off', toggle: 'Toggle',
 }
 /** The verb alone, as tiles and the add sheet say it ("Hold Vehicles", "Turn
  *  on Comms"): i18n keys, since apply/remove read as Turn on/Turn off in the
@@ -32,7 +34,7 @@ export const actionsForLayer = (actions: LayerAction[], layerId: string) => acti
  *  that input's, and its editor lists and rewrites them together. */
 export const actionsOnInput = (actions: LayerAction[], input: string) => actions.filter(a => a.input === input || a.input === `!${input}`)
 export const describeAction = (action: LayerAction, layers: ConfigLayer[]) =>
-  `${layerVerbLabels[action.verb]}: ${layers.find(l => l.id === action.layerId)?.name ?? action.layerId}${action.input.startsWith('!') ? (action.verb === 'hold' ? ' while released' : ' on release') : ''}`
+  `${layerVerbLabels[action.verb]} ${layers.find(l => l.id === action.layerId)?.name ?? action.layerId}${action.input.startsWith('!') ? (action.verb === 'hold' ? ' while released' : ' on release') : ''}`
 /** Names an input for people; callers pass inputDisplayName with the pad's family. */
 export type InputNamer = (command: string) => string
 const rawName: InputNamer = command => command

@@ -240,6 +240,7 @@ body[data-input-source='controller'] .summary-row:focus { background: var(--surf
 .sheet__hint .button-glyph { color: var(--text-1); }
 /* The sheet carries its own footer, so the page's capsule steps aside. */
 body:has(.sheet-layer) .hint-capsule,
+body:has(.dialog-layer) .hint-capsule,
 body:has(.config-menu-overlay) .hint-capsule { visibility: hidden; }
 
 /* Scope strip (2c) and contact tiles (2e): one 48px tile per pad or grip. */
@@ -441,3 +442,74 @@ body:has(.menus-overlay) .hint-capsule { visibility: hidden; }
 .timing-page__note { margin: 6px 4px 0; font-size: var(--fs-hint); line-height: var(--lh-hint); color: var(--text-2); }
 .timing-file__line { font-family: var(--font-mono); font-size: 12px; }
 @media (max-width: 1279px) { .timing-page { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---- Centred dialog (binding card refresh 3e, 3f, 1g). Radius 16 on the
+   raised surface; a modeshift's frame glows crimson, a layer's takes its hue. */
+.dialog-layer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-dialog);
+  display: grid;
+  place-items: center;
+  padding: var(--sp-6);
+  background: var(--surface-scrim);
+  animation: fade-in var(--dur-2) var(--ease-standard);
+}
+.dialog {
+  display: flex;
+  flex-direction: column;
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 48px);
+  overflow: hidden;
+  border-radius: 16px;
+  background: var(--surface-raised);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .45), 0 0 0 1px var(--line-2);
+  color: var(--text-1);
+  animation: dialog-in var(--dur-3) var(--ease-emphasis);
+}
+.dialog[data-tone='shift'] {
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .45), 0 0 0 1px color-mix(in srgb, var(--shift) 35%, transparent), 0 0 40px color-mix(in srgb, var(--shift) 14%, transparent);
+}
+.dialog[data-tone='layer'] {
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .45), 0 0 0 1px color-mix(in oklch, var(--dialog-hue, var(--layer-1)) 35%, transparent);
+}
+@keyframes dialog-in { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
+.dialog__header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: 20px 24px;
+}
+.dialog[data-tone='shift'] .dialog__header { background: linear-gradient(135deg, color-mix(in srgb, var(--shift) 16%, transparent), transparent 70%); }
+.dialog[data-tone='layer'] .dialog__header { background: linear-gradient(135deg, color-mix(in oklch, var(--dialog-hue, var(--layer-1)) 16%, transparent), transparent 70%); }
+.dialog__heading { display: flex; flex: 1; flex-direction: column; gap: 4px; min-width: 0; }
+.dialog__eyebrow {
+  color: var(--text-3);
+  font-size: var(--fs-eyebrow);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+}
+.dialog[data-tone='shift'] .dialog__eyebrow { color: var(--shift); }
+.dialog[data-tone='layer'] .dialog__eyebrow { color: var(--dialog-hue, var(--layer-1)); }
+.dialog__title { margin: 0; font-size: 20px; font-weight: var(--fw-semibold); line-height: 26px; }
+.dialog__close { position: absolute; width: 0; height: 0; padding: 0; border: 0; opacity: 0; }
+.dialog__body { flex: 1; min-height: 0; overflow-y: auto; }
+.dialog__footer {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--sp-5);
+  height: 56px;
+  padding: 0 24px;
+  background: var(--surface-nav);
+  box-shadow: inset 0 1px 0 var(--line-1);
+  color: var(--text-2);
+  font-size: var(--fs-hint);
+}
+:root[data-theme='dark'] .dialog__footer, :root:not([data-theme]) .dialog__footer { background: #1b232b; }
+.dialog__note { color: var(--text-3); }
+.dialog__hints { display: flex; flex: 1; align-items: center; justify-content: flex-end; gap: var(--sp-5); }
+.dialog__hint { display: inline-flex; align-items: center; gap: 6px; font-weight: var(--fw-semibold); color: var(--text-2); }
+.dialog__footer .console-btn { height: 36px; }

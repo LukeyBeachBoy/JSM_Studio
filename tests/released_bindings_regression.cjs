@@ -36,22 +36,28 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
     await card.waitFor();
     if (await card.getAttribute('open') === null) await card.locator('summary').first().click();
 
-    // A modeshift that holds while the right grip is released.
+    // A modeshift that holds while the right grip is released: added through
+    // "Hold which button?" and the picker (3e), then set to released in the
+    // shift's own sheet (its cog, 3c).
     const shifts = card.locator('section[aria-label="Modeshifts"]').first();
     await shifts.getByRole('button', { name: 'Add modeshift' }).click();
-    await shifts.getByRole('radio', { name: 'Released' }).click();
-    await shifts.getByRole('combobox').click();
-    await page.getByRole('option', { name: /right grip/i }).first().click();
+    const hold = page.getByRole('dialog', { name: /Hold which button/ });
+    await hold.locator('[data-hold-input][title*="right grip" i]').first().click();
+    await hold.getByRole('button', { name: 'Next', exact: true }).click();
+    await page.getByRole('dialog', { name: 'Choose an action' }).locator('button.key-cap').filter({ hasText: /^J$/ }).click();
     let saved = await save();
-    const shiftLine = saved.split('\n').find(line => /^!MISC\d,W\s*=/.test(line));
-    assert.ok(shiftLine, `a released modeshift is written as "!MISC…,W = …":\n${saved}`);
-    const trigger = shiftLine.split(',')[0];
+    const heldLine = saved.split('\n').find(line => /^MISC\d,W\s*=\s*J$/.test(line));
+    assert.ok(heldLine, `the new shift is written as "MISC…,W = J":\n${saved}`);
+    const trigger = '!' + heldLine.split(',')[0];
     const shiftRow = shifts.locator('[data-modeshift-row]').first();
-    assert.match(await shiftRow.innerText(), /Released/i, 'the row says released');
-
-    // The shift's sheet (its cog, 3c) turns it into an ordinary held modeshift and back.
     await shiftRow.getByRole('button', { name: 'Modeshift settings' }).click();
     const sheet = page.getByRole('dialog').last();
+    await sheet.getByRole('radio', { name: 'Released' }).first().click();
+    saved = await save();
+    assert.ok(saved.includes(`${trigger},W`), `a released modeshift is written as "!MISC…,W = …":\n${saved}`);
+    assert.match(await shifts.locator('[data-modeshift-row]').first().innerText(), /Released/i, 'the row says released');
+
+    // The same switch turns it into an ordinary held modeshift and back.
     await sheet.getByRole('radio', { name: 'Held' }).first().click();
     saved = await save();
     assert.ok(saved.split('\n').some(line => line.startsWith(`${trigger.slice(1)},W`)) && !saved.includes(`${trigger},W`), `flipped to held:\n${saved}`);
@@ -68,11 +74,14 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
     if (await grip.getAttribute('open') === null) await grip.locator('summary').first().click();
     const actions = grip.locator('section[aria-label="Layer actions"]').first();
     await actions.getByRole('button', { name: 'Add layer action' }).click();
-    await actions.getByRole('radio', { name: 'While released' }).click();
-    await actions.getByRole('combobox', { name: 'Layer', exact: true }).selectOption({ label: 'Aim' }).catch(async () => {
-      await actions.getByRole('combobox', { name: 'Layer', exact: true }).click();
-      await page.getByRole('option', { name: 'Aim', exact: true }).click();
-    });
+    const which = page.getByRole('dialog', { name: 'Which layer?' });
+    await which.getByRole('radio', { name: /^Aim/ }).click();
+    await which.getByRole('button', { name: 'Add', exact: true }).click();
+    await which.waitFor({ state: 'detached' });
+    await actions.locator('[data-layer-action="aim"]').getByRole('button', { name: 'Layer action settings' }).click();
+    const actionSheet = page.getByRole('dialog').last();
+    await actionSheet.getByRole('radio', { name: 'Release' }).click();
+    await actionSheet.locator('[data-modal-close]').click();
     saved = await save();
     assert.ok(saved.includes(`# @layer-action ${trigger} = hold aim`), `the layer action is written on the released input:\n${saved}`);
     assert.match(await actions.innerText(), /Hold Aim[\s\S]*On while .* is released/i, 'and reads as held while released');

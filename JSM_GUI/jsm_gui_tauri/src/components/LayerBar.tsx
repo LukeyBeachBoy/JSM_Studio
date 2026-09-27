@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { convertModeshifts, inputUses, inputUsage, inputDefinitions, readableSetting, writeLayers, actionsOnInput, describeAction, layerVerbs, layerVerbLabels, type ConfigLayer, type LayerAction, type LayerVerb } from '../utils/layers'
+import { convertModeshifts, inputUses, inputUsage, inputDefinitions, readableSetting, writeLayers, actionsOnInput, describeAction, layerVerbOrder, layerVerbLabels, type ConfigLayer, type LayerAction, type LayerVerb } from '../utils/layers'
 import { type ControllerVisualFamily } from '../utils/controllerStatus'
 import { inputDisplayName } from '../keymap/inputNames'
 import { AppSelect } from './ui/AppSelect'
@@ -34,7 +34,7 @@ export function LayerValueBadge({ command }: { command?: string }) {
 export function InputUseBadge({ command, iconOnly = false }: { command?: string; iconOnly?: boolean }) {
   const uses = useInputUses(command)
   const { family = 'generic' } = useContext(LayerUsageContext)
-  return uses.length ? <button type="button" className="input-use-badge" title={uses.join('\n')} aria-label={`Show uses of ${inputDisplayName(command ?? '', family)}`} onClick={event => { event.preventDefault(); event.stopPropagation(); window.dispatchEvent(new CustomEvent('jsm:input-uses', { detail: command })) }}><LayerIcon />{!iconOnly && uses.map(use => /^(Hold|Apply|Remove|Toggle) layer:/.test(use) ? use : use.split(':')[0]).filter((v, i, a) => a.indexOf(v) === i).join(' · ')}</button> : null
+  return uses.length ? <button type="button" className="input-use-badge" title={uses.join('\n')} aria-label={`Show uses of ${inputDisplayName(command ?? '', family)}`} onClick={event => { event.preventDefault(); event.stopPropagation(); window.dispatchEvent(new CustomEvent('jsm:input-uses', { detail: command })) }}><LayerIcon />{!iconOnly && uses.map(use => /^(Hold|Toggle|Turn on|Turn off) /.test(use) ? use : use.split(':')[0]).filter((v, i, a) => a.indexOf(v) === i).join(' · ')}</button> : null
 }
 const buttons = inputDefinitions.filter(b => !/^(L|R|T)(UP|DOWN|LEFT|RIGHT|RING)$/.test(b.command))
 /** Inputs whose modeshifts can be lifted into a layer. */
@@ -77,7 +77,7 @@ export function InputLayerActions({ command }: { command?: string }) {
       <small>Hold turns a layer on while this input is down. Toggle switches it on and off. Any number of inputs can drive the same layer.</small>
       {layers.length ? <div className="layer-binding-row">
         <AppSelect aria-label="Layer action" value={verb} disabled={disabled} onChange={e => setVerb(e.target.value as LayerVerb)}>
-          {layerVerbs.map(v => <option key={v} value={v}>{layerVerbLabels[v]}</option>)}
+          {layerVerbOrder.map(v => <option key={v} value={v}>{layerVerbLabels[v]}</option>)}
         </AppSelect>
         <AppSelect aria-label="Layer action destination" value="" disabled={disabled} onChange={e => { if (e.target.value) add(e.target.value) }}>
           <option value="">Choose layer</option>

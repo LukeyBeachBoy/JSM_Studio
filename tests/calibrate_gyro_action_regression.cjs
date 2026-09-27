@@ -17,8 +17,8 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
     await page.locator('.page-tabs').getByRole('button', { name: 'Buttons', exact: true }).click();
     const row = page.locator('details[data-input-command="MISC6"]').first();
     await row.locator('summary').click();
+    // Add command opens the action picker straight away (5).
     await row.getByRole('button', { name: 'Add command' }).click();
-    await row.getByRole('button', { name: /No output/ }).first().click();
 
     const picker = page.locator('.action-picker');
     await picker.locator('.action-tab', { hasText: /^JSM$/ }).click();

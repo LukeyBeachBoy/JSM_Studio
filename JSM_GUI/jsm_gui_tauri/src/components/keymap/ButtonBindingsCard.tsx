@@ -1,4 +1,4 @@
-import { memo, useMemo, type ReactNode } from 'react'
+import { memo, useMemo, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   BindingCommand,
@@ -7,7 +7,7 @@ import {
   BindingTriggerKind,
   bindingCommandToToken,
   commandTokenPreview,
-  createBindingCommandPreset,
+  commandForValue,
   inferOutputKindFromBindingValue,
   parseRowsToCommands,
   updateCommandExpression,
@@ -34,7 +34,6 @@ import {
 } from '../../keymap/schema'
 import { BindingCommandCard } from './BindingCommandCard'
 import { NumberField } from '../NumberField'
-import { Menu, type MenuItem } from '../ui/Menu'
 import { controllerButtonLabel, type ControllerVisualFamily } from '../../utils/controllerStatus'
 import { InputGlyph } from '../glyphs/InputGlyph'
 
@@ -42,7 +41,8 @@ import { ButtonMappingCard, type BindingSummaryEntry } from './ButtonMappingCard
 import { BindingIconArt, IconPicker } from './IconPicker'
 import { BindingLabelField } from './BindingLabelField'
 import { ButtonGlyph } from '../glyphs/ButtonGlyph'
-import { Lane, LaneAddButton, LaneSideButton, laneStyles } from './Lane'
+import { Lane, LaneAddButton, LaneSideButton, laneStyles, useJustAdded } from './Lane'
+import { ActionPicker } from './ActionPicker'
 import { InputModeshiftPanel } from './InputModeshiftPanel'
 import { LayerActionsLane } from './LayerActionsLane'
 import { inputLongName, inputShortName } from '../../keymap/inputNames'
@@ -564,48 +564,20 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
     beginCapture(button.command, 'tap', baseRow?.id ?? `${button.command}-tap`, t('keymap.anyBindingPrompt'))
   }
 
-  const handleAddCommand = (trigger: BindingTriggerKind | 'script') => {
-    if (trigger === 'script') {
-      addDraftCommand(createBindingCommandPreset('regular', { outputKind: 'command', outputValue: '' }))
-      return
-    }
-    addDraftCommand(createBindingCommandPreset(trigger, trigger === 'chord' || trigger === 'simultaneous' || trigger === 'diagonal'
-      ? { conditionInput: defaultModifier }
-      : undefined))
+  // Add command (5): the action picker straight away, as a Press; what it
+  // chooses is written as a new command, which keeps focus and glows. Other
+  // activations are the new row's chip; a console command is the picker's
+  // Custom, a stick mode shift its JSM category.
+  const [addingCommand, setAddingCommand] = useState(false)
+  const added = useJustAdded(commands.map(command => command.id), id => `[data-command-row="${CSS.escape(id)}"] button[aria-label^="${t('keymap.chooseAction', 'Choose action')}"]`)
+  const addChosen = (patch: BindingCommandPatch) => {
+    added.expect()
+    writeCommand({ triggerKind: 'regular', outputKind: patch.outputKind ?? 'keyboard', outputValue: patch.outputValue ?? '', outputBehavior: 'normal' })
   }
-
-  // One button opening a menu, with the rare trigger kinds behind a submenu --
-  // Steam's own pattern. Where the chord slot is filtered out of the rows, the
-  // menu must not offer to make one either: it would be written to a line this
-  // card does not show, and so be lost the moment anything else on the card
-  // was edited. The same goes for the two other condition-carrying kinds, which
-  // are chords by another name.
-  const addMenuItems: MenuItem[] = [
-    { label: t('keymap.commandTriggerRegular'), onSelect: () => handleAddCommand('regular') },
-    { label: t('keymap.commandTriggerTap'), onSelect: () => handleAddCommand('tap') },
-    { label: t('keymap.commandTriggerHold'), onSelect: () => handleAddCommand('hold') },
-    { label: t('keymap.commandTriggerDouble'), onSelect: () => handleAddCommand('double') },
-    ...(chordsLiveInModeshifts
-      ? []
-      : [{ label: t('keymap.commandTriggerChord'), onSelect: () => handleAddCommand('chord') } as MenuItem]),
-    { kind: 'separator' },
-    {
-      kind: 'submenu',
-      label: t('keymap.advancedOptions'),
-      items: [
-        ...(chordsLiveInModeshifts
-          ? []
-          : [
-              { label: t('keymap.commandTriggerSimultaneous'), onSelect: () => handleAddCommand('simultaneous') } as MenuItem,
-              { label: t('keymap.commandTriggerDiagonal'), onSelect: () => handleAddCommand('diagonal') } as MenuItem,
-            ]),
-        ...(onStickModeShiftChange
-          ? [{ label: t('keymap.commandAddStickShift'), onSelect: () => handleAddCommand('stickShift') } as MenuItem]
-          : []),
-        { label: t('keymap.commandAddScript'), onSelect: () => handleAddCommand('script') },
-      ],
-    },
-  ]
+  const addStickShift = onStickModeShiftChange ? () => {
+    onStickModeShiftChange(button.command, 'RIGHT', 'NO_MOUSE')
+    updateStickShiftDisplayMode(buttonKey, 'extra')
+  } : undefined
 
   const shortName = inputShortName(button, controllerFamily)
   const longName = label ?? inputLongName(button, controllerFamily, t)
@@ -618,14 +590,20 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
 
   // Nothing bound yet: one press adds a Press command, as Steam Input's own
   // empty slot does. With a command there the same button offers the kinds.
-  const addButtonProps = { concept: 'command' as const, label: t('keymap.addCommand'), hints: `A:Add command;X:Capture;B:${closeLabel}` }
+  const addButtonProps = {
+    concept: 'command' as const,
+    label: t('keymap.addCommand'),
+    hints: `A:Add command;X:Capture;B:${closeLabel}`,
+    'data-pad-keys': 'X',
+    onClick: () => setAddingCommand(true),
+    // X on the add button captures a key instead (5).
+    onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => { if (event.key === 'x' || event.key === 'X') { event.preventDefault(); capturePrimary() } },
+  }
   const commandsLane = (
     <Lane concept="command" label={t('keymap.commandsHeading', 'Commands')} count={commands.length} twoUpFooter={!menuItem}
       footer={
         <>
-          {commands.length === 0
-            ? <LaneAddButton {...addButtonProps} onClick={() => handleAddCommand('regular')} />
-            : <Menu ariaLabel={t('keymap.addCommand')} items={addMenuItems} trigger={<LaneAddButton {...addButtonProps} />} />}
+          <LaneAddButton {...addButtonProps} />
           {!menuItem && <LaneSideButton glyph={<ButtonGlyph button="X" size={28} family={controllerFamily === 'generic' ? undefined : controllerFamily} />}
             label={t('keymap.captureAKey', 'Capture a key')} onClick={capturePrimary} hints={`A:Capture a key;B:${closeLabel}`} />}
         </>
@@ -656,9 +634,16 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
               onCapture={captureCommand}
               closeLabel={closeLabel}
               onEnableVirtualController={onEnableVirtualController}
+              justAdded={added.justAdded === command.id}
             />
           ))}
         </div>
+      )}
+      {addingCommand && (
+        <ActionPicker layerInput={isShifted ? undefined : button.command} inputLabel={controllerButtonLabel(button, controllerFamily)}
+          command={commandForValue(button.command, '')} virtualControllerType={virtualControllerType} specialOptions={actionSpecialOptionList}
+          libraryProfiles={libraryProfiles} currentProfileName={currentProfileName} onEnableVirtualController={onEnableVirtualController}
+          onSelect={addChosen} onClose={() => setAddingCommand(false)} onCapture={capturePrimary} onAddStickShift={addStickShift} />
       )}
     </Lane>
   )
@@ -730,7 +715,7 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
           {identity}
           {commandsLane}
           {!menuItem && modeshiftPanel && !isShifted && <InputModeshiftPanel {...modeshiftPanel} button={button} shortName={shortName} />}
-          {!menuItem && !isShifted && <LayerActionsPanel command={button.command} label={`${longName} layer actions`} glyph={inputGlyph} shortName={shortName} />}
+          {!menuItem && !isShifted && <LayerActionsPanel command={button.command} label={`${longName} layer actions`} glyph={inputGlyph} shortName={shortName} longName={longName} />}
         </>
       }
       extras={extras}
@@ -741,6 +726,6 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
 
 // The LAYER ACTIONS lane (3c): one row per action -- the input, an arrow, the
 // layer's tile and what it does -- and one add button.
-function LayerActionsPanel({ command, label, glyph, shortName }: { command: string; label: string; glyph: ReactNode; shortName: string }) {
-  return <LayerActionsLane command={command} label={label} glyph={glyph} shortName={shortName} />
+function LayerActionsPanel({ command, label, glyph, shortName, longName }: { command: string; label: string; glyph: ReactNode; shortName: string; longName: string }) {
+  return <LayerActionsLane command={command} label={label} glyph={glyph} shortName={shortName} longName={longName} />
 }

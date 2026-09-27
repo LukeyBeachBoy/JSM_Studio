@@ -66,14 +66,16 @@ const fs = require('node:fs');
   const card=page.locator(`details[data-input-command="${command}"]`).first();
   await card.waitFor();
   if(await card.getAttribute('open')===null) await card.locator('summary').first().click();
-  // The editor's Layer actions panel: one add button, then the two pickers.
+  // The Layer actions lane's add button opens "Which layer?" (3f): the
+  // layer, then "When it is pressed". The UI says Turn on / Turn off for
+  // apply / remove; the file keeps the JSM words.
   const details=card.locator('section[aria-label="Layer actions"]').first();
   await details.getByRole('button',{name:'Add layer action',exact:true}).click();
-  await details.getByRole('combobox',{name:'Layer action',exact:true}).click();
-  // The UI says Turn on / Turn off for apply / remove (3f); the file keeps the JSM words.
-  await page.getByRole('option',{name:{'Hold layer':'Hold','Toggle layer':'Toggle','Apply layer':'Turn on','Remove layer':'Turn off'}[verb]??verb,exact:true}).click();
-  await details.getByRole('combobox',{name:'Layer',exact:true}).click();
-  await page.getByRole('option',{name:layerName,exact:true}).click();
+  const sheet=page.getByRole('dialog',{name:'Which layer?'});
+  await sheet.getByRole('radio',{name:new RegExp('^'+layerName)}).click();
+  await sheet.getByRole('radio',{name:{'Hold layer':'Hold','Toggle layer':'Toggle','Apply layer':'Turn on','Remove layer':'Turn off'}[verb]??verb,exact:true}).click();
+  await sheet.getByRole('button',{name:'Add',exact:true}).click();
+  await sheet.waitFor({state:'detached'});
  };
  const chooseLayer=async name=>{await closeManageLayers();await picker.click();await layerItem(name).click();};
  await page.locator('.profile-chip').filter({hasText:'Desktop'}).waitFor();
@@ -223,9 +225,9 @@ const fs = require('node:fs');
  // could not express at all.
  await bindLayerAction('RSR','Hold layer','Comms');
  await page.getByRole('button',{name:'Overview',exact:true}).click();
- await page.getByText(/Hold layer: Comms/).first().waitFor();
- await page.getByText('Apply layer: Comms',{exact:true}).waitFor();
- await page.getByText('Remove layer: Comms',{exact:true}).waitFor();
+ await page.getByText(/Hold Comms/).first().waitFor();
+ await page.getByText('Turn on Comms',{exact:true}).waitFor();
+ await page.getByText('Turn off Comms',{exact:true}).waitFor();
  await page.screenshot({path:path.join(artifacts,'overview.png'),fullPage:true});
  // One state button applies (1e): it saves first when there are unsaved edits.
  await page.locator('.state-button').click();

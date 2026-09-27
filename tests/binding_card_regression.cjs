@@ -83,12 +83,18 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  assert.equal(await open.locator('[data-command-row]').count(), 1, 'moving the command to its own line left a copy behind');
  assert.equal(await open.locator('[data-command-row]').getByRole('button',{name:/^Choose action/}).innerText(), 'Space');
 
- // Adding a command is one button; with commands there it offers the kinds,
- // and never a chord here.
+ // Adding a command opens the action picker straight away (5); what it
+ // chooses is a new Press command, which keeps focus.
  await open.getByRole('button',{name:'Add command'}).click();
- const addItems = (await page.getByRole('menuitem').allInnerTexts()).map(text => text.trim());
- assert.ok(!addItems.some(item => /chord/i.test(item)), `the card offers a chord it cannot keep: ${addItems.join(', ')}`);
- await page.keyboard.press('Escape');
+ const picker = page.getByRole('dialog',{name:'Choose an action'});
+ assert.match(await picker.locator('.action-picker__eyebrow').innerText(), /Press/i, 'a new command starts as a Press');
+ await picker.locator('button.key-cap').filter({hasText:/^Q$/}).click();
+ await picker.waitFor({state:'detached'});
+ await page.waitForFunction(() => document.querySelectorAll('details[data-input-command="N"][open] [data-command-row]').length === 2);
+ // Rows follow the config's order (Press lines first), so find it by its key.
+ const fresh = open.locator('[data-command-row]').filter({has: page.getByRole('button',{name:'Choose action: Q'})});
+ assert.equal(await fresh.count(), 1, 'the chosen action did not become a command');
+ await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === 'Choose action: Q', null, {timeout:3000});
  assert.ok(await open.getByRole('button',{name:'Add modeshift'}).count() > 0, 'chords have nowhere else to be made');
 
  assert.deepEqual(errors,[]);

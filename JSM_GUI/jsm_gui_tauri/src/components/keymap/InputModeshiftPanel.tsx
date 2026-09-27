@@ -15,7 +15,8 @@ import { getActionSpecialOptionList, getButtonDescription, type ButtonDefinition
 import { ReleaseSwitch } from './ReleaseSwitch'
 import { ShiftedBinding, type InputModeshiftsProps } from './InputModeshifts'
 import { ActionPicker } from './ActionPicker'
-import { Lane, LaneAddButton, laneStyles } from './Lane'
+import { Lane, LaneAddButton, laneStyles, useJustAdded } from './Lane'
+import { AddModeshiftSheet } from './AddModeshiftSheet'
 import { TriggerCap } from './ConceptTiles'
 import { OriginMarker } from './OriginMarker'
 import sheetStyles from './BindingEditor.module.css'
@@ -36,11 +37,11 @@ type Props = Omit<InputModeshiftsProps, 'target' | 'initiallyOpen' | 'livePad'> 
  */
 export function InputModeshiftPanel({ button, shortName, ...props }: Props) {
   const { t } = useTranslation()
-  const [adding, setAdding] = useState(false)
+  // Adding is two steps (3e): which button to hold, then the action picker.
+  // Cancel in the picker goes back to step 1 with the choice still made.
+  const [adding, setAdding] = useState<{ step: 'hold' | 'pick'; trigger: string | null } | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
   const [picking, setPicking] = useState<string | null>(null)
-  // A new shift holds while its input is held, or while it is released ("!X").
-  const [releasedNew, setReleasedNew] = useState(false)
   const target = useMemo<ModeshiftTarget>(() => ({
     id: button.command,
     title: getButtonDescription(button, t),
@@ -48,7 +49,8 @@ export function InputModeshiftPanel({ button, shortName, ...props }: Props) {
   }), [button, t])
   const { text, onChange, modifiers, controllerFamily = 'generic' } = props
   const triggers = useMemo(() => modeshiftTriggers(text, target), [text, target])
-  const available = modifiers.filter(option => !option.disabled && !triggers.includes(withRelease(option.value, releasedNew)) && option.value !== button.command.toUpperCase())
+  const available = modifiers.filter(option => !option.disabled && !triggers.includes(option.value) && option.value !== button.command.toUpperCase())
+  const added = useJustAdded(triggers, trigger => `[data-modeshift-row="${CSS.escape(trigger)}"] button[aria-label^="${t('keymap.chooseAction', 'Choose action')}"]`)
   const heldName = (trigger: string) => inputDisplayName(heldInput(trigger), controllerFamily)
   const closeLabel = `Close ${shortName}`
   const specialOptions = useMemo(() => getActionSpecialOptionList(t), [t])
@@ -57,25 +59,10 @@ export function InputModeshiftPanel({ button, shortName, ...props }: Props) {
 
   return (
     <Lane concept="shift" label={t('keymap.modeshiftsTitle', 'Modeshifts')} count={triggers.length}
-      footer={adding ? (
-        // Replaced by the "Hold which button?" sheet (3e).
-        <div className={laneStyles.inlineAdd}>
-          <ReleaseSwitch released={releasedNew} onChange={setReleasedNew} ariaLabel={t('keymap.modeshiftWhen', 'While the input is held or released')} />
-          <AppSelect aria-label={t('keymap.modeshiftTrigger', 'Held input')} value="" onChange={event => {
-            const trigger = event.target.value && withRelease(event.target.value, releasedNew)
-            if (!trigger) return
-            onChange(previous => addModeshift(previous, target, trigger))
-            setAdding(false)
-          }}>
-            <option value="">{t('keymap.modeshiftChooseTrigger', 'Choose a trigger…')}</option>
-            {available.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </AppSelect>
-          <button type="button" className="console-btn" onClick={() => setAdding(false)}>{t('common.cancel', 'Cancel')}</button>
-        </div>
-      ) : (
+      footer={
         <LaneAddButton concept="shift" label={t('keymap.addModeshiftShort', 'Add modeshift')} disabled={!available.length}
-          hints={`A:Add modeshift;B:${closeLabel}`} onClick={() => setAdding(true)} />
-      )}>
+          hints={`A:Add modeshift;B:${closeLabel}`} onClick={() => setAdding({ step: 'hold', trigger: null })} />
+      }>
       {triggers.length > 0 && (
         <div className={laneStyles.rows} aria-label={`${target.title} modeshifts`}>
           {triggers.map(trigger => {
@@ -88,6 +75,7 @@ export function InputModeshiftPanel({ button, shortName, ...props }: Props) {
             const rowHints = `A:${single ? 'Change action' : 'Settings'};Y:Settings;B:${closeLabel}`
             return (
               <div key={trigger} className={laneStyles.row} data-kind="shift" data-modeshift-row={trigger} data-pad-keys="Y" data-hints={rowHints}
+                data-just-added={added.justAdded === trigger ? 'true' : undefined}
                 onKeyDown={event => { if (event.key === 'y' || event.key === 'Y') { event.preventDefault(); setEditing(trigger) } }}>
                 <span className={laneStyles.chain} title={`${inputDisplayName(trigger, controllerFamily)} + ${shortName}`}>
                   <TriggerCap label={heldName(trigger)} size="lg" />
@@ -126,6 +114,23 @@ export function InputModeshiftPanel({ button, shortName, ...props }: Props) {
               replaceFirstOutput(readModeshift(previous, trigger, command) ?? '', patch.outputKind ?? 'keyboard', patch.outputValue ?? '')))
           }}
           onClose={() => setPicking(null)} />
+      )}
+      {adding?.step === 'hold' && (
+        <AddModeshiftSheet inputName={shortName} command={button.command} family={controllerFamily} modifiers={modifiers}
+          taken={triggers} initial={adding.trigger} onClose={() => setAdding(null)}
+          onNext={trigger => setAdding({ step: 'pick', trigger })} />
+      )}
+      {adding?.step === 'pick' && adding.trigger && (
+        <ActionPicker inputLabel={`${heldName(adding.trigger)} + ${shortName}`} command={commandForValue(command, '')}
+          virtualControllerType={props.virtualControllerType} specialOptions={specialOptions} libraryProfiles={props.libraryProfiles} currentProfileName={props.currentProfileName}
+          onEnableVirtualController={props.onEnableVirtualController}
+          onSelect={patch => {
+            const trigger = adding.trigger!
+            added.expect()
+            onChange(previous => writeModeshift(addModeshift(previous, target, trigger), trigger, command, replaceFirstOutput('', patch.outputKind ?? 'keyboard', patch.outputValue ?? '')))
+            setAdding(null)
+          }}
+          onClose={() => setAdding(current => current?.step === 'pick' ? { step: 'hold', trigger: current.trigger } : current)} />
       )}
       {editing && triggers.includes(editing) && (
         <ModeshiftSheet {...props} button={button} target={target} trigger={editing} triggers={triggers} shortName={shortName}

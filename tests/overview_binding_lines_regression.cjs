@@ -62,7 +62,7 @@ const PROFILE = [
 
     // A layer action is marked as one, and carries the icon.
     const hold = await row('RSR');
-    assert.deepEqual(hold.layer, ['Hold layer: Comms'],
+    assert.deepEqual(hold.layer, ['Hold Comms'],
       `a layer action must be shown as a layer action: ${JSON.stringify(hold)}`);
     assert.equal(hold.icons, 1, 'and must carry the layer icon');
 

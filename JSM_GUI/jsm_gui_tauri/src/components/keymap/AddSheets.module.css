@@ -1,0 +1,112 @@
+/* The add sheets (binding card refresh 3e, 3f). */
+
+.groupLabel {
+  color: var(--text-3);
+  font-size: var(--fs-eyebrow);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+}
+
+/* ---- Hold which button? (3e) */
+.chain { display: inline-flex; flex: none; align-items: center; gap: 8px; }
+.chainPlus { color: var(--shift); font-weight: 800; }
+.unknownCap {
+  width: 40px;
+  height: 30px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 7px;
+  box-shadow: inset 0 0 0 2px var(--shift);
+  color: var(--shift);
+  font-weight: 800;
+}
+.holdGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px 28px;
+  padding: 8px 24px 22px;
+}
+.holdGroup { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.holdItems { display: flex; flex-wrap: wrap; gap: 8px; }
+.holdItem {
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px 0 8px;
+  border: 0;
+  border-radius: var(--r-row);
+  background: var(--surface-row);
+  color: var(--text-2);
+  font: inherit;
+  font-size: var(--fs-hint);
+  cursor: pointer;
+}
+.holdItem:hover:not(:disabled) { background: var(--surface-row-hover); }
+.holdItem:disabled { opacity: .35; cursor: default; }
+.holdItem[aria-pressed='true'] {
+  background: var(--shift-soft);
+  box-shadow: 0 0 0 var(--focus-controller-width) var(--focus-controller);
+}
+.holdItem[aria-pressed='true'] .holdSub { color: var(--shift-ink); }
+.holdCap {
+  height: 26px;
+  min-width: 30px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0 6px;
+  border-radius: 7px;
+  background: var(--trigger-cap);
+  color: var(--trigger-cap-ink);
+  font-size: 11px;
+  font-weight: 800;
+}
+.holdCap[data-round='true'] { width: 26px; min-width: 26px; padding: 0; border-radius: 50%; }
+.holdSub { color: var(--text-2); white-space: nowrap; }
+
+/* ---- Which layer? (3f) */
+.layerBody { display: flex; flex-direction: column; gap: 18px; padding: 4px 24px 22px; }
+.layerList { display: flex; flex-direction: column; gap: 6px; }
+.layerRow {
+  height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--r-row);
+  background: var(--surface-row);
+  color: var(--text-1);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.layerRow:hover { background: var(--surface-row-hover); }
+.layerRow[aria-checked='true'] { background: var(--surface-selected); box-shadow: 0 0 0 var(--focus-controller-width) var(--focus-controller); }
+.layerSwatch { width: 14px; height: 14px; flex: none; border-radius: 4px; }
+.layerName { flex: 1; font-size: var(--fs-label); }
+.layerCount { color: var(--text-3); font-size: var(--fs-hint); font-variant-numeric: tabular-nums; }
+.field { display: flex; flex-direction: column; gap: 8px; }
+.verbTrack {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--surface-sunken);
+}
+.verb {
+  height: 40px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+}
+.verb[aria-checked='true'] { background: var(--verb-hue); color: var(--layer-on); font-weight: var(--fw-bold); }
+.preview { height: 44px; display: flex; align-items: center; gap: 12px; min-width: 0; }
+.previewText { min-width: 0; overflow: hidden; color: var(--text-2); font-size: var(--fs-body); text-overflow: ellipsis; white-space: nowrap; }

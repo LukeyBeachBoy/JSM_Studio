@@ -1,4 +1,4 @@
-import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react'
+import { forwardRef, useEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from 'react'
 import { Icon, type IconName } from '../icons/Icon'
 import styles from './Lane.module.css'
 
@@ -38,6 +38,7 @@ export function Lane({ concept, label, count, children, footer, twoUpFooter }: L
 }
 
 type AddButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> & {
+  'data-pad-keys'?: string
   concept: Concept
   label: string
   hints: string
@@ -66,3 +67,33 @@ export function LaneSideButton({ glyph, label, onClick, hints }: { glyph: ReactN
 
 /** Shared row styles, for the rows each lane draws. */
 export const laneStyles = styles
+
+/**
+ * After any add (2f): the new row keeps focus and glows in its lane's colour
+ * for a moment. Call `expect()` just before the write; the first id that was
+ * not there before is the new row, focused through `focusSelector`.
+ */
+export function useJustAdded(ids: string[], focusSelector: (id: string) => string) {
+  const before = useRef<Set<string> | null>(null)
+  const [justAdded, setJustAdded] = useState<string | null>(null)
+  const key = ids.join('|')
+  useEffect(() => {
+    if (!before.current) return
+    const fresh = ids.find(id => !before.current!.has(id))
+    if (!fresh) return
+    before.current = null
+    setJustAdded(fresh)
+    requestAnimationFrame(() => {
+      const target = [...document.querySelectorAll<HTMLElement>(focusSelector(fresh))].find(element => element.offsetParent !== null)
+      target?.focus()
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key])
+  // The grow (160ms) and the glow fading over 900ms.
+  useEffect(() => {
+    if (!justAdded) return
+    const timer = setTimeout(() => setJustAdded(null), 1100)
+    return () => clearTimeout(timer)
+  }, [justAdded])
+  return { justAdded, expect: () => { before.current = new Set(ids) } }
+}

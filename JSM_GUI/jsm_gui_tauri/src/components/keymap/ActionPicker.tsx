@@ -33,6 +33,8 @@ type Props = {
   onEnableVirtualController?: () => void
   /** Capture a key or mouse button instead of choosing one. */
   onCapture?: () => void
+  /** Adding a command: a stick mode shift is one of the JSM choices. */
+  onAddStickShift?: () => void
 }
 
 /** One choosable action, for the detail panel and for search. */
@@ -57,7 +59,7 @@ const usedTokens = (text: string) => {
  * The full-screen picker (Binding Editor 7b): categories stepped by LB / RB,
  * a real keyboard with dots on keys already in use, a detail panel naming the
  * focused choice and its raw token, search across every category on Y. */
-export function ActionPicker({ inputLabel, layerInput, command, virtualControllerType, specialOptions, libraryProfiles = [], currentProfileName, onSelect, onClose, onEnableVirtualController, onCapture }: Props) {
+export function ActionPicker({ inputLabel, layerInput, command, virtualControllerType, specialOptions, libraryProfiles = [], currentProfileName, onSelect, onClose, onEnableVirtualController, onCapture, onAddStickShift }: Props) {
   const { t } = useTranslation()
   const title = useId()
   const { onSetActions, text: configText = '' } = useContext(LayerUsageContext)
@@ -117,6 +119,7 @@ export function ActionPicker({ inputLabel, layerInput, command, virtualControlle
         ...builtInCommandOptions.filter(token => token === 'CALIBRATE_GYRO').map(token => ({ key: `command:${token}`, label: COMMAND_LABELS[token].label, token, kind: 'command' as const, describe: COMMAND_LABELS[token].describe, commit: () => pick('command', token) })),
         ...specialOptions.map(option => ({ key: `special:${option.value}`, label: option.label, token: option.value, kind: 'special' as const, describe: option.label, disabled: option.disabled, commit: () => pick('special', option.value) })),
         ...builtInCommandOptions.filter(token => token !== 'CALIBRATE_GYRO').map(token => ({ key: `command:${token}`, label: COMMAND_LABELS[token]?.label ?? token.toLowerCase().replace(/_/g, ' '), token, kind: 'command' as const, describe: COMMAND_LABELS[token]?.describe ?? 'JoyShockMapper command', commit: () => pick('command', token) })),
+        ...(onAddStickShift ? [{ key: 'stickShift', label: t('keymap.commandAddStickShift', 'Stick mode shift'), token: 'STICK_SHIFT', kind: 'special' as const, describe: t('keymap.stickShiftDescribe', 'Puts the right stick in another mode while this input is held'), commit: () => { onAddStickShift(); onClose() } }] : []),
         { key: 'led', label: `LED brightness ${led}%`, token: ledToken, kind: 'command' as const, describe: 'Sets the Steam Controller light while this input fires', commit: () => pick('command', ledToken) },
       ],
       Custom: [],
@@ -124,7 +127,7 @@ export function ActionPicker({ inputLabel, layerInput, command, virtualControlle
       Configurations: libraryProfiles.map(name => ({ key: `config:${name}`, label: name === currentProfileName ? t('keymap.commandLoadConfigCurrent', { name }) : name, token: loadConfigBindingValue(name), kind: 'loadConfig' as const, describe: `Loads ${name}`, commit: () => pick('loadConfig', loadConfigBindingValue(name)) })),
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [outputType, specialOptions, libraryProfiles, currentProfileName, virtualControllerType, t, led])
+  }, [outputType, specialOptions, libraryProfiles, currentProfileName, virtualControllerType, t, led, onAddStickShift])
 
   const results = query.trim()
     ? Object.values(choices).flat().filter(choice => `${choice.label} ${choice.token} ${choice.describe}`.toLowerCase().includes(query.trim().toLowerCase())).slice(0, 60)

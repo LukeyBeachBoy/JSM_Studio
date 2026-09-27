@@ -38,7 +38,7 @@ assert.equal(readLayers(text)[0].overrides.N,'NONE','clearing inherited binding 
 const layer=readLayers(text)[0]; delete layer.overrides.N;
 text=writeLayers(text,[layer]);
 assert.equal(layerEntries(projectLayer(text,'comms')).N,'SPACE','reset inherits Default');
-assert.ok(inputUses(text,'RSR').includes('Hold layer: Comms'));
+assert.ok(inputUses(text,'RSR').includes('Hold Comms'));
 assert.ok(inputUses(text,'LSL').some(v=>v.startsWith('Shift trigger:')));
 assert.ok(inputUses('N+S = ENTER','N').some(v=>v.startsWith('Chord:')));
 assert.equal(inputUses('+ = ESC','+').length,0,'Plus is a button, not a simultaneous chord');
@@ -69,9 +69,9 @@ assert.deepEqual(readLayers(serializeConfig(parseConfigText(withActions))),[vehi
 assert.deepEqual(readLayerActions(serializeConfig(parseConfigText(withActions))),actions,'activation survives a round trip');
 assert.deepEqual(readLayers(sanitizeImportedConfig(withActions)),[vehicles]);
 assert.deepEqual(readLayerActions(sanitizeImportedConfig(withActions)),actions,'and an import');
-assert.deepEqual(inputUses(withActions,'RSR'),['Apply layer: Vehicles']);
-assert.deepEqual(inputUses(withActions,'LSL'),['Remove layer: Vehicles']);
-assert.deepEqual(inputUses(withActions,'RSL'),['Apply layer: Vehicles'],'a second input may drive the same layer');
+assert.deepEqual(inputUses(withActions,'RSR'),['Turn on Vehicles']);
+assert.deepEqual(inputUses(withActions,'LSL'),['Turn off Vehicles']);
+assert.deepEqual(inputUses(withActions,'RSL'),['Turn on Vehicles'],'a second input may drive the same layer');
 // The one-line summary (title bar layer menu, Layers page) leads with what
 // turns the layer on, lists every input, and names them as the pad does.
 const paddles = {RSR:'R4',RSL:'R5',LSL:'L4',LSR:'L5'}, pad = input => paddles[input] ?? input;
@@ -92,7 +92,7 @@ assert.deepEqual(readLayerActions(writeLayers(withActions,[])),[]);
 // A profile written before the move keeps working, and is migrated on write.
 const legacy = '# @layer '+JSON.stringify({id:'vehicles',name:'Vehicles',trigger:'',applyTrigger:'RSR',removeTrigger:'RSR',overrides:{N:'J'}});
 assert.deepEqual(readLayerActions(legacy),[{input:'RSR',verb:'toggle',layerId:'vehicles'}],'apply == remove was how a toggle had to be written');
-assert.deepEqual(inputUses(legacy,'RSR'),['Toggle layer: Vehicles']);
+assert.deepEqual(inputUses(legacy,'RSR'),['Toggle Vehicles']);
 const migrated = writeLayers(legacy,readLayers(legacy));
 assert.ok(migrated.includes('# @layer-action RSR = toggle vehicles'),'writing moves it onto the input');
 assert.ok(!/"trigger"|applyTrigger|removeTrigger/.test(migrated),'and drops the old fields: '+migrated);
