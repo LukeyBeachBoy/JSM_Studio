@@ -157,7 +157,6 @@ export function OverviewPage({ devices, onNavigate, configText, onSelectCommand,
       ;(shiftedBy[target] ??= {})[trigger] = { value, name: names[key] }
     }
     for (const command of commands) {
-      const uses = inputUses(text, command, layers)
       const lines: OverviewLine[] = getButtonBindingRows(text, command).filter(row => row.binding && row.binding !== 'NONE').map(row => {
         const binding = row.binding!
         const output = describeLine(binding, t)
@@ -201,7 +200,11 @@ export function OverviewPage({ devices, onNavigate, configText, onSelectCommand,
         lines.push({ text: summarise(shifts, 'While held, changes'), kind: 'relation' })
       }
       if (chords.length) lines.push({ text: summarise(chords, 'Pressed together with'), kind: 'relation' })
-      if (uses.some(use => use.startsWith('Modeshift:')) && !lines.length) lines.push({ text: 'Changes other inputs while held', kind: 'relation' })
+      // Bound only under a shift ("LEFT,RT1 = F3"): say which. A shift that sets
+      // an input to NONE binds nothing, so it does not make the input used --
+      // a pad's 25 cells blanked by one shift are not 25 bindings.
+      const onlyShifted = Object.keys(shiftedBy[command] ?? {})
+      if (!lines.length && onlyShifted.length) lines.push({ text: `While ${onlyShifted.map(held => inputName(held, family)).join(' / ')} is held`, kind: 'relation' })
       const used = !!lines.length || !!names[command]
       if (used || controllerSupportsInput(device, command)) result[command] = {
         name: names[command], lines, used, hasUses: relationships.length > 0,
@@ -371,7 +374,8 @@ export function OverviewPage({ devices, onNavigate, configText, onSelectCommand,
     if (!modeKey) return `${bound} bound${overrides ? ` · ${overrides} override${overrides === 1 ? '' : 's'}` : ''}`
     const raw = mode(modeKey)
     if (!raw) return ''
-    const regions = items.filter(command => /^[LR]?[TM]\d+$/.test(command)).length
+    // Regions that do something, not every cell a shift happens to name.
+    const regions = items.filter(command => /^[LR]?[TM]\d+$/.test(command) && bindings[command]?.used).length
     if (modeKey.includes('STICK')) {
       const segments = Number.parseInt(value(modeKey.replace('_MODE', '_MENU_SIZE')), 10) || regions
       return raw === 'RADIAL_MENU' ? `Radial menu · ${segments} segments` : STICK_MODES[raw] ?? titleCase(raw)
