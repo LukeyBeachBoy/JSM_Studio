@@ -6,7 +6,8 @@ import type { MapperExit, LayerStack } from './platform/desktopBridge'
 import { writeLayers, defaultLayer, layerEntries, readLayerActions, setLayerActions, describeLayerActivation } from './utils/layers'
 import { inputDisplayName } from './keymap/inputNames'
 import { SettingOrigins, SettingsInventory } from './components/SettingOrigin'
-import { controllerDisplayName, controllerVisualFamily } from './utils/controllerStatus'
+import { controllerDisplayName, controllerVisualFamily, getPressedControllerCommandSet } from './utils/controllerStatus'
+import { heldModeshift, shiftTriggerTargets } from './utils/modeshift'
 import { TimingPage } from './components/TimingPage'
 import { ControllerPreferences } from './components/ControllerPreferences'
 import { flushSync } from 'react-dom'
@@ -1183,6 +1184,11 @@ function App() {
   // ---- Shell context: what the title bar, tabs and capsule describe.
   const device = sample?.devices?.[0]
   const controllerFamily = controllerVisualFamily(device?.type)
+  // A modeshift held right now (2a, 2g): the title bar and the capsule keep a
+  // fixed slot for it while the configuration has any, and fill it on hold.
+  const shiftTriggers = useMemo(() => shiftTriggerTargets(configText ?? ''), [configText])
+  const heldShift = heldModeshift(shiftTriggers, getPressedControllerCommandSet(device))
+  const shiftStatus = heldShift ? { name: inputDisplayName(heldShift.trigger, controllerFamily), count: heldShift.count } : null
   const appliedName = mappingEnabled ? appliedProfileLabel(sample?.activeProfile, appliedProfileName)?.replace(/.txt$/i, '') ?? null : null
   // What games get. While Studio is in front the mapper runs AppNavigation,
   // which is Studio's own and never shown; the configuration behind it is the
@@ -1499,6 +1505,8 @@ function App() {
       editingDisabled={isCalibrating}
       layers={titleBarLayers}
       layerId={layerId}
+      heldShift={shiftStatus}
+      reserveShiftSlot={shiftTriggers.size > 0}
       onSelectLayer={selectLayer}
       onManageLayers={() => setLayerManagerOpen(true)}
       onEditApplied={editApplied}
@@ -2403,7 +2411,7 @@ function App() {
                 </>}
             </div>
           </div>
-          <HintCapsule width={shellWidth} family={controllerFamily} controller={Boolean(device)} />
+          <HintCapsule width={shellWidth} family={controllerFamily} controller={Boolean(device)} status={shiftStatus} reserveStatus={shiftTriggers.size > 0} />
         </div>
       </div>
       {shellWidth === 'narrow' && (

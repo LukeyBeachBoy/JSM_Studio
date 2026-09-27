@@ -1,4 +1,5 @@
 import { LayerUsageContext, LayerIcon, LayerValueBadge } from './LayerBar'
+import { layerSlot } from './keymap/ConceptTiles'
 import { inputUses, inputUsage, configuredInputs, readableSetting, layerEntries } from '../utils/layers'
 import { describeBinding } from '../utils/bindingDescription'
 import type { TFunction } from 'i18next'
@@ -44,6 +45,18 @@ type OverviewPageProps = {
 const definitions = [...FACE_BUTTONS, ...DPAD_BUTTONS, ...BUMPER_BUTTONS, ...TRIGGER_BUTTONS, ...CENTER_BUTTONS, ...PADDLE_BUTTONS, ...MINI_BUTTONS, ...MISC_BUTTONS, ...LEFT_STICK_BUTTONS, ...RIGHT_STICK_BUTTONS, ...TOUCH_BUTTONS, ...TOUCH_STICK_BUTTONS]
 /** A layer action is not a binding and should not read like one. */
 type OverviewLine = { text: string; kind?: 'layer' | 'relation' | 'setting' }
+type OverviewEntry = {
+  name?: string
+  lines: OverviewLine[]
+  used: boolean
+  hasUses: boolean
+  /** Inputs this one changes while it is held. */
+  shiftCount: number
+  /** Layers this input turns on or off. */
+  layerIds: string[]
+  /** What this input becomes while each of those triggers is held. */
+  shiftedBy: Record<string, { value: string; name?: string }>
+}
 
 // Inputs whose glyph carries no letter (grips, View, Menu, Steam, Quick
 // Access): an unbound one is named, since the glyph alone would not say
@@ -132,7 +145,17 @@ export function OverviewPage({ devices, onNavigate, configText, onSelectCommand,
     const commands = new Set(configuredInputs(text))
     // Include numbered pad regions and stick-menu segments, even when offline.
     for (const match of text.matchAll(/(?:^\s*|[, +])([LR]?T\d+|[LR]M\d+)\s*=/gm)) commands.add(match[1])
-    const result: Record<string, { name?: string; lines: OverviewLine[]; used: boolean; hasUses: boolean }> = {}
+    const result: Record<string, OverviewEntry> = {}
+    // Which held inputs change which inputs, and to what: "L4,A = V".
+    const shiftedBy: Record<string, Record<string, { value: string; name?: string }>> = {}
+    for (const [key, raw] of Object.entries(layerEntries(text))) {
+      const comma = key.indexOf(',')
+      if (comma <= 0 || key.startsWith('#') || key.startsWith('!')) continue
+      const trigger = key.slice(0, comma), target = key.slice(comma + 1)
+      const value = String(raw).split('#')[0].trim()
+      if (!value || value.toUpperCase() === 'NONE') continue
+      ;(shiftedBy[target] ??= {})[trigger] = { value, name: names[key] }
+    }
     for (const command of commands) {
       const uses = inputUses(text, command, layers)
       const lines: OverviewLine[] = getButtonBindingRows(text, command).filter(row => row.binding && row.binding !== 'NONE').map(row => {
@@ -180,7 +203,12 @@ export function OverviewPage({ devices, onNavigate, configText, onSelectCommand,
       if (chords.length) lines.push({ text: summarise(chords, 'Pressed together with'), kind: 'relation' })
       if (uses.some(use => use.startsWith('Modeshift:')) && !lines.length) lines.push({ text: 'Changes other inputs while held', kind: 'relation' })
       const used = !!lines.length || !!names[command]
-      if (used || controllerSupportsInput(device, command)) result[command] = { name: names[command], lines, used, hasUses: relationships.length > 0 }
+      if (used || controllerSupportsInput(device, command)) result[command] = {
+        name: names[command], lines, used, hasUses: relationships.length > 0,
+        shiftCount: new Set(shifts.map(use => use.target)).size,
+        layerIds: [...new Set(relationships.filter(use => use.kind === 'layer' && use.layerId).map(use => use.layerId!))],
+        shiftedBy: shiftedBy[command] ?? {},
+      }
     }
     return result
   }, [configText, device, layers, family, t])
@@ -267,7 +295,7 @@ export function OverviewPage({ devices, onNavigate, configText, onSelectCommand,
     const trigger = command === 'ZL' || command === 'ZR'
     const fullPull = trigger ? bindings[command + 'F'] : undefined
     const title = activation ? inputName(command, family) : entry.name ?? plain[0]?.text ?? null
-    const rest = entry.lines.filter(line => line.text !== title && line.text !== keycap && line !== activation)
+    const rest = entry.lines.filter(line => line.text !== title && line.text !== keycap && line !== activation && !line.kind)
     const grip = GRIPS[command]
     const gripHeld = grip ? Boolean(device?.status?.[grip]?.pressed) || pressed.has(command) : false
     const detail = activation
@@ -275,45 +303,65 @@ export function OverviewPage({ devices, onNavigate, configText, onSelectCommand,
       : trigger && (fullPull?.used || command.endsWith('F'))
         ? `Soft pull · full pull ${fullPull?.name ?? fullPull?.lines.find(line => !line.kind)?.text ?? 'unbound'}`
         : command.endsWith('F') ? 'Full pull'
-        : rest.filter(line => !line.kind).map(line => line.text).join(' · ')
+        : rest.map(line => line.text).join(' · ')
     const pull = trigger ? (command === 'ZL' ? device?.status?.triggers.left : device?.status?.triggers.right) ?? 0 : 0
     const unbound = !title
     const named = UNLETTERED.has(command)
+    // A modeshift held right now (2a, 2g): an input it changes shows what it
+    // does meanwhile, in place, with what it was on line 2; the held input's
+    // own callout says Held. Nothing changes size -- the text crossfades.
+    const heldTrigger = Object.keys(entry.shiftedBy).find(held => pressed.has(held))
+    const shifted = heldTrigger ? entry.shiftedBy[heldTrigger] : undefined
+    const holding = !compact && pressed.has(command) && entry.shiftCount > 0
+    // An input that shifts others or drives a layer is named, not Available.
+    const baseTitle = title ?? (named || entry.shiftCount || entry.layerIds.length ? inputName(command, family) : t('overview.available', 'Available'))
+    const shownTitle = shifted ? shifted.name ?? describeLine(shifted.value, t) : baseTitle
+    const shownValue = holding ? t('overview.held', 'Held') : shifted ? describeLine(shifted.value, t) : keycap
+    // Line 2 (2a): what this input is, as chips -- the shifts it makes, the
+    // layers it drives, how many commands it has. Two at most, then "+n".
+    // The full account is the inspector's (X), never inline.
+    const chips = [
+      entry.shiftCount > 0 && <span key="shift" className={styles.chip} data-concept="shift"><Icon name="modeshift" size={11} />{t('overview.chipShifts', 'Shifts {{count}}', { count: entry.shiftCount })}</span>,
+      ...entry.layerIds.map(id => <span key={id} className={styles.chip} data-concept="layer" data-layer-slot={layerSlot(layers, id)}><Icon name="layer" size={11} />{layers.find(layer => layer.id === id)?.name ?? id}</span>),
+      plain.length > 1 && <span key="commands" className={styles.chip} data-concept="command"><Icon name="command" size={11} />{plain.length}</span>,
+    ].filter(Boolean)
+    const secondLine = shifted
+      ? <span className={styles.detailLine}>{t('overview.was', 'was {{name}}', { name: baseTitle })}</span>
+      : chips.length
+        ? <span className={styles.chips}>{chips.slice(0, 2)}{chips.length > 2 && <span className={styles.chip} data-concept="more">+{chips.length - 2}</span>}</span>
+        : unbound && named
+          ? <span className={styles.detailLine}>{reserved.has(command) ? 'Reserved by global chord' : 'Unbound'}</span>
+          : detail ? <span className={styles.detailLine}>{detail}</span> : null
     return <div key={command} className={styles.inputRow}><button type="button" className={`${styles.callout} ${compact ? styles.calloutCompact : ''} ${unbound ? styles.calloutAvailable : ''}`} data-overview-input={command}
       data-has-uses={entry.hasUses ? '' : undefined}
+      data-shifted={shifted ? 'true' : undefined}
+      data-holding={holding ? 'true' : undefined}
       data-hints={entry.hasUses ? 'A:Edit;X:Inspect uses;Y:Search;B:Back' : 'A:Edit;Y:Search;B:Back'}
       aria-label={command + ': ' + labels[command]} title={inputName(command, family) + '\n' + inputUses(configText ?? '', command, layers).join('\n')}
       onClick={() => onSelectCommand?.(command)}
       onFocus={() => setHoveredCommand(command)} onBlur={() => setHoveredCommand(null)}
       onMouseEnter={() => setHoveredCommand(command)} onMouseLeave={() => setHoveredCommand(null)}>
       <InputGlyph command={command} family={family} size={compact ? 20 : 28} className={styles.glyph} />
-      <span className={styles.bindingText}>
-        {title
-          ? <strong className={styles.calloutTitle}>{title}</strong>
-          : <span className={`${styles.calloutTitle} ${styles.unbound}`}>{named ? inputName(command, family) : 'Available'}</span>}
-        {unbound && named && <span className={styles.detailLine}>{reserved.has(command) ? 'Reserved by global chord' : 'Unbound'}</span>}
-        {detail && <span className={styles.detailLine}>{detail}</span>}
-        {rest.filter(line => line.kind && line.kind !== 'setting').map((line, index) => (
-          <span key={index} className={line.kind === 'layer' ? styles.layerLine : styles.relationLine}>
-            {line.kind === 'layer' && <LayerIcon />}{line.text}
-          </span>
-        ))}
-        {!activation && rest.filter(line => line.kind === 'setting').map((line, index) => <span key={'s' + index} className={styles.detailLine}>{line.text}</span>)}
-        {trigger && device && (
-          <span className={styles.triggerMeter} aria-hidden="true">
-            <span className={styles.triggerMeterFill} style={{ transform: `scaleX(${Math.max(0, Math.min(1, pull))})` }} />
-            {triggerThreshold > 0 && <span className={styles.triggerMeterTick} style={{ left: `${Math.min(100, triggerThreshold * 100)}%` }} />}
-          </span>
-        )}
-        <LayerValueBadge command={command} />
+      <span key={heldTrigger ?? 'base'} className={`${styles.bindingText} ${styles.swap}`}>
+        {unbound && !shifted
+          ? <span className={`${styles.calloutTitle} ${styles.unbound}`}>{baseTitle}</span>
+          : <strong className={styles.calloutTitle}>{shownTitle}</strong>}
+        {!compact && secondLine}
       </span>
-      {(keycap || originOf(command)) && (
-        <span className={styles.valueSide}>
-          {originDot(command)}
-          {keycap && <kbd className={`${styles.valuePill} ${activation ? styles.valuePillJsm : ''}`}>{keycap}</kbd>}
-          {keycap && !activation && plain.length > 1 && <span className={styles.more}>+{plain.length - 1}</span>}
+      {trigger && device && (
+        <span className={styles.triggerMeter} aria-hidden="true">
+          <span className={styles.triggerMeterFill} style={{ transform: `scaleX(${Math.max(0, Math.min(1, pull))})` }} />
+          {triggerThreshold > 0 && <span className={styles.triggerMeterTick} style={{ left: `${Math.min(100, triggerThreshold * 100)}%` }} />}
         </span>
       )}
+      {(shownValue || originOf(command)) ? (
+        <span className={styles.valueSide}>
+          {originDot(command)}
+          {/* Compact callouts have no room for it; the dot says the same. */}
+          {!compact && <LayerValueBadge command={command} />}
+          {shownValue && <kbd key={heldTrigger ?? (holding ? 'held' : 'base')} className={`${styles.valuePill} ${styles.swap} ${activation && !shifted ? styles.valuePillJsm : ''} ${holding ? styles.valuePillHeld : ''}`}>{shownValue}</kbd>}
+        </span>
+      ) : compact ? null : <LayerValueBadge command={command} />}
     </button>{entry.hasUses && <button type="button" className={styles.inspect} aria-label={`Show uses of ${inputName(command, family)}`} onClick={() => window.dispatchEvent(new CustomEvent('jsm:input-uses', { detail: command }))}>Inspect uses</button>}</div>
   }
 

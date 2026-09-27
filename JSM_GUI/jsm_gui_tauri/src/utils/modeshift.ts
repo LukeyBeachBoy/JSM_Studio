@@ -289,3 +289,25 @@ export function modeshiftsOn(text: string, command: string): ModeshiftSummary[] 
   }
   return [...shifts].map(([trigger, value]) => ({ trigger, value }))
 }
+
+/** Every modeshift trigger in the config and the inputs it changes, for the
+ *  live "L4 held · 3 shifted" status (binding card refresh 2a, 2g). Released
+ *  triggers ("!X") hold while up, so they are not "held". */
+export function shiftTriggerTargets(text: string): Map<string, Set<string>> {
+  const triggers = new Map<string, Set<string>>()
+  for (const line of text.split(/\r?\n/)) {
+    const match = assignment(line)
+    if (!match) continue
+    const trigger = match[1].trim().toUpperCase()
+    if (trigger.startsWith('!')) continue
+    if (!triggers.has(trigger)) triggers.set(trigger, new Set())
+    triggers.get(trigger)!.add(match[2].trim().toUpperCase())
+  }
+  return triggers
+}
+
+/** The modeshift trigger held now and how many inputs it changes, or null. */
+export function heldModeshift(triggers: Map<string, Set<string>>, pressed: Set<string>) {
+  for (const [trigger, targets] of triggers) if (pressed.has(trigger)) return { trigger, count: targets.size }
+  return null
+}

@@ -225,9 +225,11 @@ const fs = require('node:fs');
  // could not express at all.
  await bindLayerAction('RSR','Hold layer','Comms');
  await page.getByRole('button',{name:'Overview',exact:true}).click();
- await page.getByText(/Hold Comms/).first().waitFor();
- await page.getByText('Turn on Comms',{exact:true}).waitFor();
- await page.getByText('Turn off Comms',{exact:true}).waitFor();
+ // Each is a Comms layer chip on its callout (2a); what it does is the inspector's.
+ for (const [input, verb] of [['RSR','Hold'],['LSR','Turn on'],['RSL','Turn off']]) {
+   await page.locator(`[data-overview-input="${input}"][aria-label*="${verb} Comms"]`).waitFor();
+   assert.match(await page.locator(`[data-overview-input="${input}"] [data-concept="layer"]`).first().innerText(), /Comms/);
+ }
  await page.screenshot({path:path.join(artifacts,'overview.png'),fullPage:true});
  // One state button applies (1e): it saves first when there are unsaved edits.
  await page.locator('.state-button').click();

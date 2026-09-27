@@ -28,7 +28,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
     await page.waitForTimeout(1200);
 
     // A dropdown opens onto its current option, never onto the list.
-    await page.evaluate(() => [...document.querySelectorAll('.titlebar button')].find(b => /^Layer/.test(b.textContent.trim())).focus());
+    await page.evaluate(() => [...document.querySelectorAll('.titlebar button')].find(b => /^Editing layer/.test(b.textContent.trim())).focus());
     await press(['S']); await page.waitForTimeout(300);
     let now = await active();
     assert.equal(now.role, 'menuitem', `A on the layer segment lands on an option, not the ${now.role}`);

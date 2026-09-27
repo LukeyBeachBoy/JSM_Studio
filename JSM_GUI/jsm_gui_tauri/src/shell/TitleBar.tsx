@@ -31,6 +31,10 @@ export type TitleBarVariant = 'home' | 'editing' | 'studio'
 
 type TitleBarProps = {
   width: ShellWidth
+  /** A modeshift held now: "L4 held · 3 inputs shifted" in a fixed slot. */
+  heldShift?: { name: string; count: number } | null
+  /** Keep that slot, empty, while the configuration has any modeshift. */
+  reserveShiftSlot?: boolean
   frameless: boolean
   variant: TitleBarVariant
   /** The Home chip: View from anywhere, or a click. */
@@ -296,14 +300,26 @@ export function TitleBar(props: TitleBarProps) {
           width={320}
           items={layerItems}
           trigger={
-            <button type="button" className="context-segment context-segment--layer" disabled={props.editingDisabled} aria-label={`Editing layer: ${currentLayer?.name ?? 'Default'}`} data-hints="A:Open;B:Back">
-              <span className="context-segment__key">Layer</span>
-              {currentLayer && <span className="context-segment__swatch" style={{ background: layerColor(currentLayer.colorIndex) }} aria-hidden="true" />}
+            // The layer's own tile colours (2a): its soft fill, its hue, its mark.
+            <button type="button" className="context-segment context-segment--layer" disabled={props.editingDisabled} aria-label={`Editing layer: ${currentLayer?.name ?? 'Default'}`} data-hints="A:Open;B:Back"
+              data-layer-slot={currentLayer ? (currentLayer.colorIndex % 3) + 1 : undefined}>
+              <Icon name="layer" size={14} />
+              <span className="context-segment__key">{t('keymap.editingLayerLabel', 'Editing layer:')}</span>
               <b>{currentLayer?.name ?? 'Default'}</b>
               <Chevron />
             </button>
           }
         />
+        {(props.reserveShiftSlot || props.heldShift) && (
+          <span className="shift-status" data-held={props.heldShift ? 'true' : undefined} role="status" aria-live="off">
+            {props.heldShift && (
+              <span key={props.heldShift.name} className="shift-status__fill">
+                <span className="shift-status__held"><Icon name="modeshift" size={14} />{t('keymap.shiftHeld', '{{name}} held', { name: props.heldShift.name })}</span>
+                <span className="shift-status__count">{t('keymap.shiftedInputs', { count: props.heldShift.count, defaultValue: '{{count}} inputs shifted' })}</span>
+              </span>
+            )}
+          </span>
+        )}
       </>}
 
       <div className="titlebar__drag" data-tauri-drag-region />

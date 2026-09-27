@@ -54,31 +54,38 @@ const PROFILE = [
     await page.locator('.profile-chip').filter({ hasText: 'Lines' }).waitFor();
     await page.locator('[data-overview-input="RSR"]').waitFor();
 
+    // A callout is two fixed lines (2a, 2g): the name, then chips -- a layer
+    // it drives, the inputs it shifts. The full account is the inspector's
+    // (and the callout's accessible name), never inline, so holding or
+    // editing nothing makes a callout grow.
     const row = input => page.locator(`[data-overview-input="${input}"]`).evaluate(el => ({
-      layer: [...el.querySelectorAll('span')].filter(s => /layerLine/.test(s.className)).map(s => s.innerText.trim()),
-      relation: [...el.querySelectorAll('span')].filter(s => /relationLine/.test(s.className)).map(s => s.innerText.trim()),
-      icons: [...el.querySelectorAll('span')].filter(s => /layerLine/.test(s.className) && s.querySelector('svg')).length,
+      chips: [...el.querySelectorAll('[class*=chip]')].map(s => ({ concept: s.dataset.concept, text: s.innerText.trim(), icon: Boolean(s.querySelector('svg')) })),
+      label: el.getAttribute('aria-label'),
+      height: el.getBoundingClientRect().height,
     }));
 
-    // A layer action is marked as one, and carries the icon.
+    // A layer action is a layer chip, with the layer mark.
     const hold = await row('RSR');
-    assert.deepEqual(hold.layer, ['Hold Comms'],
-      `a layer action must be shown as a layer action: ${JSON.stringify(hold)}`);
-    assert.equal(hold.icons, 1, 'and must carry the layer icon');
+    assert.deepEqual(hold.chips.filter(chip => chip.concept === 'layer'), [{ concept: 'layer', text: 'Comms', icon: true }],
+      `a layer action must be shown as a layer chip: ${JSON.stringify(hold)}`);
+    assert.match(hold.label, /Hold Comms/, 'the inspector still says what it does');
 
-    // One affected input: say what it becomes, not that there is one of it.
+    // A modifier is a "Shifts n" chip; what it changes is the inspector's.
     // Input names follow the connected controller; wait for its telemetry.
-    await page.waitForFunction(() => /While held: Menu/.test(document.querySelector('[data-overview-input="LSL"]')?.innerText ?? ''));
+    await page.waitForFunction(() => /While held: Menu/.test(document.querySelector('[data-overview-input="LSL"]')?.getAttribute('aria-label') ?? ''));
     const single = await row('LSL');
-    assert.deepEqual(single.relation, ['While held: Menu \u2192 Load Wardogs Menu'],
+    assert.deepEqual(single.chips.filter(chip => chip.concept === 'shift').map(chip => chip.text), ['Shifts 1']);
+    assert.match(single.label, /While held: Menu \u2192 Load Wardogs Menu/,
       `a single modeshift must say what it changes it to: ${JSON.stringify(single)}`);
+    assert.ok(!/While held/.test(await page.locator('[data-overview-input="LSL"]').innerText()), 'relation prose is still inline');
 
     // Several: name the first few, count the rest, and leave pad cells alone.
     const many = await row('RSL');
-    assert.match(many.relation[0] || '', /^While held, changes .+ and \d+ more$/,
+    assert.match(many.label || '', /While held, changes .+ and \d+ more/,
       `a crowded modifier names what it can: ${JSON.stringify(many)}`);
-    assert.ok(/RT1/.test(many.relation[0]), `a pad cell keeps its own name: ${many.relation[0]}`);
-    assert.ok(!/Rt\d/.test(many.relation[0]), `and is not title-cased: ${many.relation[0]}`);
+    assert.ok(/RT1/.test(many.label), `a pad cell keeps its own name: ${many.label}`);
+    assert.ok(!/Rt\d/.test(many.label), `and is not title-cased: ${many.label}`);
+    for (const callout of [hold, single, many]) assert.equal(Math.round(callout.height), 56, 'callouts are a fixed 56 high');
 
     // The old wording is gone everywhere, not just on these rows.
     const body = await page.locator('body').innerText();
@@ -86,7 +93,7 @@ const PROFILE = [
     assert.ok(!/changed inputs \/ settings/.test(body), 'nor its counted half');
 
     assert.deepEqual(errors, [], `page errors: ${errors.join(', ')}`);
-    console.log('PASS: layer actions are marked and iconed, and a modifier says what it changes rather than how many');
+    console.log('PASS: callouts are two fixed lines of name and chips; what a modifier changes is the inspector\'s');
   } finally {
     await browser.close();
   }

@@ -514,3 +514,30 @@ body:has(.menus-overlay) .hint-capsule { visibility: hidden; }
 .dialog__hint { display: inline-flex; align-items: center; gap: 6px; font-weight: var(--fw-semibold); color: var(--text-2); }
 .dialog__footer .console-btn { height: 36px; }
 .dialog__subtitle { color: var(--text-3); font-size: 12px; line-height: 16px; }
+
+/* ---- Editing layer and a held modeshift in the title bar (2a, 2g). The
+   layer segment wears its layer's tile colours; the modeshift status is a
+   fixed-width slot, empty until a trigger is held, so nothing moves. */
+.titlebar .context-segment--layer { height: 28px; border-radius: var(--r-pill); }
+.titlebar .context-segment--layer svg[data-icon] { color: var(--text-3); }
+.titlebar .context-segment--layer[data-layer-slot] { --segment-hue: var(--layer-1); background: var(--layer-1-soft); color: var(--segment-hue); }
+.titlebar .context-segment--layer[data-layer-slot='2'] { --segment-hue: var(--layer-2); background: var(--layer-2-soft); }
+.titlebar .context-segment--layer[data-layer-slot='3'] { --segment-hue: var(--layer-3); background: var(--layer-3-soft); }
+.titlebar .context-segment--layer[data-layer-slot] :is(.context-segment__key, b, svg[data-icon]) { color: var(--segment-hue); }
+.shift-status, .hint-capsule__status {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  height: 28px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-hint);
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.shift-status { width: 220px; }
+.hint-capsule__status { width: 180px; }
+.shift-status[data-held='true'], .hint-capsule__status[data-held='true'] { background: var(--shift-soft); box-shadow: var(--shift-glow); }
+.shift-status__fill { display: flex; flex: 1; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; padding: 0 12px; animation: fade-in var(--dur-1) var(--ease-standard); }
+.shift-status__held { display: inline-flex; align-items: center; gap: 6px; overflow: hidden; color: var(--shift); text-overflow: ellipsis; }
+.shift-status__count { color: var(--text-1); }

@@ -90,13 +90,16 @@ RM2 = 2
   assert.equal(await input('ZLF').count(),0,'the full pull folds into the trigger row');
   assert.match(await input('ZL').innerText(),/full pull Left Shift/);
   // Names follow the connected controller, so wait for its telemetry first.
-  await page.waitForFunction(()=>/Hold R4: Squad push-to-talk/.test(document.querySelector('[data-overview-input="N"]')?.innerText ?? ''));
-  assert.match(await input('N').innerText(),/Hold R4: Squad push-to-talk/);
-  assert.doesNotMatch(await input('N').innerText(),/@LABEL|@ICON/,'annotations must not become phantom modeshift bindings');
-  assert.match(await input('+').innerText(),/Load Wardogs Menu/);
+  // A callout's fixed lines hold the name and chips (2g); what else an input
+  // does is its inspector's account -- here, the callout's accessible name.
+  await page.waitForFunction(()=>/Hold R4: Squad push-to-talk/.test(document.querySelector('[data-overview-input="N"]')?.getAttribute('aria-label') ?? ''));
+  assert.match(await input('N').getAttribute('aria-label'),/Hold R4: Squad push-to-talk/);
+  assert.doesNotMatch(await input('N').getAttribute('aria-label'),/@LABEL|@ICON/,'annotations must not become phantom modeshift bindings');
+  assert.match(await input('+').getAttribute('aria-label'),/Load Wardogs Menu/);
   // A modifier says which inputs it changes, rather than counting them: the old
   // "Modeshift trigger - N changed inputs / settings" named nothing at all.
-  assert.match(await input('LSL').innerText(),/While held, changes \w+.* and \d+ more/);
+  assert.match(await input('LSL').getAttribute('aria-label'),/While held, changes \w+.* and \d+ more/);
+  assert.match(await input('LSL').innerText(),/Shifts \d+/, 'and shows it as a Shifts chip');
   const layoutCheck=async()=>{
    const failures=await page.locator('[data-overview-group]').evaluateAll(groups=>groups.flatMap(group=>{
     const buttons=[...group.querySelectorAll('[data-overview-input]')];

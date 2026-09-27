@@ -380,3 +380,70 @@ button.mode:hover { color: var(--accent); }
 .diagram[data-arrived] > * { animation: arrive var(--dur-3, 240ms) ease-out; }
 @keyframes arrive { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .diagram[data-arrived] > * { animation: none; } }
+
+/* ============ Callouts (binding card refresh 2a, 2g) ============
+   Fixed two lines × 56: the name, then chips; the value pill on the right.
+   Live states swap text in place and never change a callout's size. */
+.callouts { gap: 6px; }
+.callout {
+  height: 56px;
+  min-height: 56px;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 0 12px;
+  background: var(--surface-row);
+  overflow: hidden;
+}
+.callout .bindingText { gap: 3px; font-variant-numeric: tabular-nums; }
+.callout .calloutTitle { font-size: var(--fs-body); font-weight: var(--fw-semibold); }
+.calloutCompact {
+  height: 36px;
+  min-height: 36px;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  gap: var(--sp-2);
+  padding: 0 var(--sp-2);
+  background: transparent;
+}
+.chips { display: flex; align-items: center; gap: 4px; min-width: 0; overflow: hidden; }
+.chip {
+  height: 18px;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  padding: 0 7px;
+  border-radius: var(--r-pill);
+  font-size: 11px;
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+  white-space: nowrap;
+}
+.chip svg { width: 11px; height: 11px; }
+.chip[data-concept='command'] { background: var(--command-soft); color: var(--command); }
+.chip[data-concept='shift'] { background: var(--shift-soft); color: var(--shift); }
+.chip[data-concept='layer'] { background: var(--layer-1-soft); color: var(--layer-1); }
+.chip[data-concept='layer'][data-layer-slot='2'] { background: var(--layer-2-soft); color: var(--layer-2); }
+.chip[data-concept='layer'][data-layer-slot='3'] { background: var(--layer-3-soft); color: var(--layer-3); }
+.chip[data-concept='more'] { background: var(--surface-control); color: var(--text-2); }
+.callout .valuePill {
+  min-width: 56px;
+  height: 26px;
+  max-width: 9rem;
+  padding: 0 10px;
+  border-radius: var(--r-sm);
+  box-shadow: inset 0 -2px 0 var(--line-2);
+  font-size: 12px;
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+}
+.calloutCompact .valuePill { min-width: 20px; height: 20px; }
+.callout[data-shifted='true'] {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--shift) 40%, transparent), 0 0 18px color-mix(in srgb, var(--shift) 18%, transparent);
+}
+.callout[data-shifted='true'] .calloutTitle { color: var(--shift-ink); }
+.callout .valuePillHeld { background: transparent; box-shadow: none; color: var(--shift); }
+/* A swap is a crossfade in place (90ms), never a reflow. */
+.swap { animation: callout-swap var(--dur-1) var(--ease-standard); }
+@keyframes callout-swap { from { opacity: 0; } }
+.callout .triggerMeter { position: absolute; left: 52px; right: 12px; bottom: 5px; height: 3px; margin: 0; }

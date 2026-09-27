@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { ControllerVisualFamily } from '../utils/controllerStatus'
 import { ButtonGlyph, type PadButtonName } from '../components/glyphs/ButtonGlyph'
 import type { ShellWidth } from './useShellWidth'
@@ -147,9 +148,15 @@ type HintCapsuleProps = {
   controller: boolean
   /** Extra context from the shell, e.g. while testing. */
   override?: CapsuleContent
+  /** A modeshift held now: "L4 held · 6 shifted", in a fixed slot (2g). */
+  status?: { name: string; count: number } | null
+  /** Keep the slot, empty, while the configuration has any modeshift, so
+   *  holding one never makes the capsule grow. */
+  reserveStatus?: boolean
 }
 
-export function HintCapsule({ width, family, controller: connected, override }: HintCapsuleProps) {
+export function HintCapsule({ width, family, controller: connected, override, status, reserveStatus }: HintCapsuleProps) {
+  const { t } = useTranslation()
   const showsKeys = useShowsKeys()
   const controller = connected && !showsKeys
   const [content, setContent] = useState<CapsuleContent>({ hints: DEFAULT_HINTS })
@@ -195,6 +202,16 @@ export function HintCapsule({ width, family, controller: connected, override }: 
       {faces.map(render)}
       {steps.length > 0 && faces.length > 0 && <span className="hint-capsule__rule" aria-hidden="true" />}
       {steps.map(render)}
+      {(reserveStatus || status) && (
+        <span className="hint-capsule__status" data-held={status ? 'true' : undefined}>
+          {status && (
+            <span key={status.name} className="shift-status__fill">
+              <span className="shift-status__held">{t('keymap.shiftHeld', '{{name}} held', { name: status.name })}</span>
+              <span className="shift-status__count">{t('keymap.shiftedShort', '{{count}} shifted', { count: status.count })}</span>
+            </span>
+          )}
+        </span>
+      )}
     </div>
   )
 }
