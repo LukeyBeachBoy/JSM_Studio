@@ -1155,7 +1155,7 @@ a corner leak on the open binding card; View/Menu glyphs looking low-res.
 
 ### TODO-37 — Keyboard hints, duplicate Back, pages open at the top, sound intensity, origin wording
 
-**Status:** built 2026-09-27 · uncommitted (Studio and the JoyShockMapper
+**Status:** built 2026-09-27 · committed 2026-09-27 · 0.7.91 (Studio and the JoyShockMapper
 submodule) · sound intensity needs a try on hardware
 
 **Reported as**
@@ -1197,7 +1197,7 @@ on the configuration being edited.
 
 ### TODO-36 — Axis-true navigation, template overrides, "while released", Studio in front
 
-**Status:** built 2026-09-27 · uncommitted (Studio and the JoyShockMapper
+**Status:** built 2026-09-27 · committed 2026-09-27 · 0.7.91 (Studio and the JoyShockMapper
 submodule) · the foreground fix and "while released" need a try on hardware
 
 **What was done**
@@ -1245,7 +1245,7 @@ submodule) · the foreground fix and "while released" need a try on hardware
 
 ### TODO-39 — Flicker guard stuck at 5%, haptic preview, typed values, modeshift triggers on the Overview, Configurations Apply
 
-**Status:** built 2026-09-27 · uncommitted
+**Status:** built 2026-09-27 · committed 2026-09-27 · 0.7.91
 
 **Context**
 
@@ -1340,7 +1340,7 @@ Six remarks from Luke on 2026-09-27:
 
 ### TODO-38 — Gyro calibration survives a reconnect; hardware calibration switch
 
-**Status:** DONE 2026-09-27 · uncommitted
+**Status:** DONE 2026-09-27 · committed 2026-09-27 · 0.7.91
 
 **Reported as**
 
