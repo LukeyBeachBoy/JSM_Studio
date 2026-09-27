@@ -6,6 +6,7 @@ type Props = {
   value?: string
   onChange: (label: string) => void
   className?: string
+  placeholder?: string
 }
 
 /**
@@ -14,7 +15,7 @@ type Props = {
  * There is one label per input in the configuration (`# @label N = Jump`),
  * so the field sits on the input's first command.
  */
-export function BindingLabelField({ value, onChange, className = '' }: Props) {
+export function BindingLabelField({ value, onChange, className = '', placeholder }: Props) {
   const { t } = useTranslation()
   const [draft, setDraft] = useState(value ?? '')
   const [editing, setEditing] = useState(false)
@@ -26,7 +27,7 @@ export function BindingLabelField({ value, onChange, className = '' }: Props) {
       className={`${keymapStyles.buttonLabelInput} ${className}`.trim()}
       type="text"
       value={draft}
-      placeholder={t('keymap.bindingLabelPlaceholder', 'Name this action')}
+      placeholder={placeholder ?? t('keymap.bindingLabelPlaceholder', 'Name this action')}
       aria-label={t('keymap.bindingLabel', 'Action name')}
       data-capture-ignore="true"
       onFocus={() => setEditing(true)}

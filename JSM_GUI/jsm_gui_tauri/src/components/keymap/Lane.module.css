@@ -209,3 +209,6 @@
 
 .textCell { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
 .textCell > :global(.origin-marker) { flex: none; }
+
+/* A keycap keeps its own width in a flexible column (the menu item row). */
+.row > .keycap { justify-self: start; }

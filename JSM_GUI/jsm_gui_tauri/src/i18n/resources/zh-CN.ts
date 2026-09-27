@@ -882,6 +882,8 @@ export const zhCN = {
     layerVerbApply: '开启',
     layerVerbRemove: '关闭',
     layerTile: '{{verb}}{{layer}}',
+    changeIcon: '更换图标',
+    menuLabelPlaceholder: '菜单上显示的标签',
     whileHeld: '按住',
     whileReleased: '松开',
     layerWhileHeld: '按住时',

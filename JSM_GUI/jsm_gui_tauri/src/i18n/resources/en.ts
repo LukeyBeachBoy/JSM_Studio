@@ -1019,6 +1019,8 @@ export const en = {
     layerVerbApply: 'Turn on',
     layerVerbRemove: 'Turn off',
     layerTile: '{{verb}} {{layer}}',
+    changeIcon: 'Change icon',
+    menuLabelPlaceholder: 'Label on the menu',
     whileHeld: 'Held',
     whileReleased: 'Released',
     layerWhileHeld: 'While held',

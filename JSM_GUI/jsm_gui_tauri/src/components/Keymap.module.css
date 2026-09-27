@@ -2400,3 +2400,39 @@
 }
 /* A card drawn inside a sheet: its lanes alone. */
 .cardLanes { display: flex; flex-direction: column; gap: 12px; }
+
+/* ============ Menu item card (binding card refresh 3d) ============
+   The same card for a region or segment of an on-screen menu: its icon in a
+   well, its label as the title, then Change icon and the label field. */
+.keymapRow > .cardHead > .iconWell {
+  width: 44px;
+  height: 44px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: var(--r-row);
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--line-2);
+  color: var(--text-1);
+}
+.keymapRow > .cardHead:has(> .iconWell) { grid-template-columns: 44px minmax(0, 1fr) auto; }
+.iconWell svg { width: 22px; height: 22px; color: inherit; }
+.cardTitleSmall { font-size: 16px; }
+.cardHead:has(> .iconWell) :global(.binding-summary-input) { font-size: 12px; }
+.identityRow { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; }
+.identityRow :global(.console-btn) svg { width: 18px; height: 18px; }
+.identityRow > .identityField {
+  flex: none;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  height: 44px;
+  margin: 0;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--r-row);
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--line-2);
+  color: var(--text-1);
+  font: inherit;
+  font-size: var(--fs-body);
+}

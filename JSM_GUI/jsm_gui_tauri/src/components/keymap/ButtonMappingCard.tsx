@@ -56,6 +56,8 @@ type ButtonMappingCardProps = {
   embedded?: boolean
   /** The input's drawn glyph, 28px. */
   glyph?: ReactNode
+  /** A menu item's icon (3d): the open header shows it in a well, not the glyph. */
+  iconWell?: ReactNode
   /** Your own name for what this input does; shown on the Overview diagram. */
   label?: string
   /** Drop the clipboard onto this input, from the closed row. */
@@ -94,6 +96,7 @@ export function ButtonMappingCard({
   extras,
   embedded,
   glyph,
+  iconWell,
   label,
   defaultOpen,
   onPaste,
@@ -207,20 +210,32 @@ export function ButtonMappingCard({
       current.parentElement?.querySelectorAll<HTMLDetailsElement>(':scope > details[data-input-command][open]').forEach(other => { if (other !== current) other.open = false })
     }} data-input-command={command} tabIndex={-1} className={`${keymapStyles.keymapRow} ${isCapturing ? keymapStyles.keymapRowCapturing : ''}`}>
       <summary ref={summaryRef} className={`binding-summary ${open ? keymapStyles.cardHead : keymapStyles.bindingRow}`} data-hints={hints} data-pad-keys="XY" onKeyDown={onSummaryKey}>
-        <span className={keymapStyles.glyphBadge} aria-hidden="true">{glyph}</span>
+        {open && iconWell
+          ? <span className={keymapStyles.iconWell} aria-hidden="true">{iconWell}</span>
+          : <span className={keymapStyles.glyphBadge} aria-hidden="true">{glyph}</span>}
         {open ? (
           <>
-            <span className="binding-summary-name">
-              <span className={keymapStyles.cardTitle}>{rowTitle ?? title}</span>
-              <span className="binding-summary-input">{(rowTitle ? rowSubtitle ?? label : label) || (unbound && !layerAction ? unboundText : '')}<OriginMarker setting={command} detail={templateValue} addressable /></span>
-            </span>
+            {iconWell ? (
+              // A menu item is titled by its label on the menu, over where it is.
+              <span className="binding-summary-name">
+                <span className={`${keymapStyles.cardTitle} ${keymapStyles.cardTitleSmall}`}>{label || rowSubtitle || rowTitle || title}</span>
+                <span className="binding-summary-input">{rowTitle ?? title}<OriginMarker setting={command} detail={templateValue} addressable /></span>
+              </span>
+            ) : (
+              <span className="binding-summary-name">
+                <span className={keymapStyles.cardTitle}>{rowTitle ?? title}</span>
+                <span className="binding-summary-input">{(rowTitle ? rowSubtitle ?? label : label) || (unbound && !layerAction ? unboundText : '')}<OriginMarker setting={command} detail={templateValue} addressable /></span>
+              </span>
+            )}
             {/* Inside the summary, so a click must not also fold the card. */}
             <span className={keymapStyles.cardHeadActions} onClick={stop}>
               <Menu ariaLabel={t('keymap.cardSettings', 'Binding settings')} items={cardMenu} align="end"
                 trigger={<button type="button" className="console-btn console-btn--icon" aria-label={t('keymap.cardSettings', 'Binding settings')} data-hints={`A:Settings;B:${closeLabel}`}><Icon name="cog" size={18} /></button>} />
-              <button type="button" className="console-btn" onClick={() => setDetails(true)} data-hints={`A:Details;B:${closeLabel}`}>
-                <ButtonGlyph button="Y" size={20} family={family === 'generic' ? undefined : family} />{t('keymap.details', 'Details')}
-              </button>
+              {!iconWell && (
+                <button type="button" className="console-btn" onClick={() => setDetails(true)} data-hints={`A:Details;B:${closeLabel}`}>
+                  <ButtonGlyph button="Y" size={20} family={family === 'generic' ? undefined : family} />{t('keymap.details', 'Details')}
+                </button>
+              )}
             </span>
           </>
         ) : (

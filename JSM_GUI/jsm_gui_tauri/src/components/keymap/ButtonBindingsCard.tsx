@@ -39,7 +39,8 @@ import { controllerButtonLabel, type ControllerVisualFamily } from '../../utils/
 import { InputGlyph } from '../glyphs/InputGlyph'
 
 import { ButtonMappingCard, type BindingSummaryEntry } from './ButtonMappingCard'
-import { IconPicker } from './IconPicker'
+import { BindingIconArt, IconPicker } from './IconPicker'
+import { BindingLabelField } from './BindingLabelField'
 import { ButtonGlyph } from '../glyphs/ButtonGlyph'
 import { Lane, LaneAddButton, LaneSideButton, laneStyles } from './Lane'
 import { InputModeshiftPanel } from './InputModeshiftPanel'
@@ -610,20 +611,23 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
   const longName = label ?? inputLongName(button, controllerFamily, t)
   const closeLabel = `Close ${shortName}`
   const isShifted = Boolean(domCommand?.includes(','))
-  const inputGlyph = <InputGlyph command={button.command} family={controllerFamily} size={28} />
+  // A menu item (3d): a region or segment of an on-screen menu, which has an
+  // icon and a label on the menu and nothing but commands behind them.
+  const menuItem = Boolean(onBindingIconChange)
+  const inputGlyph = menuItem ? undefined : <InputGlyph command={button.command} family={controllerFamily} size={28} />
 
   // Nothing bound yet: one press adds a Press command, as Steam Input's own
   // empty slot does. With a command there the same button offers the kinds.
   const addButtonProps = { concept: 'command' as const, label: t('keymap.addCommand'), hints: `A:Add command;X:Capture;B:${closeLabel}` }
   const commandsLane = (
-    <Lane concept="command" label={t('keymap.commandsHeading', 'Commands')} count={commands.length} twoUpFooter
+    <Lane concept="command" label={t('keymap.commandsHeading', 'Commands')} count={commands.length} twoUpFooter={!menuItem}
       footer={
         <>
           {commands.length === 0
             ? <LaneAddButton {...addButtonProps} onClick={() => handleAddCommand('regular')} />
             : <Menu ariaLabel={t('keymap.addCommand')} items={addMenuItems} trigger={<LaneAddButton {...addButtonProps} />} />}
-          <LaneSideButton glyph={<ButtonGlyph button="X" size={28} family={controllerFamily === 'generic' ? undefined : controllerFamily} />}
-            label={t('keymap.captureAKey', 'Capture a key')} onClick={capturePrimary} hints={`A:Capture a key;B:${closeLabel}`} />
+          {!menuItem && <LaneSideButton glyph={<ButtonGlyph button="X" size={28} family={controllerFamily === 'generic' ? undefined : controllerFamily} />}
+            label={t('keymap.captureAKey', 'Capture a key')} onClick={capturePrimary} hints={`A:Capture a key;B:${closeLabel}`} />}
         </>
       }>
       {commands.length > 0 && (
@@ -635,9 +639,9 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
               inputLabel={controllerButtonLabel(button, controllerFamily)}
               command={command}
               glyph={inputGlyph}
-              // One name per input, on its first row (3c).
-              label={index === 0 && onBindingLabelChange ? bindingLabel ?? '' : undefined}
-              onLabelChange={onBindingLabelChange ? value => onBindingLabelChange(button.command, value) : undefined}
+              // One name per input, on its first row (3c); a menu item's is its label field (3d).
+              label={index === 0 && onBindingLabelChange && !menuItem ? bindingLabel ?? '' : undefined}
+              onLabelChange={onBindingLabelChange && !menuItem ? value => onBindingLabelChange(button.command, value) : undefined}
               modifierOptions={modifierOptions}
               specialOptions={command.source.kind === 'special' ? allSpecialOptionList : actionSpecialOptionList}
               virtualControllerType={virtualControllerType}
@@ -659,9 +663,19 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
     </Lane>
   )
 
-  const extras = (buttonHasTrackball || onBindingIconChange) ? (
+  // Change icon and the text shown on the menu (3d).
+  const identity = menuItem ? (
+    <div className={keymapStyles.identityRow} data-capture-ignore="true">
+      <IconPicker value={bindingIcon ?? ''} onChange={value => onBindingIconChange?.(button.command, value)} />
+      {onBindingLabelChange && (
+        <BindingLabelField value={bindingLabel} onChange={value => onBindingLabelChange(button.command, value)}
+          className={keymapStyles.identityField} placeholder={t('keymap.menuLabelPlaceholder', 'Label on the menu')} />
+      )}
+    </div>
+  ) : null
+
+  const extras = buttonHasTrackball ? (
     <div className={keymapStyles.trackballInline} data-capture-ignore="true">
-      {onBindingIconChange && <IconPicker value={bindingIcon ?? ''} onChange={value => onBindingIconChange(button.command, value)} />}
       {buttonHasTrackball && <NumberField setting="TRACKBALL_DECAY"
         label={t('keymap.trackballDecay')}
         value={trackballDecay}
@@ -708,13 +722,15 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
       onCapture={capturePrimary}
       xAction={xAction}
       glyph={<InputGlyph command={button.command} family={controllerFamily} size={embedded ? 30 : 40} />}
+      iconWell={menuItem ? <BindingIconArt value={bindingIcon} size={22} /> : undefined}
       isCapturing={rowCapturing}
       embedded={embedded}
       lanes={
         <>
+          {identity}
           {commandsLane}
-          {modeshiftPanel && !isShifted && <InputModeshiftPanel {...modeshiftPanel} button={button} shortName={shortName} />}
-          {!isShifted && <LayerActionsPanel command={button.command} label={`${longName} layer actions`} glyph={inputGlyph} shortName={shortName} />}
+          {!menuItem && modeshiftPanel && !isShifted && <InputModeshiftPanel {...modeshiftPanel} button={button} shortName={shortName} />}
+          {!menuItem && !isShifted && <LayerActionsPanel command={button.command} label={`${longName} layer actions`} glyph={inputGlyph} shortName={shortName} />}
         </>
       }
       extras={extras}

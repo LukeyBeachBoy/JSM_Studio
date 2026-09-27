@@ -1,7 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AVAILABLE_ICON_SETS, listIcons, resolveIcons, type IconData } from '../../utils/iconLibrary'
+import { AVAILABLE_ICON_SETS, listIcons, resolveIcon, resolveIcons, type IconData } from '../../utils/iconLibrary'
+import { Icon } from '../icons/Icon'
 import styles from './IconPicker.module.css'
+
+/** A menu item's icon as drawn on the menu, or the menu mark when it has none. */
+export function BindingIconArt({ value, size = 22 }: { value?: string; size?: number }) {
+  const [art, setArt] = useState<IconData | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    if (!value) { setArt(null); return }
+    resolveIcon(value).then(next => { if (!cancelled) setArt(next) })
+    return () => { cancelled = true }
+  }, [value])
+  if (!art) return <Icon name="overview" size={size} />
+  return <svg width={size} height={size} viewBox={`0 0 ${art.width} ${art.height}`} fill="currentColor" aria-hidden="true" dangerouslySetInnerHTML={{ __html: art.body }} />
+}
 
 type Props = {
   /** Iconify name currently assigned, or '' for none. */
@@ -59,13 +73,15 @@ export function IconPicker({ value, onChange }: Props) {
 
   return (
     <div className={styles.wrap}>
+      {/* "Change icon" (3d): a console button carrying the icon it changes. */}
       <button
         ref={triggerRef}
         type="button"
-        className={styles.trigger}
+        className="console-btn console-btn--lg"
         onClick={() => setOpen(o => !o)}
         aria-expanded={open}
         title={value || t('keymap.iconNone', 'No icon')}
+        data-hints="A:Change icon;B:Back"
       >
         {current ? (
           <svg
@@ -75,11 +91,9 @@ export function IconPicker({ value, onChange }: Props) {
             dangerouslySetInnerHTML={{ __html: current.body }}
           />
         ) : (
-          <span className={styles.placeholder}>+</span>
+          <Icon name="overview" size={18} />
         )}
-        <span className={styles.triggerText}>
-          {value || t('keymap.iconChoose', 'Icon')}
-        </span>
+        {t('keymap.changeIcon', 'Change icon')}
       </button>
 
       {open && (
