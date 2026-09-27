@@ -17,9 +17,11 @@ import {
   ButtonBindingRow,
   ManualRowInfo,
   ManualRowState,
+  appendBaseLineTokens,
   createBindingExpression,
   parseBindingExpression,
   removeBindingExpressionToken,
+  replaceBaseLineToken,
   serializeBindingExpression,
   serializeBindingToken,
 } from '../../utils/keymap'
@@ -260,12 +262,15 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
   const buttonHasTrackball = commands.some(command => command.outputValue.toUpperCase().includes('TRACK'))
   const defaultModifier = getDefaultModifierForButton(button.command, modifierOptions)
 
+  // A second command on the base line is written with its modifier, so a
+  // Press added beside a Press stays a press for both (`SPACE\ J\`) rather
+  // than the pair reading as tap-then-hold by JoyShockMapper's position rule.
   const addCommandToBaseLine = (preset: BindingCommandPreset) => {
     if (!hasOutputValue(preset)) return
     const baseRow = rows.find(row => row.slot === 'tap')
     const existingTokens = baseRow?.expression?.tokens ?? []
     const token = bindingCommandToToken(preset)
-    const expression = createBindingExpression([...existingTokens, token])
+    const expression = createBindingExpression(appendBaseLineTokens(existingTokens, [token]))
     onBindingChange(button.command, 'tap', baseRow?.id ?? `${button.command}-tap`, serializeBindingExpression(expression), { writeMode: 'line' })
   }
 
@@ -439,10 +444,21 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
       return
     }
 
+    const targetSlot = commandSlot(nextCommand.triggerKind)
+
+    // A row of a tap-and-hold pair (`R E`) is one token of a two-token line.
+    // Writing its token as the line dropped the other one; the whole line is
+    // rebuilt with this token replaced, each token keeping what it meant.
+    const pairRow = rows.find(row => row.slot === 'tap' && row.writeMode === 'slot' && row.expression?.tokens.length === 2)
+    if (pairRow && command.source.writeMode === 'slot' && (command.source.slot === 'tap' || command.source.slot === 'hold') && targetSlot === 'tap') {
+      const tokens = replaceBaseLineToken(pairRow.expression!.tokens, command.source.slot === 'tap' ? 0 : 1, bindingCommandToToken(nextCommand))
+      onBindingChange(button.command, 'tap', pairRow.id, serializeBindingExpression(createBindingExpression(tokens)), { writeMode: 'line' })
+      return
+    }
+
     const expression = updateCommandExpression(command, patch)
     if (!expression) return
     const nextValue = serializeBindingExpression(expression)
-    const targetSlot = commandSlot(nextCommand.triggerKind)
     const shouldWriteLine =
       command.source.writeMode === 'line' ||
       triggerUsesBaseLine(nextCommand.triggerKind) ||
@@ -520,10 +536,7 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
     if (baseLine.length > 0) {
       const baseRow = rows.find(row => row.slot === 'tap')
       const existingTokens = baseRow?.expression?.tokens ?? []
-      const expression = createBindingExpression([
-        ...existingTokens,
-        ...baseLine.map(preset => bindingCommandToToken(preset)),
-      ])
+      const expression = createBindingExpression(appendBaseLineTokens(existingTokens, baseLine.map(preset => bindingCommandToToken(preset))))
       onBindingChange(
         button.command,
         'tap',

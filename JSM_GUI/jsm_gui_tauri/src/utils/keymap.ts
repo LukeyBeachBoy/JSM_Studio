@@ -594,8 +594,58 @@ export function addBindingExpressionToken(expression: BindingExpression, kind: B
   return createBindingExpression([...expression.tokens, createBindingToken(kind)])
 }
 
+/**
+ * Every token saying what it does, rather than leaning on its position.
+ *
+ * JoyShockMapper reads a lone key as a press, and the first of two as a tap
+ * and the second as a hold. So a line that gains or loses a key changes what
+ * the keys already on it mean, unless they carry their modifier: adding J to
+ * `SPACE` as a second press must write `SPACE\ J\`, not `SPACE J` (tap Space,
+ * hold J). This pins each token's meaning before the line changes; the
+ * serializer drops again any modifier the new position implies anyway.
+ */
+export function explicitBindingTokens(tokens: BindingToken[]): BindingToken[] {
+  return tokens.map((token, index) =>
+    token.eventModifier ? token : { ...token, eventModifier: impliedEventModifier(index, tokens.length) || '\\' }
+  )
+}
+
+/**
+ * The reverse, for writing: a modifier the token's new position implies is
+ * dropped again, so a line that still means the same is written as it was
+ * (`R E` stays `R E`, and a lone hyphen never carries a modifier that would
+ * be read as a key). The serializer itself only does this when the explicit
+ * form would be misread, to leave profiles that spell it out alone.
+ */
+export function impliedBindingTokens(tokens: BindingToken[]): BindingToken[] {
+  return tokens.map((token, index) =>
+    token.eventModifier && token.eventModifier === impliedEventModifier(index, tokens.length) ? { ...token, eventModifier: '' } : token
+  )
+}
+
+/**
+ * The tokens of a base line after adding to it: what was there keeps its
+ * meaning, and a token added without a modifier is a press, which the
+ * position rule would otherwise turn into a hold.
+ */
+export function appendBaseLineTokens(existing: BindingToken[], added: BindingToken[]): BindingToken[] {
+  const all = [...existing, ...added]
+  if (all.length < 2) return all
+  return impliedBindingTokens([
+    ...explicitBindingTokens(existing),
+    ...added.map(token => (token.eventModifier ? token : { ...token, eventModifier: '\\' as BindingEventModifier })),
+  ])
+}
+
+/** One token of a line replaced, the others keeping what they meant. */
+export function replaceBaseLineToken(tokens: BindingToken[], index: number, replacement: BindingToken): BindingToken[] {
+  const next = replacement.eventModifier ? replacement : { ...replacement, eventModifier: '\\' as BindingEventModifier }
+  return impliedBindingTokens(explicitBindingTokens(tokens).map((token, at) => (at === index ? next : token)))
+}
+
 export function removeBindingExpressionToken(expression: BindingExpression, index: number) {
-  const tokens = expression.tokens.filter((_, tokenIndex) => tokenIndex !== index)
+  // The tokens left keep what they meant beside the removed one.
+  const tokens = impliedBindingTokens(explicitBindingTokens(expression.tokens).filter((_, tokenIndex) => tokenIndex !== index))
   return tokens.length > 0 ? createBindingExpression(tokens) : null
 }
 

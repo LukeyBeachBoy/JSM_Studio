@@ -408,7 +408,10 @@ export function parseRowsToCommands(
           row,
           expression,
           tokenIndex: index,
-          tokenCount: expression?.tokens.length ?? tokens.length,
+          // The tap row of a tap-and-hold pair (`R E`) holds its own token
+          // only, but its meaning comes from the whole line: the first of
+          // two is a tap, not a press.
+          tokenCount: row.writeMode === 'slot' && row.slot === 'tap' && row.expression ? row.expression.tokens.length : expression?.tokens.length ?? tokens.length,
         })
       )
     })

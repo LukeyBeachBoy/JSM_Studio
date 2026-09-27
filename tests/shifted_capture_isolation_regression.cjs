@@ -102,9 +102,9 @@ assert.ok(normalIds.some(id => shiftedIds.includes(id)), 'the ids no longer coll
     await page.waitForTimeout(500);
 
     await page.keyboard.press('Control+s');
-    await page.waitForFunction(() => /RSR,S = TAB J/.test(window.__lastSaved || ''));
+    await page.waitForFunction(() => /RSR,S = TAB\\ J\\/.test(window.__lastSaved || ''));
     const saved = await page.evaluate(() => window.__lastSaved);
-    assert.match(saved, /^RSR,S = TAB J$/m, `the capture did not reach the shifted binding:\n${saved}`);
+    assert.match(saved, /^RSR,S = TAB\\ J\\$/m, `the capture did not reach the shifted binding as a second press:\n${saved}`);
     assert.match(saved, /^S = SPACE$/m, `the capture landed on the unshifted binding instead:\n${saved}`);
     assert.ok(await normal.count(), 'the unshifted row disappeared');
 

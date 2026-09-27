@@ -58,7 +58,11 @@ const PROFILE = ['RESET_MAPPINGS', 'N = SPACE', 'RSR,N = C', 'E = A', 'R+E = TAB
     assert.ok(focusedRow, 'focus did not land on the new row');
     await page.keyboard.press('Control+s');
     await page.waitForFunction(() => /^N = /m.test(window.__lastSaved || ''));
-    assert.match(await page.evaluate(() => window.__lastSaved), /^N = SPACE J$/m, 'both commands should be on the base line');
+    // Both on the base line, each saying it is a press: `SPACE J` would mean
+    // tap Space / hold J to JoyShockMapper.
+    assert.match(await page.evaluate(() => window.__lastSaved), /^N = SPACE\\ J\\$/m, 'both commands should be presses on the base line');
+    const chips = await rows.getByRole('combobox', { name: 'Trigger' }).allInnerTexts();
+    assert.deepEqual(chips.map(text => text.trim().toLowerCase()), ['press', 'press'], `both rows should read Press: ${chips.join(', ')}`);
 
     // --- X in the Add command picker adds too, and the picker has no Layers tab (23)
     await open.getByRole('button', { name: 'Add command' }).click();
