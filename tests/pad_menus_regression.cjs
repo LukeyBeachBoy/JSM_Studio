@@ -59,7 +59,8 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
     await page.evaluate(() => [...document.querySelectorAll('button, a')].find(b => b.textContent.trim().startsWith('Configurations'))?.click());
     await page.waitForTimeout(1200);
     await page.evaluate(() => document.querySelector('[data-profile] > button').focus());
-    await press(['N']);
+    // X opens a row's options (Y applies it).
+    await press(['W']);
     await until(a => a.text.startsWith('Delete'));
     await press(['S']); await page.waitForTimeout(300);
     now = await active();
@@ -69,12 +70,12 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
     await press(['E']); await page.waitForTimeout(200);
     assert.equal(await page.locator('[role="alertdialog"]').count(), 0);
     assert.ok((await page.evaluate(() => document.activeElement.closest('[data-profile]') !== null && !document.activeElement.matches('[data-nav-skip]'))), 'B returns to the row, not the hidden options button');
-    await press(['N']);
+    await press(['W']);
     await until(a => a.text.startsWith('Rename'));
     await press(['S']); await page.waitForTimeout(300);
     assert.equal((await active()).label, 'Configuration name', 'Rename keeps its name field');
 
     assert.deepEqual(errors, []);
-    console.log('PASS: dropdowns open onto an option, the Configuration menu reaches the title bar with lists that hold focus, Delete and Rename from Y keep their focus');
+    console.log('PASS: dropdowns open onto an option, the Configuration menu reaches the title bar with lists that hold focus, Delete and Rename from X keep their focus');
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exit(1); });

@@ -2,16 +2,9 @@ mod commands;
 mod runtime;
 mod services;
 
-use tauri::{
-    menu::{Menu, MenuItem, PredefinedMenuItem},
-    tray::{MouseButton, TrayIconBuilder, TrayIconEvent},
-    Manager, RunEvent, WindowEvent,
-};
+use tauri::{Manager, RunEvent, WindowEvent};
 
 use services::{app_state::AppState, hidhide, input_debug, jsm_process, telemetry};
-
-const TRAY_SHOW_ID: &str = "show";
-const TRAY_QUIT_ID: &str = "quit";
 
 /// True when this invocation came from the logon scheduled task rather than a
 /// person opening the app. See `autostart.rs` and the setup hook below.
@@ -82,30 +75,8 @@ pub fn run() {
             // controller keeps working, matching Steam Input's own background
             // behavior. The tray icon is what makes that discoverable/reversible
             // instead of the app just vanishing with no way back but the taskbar.
-            let show_item = MenuItem::with_id(app, TRAY_SHOW_ID, "Show JSM Studio", true, None::<&str>)?;
-            let quit_item = MenuItem::with_id(app, TRAY_QUIT_ID, "Quit", true, None::<&str>)?;
-            let separator = PredefinedMenuItem::separator(app)?;
-            let tray_menu = Menu::with_items(app, &[&show_item, &separator, &quit_item])?;
-
-            TrayIconBuilder::new()
-                .icon(app.default_window_icon().cloned().expect("bundled tray icon"))
-                .tooltip("JSM Studio")
-                .menu(&tray_menu)
-                .show_menu_on_left_click(false)
-                .on_menu_event(|app_handle, event| match event.id.as_ref() {
-                    TRAY_SHOW_ID => show_main_window(app_handle),
-                    TRAY_QUIT_ID => app_handle.exit(0),
-                    _ => {}
-                })
-                .on_tray_icon_event(|tray, event| {
-                    // Left-click restores the window, matching how every other
-                    // tray icon on Windows behaves; right-click's context menu
-                    // is handled by TrayIconBuilder itself (menu() above).
-                    if let TrayIconEvent::Click { button: MouseButton::Left, .. } = event {
-                        show_main_window(tray.app_handle());
-                    }
-                })
-                .build(app)?;
+            // It is the only icon: the mapper's own is off (services/tray_menu.rs).
+            services::tray_menu::install(&app.handle())?;
 
             // The window starts hidden (tauri.conf.json) so an autostart launch
             // never flashes it visible before this decides otherwise. Everything
@@ -192,8 +163,19 @@ pub fn run() {
             commands::generate_ai_mapping,
             commands::get_autostart_enabled,
             commands::set_autostart_enabled,
+            commands::tray_menu_place,
+            commands::tray_menu_hide,
+            commands::tray_show_studio,
+            commands::tray_quit,
         ])
         .on_window_event(|window, event| {
+            // The tray menu dismisses as a native menu does: on losing focus.
+            if window.label() == services::tray_menu::TRAY_MENU_LABEL {
+                if let WindowEvent::Focused(false) = event {
+                    let _ = window.hide();
+                }
+                return;
+            }
             if window.label() == "main" {
                 let state = window.state::<AppState>();
                 match event {
@@ -233,7 +215,7 @@ pub fn run() {
     });
 }
 
-fn show_main_window(app_handle: &tauri::AppHandle) {
+pub(crate) fn show_main_window(app_handle: &tauri::AppHandle) {
     if let Some(window) = app_handle.get_webview_window("main") {
         let _ = window.show();
         let _ = window.unminimize();

@@ -21,8 +21,9 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.cache
  // Overview.dc.html: the grip row is named, with the activation as its pill ("Enables gyro").
  assert.match(await page.locator('[data-overview-input="MISC5"]').innerText(),/Enables gyro/);
  assert.match(await page.locator('[data-overview-input="ZL"]').innerText(),/Analog left trigger/);
- await page.getByRole('button',{name:'Show uses of Right grip',exact:true}).click(); // MISC5, named as the pad names it
- const dialog=page.getByRole('dialog',{name:'Uses of Right grip'});
+ // X on a callout opens where the input is used (MISC5, named as the pad names it).
+ await page.locator('[data-overview-input="MISC5"]').focus();await page.keyboard.press('x');
+ const dialog=page.getByRole('dialog',{name:'Where Right grip is used'});
  await dialog.waitFor();assert.ok(await dialog.evaluate(e=>e.contains(document.activeElement)));
  await page.keyboard.press('Escape');await dialog.waitFor({state:'hidden'});
  await page.getByRole('toolbar',{name:'Filter bindings'}).getByRole('button',{name:/^Available/}).click();

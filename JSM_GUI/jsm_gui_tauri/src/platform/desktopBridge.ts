@@ -1,3 +1,5 @@
+import type { TrayAction } from '../traymenu/TrayMenu'
+
 export type BackendChoice = 'SDL' | 'legacy'
 
 export type CalibrationStatus = {
@@ -49,6 +51,8 @@ export type RuntimeMappingState = {
   shutdownSound?: number
   /** How loud they play, in dB; 0 = as recorded. */
   soundGain?: number
+  /** Switch off the Steam Controller's firmware gyro auto-calibration. */
+  disableHardwareGyroCalibration?: boolean
   /** Studio's reserved chords (pause mapping, calibrate gyro). */
   reservedChords?: boolean
   /** Whether the calibration HUD appears over games. */
@@ -76,6 +80,7 @@ export type ControllerPreferences = {
   connectSound: number
   shutdownSound: number
   soundGain: number
+  disableHardwareGyroCalibration: boolean
 }
 
 export type AutoloadRule = {
@@ -286,6 +291,9 @@ export interface DesktopBridge {
   setReservedChords: (enabled: boolean) => Promise<RuntimeMappingState | null>
   setCalibrationHudEnabled: (enabled: boolean) => Promise<RuntimeMappingState | null>
   onRuntimeMappingState: (callback: (state: RuntimeMappingState) => void) => Unsubscribe
+  // What the tray menu asks of this window (src/traymenu/TrayMenu.tsx).
+  onTrayAction: (callback: (action: TrayAction) => void) => Unsubscribe
+  showStudio: () => Promise<void>
   listGlobalChords: () => Promise<GlobalChord[]>
   saveGlobalChord: (chord: GlobalChord) => Promise<GlobalChord[]>
   deleteGlobalChord: (id: string) => Promise<GlobalChord[]>
@@ -363,6 +371,9 @@ export type ControllerFeedbackRequest = {
   rumbleMs: number
   /** 0-100 motor strength for that pulse. */
   rumble: number
+  /** Play it as the grip sensors' own haptic does: PULSE and TAP at the grip
+   *  actuators rather than the pads (the Grip sensors sheet's preview). */
+  grips?: boolean
 }
 
 type TauriEventPayload<T> = { payload: T }
@@ -616,6 +627,12 @@ export const desktopBridge: DesktopBridge = {
       return listenTauri<RuntimeMappingState>('runtime-mapping-state', callback)
     }
     return noop
+  },
+  onTrayAction(callback) {
+    return isTauriWindow() ? listenTauri<TrayAction>('tray-action', callback) : noop
+  },
+  async showStudio() {
+    if (isTauriWindow()) await invokeTauri('tray_show_studio').catch(() => {})
   },
   async setAutoloadRulePaused(processName, paused) {
     if (isTauriWindow()) {

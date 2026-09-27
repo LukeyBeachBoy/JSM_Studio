@@ -14,6 +14,8 @@ export default defineConfig({
         overlay: resolve(__dirname, 'overlay.html'),
         // The calibration HUD, likewise its own document.
         hud: resolve(__dirname, 'hud.html'),
+        // The tray icon's right-click menu (services/tray_menu.rs).
+        traymenu: resolve(__dirname, 'traymenu.html'),
       },
     },
   },

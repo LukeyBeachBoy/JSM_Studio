@@ -4,6 +4,7 @@ import { SettingOrigins } from '../SettingOrigin'
 import { useSettingOriginInfo } from '../keymap/settingOriginInfo'
 import { PAD_EVENT, type PadEventDetail } from '../../nav/useControllerNavigation'
 import { ConfigBaseline } from '../../hooks/configContext'
+import adjustStyles from './SummaryRowAdjust.module.css'
 
 // The summary row (console refinement 1d, §5): label, one line under it, the
 // value on the right and a chevron when it opens something. One focusable
@@ -27,7 +28,11 @@ export type RowAdjust =
       value: number
       min: number
       max: number
+      /** The coarse step Left/Right take by default. */
       step: number
+      /** X toggles to this while adjusting (Shift+arrow takes one). Defaults
+       *  to 1 for a whole-number step and a tenth of the step otherwise. */
+      fineStep?: number
       onChange: (value: number) => void
       /** B while adjusting; defaults to writing back the starting value. */
       onRevert?: (start: number) => void
@@ -99,6 +104,10 @@ const roundTo = (value: number, step: number) => {
   const digits = Math.max(0, (String(step).split('.')[1] ?? '').length)
   return Number(value.toFixed(digits))
 }
+const fineStepOf = (adjust: Extract<RowAdjust, { kind: 'number' }>) =>
+  adjust.fineStep ?? (Number.isInteger(adjust.step) ? 1 : roundTo(adjust.step / 10, adjust.step / 10))
+// What a typed value may contain: digits, one point, a leading minus.
+const TYPED_KEY = /^[0-9.,-]$/
 
 /** The origin line (§4 2c): "Overrides FPS Template", "Changed in the
  *  Vehicles layer" or "From FPS Template". A value the configuration simply
@@ -125,6 +134,13 @@ export function SummaryRow(props: SummaryRowProps) {
   const helpId = useId()
   const [adjusting, setAdjusting] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
+  // Adjusting a number: X swaps the coarse step for the fine one, and typing
+  // replaces the value outright (Enter or A keeps it, Esc drops the typing).
+  const [fine, setFine] = useState(false)
+  const [typed, setTyped] = useState<string | null>(null)
+  const numberAdjust = adjust?.kind === 'number' ? adjust : undefined
+  const fineStep = numberAdjust ? fineStepOf(numberAdjust) : undefined
+  const hasFine = numberAdjust !== undefined && fineStep !== undefined && fineStep < numberAdjust.step
   const start = useRef<number | string | null>(null)
   // B puts the configuration back exactly as it was: writing the starting
   // value would turn a setting that was unset (showing its default) into one
@@ -142,12 +158,28 @@ export function SummaryRow(props: SummaryRowProps) {
     if (adjust.kind === 'custom') { adjust.onBegin(); setAdjusting(true); announce(); return }
     start.current = adjust.value
     snapshot.current = baseline.onChange ? baseline.text : null
+    setFine(false)
+    setTyped(null)
     setAdjusting(true)
     announce()
+  }
+  // The typed value, clamped, or undefined while it is not a number yet.
+  const typedValue = () => {
+    if (typed === null || !numberAdjust) return undefined
+    const parsed = Number.parseFloat(typed.replace(',', '.'))
+    return Number.isFinite(parsed) ? clamp(parsed, numberAdjust.min, numberAdjust.max) : undefined
+  }
+  const applyTyped = () => {
+    const value = typedValue()
+    setTyped(null)
+    if (value !== undefined && numberAdjust && value !== numberAdjust.value) numberAdjust.onChange(value)
+    return value
   }
   const endAdjust = (revert: boolean) => {
     if (!adjust) return
     if (adjust.kind === 'custom') { adjust.onEnd(revert); setAdjusting(false); announce(); return }
+    const kept = !revert && adjust.kind === 'number' ? applyTyped() : (setTyped(null), undefined)
+    setFine(false)
     if (revert && start.current !== null && start.current !== adjust.value && !adjust.onRevert && snapshot.current !== null && baseline.onChange) {
       baseline.onChange(snapshot.current)
     } else if (revert && start.current !== null && start.current !== adjust.value) {
@@ -155,7 +187,7 @@ export function SummaryRow(props: SummaryRowProps) {
         if (adjust.onRevert) adjust.onRevert(start.current as number); else adjust.onChange(start.current as number)
       } else if (adjust.onRevert) adjust.onRevert(start.current as string); else adjust.onChange(start.current as string)
     } else if (!revert) {
-      if (adjust.kind === 'number') adjust.onCommit?.(adjust.value)
+      if (adjust.kind === 'number') adjust.onCommit?.(kept ?? adjust.value)
       else adjust.onCommit?.(adjust.value)
     }
     start.current = null
@@ -163,10 +195,13 @@ export function SummaryRow(props: SummaryRowProps) {
     setAdjusting(false)
     announce()
   }
-  const stepAdjust = (direction: 1 | -1) => {
+  const stepAdjust = (direction: 1 | -1, fineOnce = false) => {
     if (!adjust || adjust.kind === 'custom') return
     if (adjust.kind === 'number') {
-      const next = roundTo(clamp(adjust.value + direction * adjust.step, adjust.min, adjust.max), adjust.step)
+      // An arrow after typing keeps what was typed; the next arrow steps from it.
+      if (typed !== null) { applyTyped(); return }
+      const step = (fine || fineOnce) && fineStep !== undefined ? fineStep : adjust.step
+      const next = roundTo(clamp(adjust.value + direction * step, adjust.min, adjust.max), step)
       if (next !== adjust.value) adjust.onChange(next)
       return
     }
@@ -182,6 +217,7 @@ export function SummaryRow(props: SummaryRowProps) {
     onActivate?.()
   }
   const secondary = (button: 'X' | 'Y') => {
+    if (button === 'X' && adjusting && hasFine) { setFine(value => !value); announce(); return true }
     if (button === 'X' && props.onX) { props.onX.run(); return true }
     if (button === 'X' && help) { setHelpOpen(open => !open); return true }
     if (button === 'Y' && resetToDefault && !disabled) { if (adjusting) endAdjust(false); resetToDefault(); return true }
@@ -212,7 +248,9 @@ export function SummaryRow(props: SummaryRowProps) {
   }, [])
 
   const choiceLabel = adjust?.kind === 'choice' ? adjust.options.find(option => option.value === adjust.value)?.label : undefined
-  const shownValue = value ?? (toggle ? (toggle.on ? 'On' : 'Off') : choiceLabel ?? (adjust?.kind === 'number' ? String(adjust.value) : undefined))
+  const shownValue = typed !== null
+    ? <span className={adjustStyles.typed}>{typed}</span>
+    : value ?? (toggle ? (toggle.on ? 'On' : 'Off') : choiceLabel ?? (adjust?.kind === 'number' ? String(adjust.value) : undefined))
   // The bar is the 1d fine-tuning look; plain rows (2c, 2e) have none.
   const bar = progress === undefined ? undefined : progress
   // A row that names its own A (Arrange) keeps that name.
@@ -220,7 +258,8 @@ export function SummaryRow(props: SummaryRowProps) {
   const hints = [
     adjusting ? undefined : props.hints,
     props.onX && !adjusting ? `X:${props.onX.label}` : undefined,
-    reason || ownsA ? (adjusting ? 'A:Drop;B:Put back' : undefined) : adjusting ? 'A:Keep;B:Put back' : adjust ? 'A:Adjust' : toggle ? 'A:Turn on / off' : props.expanded !== undefined ? (props.expanded ? 'A:Fold' : 'A:Unfold') : onActivate ? 'A:Open' : undefined,
+    adjusting && hasFine ? `X:${fine ? 'Coarse steps' : 'Fine steps'}` : undefined,
+    reason || ownsA ? (adjusting ? 'A:Drop;B:Put back' : undefined) : adjusting ? (typed !== null ? 'A:Keep;B:Clear typing' : 'A:Keep;B:Put back') : adjust ? 'A:Adjust' : toggle ? 'A:Turn on / off' : props.expanded !== undefined ? (props.expanded ? 'A:Fold' : 'A:Unfold') : onActivate ? 'A:Open' : undefined,
     !adjusting && !disabled && resetToDefault ? `Y:${props.defaultLabel ?? 'Use Default'}` : undefined,
     !adjusting && help && !props.onX ? `X:${helpOpen ? 'Hide help' : 'What’s this?'}` : undefined,
     // Only when the caller has not named B itself (1h): "A:Bind;B:Back" plus
@@ -252,10 +291,29 @@ export function SummaryRow(props: SummaryRowProps) {
             if (event.key.startsWith('Arrow')) { event.preventDefault(); event.stopPropagation(); adjust.onArrow(event.key as 'ArrowUp'); return }
             if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); endAdjust(true); return }
           }
+          // Typing a number on a number row enters it exactly, adjusting or not.
+          if (numberAdjust && !disabled && !reason && !event.ctrlKey && !event.metaKey && !event.altKey) {
+            if (TYPED_KEY.test(event.key)) {
+              event.preventDefault(); event.stopPropagation()
+              if (!adjusting) beginAdjust()
+              setTyped(previous => (previous ?? '') + event.key)
+              return
+            }
+            if (adjusting && event.key === 'Backspace') {
+              event.preventDefault(); event.stopPropagation()
+              setTyped(previous => (previous ?? String(numberAdjust.value)).slice(0, -1))
+              return
+            }
+            if (adjusting && event.key === 'Escape' && typed !== null) {
+              event.preventDefault(); event.stopPropagation()
+              setTyped(null)
+              return
+            }
+          }
           if (adjusting) {
             if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
               event.preventDefault(); event.stopPropagation()
-              stepAdjust(event.key === 'ArrowRight' ? 1 : -1)
+              stepAdjust(event.key === 'ArrowRight' ? 1 : -1, event.shiftKey)
               return
             }
             if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); endAdjust(true); return }
@@ -288,6 +346,12 @@ export function SummaryRow(props: SummaryRowProps) {
         )}
       </button>
       {adjusting && adjustDetail && <div className="summary-row__detail">{adjustDetail}</div>}
+      {adjusting && numberAdjust && (
+        <div className={adjustStyles.caption} aria-live="polite">
+          {hasFine && <span className={adjustStyles.stepSize} data-fine={fine ? 'true' : undefined}>{fine ? 'Fine' : 'Coarse'} steps of {fine ? fineStep : numberAdjust.step}</span>}
+          <span className={adjustStyles.typeHint}>{typed !== null ? `Enter keeps ${typed || '…'} · Esc clears` : 'Type a number to set it exactly'}{hasFine && typed === null ? ' · Shift+arrow for one fine step' : ''}</span>
+        </div>
+      )}
       {helpOpen && help && <div id={helpId} className="summary-row__help" role="note">{help}</div>}
     </div>
   )

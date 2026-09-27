@@ -13,6 +13,21 @@ const fromPercent = (value: string, high: number, span: number) => {
 export const gripRangeRaw = (value: string) => fromPercent(value, 400, 375)
 export const gripGuardRaw = (value: string) => fromPercent(value, 100, 75)
 
+// The controller stores whole numbers (guard 25–100, range 25–400), and a 1%
+// step on the guard is 0.75 of a unit: rounded, it lands back where it started
+// and the value cannot climb. When a percent would not move the stored value,
+// move it one unit toward the percent instead.
+const stepRaw = (toRaw: (value: string) => string, toPercent: (raw: number) => number | undefined, low: number, high: number) =>
+  (currentRaw: number | undefined, percent: number) => {
+    const raw = toRaw(String(percent))
+    const shown = currentRaw === undefined ? undefined : toPercent(currentRaw)
+    if (raw === '' || currentRaw === undefined || shown === undefined || shown === percent || Number(raw) !== Math.round(currentRaw)) return raw
+    // Percent and the stored value run in opposite directions.
+    return String(clamp(Number(raw) + (percent > shown ? -1 : 1), low, high))
+  }
+export const gripGuardStepRaw = stepRaw(gripGuardRaw, gripGuardPercent, 25, 100)
+export const gripRangeStepRaw = stepRaw(gripRangeRaw, gripRangePercent, 25, 400)
+
 // Unset: the controller keeps its own value (hooks/useGripConfig's GRIP_FIRMWARE_DEFAULT).
 const FIRMWARE_DEFAULT = -1
 

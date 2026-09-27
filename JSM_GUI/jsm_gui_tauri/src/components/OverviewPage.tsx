@@ -21,6 +21,7 @@ import { FACE_BUTTONS, DPAD_BUTTONS, BUMPER_BUTTONS, TRIGGER_BUTTONS, CENTER_BUT
 import { controllerSupportsInput } from '../utils/controllerStatus'
 import { getButtonBindingRows, getKeymapValue, isTrackballBindingPresent } from '../utils/keymap'
 import { parseBindingLabels } from '../utils/bindingLabels'
+import { shiftedInputName, shiftedInputs } from '../utils/shiftedInputs'
 import styles from './OverviewPage.module.css'
 
 export type OverviewNavTarget = 'buttons' | 'dpad' | 'triggers' | 'joysticks' | 'touchpad' | 'gyro'
@@ -50,8 +51,12 @@ type OverviewEntry = {
   lines: OverviewLine[]
   used: boolean
   hasUses: boolean
-  /** Inputs this one changes while it is held. */
+  /** Inputs this one changes while it is held: a pad for its settings and
+      region cells (utils/shiftedInputs), not one per config key. */
   shiftCount: number
+  /** Those inputs, named ("Right trackpad"), and in short ("Right pad"). */
+  shiftNames: string[]
+  shiftShortNames: string[]
   /** Inputs this one fires together with ("RB + A"), by their name. */
   chordWith: string[]
   /** Layers this input turns on or off. */
@@ -196,6 +201,8 @@ export function OverviewPage({ devices, onNavigate, configText, onSelectCommand,
       }
       const shiftValue = (target: string) =>
         (layerEntries(text)[`${command},${target}`] ?? '').split('#')[0].trim()
+      const shiftedGroups = shiftedInputs(shifts.map(use => use.target))
+      const shiftNames = shiftedGroups.map(input => shiftedInputName(input, family))
       if (shifts.length === 1) {
         const target = shifts[0].target
         const value = shiftValue(target)
@@ -204,7 +211,7 @@ export function OverviewPage({ devices, onNavigate, configText, onSelectCommand,
           : value.replace(/_/g, ' ')
         lines.push({ text: value ? `While held: ${say(target)} → ${becomes}` : summarise(shifts, 'While held, changes'), kind: 'relation' })
       } else if (shifts.length) {
-        lines.push({ text: summarise(shifts, 'While held, changes'), kind: 'relation' })
+        lines.push({ text: shiftNames.length <= 3 ? `While held, changes ${shiftNames.join(', ')}` : `While held, changes ${shiftNames.slice(0, 3).join(', ')} and ${shiftNames.length - 3} more`, kind: 'relation' })
       }
       if (chords.length) lines.push({ text: summarise(chords, 'Pressed together with'), kind: 'relation' })
       // Bound only under a shift ("LEFT,RT1 = F3"): say which. A shift that sets
@@ -215,7 +222,9 @@ export function OverviewPage({ devices, onNavigate, configText, onSelectCommand,
       const used = !!lines.length || !!names[command]
       if (used || controllerSupportsInput(device, command)) result[command] = {
         name: names[command], lines, used, hasUses: relationships.length > 0,
-        shiftCount: new Set(shifts.map(use => use.target)).size,
+        shiftCount: shiftNames.length,
+        shiftNames,
+        shiftShortNames: shiftedGroups.map(input => shiftedInputName(input, family, true)),
         chordWith,
         layerIds: [...new Set(relationships.filter(use => use.kind === 'layer' && use.layerId).map(use => use.layerId!))],
         shiftedBy: shiftedBy[command] ?? {},
@@ -336,8 +345,11 @@ export function OverviewPage({ devices, onNavigate, configText, onSelectCommand,
     // Line 2 (2a): what this input is, as chips -- the shifts it makes, the
     // chords it is in, the layers it drives, how many commands it has. Two at
     // most, then "+n". The full account is the inspector's (X), never inline.
+    const shiftsText = entry.shiftCount === 1
+      ? t('overview.chipShiftsNamed', 'Shifts {{name}}', { name: entry.shiftNames[0] })
+      : t('overview.chipShifts', 'Shifts {{count}}', { count: entry.shiftCount })
     const chips = [
-      entry.shiftCount > 0 && <span key="shift" className={styles.chip} data-concept="shift"><Icon name="modeshift" size={11} />{t('overview.chipShifts', 'Shifts {{count}}', { count: entry.shiftCount })}</span>,
+      entry.shiftCount > 0 && <span key="shift" className={styles.chip} data-concept="shift"><Icon name="modeshift" size={11} />{shiftsText}</span>,
       ...entry.chordWith.map(other => <span key={`chord:${other}`} className={styles.chip} data-concept="chord"><Icon name="modeshift" size={11} />{t('overview.chipChord', 'Chord {{name}}', { name: other })}</span>),
       ...entry.layerIds.map(id => <span key={id} className={styles.chip} data-concept="layer" data-layer-slot={layerSlot(layers, id)}><Icon name="layer" size={11} />{layers.find(layer => layer.id === id)?.name ?? id}</span>),
       plain.length > 1 && <span key="commands" className={styles.chip} data-concept="command"><Icon name="command" size={11} />{plain.length}</span>,
@@ -355,7 +367,7 @@ export function OverviewPage({ devices, onNavigate, configText, onSelectCommand,
       data-has-uses={entry.hasUses ? '' : undefined}
       data-shifted={shifted ? 'true' : undefined}
       data-holding={holding ? 'true' : undefined}
-      data-hints={entry.hasUses ? 'A:Edit;X:Inspect uses;Y:Search;B:Back' : 'A:Edit;Y:Search;B:Back'}
+      data-hints={entry.hasUses ? 'A:Edit;X:Show uses;Y:Search;B:Back' : 'A:Edit;Y:Search;B:Back'}
       aria-label={command + ': ' + labels[command]} title={inputName(command, family) + '\n' + inputUses(configText ?? '', command, layers).join('\n')}
       onClick={() => onSelectCommand?.(command)}
       onFocus={() => setHoveredCommand(command)} onBlur={() => setHoveredCommand(null)}
@@ -385,7 +397,34 @@ export function OverviewPage({ devices, onNavigate, configText, onSelectCommand,
             className={`${styles.valuePill} ${styles.swap} ${activation && !shifted ? styles.valuePillJsm : ''} ${holding ? styles.valuePillHeld : ''}`}>{shownValue}</kbd>}
         </span>
       ) : null}
-    </button>{entry.hasUses && <button type="button" className={`console-btn ${styles.inspect}`} aria-label={t('overview.showUsesOf', 'Show uses of {{name}}', { name: inputName(command, family) })} onClick={() => window.dispatchEvent(new CustomEvent('jsm:input-uses', { detail: command }))}><Icon name="search" size={16} />{t('overview.inspectUses', 'Inspect uses')}</button>}</div>
+    </button>{compact && relationTiles(command, entry)}</div>
+  }
+
+  // A compact callout (the D-pad, face buttons) has no line 2 for chips, so
+  // what the input does to others hangs under it as concept tiles: crimson for
+  // a modeshift or chord, the layer's hue for a layer (binding card refresh
+  // §1). Each opens the uses inspector, as X does from the pad.
+  const relationTiles = (command: string, entry: OverviewEntry) => {
+    // The mark says it shifts; the tile names what: "Right pad", or a count.
+    const shiftText = entry.shiftCount === 1 ? entry.shiftShortNames[0] : t('overview.shiftsInputs', '{{count}} inputs', { count: entry.shiftCount })
+    const tiles = [
+      entry.shiftCount > 0 && { key: 'shift', concept: 'shift', icon: 'modeshift' as const, text: shiftText, title: t('overview.shiftsWhileHeld', 'While held, changes {{names}}', { names: entry.shiftNames.join(', ') }) },
+      ...entry.chordWith.map(other => ({ key: `chord:${other}`, concept: 'chord', icon: 'modeshift' as const, text: t('overview.chipChord', 'Chord {{name}}', { name: other }) })),
+      ...entry.layerIds.map(id => ({ key: id, concept: 'layer', icon: 'layer' as const, text: layers.find(layer => layer.id === id)?.name ?? id, slot: layerSlot(layers, id) })),
+    ].filter(Boolean) as { key: string; concept: string; icon: 'modeshift' | 'layer'; text: string; slot?: number; title?: string }[]
+    if (!tiles.length) return null
+    return (
+      <span className={styles.relations}>
+        {tiles.slice(0, 2).map(tile => (
+          <button key={tile.key} type="button" tabIndex={-1} data-nav-skip className={styles.relationTile} data-concept={tile.concept} data-layer-slot={tile.slot}
+            title={tile.title ?? t('overview.showUsesOf', 'Show uses of {{name}}', { name: inputName(command, family) })}
+            onClick={() => window.dispatchEvent(new CustomEvent('jsm:input-uses', { detail: command }))}>
+            <Icon name={tile.icon} size={12} /><span>{tile.text}</span>
+          </button>
+        ))}
+        {tiles.length > 2 && <span className={styles.relationTile} data-concept="more">+{tiles.length - 2}</span>}
+      </span>
+    )
   }
 
   const modeLine = (modeKey: string | undefined, items: string[]) => {

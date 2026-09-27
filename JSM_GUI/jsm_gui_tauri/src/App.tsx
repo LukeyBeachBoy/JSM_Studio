@@ -1,4 +1,5 @@
-import { LayerBar, LayerUsageContext, InputUsageInspector } from './components/LayerBar'
+import { LayerBar, LayerUsageContext } from './components/LayerBar'
+import { InputUsageInspector } from './components/InputUsageInspector'
 import { LayersPage } from './components/LayersPage'
 import { AssociationsPage } from './components/AssociationsPage'
 import { MapperDown, ConfigErrors, type ConfigError } from './components/SystemNotices'
@@ -8,6 +9,7 @@ import { inputDisplayName } from './keymap/inputNames'
 import { SettingOrigins, SettingsInventory } from './components/SettingOrigin'
 import { controllerDisplayName, controllerVisualFamily, getPressedControllerCommandSet } from './utils/controllerStatus'
 import { chordTriggerTargets, heldStatus, shiftTriggerTargets } from './utils/modeshift'
+import { shiftedInputName } from './utils/shiftedInputs'
 import { TimingPage } from './components/TimingPage'
 import { ControllerPreferences } from './components/ControllerPreferences'
 import { flushSync } from 'react-dom'
@@ -1015,7 +1017,10 @@ function App() {
   // never written to a file are simply gone. Ask first, and name the file they
   // would be lost from.
   const [pendingProfileSwitch, setPendingProfileSwitch] = useState<string | null>(null)
+  // The switch waiting on that question came from Edit, which opens the page after.
+  const openAfterSwitch = useRef(false)
   const requestLoadProfile = (name: string) => {
+    openAfterSwitch.current = false
     if (name === currentLibraryProfile) return
     if (hasPendingChanges) { setPendingProfileSwitch(name); return }
     void handleLoadProfileFromLibrary(name)
@@ -1028,8 +1033,32 @@ function App() {
     setPendingProfileSwitch(null)
     // Save what is on screen, including any value still being typed, before it
     // is replaced -- the same finalize step the Save button runs.
+    const open = openAfterSwitch.current
+    openAfterSwitch.current = false
     if (choice === 'save' && !await saveConfig({ textOverride: finalizePendingValues?.() ?? configText })) return
-    void handleLoadProfileFromLibrary(name, choice === 'discard')
+    const loaded = handleLoadProfileFromLibrary(name, choice === 'discard')
+    if (open && await loaded !== null) window.dispatchEvent(new CustomEvent('jsm:navigate-page', { detail: 'overview' }))
+  }
+  // Edit on a Configurations row: make it the configuration being edited and
+  // open it, in one press. Through the unsaved guard, the page opens once
+  // the person has answered it.
+  const openLibraryProfileForEditing = async (name: string) => {
+    const open = () => window.dispatchEvent(new CustomEvent('jsm:navigate-page', { detail: 'overview' }))
+    if (name === currentLibraryProfile) { open(); return }
+    if (hasPendingChanges) { openAfterSwitch.current = true; setPendingProfileSwitch(name); return }
+    if (await handleLoadProfileFromLibrary(name) !== null) open()
+  }
+  // X / Apply on a row that is not being edited (Studio Home 8a), and the tray
+  // menu's configurations: open it through the unsaved guard, then apply it.
+  // With edits pending the guard's dialog takes over and the apply waits for
+  // the person's answer.
+  const applyLibraryProfileByName = async (name: string) => {
+    if (name === currentLibraryProfile) { void runEditorAction('apply'); return }
+    if (hasPendingChanges) { requestLoadProfile(name); return false }
+    const profile = await desktopBridge.loadLibraryProfile(name)
+    if (!profile) { showToast(t('messages.loadProfileFailed'), 'error'); return }
+    await handleLoadProfileFromLibrary(name)
+    await applyConfig({ textOverride: profile.content, profileNameOverride: name })
   }
 
   const handleApplyWithFinalize = () => {
@@ -1200,7 +1229,9 @@ function App() {
   const shiftTriggers = useMemo(() => shiftTriggerTargets(configText ?? ''), [configText])
   const chordTriggers = useMemo(() => chordTriggerTargets(configText ?? ''), [configText])
   const held = heldStatus(shiftTriggers, chordTriggers, getPressedControllerCommandSet(device))
-  const shiftStatus = held ? { kind: held.kind, name: inputDisplayName(held.trigger, controllerFamily), count: held.count } : null
+  // One input changed is named ("L4 held → Right pad") rather than counted;
+  // the short name, since the slot keeps a fixed width.
+  const shiftStatus = held ? { kind: held.kind, name: inputDisplayName(held.trigger, controllerFamily), count: held.count, only: held.inputs.length === 1 ? shiftedInputName(held.inputs[0], controllerFamily, true) : undefined } : null
   const reserveShiftSlot = shiftTriggers.size > 0 || chordTriggers.size > 0
   const titleBarShowsShift = !isHomePage(primaryTab) && !isStudioPage(primaryTab)
   const appliedName = mappingEnabled ? appliedProfileLabel(sample?.activeProfile, appliedProfileName)?.replace(/.txt$/i, '') ?? null : null
@@ -1261,6 +1292,23 @@ function App() {
     void desktopBridge.getMapperStatus().then(status => { if (status && !status.running && status.exit) setMapperExit(status.exit) })
     return desktopBridge.onMapperStatus(status => setMapperExit(status.running ? null : status.exit ?? null))
   }, [])
+  // The tray menu's actions run the same handlers as the window's buttons.
+  // Through a ref, so the listener is registered once but always calls this
+  // render's handlers, not the ones from the render that registered it.
+  const trayActions = useRef({ applyLibraryProfileByName, handleToggleMappingEnabled, handleAutoloadEnabledChange, mappingEnabled })
+  trayActions.current = { applyLibraryProfileByName, handleToggleMappingEnabled, handleAutoloadEnabledChange, mappingEnabled }
+  useEffect(() => desktopBridge.onTrayAction(action => {
+    const handlers = trayActions.current
+    if (action.type === 'apply-profile') {
+      // false: edits are pending and the unsaved dialog is up, which needs
+      // the window in front to be answered.
+      void handlers.applyLibraryProfileByName(action.name).then(done => { if (done === false) void desktopBridge.showStudio() })
+    } else if (action.type === 'set-mapping') {
+      if (action.enabled !== handlers.mappingEnabled) void handlers.handleToggleMappingEnabled()
+    } else {
+      void handlers.handleAutoloadEnabledChange(action.enabled)
+    }
+  }), [])
   const restartMapper = async () => {
     setMapperRestarting(true)
     try {
@@ -1716,21 +1764,14 @@ function App() {
                   imports: [...templateNames],
                   layers: layers.map((layer, index) => ({ name: layer.name, color: layerColor(index) })),
                 }}
-                onApply={handleApplyWithFinalize}
+                // What the title bar's state button does: save and apply
+                // with edits pending, apply otherwise. Save alone left the
+                // mapping untouched while the toast said it was saved.
+                onApply={() => void runEditorAction(hasPendingChanges ? 'both' : 'apply')}
+                onEditLibraryProfile={name => void openLibraryProfileForEditing(name)}
                 onShowInFolder={handleOpenConfigDirectory}
                 onEditSource={() => { setConfigWindowPosition(null); setConfigDrawerOpen(true) }}
-                // X / Apply on a row that is not being edited (Studio Home 8a):
-                // open it through the unsaved guard, then apply it. With edits
-                // pending the guard's dialog takes over and the apply waits for
-                // the person's answer.
-                onApplyLibraryProfile={async name => {
-                  if (name === currentLibraryProfile) { void runEditorAction('apply'); return }
-                  if (hasPendingChanges) { requestLoadProfile(name); return }
-                  const profile = await desktopBridge.loadLibraryProfile(name)
-                  if (!profile) { showToast(t('messages.loadProfileFailed'), 'error'); return }
-                  await handleLoadProfileFromLibrary(name)
-                  await applyConfig({ textOverride: profile.content, profileNameOverride: name })
-                }}
+                onApplyLibraryProfile={async name => { await applyLibraryProfileByName(name) }}
                 family={controllerFamily}
               />)
 

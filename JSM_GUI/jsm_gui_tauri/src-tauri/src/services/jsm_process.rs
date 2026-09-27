@@ -97,6 +97,7 @@ pub fn launch_jsm(app: &AppHandle, state: &AppState) -> Result<(), String> {
         let mut command = Command::new(&jsm_executable);
         command
             .arg(&runtime_dir)
+            .arg("--no-tray")
             .current_dir(&backend_dir)
             .stdin(Stdio::null())
             .stdout(Stdio::null())
@@ -556,7 +557,12 @@ fn spawn_hidden_jsm_windows(
     let application_name = wide_null(executable.as_os_str());
     let current_directory = wide_null(working_dir.as_os_str());
     let mut command_line =
-        build_windows_command_line([executable.as_os_str(), runtime_dir.as_os_str()]);
+        build_windows_command_line([
+            executable.as_os_str(),
+            runtime_dir.as_os_str(),
+            // Studio's own tray icon carries the mapper's actions (services/tray_menu.rs).
+            OsStr::new("--no-tray"),
+        ]);
 
     let success = unsafe {
         CreateProcessW(

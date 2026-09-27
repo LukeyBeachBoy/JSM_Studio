@@ -162,7 +162,9 @@ Each pad is either a mouse (\`MOUSE\`) or a grid of regions (\`GRID_AND_STICK\`)
 
 ### Gyro
 
-The controller's firmware re-centres its gyro whenever it thinks it is lying still, and a slow, deliberate tilt can pass for still. Studio turns that off when the controller connects, so slow aim is not eaten; drift is then corrected by **Recalibrate gyro**, which cancels itself if the controller moves during the run.
+The controller's firmware re-centres its gyro whenever it thinks it is lying still, and a slow, deliberate tilt can pass for still. Studio turns that off when the controller connects, so slow aim is not eaten; drift is then corrected by **Recalibrate gyro**, which cancels itself if the controller moves during the run. **Disable hardware calibration** in Preferences (\`DISABLE_HARDWARE_GYRO_CALIBRATION\`, on by default) switches the firmware's calibration back on if you would rather have it.
+
+Each controller's last calibration is saved, so a controller that switches off, drops out of range, reconnects, or comes back after Studio restarts starts from it rather than from nothing.
 
 ### Light
 

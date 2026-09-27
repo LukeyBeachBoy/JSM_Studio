@@ -483,12 +483,13 @@ fn hand_pad_to_studio(app: &AppHandle) {
 /// stepping sections and pages). Only while Studio's window is in front and
 /// not testing: otherwise a configuration owns the pad and a stray tick would
 /// land in a game. In-memory checks only -- this runs on every D-pad move, and
-/// Studio only asks while its navigation has the pad.
+/// Studio only asks while its navigation has the pad. `grips` plays it as the
+/// grip sensors' own haptic would (the Grip sensors sheet's preview).
 #[tauri::command]
-pub fn controller_feedback(state: State<'_, AppState>, effect: u8, intensity: f32, side: u8, rumble_ms: u32, rumble: f32) {
+pub fn controller_feedback(state: State<'_, AppState>, effect: u8, intensity: f32, side: u8, rumble_ms: u32, rumble: f32, grips: Option<bool>) {
     use std::sync::atomic::Ordering::Relaxed;
     if state.telemetry_ui_active.load(Relaxed) && !state.studio_testing.load(Relaxed) {
-        crate::services::feedback::send(effect, intensity, side, rumble_ms, rumble);
+        crate::services::feedback::send(effect, intensity, side, rumble_ms, rumble, grips.unwrap_or(false));
     }
 }
 
@@ -1249,4 +1250,26 @@ pub fn set_global_timing(
         let _ = jsm_process::inject_console_command(&app, state.inner(), "StudioDefaults.txt");
     }
     Ok(saved)
+}
+
+/// The tray menu has laid out at this size (CSS pixels): place it and show it.
+#[tauri::command]
+pub fn tray_menu_place(app: AppHandle, width: f64, height: f64) -> CommandResult<()> {
+    crate::services::tray_menu::place(&app, width, height)
+}
+
+#[tauri::command]
+pub fn tray_menu_hide(app: AppHandle) {
+    crate::services::tray_menu::hide(&app);
+}
+
+#[tauri::command]
+pub fn tray_show_studio(app: AppHandle) {
+    crate::services::tray_menu::hide(&app);
+    crate::show_main_window(&app);
+}
+
+#[tauri::command]
+pub fn tray_quit(app: AppHandle) {
+    app.exit(0);
 }

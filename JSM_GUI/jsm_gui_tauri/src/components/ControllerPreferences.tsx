@@ -4,6 +4,7 @@ import { AppSelect } from './ui/AppSelect'
 import { desktopBridge, type ControllerPreferences as Preferences } from '../platform/desktopBridge'
 import { showToast } from '../utils/toast'
 import { getPreferenceSnapshot, patchRuntimePreferences } from '../platform/preferenceStore'
+import toggleStyles from './ThemeToggle.module.css'
 
 // Steam's own names for the Steam Controller's built-in tunes, in script order
 // (SettingController_HapticSound_0..13). Script 12 is also what Steam's
@@ -13,7 +14,7 @@ const SOUNDS = [
   'Warm Boot', 'Next Level', 'Shake It Off', 'Access Denied', 'Deactivate', 'Discovery', 'Triumph', 'The Mann',
 ]
 
-const DEFAULTS: Preferences = { gyroCalibrationSeconds: 5, gyroCalibrationDelay: 0, connectSound: -1, shutdownSound: -1, soundGain: 0 }
+const DEFAULTS: Preferences = { gyroCalibrationSeconds: 5, gyroCalibrationDelay: 0, connectSound: -1, shutdownSound: -1, soundGain: 0, disableHardwareGyroCalibration: true }
 
 // How loud the tunes play: the firmware's gain in dB. Full is the tune as the
 // controller plays it (and what played before there was a choice).
@@ -53,7 +54,23 @@ function SoundIntensity({ gain, onChange, onPreview }: { gain: number; onChange:
   )
 }
 
-const delayHelp = 'Seconds to wait before calibration starts, so a chord or binding leaves time to put the controller down. The countdown shows in the overlay.'
+const hardwareCalibrationHelp = 'Steam Controller only. Its firmware recalibrates the gyro whenever the controller seems to be still, and a bug lets slow, deliberate movements pass as still: small aim adjustments get cancelled out and the cursor slides back. Keep this on and correct drift with Recalibrate instead.'
+
+function HardwareCalibrationSwitch({ value, disabled, onChange }: { value: boolean; disabled: boolean; onChange: (value: boolean) => void }) {
+  // Animates only a change made here; the first read lands in place.
+  const [touched, setTouched] = useState(false)
+  return <>
+    <button type="button" aria-pressed={value} aria-label="Disable hardware calibration" title={hardwareCalibrationHelp} disabled={disabled}
+      className={`${toggleStyles.themeToggle} ${value ? toggleStyles.on : ''} ${touched ? '' : toggleStyles.instant}`}
+      onClick={() => { setTouched(true); onChange(!value) }}>
+      <span className={toggleStyles.labelGroup}><span className={toggleStyles.text}>Disable hardware calibration</span></span>
+      <span className={toggleStyles.switch} aria-hidden="true"><span className={toggleStyles.thumb} /></span>
+    </button>
+    <p className="prefs-note">{hardwareCalibrationHelp}</p>
+  </>
+}
+
+const delayHelp ='Seconds to wait before calibration starts, so a chord or binding leaves time to put the controller down. The countdown shows in the overlay.'
 const timeHelp = 'Seconds the gyro is sampled for. Keep the controller still on a flat surface for the whole time.'
 const soundHelp = 'Played by the controller when it connects to JSM Studio. The controller’s own power-on jingle is built into its firmware and still plays first.'
 const shutdownHelp = 'Played before JSM Studio turns the controller off (Turn off controller, or a binding to it). Turning it off with its own button still plays the firmware’s jingle.'
@@ -93,6 +110,7 @@ const fromRuntime = (state: Partial<Preferences>): Preferences => ({
   connectSound: state.connectSound ?? DEFAULTS.connectSound,
   shutdownSound: state.shutdownSound ?? DEFAULTS.shutdownSound,
   soundGain: state.soundGain ?? DEFAULTS.soundGain,
+  disableHardwareGyroCalibration: state.disableHardwareGyroCalibration ?? DEFAULTS.disableHardwareGyroCalibration,
 })
 
 export function ControllerPreferences({ part = 'all' }: { part?: 'all' | 'calibration' | 'sounds' }) {
@@ -128,6 +146,8 @@ export function ControllerPreferences({ part = 'all' }: { part?: 'all' | 'calibr
     <section className="prefs-section">
       {part !== 'sounds' && <>
       <h3 className="prefs-eyebrow">Gyro calibration</h3>
+      <HardwareCalibrationSwitch value={prefs.disableHardwareGyroCalibration} disabled={!ready}
+        onChange={disableHardwareGyroCalibration => update({ disableHardwareGyroCalibration })} />
       <NumberField label="Start Delay" value={prefs.gyroCalibrationDelay} min={0} max={30} step={1} unit="s" hint={delayHelp} disabled={!ready}
         onChange={value => { if (value !== '') update({ gyroCalibrationDelay: Math.min(30, Math.max(0, Number(value))) }) }} />
       <NumberField label="Duration" value={prefs.gyroCalibrationSeconds} min={0.5} max={60} step={1} unit="s" hint={timeHelp} disabled={!ready}

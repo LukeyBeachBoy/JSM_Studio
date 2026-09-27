@@ -1,0 +1,33 @@
+/* The uses inspector's rows (binding card refresh §3, modeshift row): the
+   input chain -- held cap, "+", the input it changes -- then what it becomes,
+   and a chevron: A opens that input. */
+
+.row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: var(--sp-3);
+  min-height: 56px;
+  padding: 8px var(--sp-3);
+  border: 0;
+  border-radius: var(--r-md, 10px);
+  background: var(--surface-row);
+  color: var(--text-1);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.row:hover { background: var(--surface-row-hover); }
+:global(body[data-input-source='controller']) .row:focus { background: var(--surface-selected); }
+
+.chain { display: inline-flex; align-items: center; gap: 6px; color: var(--text-1); }
+.chainPart { display: inline-flex; align-items: center; gap: 6px; }
+.plus { color: var(--shift); font-weight: 800; }
+.settingIcon { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 7px; background: var(--surface-control); color: var(--text-2); }
+
+.text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.title { font-size: var(--fs-label); line-height: var(--lh-label); font-weight: var(--fw-semibold); }
+.detail { font-size: var(--fs-hint); line-height: var(--lh-hint); color: var(--text-2); overflow-wrap: anywhere; }
+.chevron { color: var(--text-3); }
+
+.empty { margin: 0; padding: var(--sp-3); color: var(--text-2); font-size: var(--fs-hint); }

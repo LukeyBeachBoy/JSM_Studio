@@ -39,6 +39,9 @@ type ProfileManagerProps = {
   /** Apply a configuration that is not the one being edited (X on its row):
       open it through the unsaved guard, then apply. Without it, X opens it. */
   onApplyLibraryProfile?: (name: string) => void
+  /** Edit on a row that is not being edited: make it the one being edited
+      and open it. Without it, Edit only switches to it. */
+  onEditLibraryProfile?: (name: string) => void
   onShowInFolder?: () => void
   onEditSource?: () => void
   /** Glyph family for "L4 + Menu"; defaults to the controller last seen. */
@@ -98,6 +101,7 @@ export function ProfileManager({
   editingDetails,
   onApply,
   onApplyLibraryProfile,
+  onEditLibraryProfile,
   onShowInFolder,
   onEditSource,
   family,
@@ -112,6 +116,7 @@ export function ProfileManager({
   const [rules, setRules] = useState<AutoloadRule[]>([])
   const importRef = useRef<HTMLInputElement | null>(null)
   const listRef = useRef<HTMLDivElement | null>(null)
+  const pageRef = useRef<HTMLDivElement | null>(null)
   const renameRef = useRef<HTMLInputElement | null>(null)
   const seen = useLastSeenController()
   const glyphFamily = family ?? seen.family
@@ -211,6 +216,7 @@ export function ProfileManager({
   }
 
   const edit = (name: string) => {
+    if (onEditLibraryProfile) { onEditLibraryProfile(name); return }
     if (name === currentProfileName) { window.dispatchEvent(new CustomEvent('jsm:navigate-page', { detail: 'overview' })); return }
     onLoadLibraryProfile(name)
   }
@@ -221,17 +227,21 @@ export function ProfileManager({
     else onLoadLibraryProfile(name)
   }
 
-  // X applies the focused row's configuration, Y opens its options.
+  // Y applies the focused row's configuration -- or, from the panel beside
+  // the list, the selected one -- without walking to the Apply button. X
+  // opens a row's options.
   useEffect(() => {
-    const host = listRef.current
+    const host = pageRef.current
     if (!host) return
     const onPad = (event: Event) => {
       const detail = (event as CustomEvent<PadEventDetail>).detail
-      const row = (event.target as HTMLElement | null)?.closest<HTMLElement>('[data-profile]')
-      const name = row?.dataset.profile
+      const target = event.target as HTMLElement | null
+      if (target?.closest('input, textarea, .modal-overlay')) return
+      const row = target?.closest<HTMLElement>('[data-profile]')
+      const name = row?.dataset.profile ?? (target?.closest('[data-nav-region="detail"]') ? current : undefined)
       if (!name) return
-      if (detail.button === 'X') { event.preventDefault(); apply(name) }
-      else if (detail.button === 'Y') { event.preventDefault(); setSelected(name); setOptionsFor(name) }
+      if (detail.button === 'Y') { event.preventDefault(); apply(name) }
+      else if (detail.button === 'X' && row) { event.preventDefault(); setSelected(name); setOptionsFor(name) }
     }
     host.addEventListener(PAD_EVENT, onPad)
     return () => host.removeEventListener(PAD_EVENT, onPad)
@@ -258,7 +268,7 @@ export function ProfileManager({
           onFocus={() => setSelected(name)}
           onDoubleClick={() => edit(name)}
           onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); edit(name) } }}
-          data-hints="A:Edit;X:Apply;Y:Options;B:Back"
+          data-hints="A:Edit;X:Options;Y:Apply;B:Back"
         >
           <span className={styles.rowIcon} aria-hidden="true"><Icon name="library" size={24} /></span>
           <span className={styles.rowText}>
@@ -340,7 +350,7 @@ export function ProfileManager({
   const currentAutoload = current ? autoloadFor(current) : []
 
   return (
-    <div className={styles.library} aria-busy={libraryLoading || undefined}>
+    <div className={styles.library} ref={pageRef} aria-busy={libraryLoading || undefined}>
       {/* Two regions for the pad: Up/Down walk the list or the panel, never
           across, so going down the list does not jump into the panel when
           one of its buttons sits nearer than the next row. Left/Right cross. */}
@@ -388,7 +398,9 @@ export function ProfileManager({
               <span className={styles.faceKey} aria-hidden="true">A</span>Edit
             </button>
             <button type="button" className={`button ${editingSelected ? 'button--primary' : 'button--secondary'}`} disabled={isCalibrating || (editingSelected ? !onApply : !onApplyLibraryProfile)}
-              title={editingSelected || onApplyLibraryProfile ? undefined : 'Open it for editing to apply it'} onClick={() => apply(current)}>Apply</button>
+              title={editingSelected || onApplyLibraryProfile ? undefined : 'Open it for editing to apply it'} onClick={() => apply(current)} data-hints="A:Apply;B:Back">
+              <span className={styles.faceKey} aria-hidden="true">Y</span>Apply
+            </button>
             <button type="button" className="button button--secondary" disabled={!editingSelected || !onCopyActiveProfile || isCalibrating}
               title={editingSelected ? undefined : 'Open it for editing to duplicate it'} onClick={() => onCopyActiveProfile?.()}>Duplicate</button>
             <button type="button" className="button button--secondary" disabled={isCalibrating || renaming} onClick={() => startRename(current)}>Rename</button>

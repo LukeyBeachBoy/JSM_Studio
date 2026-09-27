@@ -1,0 +1,43 @@
+/* A number row while it is being adjusted (SummaryRow): the typed value with
+   its caret, and one line under the row saying the step size and that a
+   number can be typed. */
+
+.typed {
+  display: inline-flex;
+  align-items: center;
+  min-width: 2ch;
+  font-family: var(--font-mono);
+  font-weight: var(--fw-semibold);
+  color: var(--accent);
+}
+.typed::after {
+  content: '';
+  width: 2px;
+  height: 1.1em;
+  margin-left: 2px;
+  background: currentColor;
+  animation: caret 1s steps(1) infinite;
+}
+@keyframes caret { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .typed::after { animation: none; } }
+
+.caption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 0 var(--sp-4, 16px);
+  font-size: var(--fs-hint);
+  line-height: var(--lh-hint);
+  color: var(--text-3);
+}
+.stepSize {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--surface-sunken);
+  color: var(--text-2);
+  font-weight: var(--fw-semibold);
+}
+.stepSize[data-fine='true'] { background: var(--accent-soft); color: var(--accent); }
+/* Only a keyboard can type; on the pad the step size alone is said. */
+:global(body[data-input-source='controller']) .typeHint { display: none; }

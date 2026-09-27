@@ -318,8 +318,8 @@ export function TitleBar(props: TitleBarProps) {
               <span key={props.heldShift.name} className="shift-status__fill">
                 <span className="shift-status__held"><Icon name="modeshift" size={14} /><span className="shift-status__text">{t('keymap.shiftHeld', '{{name}} held', { name: props.heldShift.name })}</span></span>
                 <span className="shift-status__count">{props.heldShift.kind === 'chord'
-                  ? t('keymap.chordedInputs', { count: props.heldShift.count, defaultValue: '{{count}} inputs chorded' })
-                  : t('keymap.shiftedInputs', { count: props.heldShift.count, defaultValue: '{{count}} inputs shifted' })}</span>
+                  ? props.heldShift.only ? t('keymap.chordedNamed', 'with {{name}}', { name: props.heldShift.only }) : t('keymap.chordedInputs', { count: props.heldShift.count, defaultValue: '{{count}} inputs chorded' })
+                  : props.heldShift.only ? t('keymap.shiftedNamed', '→ {{name}}', { name: props.heldShift.only }) : t('keymap.shiftedInputs', { count: props.heldShift.count, defaultValue: '{{count}} inputs shifted' })}</span>
               </span>
             )}
           </span>

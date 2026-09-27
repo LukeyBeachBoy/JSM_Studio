@@ -70,21 +70,23 @@ const PROFILE = [
       `a layer action must be shown as a layer chip: ${JSON.stringify(hold)}`);
     assert.match(hold.label, /Hold Comms/, 'the inspector still says what it does');
 
-    // A modifier is a "Shifts n" chip; what it changes is the inspector's.
+    // A modifier is a "Shifts …" chip naming the one input it changes (a
+    // count for more); what it changes it to is the inspector's.
     // Input names follow the connected controller; wait for its telemetry.
     await page.waitForFunction(() => /While held: Menu/.test(document.querySelector('[data-overview-input="LSL"]')?.getAttribute('aria-label') ?? ''));
     const single = await row('LSL');
-    assert.deepEqual(single.chips.filter(chip => chip.concept === 'shift').map(chip => chip.text), ['Shifts 1']);
+    assert.deepEqual(single.chips.filter(chip => chip.concept === 'shift').map(chip => chip.text), ['Shifts Menu']);
     assert.match(single.label, /While held: Menu \u2192 Load Wardogs Menu/,
       `a single modeshift must say what it changes it to: ${JSON.stringify(single)}`);
     assert.ok(!/While held/.test(await page.locator('[data-overview-input="LSL"]').innerText()), 'relation prose is still inline');
 
-    // Several: name the first few, count the rest, and leave pad cells alone.
+    // Several: name the first few, count the rest. A pad cell is the pad it
+    // belongs to (Right trackpad), not a raw "RT1" or a title-cased "Rt1".
     const many = await row('RSL');
     assert.match(many.label || '', /While held, changes .+ and \d+ more/,
       `a crowded modifier names what it can: ${JSON.stringify(many)}`);
-    assert.ok(/RT1/.test(many.label), `a pad cell keeps its own name: ${many.label}`);
-    assert.ok(!/Rt\d/.test(many.label), `and is not title-cased: ${many.label}`);
+    assert.ok(/Right trackpad/.test(many.label), `a pad cell counts as its pad: ${many.label}`);
+    assert.ok(!/R[Tt]\d/.test(many.label), `and is not named by its key: ${many.label}`);
     for (const callout of [hold, single, many]) assert.equal(Math.round(callout.height), 56, 'callouts are a fixed 56 high');
 
     // The old wording is gone everywhere, not just on these rows.

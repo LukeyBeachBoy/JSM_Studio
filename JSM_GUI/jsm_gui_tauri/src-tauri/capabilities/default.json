@@ -5,7 +5,8 @@
   "windows": [
     "main",
     "overlay",
-    "hud"
+    "hud",
+    "traymenu"
   ],
   "permissions": [
     "core:default",

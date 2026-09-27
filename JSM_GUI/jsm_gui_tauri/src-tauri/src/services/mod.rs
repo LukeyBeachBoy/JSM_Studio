@@ -17,3 +17,4 @@ pub mod profile_library;
 pub mod config_layers;
 
 pub mod layer_activation;
+pub mod tray_menu;

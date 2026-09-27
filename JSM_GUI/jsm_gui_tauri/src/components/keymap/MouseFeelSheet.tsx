@@ -6,6 +6,7 @@ import { Icon } from '../icons/Icon'
 import { SettingOrigins } from '../SettingOrigin'
 import { TouchpadAccelSection } from './TouchpadAccelSection'
 import { HAPTIC_EFFECT_CHOICES } from '../../utils/hapticBindings'
+import { previewHaptic, type HapticPreviewSide } from '../../utils/hapticPreview'
 import { SMOOTHING_PRESETS, smoothingPreset, strengthWord } from '../../utils/mouseFeel'
 import type { TouchpadAccelParamKey, TouchpadAccelValues } from '../../hooks/useTouchpadConfig'
 import type { AccelCurveLink, AccelCurveShape } from '../../utils/accelCurve'
@@ -82,6 +83,10 @@ export function MouseFeelSheet(props: MouseFeelSheetProps) {
   const effectOptions = HAPTIC_EFFECT_CHOICES.filter(effect => effect !== 'OFF').map(effect => ({ value: effect, label: t(`keymap.hapticEffect_${effect}`) }))
   const effectName = (effect: string | undefined, fallback: string) => t(`keymap.hapticEffect_${effect ?? fallback}`).replace(/ \(.*\)$/, '')
   const pressure = (value?: number) => typeof value === 'number' && Number.isFinite(value) ? value.toFixed(3) : '—'
+  // Felt on the pad (or pads) set to Mouse, which is where these haptics play.
+  const mousePads = props.pads.filter(pad => pad.mode === 'MOUSE')
+  const previewSide: HapticPreviewSide = mousePads.length !== 1 ? 'both' : /LEFT/i.test(mousePads[0].key) ? 'left' : /RIGHT/i.test(mousePads[0].key) ? 'right' : 'both'
+  const preview = (effect: string, strength: number) => previewHaptic(effect, strength, previewSide)
 
   return (
     <Sheet open={props.open} onClose={props.onClose} eyebrow={`Trackpads · ${config ?? 'Configuration'}`} title="Mouse feel"
@@ -160,10 +165,12 @@ export function MouseFeelSheet(props: MouseFeelSheetProps) {
         <ExpandRow size="sheet" label="Movement ticks" hint="A tick as your finger travels" setting="TOUCHPAD_HAPTIC_INTENSITY"
           value={haptic > 0 ? strengthWord(haptic) : 'Off'} help={t('keymap.touchpadHapticHint')}>
           <SummaryRow size="sheet" label="Strength" setting="TOUCHPAD_HAPTIC_INTENSITY" mono value={haptic > 0 ? `${haptic}%` : 'Off'}
-            adjust={{ kind: 'number', value: haptic, min: 0, max: 100, step: 5, onChange: v => props.onHapticIntensityChange(String(v)) }} />
+            onX={{ label: 'Preview', run: () => preview(props.hapticEffect ?? 'TICK', haptic) }}
+            adjust={{ kind: 'number', value: haptic, min: 0, max: 100, step: 5, onChange: v => { props.onHapticIntensityChange(String(v)); preview(props.hapticEffect ?? 'TICK', v) } }} />
           {haptic > 0 && <>
             <SummaryRow size="sheet" label="Effect" setting="TOUCHPAD_HAPTIC_EFFECT"
-              adjust={{ kind: 'choice', value: props.hapticEffect ?? 'TICK', options: effectOptions, onChange: props.onHapticEffectChange }} />
+              onX={{ label: 'Preview', run: () => preview(props.hapticEffect ?? 'TICK', haptic) }}
+              adjust={{ kind: 'choice', value: props.hapticEffect ?? 'TICK', options: effectOptions, onChange: v => { props.onHapticEffectChange(v); preview(v, haptic) } }} />
             <SummaryRow size="sheet" label="Tick spacing" hint="Travel between ticks" setting="TOUCHPAD_HAPTIC_INTERVAL" mono value={`${props.hapticInterval ?? 250} px`}
               adjust={{ kind: 'number', value: props.hapticInterval ?? 250, min: 5, max: 2000, step: 5, onChange: v => props.onHapticIntervalChange(String(v)) }} />
           </>}
@@ -172,14 +179,17 @@ export function MouseFeelSheet(props: MouseFeelSheetProps) {
           value={clickHaptic > 0 ? `${effectName(props.clickHapticEffect, 'CLICK')} · ${clickHaptic}%` : releaseHaptic > 0 ? `Release · ${releaseHaptic}%` : 'Off'}
           help={t('keymap.touchpadClickHapticHint')}>
           <SummaryRow size="sheet" label="On click" setting="TOUCHPAD_CLICK_HAPTIC_INTENSITY" mono value={clickHaptic > 0 ? `${clickHaptic}%` : 'Off'}
-            adjust={{ kind: 'number', value: clickHaptic, min: 0, max: 100, step: 5, onChange: v => props.onClickHapticIntensityChange(String(v)) }} />
+            onX={{ label: 'Preview', run: () => preview(props.clickHapticEffect ?? 'CLICK', clickHaptic) }}
+            adjust={{ kind: 'number', value: clickHaptic, min: 0, max: 100, step: 5, onChange: v => { props.onClickHapticIntensityChange(String(v)); preview(props.clickHapticEffect ?? 'CLICK', v) } }} />
           {clickHaptic > 0 && <SummaryRow size="sheet" label="Click effect" setting="TOUCHPAD_CLICK_HAPTIC_EFFECT"
-            adjust={{ kind: 'choice', value: props.clickHapticEffect ?? 'CLICK', options: effectOptions, onChange: props.onClickHapticEffectChange }} />}
+            onX={{ label: 'Preview', run: () => preview(props.clickHapticEffect ?? 'CLICK', clickHaptic) }}
+            adjust={{ kind: 'choice', value: props.clickHapticEffect ?? 'CLICK', options: effectOptions, onChange: v => { props.onClickHapticEffectChange(v); preview(v, clickHaptic) } }} />}
           <SummaryRow size="sheet" label="On release" setting="TOUCHPAD_RELEASE_HAPTIC_INTENSITY" mono value={releaseHaptic > 0 ? `${releaseHaptic}%` : 'Off'}
             help={t('keymap.touchpadReleaseHapticHint')}
-            adjust={{ kind: 'number', value: releaseHaptic, min: 0, max: 100, step: 5, onChange: v => props.onReleaseHapticIntensityChange(String(v)) }} />
+            adjust={{ kind: 'number', value: releaseHaptic, min: 0, max: 100, step: 5, onChange: v => { props.onReleaseHapticIntensityChange(String(v)); preview(props.releaseHapticEffect ?? 'TICK', v) } }} />
           {releaseHaptic > 0 && <SummaryRow size="sheet" label="Release effect" setting="TOUCHPAD_RELEASE_HAPTIC_EFFECT"
-            adjust={{ kind: 'choice', value: props.releaseHapticEffect ?? 'TICK', options: effectOptions, onChange: props.onReleaseHapticEffectChange }} />}
+            onX={{ label: 'Preview', run: () => preview(props.releaseHapticEffect ?? 'TICK', releaseHaptic) }}
+            adjust={{ kind: 'choice', value: props.releaseHapticEffect ?? 'TICK', options: effectOptions, onChange: v => { props.onReleaseHapticEffectChange(v); preview(v, releaseHaptic) } }} />}
         </ExpandRow>
       </RowGroup>
 

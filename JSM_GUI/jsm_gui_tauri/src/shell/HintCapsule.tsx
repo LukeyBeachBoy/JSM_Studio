@@ -15,7 +15,8 @@ import { onePerButton, parseHints, translateHintLabel, type Hint, type HintButto
 
 export type { Hint, HintButton } from './hintLabels'
 /** What the fixed status slot says: the held input, and what it does to how many. */
-export type HeldShiftStatus = { kind: 'shift' | 'chord'; name: string; count: number }
+/** `only`: the one input it changes, named instead of counted. */
+export type HeldShiftStatus = { kind: 'shift' | 'chord'; name: string; count: number; only?: string }
 type CapsuleContent = { hints: Hint[]; message?: string }
 
 // The key that does what each button does; every one of them works
@@ -187,8 +188,8 @@ export function HintCapsule({ width, family, controller: connected, override, st
             <span key={status.name} className="shift-status__fill">
               <span className="shift-status__held"><span className="shift-status__text">{t('keymap.shiftHeld', '{{name}} held', { name: status.name })}</span></span>
               <span className="shift-status__count">{status.kind === 'chord'
-                ? t('keymap.chordedShort', '{{count}} chorded', { count: status.count })
-                : t('keymap.shiftedShort', '{{count}} shifted', { count: status.count })}</span>
+                ? status.only ? t('keymap.chordedNamed', 'with {{name}}', { name: status.only }) : t('keymap.chordedShort', '{{count}} chorded', { count: status.count })
+                : status.only ? t('keymap.shiftedNamed', '→ {{name}}', { name: status.only }) : t('keymap.shiftedShort', '{{count}} shifted', { count: status.count })}</span>
             </span>
           )}
         </span>

@@ -264,14 +264,43 @@
 
 /* "Inspect uses" under a callout: a console button (no text-only buttons),
    small, indented to the callout's text. */
-.inspect {
-  height: 28px;
-  margin: 0 0 var(--sp-1) 52px;
-  padding: 0 10px 0 8px;
-  gap: 6px;
+/* Under a compact callout: what the input does to others, as concept tiles
+   (a modeshift or chord in crimson, a layer in its hue). Each opens the
+   uses inspector. Lined up with the callout's text, past its glyph. */
+.relations { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 var(--sp-1) 36px; }
+.relationTile {
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  font: inherit;
   font-size: var(--fs-micro);
+  font-weight: var(--fw-semibold);
+  white-space: nowrap;
+  cursor: pointer;
 }
-.inspect svg { width: 14px; height: 14px; }
+.relationTile span { overflow: hidden; text-overflow: ellipsis; }
+.relationTile svg { flex: none; }
+.relationTile[data-concept='shift'],
+.relationTile[data-concept='chord'] {
+  background: var(--shift-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--shift) 40%, transparent);
+  color: var(--shift-ink);
+}
+.relationTile[data-concept='shift'] svg,
+.relationTile[data-concept='chord'] svg { color: var(--shift); }
+.relationTile[data-concept='layer'] { background: var(--layer-1-soft); color: var(--layer-1); }
+.relationTile[data-concept='layer'][data-layer-slot='2'] { background: var(--layer-2-soft); color: var(--layer-2); }
+.relationTile[data-concept='layer'][data-layer-slot='3'] { background: var(--layer-3-soft); color: var(--layer-3); }
+.relationTile[data-concept='layer'][data-layer-slot='4'] { background: var(--layer-4-soft); color: var(--layer-4); }
+.relationTile[data-concept='layer'][data-layer-slot='5'] { background: var(--layer-5-soft); color: var(--layer-5); }
+.relationTile[data-concept='layer'][data-layer-slot='6'] { background: var(--layer-6-soft); color: var(--layer-6); }
+.relationTile[data-concept='more'] { background: var(--surface-control); color: var(--text-2); cursor: default; }
+button.relationTile:hover { filter: brightness(1.15); }
 
 /* The card's mode line under its eyebrow: "Radial menu · 8 segments". */
 .cardHead { display: flex; flex-direction: column; gap: 2px; padding: 0 var(--sp-2); }

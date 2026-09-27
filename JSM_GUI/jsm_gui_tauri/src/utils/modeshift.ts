@@ -1,5 +1,6 @@
 import { getKeymapValue } from './keymap'
 import type { ButtonDefinition } from '../keymap/schema'
+import { shiftedInputOf } from './shiftedInputs'
 
 export type ModeshiftTarget = {
   id: string
@@ -292,7 +293,9 @@ export function modeshiftsOn(text: string, command: string): ModeshiftSummary[] 
 
 /** Every modeshift trigger in the config and the inputs it changes, for the
  *  live "L4 held · 3 shifted" status (binding card refresh 2a, 2g). Released
- *  triggers ("!X") hold while up, so they are not "held". */
+ *  triggers ("!X") hold while up, so they are not "held". Inputs, not config
+ *  keys: a shift that makes the right pad a 2x2 menu writes its mode, grid
+ *  size and 25 region cells, and shifts one input (utils/shiftedInputs). */
 export function shiftTriggerTargets(text: string): Map<string, Set<string>> {
   const triggers = new Map<string, Set<string>>()
   for (const line of text.split(/\r?\n/)) {
@@ -301,14 +304,14 @@ export function shiftTriggerTargets(text: string): Map<string, Set<string>> {
     const trigger = match[1].trim().toUpperCase()
     if (trigger.startsWith('!')) continue
     if (!triggers.has(trigger)) triggers.set(trigger, new Set())
-    triggers.get(trigger)!.add(match[2].trim().toUpperCase())
+    triggers.get(trigger)!.add(shiftedInputOf(match[2]))
   }
   return triggers
 }
 
-/** The modeshift trigger held now and how many inputs it changes, or null. */
+/** The modeshift trigger held now and the inputs it changes, or null. */
 export function heldModeshift(triggers: Map<string, Set<string>>, pressed: Set<string>) {
-  for (const [trigger, targets] of triggers) if (pressed.has(trigger)) return { trigger, count: targets.size }
+  for (const [trigger, targets] of triggers) if (pressed.has(trigger)) return { trigger, count: targets.size, inputs: [...targets] }
   return null
 }
 
@@ -333,7 +336,7 @@ export function chordTriggerTargets(text: string): Map<string, Set<string>> {
 }
 
 /** What the held status slot shows: which kind of relation, its trigger, its count. */
-export type HeldStatus = { kind: 'shift' | 'chord'; trigger: string; count: number }
+export type HeldStatus = { kind: 'shift' | 'chord'; trigger: string; count: number; inputs: string[] }
 
 /**
  * The first held modeshift trigger, else the first held chord member: one

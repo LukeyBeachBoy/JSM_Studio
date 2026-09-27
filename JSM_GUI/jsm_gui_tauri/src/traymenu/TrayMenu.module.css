@@ -1,0 +1,156 @@
+/* The tray menu: a raised card in Studio's own tokens rather than the system
+   menu, in the spirit of Steam's. The window is transparent and a little larger
+   than the card (MARGIN in TrayMenu.tsx) so the shadow has somewhere to fall. */
+
+.frame {
+  display: inline-block;
+  font-family: var(--font-ui);
+  font-size: var(--fs-body);
+  color: var(--text-1);
+  -webkit-font-smoothing: antialiased;
+}
+
+.card {
+  width: 264px;
+  padding: var(--sp-1);
+  border-radius: var(--r-card);
+  background: var(--surface-raised);
+  border: 1px solid var(--line-1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .38), 0 1px 3px rgba(0, 0, 0, .3);
+  animation: rise var(--dur-2) var(--ease-emphasis);
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(6px) scale(.98); }
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  padding: var(--sp-1) 0;
+}
+
+.section + .section,
+.header + .section {
+  border-top: 1px solid var(--line-1);
+}
+
+.header,
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: default;
+  transition: background var(--dur-1) var(--ease-standard);
+}
+
+.header:hover,
+.item:hover,
+.header:focus-visible,
+.item:focus-visible {
+  background: var(--surface-row-hover);
+  outline: none;
+}
+
+.item:active { background: var(--surface-control); }
+
+.header {
+  padding: var(--sp-2) var(--sp-3);
+  margin-bottom: var(--sp-1);
+}
+
+.logo {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.headerText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.title { font-weight: var(--fw-semibold); }
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-3);
+  font-size: var(--fs-hint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--ok);
+}
+.dot[data-state='paused'] { background: var(--warn); }
+.dot[data-state='off'] { background: var(--error); }
+
+.item {
+  height: 34px;
+  padding: 0 var(--sp-3);
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  flex: none;
+  color: var(--text-3);
+}
+
+.item[data-current] .icon { color: var(--accent); }
+
+.label {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item[data-current] .label { font-weight: var(--fw-semibold); }
+
+.switch {
+  position: relative;
+  width: 28px;
+  height: 16px;
+  flex: none;
+  border-radius: var(--r-pill);
+  background: var(--surface-control);
+  transition: background var(--dur-1) var(--ease-standard);
+}
+
+.switch span {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--text-2);
+  transition: transform var(--dur-1) var(--ease-standard), background var(--dur-1) var(--ease-standard);
+}
+
+.switch[data-on] { background: var(--accent); }
+.switch[data-on] span { transform: translateX(12px); background: var(--text-on-accent); }

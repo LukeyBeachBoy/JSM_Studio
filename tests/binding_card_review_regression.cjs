@@ -93,7 +93,7 @@ check('Chinese translates the common labels and the "Close <input>" pattern', ()
   assert.equal(translateHintLabel(t, 'Frobnicate'), 'Frobnicate');
 });
 check('every capsule label the binding card declares has a Chinese entry', () => {
-  const declared = ['Add command', 'Capture a key', 'Change action', 'Change activation', 'Settings', 'Details', 'Add modeshift', 'Add layer action', 'Go to Layers', 'Inspect uses', 'Remove', 'Next', 'Cancel', 'Add', 'Move', 'Choose', 'Search', 'Category', 'Use icon', 'No icon', 'Show more'];
+  const declared = ['Add command', 'Capture a key', 'Change action', 'Change activation', 'Settings', 'Details', 'Add modeshift', 'Add layer action', 'Go to Layers', 'Show uses', 'Remove', 'Next', 'Cancel', 'Add', 'Move', 'Choose', 'Search', 'Category', 'Use icon', 'No icon', 'Show more'];
   const missing = declared.filter(label => typeof zhCN.hints[label] !== 'string');
   assert.deepEqual(missing, [], `no Chinese for: ${missing.join(', ')}`);
 });
@@ -149,13 +149,23 @@ check('a chord line names each member as a trigger for the others', () => {
 });
 check('a held modeshift trigger comes first, then a held chord member', () => {
   const shifts = shiftTriggerTargets(CONFIG), chords = chordTriggerTargets(CONFIG);
-  assert.deepEqual(heldStatus(shifts, chords, new Set(['LSL'])), { kind: 'shift', trigger: 'LSL', count: 2 });
-  assert.deepEqual(heldStatus(shifts, chords, new Set(['R'])), { kind: 'chord', trigger: 'R', count: 2 });
-  assert.deepEqual(heldStatus(shifts, chords, new Set(['LSL', 'R'])), { kind: 'shift', trigger: 'LSL', count: 2 });
+  assert.deepEqual(heldStatus(shifts, chords, new Set(['LSL'])), { kind: 'shift', trigger: 'LSL', count: 2, inputs: ['L', 'E'] });
+  assert.deepEqual(heldStatus(shifts, chords, new Set(['R'])), { kind: 'chord', trigger: 'R', count: 2, inputs: ['S', 'E'] });
+  assert.deepEqual(heldStatus(shifts, chords, new Set(['LSL', 'R'])), { kind: 'shift', trigger: 'LSL', count: 2, inputs: ['L', 'E'] });
   // Every member of a chord is a trigger for the others: E held chords with R.
-  assert.deepEqual(heldStatus(shifts, chords, new Set(['E'])), { kind: 'chord', trigger: 'E', count: 1 });
+  assert.deepEqual(heldStatus(shifts, chords, new Set(['E'])), { kind: 'chord', trigger: 'E', count: 1, inputs: ['R'] });
   assert.equal(heldStatus(shifts, chords, new Set(['HOME'])), null, 'HOME is in no shift and no chord');
   assert.equal(heldStatus(shifts, chords, new Set()), null);
+});
+// A shift that rebuilds a pad writes its mode, grid and every region cell;
+// it shifts one input, the pad (Luke's Cyberpunk D-pad Left said 29).
+check('a pad shift counts the pad once, not its settings and cells', () => {
+  const text = ['LEFT,RIGHT_GRID_SIZE = 2 2', 'LEFT,RIGHT_GRID_REQUIRES_CLICK = OFF', 'LEFT,RIGHT_TOUCH_STICK_MODE = NO_MOUSE',
+    ...Array.from({ length: 24 }, (_, i) => `LEFT,RT${i + 2} = NONE`), 'LEFT,RIGHT_TOUCHPAD_MODE = GRID_AND_STICK', 'LEFT,RT1 = F3',
+    'LSL,LM3 = F', 'LSL,RIGHT_STICK_MODE = FLICK', 'LSL,A = B'].join('\n');
+  const shifts = shiftTriggerTargets(text);
+  assert.deepEqual(heldStatus(shifts, new Map(), new Set(['LEFT'])), { kind: 'shift', trigger: 'LEFT', count: 1, inputs: ['RIGHT_PAD'] });
+  assert.deepEqual([...shifts.get('LSL')], ['LEFT_STICK', 'RIGHT_STICK', 'A']);
 });
 check('the status texts exist for both kinds in both languages', () => {
   for (const resources of [en, zhCN]) {

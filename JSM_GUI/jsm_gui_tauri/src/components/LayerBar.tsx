@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useState } from 'react'
 import { convertModeshifts, inputUses, inputUsage, inputDefinitions, readableSetting, writeLayers, actionsOnInput, describeAction, layerVerbOrder, layerVerbLabels, type ConfigLayer, type LayerAction, type LayerVerb } from '../utils/layers'
 import { type ControllerVisualFamily } from '../utils/controllerStatus'
 import { inputDisplayName } from '../keymap/inputNames'
@@ -39,19 +39,7 @@ export function InputUseBadge({ command, iconOnly = false }: { command?: string;
 const buttons = inputDefinitions.filter(b => !/^(L|R|T)(UP|DOWN|LEFT|RIGHT|RING)$/.test(b.command))
 /** Inputs whose modeshifts can be lifted into a layer. */
 const modeshiftSources = buttons
-export function InputUsageInspector() {
-  const { text, layers, onNavigate, onSelect, family = 'generic' } = useContext(LayerUsageContext)
-  const [command, setCommand] = useState<string | null>(null)
-  useEffect(() => { const open = (e: Event) => setCommand((e as CustomEvent<string>).detail); window.addEventListener('jsm:input-uses', open); return () => window.removeEventListener('jsm:input-uses', open) }, [])
-  if (!command) return null
-  const name = (input: string) => inputDisplayName(input, family)
-  const uses = inputUsage(text, command, layers, name)
-  return <div className="modal-overlay"><section className="modal-card" role="dialog" aria-modal="true" aria-label={`Uses of ${name(command)}`}><div className="modal-header"><h3>Where {name(command)} is used</h3><button type="button" className="ghost-btn" data-modal-close onClick={() => setCommand(null)}>Close</button></div>
-    {uses.map((use, i) => <button className="usage-target" key={i} onClick={() => { if (use.layerId) onSelect?.(use.layerId); else onNavigate?.(use.target.includes(',') ? use.target.split(',').slice(-1)[0] : use.target); setCommand(null) }}>{use.label} →</button>)}
-    {!uses.length && <p>No modifier, activation, or layer uses in this context.</p>}
-    {layers.filter(l => l.id !== undefined).map(l => { const extra = inputUsage(Object.entries(l.overrides).map(([k,v]) => `${k} = ${v}`).join('\n'), command, [], name); return extra.length ? <div key={l.id}><h4>{l.name}</h4>{extra.map((u,i) => <button className="usage-target" key={i} onClick={() => { onSelect?.(l.id); onNavigate?.(u.target); setCommand(null) }}>{u.label} →</button>)}</div> : null })}
-  </section></div>
-}
+// The uses inspector (Overview's X) is components/InputUsageInspector.tsx.
 /** Layer actions belong to the input editor while remaining portable metadata. */
 export function InputLayerActions({ command }: { command?: string }) {
   const { layers, actions, onSetActions, onSelect, disabled } = useContext(LayerUsageContext)

@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JSM Studio</title>
+    <style>
+      /* A transparent window: only the menu card itself is painted. */
+      html, body, #tray-root {
+        margin: 0;
+        background: transparent;
+        overflow: hidden;
+        user-select: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="tray-root"></div>
+    <script type="module" src="/src/traymenu/main.tsx"></script>
+  </body>
+</html>

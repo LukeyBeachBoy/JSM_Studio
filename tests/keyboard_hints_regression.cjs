@@ -69,7 +69,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  await tab('Overview').click();
  const callout = page.locator('[data-overview-input="L"]');
  await callout.waitFor();
- assert.match(await callout.getAttribute('data-hints'), /X:Inspect uses/, 'L shifts S, so it has uses');
+ assert.match(await callout.getAttribute('data-hints'), /X:Show uses/, 'L shifts S, so it has uses');
  await callout.focus();
  await page.keyboard.press('x');
  await page.getByRole('dialog').filter({hasText:/uses|chord/i}).first().waitFor({timeout:5000}).catch(() => {});

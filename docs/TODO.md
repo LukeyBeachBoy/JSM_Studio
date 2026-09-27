@@ -1243,7 +1243,142 @@ submodule) · the foreground fix and "while released" need a try on hardware
 
 ---
 
+### TODO-39 — Flicker guard stuck at 5%, haptic preview, typed values, modeshift triggers on the Overview, Configurations Apply
+
+**Status:** built 2026-09-27 · uncommitted
+
+**Context**
+
+Six remarks from Luke on 2026-09-27:
+
+1. Grip sensors › Flicker guard could be lowered but not raised past 5%.
+2. Previewing a grip haptic meant Save, Apply and Test mode (or alt-tab).
+3. Number rows with ‹ › arrows could not take a typed value, and had one step size.
+4. Holding D-pad Left on Cyberpunk said "29 shifted". D-pad Left shifts one
+   input, the right trackpad (into a 2x2 button pad); the 29 were its grid
+   size, click and touch-stick settings and 25 region cells. The D-pad Left
+   row's "Inspect uses" button and its "Where Left is used" modal (raw
+   "Rt2 → NONE →" rows) were ugly and did not say what the use was.
+5. Configurations: Apply only saved ("Saved The Finals. It stays off the
+   live mapping until you Apply it"); Edit needed two presses.
+6. Configurations: a shortcut (Y) to apply a row without walking to Apply.
+
+**Done when**
+
+- The flicker guard climbs from 5% one step at a time.
+- A grip haptic's strength and effect play on the controller as they change,
+  and on X, before anything is saved.
+- Any number row takes a typed value (Enter keeps, Esc drops the typing) and
+  X swaps coarse and fine steps.
+- Holding a modeshift trigger counts inputs, not config keys, and names a
+  single one; the Overview decorates a trigger with a modeshift tile and the
+  inspector shows one modeshift row per input changed.
+- Apply on Configurations applies; one Edit press opens the configuration;
+  Y applies the focused row.
+
+**Notes / what was done**
+
+- *Flicker guard:* the firmware stores 25–100 whole numbers and 1% is 0.75 of
+  one, so rounding put a +1% step back where it started (Cyberpunk had 96 =
+  5%). `gripGuardStepRaw` / `gripRangeStepRaw` (utils/gripCalibration) move
+  the stored value at least one unit toward the new percent. Both rows now
+  step 5% coarse, 1% fine. The guard has 76 levels, so fine steps
+  occasionally skip a percent (9 → 11); that is the controller's resolution.
+- *Haptic preview:* `utils/hapticPreview.ts` plays an effect at a strength
+  through Studio's own feedback channel (the UDP `FEEDBACK` datagram
+  nav/feedback.ts uses), unscaled by Studio's feedback strength, on the grips
+  that pulse (Grip sensors) or the pads set to Mouse (Mouse feel). Plays on
+  every change of Strength or Effect, and on X. The grip sheet sends the
+  datagram's new optional sixth field (target 1, StudioFeedback.h), and the
+  mapper plays it through `JslWrapper::SetGripHaptic`: PULSE and TAP at the
+  grip actuators, as the grip sensors' own pulse plays them (a binding's
+  PULSE/TAP still aims at the pads). A five-field datagram parses as before.
+  Harness: `JoyShockMapper/tests/studio_feedback_harness.cpp`; Rust test in
+  `services/feedback.rs`. The bundled mapper (src-tauri/bin/SDL) was rebuilt
+  at 19:53; it reaches the installed app with the next installer build.
+- *Number rows (SummaryRow adjust):* typing 0-9 . , - on a focused number
+  row starts adjusting and replaces the value; Backspace edits, Enter/A
+  keeps (clamped), Esc drops the typing, an arrow keeps it. `fineStep`
+  (default 1 for a whole-number step, a tenth otherwise); X toggles it while
+  adjusting, Shift+arrow takes one fine step. A caption under the row says
+  the step size and, on the keyboard, that a number can be typed.
+- *Modeshift count:* `utils/shiftedInputs.ts` maps a shift target to the
+  input it belongs to (RT/LT/T cells and sided pad settings → the pad, LM/RM
+  segments and stick settings → the stick, gyro settings → gyro).
+  `shiftTriggerTargets` collects inputs; `heldStatus` carries them; the title
+  bar and capsule name a single one ("Left held → Right pad", short because
+  the slot is a fixed 220px). The Overview's "Shifts n" chip names one input
+  ("Shifts Right trackpad") and its relation prose groups by input.
+- *Overview decoration:* the "Inspect uses" button is gone. A compact callout
+  (D-pad, face buttons) hangs its relations under it as concept tiles —
+  crimson modeshift tile "Right pad", chord tiles, layer tiles in their hue —
+  each opening the inspector. X still opens it from the pad.
+- *Uses inspector* rebuilt as a sheet (`components/InputUsageInspector.tsx`,
+  replacing LayerBar's modal): "While D-Pad Left is held" → one row per input
+  changed: held cap + "+" + the input's glyph, name, and what it becomes
+  ("Button pad · 2×2 grid · no click needed · touch stick: directions ·
+  region 1 → F3"); A opens that input's editor. Also "Changed while another
+  input is held", "Pressed together", "Layers", "Settings that listen to it",
+  and the same per layer. The design handoff (binding-card-refresh §2a) only
+  specifies the chip and "full prose in the inspector"; the row follows §3's
+  modeshift row.
+- *Configurations:* `onApply` was `handleApplyWithFinalize`, which only
+  saves; it now runs the title bar's action (save and apply with edits
+  pending, apply otherwise). New `onEditLibraryProfile` switches and opens
+  the Overview in one press, after the unsaved guard's answer when there is
+  one. Y applies the focused row (or the selected one from the side panel);
+  X opens a row's options (was Y). The Apply button carries a Y cap.
+- Tests: `tests/row_stepper_haptic_preview_regression.cjs`,
+  `tests/configurations_apply_edit_regression.cjs`,
+  `tests/modeshift_trigger_overview_regression.cjs`; updated
+  `binding_card_review`, `overview_binding_lines`, `usability_audit`,
+  `pad_menus` for the new wording and the X/Y swap.
+
+---
+
 ## Done
+
+### TODO-38 — Gyro calibration survives a reconnect; hardware calibration switch
+
+**Status:** DONE 2026-09-27 · uncommitted
+
+**Reported as**
+
+"save each controllers offset so we can restore the last gyro calibration value
+on next reconnect. Also, can you add a global setting for 'Disable hardware
+calibration' so steam controller users recognise we have that feature."
+
+**Fault**
+
+A reconnect (any controller switching on or off, via AutoConnect) rebuilds
+every `JoyShock`, and each one's `GamepadMotion` starts at a zero offset. With
+`AUTO_CALIBRATE_GYRO = OFF` every controller drifted until recalibrated. The
+firmware auto-cal switch (settings 84/85) was hard-coded off with no setting.
+
+**Fix**
+
+- `connectDevices` saves each controller's offset, keyed by
+  `JslWrapper::GetControllerKey` (vid:pid:serial:path on SDL; empty on JSL,
+  which opts out), and restores it on the new `JoyShock`. Zero offsets and
+  mid-calibration offsets are not saved.
+- Persisted to `GyroCalibration.dat` in JSM_DIRECTORY (Studio's runtime dir),
+  temp-file-plus-rename, written when it changes: at a reconnect and when a
+  calibration finishes (Studio kills the mapper, so there is no exit hook).
+  Loaded at the first connect. "Better a stale bias than zero" was Luke's call
+  on 2026-09-27.
+- Not captured: offsets `AUTO_CALIBRATE_GYRO` learns between reconnects, if
+  Studio exits first.
+- `DISABLE_HARDWARE_GYRO_CALIBRATION` (Switch, default ON, exempt from
+  RESET_MAPPINGS): `applyTritonSettings` writes 84=0,85=0 or 84=1,85=100 when
+  it changes and once per connection.
+- Studio: Preferences > Gyro calibration > **Disable hardware calibration**,
+  with the firmware-bug explanation; written to StudioDefaults.txt.
+
+**Done when** — calibrate, switch the controller off and on (and separately,
+restart Studio), and the gyro does not drift; the Preferences switch flips the
+firmware behaviour live. Not yet checked on hardware (the live JSM is
+elevated; the build, Rust tests and a file round-trip harness pass).
+
 
 ### TODO-22 — A shifted binding could not be un-named
 
