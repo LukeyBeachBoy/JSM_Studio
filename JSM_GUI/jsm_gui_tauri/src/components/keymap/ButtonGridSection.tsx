@@ -3,6 +3,7 @@ import { KeymapSection } from '../KeymapSection'
 import { SectionActions } from '../SectionActions'
 import { type ButtonDefinition } from '../../keymap/schema'
 import keymapStyles from '../Keymap.module.css'
+import { BindingList } from './BindingList'
 
 type ButtonGridSectionProps = {
   title: string
@@ -35,11 +36,11 @@ export function ButtonGridSection({
   return (
     <>
       <KeymapSection title={title} description={description} action={action}>
-        <div className={keymapStyles.keymapGrid}>
+        <BindingList>
           {buttons.map(button => (
             <div key={button.command}>{renderButton(button)}</div>
           ))}
-        </div>
+        </BindingList>
         {extraContent}
       </KeymapSection>
       <SectionActions

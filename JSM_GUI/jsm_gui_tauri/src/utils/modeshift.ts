@@ -269,3 +269,23 @@ export function modeshiftCount(text: string, command: string): number {
   }
   return triggers.size
 }
+
+/** One shift on an input: the held input and what the input sends meanwhile. */
+export type ModeshiftSummary = { trigger: string; value: string }
+
+/**
+ * Every shift on this input, in the order they are written, each with the
+ * value its last line gives the input. The compact row draws the first of
+ * these as its modeshift tile (binding card refresh 3b).
+ */
+export function modeshiftsOn(text: string, command: string): ModeshiftSummary[] {
+  const wanted = command.trim().toUpperCase()
+  const shifts = new Map<string, string>()
+  for (const line of text.split(/\r?\n/)) {
+    const match = assignment(line)
+    if (!match || match[2].trim().toUpperCase() !== wanted) continue
+    const trigger = match[1].trim().toUpperCase()
+    shifts.set(trigger, getKeymapValue(`${wanted} = ${match[3]}`, wanted) ?? match[3].trim())
+  }
+  return [...shifts].map(([trigger, value]) => ({ trigger, value }))
+}

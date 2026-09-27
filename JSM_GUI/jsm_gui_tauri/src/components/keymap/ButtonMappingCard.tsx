@@ -8,6 +8,11 @@ import { OriginMarker } from './OriginMarker'
 import { useSettingOriginInfo } from './settingOriginInfo'
 import { BindingDetailsPopover } from './BindingDetailsPopover'
 import { describeBinding } from '../../utils/bindingDescription'
+import { inputDisplayName } from '../../keymap/inputNames'
+import type { ControllerVisualFamily } from '../../utils/controllerStatus'
+import type { ModeshiftSummary } from '../../utils/modeshift'
+import { heldInput } from '../../utils/released'
+import { LayerTile, ModeshiftTile, MoreTile, OutputKeycap } from './ConceptTiles'
 
 /** One binding as the compact row shows it: how it fires, and what it sends. */
 export type BindingSummaryEntry = {
@@ -28,8 +33,10 @@ type ButtonMappingCardProps = {
   summary?: BindingSummaryEntry[]
   /** Activation kinds of the commands, "Tap / Hold". */
   kinds?: string
-  /** How many shifts reconfigure this input, shown on the row. */
-  modeshiftCount?: number
+  /** The shifts that reconfigure this input; the first is drawn on the row. */
+  shifts?: ModeshiftSummary[]
+  /** Whose names the held inputs go by: L4 on a Deck, LSL on nothing. */
+  family?: ControllerVisualFamily
   /**
    * The row's name where the block around it already names the input, like
    * "Soft pull" inside Left trigger or "Segment 4 · Equipment" on a wheel.
@@ -67,6 +74,8 @@ type ButtonMappingCardProps = {
   defaultOpen?: boolean
 }
 
+const NO_SHIFTS: ModeshiftSummary[] = []
+
 const isTextEntry = (target: EventTarget | null) => {
   const element = target as HTMLElement | null
   return Boolean(element && element.matches('input, textarea, select, [contenteditable="true"]'))
@@ -78,7 +87,8 @@ export function ButtonMappingCard({
   shortName,
   summary,
   kinds,
-  modeshiftCount = 0,
+  shifts = NO_SHIFTS,
+  family = 'generic',
   rowTitle,
   rowSubtitle,
   emptyLabel,
@@ -124,45 +134,47 @@ export function ButtonMappingCard({
   }, [])
 
   const entries = summary ?? []
-  const first = entries[0]
   const inputActions = command ? actionsOnInput(actions, command) : []
   const layerAction = inputActions[0]
-  // Every layer this input drives, as its own chip beside the key it sends: a
-  // paddle that holds "Vehicles & utility" used to read Unbound, because the
-  // row only looked at key bindings.
-  const layerChips = inputActions.map((action, index) => {
-    const layerIndex = layers.findIndex(layer => layer.id === action.layerId)
-    const slot = (Math.max(0, layerIndex) % 3) + 1
-    const name = layers[layerIndex]?.name ?? action.layerId
-    const verb = layerVerbLabels[action.verb].replace(/ layer$/, '')
-    return (
-      <span key={`${action.layerId}-${action.verb}-${index}`} className={`${keymapStyles.valuePill} ${keymapStyles.valuePillLayer}`} style={{ background: `var(--layer-${slot}-soft)`, color: `var(--layer-${slot})` }} title={`${layerVerbLabels[action.verb]}: ${name}`}>
-        <span className={keymapStyles.layerSwatch} style={{ background: `var(--layer-${slot})` }} aria-hidden="true" />{verb} · {name}
-      </span>
-    )
-  })
+  const modeshiftCount = shifts.length
 
-  // The closed row (Components 13.6): the name you gave it over the input it
-  // belongs to. With no name, the input itself is the title: the action is
-  // already on the value pill, and a title that repeats the pill ("F" beside
-  // [F]) says nothing twice. Unbound rows read "Menu button / Unbound", as
-  // Overview's callouts do.
-  const unbound = entries.length === 0 && !layerAction
+  // The closed row (binding card refresh 3b): the name you gave it over the
+  // input it belongs to. With no name the input is the title; unbound, the
+  // title says so in the quiet colour. What it sends is the Output column and
+  // what else it does is the Extras column, so the text says neither.
+  const unbound = entries.length === 0
   const sends = entries.map(entry => entry.output).join(', ')
-  const closedTitle = rowTitle ?? (label || title)
-  const extraBits = [
-    entries.length > 1 ? `${entries.length} commands` : '',
-    entries.length > 1 && kinds ? kinds : '',
-    modeshiftCount ? t('keymap.bindingSummaryModeshifts', { count: modeshiftCount, defaultValue: '{{count}} modeshift' }) : '',
-  ].filter(Boolean)
   const unboundText = emptyLabel ?? t('keymap.bindingSummaryEmpty', 'Unbound')
+  const closedTitle = rowTitle ?? (label || (unbound && !layerAction ? unboundText : title))
   const closedSubtitle = rowTitle
-    ? rowSubtitle ?? (unbound ? unboundText : [label, sends].filter(Boolean).join(' · '))
-    : label
-      ? [title, ...extraBits].join(' · ')
-      : unbound
-        ? unboundText
-        : extraBits.join(' · ')
+    ? rowSubtitle ?? (label || (unbound ? unboundText : undefined))
+    : label || (unbound && !layerAction) ? title : undefined
+  const quietTitle = !rowTitle && !label && unbound && !layerAction
+
+  // Extras: at most one modeshift tile and one layer tile, then one "+n" for
+  // the rest. Output: up to two keycaps, then "+n".
+  const shift = shifts[0]
+  const extraCount = Math.max(0, shifts.length - 1) + Math.max(0, inputActions.length - 1)
+  const extrasColumn = (
+    <span className={keymapStyles.rowExtras}>
+      {shift && (
+        <ModeshiftTile trigger={inputDisplayName(heldInput(shift.trigger), family)} output={describeBinding(shift.value, t) || t('keymap.rowNone', 'None')}
+          title={`${inputDisplayName(shift.trigger, family)} → ${describeBinding(shift.value, t)}`} />
+      )}
+      {layerAction && <LayerTile layerId={layerAction.layerId} verb={layerAction.verb} />}
+      {extraCount > 0 && <MoreTile count={extraCount} title={[
+        ...shifts.slice(1).map(item => `${inputDisplayName(item.trigger, family)} → ${describeBinding(item.value, t)}`),
+        ...inputActions.slice(1).map(action => `${layerVerbLabels[action.verb]}: ${layers.find(layer => layer.id === action.layerId)?.name ?? action.layerId}`),
+      ].join('\n')} />}
+    </span>
+  )
+  const outputColumn = (
+    <span className={keymapStyles.rowOutput}>
+      {entries.slice(0, 2).map((entry, index) => <OutputKeycap key={index} activation={entry.trigger} output={entry.output} title={entry.outputTitle} />)}
+      {entries.length > 2 && <MoreTile count={entries.length - 2} tone="command" title={entries.slice(2).map(entry => entry.outputTitle ?? entry.output).join('\n')} />}
+      {unbound && <span className={keymapStyles.rowNone} title={inputUses.length ? inputUses.join('\n') : undefined}>{t('keymap.rowNone', 'None')}</span>}
+    </span>
+  )
 
   // The open header (Binding Editor 7a): the input's name and a one-line
   // account of the editor under it.
@@ -173,16 +185,6 @@ export function ButtonMappingCard({
     layerAction ? `${actionsOnInput(actions, command ?? '').length} layer ${actionsOnInput(actions, command ?? '').length === 1 ? 'action' : 'actions'}` : 'no layer actions',
   ].filter(Boolean).join(' · ')
   const templateValue = origin?.kind === 'override' && origin.baseValue ? `template: ${describeBinding(origin.baseValue, t)}` : undefined
-
-  const pill = layerAction && entries.length === 0
-    ? null
-    : first
-      ? entries.length > 1
-        ? <kbd className={`${keymapStyles.valuePill} ${keymapStyles.valuePillMulti}`} title={entries.map(entry => entry.outputTitle ?? entry.output).join('\n')}>{first.output}<span className={keymapStyles.valuePillMore}>+{entries.length - 1}</span></kbd>
-        : <kbd className={`${keymapStyles.valuePill} ${first.jsm ? keymapStyles.valuePillJsm : keymapStyles.valuePillKey}`} title={first.outputTitle}>{first.output}</kbd>
-      : inputUses.length
-        ? <span className={keymapStyles.valuePillQuiet}>Used as modifier</span>
-        : <span className={keymapStyles.valuePillQuiet}>{t('keymap.addAction', 'Add action')}</span>
 
   const stop = (event: { preventDefault: () => void; stopPropagation: () => void }) => { event.preventDefault(); event.stopPropagation() }
   const onSummaryKey = (event: KeyboardEvent<HTMLElement>) => {
@@ -197,7 +199,7 @@ export function ButtonMappingCard({
   const xHint = xAction ? `X:${xAction.label};` : onCapture ? 'X:Capture;' : ''
   const hints = open
     ? `A:Close;${xHint}Y:Details;B:${closeLabel}`
-    : `A:Edit;${xHint}Y:Details;B:Back`
+    : `A:Open;${xHint}Y:Details;B:Back`
 
   return (
     <details ref={detailsRef} onToggle={event => {
@@ -208,7 +210,7 @@ export function ButtonMappingCard({
       const current = event.currentTarget
       current.parentElement?.querySelectorAll<HTMLDetailsElement>(':scope > details[data-input-command][open]').forEach(other => { if (other !== current) other.open = false })
     }} data-input-command={command} tabIndex={-1} className={`${keymapStyles.keymapRow} ${isCapturing ? keymapStyles.keymapRowCapturing : ''}`}>
-      <summary ref={summaryRef} className={`binding-summary ${open ? keymapStyles.editorHead : ''}`.trim()} data-hints={hints} data-pad-keys="XY" onKeyDown={onSummaryKey}>
+      <summary ref={summaryRef} className={`binding-summary ${open ? keymapStyles.editorHead : keymapStyles.bindingRow}`} data-hints={hints} data-pad-keys="XY" onKeyDown={onSummaryKey}>
         <span className={keymapStyles.glyphBadge} aria-hidden="true">{glyph}</span>
         {open ? (
           <span className="binding-summary-name">
@@ -221,39 +223,25 @@ export function ButtonMappingCard({
           </span>
         ) : (
           <span className="binding-summary-name">
-            <span className="binding-summary-label">{closedTitle}</span>
-            {closedSubtitle && <span className={`binding-summary-input ${unbound && !rowTitle ? keymapStyles.unboundTitle : ''}`.trim()}>{closedSubtitle}</span>}
+            <span className={`binding-summary-label ${quietTitle ? keymapStyles.unboundTitle : ''}`.trim()}>{closedTitle}</span>
+            <span className="binding-summary-input">{closedSubtitle}<OriginMarker setting={command} /></span>
           </span>
         )}
-        <span className="binding-summary-hint">
-          {open ? (
-            <>
-              <OriginMarker setting={command} detail={templateValue} withReset addressable />
-              <span className={keymapStyles.editorHeadActions}>
-                <button type="button" className="button button--ghost button--sm" disabled={!onCopyAll} onClick={event => { stop(event); onCopyAll?.() }} data-hints="A:Copy;B:Back">{t('keymap.copy', 'Copy')}</button>
-                <button type="button" className="button button--ghost button--sm" disabled={!canPaste || !onPaste} title={canPaste ? pasteLabel : undefined} onClick={event => { stop(event); onPaste?.() }} data-hints="A:Paste;B:Back">{t('keymap.paste', 'Paste')}</button>
-                <button type="button" className="button button--ghost button--sm" onClick={event => { stop(event); setDetails(true) }} data-hints="A:Details;B:Back"><b className={keymapStyles.faceHint} aria-hidden="true">Y</b>{t('keymap.details', 'Details')}</button>
-              </span>
-            </>
-          ) : (
-            <>
-              {onPaste && canPaste && pasteLabel && (
-                <button
-                  type="button"
-                  className="link-btn"
-                  // Inside a summary, so the row would otherwise open underneath
-                  // the click that was meant for the button.
-                  onClick={event => { stop(event); onPaste() }}
-                >
-                  {pasteLabel}
-                </button>
-              )}
-              <OriginMarker setting={command} />
-              {layerChips}
-              {pill}
-            </>
-          )}
-        </span>
+        {open ? (
+          <span className="binding-summary-hint">
+            <OriginMarker setting={command} detail={templateValue} withReset addressable />
+            <span className={keymapStyles.editorHeadActions}>
+              <button type="button" className="button button--ghost button--sm" disabled={!onCopyAll} onClick={event => { stop(event); onCopyAll?.() }} data-hints="A:Copy;B:Back">{t('keymap.copy', 'Copy')}</button>
+              <button type="button" className="button button--ghost button--sm" disabled={!canPaste || !onPaste} title={canPaste ? pasteLabel : undefined} onClick={event => { stop(event); onPaste?.() }} data-hints="A:Paste;B:Back">{t('keymap.paste', 'Paste')}</button>
+              <button type="button" className="button button--ghost button--sm" onClick={event => { stop(event); setDetails(true) }} data-hints="A:Details;B:Back"><b className={keymapStyles.faceHint} aria-hidden="true">Y</b>{t('keymap.details', 'Details')}</button>
+            </span>
+          </span>
+        ) : (
+          <>
+            {extrasColumn}
+            {outputColumn}
+          </>
+        )}
       </summary>
       <div className="binding-detail">
         <div className={keymapStyles.editorBody}>

@@ -84,13 +84,14 @@ const STEAM = 24;
     await page.waitForFunction(() => document.getAnimations().every(animation => animation.playState !== 'running'));
     // Top-level rows only: a shifted card ("RSR,N") is nested inside its input's editor now.
     const rowSummaries = page.locator('details[data-input-command]:not([data-input-command*=","]) > summary');
-    const rows = rowSummaries.locator('.binding-summary-hint');
+    const rows = rowSummaries.locator('[class*=rowOutput]');
     const lefts = [];
     for (let i = 0; i < 3; i++) {
       const row = await rowSummaries.nth(i).boundingBox();
       const hint = await rows.nth(i).boundingBox();
       assert.ok(hint.x > row.x + row.width * 0.5, `the value is adrift in the middle of the row (${hint.x} of ${row.x}..${row.x + row.width})`);
-      lefts.push(Math.round(hint.x + hint.width));
+      // The Output column is left-aligned (3b): every first keycap starts at one x.
+      lefts.push(Math.round(hint.x));
     }
     assert.equal(new Set(lefts).size, 1, `the values do not line up as a column: ${lefts.join(', ')}`);
 

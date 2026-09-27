@@ -2308,3 +2308,47 @@
 /* The open editor's summary line: what it sends, then the count of everything else. */
 .editorSummaryLine { display: flex; align-items: center; gap: var(--sp-2); }
 .editorSummaryKey { height: 20px; display: inline-flex; align-items: center; padding: 0 var(--sp-2); border: 0; border-radius: var(--r-xs); background: var(--surface-control); color: var(--text-2); font-family: var(--font-ui); font-size: var(--fs-micro); font-weight: var(--fw-semibold); }
+
+/* ============ Collapsed binding row (binding card refresh 3b) ============
+   60 high, four fixed columns: glyph 32 · name · Extras 250 · Output 220, so
+   every row's first keycap starts at the same x and no row grows with its
+   content. The column header above a list uses the same grid. */
+.keymapRow > .bindingRow,
+.bindingColumns {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 250px 220px;
+  align-items: center;
+  gap: 14px;
+  padding: 0 14px;
+}
+.keymapRow > .bindingRow { height: 60px; min-height: 60px; }
+.keymapRow > .bindingRow::after { content: none; display: none; }
+.bindingRow > .glyphBadge { width: 32px; height: 30px; }
+.bindingRow > .glyphBadge svg { width: 30px; height: 30px; }
+.bindingRow :global(.binding-summary-input) { display: flex; align-items: center; gap: var(--sp-2); }
+.bindingRow :global(.binding-summary-input) :global(.origin-marker) { flex: none; }
+.rowExtras,
+.rowOutput {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.rowNone { color: var(--text-4); font-size: var(--fs-hint); font-weight: var(--fw-regular); }
+.bindingColumns {
+  height: 28px;
+  color: var(--text-4);
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+}
+.bindingColumnsWrap { container-type: inline-size; }
+/* A narrow column keeps the grid but gives the name room: the columns shrink
+   and their tiles ellipsise rather than a row growing. */
+@container (max-width: 760px) {
+  .keymapRow > .bindingRow,
+  .bindingColumns { grid-template-columns: 32px minmax(0, 1fr) 150px 180px; gap: 10px; }
+}

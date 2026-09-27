@@ -53,7 +53,8 @@ const PROFILE = [
     const north = page.locator('details[data-input-command="N"]').first();
     const rowText = await north.locator(':scope > summary').innerText();
     assert.match(rowText, /Space/, 'the row must show what the binding sends');
-    assert.match(rowText, /2 modeshifts/, 'the row must say how many shifts change this input');
+    // The first shift is a tile and the rest one "+n" (3b).
+    assert.match(rowText.replace(/\s+/g, ' '), /LB → F \+1/, 'the row must show the first shift and count the rest');
 
     // --- the shifted card is the normal card --------------------------------
     // The shift is edited from the input's own editor (Binding Editor 7a).

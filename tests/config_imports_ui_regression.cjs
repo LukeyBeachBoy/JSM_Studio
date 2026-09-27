@@ -44,7 +44,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  // it to reach the badge.
  await west.locator(':scope > summary').click();
  await west.locator('kbd').first().waitFor();
- assert.equal(await west.locator('kbd').first().innerText(), 'R',
+ assert.equal((await west.locator('kbd').first().innerText()).split('\n').pop(), 'R',
    'an inherited binding must be visible, not blank');
 
  // ...and marked with the row's origin marker (Buttons Content), which names the file.
@@ -54,14 +54,15 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
 
  // The profile's own value wins over the imported one, and is not marked.
  const north = cardFor('N');
- assert.equal(await north.locator('kbd').first().innerText(), 'Space',
+ // The keycap prints its activation over the key (3b): "PRESS / Space".
+ assert.equal((await north.locator('kbd').first().innerText()).split('\n').pop(), 'Space',
    'the profile overrides the import; the import must not win');
  assert.equal(await north.locator('.origin-marker[data-origin="inherited"]').count(), 0,
    'an overridden binding is owned, not inherited');
 
  // A binding only the profile sets is untouched and unmarked.
  const south = cardFor('S');
- assert.equal(await south.locator('kbd').first().innerText(), 'Tab');
+ assert.equal((await south.locator('kbd').first().innerText()).split('\n').pop(), 'Tab');
  assert.equal(await south.locator('.origin-marker[data-origin="inherited"]').count(), 0);
 
  // TODO-1: the indicator belongs on every control that exposes a value, not

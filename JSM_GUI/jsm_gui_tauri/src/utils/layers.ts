@@ -19,7 +19,13 @@ export type LayerAction = { input: string; verb: LayerVerb; layerId: string }
 export const layerVerbLabels: Record<LayerVerb, string> = {
   hold: 'Hold layer', apply: 'Apply layer', remove: 'Remove layer', toggle: 'Toggle layer',
 }
-export const actionsForLayer = (actions: LayerAction[], layerId: string) => actions.filter(a => a.layerId === layerId)
+/** The verb alone, as tiles and the add sheet say it ("Hold Vehicles", "Turn
+ *  on Comms"): i18n keys, since apply/remove read as Turn on/Turn off in the
+ *  UI while the config keeps the JSM words (binding card refresh 3f). */
+export const layerVerbKeys: Record<LayerVerb, string> = {
+  hold: 'keymap.layerVerbHold', toggle: 'keymap.layerVerbToggle', apply: 'keymap.layerVerbApply', remove: 'keymap.layerVerbRemove',
+}
+export const actionsForLayer =(actions: LayerAction[], layerId: string) => actions.filter(a => a.layerId === layerId)
 /** The actions an input drives, pressed ("X") or released ("!X"): both are
  *  that input's, and its editor lists and rewrites them together. */
 export const actionsOnInput = (actions: LayerAction[], input: string) => actions.filter(a => a.input === input || a.input === `!${input}`)

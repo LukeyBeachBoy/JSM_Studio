@@ -136,10 +136,10 @@ const WARDOGS = [
     // --- 5: rows that drive layers, and Options --------------------------------
     await page.getByRole('button', { name: 'Buttons', exact: true }).click();
     const l4 = await page.locator('details[data-input-command="LSL"] > summary').innerText();
-    assert.match(l4, /Hold · Vehicles & utility/, `L4 names the layer it holds: ${l4}`);
+    assert.match(l4, /Hold Vehicles & utility/, `L4 names the layer it holds: ${l4}`);
     assert.ok(!/Unbound/.test(l4), `L4 does not read Unbound: ${l4}`);
     const r5 = await page.locator('details[data-input-command="RSL"] > summary').innerText();
-    assert.match(r5, /Toggle · Tactical map/, `R5 shows its layer: ${r5}`);
+    assert.match(r5, /Toggle Tactical map/, `R5 shows its layer: ${r5}`);
     assert.match(r5, /\bM\b/, `and still its key: ${r5}`);
     const face = page.locator('details[data-input-command="RSL"]');
     await face.locator(':scope > summary').click();

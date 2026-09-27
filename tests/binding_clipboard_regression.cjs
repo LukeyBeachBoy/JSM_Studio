@@ -40,17 +40,15 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  await page.getByRole('menuitem',{name:'Copy binding'}).click();
  await bar.waitFor();
 
- // The paste affordance is quiet, not a filled primary on every input.
- const paste = page.getByRole('button',{name:/^Paste /});
- assert.ok(await paste.count() > 1, 'expected a paste target on each input');
- const classes = await paste.first().getAttribute('class');
- assert.ok(classes.includes('link-btn'), `paste should be a quiet button, got: ${classes}`);
+ // Paste is the open card's (3c); a closed row carries no text-only button.
+ const paste = page.locator('details[data-input-command="N"][open] > summary').getByRole('button',{name:'Paste',exact:true});
+ assert.ok(await paste.isEnabled(), 'the open card offers the clipboard');
+ assert.equal(await page.locator('summary .link-btn').count(), 0, 'a closed row still carries a text-only paste');
 
- // Clearing puts the clipboard down, and every paste button with it.
+ // Clearing puts the clipboard down, and paste with it.
  await bar.getByRole('button',{name:'Clear'}).click();
- await paste.first().waitFor({state:'detached'});
- assert.equal(await bar.count(), 0, 'the bar survived Clear');
- assert.equal(await page.getByRole('button',{name:/^Paste /}).count(), 0, 'paste buttons survived Clear');
+ await bar.waitFor({state:'detached'});
+ assert.ok(await paste.isDisabled(), 'paste survived Clear');
 
  // Escape does the same, so it can be dismissed without aiming at anything.
  await card.getByRole('button',{name:'Command actions'}).click();

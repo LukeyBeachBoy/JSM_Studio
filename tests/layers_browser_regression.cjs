@@ -135,19 +135,21 @@ const fs = require('node:fs');
  await page.getByRole('button',{name:'Buttons',exact:true}).click();
  const north=page.locator('details[data-input-command="N"]').first();
  const northOutput=north.locator('summary kbd').first();
- assert.equal(await northOutput.innerText(),'J');
+ // The keycap prints its activation over the key (3b); the key is its last line.
+ const northText=async()=>(await northOutput.innerText()).split('\n').pop();
+ assert.equal(await northText(),'J');
  await north.locator('summary').first().click();
  await north.getByRole('button',{name:'Command options',exact:true}).first().click();
  const output=north.locator('input[class*="valueInput"]').first();
  await output.fill('K');
  // A pointer switch must commit any focused input before projecting the next layer.
  await chooseLayer('Default');
- assert.equal(await northOutput.innerText(),'Space');
+ assert.equal(await northText(),'Space');
  await chooseLayer('Comms');
  assert.equal(await pickerName(),'Comms');
- assert.equal(await northOutput.innerText(),'K','unsaved layer edit survives switching');
+ assert.equal(await northText(),'K','unsaved layer edit survives switching');
  await chooseLayer('Default');
- assert.equal(await northOutput.innerText(),'Space');
+ assert.equal(await northText(),'Space');
  // Keyboard: the menu opens on the current layer; End reaches the last layer.
  await picker.focus(); await page.keyboard.press('Enter'); // Down walks to the page tabs now (focus model); Enter / A opens.
  await layerItem('Comms').waitFor();
@@ -160,7 +162,7 @@ const fs = require('node:fs');
  await page.keyboard.press('Enter');
  await page.waitForFunction(()=>document.querySelector('.context-segment--layer b')?.textContent==='Comms');
  assert.equal(await pickerName(),'Comms','keyboard layer selection');
- assert.equal(await northOutput.innerText(),'K');
+ assert.equal(await northText(),'K');
  await page.keyboard.press('Control+s');
  await page.waitForFunction(()=>window.__lastSaved.includes('"N":"K"'));
  assert.match(await page.evaluate(()=>window.__lastSaved),/^N = SPACE/m);

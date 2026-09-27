@@ -1,6 +1,6 @@
 import { resolveOverlayMenus } from '../utils/overlayLayout'
 import { InputModeshifts } from './keymap/InputModeshifts'
-import { modeshiftCount, padModeshiftSettings, type ModeshiftTarget } from '../utils/modeshift'
+import { modeshiftsOn, padModeshiftSettings, type ModeshiftSummary, type ModeshiftTarget } from '../utils/modeshift'
 import { getButtonDescription } from '../keymap/schema'
 import { ConfigScope } from './ConfigScope'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -51,6 +51,7 @@ import { AdvancedDisclosure } from './AdvancedDisclosure'
 import { useButtonRowState } from '../keymap/useButtonRowState'
 import { ButtonBindingsCard } from './keymap/ButtonBindingsCard'
 import { ButtonGridSection } from './keymap/ButtonGridSection'
+import { BindingList } from './keymap/BindingList'
 import { Card } from './Card'
 import keymapStyles from './Keymap.module.css'
 import { KeymapSection } from './KeymapSection'
@@ -1189,14 +1190,15 @@ export function KeymapControls({
     }
     return record
   }, [bindingRowsByButton])
-  // How many shifts touch an input is a scan of the whole config; cached per
-  // config text so the cards do not each rescan it per frame.
-  const modeshiftCountFor = useMemo(() => {
-    const counts = new Map<string, number>()
+  // Which shifts touch an input is a scan of the whole config; cached per
+  // config text so the cards do not each rescan it per frame, and so each
+  // card gets the same array back and its memo holds.
+  const modeshiftsFor = useMemo(() => {
+    const found = new Map<string, ModeshiftSummary[]>()
     return (command: string) => {
-      let count = counts.get(command)
-      if (count === undefined) { count = modeshiftCount(readText, command); counts.set(command, count) }
-      return count
+      let shifts = found.get(command)
+      if (shifts === undefined) { shifts = modeshiftsOn(readText, command); found.set(command, shifts) }
+      return shifts
     }
   }, [readText])
   const actionsProps = useMemo(() => ({
@@ -1281,7 +1283,7 @@ export function KeymapControls({
         chordsLiveInModeshifts={chordsLiveInModeshifts}
         defaultOpen={options?.defaultOpen}
         label={options?.label}
-        modeshiftCount={modeshiftCountFor(button.command)}
+        modeshifts={modeshiftsFor(button.command)}
         bindingClipboard={bindingClipboard}
         onCopyBindings={setBindingClipboard}
       />
@@ -1925,11 +1927,11 @@ export function KeymapControls({
                         const sided = SIDE_SPLIT_GROUPS.has(groupKey) && split.left.length > 0 && split.right.length > 0
                         if (!sided) {
                           return (
-                            <div className={keymapStyles.keymapGrid}>
+                            <BindingList>
                               {group.buttons.map(button => (
                                 <div key={button.command}>{renderButtonCard(button, { modeshifts: true })}</div>
                               ))}
-                            </div>
+                            </BindingList>
                           )
                         }
                         return (
@@ -1938,11 +1940,11 @@ export function KeymapControls({
                             {(['left', 'right'] as const).map(side => (
                               <SideBlock key={side} side={side} id={groupKey === 'triggers' ? `trigger-${side}` : undefined} title={groupKey === 'triggers' ? (side === 'left' ? t('keymap.leftTriggerTitle', 'Left trigger') : t('keymap.rightTriggerTitle', 'Right trigger')) : undefined}>
                                 {groupKey === 'triggers' && renderTriggerMode(side)}
-                                <div className={keymapStyles.keymapGrid}>
+                                <BindingList>
                                   {(side === 'left' ? split.left : split.right).map(button => (
                                     <div key={button.command}>{renderButtonCard(button, groupKey === 'triggers' ? { label: TRIGGER_ROW_LABELS[button.command], emptyLabel: passthroughLabel(side), modeshifts: true } : { modeshifts: true })}</div>
                                   ))}
-                                </div>
+                                </BindingList>
                                 {groupKey === 'triggers' && liveDevice?.status && (
                                   <TriggerMeter pull={side === 'left' ? liveDevice.status.triggers.left : liveDevice.status.triggers.right} threshold={triggerThreshold ?? 0} />
                                 )}
@@ -1958,11 +1960,11 @@ export function KeymapControls({
                             )}
                             {groupKey === 'triggers' && renderTriggerCalibration()}
                             {split.rest.length > 0 && (
-                              <div className={keymapStyles.keymapGrid}>
+                              <BindingList>
                                 {split.rest.map(button => (
                                   <div key={button.command}>{renderButtonCard(button, { modeshifts: true })}</div>
                                 ))}
-                              </div>
+                              </BindingList>
                             )}
                           </>
                         )

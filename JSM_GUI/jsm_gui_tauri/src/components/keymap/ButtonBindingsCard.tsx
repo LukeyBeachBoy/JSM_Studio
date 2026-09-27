@@ -47,6 +47,7 @@ import { InputLayerActions, LayerUsageContext } from '../LayerBar'
 import { actionsOnInput } from '../../utils/layers'
 import { inputLongName, inputShortName } from '../../keymap/inputNames'
 import type { InputModeshiftsProps } from './InputModeshifts'
+import type { ModeshiftSummary } from '../../utils/modeshift'
 import { TRIGGER_LABEL_KEYS } from './triggerKinds'
 import { getVirtualControllerLogicalOutput, type VirtualControllerType } from '../../utils/virtualController'
 import { describeBinding, explainBinding } from '../../utils/bindingDescription'
@@ -138,8 +139,8 @@ type ButtonBindingsCardProps = {
   modeshiftPanel?: Omit<InputModeshiftsProps, 'target' | 'initiallyOpen' | 'livePad'>
   /** What X does on the closed row instead of capturing. */
   xAction?: { label: string; run: () => void }
-  /** How many shifts reconfigure this input; shown on its compact row. */
-  modeshiftCount?: number
+  /** The shifts that reconfigure this input; the first shows on its compact row. */
+  modeshifts?: ModeshiftSummary[]
   /** Chord bindings are edited in this group's modeshift panel, not here. */
   chordsLiveInModeshifts?: boolean
 }
@@ -213,7 +214,7 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
   emptyLabel,
   modeshiftPanel,
   xAction,
-  modeshiftCount,
+  modeshifts,
   beginCapture,
 }: ButtonBindingsCardProps) {
   const { t } = useTranslation()
@@ -658,7 +659,8 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
   const summary: BindingSummaryEntry[] = commands
     .filter(command => command.outputValue.trim().length > 0 && command.outputValue.trim().toUpperCase() !== 'NONE')
     .map(command => ({
-      trigger: command.triggerKind === 'regular' ? undefined : t(TRIGGER_LABEL_KEYS[command.triggerKind]),
+      // Printed on the keycap (3b): PRESS, HOLD, TAP, DOUBLE PRESS.
+      trigger: t(TRIGGER_LABEL_KEYS[command.triggerKind]),
       // What the game receives, in words, not how the file spells it.
       output: describeBinding(command.outputValue, t),
       outputTitle: explainBinding(command.outputValue, t),
@@ -675,7 +677,8 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
       summary={summary}
       kinds={kindLabels.join(' / ')}
       defaultOpen={defaultOpen}
-      modeshiftCount={modeshiftCount}
+      shifts={modeshifts}
+      family={controllerFamily}
       rowTitle={label}
       rowSubtitle={subtitle}
       emptyLabel={emptyLabel}
@@ -685,7 +688,7 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
       onCopyAll={onCopyBindings && commands.length > 0 ? () => copyCommands(commands) : undefined}
       onCapture={capturePrimary}
       xAction={xAction}
-      glyph={<InputGlyph command={button.command} family={controllerFamily} size={28} />}
+      glyph={<InputGlyph command={button.command} family={controllerFamily} size={30} />}
       isCapturing={rowCapturing}
       addControl={addControl}
       extras={extras}
