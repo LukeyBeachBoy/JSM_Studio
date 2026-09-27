@@ -1726,14 +1726,14 @@
   background: transparent;
   overflow: visible;
 }
-.keymapRow[open] {
+.keymapRow[data-card='true'] {
   border-radius: var(--r-card);
   background: var(--surface-row);
   box-shadow: 0 0 0 1px var(--line-2), var(--shadow-lift);
 }
 /* The open row's body is the card's lower half: it takes the card's bottom
    corners, or its own square fill shows past the curve. */
-.keymapRow[open] :global(.binding-detail) { border-radius: 0 0 var(--r-card) var(--r-card); }
+.keymapRow[data-card='true'] :global(.binding-detail) { border-radius: 0 0 var(--r-card) var(--r-card); }
 .keymapRowCapturing { box-shadow: 0 0 0 2px var(--warn); }
 
 .keymapLabel {
@@ -2106,8 +2106,6 @@
   min-height: 52px;
   padding: 0 var(--sp-3);
 }
-.commandGrip { width: 16px; display: inline-grid; place-items: center; color: var(--text-4); }
-.commandGrip svg { width: 16px; height: 16px; }
 .commandArrow { text-align: center; }
 .commandLabelSlot { min-width: 0; display: flex; align-items: center; gap: var(--sp-2); }
 .commandLabelSlot .buttonLabelInput { min-width: 120px; max-width: none; width: 100%; }
@@ -2357,7 +2355,10 @@
    A card of lanes: a header over a hairline -- glyph 40, the input's name and
    yours, the card's cog and Details -- then Commands, Modeshifts and Layer
    actions as tinted lanes of game rows. */
-.keymapRow[open] {
+/* The card's shape follows data-card, which the header's layout also follows:
+   it outlasts the [open] attribute by the collapse transition, so the corners,
+   the shadow and the 72px header all go once the body has folded (2f). */
+.keymapRow[data-card='true'] {
   border-radius: 16px;
   background: var(--surface-row);
   box-shadow: 0 0 0 1px var(--line-2), 0 8px 24px rgba(0, 0, 0, .35);

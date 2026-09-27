@@ -256,7 +256,7 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
     () => parseRowsToCommands(rows, button.command, { specialKey, stickShiftAssignments: stickShiftEntries }),
     [button.command, rows, specialKey, stickShiftEntries]
   )
-  const rowCapturing = rows.some(row => isCapturing(button.command, row.slot, row.id)) || commands.some(command => isCapturingValue(captureKeyFor(command)))
+  const rowCapturing = rows.some(row => isCapturing(button.command, row.slot, row.id)) || commands.some(command => isCapturingValue(captureKeyFor(command))) || isCapturingValue(`${domCommand ?? button.command}:new`)
   const buttonHasTrackball = commands.some(command => command.outputValue.toUpperCase().includes('TRACK'))
   const defaultModifier = getDefaultModifierForButton(button.command, modifierOptions)
 
@@ -535,25 +535,30 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
     bindingClipboard.filter(preset => !baseLine.includes(preset)).forEach(writeCommand)
   }
 
+  // What a captured key or mouse button is, as the command's output.
+  const capturedOutput = (value: string): Pick<BindingCommandPreset, 'outputKind' | 'outputValue'> => {
+    const token = parseBindingExpression(value)?.tokens[0]
+    return {
+      outputKind:
+        token?.kind === 'mouse'
+          ? 'mouse'
+          : token?.kind === 'wheel'
+            ? 'wheel'
+            : token?.kind === 'special'
+              ? 'special'
+              : inferOutputKindFromBindingValue(token?.value ?? value),
+      outputValue: token?.value ?? value,
+    }
+  }
+
   const captureCommand = (command: BindingCommand) => {
     beginValueCapture(captureKeyFor(command), t('keymap.anyBindingPrompt'), value => {
-      const token = parseBindingExpression(value)?.tokens[0]
-      updateCommand(command, {
-        outputKind:
-          token?.kind === 'mouse'
-            ? 'mouse'
-            : token?.kind === 'wheel'
-              ? 'wheel'
-              : token?.kind === 'special'
-                ? 'special'
-                : inferOutputKindFromBindingValue(token?.value ?? value),
-        outputValue: token?.value ?? value,
-      })
+      updateCommand(command, capturedOutput(value))
     })
   }
 
-  // X on the closed row, and "Capture a key" in the editor: the primary command
-  // takes the key, or a new Press binding is captured when there is none.
+  // X on the closed row: the primary command takes the key, or a new Press
+  // binding is captured when there is none.
   const capturePrimary = () => {
     const primary = commands.find(command => command.source.kind === 'row' && command.triggerKind !== 'stickShift')
     if (primary) {
@@ -574,6 +579,18 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
     added.expect()
     writeCommand({ triggerKind: 'regular', outputKind: patch.outputKind ?? 'keyboard', outputValue: patch.outputValue ?? '', outputBehavior: 'normal' })
   }
+  // "Capture a key", X on Add command and X in its picker: another way to add
+  // a command. The key becomes a new Press command, which glows and takes
+  // focus like one chosen from the picker; nothing already on the input is
+  // overwritten.
+  const newCaptureKey = `${domCommand ?? button.command}:new`
+  const captureNew = () => {
+    beginValueCapture(newCaptureKey, t('keymap.anyBindingPrompt'), value => {
+      added.expect()
+      writeCommand({ triggerKind: 'regular', ...capturedOutput(value), outputBehavior: 'normal' })
+    })
+  }
+  const capturingNew = isCapturingValue(newCaptureKey)
   const addStickShift = onStickModeShiftChange ? () => {
     onStickModeShiftChange(button.command, 'RIGHT', 'NO_MOUSE')
     updateStickShiftDisplayMode(buttonKey, 'extra')
@@ -597,7 +614,7 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
     'data-pad-keys': 'X',
     onClick: () => setAddingCommand(true),
     // X on the add button captures a key instead (5).
-    onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => { if (event.key === 'x' || event.key === 'X') { event.preventDefault(); capturePrimary() } },
+    onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => { if (event.key === 'x' || event.key === 'X') { event.preventDefault(); captureNew() } },
   }
   const commandsLane = (
     <Lane concept="command" label={t('keymap.commandsHeading', 'Commands')} count={commands.length} twoUpFooter={!menuItem}
@@ -605,7 +622,7 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
         <>
           <LaneAddButton {...addButtonProps} />
           {!menuItem && <LaneSideButton glyph={<ButtonGlyph button="X" size={28} family={controllerFamily === 'generic' ? undefined : controllerFamily} />}
-            label={t('keymap.captureAKey', 'Capture a key')} onClick={capturePrimary} hints={`A:Capture a key;B:${closeLabel}`} />}
+            label={t('keymap.captureAKey', 'Capture a key')} onClick={captureNew} hints={`A:Capture a key;B:${closeLabel}`} capturing={capturingNew} />}
         </>
       }>
       {commands.length > 0 && (
@@ -640,10 +657,12 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
         </div>
       )}
       {addingCommand && (
-        <ActionPicker layerInput={isShifted ? undefined : button.command} inputLabel={controllerButtonLabel(button, controllerFamily)}
+        // No Layers tab here: a layer action is added from its own lane, not
+        // as a command.
+        <ActionPicker inputLabel={controllerButtonLabel(button, controllerFamily)}
           command={commandForValue(button.command, '')} virtualControllerType={virtualControllerType} specialOptions={actionSpecialOptionList}
           libraryProfiles={libraryProfiles} currentProfileName={currentProfileName} onEnableVirtualController={onEnableVirtualController}
-          onSelect={addChosen} onClose={() => setAddingCommand(false)} onCapture={capturePrimary} onAddStickShift={addStickShift} />
+          onSelect={addChosen} onClose={() => setAddingCommand(false)} onCapture={captureNew} onAddStickShift={addStickShift} />
       )}
     </Lane>
   )
@@ -651,7 +670,7 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
   // Change icon and the text shown on the menu (3d).
   const identity = menuItem ? (
     <div className={keymapStyles.identityRow} data-capture-ignore="true">
-      <IconPicker value={bindingIcon ?? ''} label={bindingLabel || undefined} onChange={value => onBindingIconChange?.(button.command, value)} />
+      <IconPicker value={bindingIcon ?? ''} label={bindingLabel || undefined} family={controllerFamily} onChange={value => onBindingIconChange?.(button.command, value)} />
       {onBindingLabelChange && (
         <BindingLabelField value={bindingLabel} onChange={value => onBindingLabelChange(button.command, value)}
           className={keymapStyles.identityField} placeholder={t('keymap.menuLabelPlaceholder', 'Label on the menu')} />
@@ -715,7 +734,7 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
           {identity}
           {commandsLane}
           {!menuItem && modeshiftPanel && !isShifted && <InputModeshiftPanel {...modeshiftPanel} button={button} shortName={shortName} />}
-          {!menuItem && !isShifted && <LayerActionsPanel command={button.command} label={`${longName} layer actions`} glyph={inputGlyph} shortName={shortName} longName={longName} />}
+          {!menuItem && !isShifted && <LayerActionsPanel command={button.command} label={t('keymap.layerActionsOf', '{{input}} layer actions', { input: longName })} glyph={inputGlyph} shortName={shortName} longName={longName} />}
         </>
       }
       extras={extras}

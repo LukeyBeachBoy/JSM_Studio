@@ -432,7 +432,9 @@ body[data-input-source='controller'] .titlebar :is(button, [role='button']):focu
 .hint-capsule__item { display: flex; align-items: center; gap: var(--sp-2); }
 .hint-capsule__item > b + b { margin-left: -4px; }
 .hint-capsule__rule { width: 1px; height: 18px; background: var(--line-2); }
-.hint-capsule__message { color: var(--text-1); padding-left: var(--sp-2); }
+/* A message ("Press a key… Esc to cancel") has a fixed box like the status
+   slot (2g): a longer translation ellipsises rather than widening the capsule. */
+.hint-capsule__message { max-width: 260px; overflow: hidden; padding-left: var(--sp-2); color: var(--text-1); text-overflow: ellipsis; white-space: nowrap; }
 
 .hint-face {
   width: 22px;

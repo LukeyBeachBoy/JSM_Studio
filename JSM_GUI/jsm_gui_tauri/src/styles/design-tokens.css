@@ -58,6 +58,13 @@
   --layer-1-soft: oklch(76% .11 300 / .16);
   --layer-2-soft: oklch(76% .11 160 / .16);
   --layer-3-soft: oklch(76% .11 60 / .16);
+  /* A fourth layer and beyond: three more hues before the palette wraps. */
+  --layer-4: oklch(76% .11 200);
+  --layer-5: oklch(76% .11 110);
+  --layer-6: oklch(76% .11 340);
+  --layer-4-soft: oklch(76% .11 200 / .16);
+  --layer-5-soft: oklch(76% .11 110 / .16);
+  --layer-6-soft: oklch(76% .11 340 / .16);
 
   /* Type */
   --font-ui: "Geist", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
@@ -135,6 +142,8 @@
   --origin-inherited: #6d7986; --origin-override: #0b6fb8;
   --layer-1: oklch(52% .13 300); --layer-2: oklch(52% .13 160); --layer-3: oklch(52% .13 60);
   --layer-1-soft: oklch(52% .13 300 / .12); --layer-2-soft: oklch(52% .13 160 / .12); --layer-3-soft: oklch(52% .13 60 / .12);
+  --layer-4: oklch(52% .13 200); --layer-5: oklch(52% .13 110); --layer-6: oklch(52% .13 340);
+  --layer-4-soft: oklch(52% .13 200 / .12); --layer-5-soft: oklch(52% .13 110 / .12); --layer-6-soft: oklch(52% .13 340 / .12);
   --shadow-menu: 0 12px 32px rgba(20, 40, 60, .16), 0 0 0 1px var(--line-2);
   --shadow-capsule: 0 6px 20px rgba(20, 40, 60, .14), 0 0 0 1px var(--line-1);
   --shadow-lift: 0 1px 4px rgba(20, 40, 60, .12);

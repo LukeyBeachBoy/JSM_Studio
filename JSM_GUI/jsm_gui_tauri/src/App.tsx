@@ -7,7 +7,7 @@ import { writeLayers, defaultLayer, layerEntries, readLayerActions, setLayerActi
 import { inputDisplayName } from './keymap/inputNames'
 import { SettingOrigins, SettingsInventory } from './components/SettingOrigin'
 import { controllerDisplayName, controllerVisualFamily, getPressedControllerCommandSet } from './utils/controllerStatus'
-import { heldModeshift, shiftTriggerTargets } from './utils/modeshift'
+import { chordTriggerTargets, heldStatus, shiftTriggerTargets } from './utils/modeshift'
 import { TimingPage } from './components/TimingPage'
 import { ControllerPreferences } from './components/ControllerPreferences'
 import { flushSync } from 'react-dom'
@@ -368,6 +368,15 @@ function App() {
     const open = (event: Event) => { setSelectedMenu((event as CustomEvent<string>).detail); setMenusOpen(true) }
     window.addEventListener('jsm:menu-layout', open)
     return () => window.removeEventListener('jsm:menu-layout', open)
+  }, [])
+  // A page asked for from deep inside another (the layer lane's "Go to Layers").
+  useEffect(() => {
+    const open = (event: Event) => {
+      const page = (event as CustomEvent<string>).detail
+      if (ALL_PAGES.some(item => item.tab === page)) setPrimaryTab(page as PrimaryTab)
+    }
+    window.addEventListener('jsm:open-page', open)
+    return () => window.removeEventListener('jsm:open-page', open)
   }, [])
   // Y on a setting with no description yet opens the documentation, at the
   // topic that setting is explained in.
@@ -1184,11 +1193,16 @@ function App() {
   // ---- Shell context: what the title bar, tabs and capsule describe.
   const device = sample?.devices?.[0]
   const controllerFamily = controllerVisualFamily(device?.type)
-  // A modeshift held right now (2a, 2g): the title bar and the capsule keep a
-  // fixed slot for it while the configuration has any, and fill it on hold.
+  // A modeshift or chord button held right now (2a, 2g): the title bar keeps
+  // a fixed slot for it while the configuration has any, and fills it on
+  // hold. The capsule shows the same slot only where the title bar has none
+  // (Home, Studio), so the state is never said twice.
   const shiftTriggers = useMemo(() => shiftTriggerTargets(configText ?? ''), [configText])
-  const heldShift = heldModeshift(shiftTriggers, getPressedControllerCommandSet(device))
-  const shiftStatus = heldShift ? { name: inputDisplayName(heldShift.trigger, controllerFamily), count: heldShift.count } : null
+  const chordTriggers = useMemo(() => chordTriggerTargets(configText ?? ''), [configText])
+  const held = heldStatus(shiftTriggers, chordTriggers, getPressedControllerCommandSet(device))
+  const shiftStatus = held ? { kind: held.kind, name: inputDisplayName(held.trigger, controllerFamily), count: held.count } : null
+  const reserveShiftSlot = shiftTriggers.size > 0 || chordTriggers.size > 0
+  const titleBarShowsShift = !isHomePage(primaryTab) && !isStudioPage(primaryTab)
   const appliedName = mappingEnabled ? appliedProfileLabel(sample?.activeProfile, appliedProfileName)?.replace(/.txt$/i, '') ?? null : null
   // What games get. While Studio is in front the mapper runs AppNavigation,
   // which is Studio's own and never shown; the configuration behind it is the
@@ -1506,7 +1520,7 @@ function App() {
       layers={titleBarLayers}
       layerId={layerId}
       heldShift={shiftStatus}
-      reserveShiftSlot={shiftTriggers.size > 0}
+      reserveShiftSlot={reserveShiftSlot}
       onSelectLayer={selectLayer}
       onManageLayers={() => setLayerManagerOpen(true)}
       onEditApplied={editApplied}
@@ -2411,7 +2425,7 @@ function App() {
                 </>}
             </div>
           </div>
-          <HintCapsule width={shellWidth} family={controllerFamily} controller={Boolean(device)} status={shiftStatus} reserveStatus={shiftTriggers.size > 0} />
+          <HintCapsule width={shellWidth} family={controllerFamily} controller={Boolean(device)} status={titleBarShowsShift ? null : shiftStatus} reserveStatus={!titleBarShowsShift && reserveShiftSlot} />
         </div>
       </div>
       {shellWidth === 'narrow' && (

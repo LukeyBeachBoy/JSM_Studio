@@ -2,7 +2,9 @@ import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { Icon } from '../icons/Icon'
 import { ButtonGlyph, type PadButtonName } from '../glyphs/ButtonGlyph'
+import { useTranslation } from 'react-i18next'
 import { declaredHints } from '../../shell/HintCapsule'
+import { translateHintLabel } from '../../shell/hintLabels'
 
 // The detail sheet (console refinement 1d, §5): 640px from the right edge,
 // over a scrim, below the title bar. It is a focus trap the shell already
@@ -41,6 +43,7 @@ const SHEET_HINTS: SheetHint[] = [
 const FOOTER_BUTTONS: PadButtonName[] = ['A', 'X', 'Y', 'B']
 
 export function Sheet({ open, onClose, eyebrow, title, description, hints = SHEET_HINTS, width = 640, children }: SheetProps) {
+  const { t } = useTranslation()
   const titleId = useId()
   const sheetRef = useRef<HTMLElement>(null)
   const [focused, setFocused] = useState<SheetHint[] | null>(null)
@@ -79,7 +82,7 @@ export function Sheet({ open, onClose, eyebrow, title, description, hints = SHEE
           <span className="eyebrow">{eyebrow}</span>
           <h2 id={titleId} className="sheet__title">{title}</h2>
           {description && <p className="sheet__description">{description}</p>}
-          <button type="button" className="sheet__close" tabIndex={-1} data-nav-skip data-modal-close aria-label="Close" onClick={onClose}>
+          <button type="button" className="sheet__close" tabIndex={-1} data-nav-skip data-modal-close aria-label={t('common.close', 'Close')} onClick={onClose}>
             <Icon name="close" size={18} />
           </button>
         </header>
@@ -87,7 +90,7 @@ export function Sheet({ open, onClose, eyebrow, title, description, hints = SHEE
         {footer.length > 0 && (
           <footer className="sheet__footer" aria-label="Controls">
             {footer.map(hint => (
-              <span key={hint.button} className="sheet__hint"><ButtonGlyph button={hint.button} size={24} />{hint.label}</span>
+              <span key={hint.button} className="sheet__hint"><ButtonGlyph button={hint.button} size={24} />{translateHintLabel(t, hint.label)}</span>
             ))}
           </footer>
         )}

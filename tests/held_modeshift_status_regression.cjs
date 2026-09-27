@@ -51,7 +51,9 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  assert.match(text, /\bV\b/, 'with the shifted value');
  assert.match(await trigger.innerText(), /Held/, 'the trigger says Held');
  assert.match((await status.innerText()).replace(/\s+/g, ' '), /L4 held 2 inputs shifted/);
- assert.match((await capsule.innerText()).replace(/\s+/g, ' '), /L4 held 2 shifted/);
+ // Said once: the title bar has the slot here, so the capsule keeps none.
+ assert.equal(await capsule.locator('.hint-capsule__status').count(), 0, 'the capsule repeats the title bar\'s held status');
+ assert.doesNotMatch((await capsule.innerText()).replace(/\s+/g, ' '), /L4 held/);
  const after = { jump: await jump.boundingBox(), status: await status.boundingBox(), capsule: await capsule.boundingBox() };
  for (const key of ['jump', 'status', 'capsule']) {
   assert.deepEqual([after[key].width, after[key].height].map(Math.round), [before[key].width, before[key].height].map(Math.round), `${key} changed size while L4 was held`);

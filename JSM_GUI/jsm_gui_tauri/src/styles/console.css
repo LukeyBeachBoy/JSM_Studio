@@ -523,6 +523,9 @@ body:has(.menus-overlay) .hint-capsule { visibility: hidden; }
 .titlebar .context-segment--layer[data-layer-slot] { --segment-hue: var(--layer-1); background: var(--layer-1-soft); color: var(--segment-hue); }
 .titlebar .context-segment--layer[data-layer-slot='2'] { --segment-hue: var(--layer-2); background: var(--layer-2-soft); }
 .titlebar .context-segment--layer[data-layer-slot='3'] { --segment-hue: var(--layer-3); background: var(--layer-3-soft); }
+.titlebar .context-segment--layer[data-layer-slot='4'] { --segment-hue: var(--layer-4); background: var(--layer-4-soft); }
+.titlebar .context-segment--layer[data-layer-slot='5'] { --segment-hue: var(--layer-5); background: var(--layer-5-soft); }
+.titlebar .context-segment--layer[data-layer-slot='6'] { --segment-hue: var(--layer-6); background: var(--layer-6-soft); }
 .titlebar .context-segment--layer[data-layer-slot] :is(.context-segment__key, b, svg[data-icon]) { color: var(--segment-hue); }
 .shift-status, .hint-capsule__status {
   display: inline-flex;
@@ -539,5 +542,9 @@ body:has(.menus-overlay) .hint-capsule { visibility: hidden; }
 .hint-capsule__status { width: 180px; }
 .shift-status[data-held='true'], .hint-capsule__status[data-held='true'] { background: var(--shift-soft); box-shadow: var(--shift-glow); }
 .shift-status__fill { display: flex; flex: 1; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; padding: 0 12px; animation: fade-in var(--dur-1) var(--ease-standard); }
-.shift-status__held { display: inline-flex; align-items: center; gap: 6px; overflow: hidden; color: var(--shift); text-overflow: ellipsis; }
-.shift-status__count { color: var(--text-1); }
+/* The slot is fixed; its two texts share it. The name gives way first (it
+   is the one the glow already identifies), the count keeps its digits. */
+.shift-status__held { display: inline-flex; flex: 1 1 auto; align-items: center; gap: 6px; min-width: 0; color: var(--shift); }
+.shift-status__held > svg[data-icon] { flex: none; }
+.shift-status__text { overflow: hidden; min-width: 0; text-overflow: ellipsis; white-space: nowrap; }
+.shift-status__count { flex: 0 1 auto; overflow: hidden; min-width: 3ch; color: var(--text-1); text-overflow: ellipsis; white-space: nowrap; }

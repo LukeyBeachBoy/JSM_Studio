@@ -144,6 +144,9 @@
   --layer-1-ink: oklch(86% .07 300);
   --layer-2-ink: oklch(86% .07 160);
   --layer-3-ink: oklch(86% .07 60);
+  --layer-4-ink: oklch(86% .07 200);
+  --layer-5-ink: oklch(86% .07 110);
+  --layer-6-ink: oklch(86% .07 340);
   --layer-on: #120a1c;
   /* The held-input cap drawn in front of a shifted input (L4 + A). */
   --trigger-cap: #e8eef4;
@@ -166,6 +169,9 @@
   --layer-1-ink: oklch(40% .12 300);
   --layer-2-ink: oklch(40% .12 160);
   --layer-3-ink: oklch(40% .12 60);
+  --layer-4-ink: oklch(40% .12 200);
+  --layer-5-ink: oklch(40% .12 110);
+  --layer-6-ink: oklch(40% .12 340);
   --layer-on: #ffffff;
   --trigger-cap: #141c24;
   --trigger-cap-ink: #ffffff;

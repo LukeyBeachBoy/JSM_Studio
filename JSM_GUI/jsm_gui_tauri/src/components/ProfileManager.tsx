@@ -297,7 +297,7 @@ export function ProfileManager({
           returnFocusTo={() => rowButton(name)}
           align="end"
           ariaLabel={`Options for ${name}`}
-          trigger={<button type="button" className={`icon-button ${styles.options}`} aria-label={`Options for ${name}`} tabIndex={-1} data-nav-skip onClick={() => setSelected(name)}><Icon name="more" size={18} /></button>}
+          trigger={<button type="button" className={`icon-button ${styles.options}`} aria-label={`Options for ${name}`} tabIndex={-1} data-nav-skip onClick={() => setSelected(name)}><Icon name="cog" size={18} /></button>}
           items={[
             { label: 'Duplicate', description: name === currentProfileName ? 'A copy beside it, opened for editing' : 'Open it for editing to duplicate it', disabled: name !== currentProfileName || !onCopyActiveProfile || isCalibrating, onSelect: () => onCopyActiveProfile?.() },
             { label: 'Rename', disabled: isCalibrating, onSelect: () => startRename(name) },

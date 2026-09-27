@@ -13,6 +13,20 @@ export type ConfigLayer = {
   /** Read from older profiles and migrated on write; never written again. */
   trigger?: string; applyTrigger?: string; removeTrigger?: string
 }
+/** How many layer hues the tokens define (`--layer-1` … `--layer-6`). */
+export const LAYER_HUES = 6
+/**
+ * Which hue a layer wears, 1-based: its place in the configuration's list of
+ * layers, wrapping after LAYER_HUES. The one helper for every surface that
+ * colours a layer (tiles, chips, the title bar's segment, the swatches), so
+ * they cannot disagree.
+ */
+export const layerSlotOf = (index: number) => (Math.max(0, index) % LAYER_HUES) + 1
+export const layerSlot = (layers: readonly Pick<ConfigLayer, 'id'>[], layerId: string) =>
+  layerSlotOf(layers.findIndex(layer => layer.id === layerId))
+/** The hue itself, for an inline style: `var(--layer-2)`, or its soft fill. */
+export const layerHue = (slot: number, variant: '' | '-soft' | '-ink' = '') => `var(--layer-${slot}${variant})`
+
 export const layerVerbs = ['hold', 'apply', 'remove', 'toggle'] as const
 export type LayerVerb = (typeof layerVerbs)[number]
 export type LayerAction = { input: string; verb: LayerVerb; layerId: string }

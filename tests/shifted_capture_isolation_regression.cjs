@@ -81,28 +81,31 @@ assert.ok(normalIds.some(id => shiftedIds.includes(id)), 'the ids no longer coll
     };
     const normal = page.locator('details[data-input-command="S"]').first();
 
-    // --- capture on the shifted card -----------------------------------------
-    await shifted.getByRole('button', { name: 'Capture a key' }).click();
-    // Only the row you asked should be waiting for a key.
-    const capturing = await page.locator('[data-command-row][data-capturing="true"]').count();
-    assert.equal(capturing, 1, `${capturing} rows are waiting for the same capture`);
-    assert.equal(await shifted.locator('[data-command-row][data-capturing="true"]').count(), 1, 'the shifted row is not the one waiting');
-    await page.keyboard.press('KeyJ');
-    await page.waitForTimeout(500);
-
-    await page.keyboard.press('Control+s');
-    await page.waitForFunction(() => /RSR,S/.test(window.__lastSaved || ''));
-    const saved = await page.evaluate(() => window.__lastSaved);
-    assert.match(saved, /^RSR,S = J$/m, `the capture did not reach the shifted binding:\n${saved}`);
-    assert.match(saved, /^S = SPACE$/m, `the capture landed on the unshifted binding instead:\n${saved}`);
-
-    // --- and the action picker on the shifted card ---------------------------
+    // --- the action picker on the shifted card -------------------------------
     await pickKey('Tab');
     await page.keyboard.press('Control+s');
     await page.waitForFunction(() => /RSR,S = TAB/.test(window.__lastSaved || ''));
     const withTab = await page.evaluate(() => window.__lastSaved);
     assert.match(withTab, /^RSR,S = TAB$/m, `the picker did not reach the shifted binding:\n${withTab}`);
     assert.match(withTab, /^S = SPACE$/m, `the picker changed the unshifted binding:\n${withTab}`);
+
+    // --- and capture on the shifted card -------------------------------------
+    // "Capture a key" adds a command to the card it is on (binding card
+    // review 1): only that card's Capture button should be listening, and the
+    // key lands on the shifted line, after what it already sends.
+    await shifted.getByRole('button', { name: 'Capture a key' }).click();
+    const capturing = await page.locator('button[data-capturing="true"]').count();
+    assert.equal(capturing, 1, `${capturing} capture buttons are waiting for the same capture`);
+    assert.equal(await shifted.locator('button[data-capturing="true"]').count(), 1, 'the shifted card is not the one waiting');
+    assert.equal(await page.locator('[data-command-row][data-capturing="true"]').count(), 0, 'an existing command is waiting to be overwritten');
+    await page.keyboard.press('KeyJ');
+    await page.waitForTimeout(500);
+
+    await page.keyboard.press('Control+s');
+    await page.waitForFunction(() => /RSR,S = TAB J/.test(window.__lastSaved || ''));
+    const saved = await page.evaluate(() => window.__lastSaved);
+    assert.match(saved, /^RSR,S = TAB J$/m, `the capture did not reach the shifted binding:\n${saved}`);
+    assert.match(saved, /^S = SPACE$/m, `the capture landed on the unshifted binding instead:\n${saved}`);
     assert.ok(await normal.count(), 'the unshifted row disappeared');
 
     assert.deepEqual(errors, []);

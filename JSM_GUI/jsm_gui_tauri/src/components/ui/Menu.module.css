@@ -132,6 +132,9 @@
 .tag[data-tone='layer-1'] { background: var(--layer-1-soft); color: var(--layer-1); }
 .tag[data-tone='layer-2'] { background: var(--layer-2-soft); color: var(--layer-2); }
 .tag[data-tone='layer-3'] { background: var(--layer-3-soft); color: var(--layer-3); }
+.tag[data-tone='layer-4'] { background: var(--layer-4-soft); color: var(--layer-4); }
+.tag[data-tone='layer-5'] { background: var(--layer-5-soft); color: var(--layer-5); }
+.tag[data-tone='layer-6'] { background: var(--layer-6-soft); color: var(--layer-6); }
 
 .chevron {
   display: inline-flex;

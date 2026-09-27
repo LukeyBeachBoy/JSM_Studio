@@ -4,6 +4,7 @@ import { ButtonGlyph } from './glyphs/ButtonGlyph'
 import { ControllerStatusSvg } from './ControllerStatusSvg'
 import { STUDIO_PAGES, type StudioTab } from '../shell/pages'
 import { layerColor } from '../shell/TitleBar'
+import { layerHue, layerSlotOf } from '../utils/layers'
 import type { TelemetryDevice } from '../hooks/useTelemetry'
 import controllerFront from '../assets/steam-controller-front.svg'
 import styles from './HomePage.module.css'
@@ -81,7 +82,7 @@ export function HomePage(props: HomePageProps) {
               </div>
               <span className={styles.subLine}>
                 {props.layer && (
-                  <span className={styles.layerPill} style={{ background: `var(--layer-${(props.layer.colorIndex % 3) + 1}-soft)` }}>
+                  <span className={styles.layerPill} style={{ background: layerHue(layerSlotOf(props.layer.colorIndex), '-soft') }}>
                     <span className={styles.layerDot} style={{ background: layerColor(props.layer.colorIndex) }} aria-hidden="true" />
                     Editing {props.layer.name} layer
                   </span>

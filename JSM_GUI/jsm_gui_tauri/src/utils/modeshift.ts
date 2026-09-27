@@ -311,3 +311,37 @@ export function heldModeshift(triggers: Map<string, Set<string>>, pressed: Set<s
   for (const [trigger, targets] of triggers) if (pressed.has(trigger)) return { trigger, count: targets.size }
   return null
 }
+
+/**
+ * Every input that is part of a chord ("RB+A = X") and the inputs it chords
+ * with, for the same fixed status slot: holding a chord button says
+ * "RB held · 2 chorded" instead of growing a callout.
+ */
+export function chordTriggerTargets(text: string): Map<string, Set<string>> {
+  const triggers = new Map<string, Set<string>>()
+  for (const line of text.split(/\r?\n/)) {
+    const match = line.match(/^\s*([^#=]+?)\s*=\s*(.*)$/)
+    if (!match || !match[1].includes('+') || match[1].includes(',')) continue
+    const members = match[1].split('+').map(part => part.trim().toUpperCase()).filter(Boolean)
+    if (members.length < 2) continue
+    for (const member of members) {
+      if (!triggers.has(member)) triggers.set(member, new Set())
+      members.filter(other => other !== member).forEach(other => triggers.get(member)!.add(other))
+    }
+  }
+  return triggers
+}
+
+/** What the held status slot shows: which kind of relation, its trigger, its count. */
+export type HeldStatus = { kind: 'shift' | 'chord'; trigger: string; count: number }
+
+/**
+ * The first held modeshift trigger, else the first held chord member: one
+ * status at a time, a modeshift first because it changes more.
+ */
+export function heldStatus(shifts: Map<string, Set<string>>, chords: Map<string, Set<string>>, pressed: Set<string>): HeldStatus | null {
+  const shift = heldModeshift(shifts, pressed)
+  if (shift) return { kind: 'shift', ...shift }
+  const chord = heldModeshift(chords, pressed)
+  return chord ? { kind: 'chord', ...chord } : null
+}

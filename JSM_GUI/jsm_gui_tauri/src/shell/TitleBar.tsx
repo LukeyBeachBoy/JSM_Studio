@@ -6,6 +6,8 @@ import { ButtonGlyph } from '../components/glyphs/ButtonGlyph'
 import appMark from '../assets/app-icon-16.svg'
 import type { ShellWidth } from './useShellWidth'
 import { windowControls } from './windowControls'
+import { layerHue, layerSlotOf } from '../utils/layers'
+import type { HeldShiftStatus } from './HintCapsule'
 
 export type MappingPlateState = 'studio' | 'testing' | 'on' | 'off' | 'disconnected'
 export type VirtualOutput = 'NONE' | 'XBOX' | 'DS4'
@@ -32,7 +34,7 @@ export type TitleBarVariant = 'home' | 'editing' | 'studio'
 type TitleBarProps = {
   width: ShellWidth
   /** A modeshift held now: "L4 held · 3 inputs shifted" in a fixed slot. */
-  heldShift?: { name: string; count: number } | null
+  heldShift?: HeldShiftStatus | null
   /** Keep that slot, empty, while the configuration has any modeshift. */
   reserveShiftSlot?: boolean
   frameless: boolean
@@ -78,7 +80,7 @@ export const OUTPUT_DESCRIPTIONS: Record<VirtualOutput, string> = {
   XBOX: 'Games see an Xbox 360 pad',
   DS4: 'Games see a DualShock 4',
 }
-export const layerColor = (index: number) => `var(--layer-${(index % 3) + 1})`
+export const layerColor = (index: number) => layerHue(layerSlotOf(index))
 
 const Chevron = () => <span className="titlebar__chevron" aria-hidden="true"><Icon name="chevronDown" size={16} /></span>
 
@@ -302,7 +304,7 @@ export function TitleBar(props: TitleBarProps) {
           trigger={
             // The layer's own tile colours (2a): its soft fill, its hue, its mark.
             <button type="button" className="context-segment context-segment--layer" disabled={props.editingDisabled} aria-label={`Editing layer: ${currentLayer?.name ?? 'Default'}`} data-hints="A:Open;B:Back"
-              data-layer-slot={currentLayer ? (currentLayer.colorIndex % 3) + 1 : undefined}>
+              data-layer-slot={currentLayer ? layerSlotOf(currentLayer.colorIndex) : undefined}>
               <Icon name="layer" size={14} />
               <span className="context-segment__key">{t('keymap.editingLayerLabel', 'Editing layer:')}</span>
               <b>{currentLayer?.name ?? 'Default'}</b>
@@ -314,8 +316,10 @@ export function TitleBar(props: TitleBarProps) {
           <span className="shift-status" data-held={props.heldShift ? 'true' : undefined} role="status" aria-live="off">
             {props.heldShift && (
               <span key={props.heldShift.name} className="shift-status__fill">
-                <span className="shift-status__held"><Icon name="modeshift" size={14} />{t('keymap.shiftHeld', '{{name}} held', { name: props.heldShift.name })}</span>
-                <span className="shift-status__count">{t('keymap.shiftedInputs', { count: props.heldShift.count, defaultValue: '{{count}} inputs shifted' })}</span>
+                <span className="shift-status__held"><Icon name="modeshift" size={14} /><span className="shift-status__text">{t('keymap.shiftHeld', '{{name}} held', { name: props.heldShift.name })}</span></span>
+                <span className="shift-status__count">{props.heldShift.kind === 'chord'
+                  ? t('keymap.chordedInputs', { count: props.heldShift.count, defaultValue: '{{count}} inputs chorded' })
+                  : t('keymap.shiftedInputs', { count: props.heldShift.count, defaultValue: '{{count}} inputs shifted' })}</span>
               </span>
             )}
           </span>

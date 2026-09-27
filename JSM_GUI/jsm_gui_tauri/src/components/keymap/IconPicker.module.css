@@ -61,7 +61,8 @@
 .tab:hover { background: var(--surface-control); }
 .tab[aria-pressed='true'] { background: var(--accent); color: var(--text-on-accent); }
 
-/* 56 tiles, left-aligned: a short row starts at the left, not the middle. */
+/* 56 tiles, left-aligned: a short row starts at the left, not the middle.
+   The grid is the dialog's scrolling body. */
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, 56px);
@@ -69,9 +70,12 @@
   justify-content: start;
   align-content: start;
   gap: 10px;
+  min-height: 0;
   padding: 20px 24px;
+  overflow-y: auto;
 }
 .tile {
+  position: relative;
   width: 56px;
   height: 56px;
   display: grid;
@@ -79,13 +83,28 @@
   padding: 0;
   border: 0;
   border-radius: var(--r-row);
-  background: #1b232b;
+  background: var(--surface-sunken);
   color: var(--text-1);
   cursor: pointer;
 }
-:root[data-theme='light'] .tile { background: var(--surface-row); }
 .tile:hover { background: var(--surface-row-hover); }
-.tile[aria-pressed='true'] { background: var(--surface-selected); box-shadow: 0 0 0 var(--focus-controller-width) var(--focus-controller); }
+/* The current icon is filled and badged; the ring belongs to focus alone, so
+   a pad user can tell the one they are on from the one they have. */
+.tile[aria-pressed='true'] { background: var(--surface-selected); }
+.tileCheck {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 16px;
+  height: 16px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--text-on-accent);
+}
 .tileGlyph { width: 24px; height: 24px; fill: currentColor; }
+/* "Show more": one full row under the tiles. */
+.more { grid-column: 1 / -1; justify-self: start; }
 
 .status { grid-column: 1 / -1; margin: 0; color: var(--text-3); font-size: var(--fs-hint); }

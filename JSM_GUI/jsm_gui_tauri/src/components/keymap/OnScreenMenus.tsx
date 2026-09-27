@@ -9,6 +9,7 @@ import { resolveIcons, type IconData } from '../../utils/iconLibrary'
 import { menuBox } from '../../utils/padGeometry'
 import { describeScreenPosition } from '../../utils/menuDescriptions'
 import { inputDisplayName } from '../../keymap/inputNames'
+import { layerHue, layerSlotOf } from '../../utils/layers'
 
 // On-screen menus (console refinement 2d, D6): a full-window view, opened from
 // the On-screen menu row of any pad or stick wheel, that draws every menu the
@@ -47,7 +48,7 @@ type Entry = { id: string; key: string; surface: MenuSurface; menu: OverlayMenu 
 const SURFACE_NAMES: Record<OverlayPad, string> = { LEFT: 'Left pad', RIGHT: 'Right pad', LSTICK: 'Left stick wheel', RSTICK: 'Right stick wheel' }
 const splitKey = (key: string) => { const [pad, chord = ''] = key.split(':'); return { pad: pad as OverlayPad, chord } }
 const chordName = (chord: string) => chord.split(/[,+]/).map(part => inputDisplayName(part, 'generic')).join(' + ')
-const layerVar = (index: number | undefined, soft = false) => index === undefined ? undefined : `var(--layer-${(index % 3) + 1}${soft ? '-soft' : ''})`
+const layerVar = (index: number | undefined, soft = false) => index === undefined ? undefined : layerHue(layerSlotOf(index), soft ? '-soft' : '')
 
 export function OnScreenMenus({ open, onClose, configName, origin, originLayerId = '', surfaces, onChange, padAspect }: Props) {
   // Every surface's menus. A layer's menu is listed only where it differs

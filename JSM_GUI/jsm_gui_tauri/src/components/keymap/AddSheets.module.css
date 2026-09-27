@@ -110,3 +110,9 @@
 .verb[aria-checked='true'] { background: var(--verb-hue); color: var(--layer-on); font-weight: var(--fw-bold); }
 .preview { height: 44px; display: flex; align-items: center; gap: 12px; min-width: 0; }
 .previewText { min-width: 0; overflow: hidden; color: var(--text-2); font-size: var(--fs-body); text-overflow: ellipsis; white-space: nowrap; }
+/* "Replaces Hold Vehicles": the one line that warns, in the warning colour. */
+.preview[data-replaces='true'] .previewText { color: var(--warn); }
+
+/* ---- Every input the controller has (3e): what fits no group, and where
+   "Or press it on your controller" cannot help. */
+.holdGroup[data-other='true'] { grid-column: 1 / -1; }

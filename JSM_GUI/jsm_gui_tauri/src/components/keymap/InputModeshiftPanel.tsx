@@ -1,12 +1,12 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AppSelect } from '../ui/AppSelect'
 import { Sheet } from '../ui/Sheet'
 import { Icon } from '../icons/Icon'
 import { InputGlyph } from '../glyphs/InputGlyph'
 import { addModeshift, modeshiftTriggers, readModeshift, removeModeshift, renameModeshift, writeModeshift, type ModeshiftTarget } from '../../utils/modeshift'
 import { heldInput, isReleasedInput, withRelease } from '../../utils/released'
-import { getBindingLabel } from '../../utils/bindingLabels'
+import { getBindingLabel, setBindingLabel } from '../../utils/bindingLabels'
+import { BindingLabelField } from './BindingLabelField'
 import { describeBinding, explainBinding } from '../../utils/bindingDescription'
 import { commandForValue, replaceFirstOutput } from '../../utils/bindingCommands'
 import { parseBindingExpression, serializeBindingToken } from '../../utils/keymap'
@@ -42,6 +42,7 @@ export function InputModeshiftPanel({ button, shortName, ...props }: Props) {
   const [adding, setAdding] = useState<{ step: 'hold' | 'pick'; trigger: string | null } | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
   const [picking, setPicking] = useState<string | null>(null)
+  const laneRef = useRef<HTMLElement>(null)
   const target = useMemo<ModeshiftTarget>(() => ({
     id: button.command,
     title: getButtonDescription(button, t),
@@ -58,7 +59,7 @@ export function InputModeshiftPanel({ button, shortName, ...props }: Props) {
   const pickingValue = picking ? readModeshift(text, picking, command) ?? '' : ''
 
   return (
-    <Lane concept="shift" label={t('keymap.modeshiftsTitle', 'Modeshifts')} count={triggers.length}
+    <Lane ref={laneRef} concept="shift" label={t('keymap.modeshiftsTitle', 'Modeshifts')} count={triggers.length}
       footer={
         <LaneAddButton concept="shift" label={t('keymap.addModeshiftShort', 'Add modeshift')} disabled={!available.length}
           hints={`A:Add modeshift;B:${closeLabel}`} onClick={() => setAdding({ step: 'hold', trigger: null })} />
@@ -134,14 +135,21 @@ export function InputModeshiftPanel({ button, shortName, ...props }: Props) {
       )}
       {editing && triggers.includes(editing) && (
         <ModeshiftSheet {...props} button={button} target={target} trigger={editing} triggers={triggers} shortName={shortName}
-          onClose={() => setEditing(null)} onRename={setEditing} />
+          onClose={() => setEditing(null)} onRename={setEditing}
+          onRemove={() => {
+            // This lane's row only: a shifted card elsewhere can carry the same trigger.
+            const row = laneRef.current?.querySelector<HTMLElement>(`[data-modeshift-row="${CSS.escape(editing)}"]`)
+            const trigger = editing
+            setEditing(null)
+            removeRow(row, () => onChange(previous => removeModeshift(previous, target, trigger)), { afterClose: true })
+          }} />
       )}
     </Lane>
   )
 }
 
-/** A shift's cog (3c): held or released, which input, its commands, Remove. */
-function ModeshiftSheet({ button, target, trigger, triggers, shortName, onClose, onRename, ...props }: Omit<Props, 'shortName'> & {
+/** A shift's cog (3c): held or released, which input, its name, its commands, Remove. */
+function ModeshiftSheet({ button, target, trigger, triggers, shortName, onClose, onRename, onRemove, ...props }: Omit<Props, 'shortName'> & {
   target: ModeshiftTarget
   trigger: string
   triggers: string[]
@@ -149,47 +157,57 @@ function ModeshiftSheet({ button, target, trigger, triggers, shortName, onClose,
   onClose: () => void
   /** The shift's key changed (another input, or held ↔ released). */
   onRename: (trigger: string) => void
+  onRemove: () => void
 }) {
   const { t } = useTranslation()
-  const { onChange, modifiers, controllerFamily = 'generic' } = props
+  const { text, onChange, modifiers, controllerFamily = 'generic' } = props
   const released = isReleasedInput(trigger)
   const held = inputDisplayName(heldInput(trigger), controllerFamily)
-  const choices = modifiers.filter(option => !option.disabled && option.value !== button.command.toUpperCase() &&
-    (option.value === heldInput(trigger) || !triggers.includes(withRelease(option.value, released))))
+  // Changing the held button reuses the add flow's grid (3e), not a list.
+  const [choosingHeld, setChoosingHeld] = useState(false)
   const rename = (next: string) => { onChange(previous => renameModeshift(previous, target, trigger, next)); onRename(next) }
+  const labelKey = `${trigger},${button.command.toUpperCase()}`
+  const label = getBindingLabel(text, labelKey) ?? ''
   return (
     <Sheet open onClose={onClose} width={760}
       eyebrow={t('keymap.modeshiftEyebrow', 'Modeshift · {{input}}', { input: shortName })}
       title={released ? t('keymap.modeshiftWhileReleased', 'While {{trigger}} is released', { trigger: held }) : t('keymap.modeshiftWhileHeld', 'While {{trigger}} is held', { trigger: held })}
       hints={[{ button: 'A', label: t('keymap.sheetSelect', 'Select') }, { button: 'B', label: t('keymap.sheetClose', 'Close') }]}>
       <div className={sheetStyles.sheet} data-capture-ignore="true">
-        <label className={sheetStyles.field}>
+        <div className={sheetStyles.field}>
           <span>{t('keymap.modeshiftHeldButton', 'Held button')}</span>
-          <AppSelect aria-label={t('keymap.modeshiftHeldButton', 'Held button')} value={heldInput(trigger)} onChange={event => rename(withRelease(event.target.value, released))}>
-            {choices.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </AppSelect>
-        </label>
+          <button type="button" className="console-btn console-btn--lg" onClick={() => setChoosingHeld(true)} data-hints="A:Change held button;B:Close">
+            <TriggerCap label={held} size="md" />{t('keymap.modeshiftChangeHeld', 'Change…')}
+          </button>
+        </div>
         <div className={sheetStyles.field}>
           <span>{t('keymap.modeshiftAppliesWhile', 'Applies while it is')}</span>
           <ReleaseSwitch released={released} ariaLabel={`${held}: held or released`}
             disabled={triggers.includes(withRelease(trigger, !released))}
             onChange={next => rename(withRelease(trigger, next))} />
         </div>
+        {/* The shift's own name, the one its row shows (or asks for). */}
+        <label className={sheetStyles.field}>
+          <span>{t('keymap.commandRename', 'Name')}</span>
+          <BindingLabelField value={label} onChange={value => onChange(previous => setBindingLabel(previous, labelKey, value))} className={sheetStyles.nameField} />
+        </label>
         <div className={sheetStyles.field}>
           <span>{t('keymap.modeshiftCommands', 'Commands while held')}</span>
           <ShiftedBinding {...props} target={target} trigger={trigger} button={button} embedded />
         </div>
         <div className={sheetStyles.actions}>
-          <button type="button" className="console-btn console-btn--danger" data-hints="A:Remove modeshift;B:Close"
-            onClick={() => {
-              const row = document.querySelector<HTMLElement>(`[data-modeshift-row="${CSS.escape(trigger)}"]`)
-              onClose()
-              removeRow(row, () => onChange(previous => removeModeshift(previous, target, trigger)))
-            }}>
+          <button type="button" className="console-btn console-btn--danger" data-hints="A:Remove modeshift;B:Close" onClick={onRemove}>
             <Icon name="remove" size={18} />{t('keymap.removeModeshift', 'Remove modeshift')}
           </button>
         </div>
       </div>
+      {choosingHeld && (
+        <AddModeshiftSheet inputName={shortName} command={button.command} family={controllerFamily} modifiers={modifiers}
+          taken={triggers.filter(other => other !== trigger).map(other => heldInput(other))} initial={heldInput(trigger)}
+          eyebrow={t('keymap.modeshiftEyebrow', 'Modeshift · {{input}}', { input: shortName })}
+          onClose={() => setChoosingHeld(false)}
+          onNext={next => { setChoosingHeld(false); if (next !== heldInput(trigger)) rename(withRelease(next, released)) }} />
+      )}
     </Sheet>
   )
 }

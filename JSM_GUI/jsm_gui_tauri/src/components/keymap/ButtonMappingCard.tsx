@@ -75,6 +75,8 @@ type ButtonMappingCardProps = {
 }
 
 const NO_SHIFTS: ModeshiftSummary[] = []
+/** The collapse transition (`--dur-2`, Keymap.module.css). */
+const COLLAPSE_MS = 160
 
 const isTextEntry = (target: EventTarget | null) => {
   const element = target as HTMLElement | null
@@ -113,6 +115,17 @@ export function ButtonMappingCard({
   // Set by the first open or close, so the row's glyph and title animate
   // between their two sizes then -- and not on every row as the page loads.
   const [toggled, setToggled] = useState(false)
+  // The header keeps the card layout until the body has finished folding
+  // (2f): switched on the toggle, it dropped from 72 to 60 while the body was
+  // still shrinking, with the card's corners and shadow going at that moment.
+  const closing = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => () => { if (closing.current) clearTimeout(closing.current) }, [])
+  const setOpenAfterFold = (next: boolean) => {
+    if (closing.current) { clearTimeout(closing.current); closing.current = null }
+    if (next) { setOpen(true); return }
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    closing.current = setTimeout(() => { closing.current = null; setOpen(false) }, reduced ? 0 : COLLAPSE_MS)
+  }
   const [details, setDetails] = useState(false)
   const inputUses = useInputUses(command)
   const { actions, layers } = useContext(LayerUsageContext)
@@ -205,14 +218,14 @@ export function ButtonMappingCard({
 
   return (
     <details ref={detailsRef} onToggle={event => {
-      setOpen(event.currentTarget.open)
+      setOpenAfterFold(event.currentTarget.open)
       setToggled(true)
       // Focus stays on the summary across a toggle, so the capsule is told.
       window.dispatchEvent(new Event('jsm:interaction-hint'))
       if (!event.currentTarget.open) return
       const current = event.currentTarget
       current.parentElement?.querySelectorAll<HTMLDetailsElement>(':scope > details[data-input-command][open]').forEach(other => { if (other !== current) other.open = false })
-    }} data-input-command={command} data-toggled={toggled ? 'true' : undefined} tabIndex={-1} className={`${keymapStyles.keymapRow} ${isCapturing ? keymapStyles.keymapRowCapturing : ''}`}>
+    }} data-input-command={command} data-toggled={toggled ? 'true' : undefined} data-card={open ? 'true' : undefined} tabIndex={-1} className={`${keymapStyles.keymapRow} ${isCapturing ? keymapStyles.keymapRowCapturing : ''}`}>
       <summary ref={summaryRef} className={`binding-summary ${open ? keymapStyles.cardHead : keymapStyles.bindingRow}`} data-hints={hints} data-pad-keys="XY" onKeyDown={onSummaryKey}>
         {open && iconWell
           ? <span className={keymapStyles.iconWell} aria-hidden="true">{iconWell}</span>

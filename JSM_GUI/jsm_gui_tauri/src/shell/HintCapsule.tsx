@@ -4,6 +4,7 @@ import type { ControllerVisualFamily } from '../utils/controllerStatus'
 import { ButtonGlyph, type PadButtonName } from '../components/glyphs/ButtonGlyph'
 import type { ShellWidth } from './useShellWidth'
 import { KEY_FOR_BUTTON, useShowsKeys } from '../nav/inputSource'
+import { onePerButton, parseHints, translateHintLabel, type Hint, type HintButton } from './hintLabels'
 
 // The floating hint capsule (HANDOFF.md, "Shell decisions"): 44px, inset 16px
 // from the bottom of the content column, glyphs 22px. It says what each
@@ -12,8 +13,9 @@ import { KEY_FOR_BUTTON, useShowsKeys } from '../nav/inputSource'
 //
 // Anything focusable can declare its own hints with data-hints="A:Edit;X:Capture;Y:Details;B:Back".
 
-export type HintButton = 'A' | 'B' | 'X' | 'Y' | 'LB/RB' | 'LT/RT' | 'MOVE' | 'VIEW+MENU' | 'VIEW' | 'MENU'
-export type Hint = { button: HintButton; label: string }
+export type { Hint, HintButton } from './hintLabels'
+/** What the fixed status slot says: the held input, and what it does to how many. */
+export type HeldShiftStatus = { kind: 'shift' | 'chord'; name: string; count: number }
 type CapsuleContent = { hints: Hint[]; message?: string }
 
 // The key that does what each button does; every one of them works
@@ -26,29 +28,6 @@ const KEYBOARD: Record<HintButton, string> = {
 
 /** Which page strip is on screen, from the shell's own marker. */
 const pageGroup = () => document.querySelector<HTMLElement>('.app-shell')?.dataset.pageGroup ?? 'controls'
-
-// The order the capsule reads in, whatever order the hints were declared in
-// (binding card refresh 1h). VIEW+MENU is the capture-era pair; it goes last.
-const HINT_ORDER: HintButton[] = ['MOVE', 'A', 'X', 'Y', 'B', 'LB/RB', 'LT/RT', 'MENU', 'VIEW', 'VIEW+MENU']
-
-/** One hint per button, the last one declared, in HINT_ORDER. A row that
- *  names its own B and a component that adds "B:Back" after it must not draw
- *  two; the list is also keyed by button, and a repeated key let React leave
- *  stale copies behind until the capsule read "B Back · B Back · A Select". */
-const onePerButton = (hints: Hint[]): Hint[] => {
-  const last = new Map<HintButton, Hint>()
-  hints.forEach(hint => last.set(hint.button, hint))
-  return [...last.values()].sort((a, b) => HINT_ORDER.indexOf(a.button) - HINT_ORDER.indexOf(b.button))
-}
-
-const parseHints = (value: string): Hint[] => {
-  const hints = onePerButton(value.split(';').map(part => part.split(':')).filter(pair => pair.length === 2)
-    .map(([button, label]) => ({ button: button.trim() as HintButton, label: label.trim() })))
-  // X doing what A does is still true, but saying "A Toggle · X Toggle"
-  // reads as a mistake; the capsule names each action once.
-  const aLabel = hints.find(hint => hint.button === 'A')?.label
-  return hints.filter(hint => hint.button !== 'X' || hint.label !== aLabel)
-}
 
 /** What the focused element declares (it or its nearest ancestor), one hint per button. */
 export const declaredHints = (element: Element | null): Hint[] => {
@@ -148,8 +127,8 @@ type HintCapsuleProps = {
   controller: boolean
   /** Extra context from the shell, e.g. while testing. */
   override?: CapsuleContent
-  /** A modeshift held now: "L4 held · 6 shifted", in a fixed slot (2g). */
-  status?: { name: string; count: number } | null
+  /** A modeshift or chord button held now: "L4 held · 6 shifted", in a fixed slot (2g). */
+  status?: HeldShiftStatus | null
   /** Keep the slot, empty, while the configuration has any modeshift, so
    *  holding one never makes the capsule grow. */
   reserveStatus?: boolean
@@ -192,13 +171,13 @@ export function HintCapsule({ width, family, controller: connected, override, st
   const render = (hint: Hint): ReactNode => (
     <span key={hint.button} className="hint-capsule__item">
       <Badge button={hint.button} family={family} controller={controller} />
-      {!quiet(hint.button) && <span>{hint.label}</span>}
+      {!quiet(hint.button) && <span>{translateHintLabel(t, hint.label)}</span>}
     </span>
   )
 
   return (
-    <div className="hint-capsule" role="status" aria-live="off" aria-label="Controls">
-      {shown.message && <span className="hint-capsule__message">{shown.message}</span>}
+    <div className="hint-capsule" role="status" aria-live="off" aria-label={t('hints.Controls', 'Controls')}>
+      {shown.message && <span className="hint-capsule__message" title={shown.message}>{translateHintLabel(t, shown.message)}</span>}
       {faces.map(render)}
       {steps.length > 0 && faces.length > 0 && <span className="hint-capsule__rule" aria-hidden="true" />}
       {steps.map(render)}
@@ -206,8 +185,10 @@ export function HintCapsule({ width, family, controller: connected, override, st
         <span className="hint-capsule__status" data-held={status ? 'true' : undefined}>
           {status && (
             <span key={status.name} className="shift-status__fill">
-              <span className="shift-status__held">{t('keymap.shiftHeld', '{{name}} held', { name: status.name })}</span>
-              <span className="shift-status__count">{t('keymap.shiftedShort', '{{count}} shifted', { count: status.count })}</span>
+              <span className="shift-status__held"><span className="shift-status__text">{t('keymap.shiftHeld', '{{name}} held', { name: status.name })}</span></span>
+              <span className="shift-status__count">{status.kind === 'chord'
+                ? t('keymap.chordedShort', '{{count}} chorded', { count: status.count })
+                : t('keymap.shiftedShort', '{{count}} shifted', { count: status.count })}</span>
             </span>
           )}
         </span>

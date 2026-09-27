@@ -80,6 +80,11 @@ export function ActionPicker({ inputLabel, layerInput, command, virtualControlle
   const rootRef = useRef<HTMLElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
   const categories: Category[] = ['Gamepad', 'Mouse', 'Keyboard', 'Numpad', ...(onSetActions && layerInput ? ['Layers' as const] : []), 'System', 'JSM', ...(libraryProfiles.length ? ['Configurations' as const] : []), 'Custom']
+  // The tabs in the app's language; JSM is a name.
+  const categoryName = (item: Category) => ({
+    Gamepad: t('keymap.pickerGamepad', 'Gamepad'), Mouse: t('keymap.pickerMouse', 'Mouse'), Keyboard: t('keymap.pickerKeyboard', 'Keyboard'), Numpad: t('keymap.pickerNumpad', 'Numpad'),
+    Layers: t('keymap.pickerLayers', 'Layers'), System: t('keymap.pickerSystemMedia', 'System & media'), JSM: 'JSM', Configurations: t('keymap.pickerConfigurations', 'Configurations'), Custom: t('keymap.pickerCustom', 'Custom'),
+  })[item]
   const glyphs: Record<string, string> = { faceSouth: 'S', faceNorth: 'N', faceWest: 'W', faceEast: 'E', leftBumper: 'L', rightBumper: 'R', leftStickClick: 'L3', rightStickClick: 'R3', back: '-', start: '+', home: 'HOME', dpadUp: 'UP', dpadDown: 'DOWN', dpadLeft: 'LEFT', dpadRight: 'RIGHT', leftTriggerDigital: 'ZL', rightTriggerDigital: 'ZR', padClick: 'CAPTURE' }
   const outputType = virtualControllerType === 'NONE' ? 'XBOX' : virtualControllerType
   const used = useMemo(() => usedTokens(configText), [configText])
@@ -235,10 +240,10 @@ export function ActionPicker({ inputLabel, layerInput, command, virtualControlle
           {command.physicalInput && <InputGlyph command={command.physicalInput} size={36} />}
           <div>
             <span className="action-picker__eyebrow">{inputLabel} · {t(TRIGGER_LABEL_KEYS[command.triggerKind])}</span>
-            <h2 id={title}>Choose an action</h2>
+            <h2 id={title}>{t('keymap.pickerTitle', 'Choose an action')}</h2>
           </div>
         </div>
-        {current && <span className="action-picker__current">Current <kbd className="action-pill">{current}</kbd></span>}
+        {current && <span className="action-picker__current">{t('keymap.pickerCurrent', 'Current')} <kbd className="action-pill">{current}</kbd></span>}
         <label className="action-picker__search">
           <Icon name="search" size={16} />
           {/* Out of the focus walk (Y, the keyboard's Y or a click reach it):
@@ -246,22 +251,22 @@ export function ActionPicker({ inputLabel, layerInput, command, virtualControlle
               on open, and App's focusin handler then selects a text field a
               frame later -- which re-focuses it, undoing the move onto an
               action that the design starts from. */}
-          <input ref={searchRef} type="search" tabIndex={-1} value={query} placeholder="Search all actions" aria-label="Search all actions"
+          <input ref={searchRef} type="search" tabIndex={-1} value={query} placeholder={t('keymap.pickerSearch', 'Search all actions')} aria-label={t('keymap.pickerSearch', 'Search all actions')}
             onChange={event => setQuery(event.target.value)} onKeyDown={onSearchKeyDown} />
         </label>
-        <button type="button" className="ghost-btn" data-modal-close onClick={onClose}>{category === 'Layers' ? 'Done' : 'Cancel'}</button>
+        <button type="button" className="ghost-btn" data-modal-close onClick={onClose}>{category === 'Layers' ? t('common.done', 'Done') : t('common.cancel', 'Cancel')}</button>
       </header>
 
       <nav className="action-picker__tabs" aria-label="Action categories">
         <span className="action-picker__step" aria-hidden="true"><ButtonGlyph button="LB" size={22} /></span>
-        {categories.map(item => <button key={item} type="button" className="action-tab" aria-pressed={!results && category === item} onClick={() => { setQuery(''); setCategory(item) }}>{item === 'System' ? t('keymap.pickerSystemMedia', 'System & media') : item}</button>)}
+        {categories.map(item => <button key={item} type="button" className="action-tab" aria-pressed={!results && category === item} onClick={() => { setQuery(''); setCategory(item) }}>{categoryName(item)}</button>)}
         <span className="action-picker__step" aria-hidden="true"><ButtonGlyph button="RB" size={22} /></span>
         <span className="action-picker__spacer" />
-        {onCapture && <button type="button" className="action-tab" onClick={() => { onClose(); onCapture() }}><ButtonGlyph button="X" size={20} />Capture</button>}
+        {onCapture && <button type="button" className="action-tab" onClick={() => { onClose(); onCapture() }}><ButtonGlyph button="X" size={20} />{t('keymap.pickerCapture', 'Capture')}</button>}
       </nav>
 
       <div className="action-picker__body">
-        <div className="action-picker__content" role="region" aria-label={results ? 'Search results' : `${category === 'System' ? t('keymap.pickerSystemMedia', 'System & media') : category} actions`}>
+        <div className="action-picker__content" role="region" aria-label={results ? t('keymap.pickerSearchResults', 'Search results') : t('keymap.pickerCategoryActions', '{{category}} actions', { category: categoryName(category) })}>
           {results && (results.length
             ? <div className="action-grid">{results.map(choice => choiceButton(choice))}</div>
             : <p className="action-picker-note">No action matches “{query}”. Custom takes any JoyShockMapper token.</p>)}

@@ -1,10 +1,10 @@
-import { useContext, useState, type ReactNode } from 'react'
+import { useContext, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { LayerUsageContext } from '../LayerBar'
 import { AppSelect } from '../ui/AppSelect'
 import { Sheet } from '../ui/Sheet'
 import { Icon } from '../icons/Icon'
-import { actionsOnInput, layerVerbKeys, layerVerbOrder, type LayerAction, type LayerVerb } from '../../utils/layers'
+import { actionsOnInput, layerHue, layerSlot, layerVerbKeys, layerVerbOrder, type LayerAction, type LayerVerb } from '../../utils/layers'
 import { isReleasedInput, withRelease } from '../../utils/released'
 import { Lane, LaneAddButton, laneStyles, removeRow, useJustAdded } from './Lane'
 import { AddLayerActionSheet } from './AddLayerActionSheet'
@@ -40,6 +40,7 @@ export function LayerActionsLane({ command, label, glyph, shortName, longName }:
   const { layers, actions, onSetActions, onSelect, disabled } = useContext(LayerUsageContext)
   const [editing, setEditing] = useState<LayerAction | null>(null)
   const [adding, setAdding] = useState(false)
+  const laneRef = useRef<HTMLElement>(null)
   const mine = actionsOnInput(actions, command)
   const keyOf = (action: LayerAction) => `${action.input}:${action.verb}:${action.layerId}`
   const added = useJustAdded(mine.map(keyOf), key => `[data-layer-key="${CSS.escape(key)}"] button`)
@@ -51,20 +52,38 @@ export function LayerActionsLane({ command, label, glyph, shortName, longName }:
     onSetActions(command, to ? [...rest, to] : rest)
     setEditing(to)
   }
-  // Pressed; "happens on release" is set afterwards in the action's cog.
+  // Pressed; "happens on release" is set afterwards in the action's cog. An
+  // action this input already has for the layer is replaced -- the add sheet
+  // says so before it happens.
   const add = (layerId: string, verb: LayerVerb) => {
     added.expect()
     onSetActions(command, [...mine.filter(action => !(action.layerId === layerId && action.input === command)), { input: command, verb, layerId }])
     setAdding(false)
   }
   const describe = (action: LayerAction) => t(DESCRIPTION_KEYS[action.verb][isReleasedInput(action.input) ? 1 : 0], { input: shortName })
+  // The lane wears the colour of the first layer it names, not always layer 1's.
+  const hue = mine[0] ? layerHue(layerSlot(layers, mine[0].layerId)) : undefined
+  // The row of a removed action, found in this lane only: another card on the
+  // page can hold the same action key.
+  const rowOf = (action: LayerAction) => laneRef.current?.querySelector<HTMLElement>(`[data-layer-key="${CSS.escape(keyOf(action))}"]`)
 
   return (
-    <Lane concept="layer" label={t('keymap.layerActionsHeading', 'Layer actions')} count={mine.length}
+    <Lane ref={laneRef} concept="layer" label={t('keymap.layerActionsHeading', 'Layer actions')} count={mine.length} hue={hue}
       footer={
-        <LaneAddButton concept="layer" label={t('keymap.addLayerAction', 'Add layer action')} disabled={disabled || !layers.length}
-          title={layers.length ? undefined : t('keymap.layerActionNoLayers', 'Create a layer on the Layers page first.')}
-          hints={`A:Add layer action;B:${closeLabel}`} onClick={() => setAdding(true)} />
+        layers.length ? (
+          <LaneAddButton concept="layer" label={t('keymap.addLayerAction', 'Add layer action')} disabled={disabled}
+            hints={`A:Add layer action;B:${closeLabel}`} onClick={() => setAdding(true)} />
+        ) : (
+          // No layers yet: say so where a pad user can read it, with the way
+          // to the Layers page, rather than a disabled button with a tooltip.
+          <div className={laneStyles.empty}>
+            <span className={laneStyles.emptyText}>{t('keymap.layerActionNoLayers', 'Create a layer on the Layers page first.')}</span>
+            <button type="button" className="console-btn" disabled={disabled} data-hints={`A:Go to Layers;B:${closeLabel}`}
+              onClick={() => window.dispatchEvent(new CustomEvent('jsm:open-page', { detail: 'layers' }))}>
+              <Icon name="layer" size={16} />{t('keymap.goToLayers', 'Go to Layers')}
+            </button>
+          </div>
+        )
       }>
       {mine.length > 0 && (
         <div className={laneStyles.rows} aria-label={label}>
@@ -87,18 +106,20 @@ export function LayerActionsLane({ command, label, glyph, shortName, longName }:
           ))}
         </div>
       )}
-      {adding && <AddLayerActionSheet shortName={shortName} longName={longName} onAdd={add} onClose={() => setAdding(false)} />}
-      <LayerActionSheet action={editing} shortName={shortName} onClose={() => setEditing(null)} onChange={replace} />
+      {adding && <AddLayerActionSheet shortName={shortName} longName={longName} existing={mine.filter(action => action.input === command)} onAdd={add} onClose={() => setAdding(false)} />}
+      <LayerActionSheet action={editing} shortName={shortName} onClose={() => setEditing(null)} onChange={replace}
+        onRemove={action => { const row = rowOf(action); setEditing(null); removeRow(row, () => replace(action, null), { afterClose: true }) }} />
     </Lane>
   )
 }
 
 /** A layer action's cog: when it happens, what it does, which layer, Remove. */
-function LayerActionSheet({ action, shortName, onClose, onChange }: {
+function LayerActionSheet({ action, shortName, onClose, onChange, onRemove }: {
   action: LayerAction | null
   shortName: string
   onClose: () => void
   onChange: (from: LayerAction, to: LayerAction | null) => void
+  onRemove: (action: LayerAction) => void
 }) {
   const { t } = useTranslation()
   const { layers } = useContext(LayerUsageContext)
@@ -132,11 +153,7 @@ function LayerActionSheet({ action, shortName, onClose, onChange }: {
           </AppSelect>
         </label>
         <div className={sheetStyles.actions}>
-          <button type="button" className="console-btn console-btn--danger" onClick={() => {
-            const row = document.querySelector<HTMLElement>(`[data-layer-key="${CSS.escape(`${action.input}:${action.verb}:${action.layerId}`)}"]`)
-            onClose()
-            removeRow(row, () => onChange(action, null))
-          }} data-hints="A:Remove;B:Close">
+          <button type="button" className="console-btn console-btn--danger" onClick={() => onRemove(action)} data-hints="A:Remove;B:Close">
             <Icon name="remove" size={18} />{t('keymap.removeLayerAction', 'Remove layer action')}
           </button>
         </div>

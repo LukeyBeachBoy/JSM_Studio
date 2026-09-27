@@ -59,6 +59,9 @@
 }
 .layerTile[data-layer-slot='2'] { --tile-hue: var(--layer-2); background: var(--layer-2-soft); }
 .layerTile[data-layer-slot='3'] { --tile-hue: var(--layer-3); background: var(--layer-3-soft); }
+.layerTile[data-layer-slot='4'] { --tile-hue: var(--layer-4); background: var(--layer-4-soft); }
+.layerTile[data-layer-slot='5'] { --tile-hue: var(--layer-5); background: var(--layer-5-soft); }
+.layerTile[data-layer-slot='6'] { --tile-hue: var(--layer-6); background: var(--layer-6-soft); }
 /* Out-specifies `.binding-summary svg`, which sizes the row's glyph. */
 .layerTile svg[data-icon] { flex: none; width: 14px; height: 14px; color: inherit; }
 .layerTile[data-size='md'] svg[data-icon] { width: 16px; height: 16px; }
@@ -73,6 +76,9 @@
 }
 .layerTile[data-size='md'][data-layer-slot='2'] { color: var(--layer-2-ink); }
 .layerTile[data-size='md'][data-layer-slot='3'] { color: var(--layer-3-ink); }
+.layerTile[data-size='md'][data-layer-slot='4'] { color: var(--layer-4-ink); }
+.layerTile[data-size='md'][data-layer-slot='5'] { color: var(--layer-5-ink); }
+.layerTile[data-size='md'][data-layer-slot='6'] { color: var(--layer-6-ink); }
 
 .moreTile {
   justify-content: center;
@@ -109,12 +115,15 @@
   text-align: left;
 }
 .keycapActivation {
+  overflow: hidden;
   color: var(--command);
   font-size: 8px;
   font-weight: var(--fw-bold);
   letter-spacing: .1em;
   line-height: 10px;
+  text-overflow: ellipsis;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 .keycapKey {
   overflow: hidden;

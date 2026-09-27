@@ -2,7 +2,7 @@ import { useContext } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Icon } from '../icons/Icon'
 import { LayerUsageContext } from '../LayerBar'
-import { layerVerbKeys, type ConfigLayer, type LayerVerb } from '../../utils/layers'
+import { layerSlot, layerVerbKeys, type LayerVerb } from '../../utils/layers'
 import styles from './ConceptTiles.module.css'
 
 // The concept tiles (binding card refresh §1-§3): one look each for a
@@ -10,9 +10,8 @@ import styles from './ConceptTiles.module.css'
 // open card's lanes, the add sheets and Overview, so a modeshift or a layer
 // reads the same wherever it is mentioned.
 
-/** Which of the three layer hues a layer wears: its place in the list. */
-export const layerSlot = (layers: ConfigLayer[], layerId: string) =>
-  (Math.max(0, layers.findIndex(layer => layer.id === layerId)) % 3) + 1
+/** Which layer hue a layer wears; the helper lives with the layers. */
+export { layerSlot }
 
 /** The held input drawn as a white rounded cap: the L4 of "L4 + A". */
 export function TriggerCap({ label, size = 'sm' }: { label: string; size?: 'sm' | 'md' | 'lg' }) {

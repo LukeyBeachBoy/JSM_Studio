@@ -4,7 +4,11 @@ import { listIcons, resolveIcon, resolveIcons, type IconData } from '../../utils
 import { Icon } from '../icons/Icon'
 import { Dialog } from '../ui/Dialog'
 import { ButtonGlyph } from '../glyphs/ButtonGlyph'
+import type { ControllerVisualFamily } from '../../utils/controllerStatus'
 import styles from './IconPicker.module.css'
+
+/** How many icons a page of the grid shows; "Show more" adds another. */
+const PAGE = 160
 
 /** A menu item's icon as drawn on the menu, or the menu mark when it has none. */
 export function BindingIconArt({ value, size = 22 }: { value?: string; size?: number }) {
@@ -42,6 +46,8 @@ type Props = {
   onChange: (icon: string) => void
   /** The menu item's label, for "Icon for “Home”". */
   label?: string
+  /** Whose LB / RB are drawn beside the tabs. */
+  family?: ControllerVisualFamily
 }
 
 /**
@@ -50,7 +56,7 @@ type Props = {
  * searches, A uses the focused icon, X clears it, B cancels. A set is
  * megabytes of JSON; it is only read once the modal opens.
  */
-export function IconPicker({ value, onChange, label }: Props) {
+export function IconPicker({ value, onChange, label, family }: Props) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [current, setCurrent] = useState<IconData | null>(null)
@@ -70,22 +76,28 @@ export function IconPicker({ value, onChange, label }: Props) {
           : <Icon name="overview" size={18} />}
         {t('keymap.changeIcon', 'Change icon')}
       </button>
-      {open && <IconModal value={value} label={label} onClose={() => setOpen(false)} onChange={icon => { onChange(icon); setOpen(false) }} />}
+      {open && <IconModal value={value} label={label} family={family} onClose={() => setOpen(false)} onChange={icon => { onChange(icon); setOpen(false) }} />}
     </>
   )
 }
 
-function IconModal({ value, label, onChange, onClose }: { value: string; label?: string; onChange: (icon: string) => void; onClose: () => void }) {
+function IconModal({ value, label, family, onChange, onClose }: { value: string; label?: string; family?: ControllerVisualFamily; onChange: (icon: string) => void; onClose: () => void }) {
   const { t } = useTranslation()
   const [tab, setTab] = useState<Tab>(() => value.startsWith('game-icons:') ? 'game' : 'general')
   const [query, setQuery] = useState('')
   const [names, setNames] = useState<string[]>([])
   const [art, setArt] = useState<Record<string, IconData>>({})
   const [loading, setLoading] = useState(false)
+  // A bundled set has thousands of icons; the grid shows a page and says
+  // when there are more, rather than stopping at 160 in silence.
+  const [limit, setLimit] = useState(PAGE)
+  const [more, setMore] = useState(false)
   const gridRef = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
   const opening = useRef(true)
+  const glyphFamily = family === 'generic' ? undefined : family
 
+  useEffect(() => { setLimit(PAGE) }, [tab, query])
   useEffect(() => {
     let cancelled = false
     setLoading(true)
@@ -93,16 +105,19 @@ function IconModal({ value, label, onChange, onClose }: { value: string; label?:
     const timer = setTimeout(async () => {
       const needle = query.trim().toLowerCase()
       const set = SET_FOR[tab]
+      // One past the page: that one says whether "Show more" is needed.
       const found = set
-        ? await listIcons(set, query, 160)
+        ? await listIcons(set, query, limit + 1)
         : (CURATED[tab] ?? []).filter(name => !needle || name.includes(needle)).map(name => `lucide:${name}`)
       if (cancelled) return
-      setNames(found)
-      const next = await resolveIcons(found)
+      setMore(found.length > limit)
+      const page = found.slice(0, limit)
+      setNames(page)
+      const next = await resolveIcons(page)
       if (!cancelled) { setArt(previous => ({ ...previous, ...next })); setLoading(false) }
     }, 120)
     return () => { cancelled = true; clearTimeout(timer) }
-  }, [tab, query])
+  }, [tab, query, limit])
 
   // The pad starts on the current icon, else the first one -- not in search.
   useEffect(() => {
@@ -146,19 +161,19 @@ function IconModal({ value, label, onChange, onClose }: { value: string; label?:
               onKeyDown={event => { if (event.key === 'ArrowDown' || (event.key === 'Enter' && names.length)) { event.preventDefault(); gridRef.current?.querySelector<HTMLElement>('button')?.focus() } }} />
           </label>
           <button type="button" className="console-btn" disabled title={t('keymap.iconImportLater', 'Importing your own icons is coming later')}>
-            + {t('keymap.iconImport', 'Import')}
+            {t('keymap.iconImportButton', '+ Import')}
           </button>
         </>
       }
       toolbar={
         <nav className={styles.tabs} aria-label={t('keymap.iconCategories', 'Icon categories')}>
-          <ButtonGlyph button="LB" size={22} />
+          <ButtonGlyph button="LB" size={22} family={glyphFamily} />
           {TABS.map(item => (
             <button key={item.id} type="button" className={styles.tab} aria-pressed={tab === item.id} onClick={() => { setQuery(''); setTab(item.id) }}>
               {t(item.labelKey, item.label)}
             </button>
           ))}
-          <ButtonGlyph button="RB" size={22} />
+          <ButtonGlyph button="RB" size={22} family={glyphFamily} />
         </nav>
       }
       footerNote={t('keymap.iconBundled', 'Bundled with the configuration')}
@@ -179,13 +194,21 @@ function IconModal({ value, label, onChange, onClose }: { value: string; label?:
         {tab !== 'custom' && !loading && names.length === 0 && <p className={styles.status}>{t('keymap.iconNoResults', 'Nothing matched')}</p>}
         {names.map(name => {
           const icon = art[name]
+          const current = name === value
           return (
-            <button key={name} type="button" className={styles.tile} aria-pressed={name === value} title={name.split(':')[1]} aria-label={name.split(':')[1]}
+            // The current icon wears a check badge; the focus ring is focus's alone.
+            <button key={name} type="button" className={styles.tile} aria-pressed={current} title={name.split(':')[1]} aria-label={name.split(':')[1]}
               data-hints="A:Use icon;X:No icon;Y:Search;LB/RB:Category;B:Cancel" onClick={() => onChange(name)}>
               {icon && <svg className={styles.tileGlyph} viewBox={`0 0 ${icon.width} ${icon.height}`} aria-hidden="true" dangerouslySetInnerHTML={{ __html: icon.body }} />}
+              {current && <span className={styles.tileCheck} aria-hidden="true"><Icon name="success" size={12} /></span>}
             </button>
           )
         })}
+        {more && !loading && (
+          <button type="button" className={`console-btn ${styles.more}`} data-hints="A:Show more;X:No icon;Y:Search;LB/RB:Category;B:Cancel" onClick={() => setLimit(current => current + PAGE)}>
+            {t('keymap.iconShowMore', 'Show more')}
+          </button>
+        )}
       </div>
     </Dialog>
   )

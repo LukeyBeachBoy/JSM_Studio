@@ -3,7 +3,7 @@ import * as RadixMenu from '@radix-ui/react-dropdown-menu'
 import { Icon } from '../icons/Icon'
 import styles from './Menu.module.css'
 
-export type MenuTagTone = 'ok' | 'accent' | 'neutral' | 'warn' | 'layer-1' | 'layer-2' | 'layer-3'
+export type MenuTagTone = 'ok' | 'accent' | 'neutral' | 'warn' | 'layer-1' | 'layer-2' | 'layer-3' | 'layer-4' | 'layer-5' | 'layer-6'
 
 export type MenuItem =
   | {

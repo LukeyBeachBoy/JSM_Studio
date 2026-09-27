@@ -108,9 +108,11 @@ export const BindingCommandCard = forwardRef<HTMLDivElement, BindingCommandCardP
   }
   const triggerLabel = t(TRIGGER_LABEL_KEYS[command.triggerKind])
   const behaviorLabel = command.outputBehavior === 'normal' ? '' : t(BEHAVIOR_LABEL_KEYS[command.outputBehavior])
-  const conditionLabel = command.conditionInput
-    ? `${t(conditionPrefixKeys[command.triggerKind] ?? 'keymap.commandCondition')}: ${command.conditionInput}`
-    : ''
+  // The second input of a chord or simultaneous press: its own chip before
+  // the arrow (the keycap keeps its width), the kind in small over the name.
+  const conditionKind = command.conditionInput ? t(conditionPrefixKeys[command.triggerKind] ?? 'keymap.commandCondition') : ''
+  const conditionName = command.conditionInput ? modifierOptions.find(option => option.value === command.conditionInput)?.label.split(' — ')[0] ?? command.conditionInput : ''
+  const conditionLabel = command.conditionInput ? `${conditionKind}: ${conditionName}` : ''
   const virtualLogicalOutput = command.virtualControllerLogicalOutput ?? getVirtualControllerLogicalOutput(command.outputValue)
   const virtualDisplayType = getPreferredVirtualControllerDisplayType(virtualControllerType, command.outputValue)
   // A virtual-controller button is named from the scheme being displayed, so
@@ -159,6 +161,8 @@ export const BindingCommandCard = forwardRef<HTMLDivElement, BindingCommandCardP
   return (
     <>
       <div ref={setRow} className={laneStyles.row} data-kind={glyph ? 'command' : 'command-bare'} data-command-row={command.id}
+        data-condition={conditionLabel ? 'true' : undefined}
+        data-unnamed={glyph && label === undefined ? 'true' : undefined}
         data-just-added={justAdded ? 'true' : undefined}
         data-capturing={isCapturing ? 'true' : undefined}
         data-pad-keys={`${canCaptureHere ? 'X' : ''}Y`}
@@ -192,17 +196,23 @@ export const BindingCommandCard = forwardRef<HTMLDivElement, BindingCommandCardP
         ) : (
           <span className={laneStyles.chip} data-static="true">{triggerLabel}</span>
         )}
+        {conditionLabel && (
+          <span className={laneStyles.condition} title={conditionLabel}>
+            <span className={laneStyles.conditionKind}>{conditionKind}</span>
+            <span>{conditionName}</span>
+          </span>
+        )}
         <span className={laneStyles.arrow} aria-hidden="true">→</span>
         <button type="button" className={laneStyles.keycap} aria-label={`${t('keymap.chooseAction', 'Choose action')}: ${summaryOutput || t('keymap.commandNoOutput')}`}
           title={explainBinding(command.outputValue, t)} data-hints={rowHints}
           onClick={() => canChange ? setPickerOpen(true) : setSettingsOpen(true)}>
-          {conditionLabel && <span className={laneStyles.badge}>{conditionLabel}</span>}
           <span className={`${laneStyles.keycapText} ${summaryOutput ? '' : laneStyles.keycapEmpty}`}>{summaryOutput || t('keymap.commandChooseOutput', 'Choose…')}</span>
           {!command.isRoundTripSafe && <span className={laneStyles.badge}>{t('keymap.commandRawSyntax')}</span>}
         </button>
-        {glyph && (
+        {/* One name per input, on its first row; later rows give the keycap the room. */}
+        {glyph && label !== undefined && (
           <span className={`${laneStyles.text} ${label ? '' : laneStyles.textEmpty}`}>
-            {label === undefined ? '' : label || t('keymap.bindingLabelPlaceholder', 'Name this action')}
+            {label || t('keymap.bindingLabelPlaceholder', 'Name this action')}
           </span>
         )}
         <button type="button" className="console-btn console-btn--icon" aria-label={t('keymap.commandSettings', 'Command settings')}
@@ -224,7 +234,8 @@ export const BindingCommandCard = forwardRef<HTMLDivElement, BindingCommandCardP
         onLabelChange={onLabelChange}
         onDuplicate={() => onDuplicate(command)}
         onCopy={onCopy ? () => onCopy(command) : undefined}
-        onRemove={() => removeRow(rowRef.current, () => onRemove(command))}
+        // The sheet closes first; the removal follows once focus is back on the row.
+        onRemove={() => { const row = rowRef.current; setSettingsOpen(false); removeRow(row, () => onRemove(command), { afterClose: true }) }}
       />
     </>
   )
