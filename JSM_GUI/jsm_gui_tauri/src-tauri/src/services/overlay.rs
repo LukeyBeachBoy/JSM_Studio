@@ -23,6 +23,137 @@ pub const OVERLAY_LABEL: &str = "overlay";
 const MIN_HZ: u32 = 30;
 const MAX_HZ: u32 = 1000;
 
+// TOPMOST is a band, not a promise to stay above every other topmost window.
+// When a borderless-fullscreen game takes focus the shell promotes it to the
+// top of that band, above the overlay and the calibration HUD, and it stays
+// there until something raises them again. Tauri's set_always_on_top(true) is
+// a no-op once the flag is set, so toggling the overlay never recovered it.
+// Keep the repair native: a covered WebView throttles its JS, so it cannot
+// reliably rescue itself.
+pub fn start_stacking_guard(app: AppHandle) {
+    #[cfg(target_os = "windows")]
+    std::thread::spawn(move || loop {
+        refresh_stacking(&app);
+        std::thread::sleep(std::time::Duration::from_millis(250));
+    });
+    #[cfg(not(target_os = "windows"))]
+    let _ = app;
+}
+
+/// Every window of ours that must stay above a game. Hidden ones are skipped
+/// inside `repair`, so this is cheap while nothing is on screen.
+const TOPMOST_LABELS: [&str; 2] = [OVERLAY_LABEL, crate::services::hud::HUD_LABEL];
+
+/// Raise any of our topmost windows that another window has climbed above.
+/// Never shows a hidden window or moves keyboard focus; when nothing covers
+/// them it only reads the z-order.
+pub fn refresh_stacking(app: &AppHandle) {
+    #[cfg(target_os = "windows")]
+    for label in TOPMOST_LABELS {
+        if let Some(window) = app.get_webview_window(label) {
+            if let Ok(hwnd) = window.hwnd() {
+                if let Err(error) = stacking::repair(hwnd.0 as _) {
+                    eprintln!("Could not restore {label} stacking: {error}");
+                }
+            }
+        }
+    }
+    #[cfg(not(target_os = "windows"))]
+    let _ = app;
+}
+
+#[cfg(target_os = "windows")]
+mod stacking {
+    use windows_sys::Win32::{Foundation::{HWND, RECT}, UI::WindowsAndMessaging::{
+        GetWindow, GetWindowLongPtrW, GetWindowRect, IsIconic, IsWindowVisible,
+        SetWindowPos, GWL_EXSTYLE, GW_HWNDPREV, HWND_TOPMOST, SWP_NOACTIVATE,
+        SWP_NOMOVE, SWP_NOSIZE, WS_EX_TOPMOST, WS_EX_TRANSPARENT,
+    }};
+
+    fn overlaps(a: RECT, b: RECT) -> bool {
+        a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
+    }
+
+    pub(super) fn repair(hwnd: HWND) -> Result<bool, std::io::Error> {
+        // HWNDs belong to live Tauri windows. Windows safely rejects a handle
+        // destroyed between this check and SetWindowPos during app shutdown.
+        unsafe {
+            if IsWindowVisible(hwnd) == 0 || IsIconic(hwnd) != 0 { return Ok(false); }
+            let mut bounds = std::mem::zeroed();
+            if GetWindowRect(hwnd, &mut bounds) == 0 { return Err(std::io::Error::last_os_error()); }
+            let mut covered = GetWindowLongPtrW(hwnd, GWL_EXSTYLE) as u32 & WS_EX_TOPMOST == 0;
+            let mut above = GetWindow(hwnd, GW_HWNDPREV);
+            // Bound the walk because other applications can rearrange windows
+            // concurrently. Ignore click-through overlays (Discord etc.) so
+            // two overlays do not endlessly fight over the topmost slot.
+            for _ in 0..256 {
+                if covered || above.is_null() { break; }
+                let style = GetWindowLongPtrW(above, GWL_EXSTYLE) as u32;
+                let mut other = std::mem::zeroed();
+                if style & WS_EX_TRANSPARENT == 0 && IsWindowVisible(above) != 0
+                    && IsIconic(above) == 0 && GetWindowRect(above, &mut other) != 0
+                    && overlaps(bounds, other) {
+                    covered = true;
+                    break;
+                }
+                above = GetWindow(above, GW_HWNDPREV);
+            }
+            if !covered { return Ok(false); }
+            if SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0,
+                SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE) == 0 {
+                return Err(std::io::Error::last_os_error());
+            }
+            Ok(true)
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        use windows_sys::Win32::UI::WindowsAndMessaging::{
+            CreateWindowExW, DestroyWindow, GetForegroundWindow, ShowWindow,
+            SW_HIDE, WS_POPUP, SWP_SHOWWINDOW,
+        };
+
+        // Real Win32 windows: re-create the game's promotion into the topmost
+        // band, then prove repair preserves focus and leaves hidden overlays off.
+        #[test]
+        fn restores_overlay_above_topmost_game_without_taking_focus() {
+            struct Window(HWND);
+            impl Drop for Window { fn drop(&mut self) { unsafe { DestroyWindow(self.0); } } }
+            unsafe {
+                let class: Vec<u16> = "STATIC\0".encode_utf16().collect();
+                let make = |extra| {
+                    let h = CreateWindowExW(WS_EX_TOPMOST | extra, class.as_ptr(), class.as_ptr(),
+                        WS_POPUP, -30000, -30000, 80, 80,
+                        std::ptr::null_mut(), std::ptr::null_mut(), std::ptr::null_mut(), std::ptr::null());
+                    assert!(!h.is_null());
+                    // Show without activating, off screen.
+                    SetWindowPos(h, HWND_TOPMOST, 0, 0, 0, 0,
+                        SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+                    Window(h)
+                };
+                let overlay = make(WS_EX_TRANSPARENT);
+                let game = make(0);
+                let focus = GetForegroundWindow();
+                for _ in 0..5 {
+                    assert_ne!(SetWindowPos(game.0, HWND_TOPMOST, 0, 0, 0, 0,
+                        SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE), 0);
+                    assert!(repair(overlay.0).unwrap());
+                    assert!(!repair(overlay.0).unwrap(), "no repeated raises when already above the game");
+                    assert_eq!(GetForegroundWindow(), focus);
+                }
+                let other_overlay = make(WS_EX_TRANSPARENT);
+                assert!(!repair(overlay.0).unwrap(), "click-through overlays must not cause a z-order fight");
+                drop(other_overlay);
+                ShowWindow(overlay.0, SW_HIDE);
+                assert!(!repair(overlay.0).unwrap());
+                assert_eq!(IsWindowVisible(overlay.0), 0);
+            }
+        }
+    }
+}
+
 fn build(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
     WebviewWindowBuilder::new(app, OVERLAY_LABEL, WebviewUrl::App("overlay.html".into()))
         .title("JSM Studio Overlay")
@@ -62,10 +193,10 @@ pub fn set_enabled(app: &AppHandle, state: &AppState, enabled: bool) -> Result<(
     if enabled {
         let window = ensure(app)?;
         let _ = window.show();
-        // Re-assert after showing: some window managers drop the flag when a
-        // hidden window is first presented.
-        let _ = window.set_always_on_top(true);
         let _ = window.set_ignore_cursor_events(true);
+        // set_always_on_top(true) would be a no-op here: the flag never went
+        // away. What can have changed is the z-order under it.
+        refresh_stacking(app);
     } else {
         if let Some(window) = app.get_webview_window(OVERLAY_LABEL) {
             let _ = window.hide();

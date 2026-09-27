@@ -65,6 +65,9 @@ mod win {
         // Minimising Studio does not always change the foreground window, so
         // every one of these asks the same question afresh.
         if let Some(app) = super::APP.get() {
+            // Every transition matters, including game -> desktop -> game:
+            // both are "not Studio", but a topmost game can cover the overlay.
+            crate::services::overlay::refresh_stacking(app);
             super::settle(app, foreground_is_ours());
         }
     }

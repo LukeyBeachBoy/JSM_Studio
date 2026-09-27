@@ -46,6 +46,7 @@ pub fn run() {
             if let Err(error) = services::overlay::ensure(&app.handle()) {
                 eprintln!("Failed to prepare the trackpad overlay: {error}");
             }
+            services::overlay::start_stacking_guard(app.handle().clone());
             if let Err(error) = services::hud::ensure(&app.handle()) {
                 eprintln!("Failed to prepare the calibration HUD: {error}");
             }

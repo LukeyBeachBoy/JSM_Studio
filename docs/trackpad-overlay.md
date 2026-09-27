@@ -31,6 +31,17 @@ The only way to draw over exclusive fullscreen is to hook the game's
 presentation, which is exactly the thing being avoided. This is a deliberate
 trade, not an oversight.
 
+**Borderless is not free either.** When a borderless-fullscreen game takes
+focus, the shell promotes it to the top of the topmost band, above the overlay
+and the calibration HUD, and it stays there until something raises them again.
+Studio re-raises both windows (`SetWindowPos(HWND_TOPMOST)` with
+`SWP_NOACTIVATE`, so focus never moves) on every foreground change, whenever a
+window is shown, and from a 250 ms guard thread that only acts when a visible,
+non-click-through window overlaps from above (`overlay.rs`,
+`start_stacking_guard`). Tauri's `set_always_on_top(true)` cannot do this: it
+is a no-op once the flag is set, which is why toggling the overlay never
+recovered it.
+
 ## Why it is not capped at 60 Hz
 
 The main UI is throttled on purpose, in three places:

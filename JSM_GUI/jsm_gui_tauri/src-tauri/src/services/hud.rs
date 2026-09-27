@@ -86,8 +86,10 @@ fn show(app: &AppHandle) {
         let _ = window.set_position(tauri::PhysicalPosition::new(x, y));
     }
     let _ = window.show();
-    let _ = window.set_always_on_top(true);
     let _ = window.set_ignore_cursor_events(true);
+    // A fullscreen game may have climbed above us since the last run
+    // (overlay.rs, start_stacking_guard).
+    crate::services::overlay::refresh_stacking(app);
 }
 
 fn hide(app: &AppHandle) {
