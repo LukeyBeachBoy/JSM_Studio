@@ -212,3 +212,22 @@
 
 /* A keycap keeps its own width in a flexible column (the menu item row). */
 .row > .keycap { justify-self: start; }
+
+/* ---- Motion (2f). A new row grows in over 160ms, then glows in its lane's
+   colour, fading over 900ms; a removed row collapses in 160ms and the rows
+   below slide up into its place. */
+.row[data-just-added='true'] {
+  animation: row-grow var(--dur-2) var(--ease-standard), row-glow 900ms var(--ease-standard) var(--dur-2);
+}
+.row[data-removing='true'] { animation: row-out var(--dur-2) var(--ease-exit) forwards; pointer-events: none; }
+@keyframes row-grow { from { height: 0; opacity: 0; } }
+@keyframes row-glow {
+  from { box-shadow: 0 0 0 1px color-mix(in srgb, var(--hue) 60%, transparent), 0 0 22px color-mix(in srgb, var(--hue) 45%, transparent); }
+  to { box-shadow: 0 0 0 1px transparent, 0 0 22px transparent; }
+}
+@keyframes row-out { to { height: 0; opacity: 0; margin-bottom: -8px; } }
+@media (prefers-reduced-motion: reduce) {
+  .row[data-just-added='true'] { animation: chips-fade var(--dur-3) linear; }
+  .row[data-removing='true'] { animation: chips-fade var(--dur-3) linear reverse forwards; }
+}
+@keyframes chips-fade { from { opacity: 0; } }

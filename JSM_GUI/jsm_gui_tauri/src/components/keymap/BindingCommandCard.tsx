@@ -1,11 +1,11 @@
-import { forwardRef, useState, type ReactNode } from 'react'
+import { forwardRef, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { BindingCommand, BindingCommandPatch } from '../../utils/bindingCommands'
 import { Icon } from '../icons/Icon'
 import { Select } from '../ui/Select'
 import { CommandSettingsSheet } from './BindingEditor'
 import { ActionPicker } from './ActionPicker'
-import { laneStyles } from './Lane'
+import { laneStyles, removeRow } from './Lane'
 import { buildTriggerGroups, conditionTriggers, TRIGGER_LABEL_KEYS } from './triggerKinds'
 import {
   getPreferredVirtualControllerDisplayType,
@@ -100,6 +100,12 @@ export const BindingCommandCard = forwardRef<HTMLDivElement, BindingCommandCardP
   const { t } = useTranslation()
   const [pickerOpen, setPickerOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const rowRef = useRef<HTMLDivElement | null>(null)
+  const setRow = (element: HTMLDivElement | null) => {
+    rowRef.current = element
+    if (typeof ref === 'function') ref(element)
+    else if (ref) ref.current = element
+  }
   const triggerLabel = t(TRIGGER_LABEL_KEYS[command.triggerKind])
   const behaviorLabel = command.outputBehavior === 'normal' ? '' : t(BEHAVIOR_LABEL_KEYS[command.outputBehavior])
   const conditionLabel = command.conditionInput
@@ -152,7 +158,7 @@ export const BindingCommandCard = forwardRef<HTMLDivElement, BindingCommandCardP
 
   return (
     <>
-      <div ref={ref} className={laneStyles.row} data-kind={glyph ? 'command' : 'command-bare'} data-command-row={command.id}
+      <div ref={setRow} className={laneStyles.row} data-kind={glyph ? 'command' : 'command-bare'} data-command-row={command.id}
         data-just-added={justAdded ? 'true' : undefined}
         data-capturing={isCapturing ? 'true' : undefined}
         data-pad-keys={`${canCaptureHere ? 'X' : ''}Y`}
@@ -218,7 +224,7 @@ export const BindingCommandCard = forwardRef<HTMLDivElement, BindingCommandCardP
         onLabelChange={onLabelChange}
         onDuplicate={() => onDuplicate(command)}
         onCopy={onCopy ? () => onCopy(command) : undefined}
-        onRemove={() => onRemove(command)}
+        onRemove={() => removeRow(rowRef.current, () => onRemove(command))}
       />
     </>
   )

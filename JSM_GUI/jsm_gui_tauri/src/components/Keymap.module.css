@@ -2436,3 +2436,34 @@
   font: inherit;
   font-size: var(--fs-body);
 }
+
+/* ============ Motion (binding card refresh 2f) ============
+   Expand: the body's height from 0fr to 1fr in 240ms on the emphasis curve,
+   the lanes fading in and rising 4px, 24ms apart, the first at 40ms; the
+   card's shadow grows with it. Collapse: 160ms on the exit curve, no stagger,
+   and the closed row's chips fade back in. */
+.keymapRow::details-content {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--dur-2) var(--ease-exit), content-visibility var(--dur-2) var(--ease-exit) allow-discrete;
+}
+.keymapRow[open]::details-content {
+  grid-template-rows: 1fr;
+  transition-duration: var(--dur-3);
+  transition-timing-function: var(--ease-emphasis);
+}
+.keymapRow > :global(.binding-detail) { min-height: 0; overflow: hidden; }
+.keymapRow { transition: box-shadow var(--dur-3) var(--ease-emphasis), background var(--dur-3) var(--ease-emphasis); }
+.keymapRow[open] > .cardBody > * { animation: lane-in var(--dur-3) var(--ease-emphasis) both; animation-delay: 40ms; }
+.keymapRow[open] > .cardBody > :nth-child(2) { animation-delay: calc(40ms + var(--stagger)); }
+.keymapRow[open] > .cardBody > :nth-child(3) { animation-delay: calc(40ms + var(--stagger) * 2); }
+.keymapRow[open] > .cardBody > :nth-child(4) { animation-delay: calc(40ms + var(--stagger) * 3); }
+@keyframes lane-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.bindingRow .rowExtras, .bindingRow .rowOutput { animation: chips-in var(--dur-2) var(--ease-standard); }
+@keyframes chips-in { from { opacity: 0; } }
+
+/* Reduced motion: heights snap; only opacity fades, and briefly. */
+@media (prefers-reduced-motion: reduce) {
+  .keymapRow::details-content, .keymapRow[open]::details-content { transition: none; }
+  .keymapRow[open] > .cardBody > * { animation: chips-in var(--dur-3) linear both; animation-delay: 0ms; }
+}

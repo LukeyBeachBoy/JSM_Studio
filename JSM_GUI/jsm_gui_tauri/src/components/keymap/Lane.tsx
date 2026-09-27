@@ -97,3 +97,33 @@ export function useJustAdded(ids: string[], focusSelector: (id: string) => strin
   }, [justAdded])
   return { justAdded, expect: () => { before.current = new Set(ids) } }
 }
+
+/**
+ * Remove a row (2f): it collapses, then the removal is written, then focus
+ * goes to the row that took its place, or the lane's Add button when it was
+ * the last. Rows are re-keyed by a removal, so this goes by position in the
+ * lane, not by element.
+ */
+export function removeRow(row: HTMLElement | null | undefined, remove: () => void) {
+  const lane = row?.closest<HTMLElement>('section[data-concept]')
+  if (!row || !lane) { remove(); return }
+  const index = [...lane.querySelectorAll('[data-kind]')].indexOf(row)
+  let done = false
+  const finish = () => {
+    if (done) return
+    done = true
+    remove()
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      // A removal that did not happen leaves the row: show it again.
+      if (row.isConnected) delete row.dataset.removing
+      const rows = [...lane.querySelectorAll<HTMLElement>('[data-kind]')]
+      const target = rows[index] ?? null
+      const focusable = target?.querySelector<HTMLElement>('button:not(:disabled)') ?? lane.querySelector<HTMLElement>('button[data-concept]')
+      focusable?.focus()
+    }))
+  }
+  row.addEventListener('animationend', finish, { once: true })
+  row.dataset.removing = 'true'
+  // Reduced motion, or no animation at all: do not wait for one.
+  setTimeout(finish, 260)
+}

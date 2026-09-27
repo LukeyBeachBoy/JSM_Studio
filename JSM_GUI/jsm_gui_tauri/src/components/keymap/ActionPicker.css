@@ -245,3 +245,6 @@ body[data-input-source='controller'] .action-choice:focus {
   text-align: left;
 }
 .action-tile svg { color: var(--text-2); }
+
+/* The scrim fades in 160ms; the picker scales from .96 over 240ms (2f). */
+.action-picker-overlay { animation-duration: var(--dur-2); }

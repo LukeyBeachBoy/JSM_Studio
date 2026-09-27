@@ -15,7 +15,7 @@ import { getActionSpecialOptionList, getButtonDescription, type ButtonDefinition
 import { ReleaseSwitch } from './ReleaseSwitch'
 import { ShiftedBinding, type InputModeshiftsProps } from './InputModeshifts'
 import { ActionPicker } from './ActionPicker'
-import { Lane, LaneAddButton, laneStyles, useJustAdded } from './Lane'
+import { Lane, LaneAddButton, laneStyles, removeRow, useJustAdded } from './Lane'
 import { AddModeshiftSheet } from './AddModeshiftSheet'
 import { TriggerCap } from './ConceptTiles'
 import { OriginMarker } from './OriginMarker'
@@ -181,7 +181,11 @@ function ModeshiftSheet({ button, target, trigger, triggers, shortName, onClose,
         </div>
         <div className={sheetStyles.actions}>
           <button type="button" className="console-btn console-btn--danger" data-hints="A:Remove modeshift;B:Close"
-            onClick={() => { onChange(previous => removeModeshift(previous, target, trigger)); onClose() }}>
+            onClick={() => {
+              const row = document.querySelector<HTMLElement>(`[data-modeshift-row="${CSS.escape(trigger)}"]`)
+              onClose()
+              removeRow(row, () => onChange(previous => removeModeshift(previous, target, trigger)))
+            }}>
             <Icon name="remove" size={18} />{t('keymap.removeModeshift', 'Remove modeshift')}
           </button>
         </div>

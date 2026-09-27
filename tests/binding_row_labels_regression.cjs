@@ -98,7 +98,10 @@ const STEAM = 24;
     // --- a modeshift names its trigger the same way --------------------------
     // The shift lives in the input's own editor (Binding Editor 7a).
     await page.locator('details[data-input-command="N"] > summary').first().click();
-    const shiftRow = (await page.locator('details[data-input-command="N"] [data-modeshift-row]').first().innerText()).replace(/\s+/g, ' ').trim();
+    // The card's body grows open (2f); read the row once it is shown.
+    await page.locator('details[data-input-command="N"] [data-modeshift-row]').first().waitFor({ state: 'visible' });
+    await page.waitForFunction(() => (document.querySelector('details[data-input-command="N"] [data-modeshift-row]')?.innerText ?? '').trim().length > 0);
+    const shiftRow =(await page.locator('details[data-input-command="N"] [data-modeshift-row]').first().innerText()).replace(/\s+/g, ' ').trim();
     assert.ok(!/RSR|Paddle 1/.test(shiftRow), `the trigger should use the pad's own name: ${shiftRow}`);
     assert.match(shiftRow, /R4/, `a Steam Controller calls it R4: ${shiftRow}`);
     // Its cog opens the shift's own card (3c).

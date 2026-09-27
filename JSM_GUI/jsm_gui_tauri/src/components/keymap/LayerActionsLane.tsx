@@ -6,7 +6,7 @@ import { Sheet } from '../ui/Sheet'
 import { Icon } from '../icons/Icon'
 import { actionsOnInput, layerVerbKeys, layerVerbOrder, type LayerAction, type LayerVerb } from '../../utils/layers'
 import { isReleasedInput, withRelease } from '../../utils/released'
-import { Lane, LaneAddButton, laneStyles, useJustAdded } from './Lane'
+import { Lane, LaneAddButton, laneStyles, removeRow, useJustAdded } from './Lane'
 import { AddLayerActionSheet } from './AddLayerActionSheet'
 import { LayerTile } from './ConceptTiles'
 import { ReleaseSwitch } from './ReleaseSwitch'
@@ -132,7 +132,11 @@ function LayerActionSheet({ action, shortName, onClose, onChange }: {
           </AppSelect>
         </label>
         <div className={sheetStyles.actions}>
-          <button type="button" className="console-btn console-btn--danger" onClick={() => { onChange(action, null); onClose() }} data-hints="A:Remove;B:Close">
+          <button type="button" className="console-btn console-btn--danger" onClick={() => {
+            const row = document.querySelector<HTMLElement>(`[data-layer-key="${CSS.escape(`${action.input}:${action.verb}:${action.layerId}`)}"]`)
+            onClose()
+            removeRow(row, () => onChange(action, null))
+          }} data-hints="A:Remove;B:Close">
             <Icon name="remove" size={18} />{t('keymap.removeLayerAction', 'Remove layer action')}
           </button>
         </div>
