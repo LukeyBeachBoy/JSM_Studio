@@ -5,7 +5,7 @@ import type { TelemetrySample } from '../hooks/useTelemetry'
 import { PadNavigator, type NavAction, type PadButton } from './padNavigator'
 import { NAV_SKIP_SELECTOR, pageEntryTarget } from '../hooks/useKeyboardNav'
 import { isStudioNavigationProfile } from '../utils/appliedProfile'
-import { lastPageControl, restingAnchor } from './navAnchor'
+import { restingAnchor } from './navAnchor'
 import { cancelScroll, ensureVisible, watchManualScroll } from './scroller'
 import { padFeedback } from './feedback'
 
@@ -35,6 +35,10 @@ type Options = {
   /** True when the section changed (false at either end), for the haptic. */
   onSectionStep: (delta: 1 | -1) => boolean | void
   onExitTest: () => void
+  /** View: Home, from anywhere (console refinement D10). */
+  onHome: () => void
+  /** Menu: the Configuration menu, where there is a configuration to act on. */
+  onMenu: () => boolean | void
 }
 
 export type InputSource = 'controller' | 'keyboard' | 'mouse'
@@ -93,7 +97,6 @@ const padOwnedElsewhere = (activeProfile: unknown) => {
 export function useControllerNavigation(options: Options) {
   const latest = useRef(options)
   latest.current = options
-  const titleBarReturn = useRef<HTMLElement | null>(null)
 
   // Which input moved focus last decides which ring shows (HANDOFF.md,
   // "Focus model": hover fill, keyboard outline, controller fill + ring).
@@ -138,25 +141,29 @@ export function useControllerNavigation(options: Options) {
       if (active.matches(CLICKABLE)) active.click()
     }
 
-    const toggleTitleBar = () => {
-      const bar = document.querySelector<HTMLElement>('.titlebar')
-      if (!bar) return
-      const active = document.activeElement as HTMLElement | null
-      if (active && bar.contains(active)) {
-        const back = titleBarReturn.current
-        titleBarReturn.current = null
-        // Back to the last control used in the page, however focus reached
-        // the title bar.
-        const target = lastPageControl() ?? (back?.isConnected ? back : null)
-        if (target) { target.focus({ preventScroll: true }); ensureVisible(target) }
-        else enterPage()
-        return
+    // View is Home from anywhere: whatever is open over the page (a menu, a
+    // sheet, a dialog) is closed first, the way B would close it, so Home is
+    // never reached with something half-open behind it. Up still reaches
+    // the title bar.
+    // React takes the closed layer off the page a moment after B, so each
+    // step waits a frame before looking again.
+    const nextFrame = () => new Promise<void>(resolve => setTimeout(resolve, 20))
+    const goHome = async () => {
+      for (let guard = 0; guard < 6 && overlayOpen(); guard++) {
+        const count = document.querySelectorAll('.modal-overlay, [data-focus-trap="true"], [data-radix-popper-content-wrapper]').length
+        sendKey('Escape')
+        await nextFrame()
+        // Nothing closed: something open will not go (capture, a busy dialog).
+        if (overlayOpen() && document.querySelectorAll('.modal-overlay, [data-focus-trap="true"], [data-radix-popper-content-wrapper]').length >= count) return
       }
-      titleBarReturn.current = active && active !== document.body ? active : null
-      focusables(bar)[0]?.focus()
+      if (!overlayOpen()) latest.current.onHome()
     }
 
     const scroll = (dx: number, dy: number) => {
+      // A value being moved by hand (a menu's position) takes the right stick
+      // for itself: it resizes rather than scrolling the page.
+      const moving = (document.activeElement as HTMLElement | null)?.closest<HTMLElement>('[data-adjusting="true"][data-stick-adjust="true"]')
+      if (moving) { moving.dispatchEvent(new CustomEvent('jsm:stick-adjust', { detail: { dx, dy }, cancelable: true })); return }
       const popover = document.querySelector<HTMLElement>('[data-radix-popper-content-wrapper] [role="menu"], [data-radix-popper-content-wrapper] [role="listbox"]')
       const host = popover ?? (document.activeElement as HTMLElement | null)?.closest<HTMLElement>('.shell-scroll, .modal-card, .drawer') ?? document.querySelector<HTMLElement>('.shell-scroll')
       // The stick is the person steering: any jump in flight gives way.
@@ -234,14 +241,12 @@ export function useControllerNavigation(options: Options) {
           return
         }
         case 'VIEW':
-          if (!overlayOpen()) { toggleTitleBar(); padFeedback('titleBar') }
+          padFeedback('titleBar')
+          void goHome()
           return
         case 'MENU': {
           if (overlayOpen()) return
-          const actions = document.querySelector('.page-header__actions')
-          const first = actions && focusables(actions)[0]
-          first?.focus()
-          if (first) padFeedback('titleBar', 'right')
+          padFeedback(latest.current.onMenu() === false ? 'edge' : 'titleBar', 'right')
           return
         }
       }

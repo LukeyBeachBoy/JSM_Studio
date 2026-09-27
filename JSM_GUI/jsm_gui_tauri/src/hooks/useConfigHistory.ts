@@ -30,5 +30,7 @@ export function useConfigHistory() {
     render(next)
   }
   return { text, setText, reset, undo: () => travel(false), redo: () => travel(true),
-    canUndo: state.current.past.length > 0, canRedo: state.current.future.length > 0 }
+    canUndo: state.current.past.length > 0, canRedo: state.current.future.length > 0,
+    // What Undo and Redo would put back, so the Configuration menu can name it.
+    undoTarget: state.current.past[state.current.past.length - 1], redoTarget: state.current.future[state.current.future.length - 1] }
 }

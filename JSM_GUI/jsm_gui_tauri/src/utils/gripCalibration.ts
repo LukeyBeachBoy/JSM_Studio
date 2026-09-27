@@ -12,3 +12,17 @@ const fromPercent = (value: string, high: number, span: number) => {
 }
 export const gripRangeRaw = (value: string) => fromPercent(value, 400, 375)
 export const gripGuardRaw = (value: string) => fromPercent(value, 100, 75)
+
+// Unset: the controller keeps its own value (hooks/useGripConfig's GRIP_FIRMWARE_DEFAULT).
+const FIRMWARE_DEFAULT = -1
+
+/** The Grip sensors row's line on Buttons › Grips: "Touch 62% · release 40 ms". */
+export const gripSensorsSummary = (range?: number, leftDelay?: string, rightDelay?: string) => {
+  const percent = gripRangePercent(range ?? FIRMWARE_DEFAULT)
+  const left = Number.parseFloat(leftDelay ?? '') || 0
+  const right = Number.parseFloat(rightDelay ?? '') || 0
+  return [
+    percent === undefined ? 'Controller’s own sensitivity' : `Sensitivity ${percent}%`,
+    left === right ? `release ${left} ms` : `release ${left} / ${right} ms`,
+  ].join(' · ')
+}

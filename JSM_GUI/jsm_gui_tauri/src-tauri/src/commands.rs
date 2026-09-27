@@ -1228,3 +1228,19 @@ JSM_CONTROLLER_LIST_END
 pub fn set_default_polling_ms(app: AppHandle, value: f64) -> CommandResult<runtime::RuntimeMappingState> {
     runtime::set_default_polling_ms(&app, value)
 }
+
+/// The global timing store (console refinement D8). Saved, then handed to the
+/// running mapper at once through StudioDefaults.txt, the way controller
+/// preferences are, so a change takes effect without applying a profile.
+#[tauri::command(async)]
+pub fn set_global_timing(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    timing: runtime::GlobalTiming,
+) -> CommandResult<runtime::RuntimeMappingState> {
+    let saved = runtime::set_global_timing(&app, timing)?;
+    if saved.mapping_enabled {
+        let _ = jsm_process::inject_console_command(&app, state.inner(), "StudioDefaults.txt");
+    }
+    Ok(saved)
+}

@@ -40,6 +40,8 @@ const stub = () => {
         const errors = []; page.on('pageerror', e => errors.push(e.message));
         await page.addInitScript(stub);
         await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
+        // The app opens on Home (console refinement 2a); these checks start in the editing shell.
+        await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
         await page.locator('.profile-chip').filter({ hasText: 'Desktop' }).waitFor();
         // Narrow windows fold the page tabs into the navigation drawer, so the
         // page buttons only exist once it is open.

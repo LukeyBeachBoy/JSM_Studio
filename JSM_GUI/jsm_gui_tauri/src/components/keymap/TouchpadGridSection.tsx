@@ -6,6 +6,8 @@ import { KeymapSection } from '../KeymapSection'
 import keymapStyles from '../Keymap.module.css'
 import styles from './Touchpad.module.css'
 import { SectionActions } from '../SectionActions'
+import { SummaryRow } from '../ui/SummaryRow'
+import { describeMenuPlacement } from '../../utils/menuDescriptions'
 import {
   hitTestRegion,
   radialDividerStyle,
@@ -165,7 +167,8 @@ export function TouchpadGridSection({
           </div>
           <div className={styles.regionSide}>
             {selectedButton && <div className={styles.touchpadRegionEditor}>{renderButton(selectedButton, { defaultOpen: true })}</div>}
-            <button type="button" className="button button--tertiary button--sm" onClick={() => window.dispatchEvent(new CustomEvent('jsm:menu-layout', { detail: `${menu.pad}${menu.layer ? ':' + menu.layer : ''}` }))}>Appearance &amp; Position</button>
+            <SummaryRow label="On-screen menu" hint={describeMenuPlacement(menu)} value="Arrange" hints="A:Arrange;B:Back"
+              onActivate={() => window.dispatchEvent(new CustomEvent('jsm:menu-layout', { detail: `${menu.pad}${menu.layer ? ':' + menu.layer : ''}` }))} />
           </div>
         </div> : <>
         <div className={styles.touchpadGridPreviewWrap} style={{ ['--pad-aspect' as string]: String(padAspect) } as CSSProperties}>

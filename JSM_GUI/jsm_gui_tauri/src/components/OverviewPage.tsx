@@ -292,7 +292,7 @@ export function OverviewPage({ devices, onNavigate, configText, onSelectCommand,
           {keycap && !activation && plain.length > 1 && <span className={styles.more}>+{plain.length - 1}</span>}
         </span>
       )}
-    </button>{entry.hasUses && <button type="button" className={styles.inspect} aria-label={`Show uses of ${command}`} onClick={() => window.dispatchEvent(new CustomEvent('jsm:input-uses', { detail: command }))}>Inspect uses</button>}</div>
+    </button>{entry.hasUses && <button type="button" className={styles.inspect} aria-label={`Show uses of ${inputName(command, family)}`} onClick={() => window.dispatchEvent(new CustomEvent('jsm:input-uses', { detail: command }))}>Inspect uses</button>}</div>
   }
 
   const modeLine = (modeKey: string | undefined, items: string[]) => {

@@ -86,6 +86,11 @@ const DEFAULT_CHORD_PROFILE_LINES: [&str; 12] = [
 ];
 
 fn default_polling_ms() -> f64 { 3.0 }
+// JoyShockMapper's own defaults, in milliseconds (main.cpp's JSMSetting values).
+fn default_hold_press_ms() -> f64 { 150.0 }
+fn default_dbl_press_ms() -> f64 { 150.0 }
+fn default_sim_press_ms() -> f64 { 50.0 }
+fn default_turbo_period_ms() -> f64 { 80.0 }
 
 fn default_calibration_seconds() -> f64 { DEFAULT_CALIBRATION_SECONDS as f64 }
 
@@ -152,6 +157,28 @@ pub struct RuntimeMappingState {
     pub autoload_fallback_profile: Option<String>,
     #[serde(default)]
     pub autoload_fallback_enabled: bool,
+    /// Press timing shared by every configuration (console refinement D8):
+    /// written to StudioDefaults.txt, which every applied profile includes
+    /// first, so a profile that still sets its own line wins while it runs.
+    #[serde(default = "default_hold_press_ms")]
+    pub hold_press_ms: f64,
+    #[serde(default = "default_dbl_press_ms")]
+    pub dbl_press_ms: f64,
+    #[serde(default = "default_sim_press_ms")]
+    pub sim_press_ms: f64,
+    #[serde(default = "default_turbo_period_ms")]
+    pub turbo_period_ms: f64,
+}
+
+/// Any of the global timing values, as the Timing page changes them one at a time.
+#[derive(Clone, Debug, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GlobalTiming {
+    pub polling_ms: Option<f64>,
+    pub hold_press_ms: Option<f64>,
+    pub dbl_press_ms: Option<f64>,
+    pub sim_press_ms: Option<f64>,
+    pub turbo_period_ms: Option<f64>,
 }
 
 /// The fallback as the UI sees it: a library profile name, or none.
@@ -1343,11 +1370,34 @@ pub fn set_controller_nav_enabled(
 }
 
 pub fn set_default_polling_ms(app: &AppHandle, value: f64) -> Result<RuntimeMappingState, String> {
-    if !value.is_finite() || !(1.0..=100.0).contains(&value) {
-        return Err("Polling interval must be between 1 and 100 ms".to_string());
-    }
+    set_global_timing(app, GlobalTiming { polling_ms: Some(value), ..GlobalTiming::default() })
+}
+
+/// The global timing store: validates what changed, keeps it with the rest of
+/// Studio's state and rewrites StudioDefaults.txt from it.
+pub fn set_global_timing(app: &AppHandle, timing: GlobalTiming) -> Result<RuntimeMappingState, String> {
+    let check = |value: Option<f64>, range: std::ops::RangeInclusive<f64>, what: &str| -> Result<(), String> {
+        match value {
+            Some(v) if !v.is_finite() || !range.contains(&v) => Err(format!("{what} must be between {} and {} ms", range.start(), range.end())),
+            _ => Ok(()),
+        }
+    };
+    check(timing.polling_ms, 1.0..=100.0, "Polling interval")?;
+    check(timing.hold_press_ms, 1.0..=5000.0, "Hold time")?;
+    check(timing.dbl_press_ms, 1.0..=5000.0, "Double-press window")?;
+    check(timing.sim_press_ms, 1.0..=5000.0, "Simultaneous-press window")?;
+    check(timing.turbo_period_ms, 1.0..=5000.0, "Turbo period")?;
     let mut state = read_runtime_mapping_state(app)?;
-    state.default_polling_ms = value;
+    if let Some(value) = timing.polling_ms { state.default_polling_ms = value; }
+    if let Some(value) = timing.hold_press_ms { state.hold_press_ms = value; }
+    if let Some(value) = timing.dbl_press_ms { state.dbl_press_ms = value; }
+    if let Some(value) = timing.sim_press_ms { state.sim_press_ms = value; }
+    if let Some(value) = timing.turbo_period_ms { state.turbo_period_ms = value; }
+    // JoyShockMapper refuses a hold time at or under the simultaneous-press
+    // window; say so here rather than have the mapper drop the line.
+    if state.hold_press_ms <= state.sim_press_ms {
+        return Err(format!("Hold time must be longer than the simultaneous-press window ({} ms)", state.sim_press_ms));
+    }
     persist_runtime_mapping_state(app, &state)?;
     ensure_runtime_support_files(app, &read_backend_choice(app)?)?;
     Ok(state)
@@ -1457,9 +1507,15 @@ fn mapping_disabled_text() -> String {
 }
 
 fn studio_defaults_text(state: &RuntimeMappingState) -> String {
+    // The simultaneous-press window goes before the hold time: the mapper
+    // rejects a hold time that is not longer than it.
     format!(
-        "# JSM Studio global defaults\nTICK_TIME = {}\nGYRO_CALIBRATION_DELAY = {}\nGYRO_CALIBRATION_TIME = {}\nCONNECT_SOUND = {}\nSHUTDOWN_SOUND = {}\n",
+        "# JSM Studio global defaults\nTICK_TIME = {}\nSIM_PRESS_WINDOW = {}\nHOLD_PRESS_TIME = {}\nDBL_PRESS_WINDOW = {}\nTURBO_PERIOD = {}\nGYRO_CALIBRATION_DELAY = {}\nGYRO_CALIBRATION_TIME = {}\nCONNECT_SOUND = {}\nSHUTDOWN_SOUND = {}\n",
         state.default_polling_ms,
+        state.sim_press_ms,
+        state.hold_press_ms,
+        state.dbl_press_ms,
+        state.turbo_period_ms,
         state.gyro_calibration_delay,
         state.gyro_calibration_seconds,
         state.connect_sound,
@@ -1635,6 +1691,10 @@ fn default_runtime_mapping_state(app: &AppHandle) -> Result<RuntimeMappingState,
         studio_navigation_migrated: true,
         autoload_fallback_profile: None,
         autoload_fallback_enabled: false,
+        hold_press_ms: default_hold_press_ms(),
+        dbl_press_ms: default_dbl_press_ms(),
+        sim_press_ms: default_sim_press_ms(),
+        turbo_period_ms: default_turbo_period_ms(),
     })
 }
 
@@ -1972,6 +2032,27 @@ fn normalize_backend_choice(choice: &str) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The global timing store (console refinement D8) reaches every profile
+    /// through StudioDefaults.txt. A state saved before it existed reads as
+    /// JoyShockMapper's own defaults, and the simultaneous-press window is
+    /// written before the hold time, which the mapper refuses unless it is
+    /// longer.
+    #[test]
+    fn studio_defaults_carry_the_global_timing() {
+        let state: RuntimeMappingState = serde_json::from_str(
+            r#"{"activeProfilePath":"profiles-library/Wardogs.txt","mappingEnabled":true,"autoloadEnabled":true}"#,
+        )
+        .expect("an older state file still parses");
+        assert_eq!((state.hold_press_ms, state.dbl_press_ms, state.sim_press_ms, state.turbo_period_ms), (150.0, 150.0, 50.0, 80.0));
+        let text = studio_defaults_text(&state);
+        for line in ["TICK_TIME = 3", "SIM_PRESS_WINDOW = 50", "HOLD_PRESS_TIME = 150", "DBL_PRESS_WINDOW = 150", "TURBO_PERIOD = 80"] {
+            assert!(text.lines().any(|candidate| candidate == line), "missing {line} in {text}");
+        }
+        let sim = text.find("SIM_PRESS_WINDOW").unwrap();
+        let hold = text.find("HOLD_PRESS_TIME").unwrap();
+        assert!(sim < hold, "the simultaneous-press window must be set before the hold time");
+    }
 
     /// A reader racing the writer must see the whole old file or the whole new
     /// one, never an empty or partial one.

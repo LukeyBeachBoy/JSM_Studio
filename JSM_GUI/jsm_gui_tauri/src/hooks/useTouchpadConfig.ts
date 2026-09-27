@@ -36,7 +36,7 @@ export function useTouchpadConfig({ configText, readText, setConfigText }: Touch
     const parts = (read(keyName.TOUCHPAD_SENS, pad) ?? '').trim().split(/\s+/).map(v => Number.parseFloat(v))
     const x = Number.isFinite(parts[0]) ? parts[0] : undefined
     const y = Number.isFinite(parts[1]) ? parts[1] : x
-    return { x, y }
+    return { x, y, ySet: Number.isFinite(parts[1]) }
   }
     const acceleration = (pad?: Pad) => { const n = Number.parseFloat(read(keyName.TOUCHPAD_ACCELERATION, pad) ?? ''); return Number.isFinite(n) ? n : undefined }
   // These are global in JoyShockMapper -- there are no LEFT_/RIGHT_ variants --
@@ -107,7 +107,7 @@ export function useTouchpadConfig({ configText, readText, setConfigText }: Touch
     const n = Number.parseFloat(v)
     if (!Number.isFinite(n)) return
     const x = axis === 'x' ? n : (cur.x ?? n)
-    const y = axis === 'y' ? n : (cur.y ?? n)
+    const y = axis === 'y' ? n : cur.ySet ? (cur.y ?? n) : n
     // Emit the pair only when the axes differ, so single-value configs stay single-value.
     update(keyName.TOUCHPAD_SENS, x === y ? String(x) : `${x} ${y}`, pad)
     // eslint-disable-next-line react-hooks/exhaustive-deps

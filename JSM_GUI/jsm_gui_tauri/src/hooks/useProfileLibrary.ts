@@ -70,6 +70,9 @@ export function useProfileLibrary({ resetConfigHistory, configText, setConfigTex
     void desktopBridge.getActiveProfile().then(profile => {
       if (!profile) return
       setAppliedProfileName(profile.name)
+      // The active profile is what the mapper was started with, so the state
+      // button can say "✓ Applied" from launch rather than "Apply Wardogs".
+      setRuntimeConfig(current => current ?? profile.content)
       if (selection.current === request) selectProfile(profile)
     })
   }, [refreshLibraryProfiles, selectProfile])
@@ -202,10 +205,26 @@ export function useProfileLibrary({ resetConfigHistory, configText, setConfigTex
     else report(t('messages.copyProfileFailed'), true)
     return profile
   }
+  // Save as copy (1e): the edits on screen go to a new file beside this one,
+  // which becomes the one being edited; the original keeps what it had.
+  const handleSaveAsCopy = async (text: string) => {
+    const base = editor.current.currentLibraryProfile
+    if (!base) return null
+    const taken = new Set((await desktopBridge.listLibraryProfiles()).map(name => name.toLowerCase()))
+    let name = `${base} copy`
+    for (let n = 2; taken.has(name.toLowerCase()); n++) name = `${base} copy ${n}`
+    const serialized = serializeConfig(parseConfigText(ensureHeaderLines(text)))
+    const result = await desktopBridge.saveLibraryProfile(name, serialized)
+    if (!result) { report(t('messages.saveProfileFailed'), true); return null }
+    await refreshLibraryProfiles()
+    await handleLoadProfileFromLibrary(result.name, true)
+    report(`Saved as ${result.name}`)
+    return result.name
+  }
   return {
     libraryProfiles, isLibraryLoading, editedLibraryNames, currentLibraryProfile, activeProfilePath,
     appliedProfileName, runtimeConfig, refreshLibraryProfiles, applyConfig, saveConfig, handleLoadProfileFromLibrary,
     handleLibraryProfileNameChange: (name: string, value: string) => setEditedLibraryNames(prev => ({ ...prev, [name]: value })),
-    handleCreateProfile, handleRenameProfile, handleDeleteLibraryProfile, handleImportProfile, handleCopyActiveProfile,
+    handleCreateProfile, handleRenameProfile, handleDeleteLibraryProfile, handleImportProfile, handleCopyActiveProfile, handleSaveAsCopy,
   }
 }

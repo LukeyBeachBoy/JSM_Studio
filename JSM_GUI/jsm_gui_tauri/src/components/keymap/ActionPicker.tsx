@@ -8,9 +8,11 @@ import { loadConfigBindingValue } from '../../utils/loadConfigBinding'
 import { InputLayerActions, LayerUsageContext } from '../LayerBar'
 import { MAIN_ROWS, NAV_ROWS, NUMPAD_ROWS, MEDIA_KEYS } from './KeyboardBindingModal'
 import { mouseOptions, wheelOptions, builtInCommandOptions } from './actionCatalog'
+import { COMMAND_LABELS } from '../../utils/commandLabels'
 import './ActionPicker.css'
 import { TRIGGER_LABEL_KEYS } from './triggerKinds'
 import { InputGlyph } from '../glyphs/InputGlyph'
+import { ButtonGlyph } from '../glyphs/ButtonGlyph'
 import { Icon } from '../icons/Icon'
 import { PAD_EVENT, type PadEventDetail } from '../../nav/useControllerNavigation'
 
@@ -99,8 +101,9 @@ export function ActionPicker({ inputLabel, layerInput, command, virtualControlle
       Layers: [],
       System: [...MEDIA_KEYS, { token: 'SCREENSHOT', label: 'Screenshot' }].filter(key => key.token !== 'SPACER').map(keyChoice),
       JSM: [
+        ...builtInCommandOptions.filter(token => token === 'CALIBRATE_GYRO').map(token => ({ key: `command:${token}`, label: COMMAND_LABELS[token].label, token, kind: 'command' as const, describe: COMMAND_LABELS[token].describe, commit: () => pick('command', token) })),
         ...specialOptions.map(option => ({ key: `special:${option.value}`, label: option.label, token: option.value, kind: 'special' as const, describe: option.label, disabled: option.disabled, commit: () => pick('special', option.value) })),
-        ...builtInCommandOptions.map(token => ({ key: `command:${token}`, label: token.toLowerCase().replace(/_/g, ' '), token, kind: 'command' as const, describe: 'JoyShockMapper command', commit: () => pick('command', token) })),
+        ...builtInCommandOptions.filter(token => token !== 'CALIBRATE_GYRO').map(token => ({ key: `command:${token}`, label: COMMAND_LABELS[token]?.label ?? token.toLowerCase().replace(/_/g, ' '), token, kind: 'command' as const, describe: COMMAND_LABELS[token]?.describe ?? 'JoyShockMapper command', commit: () => pick('command', token) })),
         { key: 'led', label: `LED brightness ${led}%`, token: ledToken, kind: 'command' as const, describe: 'Sets the Steam Controller light while this input fires', commit: () => pick('command', ledToken) },
       ],
       Configurations: libraryProfiles.map(name => ({ key: `config:${name}`, label: name, token: loadConfigBindingValue(name), kind: 'loadConfig' as const, describe: `Loads ${name}`, commit: () => pick('loadConfig', loadConfigBindingValue(name)) })),
@@ -231,11 +234,11 @@ export function ActionPicker({ inputLabel, layerInput, command, virtualControlle
       </header>
 
       <nav className="action-picker__tabs" aria-label="Action categories">
-        <b className="trigger-mark action-picker__step" aria-hidden="true">LB</b>
+        <span className="action-picker__step" aria-hidden="true"><ButtonGlyph button="LB" size={22} /></span>
         {categories.map(item => <button key={item} type="button" className="action-tab" aria-pressed={!results && category === item} onClick={() => { setQuery(''); setCategory(item) }}>{item}</button>)}
-        <b className="trigger-mark action-picker__step" aria-hidden="true">RB</b>
+        <span className="action-picker__step" aria-hidden="true"><ButtonGlyph button="RB" size={22} /></span>
         <span className="action-picker__spacer" />
-        {onCapture && <button type="button" className="action-tab" onClick={() => { onClose(); onCapture() }}><b className="hint-face" aria-hidden="true">X</b>Capture</button>}
+        {onCapture && <button type="button" className="action-tab" onClick={() => { onClose(); onCapture() }}><ButtonGlyph button="X" size={20} />Capture</button>}
         <button type="button" className="action-tab" onClick={() => { onClose(); onAdvanced() }}>Custom / raw</button>
       </nav>
 

@@ -30,6 +30,8 @@ type Props = {
   onApply: () => void
   onCancel: () => void
   applyDisabled?: boolean
+  /** Inside the Mouse feel sheet: no section title, no Save/Cancel (the state button owns them). */
+  embedded?: boolean
 }
 
 // The trackpad mouse's acceleration curve: the same editor the gyro uses, with
@@ -47,6 +49,7 @@ export function TouchpadAccelSection({
   onApply,
   onCancel,
   applyDisabled,
+  embedded = false,
 }: Props) {
   const { t } = useTranslation()
   const link = normalizeAccelCurveLink(accelCurveLink)
@@ -82,8 +85,8 @@ export function TouchpadAccelSection({
     <>
       <KeymapSection
         className="tuning-group"
-        title={t('touchpadAccel.title')}
-        description={t('touchpadAccel.description')}
+        title={embedded ? '' : t('touchpadAccel.title')}
+        description={embedded ? '' : t('touchpadAccel.description')}
       >
         <AccelCurveEditor
           side="touchpad"
@@ -158,14 +161,14 @@ export function TouchpadAccelSection({
         </div>
         <p>Finger Speed: <strong>{(liveSpeed ?? 0).toFixed(2)} px/s</strong></p>
       </KeymapSection>
-      <SectionActions
+      {!embedded && <SectionActions
         className={keymapStyles.keymapSectionActions}
         hasPendingChanges={hasPendingChanges}
         statusMessage={statusMessage}
         onApply={onApply}
         onCancel={onCancel}
         applyDisabled={applyDisabled}
-      />
+      />}
     </>
   )
 }

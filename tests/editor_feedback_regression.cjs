@@ -24,36 +24,89 @@ const fs = require('node:fs');
   }};
  });
  await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
+ // The app opens on Home (console refinement 2a); these checks start in the editing shell.
+ await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
 
  await page.locator('.profile-chip').filter({hasText:'Desktop'}).waitFor();
  assert.equal(await page.getByRole('button',{name:'Controller status',exact:true}).count(),0);
  await page.getByRole('button',{name:'Trackpads',exact:true}).click();
  const right=page.locator('#trackpad-right'), left=page.locator('#trackpad-left');
  await right.waitFor();
- const sens=right.getByRole('textbox',{name:'Horizontal sensitivity',exact:true});
- await sens.fill('3.3'); await sens.press('Tab');
- await right.getByText('Unsaved changes',{exact:true}).waitFor();
- assert.equal(await left.getByText('Unsaved changes',{exact:true}).count(),0,'unrelated pad is dirty');
+ // Trackpads (console refinement 2b): each pad is a column of summary rows. A
+ // value is adjusted in its row -- Enter to adjust, arrows to step, Enter to
+ // keep, Escape to put it back -- and a row whose value is not Default says
+ // where it comes from on its second line instead of the hint.
+ const sheet=page.locator('.sheet');
+ const row=(scope,label)=>scope.locator('button.summary-row').filter({has:page.locator('.summary-row__label').getByText(label,{exact:true})}).first();
+ const rowValue=async r=>(await r.locator('.summary-row__value').innerText()).trim();
+ const rowLine=r=>r.locator('.summary-row__hint');
+ const stateButton=page.locator('.state-button');
+ const padSens=row(right,'Sensitivity');
+ const leftBefore=await left.innerText();
+ assert.equal(await rowValue(padSens),'1.00×');
+ assert.equal(await rowLine(padSens).getAttribute('data-tone'),null,'an unset sensitivity shows its hint, not an origin');
+ // Sensitivity opens its own sheet, with a row per axis.
+ await padSens.click();
+ await sheet.getByRole('heading',{name:'Right pad · Sensitivity'}).waitFor();
+ const sens=row(sheet,'Horizontal sensitivity');
+ const adjustSens=async(steps,finish='Enter')=>{
+  await sens.focus(); await page.keyboard.press('Enter');
+  await page.waitForFunction(()=>document.activeElement?.getAttribute('data-adjusting')==='true');
+  for(let i=0;i<Math.abs(steps);i++) await page.keyboard.press(steps>0?'ArrowRight':'ArrowLeft');
+  await page.keyboard.press(finish);
+  await page.waitForFunction(()=>document.activeElement?.getAttribute('data-adjusting')!=='true');
+ };
+ await adjustSens(1);
+ assert.equal(await rowValue(sens),'1.05×');
+ assert.equal(await rowLine(sens).getAttribute('data-tone'),'changed');
+ assert.equal(await rowLine(sens).innerText(),'Changed in Desktop');
+ await page.keyboard.press('Escape');
+ await sheet.waitFor({state:'detached'});
+ // The edit shows on its own pad's row and nowhere else.
+ assert.equal(await rowValue(padSens),'1.05×');
+ assert.equal(await rowLine(padSens).innerText(),'Changed in Desktop');
+ assert.equal(await left.innerText(),leftBefore,'unrelated pad changed');
+ // One state button says what it will do (1e).
+ await page.waitForFunction(()=>document.querySelector('.state-button')?.textContent==='Apply 1 change');
  await page.keyboard.press('Control+z');
- await page.waitForFunction(()=>!document.querySelector('#trackpad-right')?.textContent.includes('Unsaved changes'));
+ await page.waitForFunction(()=>!/^Apply \d+ change/.test(document.querySelector('.state-button')?.textContent??''));
+ assert.equal(await rowValue(padSens),'1.00×','undo restores the pad');
  await page.keyboard.press('Control+Shift+z');
- await right.getByText('Unsaved changes',{exact:true}).waitFor();
+ await page.waitForFunction(()=>document.querySelector('.state-button')?.textContent==='Apply 1 change');
+ assert.equal(await rowValue(padSens),'1.05×','redo reapplies it');
  await page.keyboard.press('Control+Shift+a');
  await page.waitForFunction(()=>window.__calls.includes('apply'));
  assert.deepEqual(await page.evaluate(()=>window.__calls),['apply']);
- await right.getByText('Unsaved changes',{exact:true}).waitFor();
+ assert.equal(await stateButton.innerText(),'Apply 1 change','applying is not saving');
  await page.keyboard.press('Control+s');
  await page.waitForFunction(()=>window.__calls.includes('save'));
  assert.deepEqual(await page.evaluate(()=>window.__calls),['apply','save']);
- // Save and Apply are separate buttons that each name what they act on. With
- // nothing unsaved, Save stays focusable but idle and says why (design 2a).
- const saveButton = page.getByRole('button',{name:'Save configuration',exact:true});
- assert.equal(await saveButton.getAttribute('data-reason'),'No unsaved changes');
- await sens.fill('3.4'); await sens.press('Tab');
- await right.getByText('Unsaved changes',{exact:true}).waitFor();
- await saveButton.click();
+ // Save moved off the title bar into the Configuration menu (1e), reached from
+ // the configuration chip. With nothing unsaved it stays focusable but idle
+ // and says why.
+ const openConfigMenu=async()=>{
+  await page.locator('.profile-chip').click();
+  await page.getByRole('menuitem',{name:/^Configuration menu…/}).click();
+  await page.locator('.config-menu').waitFor();
+ };
+ const saveItem=page.locator('.config-menu__item').filter({hasText:'Save without applying'});
+ await openConfigMenu();
+ assert.equal(await saveItem.getAttribute('aria-disabled'),'true');
+ assert.equal(await saveItem.getAttribute('data-reason'),'No unsaved changes');
+ await page.keyboard.press('Escape');
+ await page.locator('.config-menu').waitFor({state:'detached'});
+ await padSens.click();
+ await adjustSens(1);
+ await page.keyboard.press('Escape');
+ await sheet.waitFor({state:'detached'});
+ await page.waitForFunction(()=>document.querySelector('.state-button')?.textContent==='Apply 1 change');
+ await openConfigMenu();
+ assert.equal(await saveItem.getAttribute('aria-disabled'),null);
+ await saveItem.click();
  await page.waitForFunction(()=>window.__calls.length===3);
- await page.getByRole('button',{name:'Apply',exact:true}).click();
+ // Saved but not running: the state button names the configuration it applies.
+ assert.equal(await stateButton.innerText(),'Apply Desktop');
+ await stateButton.click();
  await page.waitForFunction(()=>window.__calls.length===4);
  assert.deepEqual(await page.evaluate(()=>window.__calls),['apply','save','save','apply']);
  // A shift starts in the mode the pad is already in -- a modeshift is this
@@ -64,30 +117,54 @@ const fs = require('node:fs');
  // A trigger is named for the controller that is connected, so the mocked
  // Steam Controller calls its top-left bumper LB rather than "L1 / LB".
  await page.getByRole('option',{name:/top-left bumper/}).click();
- // The shift is the pad section itself, so its mode picker is the pad's own.
+ // The shift is the pad section itself, so its Mode row is the pad's own.
  const shiftCard = right.locator('details[data-modeshift="L"]');
  assert.match(await shiftCard.locator(':scope > summary').innerText(),/While\s+LB\s+is held/,'the shift is announced by its held input');
- const shiftMode = shiftCard.getByRole('combobox',{name:/pad Mode$/});
+ const shiftMode = shiftCard.locator('button.summary-row[data-input-command="L,RIGHT_PAD"]');
  await shiftMode.waitFor();
- assert.match(await shiftMode.innerText(),/Mouse/,'a new shift should inherit the pad’s current mode');
+ assert.equal(await rowValue(shiftMode),'Mouse','a new shift should inherit the pad’s current mode');
+ // Mode opens the Mode sheet; the mode is a choice adjusted in its row.
  await shiftMode.click();
- await page.getByRole('option',{name:'Grid and Stick',exact:true}).click();
- await right.getByRole('textbox',{name:'Columns',exact:true}).waitFor();
+ await sheet.getByRole('heading',{name:'Right pad · Mode'}).waitFor();
+ const modeRow=row(sheet,'Mode');
+ await modeRow.focus(); await page.keyboard.press('Enter');
+ await page.keyboard.press('ArrowLeft');
+ await page.keyboard.press('Enter');
+ assert.equal(await rowValue(modeRow),'Menu');
+ // A menu's layout rows appear in the same sheet once the pad is a menu.
+ await row(sheet,'Columns').waitFor();
+ await page.keyboard.press('Escape');
+ await sheet.waitFor({state:'detached'});
  // Nothing is bound in the shift yet, so there is no menu to draw; the
- // region's own row is there, keyed by the shifted input.
- await shiftCard.locator('details[data-input-command="L,RT1"]').waitFor();
+ // region's own row is there, keyed by the shifted input, and its binding
+ // editor opens in a sheet.
+ const shiftRegion=shiftCard.locator('button.summary-row').filter({has:page.locator('.summary-row__label').getByText(/^Region 1 · /)});
+ await shiftRegion.waitFor();
+ // Checked at the end, so the rest of the page is still exercised meanwhile.
+ const shiftRegionKey=await shiftRegion.getAttribute('data-input-command');
+ await shiftRegion.click();
+ await sheet.locator('details[data-input-command="L,RT1"]').waitFor();
+ await page.keyboard.press('Escape');
+ await sheet.waitFor({state:'detached'});
  await page.keyboard.press('Control+s');
  await page.waitForFunction(()=>/L\s*,\s*RIGHT_TOUCHPAD_MODE = GRID_AND_STICK/.test(window.__lastSaved));
- // Tuning pages sit behind the Tuning tab's menu.
- await page.getByRole('button',{name:/^Tuning/}).click();
- await page.getByRole('menuitem',{name:'Trackpad tuning'}).click();
- await page.getByRole('navigation',{name:'Trackpad tuning sections'}).waitFor();
- await page.getByText('420.00 px/s',{exact:true}).waitFor();
- // A setting's description sits under its row (Gyro.dc.html); there is no help dialog to open.
- await page.locator('#touch-release').getByText(/Below this finger speed/).waitFor();
+ // Trackpad tuning is the Mouse feel sheet now (2c), opened from the row
+ // under a pad set to Mouse; its scope strip says which pads it touches.
+ await row(right,'Mouse feel').click();
+ await sheet.getByRole('heading',{name:'Mouse feel'}).waitFor();
+ await sheet.locator('.scope-tile[data-state="uses"]').filter({hasText:'Right pad · Mouse · uses this'}).waitFor();
+ await sheet.locator('.scope-tile[data-state="not"]').filter({hasText:'Left pad · Menu · not affected'}).waitFor();
+ // The live finger-speed readout sits with the acceleration curve.
+ await row(sheet,'Acceleration curve').click();
+ await sheet.getByText('420.00 px/s',{exact:true}).waitFor();
+ // A setting's description is X (What's this?) on its row; there is no help dialog to open.
+ const lift=row(sheet,'Lift-off protection');
+ await lift.focus(); await page.keyboard.press('x');
+ await sheet.locator('.summary-row__help').getByText(/Below this finger speed/).waitFor();
  const artifacts=path.resolve(__dirname,'../tmp/feedback-review'); fs.mkdirSync(artifacts,{recursive:true});
- await page.evaluate(()=>{document.querySelector('.shell-scroll').scrollTop=0});
  await page.screenshot({path:path.join(artifacts,'trackpad-tuning.png'),fullPage:true});
+ await page.keyboard.press('Escape');
+ await sheet.waitFor({state:'detached'});
  await page.getByRole('button',{name:'Triggers',exact:true}).click();
  // Threshold and release tuning now folds away behind its own disclosure.
  await page.locator('summary').filter({hasText:'Threshold & release'}).first().click();
@@ -100,10 +177,34 @@ const fs = require('node:fs');
  await page.keyboard.press('Control+s');
  await page.waitForFunction(()=>window.__lastSaved.includes('TRIGGER_HYSTERESIS = 0.03'));
  // Debug Console now lives under the app-level Studio context, not the
- // per-configuration rail.
- await page.locator('.titlebar__brand').click();
- await page.getByRole('button',{name:'Debug console',exact:true}).click();
+ // per-configuration rail: the Home chip, then its Studio tile (2a).
+ await page.locator('.home-chip').click();
+ await page.getByRole('button',{name:/^Debug console/}).click();
  await page.getByLabel('JoyShockMapper live console').filter({hasText:'Mapper ready'}).waitFor();
+ // A shift's region row is the shifted input: the shell finds inputs by
+ // data-input-command (jump-to-input, focus restore), and "RT1" there would be
+ // the unshifted region, which this row does not edit.
+ assert.equal(shiftRegionKey,'L,RT1','the shift’s region row must be keyed by the shifted input');
+ // Stepping a value in its row, on a fresh copy of the configuration. Several
+ // steps are several writes, and none of them may leave anything behind:
+ // TOUCHPAD_SENS = 1.1 means both axes, so stepping Horizontal from 1.00 twice
+ // must not strand Vertical at the first step, and Escape must leave the file
+ // exactly as it was, not write the starting value into it.
+ await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
+ await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
+ await page.locator('.profile-chip').filter({hasText:'Desktop'}).waitFor();
+ await page.getByRole('button',{name:'Trackpads',exact:true}).click();
+ await padSens.click();
+ await sheet.getByRole('heading',{name:'Right pad · Sensitivity'}).waitFor();
+ await adjustSens(3,'Escape');
+ assert.equal(await rowValue(sens),'1.00×','Escape reverts an adjustment');
+ assert.match(await stateButton.innerText(),/Applied|Apply Desktop/,'Escape after adjusting an unset value must leave the file unchanged');
+ await adjustSens(2);
+ assert.equal(await rowValue(sens),'1.10×');
+ assert.equal(await rowValue(row(sheet,'Vertical sensitivity')),'1.10×','stepping Horizontal must keep a single-value TOUCHPAD_SENS single');
+ await page.keyboard.press('Escape');
+ await sheet.waitFor({state:'detached'});
+ assert.equal(await rowValue(padSens),'1.10×');
  assert.deepEqual(errors,[]);
  console.log('PASS: scoped dirty state, undo/redo, shortcuts, save/apply separation, modeshift editing, live graph, help, trigger controls, console');
  console.log('Screenshots:',artifacts);

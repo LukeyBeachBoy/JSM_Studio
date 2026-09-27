@@ -453,7 +453,7 @@ function ModeshiftCard({ trigger, triggers, ...props }: InputModeshiftsProps & {
               </AppSelect>
             </label>
           )}
-          <button type="button" className={`button button--ghost button--sm ${styles.remove}`} data-hints="A:Remove modeshift;B:Back" onClick={() => onChange(previous => removeModeshift(previous, target, trigger))}>
+          <button type="button" className={`button button--ghost button--lg ${styles.remove}`} data-hints="A:Remove modeshift;B:Back" onClick={() => onChange(previous => removeModeshift(previous, target, trigger))}>
             <Icon name="remove" size={16} />{t('keymap.removeModeshift', 'Remove modeshift')}
           </button>
         </div>
@@ -508,7 +508,7 @@ export function InputModeshifts(props: InputModeshiftsProps & { heading?: ReactN
             : t('keymap.modeshiftsNoneNote', 'None yet. Hold another input to make {{what}} do something else.', { what })}
         </span>
         {!adding && (
-          <button type="button" className="button button--secondary button--sm" disabled={!available.length} data-hints="A:Add modeshift;B:Back" onClick={() => setAdding(true)}>
+          <button type="button" className="button button--secondary button--lg" disabled={!available.length} data-hints="A:Add modeshift;B:Back" onClick={() => setAdding(true)}>
             <Icon name="add" size={16} />{t('keymap.addModeshiftShort', 'Add modeshift')}
           </button>
         )}
@@ -527,7 +527,7 @@ export function InputModeshifts(props: InputModeshiftsProps & { heading?: ReactN
               {available.map(option => <option key={option.value} value={option.value}>{heldInputName(target, props.modifiers, option.value, true)}</option>)}
             </AppSelect>
           </label>
-          <button type="button" className="button button--ghost button--sm" onClick={() => setAdding(false)}>{t('common.cancel', 'Cancel')}</button>
+          <button type="button" className="button button--ghost button--lg" onClick={() => setAdding(false)}>{t('common.cancel', 'Cancel')}</button>
         </div>
       )}
       {triggers.map(trigger => (

@@ -7,8 +7,9 @@
 // 2. The pad's modeshift is the pad section itself -- the same preview, shape
 //    tiles and region row -- announced as "While Right pad click is held"
 //    rather than "Click regions", and not "Pad click" (which pad?).
-// 3. A menu's size, text and icons are set beside its preview, and written
-//    to that menu's own @overlay line.
+// 3. A menu's size, text and icons are set from its own On-screen menu row
+//    (the On-screen menus view, console refinement 2d), and written to that
+//    menu's own @overlay line.
 // 4. The two sticks are two rows, not four dense columns.
 // 5. A paddle that only drives a layer says so on its row; it used to read
 //    Unbound. "Timing" opened no timing; it is "Options".
@@ -53,7 +54,11 @@ const WARDOGS = [
       } };
     }, WARDOGS);
     await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
+    // The app opens on Home (console refinement 2a); these checks start in the editing shell.
+    await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
     page.setDefaultTimeout(10000);
+
+    const row = (scope, label) => scope.locator('.summary-row').filter({ has: page.locator('.summary-row__label', { hasText: label }) });
 
     // --- 1 and 2: the right pad and its click shift -------------------------
     await page.getByRole('button', { name: 'Trackpads', exact: true }).click();
@@ -73,15 +78,36 @@ const WARDOGS = [
 
     await shift.locator(':scope > summary').click();
     await shift.getByRole('button', { name: /^RT1: Ping/ }).waitFor();
-    assert.equal(await shift.getByRole('radio', { name: /4-way/ }).count() + await shift.getByRole('button', { name: /4-way/ }).count() > 0, true, 'the shifted pad has the pad section\'s own shape tiles');
+    // The shape lives in the pad section's Mode sheet now (2b); the shifted
+    // pad has that same Mode row, naming the shape it becomes.
+    assert.match(await row(shift, /^Mode$/).locator('.summary-row__value').innerText(), /Menu · 4-way/, 'the shifted pad has the pad section\'s own Mode row');
     assert.equal(await shift.getByRole('combobox', { name: 'Held input', exact: true }).innerText().then(text => /Right pad click/.test(text)), true, 'the held-input picker says which pad click');
 
-    // --- 3: menu appearance beside the menu ---------------------------------
+    // --- 3: a menu's look, from its own On-screen menu row -------------------
+    // Menu appearance folded into the On-screen menus view (2d): the left
+    // pad's row opens it with the left menu selected, every menu drawn.
     const left = page.locator('#trackpad-left');
-    await left.getByRole('button', { name: 'Menu appearance', exact: true }).click();
-    const text = left.getByRole('textbox', { name: 'Text size', exact: true });
-    await text.fill('11'); await text.press('Tab');
-    await left.getByRole('checkbox', { name: 'Keys', exact: true }).uncheck();
+    await row(left, /^On-screen menu$/).click();
+    const menus = page.getByRole('dialog', { name: 'On-screen menus', exact: true });
+    await menus.waitFor();
+    assert.match(await menus.locator('.menus-chip[data-state="selected"]').innerText(), /Left pad/, 'the left pad opened it, so its menu is selected');
+    assert.ok(await menus.locator('.menus-chip').filter({ hasText: /Right pad/ }).count() >= 1, 'the right pad\'s click-shift menu is drawn too');
+    const text = row(menus, /^Text size$/);
+    await text.focus(); await page.keyboard.press('Enter');
+    assert.equal(await text.getAttribute('data-adjusting'), 'true', 'A (Enter) adjusts the text size in place');
+    for (let i = 0; i < 20 && !/^11 px$/.test(await text.locator('.summary-row__value').innerText()); i++) {
+      const now = Number((await text.locator('.summary-row__value').innerText()).replace(/\D+/g, ''));
+      await page.keyboard.press(now > 11 ? 'ArrowLeft' : 'ArrowRight');
+    }
+    await page.keyboard.press('Enter');
+    assert.match(await text.locator('.summary-row__value').innerText(), /^11 px$/);
+    await row(menus, /^Shows$/).click();
+    const keys = row(menus, /^Keys$/);
+    assert.equal(await keys.getAttribute('aria-pressed'), 'true');
+    await keys.click();
+    assert.equal(await keys.getAttribute('aria-pressed'), 'false');
+    await menus.getByRole('button', { name: 'Done', exact: true }).click();
+    await menus.waitFor({ state: 'detached' });
     await page.keyboard.press('Control+s');
     await page.waitForFunction(() => /# @overlay LEFT at /.test(window.__lastSaved));
     const saved = await page.evaluate(() => window.__lastSaved);
@@ -97,7 +123,15 @@ const WARDOGS = [
     await rightStick.waitFor();
     const [a, b] = [await leftStick.boundingBox(), await rightStick.boundingBox()];
     assert.ok(b.y >= a.y + a.height - 1, `the right stick sits under the left, not beside it (${JSON.stringify({ a, b })})`);
-    await rightStick.getByText('Menu appearance', { exact: true }).waitFor();
+    // The wheel's look and place on screen: the same On-screen menu row (2d).
+    assert.equal(await rightStick.getByText('Menu appearance', { exact: true }).count(), 0, 'Menu appearance is gone from the stick');
+    const wheelRow = row(rightStick, /^On-screen menu$/);
+    await wheelRow.waitFor();
+    await wheelRow.click();
+    await menus.waitFor();
+    assert.match(await menus.locator('.menus-chip[data-state="selected"]').innerText(), /Right stick wheel/, 'the stick wheel opened it, so its menu is selected');
+    await page.keyboard.press('Escape');
+    await menus.waitFor({ state: 'detached' });
 
     // --- 5: rows that drive layers, and Options --------------------------------
     await page.getByRole('button', { name: 'Buttons', exact: true }).click();

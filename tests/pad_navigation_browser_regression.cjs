@@ -1,8 +1,9 @@
 // Studio reads the pad itself while it has focus (design handoff, "native
 // controller navigation"): LT/RT page, LB/RB section, D-pad moves, A opens,
-// B backs out, View jumps to the title bar and back, and Test hands the pad to
-// the configuration until View + Menu is held. Driven through the same
-// telemetry stream the live preview uses, with a scripted pad.
+// B backs out, View goes Home from anywhere, Menu opens the Configuration menu,
+// and Test hands the pad to the configuration until View + Menu is held.
+// Driven through the same telemetry stream the live preview uses, with a
+// scripted pad.
 // Isolated renderer check; mocks never invoke a physical controller or runtime.
 const assert = require('node:assert/strict');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
@@ -36,6 +37,8 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
   }};
  });
  await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
+ // The app opens on Home (console refinement 2a); these checks start in the editing shell.
+ await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
  await page.locator('.profile-chip').filter({hasText:'Desktop'}).waitFor();
  await page.locator('.mapping-plate[data-state="studio"]').waitFor();
 
@@ -114,16 +117,53 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  await press('R');
  await page.waitForFunction(f => document.querySelector('.section-item[aria-current="true"]')?.textContent !== f, first);
 
- // View jumps to the title bar, View again comes back to where it was.
+ // View is Home from anywhere (console refinement D10); B on Home comes back
+ // to where it was. Home's default focus is Continue editing.
+ const group = () => page.evaluate(() => document.querySelector('.app-shell')?.dataset.pageGroup);
  await summary.focus();
  await press('-');
+ await page.locator('.app-shell[data-page-group="home"]').waitFor();
+ await page.waitForFunction(() => document.activeElement?.matches('[data-home-continue]'));
+ await press('E');
+ await page.waitForFunction(() => document.querySelector('.page-header__title')?.textContent === 'Buttons');
+ await page.waitForFunction(() => document.activeElement?.closest('details[data-input-command="N"]'));
+ // Up from the page tabs still reaches the title bar.
+ for (let step = 0; step < 6 && !(await active()).cls.includes('page-tab'); step++) await press('UP');
+ assert.match((await active()).cls, /page-tab/, 'Up from the page walks out to the page tabs');
+ await press('UP');
  await page.waitForFunction(() => document.activeElement?.closest('.titlebar'));
- assert.match((await active()).cls, /context-segment--editing/, 'the title bar is entered at its first item');
+ // ... and View from the title bar is Home too.
  await press('-');
+ await page.locator('.app-shell[data-page-group="home"]').waitFor();
+ await press('E');
+ await page.waitForFunction(() => document.activeElement?.closest('details[data-input-command="N"]'));
+
+ // Menu opens the Configuration menu; View closes it first, then goes Home.
+ await press('+');
+ await page.locator('.config-menu').waitFor();
+ await page.waitForFunction(() => document.activeElement?.closest('.config-menu'));
+ await press('-');
+ await page.locator('.config-menu').waitFor({state:'detached'});
+ await page.locator('.app-shell[data-page-group="home"]').waitFor();
+ // A Studio page has no configuration menu, and B there is Home.
+ await page.getByRole('button',{name:/^Press timing & polling/}).click();
+ await page.waitForFunction(() => document.querySelector('.page-header__title')?.textContent === 'Press timing & polling');
+ assert.equal(await group(), 'studio');
+ await press('+');
+ await page.waitForTimeout(150);
+ assert.equal(await page.locator('.config-menu').count(), 0, 'Menu does nothing on a Studio page');
+ await press('E');
+ await page.locator('.app-shell[data-page-group="home"]').waitFor();
+ await press('E');
  await page.waitForFunction(() => document.activeElement?.closest('details[data-input-command="N"]'));
 
  // Test hands the pad to the configuration: navigation stops until View + Menu is held.
- await page.getByRole('button',{name:'Test'}).click();
+ // Test is in the Configuration menu now (1e), reached with the pad.
+ await press('+');
+ await page.locator('.config-menu').waitFor();
+ for (let step = 0; step < 8 && !(await active()).text.includes('Test while editing'); step++) await press('DOWN');
+ assert.match((await active()).text, /Test while editing/);
+ await press('S');
  await page.locator('.test-banner').waitFor();
  await page.waitForFunction(() => window.__calls.includes('apply'));
  assert.equal(await page.locator('.mapping-plate').getAttribute('data-state'), 'testing');
@@ -135,19 +175,24 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  await page.locator('.test-banner').waitFor({state:'detached'});
  await release();
  await page.waitForTimeout(150);
- // Focus goes back to where it was before the test, not to the title bar.
+ // Focus goes back to where it was before the test: not to the title bar,
+ // and the View in the chord does not also go Home.
  await page.waitForFunction(() => document.activeElement?.closest('details[data-input-command="N"]'));
  assert.equal((await active()).inTitlebar, false, 'leaving Test must not also jump to the title bar');
+ assert.equal(await group(), 'controls', 'leaving Test must not also go Home');
  assert.equal(await page.locator('.mapping-plate').getAttribute('data-state'), 'studio');
 
- // Keyboard Esc also ends a test.
- await page.getByRole('button',{name:'Test'}).click();
+ // Keyboard Esc also ends a test (started with the mouse this time, from the
+ // configuration chip's "Configuration menu…").
+ await page.locator('.profile-chip').click();
+ await page.getByRole('menuitem',{name:/^Configuration menu/}).click();
+ await page.locator('.config-menu__item').filter({hasText:'Test while editing'}).click();
  await page.locator('.test-banner').waitFor();
  await page.keyboard.press('Escape');
  await page.locator('.test-banner').waitFor({state:'detached'});
  assert.equal(await page.evaluate(() => document.body.dataset.inputSource), 'keyboard', 'a real key switches the ring back to keyboard');
 
  assert.deepEqual(errors,[]);
- console.log('PASS: LT/RT paging, pad focus with controller ring, A opens and B closes, RB sections, View title-bar round trip, Test mode suspends navigation until View + Menu or Esc');
+ console.log('PASS: LT/RT paging, pad focus with controller ring, A opens and B closes, RB sections, View Home and B back, Up to the title bar, Menu opens the Configuration menu (not on Studio), Test mode suspends navigation until View + Menu or Esc');
  } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exit(1); });

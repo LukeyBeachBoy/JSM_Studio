@@ -24,6 +24,8 @@ const fs = require('node:fs');
   }};
  });
  await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
+ // The app opens on Home (console refinement 2a); these checks start in the editing shell.
+ await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
 
 
 
@@ -75,9 +77,12 @@ const fs = require('node:fs');
  await shot('button-advanced');
  // Controller slider edit mode changes values; ordinary arrows navigate.
  await nav('Gyro');
- await page.getByRole('button',{name:'Noise & steadying',exact:true}).click();
- // The Diagnostics section is always open now (Gyro.dc.html); no disclosure to click.
- const slider=page.getByRole('slider').first();
+ // Noise & steadying is the Steadying row under Fine tuning now, and opens a sheet (1d).
+ await page.getByRole('button',{name:'Fine tuning',exact:true}).click();
+ await page.locator('.summary-row').filter({has:page.locator('.summary-row__label').getByText('Steadying',{exact:true})}).click();
+ const sheet=page.locator('.sheet');
+ await sheet.getByRole('heading',{name:'Steadying',exact:true}).waitFor();
+ const slider=sheet.getByRole('slider').first();
  await slider.focus(); const original=await slider.getAttribute('aria-valuenow');
  await page.keyboard.press('Enter'); await page.keyboard.press('ArrowRight');
  assert.notEqual(await slider.getAttribute('aria-valuenow'),original);
@@ -85,6 +90,8 @@ const fs = require('node:fs');
  await page.keyboard.press('ArrowDown');
  assert.equal(await slider.evaluate(el=>el===document.activeElement),false,'navigation exits slider without further adjustment');
  await shot('gyro-noise');
+ await page.keyboard.press('Escape');
+ await sheet.waitFor({state:'detached'});
  await nav('Triggers'); await shot('triggers');
  await nav('Trackpads'); await shot('trackpads');
  await nav('Layers');
@@ -92,7 +99,9 @@ const fs = require('node:fs');
  await page.getByRole('button',{name:'Create layer',exact:true}).click();
  assert.equal((await page.locator('.context-segment--layer b').innerText()),'Vehicles');
  await shot('layers');
- await page.locator('.titlebar__brand').click();
+ // Studio is one press from Home (2a): the Home chip, then its tile.
+ await page.locator('.titlebar .home-chip').click();
+ await page.locator('section[aria-labelledby="home-studio-title"]').getByRole('button',{name:/^Configurations/}).click();
  await page.getByRole('heading',{name:'Configurations',exact:true}).waitFor();
  assert.equal(await page.getByRole('button',{name:'Buttons',exact:true}).count(),0);
  await shot('configurations');
@@ -102,10 +111,16 @@ const fs = require('node:fs');
  await page.keyboard.press('Escape');
  await nav('Debug console'); await shot('diagnostics');
  await nav('Preferences'); await shot('settings');
- await page.locator('.back-chip').click();
+ // Back to the page being edited: Home, then Continue editing (the back chip is gone).
+ await page.locator('.titlebar .home-chip').click();
+ await page.locator('[data-home-continue]').click();
+ await page.locator('.page-header__title').filter({hasText:'Layers'}).waitFor();
  await page.getByRole('button',{name:/^Editing layer:/}).click();await page.getByRole('menuitem').filter({has:page.locator('[class*=itemLabel]').getByText('Default',{exact:true})}).click();
  assert.equal((await page.locator('.context-segment--layer b').innerText()),'Default');
- await page.getByRole('button',{name:'Apply',exact:true}).first().click();
+ // The one state button saves and applies the pending edits (1e).
+ const state=page.locator('.titlebar .state-button');
+ assert.match(await state.innerText(),/^Apply \d+ changes?$/);
+ await state.click();
  await page.waitForFunction(()=>window.__calls.includes('apply'));
  // Both desktop scaling proxies and compact windows; existing mouse and keyboard routes remain usable.
  for(const width of [1440,1024]) {

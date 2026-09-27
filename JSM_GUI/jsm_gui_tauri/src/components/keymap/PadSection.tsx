@@ -1,34 +1,35 @@
-import { useState, type KeyboardEvent, type ReactNode } from 'react'
+import { useContext, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { ButtonDefinition } from '../../keymap/schema'
 import type { OverlayMenu } from '../../utils/overlayLayout'
+export type { PadRegionInfo } from '../../utils/menuDescriptions'
 import type { IconName } from '../icons/iconData'
-import { NumberField } from '../NumberField'
-import { AdvancedDisclosure } from '../AdvancedDisclosure'
-import { IconSelect } from './IconSelect'
-import { AppSelect } from '../ui/AppSelect'
-import { SettingOrigin } from '../SettingOrigin'
-import { MenuPreview } from './MenuPreview'
-import { MenuAppearance } from './MenuAppearance'
 import { Icon } from '../icons/Icon'
-import { ShapePicker } from './ShapePicker'
-import { OriginMarker } from './OriginMarker'
-import { useSettingOriginInfo } from './settingOriginInfo'
+import { MenuPreview } from './MenuPreview'
+import { SummaryRow, RowGroup } from '../ui/SummaryRow'
+import { Sheet } from '../ui/Sheet'
+import { SettingOrigins } from '../SettingOrigin'
+import { bindingSummary, describeMenuPlacement, type PadRegionInfo } from '../../utils/menuDescriptions'
 import type { TouchpadModeCardConfig } from './TouchpadSettingsSection'
 import type { LivePadTouch } from './TouchpadGridSection'
 import keymapStyles from '../Keymap.module.css'
 
 const MODE_ICONS: Record<string, IconName> = { '': 'padNone', GRID_AND_STICK: 'padGrid', MOUSE: 'padMouse', PS_TOUCHPAD: 'catGamepad' }
-const MODE_DESCRIPTIONS: Record<string, string> = {
-  '': 'Not set: the pad does whatever JoyShockMapper defaults to',
-  GRID_AND_STICK: 'Regions you bind, and a touch stick',
-  MOUSE: 'Touch moves the mouse',
-  PS_TOUCHPAD: 'Forwards touches to the virtual PlayStation pad',
-}
-const SHAPE_LABELS: Record<string, string> = { RECTANGLE: 'Grid', FOUR_WAY: '4-way', EIGHT_WAY: '8-way', RADIAL: 'Radial' }
+const MODE_OPTIONS = [
+  { value: '', label: 'Not set' },
+  { value: 'GRID_AND_STICK', label: 'Menu' },
+  { value: 'MOUSE', label: 'Mouse' },
+  { value: 'PS_TOUCHPAD', label: 'PlayStation touchpad' },
+]
+const SHAPE_OPTIONS = [
+  { value: 'RECTANGLE', label: 'Grid' },
+  { value: 'FOUR_WAY', label: '4-way' },
+  { value: 'EIGHT_WAY', label: '8-way' },
+  { value: 'RADIAL', label: 'Radial' },
+]
+const SHAPE_LABELS: Record<string, string> = Object.fromEntries(SHAPE_OPTIONS.map(option => [option.value, option.label]))
 const DUAL_STAGE_MODES = ['NO_FULL', 'NO_SKIP', 'NO_SKIP_EXCLUSIVE', 'MUST_SKIP', 'MAY_SKIP', 'MUST_SKIP_R', 'MAY_SKIP_R']
 
-export type PadRegionInfo = { label?: string; binding: string; extra: number; icon?: string }
 
 type Props = {
   keyPrefix: 'LEFT_' | 'RIGHT_'
@@ -44,7 +45,7 @@ type Props = {
   /**
    * Put before every setting name this section shows an origin for. A pad
    * modeshift renders this same section against `MISC2,RIGHT_…` keys, and its
-   * markers have to name where THOSE lines come from, not the unshifted ones.
+   * rows have to name where THOSE lines come from, not the unshifted ones.
    */
   settingPrefix?: string
   livePad?: LivePadTouch | null
@@ -54,44 +55,47 @@ type Props = {
   onSelect: (command: string) => void
   describeRegion: (command: string) => PadRegionInfo
   renderButton: (button: ButtonDefinition, options?: { defaultOpen?: boolean; label?: string; subtitle?: string; xAction?: { label: string; run: () => void } }) => ReactNode
-  /** Glide after lift-off (TOUCHPAD_TRACKBALL_DECAY > 0). */
-  trackballOn?: boolean
-  onTrackballChange?: (on: boolean) => void
+  /** The line under the Mouse feel row, e.g. "Balanced smoothing · glide on · light ticks". */
+  mouseFeel?: string
+  /** The pad click: its binding's short name and its editor, for the Click row's sheet. */
+  click?: { value: string; editor: ReactNode }
   /** Bindings for inputs this pad does not have (a single-pad controller's). */
   otherControllers?: { count: number; id: string; children: ReactNode }
-  /** The pad's click and touch stick, in the settings column. */
+  /** The pad's touch stick, under the rows. */
   children?: ReactNode
   /** The pad's modeshifts: full width under the pad, each one this same section. */
   modeshifts?: ReactNode
+  // Kept for callers written against the section before Mouse feel took the glide.
+  trackballOn?: boolean
+  onTrackballChange?: (on: boolean) => void
 }
 
-const WHERE_FOUR_WAY = ['Top of the pad', 'Right side of the pad', 'Bottom of the pad', 'Left side of the pad']
+const WHERE_FOUR_WAY = ['Top', 'Right', 'Bottom', 'Left']
 
 /**
- * One trackpad (Configuration Pages 15c): the overlay's own drawing of the pad
- * beside the shape tiles, the selected region's row and the click gate -- or,
- * for a mouse pad, its click regions, trackball glide and sensitivity.
- * Clicking a region on the preview, or X anywhere in the pad, steps the
- * selection.
+ * One trackpad (console refinement 2b): the pad drawn in a 200px well, then
+ * one summary row per thing the pad's mode needs. A menu pad: Mode, the
+ * selected region, Click required and its On-screen menu. A mouse pad: Mode,
+ * Sensitivity, Click and Mouse feel. The rest opens as a sheet from its row
+ * -- columns, rows and centre deadzone live in the Mode sheet, dual-stage in
+ * the Click sheet. X anywhere in a menu pad steps the selected region.
  */
 export function PadSection({
   keyPrefix, title, command, config, menu, appearance, settingPrefix = '', livePad, padAspect, regions, selected, onSelect, describeRegion, renderButton,
-  trackballOn, onTrackballChange, otherControllers, children, modeshifts,
+  mouseFeel, click, otherControllers, children, modeshifts,
 }: Props) {
   const { t } = useTranslation()
+  const configName = useContext(SettingOrigins).config
   const mode = (config.mode || '').toUpperCase()
   const grid = mode === 'GRID_AND_STICK'
   const shape = (config.gridShape || 'RECTANGLE').toUpperCase()
-  const modeOrigin = useSettingOriginInfo(`${settingPrefix}${keyPrefix}TOUCHPAD_MODE`)
+  const [sheet, setSheet] = useState<null | 'mode' | 'region' | 'click' | 'sensitivity'>(null)
   const [othersOpen, setOthersOpen] = useState(false)
-  const [appearanceOpen, setAppearanceOpen] = useState(false)
   const key = (name: string) => settingPrefix + keyPrefix + name
+  const eyebrow = `Trackpads · ${configName ?? 'Configuration'}`
 
-  const detail = grid
-    ? `${t('keymap.gridAndStick')} · ${SHAPE_LABELS[shape] ?? shape}`
-    : mode === 'MOUSE'
-      ? t('keymap.mouse')
-      : mode ? MODE_DESCRIPTIONS[mode] ? t(`keymap.${mode === 'PS_TOUCHPAD' ? 'psTouchpad' : 'mouse'}`) : mode : undefined
+  const modeValue = grid ? `Menu · ${SHAPE_LABELS[shape] ?? shape}` : MODE_OPTIONS.find(option => option.value === mode)?.label ?? mode
+  const detail = grid ? `Menu · ${regions.length} ${regions.length === 1 ? 'region' : 'regions'}` : modeValue
 
   const selectedIndex = selected ? regions.indexOf(selected) + 1 : 0
   const where = (index: number) => shape === 'FOUR_WAY'
@@ -107,162 +111,143 @@ export function PadSection({
   const onPadKey = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.defaultPrevented || !grid) return
     const target = event.target as HTMLElement
-    if (target.matches('input, textarea, select, [contenteditable="true"]')) return
+    if (target.matches('input, textarea, select, [contenteditable="true"]') || target.closest('.sheet-layer')) return
     if (event.key === 'x' || event.key === 'X') { event.preventDefault(); stepRegion() }
   }
   const livePoint = livePad?.touched ? { x: livePad.x, y: livePad.y } : null
   // Only a grid is a menu. A mouse pad used to draw the menu its click shift
   // opens, which made it look like a menu when touching it moves the mouse.
   const previewMenu = grid ? menu : undefined
-  const showAppearance = Boolean(grid && menu && appearance)
-  const openAppearance = () => {
-    setAppearanceOpen(true)
-    requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-menu-appearance="${appearance?.menuKey}"] > summary`)?.focus())
-  }
+  const previewAspect = previewMenu && (previewMenu.shape === 'RADIAL' || previewMenu.shape === 'EIGHT_WAY') ? 1 : padAspect
+  const regionLabel = selected ? `${t('keymap.region', 'Region')} ${selectedIndex} · ${where(selectedIndex)}` : ''
+  const sensitivity = config.sensitivity ?? 1
+  const nextRegion = regions.length > 1 ? { label: t('keymap.nextRegion', 'Next region'), run: stepRegion } : undefined
 
   return (
-    <div className={keymapStyles.padSection} data-pad-keys={grid ? 'X' : undefined} onKeyDown={onPadKey}>
-      <div className={keymapStyles.stickEyebrow}>
-        <span className={keymapStyles.eyebrowHeading}>{title}</span>
-        {detail && <span className={keymapStyles.stickEyebrowDetail}>{detail}</span>}
+    <div className="pad-column" data-pad-keys={grid ? 'X' : undefined} onKeyDown={onPadKey}>
+      <div className="pad-column__eyebrow">
+        <span className="eyebrow">{title}</span>
+        <span className="pad-column__detail">{detail}</span>
       </div>
-      <div className={`${keymapStyles.stickLayout} ${keymapStyles.padLayout}`}>
-        <div className={keymapStyles.padStageColumn}>
-          <div className={keymapStyles.padStage} data-hints={grid ? 'A:Edit;X:Next region;B:Back' : undefined}>
-            {previewMenu
-              ? <MenuPreview menu={previewMenu} aspect={padAspect} fill selectedCommand={selected?.command ?? null} onSelect={onSelect} livePoint={livePoint} />
-              : <div className={keymapStyles.padStageEmpty} style={{ aspectRatio: String(padAspect) }}>
-                  <span className={keymapStyles.padStageArt} aria-hidden="true">
-                    <Icon name={MODE_ICONS[mode] ?? 'padNone'} size={40} />
-                    <span>{mode === 'MOUSE' ? t('keymap.padArtMouse', 'Moves the mouse') : mode === 'PS_TOUCHPAD' ? t('keymap.padArtPs', 'PlayStation touchpad') : grid ? t('keymap.padArtEmpty', 'Bind a region to draw the menu') : t('keymap.padArtNone', 'No mode set')}</span>
-                  </span>
-                  {livePoint && <span className={keymapStyles.padStageDot} style={{ left: `${(livePoint.x + 1) * 50}%`, top: `${(livePoint.y + 1) * 50}%` }} aria-hidden="true" />}
-                </div>}
-          </div>
-          {showAppearance && (
-            <button type="button" className={`button button--ghost button--sm ${keymapStyles.padStageLink}`} onClick={openAppearance}>
-              <Icon name="menuLayout" size={16} />{t('keymap.menuAppearance', 'Menu appearance')}
-            </button>
-          )}
-        </div>
-        <div className={keymapStyles.stickRows}>
-          <div className={`setting-row setting-row--compact ${keymapStyles.stickRow}`} data-input-command={command} data-capture-ignore="true" data-hints="A:Choose mode;B:Back">
-            <div className={keymapStyles.stickRowText}>
-              <span className={keymapStyles.stickRowTitle}>{t('keymap.mode')}</span>
-              <span className={keymapStyles.stickRowHint}>
-                {MODE_DESCRIPTIONS[mode] ?? mode}
-              </span>
+      <div className="pad-column__well" data-hints={grid ? 'A:Bind;X:Next region;B:Back' : undefined}>
+        {previewMenu
+          ? <div className="pad-column__art" style={{ width: 176 * previewAspect }}>
+              <MenuPreview menu={previewMenu} aspect={padAspect} fill selectedCommand={selected?.command ?? null} onSelect={onSelect} livePoint={livePoint} />
             </div>
-            {/* Inherited or overridden, the marker names the file (15c "from FPS
-                Template"), and stays addressable for the settings inventory. */}
-            {(modeOrigin?.kind === 'override' || modeOrigin?.kind === 'inherited') && <OriginMarker setting={key('TOUCHPAD_MODE')} addressable />}
-            <IconSelect
-              icon={MODE_ICONS[mode] ?? 'padNone'}
-              ariaLabel={`${title} ${t('keymap.mode')}`}
-              value={mode}
-              onValueChange={value => config.onModeChange?.(value)}
-              placeholder={t('common.noneSelected')}
-              options={[
-                { value: '', label: t('common.noneSelected') },
-                { value: 'GRID_AND_STICK', label: t('keymap.gridAndStick') },
-                { value: 'MOUSE', label: t('keymap.mouse') },
-                { value: 'PS_TOUCHPAD', label: t('keymap.psTouchpad') },
-              ]}
-            />
-          </div>
+          : <div className="pad-column__empty">
+              <span className="pad-column__ring" aria-hidden="true">
+                {mode !== 'MOUSE' && <Icon name={MODE_ICONS[mode] ?? 'padNone'} size={32} />}
+                <span>{mode === 'MOUSE' ? t('keymap.padArtMouse', 'Moves the mouse') : mode === 'PS_TOUCHPAD' ? t('keymap.padArtPs', 'PlayStation touchpad') : grid ? t('keymap.padArtEmpty', 'Bind a region to draw the menu') : t('keymap.padArtNone', 'No mode set')}</span>
+              </span>
+              {livePoint && <span className={keymapStyles.padStageDot} style={{ left: `calc(50% + ${livePoint.x * 88}px)`, top: `calc(50% + ${livePoint.y * 88}px)` }} aria-hidden="true" />}
+            </div>}
+      </div>
 
-          {grid && (
-            <>
-              <ShapePicker label={`${title} ${t('keymap.gridShape', 'Regions')}`} value={shape} onChange={value => config.onGridShapeChange?.(value)} />
-              {shape !== 'FOUR_WAY' && shape !== 'EIGHT_WAY' && (
-                <>
-                  <NumberField layout="inline" label={t('keymap.columns')} setting={key('GRID_SIZE')} value={config.gridColumns} onChange={v => config.onGridSizeChange?.(Number(v) || 1, config.gridRows)} min={1} max={5} step={1}
-                    hint={shape === 'RADIAL' ? t('keymap.gridShapeRadialSize', 'Rows times columns is the number of segments') : t('keymap.gridColumnsHint', 'Regions across the pad, up to five')} />
-                  <NumberField layout="inline" label={t('keymap.rows')} setting={key('GRID_SIZE')} value={config.gridRows} onChange={v => config.onGridSizeChange?.(config.gridColumns, Number(v) || 1)} min={1} max={5} step={1}
-                    hint={shape === 'RADIAL' ? t('keymap.gridShapeRadialSize', 'Rows times columns is the number of segments') : t('keymap.gridRowsHint', 'Regions down the pad, up to five')} />
-                </>
-              )}
-              {(shape === 'FOUR_WAY' || shape === 'EIGHT_WAY' || shape === 'RADIAL') && (
-                <NumberField layout="inline" label={t('keymap.gridDeadzone', 'Centre deadzone')} setting={key('GRID_DEADZONE')} value={config.gridDeadzone} onChange={v => config.onGridDeadzoneChange?.(v)} min={0} max={1} step={0.05}
-                  hint={t('keymap.gridDeadzoneShort', 'How much of the middle presses nothing')} />
-              )}
-              {showAppearance && menu && appearance && (
-                <MenuAppearance menuKey={appearance.menuKey} menu={menu} onChange={appearance.onChange} open={appearanceOpen} onOpenChange={setAppearanceOpen} />
-              )}
-              {selected && (() => {
-                const info = describeRegion(selected.command)
-                return renderButton(selected, {
-                  defaultOpen: true,
-                  label: `${t('keymap.region', 'Region')} ${selectedIndex}${info.label ? ` · ${info.label}` : ''}`,
-                  subtitle: where(selectedIndex),
-                  xAction: regions.length > 1 ? { label: t('keymap.nextRegion', 'Next region'), run: stepRegion } : undefined,
-                })
-              })()}
-              <label className={`setting-row setting-row--compact ${keymapStyles.stickRow} ${keymapStyles.padSwitchRow}`} data-hints="A:Toggle;B:Back">
-                <div className={keymapStyles.stickRowText}>
-                  <span className={keymapStyles.stickRowTitle}>{t('keymap.clickRequired', 'Click required')}</span>
-                  <span className={keymapStyles.stickRowHint}>{t('keymap.clickRequiredHint', 'Regions fire only on pad click')}</span>
-                </div>
-                <SettingOrigin setting={key('GRID_REQUIRES_CLICK')} />
-                <input type="checkbox" className={keymapStyles.padSwitch} aria-label={t('keymap.gridRequiresClick')} checked={config.gridRequiresClick ?? false} onChange={event => config.onGridRequiresClickChange?.(event.target.checked)} />
-              </label>
-              <AdvancedDisclosure summary={config.dualStageMode || 'NO_SKIP'}>
-                <label>
-                  {t('keymap.touchpadDualStageMode')}
-                  <AppSelect className="app-select" setting={key('TOUCHPAD_DUAL_STAGE_MODE')} value={config.dualStageMode || 'NO_SKIP'} onChange={event => config.onDualStageModeChange?.(event.target.value)}>
-                    {DUAL_STAGE_MODES.map(value => <option key={value} value={value}>{value}</option>)}
-                  </AppSelect>
-                </label>
-              </AdvancedDisclosure>
-            </>
-          )}
+      <div className="pad-column__rows">
+        <SummaryRow label={t('keymap.mode')} hint="What touching this pad does" setting={key('TOUCHPAD_MODE')} value={modeValue || 'Not set'}
+          onActivate={() => setSheet('mode')} data={{ 'data-input-command': command }} />
 
-          {mode === 'MOUSE' && (
-            <>
-              {onTrackballChange && (
-                <label className={`setting-row setting-row--compact ${keymapStyles.stickRow} ${keymapStyles.padSwitchRow}`} data-hints="A:Toggle;B:Back">
-                  <div className={keymapStyles.stickRowText}>
-                    <span className={keymapStyles.stickRowTitle}>{t('keymap.trackball', 'Trackball')}</span>
-                    <span className={keymapStyles.stickRowHint}>{t('keymap.trackballHint', 'Glide after lift-off')}</span>
-                  </div>
-                  <SettingOrigin setting={settingPrefix + 'TOUCHPAD_TRACKBALL_DECAY'} />
-                  <input type="checkbox" className={keymapStyles.padSwitch} aria-label={t('keymap.trackballGlide', 'Trackball glide after lift-off')} checked={Boolean(trackballOn)} onChange={event => onTrackballChange(event.target.checked)} />
-                </label>
-              )}
-              <NumberField layout="inline" label={t('keymap.touchpadSensitivityX', 'Horizontal sensitivity')} setting={key('TOUCHPAD_SENS')} value={config.sensitivity} onChange={v => config.onSensitivityChange?.(v)} min={0} max={10} step={0.1} coarseStep={0.5} placeholder="1"
-                hint={t('keymap.touchpadSensitivityHint', 'How far the mouse moves for a swipe across the pad')} />
-              <NumberField layout="inline" label={t('keymap.touchpadSensitivityY', 'Vertical sensitivity')} setting={key('TOUCHPAD_SENS')} value={config.sensitivityY} onChange={v => config.onSensitivityYChange?.(v)} min={0} max={10} step={0.1} coarseStep={0.5} placeholder={config.sensitivity !== undefined ? String(config.sensitivity) : '1'}
-                hint={t('keymap.touchpadSensitivityYHint', 'Vertical travel, when it should differ from horizontal')} />
-              {config.onOpenTuning && (
-                <div className={`setting-row setting-row--compact ${keymapStyles.stickRow}`} data-capture-ignore="true">
-                  <div className={keymapStyles.stickRowText}>
-                    <span className={keymapStyles.stickRowTitle}>{t('keymap.touchpadTuningTitle', 'Acceleration and smoothing')}</span>
-                    <span className={keymapStyles.stickRowHint}>{t('keymap.touchpadTuningShort', 'Tuned for both pads at once')}</span>
-                  </div>
-                  <button type="button" className="button button--ghost button--sm" onClick={config.onOpenTuning}>{t('keymap.touchpadTuningPointerAction', 'Open trackpad tuning')}</button>
-                </div>
-              )}
-            </>
-          )}
+        {grid && selected && (
+          <SummaryRow label={regionLabel} hint="Selected on the preview" value={bindingSummary(describeRegion(selected.command))}
+            onActivate={() => setSheet('region')} onX={nextRegion} data={{ 'data-input-command': settingPrefix + selected.command }} hints="A:Bind;B:Back" />
+        )}
+        {grid && (
+          <SummaryRow label={t('keymap.clickRequired', 'Click required')} hint={t('keymap.clickRequiredHint', 'Regions fire only on pad click')}
+            setting={key('GRID_REQUIRES_CLICK')} toggle={{ on: config.gridRequiresClick ?? false, onChange: next => config.onGridRequiresClickChange?.(next) }}
+            onX={nextRegion} />
+        )}
+        {grid && menu && appearance && (
+          <SummaryRow label="On-screen menu" hint={describeMenuPlacement(menu)} value="Arrange" hints="A:Arrange;B:Back" onX={nextRegion}
+            onActivate={() => window.dispatchEvent(new CustomEvent('jsm:menu-layout', { detail: appearance.menuKey }))} />
+        )}
 
-          {otherControllers && (
-            <details className={keymapStyles.stickRowDetails} id={otherControllers.id} open={othersOpen} onToggle={event => setOthersOpen(event.currentTarget.open)}>
-              <summary className={`setting-row setting-row--compact ${keymapStyles.stickRow} ${keymapStyles.stickRowSummary}`} data-hints={othersOpen ? 'A:Hide;B:Back' : 'A:Show;B:Back'}>
-                <div className={keymapStyles.stickRowText}>
-                  <span className={keymapStyles.stickRowTitle}>{t('keymap.otherControllerTypes', 'Other controller types')}</span>
-                  <span className={keymapStyles.stickRowHint}>{t('keymap.otherControllerTypesHint', '{{count}} bindings for inputs this pad doesn’t have', { count: otherControllers.count })}</span>
-                </div>
-                <span className={keymapStyles.valuePillQuiet}>{othersOpen ? t('keymap.hide', 'Hide') : t('keymap.show', 'Show')}</span>
-              </summary>
-              <div className={keymapStyles.stickRowBody}>{otherControllers.children}</div>
-            </details>
-          )}
-          {/* The pad's click, touch stick and modeshifts stay in the settings
-              column beside the pinned preview, not full width beneath it. */}
-          {children}
-        </div>
+        {mode === 'MOUSE' && (
+          <SummaryRow label="Sensitivity" hint="Cursor distance per swipe" setting={key('TOUCHPAD_SENS')} mono
+            value={`${sensitivity.toFixed(2)}×${config.sensitivityY !== undefined && config.sensitivityY !== sensitivity ? ` · ${config.sensitivityY.toFixed(2)}× up/down` : ''}`}
+            onActivate={() => setSheet('sensitivity')} />
+        )}
+        {click && (
+          <SummaryRow label="Click" hint="Pressing the pad in" value={click.value} onActivate={() => setSheet('click')} onX={grid ? nextRegion : undefined} />
+        )}
+        {mode === 'MOUSE' && config.onOpenTuning && (
+          <SummaryRow label="Mouse feel" hint={mouseFeel ?? 'Smoothing, glide and haptics'} onActivate={config.onOpenTuning} />
+        )}
+
+        {otherControllers && (
+          <details className={keymapStyles.stickRowDetails} id={otherControllers.id} open={othersOpen} onToggle={event => setOthersOpen(event.currentTarget.open)}>
+            <summary className="summary-row" data-size="page" data-hints={othersOpen ? 'A:Hide;B:Back' : 'A:Show;B:Back'}>
+              <span className="summary-row__text">
+                <span className="summary-row__label">{t('keymap.otherControllerTypes', 'Other controller types')}</span>
+                <span className="summary-row__hint">{t('keymap.otherControllerTypesHint', '{{count}} bindings for inputs this pad doesn’t have', { count: otherControllers.count })}</span>
+              </span>
+              <span className="summary-row__value">{othersOpen ? t('keymap.hide', 'Hide') : t('keymap.show', 'Show')}</span>
+            </summary>
+            <div className={keymapStyles.stickRowBody}>{otherControllers.children}</div>
+          </details>
+        )}
+        {children}
       </div>
       {modeshifts}
+
+      <Sheet open={sheet === 'mode'} onClose={() => setSheet(null)} eyebrow={eyebrow} title={`${title} · ${t('keymap.mode')}`}
+        description="What touching this pad does. The layout rows only matter for a menu."
+        hints={[{ button: 'A', label: 'Adjust' }, { button: 'Y', label: 'Use Default' }, { button: 'B', label: 'Close' }]}>
+        <RowGroup title="Mode">
+          <SummaryRow size="sheet" label={t('keymap.mode')} hint="What touching this pad does" setting={key('TOUCHPAD_MODE')}
+            adjust={{ kind: 'choice', value: mode, options: MODE_OPTIONS, onChange: value => config.onModeChange?.(value) }} />
+        </RowGroup>
+        {grid && (
+          <RowGroup title="Layout">
+            <SummaryRow size="sheet" label="Regions" hint="How the pad is divided" setting={key('GRID_SHAPE')}
+              adjust={{ kind: 'choice', value: shape, options: SHAPE_OPTIONS, onChange: value => config.onGridShapeChange?.(value) }} />
+            {shape !== 'FOUR_WAY' && shape !== 'EIGHT_WAY' && <>
+              <SummaryRow size="sheet" label={t('keymap.columns')} setting={key('GRID_SIZE')} mono
+                hint={shape === 'RADIAL' ? t('keymap.gridShapeRadialSize', 'Rows times columns is the number of segments') : t('keymap.gridColumnsHint', 'Regions across the pad, up to five')}
+                adjust={{ kind: 'number', value: config.gridColumns, min: 1, max: 5, step: 1, onChange: value => config.onGridSizeChange?.(value, config.gridRows) }} />
+              <SummaryRow size="sheet" label={t('keymap.rows')} setting={key('GRID_SIZE')} mono
+                hint={shape === 'RADIAL' ? t('keymap.gridShapeRadialSize', 'Rows times columns is the number of segments') : t('keymap.gridRowsHint', 'Regions down the pad, up to five')}
+                adjust={{ kind: 'number', value: config.gridRows, min: 1, max: 5, step: 1, onChange: value => config.onGridSizeChange?.(config.gridColumns, value) }} />
+            </>}
+            {(shape === 'FOUR_WAY' || shape === 'EIGHT_WAY' || shape === 'RADIAL') && (
+              <SummaryRow size="sheet" label={t('keymap.gridDeadzone', 'Centre deadzone')} hint={t('keymap.gridDeadzoneShort', 'How much of the middle presses nothing')}
+                setting={key('GRID_DEADZONE')} mono value={`${Math.round((config.gridDeadzone ?? 0) * 100)}%`}
+                adjust={{ kind: 'number', value: config.gridDeadzone ?? 0, min: 0, max: 1, step: 0.05, onChange: value => config.onGridDeadzoneChange?.(String(value)) }} />
+            )}
+          </RowGroup>
+        )}
+      </Sheet>
+
+      <Sheet open={sheet === 'region' && Boolean(selected)} onClose={() => setSheet(null)} eyebrow={eyebrow} title={regionLabel}
+        description={`${title}. X steps to the next region.`}
+        hints={[{ button: 'A', label: 'Select' }, ...(nextRegion ? [{ button: 'X' as const, label: 'Next region' }] : []), { button: 'B', label: 'Close' }]}>
+        {selected && renderButton(selected, {
+          defaultOpen: true,
+          label: regionLabel,
+          subtitle: describeRegion(selected.command).label,
+          xAction: nextRegion,
+        })}
+      </Sheet>
+
+      <Sheet open={sheet === 'click' && Boolean(click)} onClose={() => setSheet(null)} eyebrow={eyebrow} title={`${title} · Click`}
+        description="What pressing the pad in does, and how a click combines with touching a region."
+        hints={[{ button: 'A', label: 'Select' }, { button: 'B', label: 'Close' }]}>
+        {click?.editor}
+        {grid && (
+          <RowGroup title="Click and touch">
+            <SummaryRow size="sheet" label={t('keymap.touchpadDualStageMode')} hint="When a click counts as a region's full press" setting={key('TOUCHPAD_DUAL_STAGE_MODE')}
+              adjust={{ kind: 'choice', value: config.dualStageMode || 'NO_SKIP', options: DUAL_STAGE_MODES.map(value => ({ value, label: value })), onChange: value => config.onDualStageModeChange?.(value) }} />
+          </RowGroup>
+        )}
+      </Sheet>
+
+      <Sheet open={sheet === 'sensitivity'} onClose={() => setSheet(null)} eyebrow={eyebrow} title={`${title} · Sensitivity`}
+        description={t('keymap.touchpadSensitivityHint', 'How far the mouse moves for a swipe across the pad')}>
+        <SummaryRow size="sheet" label={t('keymap.touchpadSensitivityX', 'Horizontal sensitivity')} setting={key('TOUCHPAD_SENS')} mono value={`${sensitivity.toFixed(2)}×`}
+          adjust={{ kind: 'number', value: sensitivity, min: 0, max: 10, step: 0.05, onChange: value => config.onSensitivityChange?.(String(value)) }} />
+        <SummaryRow size="sheet" label={t('keymap.touchpadSensitivityY', 'Vertical sensitivity')} hint={t('keymap.touchpadSensitivityYHint', 'Vertical travel, when it should differ from horizontal')}
+          setting={key('TOUCHPAD_SENS')} mono value={config.sensitivityY !== undefined ? `${config.sensitivityY.toFixed(2)}×` : 'Same'}
+          adjust={{ kind: 'number', value: config.sensitivityY ?? sensitivity, min: 0, max: 10, step: 0.05, onChange: value => config.onSensitivityYChange?.(String(value)) }} />
+      </Sheet>
     </div>
   )
 }

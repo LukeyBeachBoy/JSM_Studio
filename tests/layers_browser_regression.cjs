@@ -25,6 +25,8 @@ const fs = require('node:fs');
   }};
  });
  await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
+ // The app opens on Home (console refinement 2a); these checks start in the editing shell.
+ await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
 
 
  // The editing layer is the title bar's Layer segment; its menu switches it.
@@ -87,20 +89,33 @@ const fs = require('node:fs');
  await chooseLayer('Comms');
  await page.getByRole('button',{name:'Trackpads',exact:true}).click();
  const right=page.locator('#trackpad-right');
- const sens=right.getByRole('textbox',{name:'Horizontal sensitivity',exact:true});
- await sens.fill('3.3'); await sens.press('Tab');
+ // A pad's values are summary rows (console refinement 2b): Sensitivity opens
+ // a sheet, and a value is stepped in its row -- Enter, an arrow, Enter.
+ const sens=right.locator('button.summary-row').filter({has:page.locator('.summary-row__label').getByText('Sensitivity',{exact:true})});
+ const sensValue=async()=>(await sens.locator('.summary-row__value').innerText()).trim();
+ await sens.click();
+ const horizontal=page.locator('.sheet button.summary-row').filter({has:page.locator('.summary-row__label').getByText('Horizontal sensitivity',{exact:true})});
+ await horizontal.focus(); await page.keyboard.press('Enter');
+ await page.waitForFunction(()=>document.activeElement?.getAttribute('data-adjusting')==='true');
+ await page.keyboard.press('ArrowRight'); await page.keyboard.press('Enter');
+ // The origin line names the layer the value now lives in.
+ assert.equal(await horizontal.locator('.summary-row__hint').innerText(),'Changed in Comms');
+ await page.keyboard.press('Escape');
+ await page.locator('.sheet').waitFor({state:'detached'});
+ assert.equal(await sensValue(),'1.05×');
  await page.keyboard.press('Control+s');
  await page.waitForFunction(()=>window.__lastSaved.includes('@layer'));
  let saved=await page.evaluate(()=>window.__lastSaved);
  let layer=JSON.parse(saved.split('\n').find(l=>l.startsWith('# @layer ')).slice(9));
- assert.equal(layer.overrides.RIGHT_TOUCHPAD_SENS,'3.3');
+ assert.equal(layer.overrides.RIGHT_TOUCHPAD_SENS,'1.05');
  assert.equal(layer.overrides.N,'J','existing shifts migrated together');
  assert.equal(layer.overrides.W,'U');
  assert.equal(layer.overrides.E,undefined,'unmodified imported binding must stay inherited');
  assert.ok(saved.includes('profiles-library/Template.txt'),'keep imports as imports');
  assert.ok(!/^E = C/m.test(saved),'do not inline imported bindings when saving a layer');
- assert.equal(await right.getByText('Unsaved changes',{exact:true}).count(),0,'saved layer should be clean even with imports');
- assert.ok(!/^RIGHT_TOUCHPAD_SENS = 3.3/m.test(saved),'layer edit leaked into base');
+ // The state button owns unsaved state now (1e): nothing left to save.
+ assert.doesNotMatch(await page.locator('.state-button').innerText(),/^Apply d+ change/,'saved layer should be clean even with imports');
+ assert.ok(!/^RIGHT_TOUCHPAD_SENS = 1.05/m.test(saved),'layer edit leaked into base');
  await bindLayerAction('LSR','Apply layer','Comms');
  await bindLayerAction('RSL','Remove layer','Comms');
  await page.getByRole('button',{name:'Trackpads',exact:true}).click();
@@ -111,9 +126,9 @@ const fs = require('node:fs');
  assert.ok(activation.some(l=>/RSL = remove /.test(l)),`remove is bound to the input: ${activation}`);
  assert.equal(activation.length,2,`a new layer starts with no activation of its own: ${activation}`);
  await chooseLayer('Default');
- assert.notEqual(await sens.inputValue(),'3.3');
+ assert.equal(await sensValue(),'1.00×');
  await chooseLayer('Comms');
- assert.equal(await sens.inputValue(),'3.3');
+ assert.equal(await sensValue(),'1.05×');
  // Switching on Buttons must edit the chosen layer and keep Default intact.
  await openManageLayers();
  await closeManageLayers();
@@ -207,7 +222,8 @@ const fs = require('node:fs');
  await page.getByText('Apply layer: Comms',{exact:true}).waitFor();
  await page.getByText('Remove layer: Comms',{exact:true}).waitFor();
  await page.screenshot({path:path.join(artifacts,'overview.png'),fullPage:true});
- await page.getByRole('button',{name:'Apply',exact:true}).click();
+ // One state button applies (1e): it saves first when there are unsaved edits.
+ await page.locator('.state-button').click();
  await page.waitForFunction(()=>window.__calls.includes('apply'));
  assert.ok((await page.evaluate(()=>window.__lastApplied)).includes('@layer'));
  await openManageLayers();

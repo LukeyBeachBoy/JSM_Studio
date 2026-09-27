@@ -11,6 +11,13 @@ type SectionActionsProps = {
   applyLabel?: string
   cancelLabel?: string
   pendingMessage?: string
+  /**
+   * Only dialogs with their own commit render these now (the source editor,
+   * calibration, the RWC guide). On a page, saving and applying is the title
+   * bar's one state button (console refinement D5, §5), so a section's own
+   * Save / Cancel pair renders nothing.
+   */
+  standalone?: boolean
 }
 
 export function SectionActions({
@@ -23,12 +30,13 @@ export function SectionActions({
   applyLabel,
   cancelLabel,
   pendingMessage,
+  standalone = false,
 }: SectionActionsProps) {
   const { t } = useTranslation()
   const scoped = useScopedActions(hasPendingChanges, onCancel)
   hasPendingChanges = scoped.dirty
   onCancel = scoped.cancel
-  if (!hasPendingChanges) return null
+  if (!hasPendingChanges || !standalone) return null
 
   return (
     <div className={className}>

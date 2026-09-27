@@ -54,6 +54,8 @@ const STEAM = 24;
       } };
     }, [PROFILE, STEAM]);
     await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
+    // The app opens on Home (console refinement 2a); these checks start in the editing shell.
+    await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
     page.setDefaultTimeout(15000);
     await page.locator('.profile-chip').filter({ hasText: 'Desktop' }).waitFor();
     await page.getByRole('button', { name: 'Buttons', exact: true }).click();
@@ -112,10 +114,20 @@ const STEAM = 24;
     );
 
     // --- one frame around the selected region, not three --------------------
-    const region = page.locator('details[data-input-command="LT1"]').first();
+    // The selected region is a summary row on the pad (console refinement
+    // 2b) that already shows what it sends; A opens its binding editor in a
+    // sheet, arriving open rather than behind another click.
+    const regionRow = page.locator('.main-pane button.summary-row[data-input-command="LT1"]').first();
+    assert.match(await regionRow.locator('.summary-row__label').innerText(), /^Region 1 · /);
+    assert.equal((await regionRow.locator('.summary-row__value').innerText()).trim(), 'G', 'the region row names its binding');
+    await regionRow.click();
+    const region = page.locator('.sheet details[data-input-command="LT1"]').first();
+    await region.waitFor();
     assert.notEqual(await region.getAttribute('open'), null, 'the selected region should arrive open, not behind another click');
     assert.equal(await page.getByText('Selected region', { exact: false }).count(), 0,
       'the region editor still wraps the card in a panel that repeats it');
+    await page.keyboard.press('Escape');
+    await page.locator('.sheet').waitFor({ state: 'detached' });
 
     assert.deepEqual(errors, []);
     console.log('PASS: rows name this controller and the output the game gets, values line up, and the preview has no phantom thumb');

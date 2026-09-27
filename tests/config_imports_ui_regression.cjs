@@ -28,6 +28,8 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
   }};
  });
  await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
+ // The app opens on Home (console refinement 2a); these checks start in the editing shell.
+ await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
  await page.locator('.profile-chip').filter({hasText:'Desktop'}).waitFor();
  await page.getByRole('button',{name:'Buttons',exact:true}).click();
 
@@ -63,38 +65,71 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  assert.equal(await south.locator('.origin-marker[data-origin="inherited"]').count(), 0);
 
  // TODO-1: the indicator belongs on every control that exposes a value, not
- // only on button cards. A mode dropdown, a settings field and a grid cell all
- // take their effective value from the same import here.
+ // only on button cards. A pad's mode, its grid size and a grid cell all take
+ // their effective value from the same import here. On Trackpads (console
+ // refinement 2b) each is a summary row, and a row whose value is not Default
+ // says where it comes from on its second line: "From Base" (inherited) or
+ // "Changed in Desktop" -- this replaced the separate origin markers.
  await page.getByRole('button',{name:'Trackpads',exact:true}).click();
- const originOf = key => page.locator(`[data-setting-origin="${key}"]`).first();
- await originOf('RIGHT_TOUCHPAD_MODE').waitFor();
- for (const key of ['RIGHT_TOUCHPAD_MODE','RIGHT_GRID_SIZE','RT1'])
-   assert.match(await originOf(key).innerText(), /Inherited . Base/,
-     `${key} must say where its effective value comes from`);
+ const sheet = page.locator('.sheet');
+ const row = (scope, label) => scope.locator('button.summary-row').filter({has:page.locator('.summary-row__label').getByText(label,{exact:true})}).first();
+ const line = r => r.locator('.summary-row__hint');
+ const assertInherited = async (r, what) => {
+   assert.equal(await line(r).getAttribute('data-tone'), 'inherited', `${what} must say it is inherited`);
+   assert.equal(await line(r).innerText(), 'From Base', `${what} must say where its effective value comes from`);
+ };
+ const right = page.locator('#trackpad-right');
+ const padMode = right.locator('button.summary-row[data-input-command="RIGHT_PAD"]');
+ await padMode.waitFor();
+ await assertInherited(padMode, 'RIGHT_TOUCHPAD_MODE');
+ // A grid cell: the region's row opens its binding editor in a sheet, where
+ // the card carries the same origin marker as on Buttons.
+ const regionOrigin = async () => {
+   await right.locator('button.summary-row').filter({has:page.locator('.summary-row__label').getByText(/^Region 1 · /)}).click();
+   const marker = sheet.locator('details[data-input-command="RT1"] .origin-marker[data-origin="inherited"]').first();
+   await marker.waitFor();
+   const text = await marker.innerText();
+   await page.keyboard.press('Escape');
+   await sheet.waitFor({state:'detached'});
+   return text;
+ };
+ assert.match(await regionOrigin(), /Inherited . Base/, 'RT1 must say where its effective value comes from');
+ // Columns and rows are in the Mode sheet.
+ await padMode.click();
+ const columns = row(sheet, 'Columns');
+ await columns.waitFor();
+ await assertInherited(columns, 'RIGHT_GRID_SIZE');
+ await assertInherited(row(sheet, 'Mode'), 'RIGHT_TOUCHPAD_MODE in its sheet');
 
  // Overriding one value claims that control alone; the rest stay inherited.
- const columns = page.getByRole('textbox',{name:'Columns',exact:true});
- await columns.fill('2'); await columns.press('Tab');
- await originOf('RIGHT_GRID_SIZE').getByRole('button').waitFor();
- // An override is marked as one (design: origin marker).
- assert.equal(await originOf('RIGHT_GRID_SIZE').locator('small').innerText(), 'Override');
- assert.match(await originOf('RIGHT_TOUCHPAD_MODE').innerText(), /Inherited . Base/,
-   'editing the grid size must not mark the mode dropdown as owned');
- assert.match(await originOf('RT1').innerText(), /Inherited . Base/,
-   'editing the grid size must not mark the inherited grid cell as owned');
+ await columns.focus(); await page.keyboard.press('Enter');
+ await page.waitForFunction(() => document.activeElement?.getAttribute('data-adjusting') === 'true');
+ await page.keyboard.press('ArrowLeft'); await page.keyboard.press('Enter');
+ assert.equal((await columns.locator('.summary-row__value').innerText()).trim(), '2');
+ // An override is marked as one: the configuration that changed it.
+ assert.equal(await line(columns).getAttribute('data-tone'), 'changed');
+ assert.equal(await line(columns).innerText(), 'Changed in Desktop');
+ await assertInherited(row(sheet, 'Mode'), 'editing the grid size must not mark the mode as owned');
 
- // ...and the value can be handed back to the import from the control itself.
- await originOf('RIGHT_GRID_SIZE').getByRole('button',{name:'Use inherited',exact:true}).click();
- assert.match(await originOf('RIGHT_GRID_SIZE').innerText(), /Inherited . Base/);
- assert.equal(await columns.inputValue(), '3', 'restoring inheritance restores the imported value');
+ // ...and the value can be handed back to the import from the control itself:
+ // Y (Use Default) on the row.
+ await columns.focus(); await page.keyboard.press('y');
+ await page.waitForFunction(() => [...document.querySelectorAll('.sheet button.summary-row')].find(r => r.querySelector('.summary-row__label')?.textContent === 'Columns')?.querySelector('.summary-row__hint')?.getAttribute('data-tone') === 'inherited');
+ await assertInherited(columns, 'RIGHT_GRID_SIZE after Use Default');
+ assert.equal((await columns.locator('.summary-row__value').innerText()).trim(), '3', 'restoring inheritance restores the imported value');
+ await page.keyboard.press('Escape');
+ await sheet.waitFor({state:'detached'});
+ await assertInherited(padMode, 'RIGHT_TOUCHPAD_MODE after the grid edit');
+ assert.match(await regionOrigin(), /Inherited . Base/, 'editing the grid size must not mark the inherited grid cell as owned');
 
  await page.getByRole('button',{name:'Buttons',exact:true}).click();
  await west.locator(':scope > summary').click();
 
  // The import line is visible in the source editor, opened from the
- // configuration's detail panel in Studio (Studio Home 8a); the row's origin
- // marker is a label, not a link, and "Use inherited" sits beside it in the editor.
- await page.locator('.titlebar__brand').click();
+ // configuration's detail panel in Studio (Studio Home 8a) -- Home, then its
+ // Configurations tile; the row's origin marker is a label, not a link.
+ await page.locator('.home-chip').click();
+ await page.getByRole('button',{name:/^Configurations/}).click();
  await page.getByRole('button',{name:'Edit source',exact:true}).click();
  const editor = page.locator('.config-source-window textarea');
  await editor.waitFor();
@@ -104,6 +139,6 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
    'the editor must show the profile, not the imported file inlined into it');
 
  assert.deepEqual(errors, [], `page errors: ${errors.join(', ')}`);
- console.log('PASS: inherited bindings, settings fields, mode dropdowns and grid cells are all marked, per-control override and restore, overrides win, and the profile text stays its own');
+ console.log('PASS: inherited bindings, pad mode, grid size and grid cells all say where they come from, per-row override and Use Default, overrides win, and the profile text stays its own');
  } finally { await browser.close(); }
 })();

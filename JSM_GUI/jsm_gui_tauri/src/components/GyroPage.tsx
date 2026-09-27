@@ -1,9 +1,13 @@
+import { useContext, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { SummaryRow } from './ui/SummaryRow'
+import { Sheet } from './ui/Sheet'
+import { SettingOrigins } from './SettingOrigin'
+import { layerEntries } from '../utils/layers'
 import { SensitivityValues } from '../utils/keymap'
 import type { GyroActivationMode } from '../utils/gyroActivation'
 import type { AccelCurveLink } from '../utils/accelCurve'
 import { TelemetrySample } from '../hooks/useTelemetry'
-import { SectionActions } from './SectionActions'
 import {
   GyroCalibrationSection,
   GyroGeneralSection,
@@ -14,10 +18,27 @@ import { GyroSensitivitySection } from './SensitivityControls'
 import { GyroDampeningSection, GyroDiagnosticsSection, GyroNoiseSection } from './NoiseSteadyingControls'
 import styles from './GyroPage.module.css'
 
-// The Gyro page (Gyro.dc.html, the settings-page template): one page of
-// setting rows in seven sections. Each section carries an id and
-// data-section, which is how the shell's section list (LB/RB) discovers
-// them; the page keeps no list of its own.
+// The Gyro page (Gyro.dc.html, console refinement 1d): the essentials as
+// rows -- general, calibration, sensitivity -- then Fine tuning, one summary
+// row per group that opens a sheet: Steadying, Orientation, Dampening and
+// Diagnostics. Each section carries an id and data-section, which is how the
+// shell's section list (LB/RB) discovers them; the page keeps no list of its
+// own. Saving is the title bar's state button, not a button per section.
+
+type FineSheet = 'noise' | 'orientation' | 'dampening' | 'diagnostics'
+
+const FINE_KEYS: Record<Exclude<FineSheet, 'diagnostics'>, string[]> = {
+  noise: ['ONE_EURO_FILTER', 'ONE_EURO_MIN_CUTOFF', 'ONE_EURO_SPEED_COEFF', 'GYRO_ANGLE_SNAP', 'GYRO_ANGLE_SNAP_EASE'],
+  orientation: ['GYRO_SPACE', 'GYRO_AXIS_X', 'GYRO_AXIS_Y', 'ROLL_CONTRIBUTION'],
+  dampening: ['GYRO_CUTOFF_SPEED', 'GYRO_CUTOFF_RECOVERY', 'GYRO_SMOOTH_TIME', 'GYRO_SMOOTH_THRESHOLD', 'GYRO_SMOOTHING_DECAY', 'DECEL_BRAKE_STRENGTH', 'DECEL_BRAKE_THRESHOLD', 'GYRO_CLICK_DAMPEN'],
+}
+
+const FINE_TEXT: Record<FineSheet, { title: string; description: string }> = {
+  noise: { title: 'Steadying', description: 'Filters small, unintended movement so aim holds still.' },
+  orientation: { title: 'Orientation', description: 'Which way tilting moves the aim, and how roll counts.' },
+  dampening: { title: 'Dampening', description: 'Slows or ignores slow drift and the jolt of a button press.' },
+  diagnostics: { title: 'Diagnostics', description: 'What the gyro reads right now, and which devices it reads.' },
+}
 
 export type GyroPageProps = {
   devices?: GyroDevice[]
@@ -99,12 +120,34 @@ export type GyroPageProps = {
 
 export function GyroPage(props: GyroPageProps) {
   const { t } = useTranslation()
-  const { isCalibrating, lockMessage, hasPendingChanges, statusMessage, onApply, onCancel } = props
+  const { isCalibrating, lockMessage, hasPendingChanges } = props
   const disabled = isCalibrating
   const shiftPrefix = props.sensitivityView === 'modeshift' && props.modeshiftButton ? props.modeshiftButton + ',' : ''
+  const origins = useContext(SettingOrigins)
+  const [sheet, setSheet] = useState<FineSheet | null>(null)
+  // How many of a group's settings this file (or layer) sets itself.
+  const own = layerEntries(origins.own)
+  const changed = (keys: string[]) => {
+    const count = keys.filter(key => Object.prototype.hasOwnProperty.call(own, shiftPrefix + key) || Object.prototype.hasOwnProperty.call(own, key)).length
+    return count ? `${count} changed` : ''
+  }
+  const s = props.sensitivity
+  const fineSummary: Record<FineSheet, string> = {
+    noise: [s.oneEuroFilter ? 'Filter on' : 'Filter off', s.angleSnap ? `Snap ${s.angleSnap}°` : 'Snap off'].join(' · '),
+    orientation: [s.gyroSpace ? s.gyroSpace.replace(/_/g, ' ').toLowerCase().replace(/^./, c => c.toUpperCase()) : 'Local space',
+      s.gyroAxisX && s.gyroAxisX.toUpperCase() !== 'STANDARD' ? 'X inverted' : '', s.gyroAxisY && s.gyroAxisY.toUpperCase() !== 'STANDARD' ? 'Y inverted' : ''].filter(Boolean).join(' · '),
+    dampening: [s.smoothTime ? `Smoothing ${s.smoothTime} s` : '', s.cutoffSpeed ? `Cutoff ${s.cutoffSpeed} °/s` : '', s.gyroClickDampen ? `Click ${Math.round(s.gyroClickDampen * 100)}%` : ''].filter(Boolean).join(' · ') || 'Default',
+    diagnostics: 'Live readings and devices',
+  }
+  const fineSheet = (key: FineSheet, body: React.ReactNode) => (
+    <Sheet open={sheet === key} onClose={() => setSheet(null)} eyebrow="Gyro · Fine tuning" title={FINE_TEXT[key].title} description={FINE_TEXT[key].description}
+      hints={[{ button: 'A', label: 'Adjust' }, { button: 'Y', label: 'Use Default' }, { button: 'B', label: 'Close' }]}>
+      <div className="sheet-embed">{body}</div>
+    </Sheet>
+  )
 
-  const section = (key: 'general' | 'calibration' | 'sensitivity' | 'noise' | 'orientation' | 'dampening' | 'diagnostics', body: React.ReactNode) => {
-    const label = t(`gyroPage.sections.${key}`)
+  const section = (key: 'general' | 'calibration' | 'sensitivity' | 'fine', body: React.ReactNode) => {
+    const label = key === 'fine' ? t('gyroPage.sections.fine', 'Fine tuning') : t(`gyroPage.sections.${key}`)
     return (
       <section id={`gyro-${key}`} className={`page-section ${styles.section}`} data-section={label} aria-label={label}>
         <h2 className={styles.heading}>{label}</h2>
@@ -173,8 +216,13 @@ export function GyroPage(props: GyroPageProps) {
           accelCurveLink={props.accelCurveLink}
           onAccelCurveLinkChange={props.onAccelCurveLinkChange}
         />)}
-      {section('noise',
-        <GyroNoiseSection
+      {section('fine', <>
+        {(['noise', 'orientation', 'dampening', 'diagnostics'] as const).map(key => (
+          <SummaryRow key={key} size="tile" label={FINE_TEXT[key].title} hint={fineSummary[key]} value={key === 'diagnostics' ? '' : changed(FINE_KEYS[key])}
+            onActivate={() => setSheet(key)} />
+        ))}
+      </>)}
+      {fineSheet('noise', <GyroNoiseSection
           sensitivity={props.sensitivity}
           disabled={disabled}
           onOneEuroFilterChange={props.onOneEuroFilterChange}
@@ -183,8 +231,7 @@ export function GyroPage(props: GyroPageProps) {
           onAngleSnapChange={props.onAngleSnapChange}
           onAngleSnapSmoothChange={props.onAngleSnapSmoothChange}
         />)}
-      {section('orientation',
-        <GyroOrientationSection
+      {fineSheet('orientation', <GyroOrientationSection
           sensitivity={props.sensitivity}
           sensitivityPrefix={shiftPrefix}
           disabled={disabled}
@@ -193,8 +240,7 @@ export function GyroPage(props: GyroPageProps) {
           onGyroAxisYChange={props.onGyroAxisYChange}
           onRollContributionChange={props.onRollContributionChange}
         />)}
-      {section('dampening',
-        <GyroDampeningSection
+      {fineSheet('dampening', <GyroDampeningSection
           sensitivity={props.sensitivity}
           disabled={disabled}
           onCutoffSpeedChange={props.onCutoffSpeedChange}
@@ -206,8 +252,7 @@ export function GyroPage(props: GyroPageProps) {
           onDecelBrakeThresholdChange={props.onDecelBrakeThresholdChange}
           onGyroClickDampenChange={props.onGyroClickDampenChange}
         />)}
-      {section('diagnostics',
-        <GyroDiagnosticsSection
+      {fineSheet('diagnostics', <GyroDiagnosticsSection
           sensitivity={props.sensitivity}
           sample={props.sample}
           hasPendingChanges={hasPendingChanges}
@@ -217,14 +262,6 @@ export function GyroPage(props: GyroPageProps) {
           disabled={disabled}
           onToggleIgnoreDevice={props.onToggleIgnoreDevice}
         />)}
-      <SectionActions
-        hasPendingChanges={hasPendingChanges}
-        statusMessage={statusMessage}
-        onApply={onApply}
-        onCancel={onCancel}
-        applyDisabled={disabled}
-        className={`control-actions ${styles.actions}`}
-      />
     </div>
   )
 }

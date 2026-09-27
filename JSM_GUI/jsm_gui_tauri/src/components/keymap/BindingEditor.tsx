@@ -71,6 +71,7 @@ const BEHAVIOR_OPTIONS: Array<{ value: BindingOutputBehavior; labelKey: string }
 ]
 
 import { mouseOptions, wheelOptions, systemKeyOptions, builtInCommandOptions } from './actionCatalog'
+import { COMMAND_LABELS } from '../../utils/commandLabels'
 
 export function BindingEditor({
   command,
@@ -342,7 +343,7 @@ export function BindingEditor({
               <Select
                 value={builtInCommandOptions.includes(command.outputValue) ? command.outputValue : ''}
                 onValueChange={value => onChange({ outputValue: value })}
-                options={builtInCommandOptions.map(value => ({ value, label: value }))}
+                options={builtInCommandOptions.map(value => ({ value, label: COMMAND_LABELS[value]?.label ?? value }))}
                 placeholder={t('keymap.commandNoOutput')}
                 ariaLabel={t('keymap.commandOutputBuiltIn')}
               />

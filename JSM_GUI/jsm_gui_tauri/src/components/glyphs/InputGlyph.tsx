@@ -103,6 +103,11 @@ export const glyphMarkup = (command: string, family: ControllerVisualFamily = 'g
   const key = COMMAND_KEYS[upper] ?? upper
   const small = size <= SMALL_CUT_MAX
 
+  // A Switch pad prints − and + where the others draw View and Menu.
+  if (family === 'nintendo' && (key === 'MINUS' || key === 'PLUS')) {
+    return `<circle cx="12" cy="12" r="${small ? 11 : 10}" fill="currentColor"/><path d="M7.5 12h9${key === 'PLUS' ? 'M12 7.5v9' : ''}" stroke="var(--glyph-ink)" stroke-width="${small ? 2.6 : 2.2}" stroke-linecap="round"/>`
+  }
+
   const familyItem = FAMILY_ITEMS[family]
   if (familyItem?.items[key]) {
     if (small && family === 'nintendo' && NINTENDO_SMALL_LETTERS[key]) return relabel(STEAM_SMALL_GLYPHS.S, 'A', NINTENDO_SMALL_LETTERS[key])

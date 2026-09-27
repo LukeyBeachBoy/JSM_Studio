@@ -183,7 +183,7 @@ export const DOCS_TOPICS: DocsTopic[] = [
   { id: 'layers', title: 'Layers and modeshifts', sections: ['Modeshifts'], page: { tab: 'layers', label: 'Open Layers' } },
   { id: 'virtual', title: 'Virtual controller', sections: ['ViGEm Virtual Controller', 'Xbox bindings', 'DS4 bindings', 'Virtual Controller Gyro'] },
   { id: 'commands', title: 'Commands reference', sections: ['Miscellaneous Commands', 'Configuration Files', 'OnStartup.txt', 'OnReset.txt', 'Autoload feature', 'Autoconnect feature'] },
-  { id: 'steam', title: 'Steam Controller notes', sections: [], markdown: STEAM_CONTROLLER_NOTES, page: { tab: 'gripSensors', label: 'Open Grips' } },
+  { id: 'steam', title: 'Steam Controller notes', sections: [], markdown: STEAM_CONTROLLER_NOTES, page: { tab: 'buttons', label: 'Open Buttons' } },
   { id: 'troubleshooting', title: 'Troubleshooting', sections: ['Troubleshooting', 'Known and Perceived Issues', 'Bluetooth connectivity'], page: { tab: 'deviceVisibility', label: 'Open Device visibility' } },
   { id: 'about', title: 'Credits and license', sections: ['Credits', 'Helpful Resources', 'License'] },
 ]

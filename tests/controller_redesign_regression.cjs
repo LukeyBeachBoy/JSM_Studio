@@ -24,6 +24,8 @@ const fs = require('node:fs');
   }};
  });
  await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
+ // The app opens on Home (console refinement 2a); these checks start in the editing shell.
+ await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
 
 
  page.setDefaultTimeout(10000);
@@ -39,24 +41,49 @@ const fs = require('node:fs');
  await page.screenshot({path:path.join(__dirname,'../tmp/redesign-bindings.png'),fullPage:true});
  await page.getByRole('button',{name:'Trackpads',exact:true}).click();
  const left = page.locator('#trackpad-left');
- const drag = left.getByRole('combobox',{name:/What the drag acts as/i});
- await drag.click(); await page.getByRole('option',{name:'Mouse Aim',exact:true}).click();
- await drag.click(); await page.getByRole('option',{name:/None selected|Use default/i}).click();
+ // The touch stick's mode is a summary row adjusted in place (§5): step it to
+ // a mode and back to none, and nothing is left behind in the file.
+ const drag = left.locator('.summary-row').filter({has:page.locator('.summary-row__label',{hasText:/What the drag acts as/i})});
+ const dragValue = () => drag.locator('.summary-row__value').innerText();
+ const before = await dragValue();
+ await drag.focus(); await page.keyboard.press('Enter'); await page.keyboard.press('ArrowRight'); await page.keyboard.press('Enter');
+ assert.notEqual(await dragValue(), before, 'stepping the touch stick mode should pick a mode');
+ await page.keyboard.press('Enter'); await page.keyboard.press('ArrowLeft'); await page.keyboard.press('Enter');
+ assert.equal(await dragValue(), before);
  await page.keyboard.press('Control+s');
- assert.ok(!/LEFT_TOUCH_STICK_MODE = AIM/.test(await page.evaluate(()=>window.__lastSaved)));
- // A menu's look is edited beside its preview; where it sits on screen is
- // still the Menu layout page, one step on from there.
- await left.getByRole('button',{name:'Menu appearance',exact:true}).click();
- await left.getByRole('button',{name:'Position on screen',exact:true}).click();
- await page.getByRole('heading',{name:'Menu layout',exact:true}).waitFor();
+ assert.ok(!/LEFT_TOUCH_STICK_MODE\s*=\s*\S/.test(await page.evaluate(()=>window.__lastSaved)));
+ // A menu's look and where it sits on screen are one place now (2d): the
+ // pad's On-screen menu row opens the On-screen menus view with this pad's
+ // menu selected, and B (Escape) hands focus back to the row.
+ const row = (scope,label)=>scope.locator('.summary-row').filter({has:page.locator('.summary-row__label',{hasText:label})});
+ assert.equal(await left.getByRole('button',{name:'Menu appearance',exact:true}).count(),0,'the Menu appearance disclosure is gone');
+ assert.equal(await row(page.locator('#trackpad-right'),/^On-screen menu$/).count(),0,'a mouse pad has no On-screen menu row');
+ const menuRow = row(left,/^On-screen menu$/);
+ assert.match(await menuRow.locator('.summary-row__value').innerText(),/Arrange/);
+ await menuRow.click();
+ const menus = page.getByRole('dialog',{name:'On-screen menus',exact:true});
+ await menus.waitFor();
+ assert.match(await menus.locator('.menus-chip[data-state="selected"]').innerText(),/Left pad/,'the menu it was opened from is selected');
+ assert.equal(await menus.locator('.menus-screen__menu[data-state="selected"]').count(),1);
  await page.screenshot({path:path.join(__dirname,'../tmp/redesign-menus.png'),fullPage:true});
- // Preferences is a Studio page now, behind the app mark (design: Studio Home).
- await page.locator('.titlebar__brand').click();
- await page.getByRole('button',{name:'Preferences',exact:true}).first().click();
- await page.getByRole('heading',{name:'Controller Polling',exact:true}).waitFor();
+ await page.keyboard.press('Escape');
+ await menus.waitFor({state:'detached'});
+ assert.match(await page.evaluate(()=>document.activeElement?.textContent||''),/^On-screen menu/,'closing returns to the row that opened it');
+ // Preferences is a Studio page, reached from Home (2a): the app mark is no
+ // longer clickable; the Home chip is.
+ assert.equal(await page.locator('.titlebar__brand').count(),0,'the editing title bar leads with the Home chip, not the app mark');
+ await page.locator('.home-chip').click();
+ await page.locator('.titlebar__brand').waitFor();
+ assert.equal(await page.locator('.titlebar__brand').evaluate(el=>el.matches('button, [role=button], a')||!!el.closest('button, a')),false,'Home names the app; the mark is not a button');
+ await page.getByRole('button',{name:/^Preferences/}).first().click();
  await page.getByRole('button',{name:'Navigate with controller',exact:true}).waitFor();
  await page.screenshot({path:path.join(__dirname,'../tmp/redesign-settings.png'),fullPage:true});
+ // Polling left Preferences for Studio's Press timing & polling page (2f).
+ assert.equal(await page.getByText('Polling interval',{exact:true}).count(),0,'polling is not a Preference any more');
+ await page.locator('.home-chip').click();
+ await page.getByRole('button',{name:/^Press timing & polling/}).first().click();
+ await row(page,/^Polling interval$/).waitFor();
  assert.deepEqual(errors,[]);
- console.log('PASS: compact bindings, non-menu icons hidden, clearable modes, menu layout navigation, settings relocation');
+ console.log('PASS: compact bindings, non-menu icons hidden, clearable modes, on-screen menus from the pad row, settings and polling in Studio');
  } finally { await browser.close(); }
 })().catch(error=>{ console.error(error);process.exitCode=1; });

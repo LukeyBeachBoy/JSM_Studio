@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Icon } from '../components/icons/Icon'
 import { Menu, type MenuItem } from '../components/ui/Menu'
+import { ButtonGlyph } from '../components/glyphs/ButtonGlyph'
 import appMark from '../assets/app-icon-16.svg'
 import type { ShellWidth } from './useShellWidth'
 import { windowControls } from './windowControls'
@@ -12,10 +13,30 @@ export type VirtualOutput = 'NONE' | 'XBOX' | 'DS4'
 export type TitleBarProfile = { name: string; description?: string; template?: boolean }
 export type TitleBarLayer = { id: string; name: string; description?: string; colorIndex: number }
 
+/**
+ * The one state button (console refinement 1e): its label says what it will
+ * do. Unsaved edits: "Apply 3 changes" (saves and applies). Saved but not
+ * running: "Apply Wardogs". Saved and running: "✓ Applied", still focusable
+ * so A can say so. Test mode: "Return to Studio".
+ */
+export type StateButton =
+  | { kind: 'changes'; count: number }
+  | { kind: 'apply'; name: string }
+  | { kind: 'applied' }
+  | { kind: 'testing' }
+  | { kind: 'idle'; reason: string }
+
+/** Which bar: Home (2a), a configuration page (2b) or Studio (2f). */
+export type TitleBarVariant = 'home' | 'editing' | 'studio'
+
 type TitleBarProps = {
   width: ShellWidth
   frameless: boolean
-  onOpenStudio: () => void
+  variant: TitleBarVariant
+  /** The Home chip: View from anywhere, or a click. */
+  onHome: () => void
+  /** Home's bar shows the controller where the editing bar has page tabs. */
+  controllerLabel?: { text: string; connected: boolean }
 
   editingName: string | null
   dirty: boolean
@@ -25,8 +46,8 @@ type TitleBarProps = {
   appliedLayers?: { name: string; color: string }[]
   onSelectProfile: (name: string) => void
   onOpenLibrary: () => void
-  /** Values & inheritance: where each value in the configuration comes from. */
-  onShowInheritance?: () => void
+  /** The Configuration menu (1e), also on the Menu button. */
+  onOpenConfigMenu: () => void
   editingDisabled?: boolean
 
   layers: TitleBarLayer[]
@@ -43,18 +64,8 @@ type TitleBarProps = {
   onOutputChange: (output: VirtualOutput) => void
   onBindWholeController: () => void
 
-  onTest: () => void
-  onExitTest: () => void
-
-  canUndo: boolean
-  canRedo: boolean
-  onUndo: () => void
-  onRedo: () => void
-  /** Save / Apply stay focusable when idle and say why (HANDOFF.md, 2a "Disabled"). */
-  saveIdleReason: string | null
-  applyIdleReason: string | null
-  onSave: () => void
-  onApply: () => void
+  state: StateButton
+  onStatePress: () => void
 }
 
 const OUTPUT_LABELS: Record<VirtualOutput, string> = { NONE: 'Disabled', XBOX: 'Virtual Xbox', DS4: 'Virtual DualShock 4' }
@@ -64,9 +75,6 @@ const OUTPUT_DESCRIPTIONS: Record<VirtualOutput, string> = {
   DS4: 'Games see a DualShock 4',
 }
 export const layerColor = (index: number) => `var(--layer-${(index % 3) + 1})`
-
-// Tooltips always name the file the button acts on; an idle button adds why.
-const withReason = (action: string, shortcut: string, reason: string | null) => reason ? `${action} · ${reason}` : `${action} (${shortcut})`
 
 const Chevron = () => <span className="titlebar__chevron" aria-hidden="true"><Icon name="chevronDown" size={16} /></span>
 
@@ -124,16 +132,17 @@ export function TitleBar(props: TitleBarProps) {
   const regular = props.profiles.filter(profile => !profile.template && matches(profile))
   const templates = props.profiles.filter(profile => profile.template && matches(profile))
   const editingItems: MenuItem[] = [
-    // Below 1280px Applied has no segment of its own; it lives here instead.
-    ...(compact && props.appliedName && !appliedIsEditing
-      ? [{ kind: 'label' as const, label: 'Applied' }, { label: props.appliedName, description: 'Running now · select to edit', tag: { label: 'Applied', tone: 'ok' as const }, onSelect: props.onEditApplied }]
+    // The bar has no Applied segment (2b): what is running lives here, with
+    // the layers the mapper has active on it.
+    ...(props.appliedName && !appliedIsEditing
+      ? [{ kind: 'label' as const, label: 'Applied' }, { label: props.appliedName, description: ['Running now', ...(props.appliedLayers ?? []).map(layer => layer.name), 'select to edit'].join(' · '), tag: { label: 'Applied', tone: 'ok' as const }, onSelect: props.onEditApplied }]
       : []),
     ...(regular.length ? [{ kind: 'label' as const, label: 'Profiles' }, ...regular.map(profileItem)] : []),
     ...(templates.length ? [{ kind: 'label' as const, label: 'Templates' }, ...templates.map(profileItem)] : []),
     { kind: 'separator' },
     { label: 'Open configuration library', navigates: true, onSelect: props.onOpenLibrary },
-    ...(props.onShowInheritance && props.editingName
-      ? [{ label: 'Values & inheritance…', description: 'Where each value comes from', onSelect: props.onShowInheritance }]
+    ...(props.editingName
+      ? [{ label: 'Configuration menu…', description: 'Undo, save as copy, test, values & inheritance', icon: <ButtonGlyph button="MENU" size={18} />, onSelect: props.onOpenConfigMenu }]
       : []),
   ]
 
@@ -196,107 +205,116 @@ export function TitleBar(props: TitleBarProps) {
   })()
   const showOutput = !compact && (mapping === 'on' || mapping === 'off') && props.output !== 'NONE'
 
-  return (
-    <header className="titlebar" data-focus-scope="titlebar" data-tauri-drag-region data-frameless={props.frameless ? 'true' : undefined}>
-      <button type="button" className="titlebar__brand" tabIndex={-1} data-focusable="false" onClick={props.onOpenStudio} title="Studio: configurations, preferences and tools">
-        <img src={appMark} alt="" width={18} height={18} />
-        {t('common.appName', 'JSM Studio')}
-      </button>
+  const homeChip = (
+    <button type="button" className="home-chip" onClick={props.onHome} data-hints="A:Home;B:Back"
+      title="Home: this configuration and Studio">
+      <img src={appMark} alt="" width={20} height={20} />
+      <span>Home</span>
+      <ButtonGlyph button="VIEW" size={22} />
+    </button>
+  )
 
-      <Menu
-        ariaLabel="Editing configuration"
-        width={380}
-        items={editingItems}
-        empty="No configurations match"
-        search={{ placeholder: 'Search configurations', value: profileQuery, onChange: setProfileQuery }}
-        onOpenChange={open => { if (!open) setProfileQuery('') }}
-        trigger={
-          <button type="button" className="context-segment context-segment--editing profile-chip" disabled={props.editingDisabled}
-            data-hints="A:Open;X:Edit applied;B:Back" data-pad-keys="X" onKeyDown={event => { if ((event.key === 'x' || event.key === 'X') && props.appliedName) { event.preventDefault(); props.onEditApplied() } }}
-            aria-label={`${t('app.profileSummary.editingTitle', 'Editing')}: ${editingLabel}${props.dirty ? ', unsaved changes' : ''}`}>
-            <span className="context-segment__key">Editing</span>
-            <b className="profile-chip-name">{editingLabel}</b>
-            {props.dirty && <span className="unsaved-dot profile-chip-dot" title="Unsaved changes" />}
-            <Chevron />
-          </button>
-        }
-      />
+  const stateButton = (() => {
+    const state = props.state
+    switch (state.kind) {
+      case 'testing':
+        return <button type="button" className="state-button" data-tone="testing" onClick={props.onStatePress} data-hints="A:Return to Studio;B:Back">Return to Studio</button>
+      case 'changes':
+        return <button type="button" className="state-button" data-tone="accent" onClick={props.onStatePress} data-hints="A:Save and apply;B:Back"
+          title={`Save ${props.editingName ?? ''} and apply it (Ctrl+Shift+A)`}>Apply {state.count} {state.count === 1 ? 'change' : 'changes'}</button>
+      case 'apply':
+        return <button type="button" className="state-button" data-tone="control" onClick={props.onStatePress} data-hints="A:Apply;B:Back"
+          title={`Make ${state.name} the applied configuration (Ctrl+Shift+A)`}>Apply {state.name}</button>
+      case 'applied':
+        // Stays focusable; A says so rather than doing nothing silently.
+        return <button type="button" className="state-button" data-tone="applied" onClick={props.onStatePress} data-hints="A:Applied;B:Back"
+          title={`${props.editingName ?? ''} is saved and running`}>✓ Applied</button>
+      case 'idle':
+        return <button type="button" className="state-button" data-tone="control" aria-disabled="true" data-reason={state.reason} title={state.reason}>Apply</button>
+    }
+  })()
 
-      <Menu
-        ariaLabel="Editing layer"
-        width={320}
-        items={layerItems}
-        trigger={
-          <button type="button" className="context-segment context-segment--layer" disabled={props.editingDisabled} aria-label={`Editing layer: ${currentLayer?.name ?? 'Default'}`} data-hints="A:Open;B:Back">
-            <span className="context-segment__key">Layer</span>
-            {currentLayer && <span className="context-segment__swatch" style={{ background: layerColor(currentLayer.colorIndex) }} aria-hidden="true" />}
-            <b>{currentLayer?.name ?? 'Default'}</b>
-            <Chevron />
-          </button>
-        }
-      />
-
-      {!compact && (
-        <button type="button" className="context-segment context-segment--applied utility-applied" aria-live="polite"
-          disabled={!props.appliedName || appliedIsEditing}
-          title={props.appliedName && !appliedIsEditing ? 'Edit the applied configuration' : undefined}
-          onClick={props.onEditApplied}>
-          <span className="context-segment__key">Applied</span>
-          {!props.appliedName && <span className="context-segment__muted">Nothing applied</span>}
-          {props.appliedName && appliedIsEditing && <span>{props.appliedName}</span>}
-          {props.appliedName && !appliedIsEditing && <>
-            <span className="context-segment__strong">{props.appliedName}</span>
-            <span className="context-segment__tag">Not editing · select to edit</span>
-          </>}
-          {props.appliedName && props.appliedLayers && props.appliedLayers.length > 0 && props.appliedLayers.map(layer => (
-            <span key={layer.name} className="context-segment__layer" style={{ color: layer.color }} title={`${layer.name} is active`}>
-              <span className="context-segment__swatch" style={{ background: layer.color }} aria-hidden="true" />{layer.name}
-            </span>
-          ))}
+  const mappingPlate = (
+    <Menu
+      ariaLabel="Mapping and virtual output"
+      width={340}
+      align="end"
+      items={mappingItems}
+      trigger={
+        <button type="button" className="mapping-plate mapping-status" data-state={mapping} role="button"
+          aria-label={`${t('app.profileSummary.mappingOutput', 'Mapping')}: ${mapping === 'off' ? 'off' : mapping === 'disconnected' ? 'no controller' : 'on'}`}
+          data-hints="A:Open;X:Toggle mapping;B:Back" data-pad-keys="X"
+          onKeyDown={event => { if ((event.key === 'x' || event.key === 'X') && !props.mappingBusy) { event.preventDefault(); props.onToggleMapping() } }}>
+          <MappingDot state={mapping} />
+          {plateLabel}
+          {showOutput && <><span className="mapping-plate__rule" aria-hidden="true" /><span className="mapping-plate__output">{OUTPUT_LABELS[props.output]}</span></>}
+          <Chevron />
         </button>
+      }
+    />
+  )
+
+  return (
+    <header className="titlebar" data-variant={props.variant} data-focus-scope="titlebar" data-tauri-drag-region data-frameless={props.frameless ? 'true' : undefined}>
+      {props.variant === 'home'
+        ? (
+          // Home's mark is a name, not a button (§8: the logo isn't clickable).
+          <div className="titlebar__brand" data-tauri-drag-region>
+            <img src={appMark} alt="" width={20} height={20} />
+            {t('common.appName', 'JSM Studio')}
+          </div>
+        )
+        : <>{homeChip}<span className="titlebar__divider" aria-hidden="true" /></>}
+
+      {props.variant === 'studio' && (
+        <div className="titlebar__studio" data-tauri-drag-region><b>Studio</b><span>Applies to every configuration</span></div>
       )}
+
+      {props.variant === 'editing' && <>
+        <Menu
+          ariaLabel="Editing configuration"
+          width={380}
+          items={editingItems}
+          empty="No configurations match"
+          search={{ placeholder: 'Search configurations', value: profileQuery, onChange: setProfileQuery }}
+          onOpenChange={open => { if (!open) setProfileQuery('') }}
+          trigger={
+            <button type="button" className="context-segment context-segment--editing profile-chip" disabled={props.editingDisabled}
+              data-hints="A:Switch configuration;X:Edit applied;B:Back" data-pad-keys="X" onKeyDown={event => { if ((event.key === 'x' || event.key === 'X') && props.appliedName) { event.preventDefault(); props.onEditApplied() } }}
+              aria-label={`${t('app.profileSummary.editingTitle', 'Editing')}: ${editingLabel}${props.dirty ? ', unsaved changes' : ''}`}>
+              <b className="profile-chip-name">{editingLabel}</b>
+              {props.dirty && <span className="unsaved-dot profile-chip-dot" title="Unsaved changes" />}
+              <Chevron />
+            </button>
+          }
+        />
+
+        <Menu
+          ariaLabel="Editing layer"
+          width={320}
+          items={layerItems}
+          trigger={
+            <button type="button" className="context-segment context-segment--layer" disabled={props.editingDisabled} aria-label={`Editing layer: ${currentLayer?.name ?? 'Default'}`} data-hints="A:Open;B:Back">
+              <span className="context-segment__key">Layer</span>
+              {currentLayer && <span className="context-segment__swatch" style={{ background: layerColor(currentLayer.colorIndex) }} aria-hidden="true" />}
+              <b>{currentLayer?.name ?? 'Default'}</b>
+              <Chevron />
+            </button>
+          }
+        />
+      </>}
 
       <div className="titlebar__drag" data-tauri-drag-region />
 
-      <Menu
-        ariaLabel="Mapping and virtual output"
-        width={340}
-        align="end"
-        items={mappingItems}
-        trigger={
-          <button type="button" className="mapping-plate mapping-status" data-state={mapping} role="button"
-            aria-label={`${t('app.profileSummary.mappingOutput', 'Mapping')}: ${mapping === 'off' ? 'off' : mapping === 'disconnected' ? 'no controller' : 'on'}`}
-            data-hints="A:Open;X:Toggle mapping;B:Back" data-pad-keys="X"
-            onKeyDown={event => { if ((event.key === 'x' || event.key === 'X') && !props.mappingBusy) { event.preventDefault(); props.onToggleMapping() } }}>
-            <MappingDot state={mapping} />
-            {plateLabel}
-            {showOutput && <><span className="mapping-plate__rule" aria-hidden="true" /><span className="mapping-plate__output">{OUTPUT_LABELS[props.output]}</span></>}
-            <Chevron />
-          </button>
-        }
-      />
+      {props.variant === 'home' && props.controllerLabel && (
+        <span className="titlebar__controller" data-state={props.controllerLabel.connected ? 'connected' : 'searching'} role="status">
+          <span className="controller-status__dot" />{props.controllerLabel.text}
+        </span>
+      )}
 
-      {mapping === 'testing'
-        ? <button type="button" className="button button--secondary button--sm button--test-exit" onClick={props.onExitTest}>Return to Studio</button>
-        : mapping === 'studio' && (
-          <button type="button" className="button button--ghost button--sm button--test" onClick={props.onTest} title="Run the configuration while Studio is focused" data-hints="A:Test configuration;B:Back">
-            <Icon name="test" size={16} />Test
-          </button>
-        )}
+      {mappingPlate}
 
-      <div className="titlebar__history">
-        <button type="button" className="icon-button" disabled={!props.canUndo} onClick={props.onUndo} data-hints="A:Undo;B:Back"
-          title={`${t('app.profileSummary.undo', 'Undo')} (Ctrl+Z)`} aria-label={t('app.profileSummary.undo', 'Undo')}><Icon name="undo" size={18} /></button>
-        <button type="button" className="icon-button" disabled={!props.canRedo} onClick={props.onRedo} data-hints="A:Redo;B:Back"
-          title={`${t('app.profileSummary.redo', 'Redo')} (Ctrl+Shift+Z)`} aria-label={t('app.profileSummary.redo', 'Redo')}><Icon name="redo" size={18} /></button>
-      </div>
-      <button type="button" className="button button--secondary button--sm" aria-disabled={props.saveIdleReason ? true : undefined} data-hints="A:Save;B:Back"
-        data-reason={props.saveIdleReason ?? undefined} title={withReason(props.editingName ? t('app.profileSummary.saveNamed', { name: props.editingName }) : t('app.profileSummary.saveConfiguration', 'Save'), 'Ctrl+S', props.saveIdleReason)}
-        aria-label={t('app.profileSummary.saveConfiguration', 'Save configuration')}
-        onClick={() => { if (!props.saveIdleReason) props.onSave() }}>Save</button>
-      <button type="button" className="button button--primary button--sm primary-btn" aria-disabled={props.applyIdleReason ? true : undefined} data-hints="A:Apply;B:Back"
-        data-reason={props.applyIdleReason ?? undefined} title={withReason(props.editingName ? t('app.profileSummary.applyNamed', { name: props.editingName }) : t('app.profileSummary.applyEditingConfiguration', 'Apply'), 'Ctrl+Shift+A', props.applyIdleReason)}
-        onClick={() => { if (!props.applyIdleReason) props.onApply() }}>Apply</button>
+      {props.variant === 'editing' && stateButton}
 
       {props.frameless && <WindowControls />}
     </header>

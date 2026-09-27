@@ -1018,6 +1018,98 @@ Each item above reads as described on Wardogs in the Tauri build.
 - The Menu layout page still has its own size/font/labels/keys/reveal
   controls. Kept for now; removing them there is Luke's call.
 
+### TODO-34 — Console refinement (design phase 2): Home, sheets, one state button
+
+**Status:** in progress · raised 2026-09-26
+
+**Context** — The second Claude Design handoff, unzipped at
+`JSM_GUI/jsm_gui_tauri/design/console-refinement/`. Its README is the spec
+(decisions D1–D12, frames 2a–2f, code map, verbatim copy, acceptance
+checklist, and an eight-step order of work). In short: a Home screen
+replaces the logo shortcut and the Tuning menu; tuning lives beside what it
+tunes and opens as right-side sheets (Mouse feel, Grip sensors); Menu layout
+becomes a full-window On-screen menus view; Press timing & polling moves to
+Studio on a global store shared by every profile; the AI assistant gets a
+"Working on" picker; Undo/Redo/Save/Apply become one state button plus a
+Configuration menu; every hint shows controller glyph art, never names.
+
+**Why** — the first redesign still did not feel like a console UI: too many
+small inline buttons, Tuning and Studio hidden, unclear tuning scope.
+
+**Done when** every box in the README's §8 acceptance checklist holds in the
+Tauri build, and the existing regression suite is green (tests updated where
+the design renames or removes what they asserted).
+
+**Notes**
+
+- Backup before starting: `refs/backup/pre-console-refinement-2026-09-26`
+  (= b759a07). Step snapshots: `refs/backup/console-refinement-*`, newest at
+  `refs/backup/console-refinement-latest`. Nothing committed.
+- **2026-09-26, all eight steps built (uncommitted):**
+  1. Shared pieces: `ui/SummaryRow.tsx` (one focus target; A opens, toggles or
+     adjusts in place -- Left/Right step, A keeps, B puts back; Y Use Default;
+     X What's this?; origin line "Changed in {config}" / "From {template}";
+     mouse steppers while adjusting), `ExpandRow` (sub-list that B folds),
+     `ui/Sheet.tsx` (640 right sheet, `data-focus-trap`, B via
+     `data-modal-close`, capsule hidden, glyph footer), the state button and
+     `shell/ConfigurationMenu.tsx` (1e; also "Configuration menu…" in the
+     config chip's menu for mouse users), `glyphs/ButtonGlyph.tsx` (D11; a
+     Switch pad gets − / + for View/Menu), capsule all glyph art.
+  2. IA: `pages.ts` has `home`, no tuning group; timing and ai are Studio
+     pages in §3's order. Title bar variants home / editing / studio; no
+     Undo/Redo/Save/Apply and no Applied segment (the switcher menu lists
+     the applied configuration and its live layers instead). Bars are 56px.
+     View = Home from anywhere (closes what is open first), Menu = the
+     Configuration menu, B on Home resumes editing, B on Studio goes Home.
+  3. Home (2a) with live tile lines; tiles never hidden (D12).
+  4. Trackpads (2b) pad columns of summary rows; Mode / Region / Click /
+     Sensitivity sheets; Mouse feel sheet (2c) with the scope strip. The old
+     Touchpad sensor/haptic sections are deleted; acceleration sits in the
+     sheet as an ExpandRow. Light bar colour moved to a Trackpads row (sheet
+     with the picker); adaptive triggers to the Triggers page.
+  5. On-screen menus (2d, `keymap/OnScreenMenus.tsx`): every layer's menus
+     drawn on a screen preview, LB/RB chips, Position pick-up (arrows/left
+     stick move, right stick resizes via `jsm:stick-adjust`, B puts back).
+     OverlayLayoutSection and MenuAppearance are deleted.
+  6. Grip sensors sheet (2e); Buttons' extra section is "Grips" on a grip
+     controller, without the pad clicks, with the Grip sensors row.
+  7. Global timing store: `RuntimeMappingState` gains hold/dbl/sim/turbo ms,
+     written to StudioDefaults.txt (every profile includes it first, so a
+     file's own line still wins while applied) and injected live;
+     `set_global_timing` extends `set_default_polling_ms`. Timing page (2f)
+     saves on adjust end and lists files that still set a timing line (Move
+     to shared / Remove from file). AI assistant "Working on" picker; its
+     settings save as you type. Preferences lost its polling section.
+  8. Sweep: Gyro has Essentials + "Fine tuning" rows opening Steadying,
+     Orientation, Dampening and Diagnostics sheets; stick Directions,
+     Deadzone and Flick-and-aim open sheets; per-section Save/Cancel
+     (`SectionActions`) only renders in dialogs now (`standalone`).
+- Real library note: FPS Template, Cyberpunk, The Finals, Quick Access Chord
+  and Cyberpunk Trackpad Isolation all set `TICK_TIME = 1`, so the Timing
+  page lists them until they are moved to shared.
+- Tests: browser tests click `[data-home-continue]` after loading; the ones
+  asserting removed UI were rewritten for the new design. New Rust test
+  `studio_defaults_carry_the_global_timing`.
+- **Calibrate gyro as a binding (Luke, same day):** `CALIBRATE_GYRO` (the full
+  run with the overlay HUD) leads the action picker's JSM tab, named and
+  described (`utils/commandLabels.ts`), and a bound row reads "Calibrate
+  gyro". The bare `CALIBRATE` special is now "Calibrate while held (raw)".
+  Test: `tests/calibrate_gyro_action_regression.cjs` (needs the dev server's
+  `?mock`).
+- Bugs the test rewrite found and fixed: a modeshift's Region row was keyed
+  `RT1` instead of `L,RT1`; stepping a single-value `TOUCHPAD_SENS` split it
+  into two values; B after adjusting an unset value wrote the default into the
+  file (rows now restore the text exactly); jumping from Overview to a pad
+  region never focused it (the observer missed an in-place key change); the
+  Overview's "Inspect uses" named the raw input id (pre-existing).
+- Suite: 53 of 53 browser/unit tests pass (run against a `vite preview` build
+  on 1421 with `JSM_TEST_URL`; the calibration test against the dev server).
+  Lint: 23 problems vs 24 at HEAD (the same 2 pre-existing errors).
+- Needs Luke: a look on the real app and hardware, especially the global
+  timing store (StudioDefaults.txt injection), View/Menu from the pad, and
+  whether the five library files that set `TICK_TIME = 1` should move to
+  shared.
+
 ---
 
 ## Done

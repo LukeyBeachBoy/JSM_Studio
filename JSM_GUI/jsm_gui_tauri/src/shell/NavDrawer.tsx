@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Icon } from '../components/icons/Icon'
-import { CONTROL_PAGES, TUNING_PAGES, isTuningPage, pageMeta, type PrimaryTab } from './pages'
+import { CONTROL_PAGES, STUDIO_PAGES, isStudioPage, pageMeta, type PrimaryTab } from './pages'
 import type { ShellSection } from './SectionList'
 import type { ControllerStatus } from './PageTabs'
 
@@ -10,7 +10,7 @@ type NavDrawerProps = {
   onClose: () => void
   current: PrimaryTab
   onSelect: (tab: PrimaryTab) => void
-  onOpenStudio: () => void
+  onHome: () => void
   sections: ShellSection[]
   eyebrow: string
   status: ControllerStatus
@@ -18,13 +18,12 @@ type NavDrawerProps = {
 
 /**
  * Below 1060px the page tabs and section list fold into one drawer (JSM Shell
- * 3c): every page, the current page's sections unfolded under it, Tuning and
- * Studio. It traps focus and closes on B / Esc, returning focus to the button
+ * 3c): every page of the strip on screen (configuration or Studio), the
+ * current page's sections unfolded under it, and Home. It traps focus and closes on B / Esc, returning focus to the button
  * that opened it.
  */
-export function NavDrawer({ open, onClose, current, onSelect, onOpenStudio, sections, eyebrow, status }: NavDrawerProps) {
+export function NavDrawer({ open, onClose, current, onSelect, onHome, sections, eyebrow, status }: NavDrawerProps) {
   const { t } = useTranslation()
-  const [tuningOpen, setTuningOpen] = useState(() => isTuningPage(current))
   const panel = useRef<HTMLElement>(null)
   const opener = useRef<HTMLElement | null>(null)
   // Read through a ref: the effect below must run once per opening. App
@@ -61,7 +60,7 @@ export function NavDrawer({ open, onClose, current, onSelect, onOpenStudio, sect
       <div className="shell-drawer__scrim" data-modal-close onClick={onClose} />
       <aside id="shell-drawer" ref={panel} className="drawer" role="dialog" aria-modal="true" aria-label="Navigation" data-focus-scope="drawer" data-hints="MOVE:Move;A:Go;B:Close">
         <div className="drawer__eyebrow">{eyebrow}</div>
-        {CONTROL_PAGES.map(item => {
+        {(isStudioPage(current) ? STUDIO_PAGES : CONTROL_PAGES).map(item => {
           const selected = item.tab === current
           return (
             <div key={item.tab} className="drawer__group">
@@ -82,24 +81,10 @@ export function NavDrawer({ open, onClose, current, onSelect, onOpenStudio, sect
             </div>
           )
         })}
-        <button type="button" className="nav-item" aria-expanded={tuningOpen} onClick={() => setTuningOpen(value => !value)}>
-          <Icon name="tuning" size={18} />Tuning
-          <span className="nav-item__trail" aria-hidden="true"><Icon name={tuningOpen ? 'chevronDown' : 'chevronRight'} size={16} /></span>
-        </button>
-        {tuningOpen && (
-          <div className="drawer__subitems">
-            {TUNING_PAGES.map(item => (
-              <button key={item.tab} type="button" className="nav-subitem" data-state={item.tab === current ? 'current' : undefined}
-                aria-current={item.tab === current ? 'page' : undefined} onClick={() => go(item.tab)}>
-                {label(item.tab)}
-              </button>
-            ))}
-          </div>
-        )}
         <div className="drawer__spacer" />
-        <button type="button" className="nav-item" onClick={() => { onOpenStudio(); onClose() }}>
-          <Icon name="library" size={18} />Studio
-          <span className="nav-item__note">Library, preferences…</span>
+        <button type="button" className="nav-item" onClick={() => { onHome(); onClose() }}>
+          <Icon name="overview" size={18} />Home
+          <span className="nav-item__note">This configuration and Studio</span>
         </button>
         <div className="drawer__status" data-state={status.kind}>
           <span className="controller-status__dot" />

@@ -237,7 +237,7 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
     () => [
       { value: 'NONE', label: 'NONE' },
       { value: 'DEFAULT', label: 'DEFAULT' },
-      { value: 'CALIBRATE', label: 'CALIBRATE' },
+      { value: 'CALIBRATE', label: 'Calibrate while held (raw)' },
       ...getSpecialOptionList(t),
     ].filter((option, index, source) => source.findIndex(candidate => candidate.value === option.value) === index),
     [t]
@@ -246,7 +246,7 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
     () => [
       { value: 'NONE', label: 'NONE' },
       { value: 'DEFAULT', label: 'DEFAULT' },
-      { value: 'CALIBRATE', label: 'CALIBRATE' },
+      { value: 'CALIBRATE', label: 'Calibrate while held (raw)' },
       ...getActionSpecialOptionList(t),
     ].filter((option, index, source) => source.findIndex(candidate => candidate.value === option.value) === index),
     [t]

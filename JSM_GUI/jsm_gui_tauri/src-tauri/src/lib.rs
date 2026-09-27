@@ -142,6 +142,7 @@ pub fn run() {
             commands::set_studio_testing,
             commands::controller_feedback,
             commands::set_default_polling_ms,
+            commands::set_global_timing,
             commands::list_global_chords,
             commands::save_global_chord,
             commands::delete_global_chord,

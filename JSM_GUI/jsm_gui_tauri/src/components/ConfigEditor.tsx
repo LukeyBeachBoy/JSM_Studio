@@ -45,6 +45,7 @@ export function ConfigEditor({
         <textarea ref={textareaRef} value={value} onChange={(e) => onChange(e.target.value)} rows={12} disabled={disabled} />
       </label>
       <SectionActions
+        standalone
         className={`${styles.configActions} config-actions`}
         hasPendingChanges={hasPendingChanges}
         statusMessage={statusMessage}

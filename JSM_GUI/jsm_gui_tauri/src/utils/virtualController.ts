@@ -1,3 +1,4 @@
+import { commandLabel } from './commandLabels'
 import type { TFunction } from 'i18next'
 import { keyName } from '../constants/configKeys'
 import { getKeymapValue } from './keymap'
@@ -265,6 +266,9 @@ export const describeOutputValue = (value: string) => {
   if (virtual) return virtual
   const config = loadConfigBindingName(value)
   if (config) return `Load ${config}`
+  // A command a binding runs is called by what it does (Calibrate gyro).
+  const command = commandLabel(value)
+  if (command) return command
   // A key is called what the legend on it says, not what the parser calls it.
   return keyDisplayName(value)
 }

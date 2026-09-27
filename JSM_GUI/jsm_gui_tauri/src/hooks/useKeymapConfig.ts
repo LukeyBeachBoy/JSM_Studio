@@ -31,6 +31,16 @@ export function useKeymapConfig() {
     })
   }, [layerId, setDocumentText, projection])
   const resetConfigHistory = useCallback((text: string) => { selectLayer(''); history.reset(text) }, [history.reset])
+  // The same projection and write, for a layer other than the one being
+  // edited: On-screen menus (2d) draws and moves every layer's menus at once.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- resolveText is the only part of includes it reads, as with projection above
+  const projectionFor = useCallback((id: string, text: string) => projectLayer(id ? writeLayers(includes.resolveText(defaultLayer(text)), readLayers(text)) : text, id), [includes.resolveText])
+  const setConfigTextFor = useCallback((id: string, update: (previous: string) => string) => {
+    setDocumentText(previous => {
+      const before = projectionFor(id, previous)
+      return foldLayer(previous, id, update(before), before)
+    })
+  }, [setDocumentText, projectionFor])
   const [appliedConfig, setAppliedConfig] = useState('')
 
   // A profile that imports a template is not the same thing as the text in its
@@ -82,10 +92,15 @@ export function useKeymapConfig() {
     // resolved in place. Read-only -- never save it over a profile.
     effectiveConfigText: readText,
     configIncludes: { ...includes, effectiveText: readText },
+    /** Import-resolved text as the given layer reads it (every layer, not just the edited one). */
+    readTextFor: (id: string) => projectLayer(writeLayers(includes.effectiveText, layers), id),
+    setConfigTextFor,
     setConfigText,
     resetConfigHistory,
     canUndo: history.canUndo,
     canRedo: history.canRedo,
+    undoTarget: history.undoTarget,
+    redoTarget: history.redoTarget,
     undo: () => { sensitivityConfig.resetPendingSensitivityChanges(); history.undo() },
     redo: () => { sensitivityConfig.resetPendingSensitivityChanges(); history.redo() },
     appliedConfig,

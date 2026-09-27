@@ -16,6 +16,8 @@ import { inputDefinitions } from '../utils/layers'
 import { controllerButtonLabel } from '../utils/controllerStatus'
 import { InputGlyph } from './glyphs/InputGlyph'
 import { useLastSeenController } from '../hooks/useLastSeenController'
+import { Menu } from './ui/Menu'
+import { Icon } from './icons/Icon'
 
 type AiMappingPageProps = {
   configText: string
@@ -23,6 +25,10 @@ type AiMappingPageProps = {
   hasPendingChanges: boolean
   onReplaceConfig: (value: string) => void
   onApplyGeneratedConfig: (value: string) => Promise<void>
+  /** The library, for the Working on picker (console refinement D8). */
+  libraryProfiles: string[]
+  /** Save and apply a proposal to a configuration other than the one being edited. */
+  onApplyToProfile: (name: string, value: string) => Promise<void>
 }
 
 type ChatEntry = {
@@ -97,13 +103,28 @@ const toConversationHistory = (entries: ChatEntry[]): AiConversationMessage[] =>
   }))
 
 export function AiMappingPage({
-  configText,
-  currentProfileName,
-  hasPendingChanges,
+  configText: editingText,
+  currentProfileName: editingName,
+  hasPendingChanges: editingDirty,
   onReplaceConfig,
   onApplyGeneratedConfig,
+  libraryProfiles,
+  onApplyToProfile,
 }: AiMappingPageProps) {
   const { t, i18n } = useTranslation()
+  // Working on (D8): the configuration the conversation is about. The one
+  // being edited unless another is picked; another is read from its file.
+  const [picked, setPicked] = useState<{ name: string; text: string } | null>(null)
+  const configText = picked ? picked.text : editingText
+  const currentProfileName = picked ? picked.name : editingName
+  const hasPendingChanges = picked ? false : editingDirty
+  const [pickerQuery, setPickerQuery] = useState('')
+  const pick = async (name: string) => {
+    if (name === editingName) { setPicked(null); return }
+    const profile = await desktopBridge.loadLibraryProfile(name)
+    if (!profile) { showToast(`Could not read ${name}.`, 'error'); return }
+    setPicked({ name, text: profile.content })
+  }
   const { family } = useLastSeenController()
   const [settings, setSettings] = useState<AiSettings>(DEFAULT_SETTINGS)
   const [composer, setComposer] = useState('')
@@ -164,6 +185,16 @@ export function AiMappingPage({
     }
     return includeCurrentConfig ? configText : undefined
   }, [configText, hasAssistantDraft, includeCurrentConfig, previewConfig])
+
+  const [settingsEdited, setSettingsEdited] = useState(0)
+  const editSettings = (update: (current: AiSettings) => AiSettings) => { setSettings(update); setSettingsEdited(value => value + 1) }
+  useEffect(() => {
+    if (!settingsEdited) return
+    const timer = window.setTimeout(() => { void persistSettings() }, 700)
+    return () => window.clearTimeout(timer)
+    // persistSettings reads the latest settings; the edit counter is the trigger.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settingsEdited])
 
   const persistSettings = async () => {
     setSavingSettings(true)
@@ -270,7 +301,10 @@ export function AiMappingPage({
   const handleApplyGeneratedConfig = async () => {
     setApplying(true)
     try {
-      await onApplyGeneratedConfig(previewConfig)
+      if (picked) {
+        await onApplyToProfile(picked.name, previewConfig)
+        setPicked({ name: picked.name, text: previewConfig })
+      } else await onApplyGeneratedConfig(previewConfig)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       setErrorMessage(message)
@@ -291,37 +325,59 @@ export function AiMappingPage({
 
   // AI assistant (Tuning and Studio Pages 16e): a conversation. Each answer is
   // a proposal -- the change as config lines -- applied only when you say so.
+  // A new configuration starts a new conversation.
+  const choose = (name: string) => { void pick(name).then(() => { setMessages([]); setErrorMessage(null) }) }
+  const query = pickerQuery.trim().toLowerCase()
+
   return (
     <div className={styles.page}>
+      <Menu ariaLabel="Working on" width={360} empty="No configurations match"
+        search={{ placeholder: 'Search configurations', value: pickerQuery, onChange: setPickerQuery }}
+        onOpenChange={open => { if (!open) setPickerQuery('') }}
+        items={libraryProfiles.filter(name => !query || name.toLowerCase().includes(query)).map(name => ({
+          label: name,
+          description: name === editingName ? 'Being edited' : undefined,
+          checked: name === (currentProfileName ?? ''),
+          onSelect: () => choose(name),
+        }))}
+        trigger={
+          <button type="button" className="summary-row ai-working-on" data-size="page" data-hints="A:Choose configuration;B:Home">
+            <span className="summary-row__icon" aria-hidden="true"><Icon name="library" size={20} /></span>
+            <span className="summary-row__text">
+              <span className="summary-row__label">Working on</span>
+              <span className="summary-row__hint">{picked ? `Changes are saved to ${picked.name}.txt` : 'The configuration being edited'}</span>
+            </span>
+            <span className="summary-row__value">{currentProfileName ?? t('app.profileSummary.unsavedProfile')}</span>
+            <span className="summary-row__chevron" aria-hidden="true"><Icon name="chevronDown" size={18} /></span>
+          </button>
+        } />
       <AdvancedDisclosure label={t('ai.apiSettingsTitle')} summary={settingsReady ? `${settings.model} · ${settings.baseUrl}` : 'Not set up yet'} defaultOpen={settingsLoaded && !settingsReady}>
         <div className={styles.settingsGrid}>
           <label className={styles.field}>
             <span>{t('ai.apiKeyLabel')}</span>
             <input className="text-field" type="password" placeholder={t('ai.apiKeyPlaceholder')} value={settings.apiKey}
-              onChange={event => setSettings(current => ({ ...current, apiKey: event.target.value }))} />
+              onChange={event => editSettings(current => ({ ...current, apiKey: event.target.value }))} />
           </label>
           <label className={styles.field}>
             <span>{t('ai.modelLabel')}</span>
             <input className="text-field" type="text" placeholder={t('ai.modelPlaceholder')} value={settings.model}
-              onChange={event => setSettings(current => ({ ...current, model: event.target.value }))} />
+              onChange={event => editSettings(current => ({ ...current, model: event.target.value }))} />
           </label>
           <label className={styles.field}>
             <span>{t('ai.baseUrlLabel')}</span>
             <input className="text-field" type="url" placeholder={t('ai.baseUrlPlaceholder')} value={settings.baseUrl}
-              onChange={event => setSettings(current => ({ ...current, baseUrl: event.target.value }))} />
+              onChange={event => editSettings(current => ({ ...current, baseUrl: event.target.value }))} />
           </label>
         </div>
         <NumberField label={t('ai.temperatureLabel')} value={settings.temperature} hint={t('ai.temperatureHint')}
           onChange={raw => {
             const nextValue = Number.parseFloat(raw)
-            setSettings(current => ({ ...current, temperature: Number.isFinite(nextValue) ? nextValue : current.temperature }))
+            editSettings(current => ({ ...current, temperature: Number.isFinite(nextValue) ? nextValue : current.temperature }))
           }}
           min={0} max={2} step={0.1} coarseStep={0.5} />
         <div className={styles.settingsFooter}>
           <span className={styles.note}>{t('ai.apiSettingsDescription')} {t('ai.providerNote')}</span>
-          <button type="button" className="button button--secondary" onClick={() => void persistSettings()} disabled={savingSettings}>
-            {savingSettings ? t('ai.savingSettings') : t('ai.saveSettings')}
-          </button>
+          <span className={styles.note} role="status">{savingSettings ? t('ai.savingSettings') : 'Saved as you type'}</span>
         </div>
       </AdvancedDisclosure>
 
@@ -379,7 +435,7 @@ export function AiMappingPage({
                   {isLatest && (
                     <div className={styles.proposalActions}>
                       <button type="button" className="button button--primary" onClick={() => void handleApplyGeneratedConfig()} disabled={applying} data-hints="A:Apply change;Y:Type;B:Back">{applying ? t('ai.applyingToJsm') : 'Apply change'}</button>
-                      <button type="button" className="button button--secondary" onClick={handleEditInButtons}>Edit in Buttons</button>
+                      {!picked && <button type="button" className="button button--secondary" onClick={handleEditInButtons}>Edit in Buttons</button>}
                       <button type="button" className="button button--tertiary" onClick={handleResetConversation}>Discard</button>
                     </div>
                   )}

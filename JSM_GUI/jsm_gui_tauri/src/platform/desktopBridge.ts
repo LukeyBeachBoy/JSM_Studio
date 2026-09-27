@@ -51,6 +51,21 @@ export type RuntimeMappingState = {
   reservedChords?: boolean
   /** Whether the calibration HUD appears over games. */
   calibrationHudEnabled?: boolean
+  /** The global timing store (console refinement D8), in milliseconds. */
+  holdPressMs?: number
+  dblPressMs?: number
+  simPressMs?: number
+  turboPeriodMs?: number
+}
+
+/** Any of the global timing values; each is optional so one can change alone. */
+export type GlobalTiming = { pollingMs?: number; holdPressMs?: number; dblPressMs?: number; simPressMs?: number; turboPeriodMs?: number }
+
+// Outside Tauri (the ?mock preview and the browser tests) the global store
+// lives here, so the Timing page behaves the same.
+const previewRuntime: RuntimeMappingState = {
+  activeProfilePath: 'profiles-library/Profile 1.txt', mappingEnabled: true, autoloadEnabled: true, controllerNavEnabled: true, trackpadOverlayEnabled: false,
+  defaultPollingMs: 3, holdPressMs: 150, dblPressMs: 150, simPressMs: 50, turboPeriodMs: 80,
 }
 
 export type ControllerPreferences = {
@@ -246,6 +261,8 @@ export interface DesktopBridge {
   setMappingEnabled: (enabled: boolean) => Promise<RuntimeMappingState>
   setAutoloadEnabled: (enabled: boolean) => Promise<RuntimeMappingState>
   setDefaultPollingMs: (value: number) => Promise<RuntimeMappingState>
+  /** The global timing store; saved and handed to the running mapper at once. */
+  setGlobalTiming: (timing: GlobalTiming) => Promise<RuntimeMappingState>
   setControllerPreferences: (preferences: ControllerPreferences) => Promise<RuntimeMappingState>
   playControllerSound: (sound: number) => Promise<{ success: boolean }>
   setControllerNavEnabled: (enabled: boolean) => Promise<RuntimeMappingState>
@@ -464,7 +481,7 @@ export const desktopBridge: DesktopBridge = {
     if (isTauriWindow()) {
       return invokeTauri<RuntimeMappingState>('get_runtime_mapping_state')
     }
-    return { activeProfilePath: 'profiles-library/Profile 1.txt', mappingEnabled: true, autoloadEnabled: true, controllerNavEnabled: true, trackpadOverlayEnabled: false }
+    return { ...previewRuntime }
   },
   async setMappingEnabled(enabled) {
     if (isTauriWindow()) {
@@ -483,8 +500,21 @@ export const desktopBridge: DesktopBridge = {
   },
 
   async setDefaultPollingMs(value: number): Promise<RuntimeMappingState> {
-    if (isTauriWindow()) return invokeTauri<RuntimeMappingState>('set_default_polling_ms', { value })
-    return { activeProfilePath: 'profiles-library/Profile 1.txt', mappingEnabled: true, autoloadEnabled: true, controllerNavEnabled: true, defaultPollingMs: value }
+    return desktopBridge.setGlobalTiming({ pollingMs: value })
+  },
+  async setGlobalTiming(timing: GlobalTiming): Promise<RuntimeMappingState> {
+    if (isTauriWindow()) return invokeTauri<RuntimeMappingState>('set_global_timing', { timing })
+    const next = {
+      ...previewRuntime,
+      ...(timing.pollingMs !== undefined ? { defaultPollingMs: timing.pollingMs } : {}),
+      ...(timing.holdPressMs !== undefined ? { holdPressMs: timing.holdPressMs } : {}),
+      ...(timing.dblPressMs !== undefined ? { dblPressMs: timing.dblPressMs } : {}),
+      ...(timing.simPressMs !== undefined ? { simPressMs: timing.simPressMs } : {}),
+      ...(timing.turboPeriodMs !== undefined ? { turboPeriodMs: timing.turboPeriodMs } : {}),
+    }
+    if ((next.holdPressMs ?? 150) <= (next.simPressMs ?? 50)) throw new Error(`Hold time must be longer than the simultaneous-press window (${next.simPressMs} ms)`)
+    Object.assign(previewRuntime, next)
+    return { ...previewRuntime }
   },
   async setControllerPreferences(preferences) {
     if (isTauriWindow()) return invokeTauri<RuntimeMappingState>('set_controller_preferences', { preferences })

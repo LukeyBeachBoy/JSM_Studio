@@ -43,6 +43,8 @@ const PROFILE = [
       } };
     }, PROFILE);
     await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
+    // The app opens on Home (console refinement 2a); these checks start in the editing shell.
+    await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
     page.setDefaultTimeout(15000);
     await page.locator('.profile-chip').filter({ hasText: 'Desktop' }).waitFor();
     await page.getByRole('button', { name: 'Buttons', exact: true }).click();

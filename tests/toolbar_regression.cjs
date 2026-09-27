@@ -1,4 +1,5 @@
-// Save and Apply say what they act on, and switching away cannot lose edits.
+// The one state button says what it will do and to what; Save lives in the
+// Configuration menu (console refinement 1e); switching away cannot lose edits.
 // Isolated renderer check; mocks never invoke a physical controller or runtime.
 const assert = require('node:assert/strict');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
@@ -20,28 +21,44 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
   window.telemetry={onSample:cb=>{cb({console:'ready',activeProfile:'profiles-library/Desktop.txt',devices:[]});return()=>{}}};
  });
  await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
+ // The app opens on Home (console refinement 2a); these checks start in the editing shell.
+ await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
  const chip = page.locator('.profile-chip');
  await chip.filter({hasText:'Desktop'}).waitFor();
+ const titlebar = page.locator('.titlebar');
 
  // One way in, not a dropdown beside a Manage button doing the same job.
  assert.equal(await page.locator('.utility-profile-select').count(), 0, 'the separate profile dropdown is still there');
  assert.equal(await page.getByRole('button',{name:'Manage configurations'}).count(), 0, 'the separate Manage button is still there');
 
- // Save and Apply are their own labelled buttons (design: title bar), and each
- // names its target.
- const save = page.getByRole('button',{name:'Save configuration',exact:true});
- const apply = page.getByRole('button',{name:'Apply',exact:true});
- assert.equal(await save.innerText(), 'Save');
- assert.match(await save.getAttribute('title'), /Desktop/, 'Save should name what it writes to');
- assert.match(await apply.getAttribute('title'), /Desktop/, 'Apply should name what it applies');
- assert.equal(await page.getByRole('button',{name:/Save and apply/}).count(), 0, 'the combined button is still there');
+ // One state button in the bar (1e) and no Undo, Redo, Save or separate Apply
+ // beside it. Saved and running, it says so.
+ const state = titlebar.locator('.state-button');
+ assert.equal(await state.count(), 1);
+ assert.equal(await state.innerText(), '✓ Applied');
+ assert.match(await state.getAttribute('title'), /Desktop/, 'the state button should name what is running');
+ for (const name of ['Undo','Redo','Save configuration','Apply'])
+   assert.equal(await titlebar.getByRole('button',{name,exact:true}).count(), 0, `${name} is still in the title bar`);
 
- // Undo and redo are icons with their names kept for hover and screen readers.
- for (const name of ['Undo','Redo']) {
-   const button = page.getByRole('button',{name,exact:true});
-   assert.equal(await button.count(), 1, `${name} button is missing`);
-   assert.equal(await button.innerText(), '', `${name} should be icon-only`);
+ // The Configuration menu (from the chip) holds Undo, Redo and Save, idle and
+ // saying why while there is nothing to do.
+ const configMenu = page.locator('.config-menu');
+ const openConfigMenu = async () => {
+   await chip.click();
+   await page.getByRole('menuitem',{name:/^Configuration menu/}).click();
+   await configMenu.waitFor();
+ };
+ const menuItem = label => configMenu.locator('.config-menu__item').filter({has:page.locator('.config-menu__label').getByText(label,{exact:true})});
+ await openConfigMenu();
+ assert.equal(await configMenu.locator('.config-menu__title').innerText(), 'Desktop');
+ assert.deepEqual((await configMenu.locator('.config-menu__label').allInnerTexts()).map(t => t.trim()),
+   ['Undo','Redo','Save without applying','Save as copy…','Discard changes','Test while editing','Values & inheritance']);
+ for (const [label, reason] of [['Undo','Nothing to undo'],['Redo','Nothing to redo'],['Save without applying','No unsaved changes']]) {
+   assert.equal(await menuItem(label).getAttribute('aria-disabled'), 'true', `${label} should idle`);
+   assert.equal(await menuItem(label).getAttribute('data-reason'), reason);
  }
+ await page.keyboard.press('Escape');
+ await configMenu.waitFor({state:'detached'});
 
  // Edit something that lands in the configuration file, then walk away from it.
  await page.getByRole('button',{name:'Triggers',exact:true}).click();
@@ -52,9 +69,22 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  await threshold.press('Tab');
  await page.locator('.unsaved-dot').first().waitFor();
 
- // The Editing segment opens the configuration menu; choosing another runs
+ // Dirty: the state button now saves and applies, and says how much.
+ await page.waitForFunction(() => /^Apply \d+ changes?$/.test(document.querySelector('.titlebar .state-button')?.textContent ?? ''));
+ assert.equal(await state.getAttribute('data-tone'), 'accent');
+ assert.match(await state.getAttribute('title'), /Desktop/, 'the state button should name what it writes to');
+ // Undo names what it undoes; Save (Ctrl+S) and Discard wake up.
+ await openConfigMenu();
+ assert.equal(await menuItem('Undo').getAttribute('aria-disabled'), null);
+ assert.doesNotMatch(await menuItem('Undo').locator('.config-menu__meta').innerText(), /Nothing to undo/);
+ assert.equal(await menuItem('Save without applying').locator('.config-menu__meta').innerText(), 'Ctrl+S');
+ assert.equal(await configMenu.locator('.config-menu__label').filter({hasText:/^Discard \d+ changes?$/}).count(), 1);
+ await page.keyboard.press('Escape');
+ await configMenu.waitFor({state:'detached'});
+
+ // The Editing chip opens the configuration switcher; choosing another runs
  // the unsaved-changes guard first.
- const other = page.getByRole('menuitem').nth(1);
+ const other = page.getByRole('menuitem').filter({hasText:'Game'});
  await chip.click();
  await other.click();
  const guard = page.getByRole('alertdialog');
@@ -77,6 +107,6 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  assert.match(await page.evaluate(() => window.__lastSaved), /TRIGGER_THRESHOLD = 0.1/, 'the edit was not saved before switching');
 
  assert.deepEqual(errors,[]);
- console.log('PASS: one profile control, separate named Save and Apply, icon undo/redo, guarded switching');
+ console.log('PASS: one profile control, one named state button, Undo/Redo/Save in the Configuration menu, guarded switching');
  } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exit(1); });

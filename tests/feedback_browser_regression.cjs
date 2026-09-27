@@ -24,6 +24,8 @@ const fs = require('node:fs');
   }};
  });
  await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
+ // The app opens on Home (console refinement 2a); these checks start in the editing shell.
+ await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
  // Switching configurations is one control: the Editing segment in the title
  // bar opens a searchable menu of every configuration, and choosing one loads it.
  const picker=page.locator('.profile-chip');
@@ -32,12 +34,22 @@ const fs = require('node:fs');
   await page.getByRole('menuitem').filter({hasText:name}).first().click();
  };
  await picker.filter({hasText:'Desktop'}).waitFor();
+ // A controller is connected, so the capsule draws its buttons, never names or keys (D11).
+ await page.locator('.hint-capsule svg.hint-glyph[data-glyph]').first().waitFor();
+ assert.equal(await page.locator('.hint-capsule kbd').count(),0,'capsule should show glyphs with a controller');
  await selectProfile('Game');
  await picker.filter({hasText:'Game'}).waitFor();
  assert.deepEqual(await page.evaluate(()=>window.__calls),[],'selecting a profile applied it');
- // The Save button idles while nothing is unsaved (design 2a); Ctrl+S still
+ // Nothing unsaved and not running: the state button offers to apply it
+ // (1e), and the Configuration menu's Save idles saying why. Ctrl+S still
  // writes the file, and must not apply it.
- assert.equal(await page.getByRole('button',{name:'Save configuration',exact:true}).getAttribute('data-reason'),'No unsaved changes');
+ assert.equal(await page.locator('.titlebar .state-button').innerText(),'Apply Game');
+ await picker.click();
+ await page.getByRole('menuitem',{name:/^Configuration menu/}).click();
+ const save=page.locator('.config-menu__item').filter({hasText:'Save without applying'});
+ assert.equal(await save.getAttribute('data-reason'),'No unsaved changes');
+ await page.keyboard.press('Escape');
+ await save.waitFor({state:'detached'});
  await page.keyboard.press('Control+s');
  await page.waitForFunction(()=>window.__calls.length>0);
  assert.deepEqual(await page.evaluate(()=>window.__calls),['save'],'Save must not Apply');
@@ -62,8 +74,11 @@ const fs = require('node:fs');
  await page.locator('button[aria-label^="LT3:"]').click();
  const region=page.locator('[data-input-command="LT3"]');
  await region.waitFor();
- assert(await region.evaluate(el=>el.contains(document.activeElement)),'grid shortcut did not select and focus LT3');
- await page.getByRole('checkbox',{name:'Require a click to activate a region',exact:true}).first().waitFor();
+ // Trackpads is a lazy page, so give the shortcut's focus a moment to land.
+ const focused=sel=>page.waitForFunction(sel=>document.querySelector(sel)?.contains(document.activeElement),sel,{timeout:3000}).then(()=>true,()=>false);
+ assert(await focused('[data-input-command="LT3"]'),'grid shortcut did not select and focus LT3');
+ // Click-to-activate is a summary row on the pad's column now (2b), toggled with A.
+ await page.locator('.summary-row').filter({has:page.locator('.summary-row__label').getByText('Click required',{exact:true})}).first().waitFor();
  await page.locator('[data-input-command="LEFT_PAD"]').waitFor();
  assert(await page.locator('main').evaluate(el=>el.contains(document.activeElement)),'lazy page focus escaped');
  await page.screenshot({path:path.join(out,'trackpads.png'),fullPage:true});
@@ -81,8 +96,10 @@ const fs = require('node:fs');
   window.__hidStatus={supported:true,installed:true,active:false,inverse:false,steamAllowed:false,whitelistSynced:true,requiresElevation:false,managedInstanceIds:['test'],devices:[{instanceId:'test',displayName:'Test Steam Controller',vendor:'Valve',product:'Controller',present:true,hidden:true,partiallyHidden:false,managedByApp:true,stale:false,likelyCurrentController:false}]};
   window.__TAURI_INTERNALS__={invoke:async command=>{if(command==='get_hidhide_status')return structuredClone(window.__hidStatus);throw new Error('Unexpected mocked Tauri command: '+command)}};
  });
- await page.locator('.titlebar__brand').click();
- await page.getByRole('button',{name:'Device visibility',exact:true}).click();
+ // Studio is one press from Home (2a): the Home chip, then its tile.
+ await page.locator('.titlebar .home-chip').click();
+ await page.locator('section[aria-labelledby="home-studio-title"]').getByRole('button',{name:/^Device visibility/}).click();
+ await page.locator('.page-header__title').filter({hasText:'Device visibility'}).waitFor();
  await page.getByText('Set to hide · filtering is off',{exact:true}).waitFor();
  await page.evaluate(()=>{window.__hidStatus.active=true;window.__hidStatus.inverse=true;window.__hidStatus.steamAllowed=true;window.dispatchEvent(new Event('focus'))});
  await page.getByText('Hidden from listed applications',{exact:true}).waitFor();

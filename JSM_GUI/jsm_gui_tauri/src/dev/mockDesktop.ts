@@ -29,7 +29,8 @@ const profiles: Record<string, string> = {
     // title bar and Layers page describe as "Nothing turns it on").
     '# @layer-action LSL = hold veh', '# @layer-action RSR = hold comms', '# @layer-action RSL = toggle map', '# @layer-action - = remove map',
   ].join('\n') + '\n',
-  'FPS Template': 'RESET_MAPPINGS\nS = SPACE\nUP = 1\nDOWN = 2\n',
+  // Like the real template, it still sets its own polling (Timing's "Still set in a file", 2f).
+  'FPS Template': 'RESET_MAPPINGS\nS = SPACE\nUP = 1\nDOWN = 2\nTICK_TIME = 1\n',
   Cyberpunk: 'RESET_MAPPINGS\nS = SPACE\nZL = RMOUSE\n',
   Gamepad: 'RESET_MAPPINGS\n',
 }

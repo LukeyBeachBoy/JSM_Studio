@@ -1,7 +1,9 @@
-// The console-tab shell (design handoff, JSM Shell 1c): title bar, page tabs
-// stepped by LT/RT, a section list per page, Tuning behind a menu, Studio
-// behind the app mark with a back chip, icon-only tabs below 1280px and a
-// drawer below 1024px. Replaces sidebar_regression, whose rail no longer exists.
+// The console-tab shell (console refinement 2a/2b/2f): the app opens on Home,
+// whose Studio tiles lead to the Studio strip; a title bar with a Home chip and
+// one state button; page tabs stepped by LT/RT, drawn as trigger glyphs; a
+// section list per page; tuning as sheets rather than a Tuning menu;
+// icon-only tabs below 1280px and a drawer below 1024px. Replaces
+// sidebar_regression, whose rail no longer exists.
 // Isolated renderer check; mocks never invoke a physical controller or runtime.
 const assert = require('node:assert/strict');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
@@ -22,26 +24,66 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
   window.telemetry={onSample:cb=>{cb({console:'ready',activeProfile:'profiles-library/Desktop.txt',devices:[]});return()=>{}}};
  });
  await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
- await page.locator('.profile-chip').filter({hasText:'Desktop'}).waitFor();
-
  const tabs = page.locator('.page-tabs');
  const title = page.locator('.page-header__title');
  const overflow = () => page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+ const group = name => page.locator(`.app-shell[data-page-group="${name}"]`).waitFor();
+ const homeChip = page.locator('.titlebar .home-chip');
+ const studioColumn = page.locator('section[aria-labelledby="home-studio-title"]');
+ const studioPages = ['Configurations','Associations','Global chords','Press timing & polling','AI assistant','Device visibility','Preferences','Documentation','Debug console'];
 
- // Title bar answers what is being edited and what is applied; tabs carry the pages.
+ // Home (2a): the mark is a name, not a button, and there are no page tabs.
+ // Studio is its own labelled column, nine tiles in Studio tab order.
+ await page.locator('[data-home-continue]').waitFor({ timeout: 15000 });
+ await group('home');
+ assert.equal(await page.locator('.titlebar__brand').evaluate(el => el.tagName), 'DIV', 'the logo should not be clickable');
+ assert.equal(await homeChip.count(), 0, 'Home has no Home chip');
+ assert.equal(await page.locator('.titlebar .state-button').count(), 0, 'Home keeps Apply inside the card');
+ assert.equal(await tabs.count(), 0);
+ assert.deepEqual((await studioColumn.getByRole('button').allInnerTexts()).map(t => t.split('\n')[0].trim()), studioPages);
+ // No controller: Test stays on screen (tiles never hide) but idles and says why.
+ const test = page.getByRole('button',{name:'Test',exact:true});
+ assert.equal(await test.getAttribute('aria-disabled'), 'true');
+ assert.match(await test.getAttribute('data-reason'), /Connect a controller/);
+ // Tuning is shortcuts in the configuration card that open sheets, not pages (D2).
+ await page.getByRole('button',{name:/^Grip sensors/}).click();
+ const sheet = page.locator('.sheet');
+ assert.equal(await sheet.locator('.sheet__title').innerText(), 'Grip sensors');
+ assert.match(await sheet.locator('.eyebrow').first().innerText(), /BUTTONS · GRIPS · DESKTOP/i);
+ await page.keyboard.press('Escape');
+ await sheet.waitFor({state:'detached'});
+ await group('home');
+ // The app opens on Home (console refinement 2a); these checks start in the editing shell.
+ await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
+ await page.locator('.profile-chip').filter({hasText:'Desktop'}).waitFor();
+ await group('controls');
+
+ // Title bar answers what is being edited and what pressing it will do: no
+ // Undo/Redo/Save, and Applied is the one state button, not a segment.
  assert.equal(await page.locator('.titlebar').count(), 1);
- assert.match(await page.locator('.context-segment--applied').innerText(), /Applied\s+Desktop/);
+ assert.equal(await homeChip.count(), 1);
+ assert.equal(await page.locator('.context-segment--applied').count(), 0);
+ const state = page.locator('.titlebar .state-button');
+ assert.equal(await state.innerText(), '✓ Applied');
+ assert.equal(await state.getAttribute('data-tone'), 'applied');
+ for (const name of ['Undo','Redo','Save configuration'])
+   assert.equal(await page.locator('.titlebar').getByRole('button',{name,exact:true}).count(), 0, `${name} is still in the title bar`);
  for (const name of ['Overview','Buttons','D-Pad','Triggers','Joysticks','Trackpads','Gyro','Layers'])
    assert.equal(await tabs.getByRole('button',{name,exact:true}).count(), 1, `${name} tab missing`);
- assert.equal(await tabs.locator('.trigger-mark').allInnerTexts().then(t => t.join(' ')), 'LT RT');
+ // LT/RT are the controller's own trigger art, never text (D11).
+ assert.deepEqual(await tabs.locator('.trigger-mark svg').evaluateAll(els => els.map(el => el.dataset.glyph)), ['ZL','ZR']);
+ assert.equal(await tabs.getByRole('button',{name:/^Tuning/}).count(), 0, 'the Tuning dropdown is back');
  assert.equal(await tabs.getByRole('button',{name:'Overview',exact:true}).getAttribute('aria-current'), 'page');
+ for (const bar of ['.titlebar','.page-tabs'])
+   assert.equal(Math.round((await page.locator(bar).boundingBox()).height), 56, `${bar} should be 56px`);
  assert.ok(await overflow() <= 1, 'the shell scrolls sideways at 1440');
- // No controller: the plate and the tab strip both say so, and Test is hidden.
+ // No controller: the plate and the tab strip both say so, and Test is not in the bar.
  assert.match(await page.locator('.mapping-plate').innerText(), /No controller/);
  assert.match(await page.locator('.controller-status').innerText(), /No controller/);
- assert.equal(await page.getByRole('button',{name:'Test'}).count(), 0);
+ assert.equal(await page.getByRole('button',{name:'Test',exact:true}).count(), 0);
  // The capsule shows keys, not pad glyphs, with no controller connected.
- assert.ok(await page.locator('.hint-capsule kbd').count() > 0, 'capsule should fall back to keyboard keys');
+ assert.ok(await page.locator('.hint-capsule kbd.hint-key').count() > 0, 'capsule should fall back to keyboard keys');
+ assert.equal(await page.locator('.hint-capsule svg.hint-glyph').count(), 0);
 
  // A page with groups gets a section list; the first is current.
  await tabs.getByRole('button',{name:'Buttons',exact:true}).click();
@@ -55,6 +97,10 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  // Choosing a section scrolls to it and the list follows.
  await sections.last().click();
  await page.waitForFunction(() => document.querySelector('.section-list .section-item:last-child')?.getAttribute('aria-current') === 'true');
+ // Trackpads sets its pads side by side instead (2b), so it has no list.
+ await tabs.getByRole('button',{name:'Trackpads',exact:true}).click();
+ await title.filter({hasText:'Trackpads'}).waitFor();
+ assert.equal(await page.locator('.section-list').count(), 0, 'Trackpads should have no section list');
  // Overview has no groups, so its column goes away.
  await tabs.getByRole('button',{name:'Overview',exact:true}).click();
  await title.filter({hasText:'Overview'}).waitFor();
@@ -67,31 +113,35 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  await page.keyboard.press('PageUp');
  await title.filter({hasText:'Overview'}).waitFor();
 
- // Tuning pages sit behind the Tuning tab's menu.
- await tabs.getByRole('button',{name:/^Tuning/}).click();
- const tuning = (await page.getByRole('menuitem').allInnerTexts()).map(t => t.trim());
- assert.deepEqual(tuning, ['Grip sensors','Trackpad tuning','Menu layout','Press timing & polling','AI assistant']);
- await page.getByRole('menuitem',{name:'Grip sensors'}).click();
- await title.filter({hasText:'Grip sensors'}).waitFor();
- assert.equal(await tabs.locator('.page-tab--menu').getAttribute('aria-current'), 'page');
-
- // Studio is behind the app mark: its own tabs, and a chip back to where you were.
- await page.locator('.titlebar__brand').click();
- await title.filter({hasText:'Configurations'}).waitFor();
- assert.equal(await tabs.getByRole('button',{name:'Buttons',exact:true}).count(), 0, 'configuration tabs stay out of Studio');
- for (const name of ['Configurations','Associations','Global chords','Device visibility','Debug console','Preferences','Documentation'])
-   assert.equal(await tabs.getByRole('button',{name,exact:true}).count(), 1, `${name} Studio tab missing`);
- assert.match(await page.locator('.back-chip').innerText(), /Desktop · Grip sensors/);
- await page.locator('.back-chip').click();
- await title.filter({hasText:'Grip sensors'}).waitFor();
-
- // Below 1280: icons only, except the selected tab; Applied folds away.
+ // Studio is one press from Home: its own text-only tabs and a Studio title
+ // bar with no configuration chip or state button (2f). The Home chip
+ // replaces the back chip, and B on Studio goes Home.
  await tabs.getByRole('button',{name:'Buttons',exact:true}).click();
+ await title.filter({hasText:'Buttons'}).waitFor();
+ await homeChip.click();
+ await group('home');
+ await studioColumn.getByRole('button',{name:/^Configurations/}).click();
+ await title.filter({hasText:'Configurations'}).waitFor();
+ await group('studio');
+ assert.equal(await tabs.getByRole('button',{name:'Buttons',exact:true}).count(), 0, 'configuration tabs stay out of Studio');
+ assert.deepEqual((await tabs.locator('.page-tab').allInnerTexts()).map(t => t.trim()), studioPages);
+ assert.equal(await tabs.locator('.page-tab svg').count(), 0, 'Studio tabs are words only');
+ assert.match(await page.locator('.titlebar__studio').innerText(), /Studio\s*Applies to every configuration/);
+ assert.equal(await page.locator('.titlebar .profile-chip, .titlebar .state-button').count(), 0);
+ assert.equal(await page.locator('.back-chip').count(), 0, 'the back chip should be gone; Home replaces it');
+ await page.locator('.shell-scroll').click({position:{x:5,y:5}});
+ await page.keyboard.press('Escape');
+ await group('home');
+ // B on Home resumes the page you were editing.
+ await page.keyboard.press('Escape');
+ await title.filter({hasText:'Buttons'}).waitFor();
+
+ // Below 1280: icons only, except the selected tab; the state button keeps its words.
  await page.setViewportSize({width:1100,height:720});
  await page.waitForFunction(() => document.querySelector('.app-shell')?.dataset.width === 'compact');
  assert.equal((await tabs.getByRole('button',{name:'Buttons',exact:true}).innerText()).trim(), 'Buttons');
  assert.equal((await tabs.getByRole('button',{name:'Triggers',exact:true}).innerText()).trim(), '', 'unselected tabs should be icons');
- assert.equal(await page.locator('.context-segment--applied').count(), 0);
+ assert.equal(await state.innerText(), '✓ Applied');
  assert.equal(Math.round((await page.locator('.section-list').boundingBox()).width), 184);
  assert.ok(await overflow() <= 1, 'the shell scrolls sideways at 1100');
 
@@ -114,6 +164,6 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  assert.ok(await overflow() <= 1, 'the shell scrolls sideways at 900');
 
  assert.deepEqual(errors,[]);
- console.log('PASS: title bar context, page tabs with LT/RT stepping, section list, Tuning menu, Studio tabs with back chip, compact tabs and the narrow drawer');
+ console.log('PASS: Home with Studio tiles and tuning sheets, Home chip and state button, glyph LT/RT tabs, section list, Studio tabs and B to Home, compact tabs and the narrow drawer');
  } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exit(1); });

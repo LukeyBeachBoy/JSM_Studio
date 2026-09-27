@@ -107,7 +107,9 @@ check('key aliases still apply inside a modified binding', () => {
 
 check('gyro actions are named, not left as tokens', () => {
   assert.equal(describeBinding('GYRO_OFF\\', t), 'Hold Gyro off');
-  assert.equal(describeBinding('!CALIBRATE\\', t), 'Tap Recalibrate gyro');
+  assert.equal(describeBinding('!CALIBRATE\\', t), 'Tap Calibrate while held');
+  // The full run with the overlay HUD, offered first in the picker, reads by what it does.
+  assert.equal(describeBinding('"CALIBRATE_GYRO"', t), 'Calibrate gyro');
 });
 
 check('a configuration path is named, spaces and all', () => {

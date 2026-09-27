@@ -49,6 +49,8 @@ const PROFILE = [
       } };
     }, PROFILE);
     await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
+    // The app opens on Home (console refinement 2a); these checks start in the editing shell.
+    await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
     await page.locator('.profile-chip').filter({ hasText: 'Lines' }).waitFor();
     await page.locator('[data-overview-input="RSR"]').waitFor();
 

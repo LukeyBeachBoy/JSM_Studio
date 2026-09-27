@@ -14,6 +14,8 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.cache
   window.telemetry={onSample:cb=>{const emit=()=>cb({activeProfile:'profiles-library/Dense.txt',devices:[{handle:1,type:window.__type,supportedButtons:8589934591,status:{buttons:0,leftStick:{x:0,y:0},rightStick:{x:0,y:0},triggers:{left:0,right:0},leftPad:{x:0,y:0,touched:false},rightPad:{x:0,y:0,touched:false}}}]});emit();const timer=setInterval(emit,100);return()=>clearInterval(timer)}};
  });
  await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
+ // The app opens on Home (console refinement 2a); these checks start in the editing shell.
+ await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
  await page.locator('.profile-chip').filter({hasText:'Dense'}).waitFor();
  const north=()=>page.locator('details[data-input-command="N"]').first();
  // Overview.dc.html: the grip row is named, with the activation as its pill ("Enables gyro").
@@ -35,7 +37,8 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.cache
  // Output/value fields fold behind the advanced-settings gear now.
  await north().getByRole('button',{name:'Command options',exact:true}).first().click();
  const output=north().locator('input[class*="valueInput"]').first();await output.fill('P');await output.press('Tab');
- const choose=async name=>{await page.locator('.profile-chip').click();await page.getByRole('menuitem').filter({has:page.locator('[class*=itemLabel]').getByText(name,{exact:true})}).click()};
+ // The library entry, not the "Applied · Running now" shortcut above the list (which also names Dense).
+ const choose=async name=>{await page.locator('.profile-chip').click();await page.getByRole('menuitem').filter({has:page.locator('[class*=itemLabel]').getByText(name,{exact:true})}).filter({hasNotText:/Running now/}).click()};
  const closeLibrary=async()=>{const close=page.locator('.profile-modal [data-modal-close]');if(await close.count())await close.click()};
  await choose('Other');await page.getByRole('alertdialog').getByRole('button',{name:/Discard/i}).click();await page.locator('.profile-chip').filter({hasText:'Other'}).waitFor();await closeLibrary();
  await choose('Dense');await page.locator('.profile-chip').filter({hasText:'Dense'}).waitFor();await closeLibrary();

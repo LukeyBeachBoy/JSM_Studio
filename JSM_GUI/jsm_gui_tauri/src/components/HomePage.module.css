@@ -1,0 +1,180 @@
+/* Home (console refinement 2a): the configuration card on the left at 1.2fr,
+   Studio's tiles on the right at 1fr, 32px apart, 32/40px from the edges and
+   96px clear of the capsule. */
+.home {
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: var(--sp-7);
+  padding: var(--sp-7) var(--sp-8) 96px;
+  min-height: 0;
+}
+
+.column { display: flex; flex-direction: column; gap: var(--sp-3); min-height: 0; min-width: 0; }
+.caption { display: flex; align-items: baseline; gap: 10px; }
+.captionNote { font-size: var(--fs-hint); color: var(--text-3); }
+
+/* ---- This configuration */
+.card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-radius: 18px;
+  background: var(--surface-nav);
+  box-shadow: inset 0 0 0 1px var(--line-2);
+  overflow: hidden;
+}
+.cardHeader { display: flex; align-items: center; gap: var(--sp-4); padding: var(--sp-5) var(--sp-6); }
+.cardTitle { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.nameLine { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.name {
+  margin: 0;
+  font-size: var(--fs-page);
+  line-height: var(--lh-page);
+  font-weight: var(--fw-semibold);
+  letter-spacing: -.015em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.appliedPill {
+  flex: none;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  padding: 0 8px;
+  border-radius: var(--r-pill);
+  background: var(--ok-soft);
+  color: var(--ok);
+  font-size: 12px;
+  font-weight: var(--fw-semibold);
+}
+.subLine { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-body); color: var(--text-2); }
+.layerPill {
+  height: 24px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border-radius: var(--r-pill);
+  color: var(--text-1);
+  font-size: var(--fs-hint);
+  font-weight: var(--fw-medium);
+}
+.layerDot { width: 8px; height: 8px; border-radius: 50%; }
+
+.switchButton {
+  flex: none;
+  height: var(--control-h-lg);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 var(--sp-4);
+  border: 0;
+  border-radius: var(--r-row);
+  background: var(--surface-row);
+  color: var(--text-1);
+  font: inherit;
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+}
+.switchButton:hover { background: var(--surface-row-hover); }
+
+.art {
+  flex: 1;
+  min-height: 160px;
+  display: grid;
+  place-items: center;
+  margin: 0 var(--sp-6);
+  padding: var(--sp-3);
+  border-radius: 12px;
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+.art > * { max-width: 100%; max-height: 100%; }
+.art svg { max-height: 100%; }
+.artOffline { display: flex; flex-direction: column; align-items: center; gap: var(--sp-3); color: var(--text-3); font-size: var(--fs-hint); }
+.artOffline img { width: min(360px, 80%); opacity: .35; }
+
+.actions { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-3); padding: var(--sp-4) var(--sp-6) 0; }
+.continueButton,
+.testButton {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  border: 0;
+  border-radius: 12px;
+  font: inherit;
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+}
+.continueButton { padding: 0 var(--sp-5) 0 14px; background: var(--accent); color: var(--text-on-accent); font-size: 16px; }
+.continueButton:hover { background: var(--accent-strong); }
+.continueGlyph { flex: none; color: var(--text-1); }
+.testButton { padding: 0 var(--sp-5); background: var(--surface-row); color: var(--text-1); font-size: var(--fs-label); }
+.testButton:hover:not([aria-disabled='true']) { background: var(--surface-row-hover); }
+.testButton[aria-disabled='true'] { color: var(--text-3); cursor: default; }
+
+.tune { display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-5) var(--sp-6) var(--sp-6); }
+.tuneGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-3); }
+.tuneTile {
+  height: 84px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--surface-row);
+  color: var(--text-1);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.tuneTile:hover,
+.studioTile:hover { background: var(--surface-row-hover); }
+.tileLabel { display: flex; align-items: center; gap: 10px; font-size: var(--fs-label); font-weight: var(--fw-semibold); }
+.tileNote {
+  max-width: 100%;
+  font-size: var(--fs-hint);
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- Studio */
+.studioGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); align-content: start; }
+.studioTile {
+  height: 76px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--surface-row);
+  color: var(--text-1);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.studioIcon { display: grid; flex: none; color: var(--text-2); }
+.studioText { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+/* The pad's focus: the selected fill under the shared ring. */
+:global(body[data-input-source='controller']) :is(.tuneTile, .studioTile, .switchButton, .testButton):focus { background: var(--surface-selected); }
+
+/* Two columns hold down to the drawer width; below it they stack, and the
+   art (which only scales with the column width) steps aside for the rows. */
+@media (max-width: 959px) {
+  .home { grid-template-columns: minmax(0, 1fr); height: auto; }
+  .art { display: none; }
+}

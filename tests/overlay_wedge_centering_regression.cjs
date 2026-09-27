@@ -46,9 +46,19 @@ const PROFILE = [
     }, PROFILE);
 
     await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
+    // The app opens on Home (console refinement 2a); these checks start in the editing shell.
+    await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
     await page.locator('.profile-chip').filter({ hasText: 'Wedge' }).waitFor();
     await page.getByRole('button', { name: 'Trackpads', exact: true }).click();
     await page.locator('[class*=wedges]').first().waitFor();
+    // The left pad draws its menu in the Trackpads column's preview well (2b).
+    // Icons resolve asynchronously, so wait until every wedge has drawn its
+    // icon; measuring earlier finds a wedge with no icon to centre.
+    await page.waitForFunction(() => {
+      const pad = document.querySelector('.pad-column__well [class*=wedges]');
+      const regions = pad ? [...pad.children].filter(c => c.className.includes('region')) : [];
+      return regions.length === 4 && regions.every(r => r.querySelector('svg'));
+    }, null, { timeout: 10000 });
 
     const measure = () => page.evaluate(() => {
       const pad = [...document.querySelectorAll('[class*=pad]')].find(p => p.className.includes('wedges'));

@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<link rel="stylesheet" href="./tokens/tokens.css">
+<style>html,body{margin:0;min-height:100%;background:#0a0e12;font-family:"Geist",system-ui,sans-serif;font-feature-settings:"tnum" 1;} a{color:#6ec3f4;text-decoration:none;} a:hover{color:#e8eef4;}</style>
+</helmet>
+
+<section data-screen-label="Turn 2 · Home and where tuning lives" style="padding:64px 64px 0;display:flex;flex-direction:column;gap:48px;">
+  <div style="display:flex;flex-direction:column;gap:10px;max-width:980px;color:#e8eef4;">
+    <div style="font-size:12px;letter-spacing:.12em;color:#808c99;">TURN 2 · BUILDING ON <a href="#1c">1c</a>, <a href="#1d">1d</a>, <a href="#1e">1e</a></div>
+    <div style="font-size:32px;font-weight:600;letter-spacing:-.015em;">Tuning moves next to what it tunes. Home splits this configuration from all configurations.</div>
+    <div style="font-size:15px;line-height:22px;color:#b0bcc8;text-wrap:pretty;">"Tuning" is no longer a category. Grip sensors become a summary row on Buttons › Grips, and trackpad tuning becomes <b style="color:#e8eef4;font-weight:600;">Mouse feel</b>, a row under any pad set to Mouse. Both open as sheets. Home shows them inside the Wardogs card as shortcuts, so it's clear they're saved in Wardogs. Press timing & polling and the AI assistant move to Studio with the other global tools. The Menu layout page is removed: every pad or stick menu gets an <b style="color:#e8eef4;font-weight:600;">On-screen menu</b> row that opens the arrange view with all of this configuration's menus.</div>
+    <div style="font-size:13px;line-height:19px;color:#808c99;">Every hint uses the controller's own button art, so you can look down and find it. <img src="./glyphs/steam/MINUS.svg" alt="View button" width="20" height="20" style="display:inline-block;vertical-align:-5px;margin:0 2px;"> Home from anywhere (Up still reaches the title bar) · <img src="./glyphs/steam/PLUS.svg" alt="Menu button" width="20" height="20" style="display:inline-block;vertical-align:-5px;margin:0 2px;"> Configuration menu (<a href="#1e">1e</a>) · <img src="./glyphs/steam/ZL.svg" alt="LT" width="20" height="20" style="display:inline-block;vertical-align:-5px;margin:0 2px;"><img src="./glyphs/steam/ZR.svg" alt="RT" width="20" height="20" style="display:inline-block;vertical-align:-5px;margin:0 2px;"> page · <img src="./glyphs/steam/L.svg" alt="LB" width="20" height="20" style="display:inline-block;vertical-align:-5px;margin:0 2px;"><img src="./glyphs/steam/R.svg" alt="RB" width="20" height="20" style="display:inline-block;vertical-align:-5px;margin:0 2px;"> section.</div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:64px;align-items:flex-start;">
+
+    <!-- 2a Home -->
+    <div id="2a" style="display:flex;flex-direction:column;gap:16px;width:1440px;">
+      <div style="display:flex;align-items:baseline;gap:12px;color:#e8eef4;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">2a</span><span style="font-size:20px;font-weight:600;">Home</span></div>
+      <div style="font-size:14px;line-height:21px;color:#b0bcc8;max-width:960px;">Two clearly bounded areas. The Wardogs card holds everything saved in Wardogs, including its tuning shortcuts; each one says which page it opens on. The Studio column is labelled as applying to every configuration.</div>
+      <div style="position:relative;width:1440px;height:900px;display:grid;grid-template-rows:56px minmax(0,1fr);background:var(--surface-canvas);border-radius:12px;overflow:hidden;box-shadow:0 0 0 1px var(--line-2);font-family:var(--font-ui);color:var(--text-1);">
+        <header style="display:flex;align-items:center;gap:var(--sp-3);padding:0 0 0 var(--sp-5);background:var(--surface-frame);">
+          <div style="display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;"><span style="width:20px;height:20px;border-radius:6px;background:var(--accent);"></span>JSM Studio</div>
+          <div style="flex:1;"></div>
+          <span style="font-size:13px;color:var(--text-2);display:flex;align-items:center;gap:8px;margin-right:8px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--ok);"></span>Steam Controller · 82%</span>
+          <div style="height:40px;display:flex;align-items:center;gap:10px;padding:0 16px;border-radius:10px;background:var(--surface-row);font-size:14px;"><span style="width:10px;height:10px;border-radius:50%;box-shadow:inset 0 0 0 2px var(--telemetry);"></span><b style="font-weight:600;">Mapping</b><span style="color:var(--text-3);">paused in Studio</span></div>
+          <div style="display:flex;height:56px;color:var(--text-3);"><span style="width:46px;display:grid;place-items:center;">—</span><span style="width:46px;display:grid;place-items:center;">▢</span><span style="width:46px;display:grid;place-items:center;">✕</span></div>
+        </header>
+        <div style="display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:var(--sp-7);padding:var(--sp-7) var(--sp-8) 96px;min-height:0;">
+          <div style="display:flex;flex-direction:column;gap:var(--sp-3);min-height:0;">
+            <div style="display:flex;align-items:baseline;gap:10px;"><span style="font-size:11px;letter-spacing:.12em;font-weight:600;color:var(--text-3);">THIS CONFIGURATION</span><span style="font-size:13px;color:var(--text-3);">Saved in Wardogs.txt</span></div>
+            <div style="flex:1;display:flex;flex-direction:column;border-radius:18px;background:var(--surface-nav);box-shadow:inset 0 0 0 1px var(--line-2);overflow:hidden;min-height:0;">
+              <div style="display:flex;align-items:center;gap:var(--sp-4);padding:var(--sp-5) var(--sp-6);">
+                <div style="flex:1;display:flex;flex-direction:column;gap:4px;"><div style="display:flex;align-items:center;gap:10px;"><b style="font-size:28px;line-height:34px;font-weight:600;letter-spacing:-.015em;">Wardogs</b><span style="height:22px;padding:0 8px;border-radius:999px;background:var(--ok-soft);color:var(--ok);font-size:12px;font-weight:600;display:grid;place-items:center;">Applied</span></div><span style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text-2);"><span style="height:24px;display:flex;align-items:center;gap:6px;padding:0 10px;border-radius:999px;background:var(--layer-2-soft);color:var(--text-1);font-size:13px;font-weight:500;"><span style="width:8px;height:8px;border-radius:50%;background:var(--layer-2);"></span>Editing Comms layer</span>3 unsaved changes</span></div>
+                <div style="height:44px;display:flex;align-items:center;gap:10px;padding:0 16px;border-radius:10px;background:var(--surface-row);font-size:14px;font-weight:600;"><span style="display:block;width:20px;height:20px;background:currentColor;-webkit-mask:url(./icons/ui/library.svg) center/contain no-repeat;mask:url(./icons/ui/library.svg) center/contain no-repeat;"></span>Switch</div>
+              </div>
+              <div style="flex:1;display:grid;place-items:center;margin:0 var(--sp-6);border-radius:12px;background:var(--surface-sunken);color:var(--text-3);font-size:13px;min-height:0;">Controller Live art</div>
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:var(--sp-3);padding:var(--sp-4) var(--sp-6) 0;">
+                <div style="height:56px;display:flex;align-items:center;gap:12px;padding:0 20px 0 14px;border-radius:12px;background:var(--accent);color:var(--text-on-accent);font-size:16px;font-weight:600;box-shadow:0 0 0 2px var(--canvas, #131920),0 0 0 4px var(--focus-controller);"><img src="./glyphs/steam/S.svg" alt="A" width="26" height="26" style="display:block;flex:none;">Continue editing</div>
+                <div style="height:56px;display:flex;align-items:center;gap:12px;padding:0 20px;border-radius:12px;background:var(--surface-row);font-size:15px;font-weight:600;"><span style="display:block;width:20px;height:20px;background:currentColor;-webkit-mask:url(./icons/ui/test.svg) center/contain no-repeat;mask:url(./icons/ui/test.svg) center/contain no-repeat;"></span>Test</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:var(--sp-3);padding:var(--sp-5) var(--sp-6) var(--sp-6);">
+                <span style="font-size:11px;letter-spacing:.12em;font-weight:600;color:var(--text-3);">TUNE WARDOGS</span>
+                <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-3);">
+                  <sc-for list="{{ homeTune }}" as="t" hint-placeholder-count="3">
+                    <div style="height:84px;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:0 18px;border-radius:12px;background:var(--surface-row);">
+                      <b style="display:flex;align-items:center;gap:10px;font-size:15px;font-weight:600;"><span style="display:block;width:20px;height:20px;background:currentColor;-webkit-mask:url(./icons/ui/{{ t.icon }}.svg) center/contain no-repeat;mask:url(./icons/ui/{{ t.icon }}.svg) center/contain no-repeat;"></span>{{ t.label }}</b>
+                      <span style="font-size:13px;color:var(--text-2);">{{ t.where }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:var(--sp-3);min-height:0;">
+            <div style="display:flex;align-items:baseline;gap:10px;"><span style="font-size:11px;letter-spacing:.12em;font-weight:600;color:var(--text-3);">STUDIO</span><span style="font-size:13px;color:var(--text-3);">Applies to every configuration</span></div>
+            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-3);">
+              <sc-for list="{{ homeStudio }}" as="s" hint-placeholder-count="9">
+                <div style="height:76px;display:flex;align-items:center;gap:14px;padding:0 18px;border-radius:12px;background:var(--surface-row);">
+                  <span style="display:block;flex:none;width:22px;height:22px;background:var(--text-2);-webkit-mask:url(./icons/ui/{{ s.icon }}.svg) center/contain no-repeat;mask:url(./icons/ui/{{ s.icon }}.svg) center/contain no-repeat;"></span>
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0;"><b style="font-size:15px;font-weight:600;">{{ s.label }}</b><span style="font-size:13px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ s.note }}</span></div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+        <div style="position:absolute;left:50%;bottom:var(--sp-4);transform:translateX(-50%);height:44px;display:flex;align-items:center;gap:var(--sp-5);padding:0 var(--sp-5) 0 var(--sp-3);border-radius:999px;background:var(--surface-raised);box-shadow:var(--shadow-capsule);font-size:13px;color:var(--text-2);white-space:nowrap;">
+          <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/S.svg" alt="A" width="24" height="24" style="display:block;flex:none;">Open</span>
+          <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/E.svg" alt="B" width="24" height="24" style="display:block;flex:none;">Resume editing</span>
+          <span style="width:1px;height:18px;background:var(--line-2);"></span>
+          <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/MINUS.svg" alt="View button" width="24" height="24" style="display:block;flex:none;">Home from anywhere</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2b Trackpads -->
+    <div id="2b" style="display:flex;flex-direction:column;gap:16px;width:1440px;">
+      <div style="display:flex;align-items:baseline;gap:12px;color:#e8eef4;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">2b</span><span style="font-size:20px;font-weight:600;">Editing shell · Trackpads</span></div>
+      <div style="font-size:14px;line-height:21px;color:#b0bcc8;max-width:960px;">This is the editing shell once the hubs are gone. Home is the first title bar item, and one state button replaces Undo, Redo, Save and Apply. Each pad shows only the rows its mode needs. The menu pad gets <b style="color:#e8eef4;font-weight:600;">On-screen menu</b> (<a href="#2d">2d</a>), and the mouse pad gets <b style="color:#e8eef4;font-weight:600;">Mouse feel</b> (<a href="#2c">2c</a>). A DualSense shows a single Touchpad card here.</div>
+      <div style="position:relative;width:1440px;height:900px;display:grid;grid-template-rows:56px 56px minmax(0,1fr);background:var(--surface-canvas);border-radius:12px;overflow:hidden;box-shadow:0 0 0 1px var(--line-2);font-family:var(--font-ui);color:var(--text-1);">
+        <header style="display:flex;align-items:center;gap:var(--sp-3);padding:0 0 0 var(--sp-4);background:var(--surface-frame);">
+          <div style="height:40px;display:flex;align-items:center;gap:10px;padding:0 14px 0 10px;border-radius:10px;background:var(--surface-row);font-size:14px;font-weight:600;"><span style="width:20px;height:20px;border-radius:6px;background:var(--accent);"></span>Home<img src="./glyphs/steam/MINUS.svg" alt="View button" width="22" height="22" style="display:block;flex:none;"></div>
+          <div style="width:1px;height:24px;background:var(--line-2);margin:0 4px;"></div>
+          <div style="height:40px;display:flex;align-items:center;gap:10px;padding:0 14px;border-radius:10px;font-size:14px;"><b style="font-size:15px;font-weight:600;">Wardogs</b><span style="width:7px;height:7px;border-radius:50%;background:var(--accent);"></span><span style="display:block;width:16px;height:16px;background:var(--text-3);-webkit-mask:url(./icons/ui/chevronDown.svg) center/contain no-repeat;mask:url(./icons/ui/chevronDown.svg) center/contain no-repeat;"></span></div>
+          <div style="height:40px;display:flex;align-items:center;gap:10px;padding:0 14px;border-radius:10px;background:var(--surface-row);font-size:14px;"><span style="color:var(--text-3);">Layer</span><b style="font-weight:600;">Default</b><span style="display:block;width:16px;height:16px;background:var(--text-3);-webkit-mask:url(./icons/ui/chevronDown.svg) center/contain no-repeat;mask:url(./icons/ui/chevronDown.svg) center/contain no-repeat;"></span></div>
+          <div style="flex:1;"></div>
+          <div style="height:40px;display:flex;align-items:center;gap:10px;padding:0 16px;border-radius:10px;background:var(--surface-row);font-size:14px;"><span style="width:10px;height:10px;border-radius:50%;box-shadow:inset 0 0 0 2px var(--telemetry);"></span><b style="font-weight:600;">Mapping</b><span style="color:var(--text-3);">paused in Studio</span></div>
+          <div style="height:40px;display:flex;align-items:center;gap:10px;padding:0 18px;border-radius:10px;background:var(--accent);color:var(--text-on-accent);font-size:14px;font-weight:600;">Apply 3 changes</div>
+          <div style="display:flex;height:56px;color:var(--text-3);"><span style="width:46px;display:grid;place-items:center;">—</span><span style="width:46px;display:grid;place-items:center;">▢</span><span style="width:46px;display:grid;place-items:center;">✕</span></div>
+        </header>
+        <nav style="display:flex;align-items:center;gap:var(--sp-2);padding:0 var(--sp-5);background:var(--surface-frame);box-shadow:inset 0 -1px 0 var(--line-1);">
+          <img src="./glyphs/steam/ZL.svg" alt="LT" width="22" height="22" style="display:block;flex:none;">
+          <sc-for list="{{ padTabs }}" as="t" hint-placeholder-count="8">
+            <div style="height:40px;display:flex;align-items:center;gap:8px;padding:0 14px;border-radius:9px;font-size:14px;font-weight:500;background:{{ t.bg }};color:{{ t.fg }};box-shadow:{{ t.under }};">
+              <span style="display:block;width:18px;height:18px;background:currentColor;-webkit-mask:url(./icons/ui/{{ t.icon }}.svg) center/contain no-repeat;mask:url(./icons/ui/{{ t.icon }}.svg) center/contain no-repeat;"></span>{{ t.label }}
+            </div>
+          </sc-for>
+          <img src="./glyphs/steam/ZR.svg" alt="RT" width="22" height="22" style="display:block;flex:none;">
+          <div style="flex:1;"></div>
+          <span style="font-size:13px;color:var(--text-2);display:flex;align-items:center;gap:8px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--ok);"></span>Steam Controller · 82%</span>
+        </nav>
+        <main style="display:flex;flex-direction:column;gap:var(--sp-5);padding:var(--sp-7) var(--sp-8) 0;min-width:0;overflow:hidden;">
+          <div style="display:flex;flex-direction:column;gap:6px;"><div style="font-size:28px;line-height:34px;font-weight:600;letter-spacing:-.015em;">Trackpads</div><div style="font-size:14px;color:var(--text-2);">Each pad has its own mode. Select a region on the preview to bind it.</div></div>
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-5);">
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div style="display:flex;align-items:baseline;gap:10px;padding:0 4px 6px;"><span style="font-size:11px;letter-spacing:.12em;font-weight:600;color:var(--text-3);">LEFT PAD</span><span style="font-size:13px;color:var(--text-2);">Menu · 4 regions</span></div>
+              <div style="height:200px;display:grid;place-items:center;border-radius:12px;background:var(--surface-sunken);margin-bottom:6px;">
+                <svg width="176" height="176" viewBox="0 0 176 176" fill="none"><circle cx="88" cy="88" r="84" stroke="var(--line-2)" stroke-width="2"></circle><path d="M28.6 28.6l118.8 118.8M147.4 28.6L28.6 147.4" stroke="var(--line-2)" stroke-width="2"></path><circle cx="88" cy="88" r="22" fill="var(--surface-canvas)" stroke="var(--line-2)" stroke-width="2"></circle><path d="M28.6 28.6A84 84 0 0 1 147.4 28.6L103.6 72.4A22 22 0 0 0 72.4 72.4Z" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"></path><text x="88" y="40" fill="var(--text-1)" font-size="12" font-family="Geist" text-anchor="middle">Grenade</text><text x="146" y="92" fill="var(--text-2)" font-size="12" font-family="Geist" text-anchor="middle">Heal</text><text x="88" y="146" fill="var(--text-2)" font-size="12" font-family="Geist" text-anchor="middle">Ping</text><text x="30" y="92" fill="var(--text-2)" font-size="12" font-family="Geist" text-anchor="middle">Map</text></svg>
+              </div>
+              <sc-for list="{{ leftPadRows }}" as="r" hint-placeholder-count="4">
+                <div style="height:60px;display:flex;align-items:center;gap:14px;padding:0 18px;border-radius:10px;background:{{ r.bg }};box-shadow:{{ r.ring }};">
+                  <div style="flex:1;display:flex;flex-direction:column;gap:2px;min-width:0;"><b style="font-size:15px;font-weight:600;">{{ r.label }}</b><span style="font-size:13px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ r.hint }}</span></div>
+                  <span style="font-size:15px;font-weight:500;white-space:nowrap;">{{ r.value }}</span>
+                  <span style="display:block;flex:none;width:18px;height:18px;background:var(--text-3);-webkit-mask:url(./icons/ui/chevronRight.svg) center/contain no-repeat;mask:url(./icons/ui/chevronRight.svg) center/contain no-repeat;"></span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div style="display:flex;align-items:baseline;gap:10px;padding:0 4px 6px;"><span style="font-size:11px;letter-spacing:.12em;font-weight:600;color:var(--text-3);">RIGHT PAD</span><span style="font-size:13px;color:var(--text-2);">Mouse</span></div>
+              <div style="position:relative;height:200px;display:grid;place-items:center;border-radius:12px;background:var(--surface-sunken);margin-bottom:6px;">
+                <div style="width:176px;height:176px;border-radius:50%;box-shadow:inset 0 0 0 2px var(--line-2);display:grid;place-items:center;color:var(--text-3);font-size:13px;">Moves the mouse</div>
+                <div style="position:absolute;left:calc(50% + 34px);top:calc(50% - 30px);width:14px;height:14px;border-radius:50%;background:var(--telemetry);box-shadow:0 0 0 6px var(--telemetry-soft);"></div>
+              </div>
+              <sc-for list="{{ rightPadRows }}" as="r" hint-placeholder-count="4">
+                <div style="height:60px;display:flex;align-items:center;gap:14px;padding:0 18px;border-radius:10px;background:{{ r.bg }};box-shadow:{{ r.ring }};">
+                  <div style="flex:1;display:flex;flex-direction:column;gap:2px;min-width:0;"><b style="font-size:15px;font-weight:600;">{{ r.label }}</b><span style="font-size:13px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ r.hint }}</span></div>
+                  <span style="font-size:15px;font-weight:500;white-space:nowrap;">{{ r.value }}</span>
+                  <span style="display:block;flex:none;width:18px;height:18px;background:var(--text-3);-webkit-mask:url(./icons/ui/chevronRight.svg) center/contain no-repeat;mask:url(./icons/ui/chevronRight.svg) center/contain no-repeat;"></span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </main>
+        <div style="position:absolute;left:50%;bottom:var(--sp-4);transform:translateX(-50%);height:44px;display:flex;align-items:center;gap:var(--sp-5);padding:0 var(--sp-5) 0 var(--sp-3);border-radius:999px;background:var(--surface-raised);box-shadow:var(--shadow-capsule);font-size:13px;color:var(--text-2);white-space:nowrap;">
+          <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/S.svg" alt="A" width="24" height="24" style="display:block;flex:none;">Arrange</span>
+          <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/W.svg" alt="X" width="24" height="24" style="display:block;flex:none;">Next region</span>
+          <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/E.svg" alt="B" width="24" height="24" style="display:block;flex:none;">Back</span>
+          <span style="width:1px;height:18px;background:var(--line-2);"></span>
+          <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/PLUS.svg" alt="Menu button" width="24" height="24" style="display:block;flex:none;">Configuration</span>
+          <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/MINUS.svg" alt="View button" width="24" height="24" style="display:block;flex:none;">Home</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2c Mouse feel -->
+    <div id="2c" style="display:flex;flex-direction:column;gap:16px;width:1440px;">
+      <div style="display:flex;align-items:baseline;gap:12px;color:#e8eef4;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">2c</span><span style="font-size:20px;font-weight:600;">Mouse feel sheet (was Trackpad tuning)</span></div>
+      <div style="font-size:14px;line-height:21px;color:#b0bcc8;max-width:960px;">The name and scope strip say exactly what this tunes: a pad that moves the mouse. It lists which pads use it right now, so it's obvious that menus and touch sticks aren't affected. Values are saved in Wardogs, and the sheet opens from the Right pad's Mouse feel row or from Home.</div>
+      <div style="position:relative;width:1440px;height:900px;background:var(--surface-canvas);border-radius:12px;overflow:hidden;box-shadow:0 0 0 1px var(--line-2);font-family:var(--font-ui);color:var(--text-1);">
+        <div style="padding:var(--sp-8);opacity:.35;"><div style="font-size:28px;font-weight:600;">Trackpads</div></div>
+        <div style="position:absolute;inset:0;background:var(--surface-scrim);"></div>
+        <aside style="position:absolute;top:0;right:0;bottom:0;width:640px;display:flex;flex-direction:column;gap:var(--sp-5);padding:var(--sp-7) var(--sp-6);background:var(--surface-nav);box-shadow:var(--shadow-menu);">
+          <div style="display:flex;flex-direction:column;gap:6px;"><div style="font-size:11px;letter-spacing:.12em;font-weight:600;color:var(--text-3);">TRACKPADS · WARDOGS</div><div style="font-size:24px;line-height:30px;font-weight:600;">Mouse feel</div><div style="font-size:14px;line-height:20px;color:var(--text-2);text-wrap:pretty;">How a pad feels when it moves the mouse. Shared by every pad set to Mouse in this configuration.</div></div>
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;">
+            <div style="height:48px;display:flex;align-items:center;gap:10px;padding:0 14px;border-radius:10px;background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent);font-size:14px;"><span style="color:var(--accent);font-weight:700;">✓</span><b style="font-weight:600;">Right pad</b><span style="color:var(--text-2);">Mouse · uses this</span></div>
+            <div style="height:48px;display:flex;align-items:center;gap:10px;padding:0 14px;border-radius:10px;background:var(--surface-row);font-size:14px;color:var(--text-2);"><span style="color:var(--text-3);">–</span><b style="font-weight:600;color:var(--text-2);">Left pad</b><span>Menu · not affected</span></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;min-height:0;">
+            <sc-for list="{{ mouseFeel }}" as="r" hint-placeholder-count="7">
+              <sc-if value="{{ r.eyebrow }}" hint-placeholder-val="{{ false }}"><div style="font-size:11px;letter-spacing:.12em;font-weight:600;color:var(--text-3);padding:10px 4px 4px;">{{ r.eyebrow }}</div></sc-if>
+              <div style="height:56px;display:flex;align-items:center;gap:14px;padding:0 18px;border-radius:10px;background:{{ r.bg }};box-shadow:{{ r.ring }};">
+                <div style="flex:1;display:flex;flex-direction:column;gap:2px;min-width:0;"><b style="font-size:15px;font-weight:600;">{{ r.label }}</b><span style="font-size:13px;color:{{ r.hintColor }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ r.hint }}</span></div>
+                <span style="font-size:15px;font-weight:600;font-family:var(--font-mono);white-space:nowrap;">{{ r.value }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="flex:1;"></div>
+          <div style="display:flex;align-items:center;gap:var(--sp-5);font-size:13px;color:var(--text-2);">
+            <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/S.svg" alt="A" width="24" height="24" style="display:block;flex:none;">Adjust</span>
+            <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/N.svg" alt="Y" width="24" height="24" style="display:block;flex:none;">Use Default</span>
+            <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/W.svg" alt="X" width="24" height="24" style="display:block;flex:none;">What's this?</span>
+            <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/E.svg" alt="B" width="24" height="24" style="display:block;flex:none;">Close</span>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <!-- 2d Arrange on screen -->
+    <div id="2d" style="display:flex;flex-direction:column;gap:16px;width:1440px;">
+      <div style="display:flex;align-items:baseline;gap:12px;color:#e8eef4;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">2d</span><span style="font-size:20px;font-weight:600;">On-screen menus (replaces the Menu layout page)</span></div>
+      <div style="font-size:14px;line-height:21px;color:#b0bcc8;max-width:960px;">A full-window view that opens from the On-screen menu row of any pad or stick wheel. The menu you came from is selected, and every other menu in Wardogs (every layer included) is drawn where it sits, so overlaps are visible. Its look and position are edited here together. LB/RB step between menus, and B returns to the row you came from.</div>
+      <div style="position:relative;width:1440px;height:900px;background:var(--surface-canvas);border-radius:12px;overflow:hidden;box-shadow:0 0 0 1px var(--line-2);font-family:var(--font-ui);color:var(--text-1);">
+        <div style="position:absolute;inset:0;background:var(--surface-scrim);"></div>
+        <div style="position:absolute;inset:40px;display:grid;grid-template-rows:auto minmax(0,1fr);gap:var(--sp-5);padding:var(--sp-6);border-radius:18px;background:var(--surface-raised);box-shadow:var(--shadow-menu);">
+          <div style="display:flex;align-items:flex-end;gap:var(--sp-4);">
+            <div style="flex:1;display:flex;flex-direction:column;gap:4px;"><span style="font-size:11px;letter-spacing:.12em;font-weight:600;color:var(--text-3);">WARDOGS</span><b style="font-size:24px;line-height:30px;font-weight:600;">On-screen menus</b></div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <img src="./glyphs/steam/L.svg" alt="LB" width="22" height="22" style="display:block;flex:none;">
+              <sc-for list="{{ menuChips }}" as="m" hint-placeholder-count="3">
+                <div style="height:40px;display:flex;align-items:center;gap:8px;padding:0 14px;border-radius:10px;font-size:14px;background:{{ m.bg }};color:{{ m.fg }};box-shadow:{{ m.ring }};"><b style="font-weight:600;">{{ m.label }}</b><span style="color:{{ m.subFg }};">{{ m.layer }}</span></div>
+              </sc-for>
+              <img src="./glyphs/steam/R.svg" alt="RB" width="22" height="22" style="display:block;flex:none;">
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:var(--sp-6);min-height:0;">
+            <div style="display:flex;flex-direction:column;gap:var(--sp-3);min-width:0;">
+              <div style="position:relative;aspect-ratio:16/9;border-radius:12px;background:var(--surface-sunken);box-shadow:inset 0 0 0 1px var(--line-2);overflow:hidden;">
+                <div style="position:absolute;left:12px;top:10px;font-size:12px;color:var(--text-3);">Your screen · 2560 × 1440</div>
+                <div style="position:absolute;left:9%;top:52%;width:156px;height:156px;border-radius:50%;box-shadow:0 0 0 2px var(--focus-controller),0 0 0 8px var(--accent-soft);background:rgba(110,195,244,.08);display:grid;place-items:center;">
+                  <svg width="140" height="140" viewBox="0 0 176 176" fill="none"><circle cx="88" cy="88" r="84" stroke="var(--accent)" stroke-width="2"></circle><path d="M28.6 28.6l118.8 118.8M147.4 28.6L28.6 147.4" stroke="var(--accent)" stroke-opacity=".5" stroke-width="2"></path><text x="88" y="42" fill="var(--text-1)" font-size="15" font-family="Geist" text-anchor="middle">Grenade</text><text x="148" y="93" fill="var(--text-1)" font-size="15" font-family="Geist" text-anchor="middle">Heal</text><text x="88" y="148" fill="var(--text-1)" font-size="15" font-family="Geist" text-anchor="middle">Ping</text><text x="30" y="93" fill="var(--text-1)" font-size="15" font-family="Geist" text-anchor="middle">Map</text></svg>
+                  <span style="position:absolute;right:-5px;bottom:18px;width:12px;height:12px;border-radius:3px;background:var(--focus-controller);"></span>
+                </div>
+                <div style="position:absolute;right:10%;top:56%;width:128px;height:128px;border-radius:50%;box-shadow:inset 0 0 0 2px var(--line-2);display:grid;place-items:center;font-size:12px;color:var(--text-2);text-align:center;line-height:16px;">Right stick<br>wheel · 6</div>
+                <div style="position:absolute;right:22%;top:30%;width:132px;height:132px;border-radius:50%;box-shadow:inset 0 0 0 2px var(--layer-2);border:0;display:grid;place-items:center;font-size:12px;color:var(--text-2);text-align:center;line-height:16px;">Right pad<br><span style="color:var(--layer-2);">Comms layer</span></div>
+              </div>
+              <div style="font-size:13px;color:var(--text-2);">A picks up the selected menu. Move it with the left stick and resize it with the right stick, then A to drop or B to put it back.</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;min-height:0;">
+              <div style="display:flex;flex-direction:column;gap:2px;padding:0 4px 8px;"><b style="font-size:17px;font-weight:600;">Left pad</b><span style="font-size:13px;color:var(--text-2);">Default layer · 4 regions</span></div>
+              <sc-for list="{{ arrangeRows }}" as="r" hint-placeholder-count="6">
+                <div style="height:56px;display:flex;align-items:center;gap:14px;padding:0 16px;border-radius:10px;background:{{ r.bg }};box-shadow:{{ r.ring }};">
+                  <b style="flex:1;font-size:15px;font-weight:600;">{{ r.label }}</b>
+                  <span style="font-size:14px;font-weight:500;white-space:nowrap;">{{ r.value }}</span>
+                </div>
+              </sc-for>
+              <div style="flex:1;"></div>
+              <div style="display:flex;align-items:center;gap:var(--sp-4);font-size:13px;color:var(--text-2);flex-wrap:wrap;">
+                <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/S.svg" alt="A" width="24" height="24" style="display:block;flex:none;">Pick up</span>
+                <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/N.svg" alt="Y" width="24" height="24" style="display:block;flex:none;">Reset position</span>
+                <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/E.svg" alt="B" width="24" height="24" style="display:block;flex:none;">Done</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2e Grip sensors sheet -->
+    <div id="2e" style="display:flex;flex-direction:column;gap:16px;width:640px;">
+      <div style="display:flex;align-items:baseline;gap:12px;color:#e8eef4;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">2e</span><span style="font-size:20px;font-weight:600;">Grip sensors sheet</span></div>
+      <div style="font-size:14px;line-height:21px;color:#b0bcc8;">Opens from the "Grip sensors" row at the foot of Buttons › Grips, or from Home. The binding rows stay on Buttons, and this sheet only covers how the sensors read touch.</div>
+      <div style="height:900px;display:flex;flex-direction:column;gap:var(--sp-5);padding:var(--sp-7) var(--sp-6);border-radius:12px;background:var(--surface-nav);box-shadow:0 0 0 1px var(--line-2);font-family:var(--font-ui);color:var(--text-1);box-sizing:border-box;">
+        <div style="display:flex;flex-direction:column;gap:6px;"><div style="font-size:11px;letter-spacing:.12em;font-weight:600;color:var(--text-3);">BUTTONS · GRIPS · WARDOGS</div><div style="font-size:24px;line-height:30px;font-weight:600;">Grip sensors</div><div style="font-size:14px;line-height:20px;color:var(--text-2);">How the capacitive grips on the back detect your hand.</div></div>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;">
+          <div style="height:56px;display:flex;align-items:center;gap:12px;padding:0 16px;border-radius:10px;background:var(--telemetry-soft);font-size:14px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--telemetry);"></span><b style="font-weight:600;">Left grip</b><span style="color:var(--text-2);">Touching</span></div>
+          <div style="height:56px;display:flex;align-items:center;gap:12px;padding:0 16px;border-radius:10px;background:var(--surface-row);font-size:14px;"><span style="width:10px;height:10px;border-radius:50%;box-shadow:inset 0 0 0 2px var(--text-3);"></span><b style="font-weight:600;">Right grip</b><span style="color:var(--text-2);">Not touching</span></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <sc-for list="{{ gripRows }}" as="r" hint-placeholder-count="6">
+            <sc-if value="{{ r.eyebrow }}" hint-placeholder-val="{{ false }}"><div style="font-size:11px;letter-spacing:.12em;font-weight:600;color:var(--text-3);padding:10px 4px 4px;">{{ r.eyebrow }}</div></sc-if>
+            <div style="height:56px;display:flex;align-items:center;gap:14px;padding:0 18px;border-radius:10px;background:{{ r.bg }};box-shadow:{{ r.ring }};">
+              <div style="flex:1;display:flex;flex-direction:column;gap:2px;min-width:0;"><b style="font-size:15px;font-weight:600;">{{ r.label }}</b><span style="font-size:13px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ r.hint }}</span></div>
+              <span style="font-size:15px;font-weight:600;font-family:var(--font-mono);white-space:nowrap;">{{ r.value }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="flex:1;"></div>
+        <div style="display:flex;align-items:center;gap:var(--sp-5);font-size:13px;color:var(--text-2);">
+          <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/S.svg" alt="A" width="24" height="24" style="display:block;flex:none;">Adjust</span>
+          <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/N.svg" alt="Y" width="24" height="24" style="display:block;flex:none;">Use Default</span>
+          <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/E.svg" alt="B" width="24" height="24" style="display:block;flex:none;">Close</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2f Studio · Timing -->
+    <div id="2f" style="display:flex;flex-direction:column;gap:16px;width:1440px;">
+      <div style="display:flex;align-items:baseline;gap:12px;color:#e8eef4;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">2f</span><span style="font-size:20px;font-weight:600;">Studio shell · Press timing &amp; polling</span></div>
+      <div style="font-size:14px;line-height:21px;color:#b0bcc8;max-width:960px;">Studio pages have no configuration chip and no Apply button, because their changes save as you make them. Timing lives in one global store that every configuration shares. Older files that still set these values themselves are listed on the right, because their values win when applied. A moves the value into the global store or removes it from the file. The AI assistant sits in the same strip. It asks which configuration to work on, and Wardogs is picked by default.</div>
+      <div style="position:relative;width:1440px;height:900px;display:grid;grid-template-rows:56px 56px minmax(0,1fr);background:var(--surface-canvas);border-radius:12px;overflow:hidden;box-shadow:0 0 0 1px var(--line-2);font-family:var(--font-ui);color:var(--text-1);">
+        <header style="display:flex;align-items:center;gap:var(--sp-3);padding:0 0 0 var(--sp-4);background:var(--surface-frame);">
+          <div style="height:40px;display:flex;align-items:center;gap:10px;padding:0 14px 0 10px;border-radius:10px;background:var(--surface-row);font-size:14px;font-weight:600;"><span style="width:20px;height:20px;border-radius:6px;background:var(--accent);"></span>Home<img src="./glyphs/steam/MINUS.svg" alt="View button" width="22" height="22" style="display:block;flex:none;"></div>
+          <div style="width:1px;height:24px;background:var(--line-2);margin:0 4px;"></div>
+          <div style="display:flex;align-items:baseline;gap:10px;"><b style="font-size:15px;font-weight:600;">Studio</b><span style="font-size:13px;color:var(--text-3);">Applies to every configuration</span></div>
+          <div style="flex:1;"></div>
+          <div style="height:40px;display:flex;align-items:center;gap:10px;padding:0 16px;border-radius:10px;background:var(--surface-row);font-size:14px;"><span style="width:10px;height:10px;border-radius:50%;box-shadow:inset 0 0 0 2px var(--telemetry);"></span><b style="font-weight:600;">Mapping</b><span style="color:var(--text-3);">paused in Studio</span></div>
+          <div style="display:flex;height:56px;color:var(--text-3);"><span style="width:46px;display:grid;place-items:center;">—</span><span style="width:46px;display:grid;place-items:center;">▢</span><span style="width:46px;display:grid;place-items:center;">✕</span></div>
+        </header>
+        <nav style="display:flex;align-items:center;gap:4px;padding:0 var(--sp-5);background:var(--surface-frame);box-shadow:inset 0 -1px 0 var(--line-1);">
+          <img src="./glyphs/steam/ZL.svg" alt="LT" width="22" height="22" style="display:block;flex:none;margin-right:4px;">
+          <sc-for list="{{ studioTabs }}" as="t" hint-placeholder-count="9">
+            <div style="height:40px;display:flex;align-items:center;padding:0 12px;border-radius:9px;font-size:14px;font-weight:500;white-space:nowrap;background:{{ t.bg }};color:{{ t.fg }};box-shadow:{{ t.under }};">{{ t.label }}</div>
+          </sc-for>
+          <img src="./glyphs/steam/ZR.svg" alt="RT" width="22" height="22" style="display:block;flex:none;margin-left:4px;">
+        </nav>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:var(--sp-6);padding:var(--sp-7) var(--sp-8) 0;min-height:0;">
+          <main style="display:flex;flex-direction:column;gap:var(--sp-5);min-width:0;">
+            <div style="display:flex;flex-direction:column;gap:6px;"><div style="font-size:28px;line-height:34px;font-weight:600;letter-spacing:-.015em;">Press timing &amp; polling</div><div style="font-size:14px;color:var(--text-2);">Shared by every configuration.</div></div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <sc-for list="{{ timingRows }}" as="r" hint-placeholder-count="6">
+                <sc-if value="{{ r.eyebrow }}" hint-placeholder-val="{{ false }}"><div style="font-size:11px;letter-spacing:.12em;font-weight:600;color:var(--text-3);padding:10px 4px 4px;">{{ r.eyebrow }}</div></sc-if>
+                <div style="height:64px;display:flex;align-items:center;gap:16px;padding:0 20px;border-radius:10px;background:{{ r.bg }};box-shadow:{{ r.ring }};">
+                  <div style="flex:1;display:flex;flex-direction:column;gap:2px;min-width:0;"><b style="font-size:15px;font-weight:600;">{{ r.label }}</b><span style="font-size:13px;color:{{ r.hintColor }};">{{ r.hint }}</span></div>
+                  <span style="font-size:15px;font-weight:600;font-family:var(--font-mono);white-space:nowrap;">{{ r.value }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </main>
+          <aside style="padding-top:88px;">
+            <div style="display:flex;flex-direction:column;gap:var(--sp-3);padding:var(--sp-5);border-radius:14px;background:var(--surface-nav);">
+              <span style="font-size:11px;letter-spacing:.12em;font-weight:600;color:var(--text-3);">STILL SET IN A FILE</span>
+              <sc-for list="{{ overrides }}" as="o" hint-placeholder-count="3">
+                <div style="height:52px;display:flex;align-items:center;gap:12px;padding:0 14px;border-radius:10px;background:var(--surface-row);">
+                  <div style="flex:1;display:flex;flex-direction:column;gap:1px;min-width:0;"><b style="font-size:14px;font-weight:600;">{{ o.config }}</b><span style="font-size:13px;color:var(--text-2);">{{ o.what }}</span></div>
+                  <span style="display:block;width:18px;height:18px;background:var(--text-3);-webkit-mask:url(./icons/ui/chevronRight.svg) center/contain no-repeat;mask:url(./icons/ui/chevronRight.svg) center/contain no-repeat;"></span>
+                </div>
+              </sc-for>
+              <div style="font-size:13px;line-height:19px;color:var(--text-2);">These files set their own value, which replaces the shared one while they're applied. A removes the line from the file.</div>
+            </div>
+          </aside>
+        </div>
+        <div style="position:absolute;left:50%;bottom:var(--sp-4);transform:translateX(-50%);height:44px;display:flex;align-items:center;gap:var(--sp-5);padding:0 var(--sp-5) 0 var(--sp-3);border-radius:999px;background:var(--surface-raised);box-shadow:var(--shadow-capsule);font-size:13px;color:var(--text-2);white-space:nowrap;">
+          <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/S.svg" alt="A" width="24" height="24" style="display:block;flex:none;">Adjust</span>
+          <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/N.svg" alt="Y" width="24" height="24" style="display:block;flex:none;">JSM default</span>
+          <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/E.svg" alt="B" width="24" height="24" style="display:block;flex:none;">Home</span>
+          <span style="width:1px;height:18px;background:var(--line-2);"></span>
+          <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/ZL.svg" alt="LT" width="22" height="22" style="display:block;flex:none;"><img src="./glyphs/steam/ZR.svg" alt="RT" width="22" height="22" style="display:block;flex:none;">Page</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section data-screen-label="Turn 1 · Console refinement" style="padding:64px;display:flex;flex-direction:column;gap:48px;">
+  <div style="display:flex;flex-direction:column;gap:8px;max-width:960px;color:#e8eef4;">
+    <div style="font-size:12px;letter-spacing:.12em;color:#808c99;">TURN 1 · CONSOLE REFINEMENT</div>
+    <div style="font-size:32px;font-weight:600;letter-spacing:-.015em;">Fewer, larger targets. Tuning and Studio get names.</div>
+    <div style="font-size:15px;line-height:22px;color:#b0bcc8;text-wrap:pretty;">Three ways to make Tuning and Studio first-class destinations, all shown on Gyro. Shared across all three: one focus target per row, with value on the right and detail in a sheet. Secondary actions move off the row onto face buttons, listed in the hint capsule. Undo, Save and Apply fold into one state button plus the ☰ Configuration menu. Every page shows its essentials first, and the rest sits behind summary rows.</div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:64px;align-items:flex-start;">
+
+    <!-- 1a -->
+    <div id="1a" style="display:flex;flex-direction:column;gap:16px;width:1440px;">
+      <div style="display:flex;align-items:baseline;gap:12px;color:#e8eef4;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">1a</span><span style="font-size:20px;font-weight:600;">Three hubs in the title bar</span></div>
+      <div style="font-size:14px;line-height:21px;color:#b0bcc8;max-width:960px;">Configure, Tuning and Studio sit side by side as large labelled segments. The tab strip below changes with the hub, and LT/RT walk the pages inside it. View selects the hub switcher from anywhere, and the logo is decoration only.</div>
+      <div style="position:relative;width:1440px;height:900px;display:grid;grid-template-rows:56px 56px minmax(0,1fr);background:var(--surface-canvas);border-radius:12px;overflow:hidden;box-shadow:0 0 0 1px var(--line-2);font-family:var(--font-ui);color:var(--text-1);">
+        <header style="display:flex;align-items:center;gap:var(--sp-4);padding:0 0 0 var(--sp-5);background:var(--surface-frame);box-shadow:inset 0 -1px 0 var(--line-1);">
+          <div style="display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;color:var(--text-2);"><span style="width:20px;height:20px;border-radius:6px;background:var(--accent);"></span>JSM Studio</div>
+          <div style="width:1px;height:24px;background:var(--line-2);"></div>
+          <div style="display:flex;gap:4px;padding:4px;border-radius:12px;background:var(--surface-sunken);">
+            <div style="height:40px;display:flex;align-items:center;gap:10px;padding:0 18px 0 14px;border-radius:9px;background:var(--surface-selected);box-shadow:inset 0 -2px 0 var(--accent);">
+              <span style="display:block;width:20px;height:20px;background:currentColor;-webkit-mask:url(./icons/ui/buttons.svg) center/contain no-repeat;mask:url(./icons/ui/buttons.svg) center/contain no-repeat;"></span>
+              <span style="display:flex;flex-direction:column;line-height:15px;"><b style="font-size:14px;font-weight:600;">Configure</b><span style="font-size:11px;color:var(--text-2);">Wardogs · Default</span></span>
+            </div>
+            <div style="height:40px;display:flex;align-items:center;gap:10px;padding:0 18px 0 14px;border-radius:9px;color:var(--text-2);">
+              <span style="display:block;width:20px;height:20px;background:currentColor;-webkit-mask:url(./icons/ui/tuning.svg) center/contain no-repeat;mask:url(./icons/ui/tuning.svg) center/contain no-repeat;"></span>
+              <b style="font-size:14px;font-weight:600;">Tuning</b>
+            </div>
+            <div style="height:40px;display:flex;align-items:center;gap:10px;padding:0 18px 0 14px;border-radius:9px;color:var(--text-2);">
+              <span style="display:block;width:20px;height:20px;background:currentColor;-webkit-mask:url(./icons/ui/library.svg) center/contain no-repeat;mask:url(./icons/ui/library.svg) center/contain no-repeat;"></span>
+              <b style="font-size:14px;font-weight:600;">Studio</b>
+            </div>
+          </div>
+          <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-3);"><img src="./glyphs/steam/MINUS.svg" alt="View button" width="22" height="22" style="display:block;flex:none;">hubs</span>
+          <div style="flex:1;"></div>
+          <div style="height:40px;display:flex;align-items:center;gap:10px;padding:0 16px;border-radius:10px;background:var(--surface-row);font-size:14px;"><span style="width:10px;height:10px;border-radius:50%;box-shadow:inset 0 0 0 2px var(--telemetry);"></span><b style="font-weight:600;">Mapping</b><span style="color:var(--text-3);">paused in Studio</span></div>
+          <div style="height:40px;display:flex;align-items:center;gap:10px;padding:0 18px;border-radius:10px;background:var(--accent);color:var(--text-on-accent);font-size:14px;font-weight:600;">Apply 3 changes</div>
+          <div style="display:flex;height:56px;color:var(--text-3);"><span style="width:46px;display:grid;place-items:center;">—</span><span style="width:46px;display:grid;place-items:center;">▢</span><span style="width:46px;display:grid;place-items:center;">✕</span></div>
+        </header>
+        <nav style="display:flex;align-items:center;gap:var(--sp-2);padding:0 var(--sp-5);background:var(--surface-frame);box-shadow:inset 0 -1px 0 var(--line-1);">
+          <img src="./glyphs/steam/ZL.svg" alt="LT" width="22" height="22" style="display:block;flex:none;">
+          <sc-for list="{{ cfgTabs }}" as="t" hint-placeholder-count="8">
+            <div style="height:40px;display:flex;align-items:center;gap:8px;padding:0 14px;border-radius:9px;font-size:14px;font-weight:500;background:{{ t.bg }};color:{{ t.fg }};">
+              <span style="display:block;width:18px;height:18px;background:currentColor;-webkit-mask:url(./icons/ui/{{ t.icon }}.svg) center/contain no-repeat;mask:url(./icons/ui/{{ t.icon }}.svg) center/contain no-repeat;"></span>{{ t.label }}
+            </div>
+          </sc-for>
+          <img src="./glyphs/steam/ZR.svg" alt="RT" width="22" height="22" style="display:block;flex:none;">
+          <div style="flex:1;"></div>
+          <span style="font-size:13px;color:var(--text-2);display:flex;align-items:center;gap:8px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--ok);"></span>Steam Controller · 82%</span>
+        </nav>
+        <div style="display:grid;grid-template-columns:216px minmax(0,1fr) 380px;min-height:0;">
+          <nav style="display:flex;flex-direction:column;gap:2px;padding:112px var(--sp-3) 0 var(--sp-5);font-size:14px;color:var(--text-2);">
+            <sc-for list="{{ sections }}" as="s" hint-placeholder-count="4">
+              <div style="height:40px;display:flex;align-items:center;padding:0 12px;border-radius:8px;background:{{ s.bg }};color:{{ s.fg }};">{{ s.label }}</div>
+            </sc-for>
+          </nav>
+          <main style="display:flex;flex-direction:column;gap:var(--sp-6);padding:var(--sp-7) var(--sp-6) 0;min-width:0;overflow:hidden;">
+            <div style="display:flex;align-items:flex-end;gap:var(--sp-4);">
+              <div style="flex:1;display:flex;flex-direction:column;gap:6px;"><div style="font-size:28px;line-height:34px;font-weight:600;letter-spacing:-.015em;">Gyro</div><div style="font-size:14px;color:var(--text-2);">How tilting the controller moves your aim, and when.</div></div>
+              <div style="height:44px;display:flex;align-items:center;gap:10px;padding:0 16px;border-radius:10px;background:var(--surface-row);font-size:14px;"><span style="color:var(--text-3);">Layer</span><b style="font-weight:600;">Default</b><span style="display:block;width:16px;height:16px;background:var(--text-3);-webkit-mask:url(./icons/ui/chevronDown.svg) center/contain no-repeat;mask:url(./icons/ui/chevronDown.svg) center/contain no-repeat;"></span></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div style="font-size:11px;letter-spacing:.12em;font-weight:600;color:var(--text-3);padding:0 4px 6px;">ESSENTIALS</div>
+              <sc-for list="{{ essentials }}" as="r" hint-placeholder-count="5">
+                <div style="height:64px;display:flex;align-items:center;gap:16px;padding:0 20px;border-radius:10px;background:{{ r.bg }};box-shadow:{{ r.ring }};">
+                  <div style="flex:1;display:flex;flex-direction:column;gap:2px;min-width:0;"><b style="font-size:15px;font-weight:600;">{{ r.label }}</b><span style="font-size:13px;color:var(--text-2);">{{ r.hint }}</span></div>
+                  <span style="font-size:15px;font-weight:500;">{{ r.value }}</span>
+                  <span style="display:block;width:18px;height:18px;background:var(--text-3);-webkit-mask:url(./icons/ui/chevronRight.svg) center/contain no-repeat;mask:url(./icons/ui/chevronRight.svg) center/contain no-repeat;"></span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div style="font-size:11px;letter-spacing:.12em;font-weight:600;color:var(--text-3);padding:0 4px 6px;">FINE TUNING</div>
+              <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;">
+                <sc-for list="{{ fine }}" as="f" hint-placeholder-count="4">
+                  <div style="height:72px;display:flex;align-items:center;gap:14px;padding:0 20px;border-radius:10px;background:var(--surface-row);">
+                    <div style="flex:1;display:flex;flex-direction:column;gap:3px;min-width:0;"><b style="font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px;">{{ f.label }}<sc-if value="{{ f.changed }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;font-weight:600;color:var(--accent);">● {{ f.changed }}</span></sc-if></b><span style="font-size:13px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ f.summary }}</span></div>
+                    <span style="display:block;width:18px;height:18px;background:var(--text-3);-webkit-mask:url(./icons/ui/chevronRight.svg) center/contain no-repeat;mask:url(./icons/ui/chevronRight.svg) center/contain no-repeat;"></span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </main>
+          <aside style="padding:112px var(--sp-6) 0 0;">
+            <div style="display:flex;flex-direction:column;gap:var(--sp-4);padding:var(--sp-5);border-radius:14px;background:var(--surface-nav);">
+              <div style="display:flex;align-items:center;justify-content:space-between;"><span style="font-size:11px;letter-spacing:.12em;font-weight:600;color:var(--text-3);">LIVE</span><span style="font-size:13px;color:var(--telemetry);display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--telemetry);"></span>Gyro on</span></div>
+              <div style="position:relative;height:240px;border-radius:10px;background:var(--surface-sunken);">
+                <div style="position:absolute;left:50%;top:12px;bottom:12px;width:1px;background:var(--line-2);"></div>
+                <div style="position:absolute;top:50%;left:12px;right:12px;height:1px;background:var(--line-2);"></div>
+                <div style="position:absolute;left:58%;top:41%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:var(--telemetry);box-shadow:0 0 0 6px var(--telemetry-soft);"></div>
+              </div>
+              <div style="font-size:13px;line-height:19px;color:var(--text-2);">Tilt the controller to check the change before applying it.</div>
+            </div>
+          </aside>
+        </div>
+        <div style="position:absolute;left:calc(50% + 20px);bottom:var(--sp-4);transform:translateX(-50%);height:44px;display:flex;align-items:center;gap:var(--sp-5);padding:0 var(--sp-5) 0 var(--sp-3);border-radius:999px;background:var(--surface-raised);box-shadow:var(--shadow-capsule);font-size:13px;color:var(--text-2);white-space:nowrap;">
+          <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/S.svg" alt="A" width="24" height="24" style="display:block;flex:none;">Change</span>
+          <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/N.svg" alt="Y" width="24" height="24" style="display:block;flex:none;">Use Default</span>
+          <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/E.svg" alt="B" width="24" height="24" style="display:block;flex:none;">Back</span>
+          <span style="width:1px;height:18px;background:var(--line-2);"></span>
+          <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/PLUS.svg" alt="Menu button" width="24" height="24" style="display:block;flex:none;">Configuration</span>
+          <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/MINUS.svg" alt="View button" width="24" height="24" style="display:block;flex:none;">Hubs</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1b -->
+    <div id="1b" style="display:flex;flex-direction:column;gap:16px;width:1440px;">
+      <div style="display:flex;align-items:baseline;gap:12px;color:#e8eef4;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">1b</span><span style="font-size:20px;font-weight:600;">One strip, console tabs</span></div>
+      <div style="font-size:14px;line-height:21px;color:#b0bcc8;max-width:960px;">The tabs become tall icon-over-label tiles, so all thirteen pages fit on one strip. Tuning pages follow a labelled divider, so LT/RT reach them without opening a menu. Studio is a large tile at the far end with its own ☰ shortcut. This is the smallest change from the current build.</div>
+      <div style="position:relative;width:1440px;height:900px;display:grid;grid-template-rows:56px 76px minmax(0,1fr);background:var(--surface-canvas);border-radius:12px;overflow:hidden;box-shadow:0 0 0 1px var(--line-2);font-family:var(--font-ui);color:var(--text-1);">
+        <header style="display:flex;align-items:center;gap:var(--sp-3);padding:0 0 0 var(--sp-5);background:var(--surface-frame);">
+          <div style="display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;color:var(--text-2);"><span style="width:20px;height:20px;border-radius:6px;background:var(--accent);"></span>JSM Studio</div>
+          <div style="width:1px;height:24px;background:var(--line-2);margin:0 4px;"></div>
+          <div style="height:40px;display:flex;align-items:center;gap:10px;padding:0 14px;border-radius:10px;background:var(--surface-row);font-size:14px;"><span style="color:var(--text-3);">Editing</span><b style="font-weight:600;">Wardogs</b><span style="width:7px;height:7px;border-radius:50%;background:var(--accent);"></span><span style="display:block;width:16px;height:16px;background:var(--text-3);-webkit-mask:url(./icons/ui/chevronDown.svg) center/contain no-repeat;mask:url(./icons/ui/chevronDown.svg) center/contain no-repeat;"></span></div>
+          <div style="height:40px;display:flex;align-items:center;gap:10px;padding:0 14px;border-radius:10px;background:var(--surface-row);font-size:14px;"><span style="color:var(--text-3);">Layer</span><b style="font-weight:600;">Default</b><span style="display:block;width:16px;height:16px;background:var(--text-3);-webkit-mask:url(./icons/ui/chevronDown.svg) center/contain no-repeat;mask:url(./icons/ui/chevronDown.svg) center/contain no-repeat;"></span></div>
+          <div style="flex:1;"></div>
+          <div style="height:40px;display:flex;align-items:center;gap:10px;padding:0 16px;border-radius:10px;background:var(--surface-row);font-size:14px;"><span style="width:10px;height:10px;border-radius:50%;box-shadow:inset 0 0 0 2px var(--telemetry);"></span><b style="font-weight:600;">Mapping</b><span style="color:var(--text-3);">paused in Studio</span></div>
+          <div style="height:40px;display:flex;align-items:center;padding:0 18px;border-radius:10px;background:var(--accent);color:var(--text-on-accent);font-size:14px;font-weight:600;">Apply 3 changes</div>
+          <div style="display:flex;height:56px;color:var(--text-3);"><span style="width:46px;display:grid;place-items:center;">—</span><span style="width:46px;display:grid;place-items:center;">▢</span><span style="width:46px;display:grid;place-items:center;">✕</span></div>
+        </header>
+        <nav style="display:flex;align-items:center;gap:4px;padding:0 var(--sp-5);background:var(--surface-frame);box-shadow:inset 0 -1px 0 var(--line-1);">
+          <img src="./glyphs/steam/ZL.svg" alt="LT" width="22" height="22" style="display:block;flex:none;margin-right:6px;">
+          <sc-for list="{{ cfgTabs }}" as="t" hint-placeholder-count="8">
+            <div style="width:78px;height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border-radius:10px;font-size:12px;font-weight:500;background:{{ t.bg }};color:{{ t.fg }};box-shadow:{{ t.under }};">
+              <span style="display:block;width:22px;height:22px;background:currentColor;-webkit-mask:url(./icons/ui/{{ t.icon }}.svg) center/contain no-repeat;mask:url(./icons/ui/{{ t.icon }}.svg) center/contain no-repeat;"></span>{{ t.short }}
+            </div>
+          </sc-for>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;margin:0 8px;"><span style="font-size:10px;letter-spacing:.12em;font-weight:600;color:var(--text-3);">TUNING</span><span style="width:1px;height:36px;background:var(--line-2);"></span></div>
+          <sc-for list="{{ tuneTabs }}" as="t" hint-placeholder-count="5">
+            <div style="width:78px;height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border-radius:10px;font-size:12px;font-weight:500;color:var(--text-2);">
+              <span style="display:block;width:22px;height:22px;background:currentColor;-webkit-mask:url(./icons/ui/{{ t.icon }}.svg) center/contain no-repeat;mask:url(./icons/ui/{{ t.icon }}.svg) center/contain no-repeat;"></span>{{ t.short }}
+            </div>
+          </sc-for>
+          <img src="./glyphs/steam/ZR.svg" alt="RT" width="22" height="22" style="display:block;flex:none;margin-left:6px;">
+          <div style="flex:1;"></div>
+          <div style="height:60px;display:flex;align-items:center;gap:12px;padding:0 18px 0 16px;border-radius:12px;background:var(--surface-row);box-shadow:inset 0 0 0 1px var(--line-2);">
+            <span style="display:block;width:24px;height:24px;background:var(--text-1);-webkit-mask:url(./icons/ui/library.svg) center/contain no-repeat;mask:url(./icons/ui/library.svg) center/contain no-repeat;"></span>
+            <span style="display:flex;flex-direction:column;line-height:17px;"><b style="font-size:15px;font-weight:600;">Studio</b><span style="font-size:12px;color:var(--text-2);">Library, apps, preferences</span></span>
+            <img src="./glyphs/steam/PLUS.svg" alt="Menu button" width="24" height="24" style="display:block;flex:none;">
+          </div>
+        </nav>
+        <div style="display:grid;grid-template-columns:216px minmax(0,1fr) 380px;min-height:0;">
+          <nav style="display:flex;flex-direction:column;gap:2px;padding:112px var(--sp-3) 0 var(--sp-5);font-size:14px;color:var(--text-2);">
+            <sc-for list="{{ sections }}" as="s" hint-placeholder-count="4">
+              <div style="height:40px;display:flex;align-items:center;padding:0 12px;border-radius:8px;background:{{ s.bg }};color:{{ s.fg }};">{{ s.label }}</div>
+            </sc-for>
+          </nav>
+          <main style="display:flex;flex-direction:column;gap:var(--sp-6);padding:var(--sp-7) var(--sp-6) 0;min-width:0;overflow:hidden;">
+            <div style="display:flex;flex-direction:column;gap:6px;"><div style="font-size:28px;line-height:34px;font-weight:600;letter-spacing:-.015em;">Gyro</div><div style="font-size:14px;color:var(--text-2);">How tilting the controller moves your aim, and when.</div></div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div style="font-size:11px;letter-spacing:.12em;font-weight:600;color:var(--text-3);padding:0 4px 6px;">ESSENTIALS</div>
+              <sc-for list="{{ essentials }}" as="r" hint-placeholder-count="5">
+                <div style="height:64px;display:flex;align-items:center;gap:16px;padding:0 20px;border-radius:10px;background:{{ r.bg }};box-shadow:{{ r.ring }};">
+                  <div style="flex:1;display:flex;flex-direction:column;gap:2px;min-width:0;"><b style="font-size:15px;font-weight:600;">{{ r.label }}</b><span style="font-size:13px;color:var(--text-2);">{{ r.hint }}</span></div>
+                  <span style="font-size:15px;font-weight:500;">{{ r.value }}</span>
+                  <span style="display:block;width:18px;height:18px;background:var(--text-3);-webkit-mask:url(./icons/ui/chevronRight.svg) center/contain no-repeat;mask:url(./icons/ui/chevronRight.svg) center/contain no-repeat;"></span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div style="font-size:11px;letter-spacing:.12em;font-weight:600;color:var(--text-3);padding:0 4px 6px;">FINE TUNING</div>
+              <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;">
+                <sc-for list="{{ fine }}" as="f" hint-placeholder-count="4">
+                  <div style="height:72px;display:flex;align-items:center;gap:14px;padding:0 20px;border-radius:10px;background:var(--surface-row);">
+                    <div style="flex:1;display:flex;flex-direction:column;gap:3px;min-width:0;"><b style="font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px;">{{ f.label }}<sc-if value="{{ f.changed }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;font-weight:600;color:var(--accent);">● {{ f.changed }}</span></sc-if></b><span style="font-size:13px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ f.summary }}</span></div>
+                    <span style="display:block;width:18px;height:18px;background:var(--text-3);-webkit-mask:url(./icons/ui/chevronRight.svg) center/contain no-repeat;mask:url(./icons/ui/chevronRight.svg) center/contain no-repeat;"></span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </main>
+          <aside style="padding:112px var(--sp-6) 0 0;">
+            <div style="display:flex;flex-direction:column;gap:var(--sp-4);padding:var(--sp-5);border-radius:14px;background:var(--surface-nav);">
+              <div style="display:flex;align-items:center;justify-content:space-between;"><span style="font-size:11px;letter-spacing:.12em;font-weight:600;color:var(--text-3);">LIVE</span><span style="font-size:13px;color:var(--telemetry);display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--telemetry);"></span>Gyro on</span></div>
+              <div style="position:relative;height:240px;border-radius:10px;background:var(--surface-sunken);">
+                <div style="position:absolute;left:50%;top:12px;bottom:12px;width:1px;background:var(--line-2);"></div>
+                <div style="position:absolute;top:50%;left:12px;right:12px;height:1px;background:var(--line-2);"></div>
+                <div style="position:absolute;left:58%;top:41%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:var(--telemetry);box-shadow:0 0 0 6px var(--telemetry-soft);"></div>
+              </div>
+            </div>
+          </aside>
+        </div>
+        <div style="position:absolute;left:calc(50% + 20px);bottom:var(--sp-4);transform:translateX(-50%);height:44px;display:flex;align-items:center;gap:var(--sp-5);padding:0 var(--sp-5) 0 var(--sp-3);border-radius:999px;background:var(--surface-raised);box-shadow:var(--shadow-capsule);font-size:13px;color:var(--text-2);white-space:nowrap;">
+          <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/S.svg" alt="A" width="24" height="24" style="display:block;flex:none;">Change</span>
+          <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/N.svg" alt="Y" width="24" height="24" style="display:block;flex:none;">Use Default</span>
+          <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/E.svg" alt="B" width="24" height="24" style="display:block;flex:none;">Back</span>
+          <span style="width:1px;height:18px;background:var(--line-2);"></span>
+          <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/PLUS.svg" alt="Menu button" width="24" height="24" style="display:block;flex:none;">Studio</span>
+          <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/MINUS.svg" alt="View button" width="24" height="24" style="display:block;flex:none;">Configuration</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1c -->
+    <div id="1c" style="display:flex;flex-direction:column;gap:16px;width:1440px;">
+      <div style="display:flex;align-items:baseline;gap:12px;color:#e8eef4;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">1c</span><span style="font-size:20px;font-weight:600;">Home screen</span></div>
+      <div style="font-size:14px;line-height:21px;color:#b0bcc8;max-width:960px;">Studio opens on a dashboard. The running configuration is the hero, and Tuning and Studio tools are large tiles next to it. ☰ returns Home from anywhere, and B on Home resumes editing where you left off. The editing screens stay as in 1a, without the hub switcher.</div>
+      <div style="position:relative;width:1440px;height:900px;display:grid;grid-template-rows:56px minmax(0,1fr);background:var(--surface-canvas);border-radius:12px;overflow:hidden;box-shadow:0 0 0 1px var(--line-2);font-family:var(--font-ui);color:var(--text-1);">
+        <header style="display:flex;align-items:center;gap:var(--sp-3);padding:0 0 0 var(--sp-5);background:var(--surface-frame);">
+          <div style="display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;"><span style="width:20px;height:20px;border-radius:6px;background:var(--accent);"></span>JSM Studio</div>
+          <div style="flex:1;"></div>
+          <span style="font-size:13px;color:var(--text-2);display:flex;align-items:center;gap:8px;margin-right:8px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--ok);"></span>Steam Controller · 82%</span>
+          <div style="height:40px;display:flex;align-items:center;gap:10px;padding:0 16px;border-radius:10px;background:var(--surface-row);font-size:14px;"><span style="width:10px;height:10px;border-radius:50%;box-shadow:inset 0 0 0 2px var(--telemetry);"></span><b style="font-weight:600;">Mapping</b><span style="color:var(--text-3);">paused in Studio</span></div>
+          <div style="display:flex;height:56px;color:var(--text-3);"><span style="width:46px;display:grid;place-items:center;">—</span><span style="width:46px;display:grid;place-items:center;">▢</span><span style="width:46px;display:grid;place-items:center;">✕</span></div>
+        </header>
+        <div style="display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:var(--sp-6);padding:var(--sp-8) var(--sp-8) 96px;min-height:0;">
+          <div style="display:flex;flex-direction:column;gap:var(--sp-4);min-height:0;">
+            <div style="font-size:11px;letter-spacing:.12em;font-weight:600;color:var(--text-3);">RUNNING NOW</div>
+            <div style="flex:1;display:flex;flex-direction:column;border-radius:16px;background:var(--surface-nav);overflow:hidden;box-shadow:0 0 0 2px var(--focus-controller);">
+              <div style="flex:1;display:grid;place-items:center;background:var(--surface-sunken);color:var(--text-3);font-size:13px;min-height:0;">Controller Live art · pad touches, sticks, triggers</div>
+              <div style="display:flex;align-items:center;gap:var(--sp-4);padding:var(--sp-5) var(--sp-6);">
+                <div style="flex:1;display:flex;flex-direction:column;gap:4px;"><b style="font-size:28px;line-height:34px;font-weight:600;letter-spacing:-.015em;">Wardogs</b><span style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text-2);"><span style="height:24px;display:flex;align-items:center;gap:6px;padding:0 10px;border-radius:999px;background:var(--layer-2-soft);color:var(--text-1);font-size:13px;font-weight:500;"><span style="width:8px;height:8px;border-radius:50%;background:var(--layer-2);"></span>Editing Comms layer</span>3 unsaved changes</span></div>
+                <div style="height:48px;display:flex;align-items:center;gap:10px;padding:0 22px 0 14px;border-radius:12px;background:var(--accent);color:var(--text-on-accent);font-size:15px;font-weight:600;"><img src="./glyphs/steam/S.svg" alt="A" width="24" height="24" style="display:block;flex:none;">Continue editing</div>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-3);">
+              <div style="height:64px;display:flex;align-items:center;gap:12px;padding:0 18px;border-radius:12px;background:var(--surface-row);font-size:15px;font-weight:600;"><span style="display:block;width:22px;height:22px;background:currentColor;-webkit-mask:url(./icons/ui/test.svg) center/contain no-repeat;mask:url(./icons/ui/test.svg) center/contain no-repeat;"></span>Test</div>
+              <div style="height:64px;display:flex;align-items:center;gap:12px;padding:0 18px;border-radius:12px;background:var(--surface-row);font-size:15px;font-weight:600;"><span style="display:block;width:22px;height:22px;background:currentColor;-webkit-mask:url(./icons/ui/library.svg) center/contain no-repeat;mask:url(./icons/ui/library.svg) center/contain no-repeat;"></span>Switch configuration</div>
+              <div style="height:64px;display:flex;align-items:center;gap:12px;padding:0 18px;border-radius:12px;background:var(--surface-row);font-size:15px;font-weight:600;"><span style="display:block;width:22px;height:22px;background:currentColor;-webkit-mask:url(./icons/ui/layers.svg) center/contain no-repeat;mask:url(./icons/ui/layers.svg) center/contain no-repeat;"></span>Layers</div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:var(--sp-6);min-height:0;">
+            <div style="display:flex;flex-direction:column;gap:var(--sp-3);">
+              <div style="font-size:11px;letter-spacing:.12em;font-weight:600;color:var(--text-3);">TUNING</div>
+              <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-3);">
+                <sc-for list="{{ tuneTabs }}" as="t" hint-placeholder-count="5">
+                  <div style="height:112px;display:flex;flex-direction:column;justify-content:space-between;padding:18px;border-radius:12px;background:var(--surface-row);">
+                    <span style="display:block;width:26px;height:26px;background:var(--text-1);-webkit-mask:url(./icons/ui/{{ t.icon }}.svg) center/contain no-repeat;mask:url(./icons/ui/{{ t.icon }}.svg) center/contain no-repeat;"></span>
+                    <b style="font-size:15px;line-height:19px;font-weight:600;">{{ t.label }}</b>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:var(--sp-3);">
+              <div style="font-size:11px;letter-spacing:.12em;font-weight:600;color:var(--text-3);">STUDIO</div>
+              <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-3);">
+                <sc-for list="{{ studio }}" as="s" hint-placeholder-count="6">
+                  <div style="height:56px;display:flex;align-items:center;gap:12px;padding:0 16px;border-radius:12px;background:var(--surface-row);font-size:15px;font-weight:600;">
+                    <span style="display:block;width:20px;height:20px;background:var(--text-2);-webkit-mask:url(./icons/ui/{{ s.icon }}.svg) center/contain no-repeat;mask:url(./icons/ui/{{ s.icon }}.svg) center/contain no-repeat;"></span>{{ s.label }}
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="position:absolute;left:50%;bottom:var(--sp-4);transform:translateX(-50%);height:44px;display:flex;align-items:center;gap:var(--sp-5);padding:0 var(--sp-5) 0 var(--sp-3);border-radius:999px;background:var(--surface-raised);box-shadow:var(--shadow-capsule);font-size:13px;color:var(--text-2);white-space:nowrap;">
+          <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/S.svg" alt="A" width="24" height="24" style="display:block;flex:none;">Open</span>
+          <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/E.svg" alt="B" width="24" height="24" style="display:block;flex:none;">Resume editing</span>
+          <span style="width:1px;height:18px;background:var(--line-2);"></span>
+          <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/PLUS.svg" alt="Menu button" width="24" height="24" style="display:block;flex:none;">Home from anywhere</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1d -->
+    <div id="1d" style="display:flex;flex-direction:column;gap:16px;width:1440px;">
+      <div style="display:flex;align-items:baseline;gap:12px;color:#e8eef4;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">1d</span><span style="font-size:20px;font-weight:600;">Shared: summary row → detail sheet</span></div>
+      <div style="font-size:14px;line-height:21px;color:#b0bcc8;max-width:960px;">A on a fine-tuning row slides in a sheet over the live panel, and the page stays visible behind it. The sheet holds only that group's settings, each one focus target. B closes it and returns focus to the row. This replaces inline Reset, Help and Copy buttons and the long accordion sections.</div>
+      <div style="position:relative;width:1440px;height:900px;display:grid;grid-template-columns:216px minmax(0,1fr);background:var(--surface-canvas);border-radius:12px;overflow:hidden;box-shadow:0 0 0 1px var(--line-2);font-family:var(--font-ui);color:var(--text-1);">
+        <div></div>
+        <main style="display:flex;flex-direction:column;gap:6px;padding:var(--sp-8) var(--sp-6);opacity:.4;">
+          <div style="font-size:28px;line-height:34px;font-weight:600;padding-bottom:var(--sp-5);">Gyro</div>
+          <sc-for list="{{ essentials }}" as="r" hint-placeholder-count="5">
+            <div style="height:64px;display:flex;align-items:center;padding:0 20px;border-radius:10px;background:var(--surface-row);max-width:640px;"><b style="flex:1;font-size:15px;font-weight:600;">{{ r.label }}</b><span style="font-size:15px;">{{ r.value }}</span></div>
+          </sc-for>
+        </main>
+        <div style="position:absolute;inset:0;background:var(--surface-scrim);"></div>
+        <aside style="position:absolute;top:0;right:0;bottom:0;width:620px;display:flex;flex-direction:column;gap:var(--sp-5);padding:var(--sp-7) var(--sp-6);background:var(--surface-nav);box-shadow:var(--shadow-menu);">
+          <div style="display:flex;flex-direction:column;gap:6px;"><div style="font-size:11px;letter-spacing:.12em;font-weight:600;color:var(--text-3);">GYRO · FINE TUNING</div><div style="font-size:24px;line-height:30px;font-weight:600;">Steadying</div><div style="font-size:14px;line-height:20px;color:var(--text-2);">Filters small, unintended movement so aim holds still.</div></div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <sc-for list="{{ sheetRows }}" as="r" hint-placeholder-count="4">
+              <div style="display:flex;flex-direction:column;gap:12px;padding:16px 20px;border-radius:10px;background:{{ r.bg }};box-shadow:{{ r.ring }};">
+                <div style="display:flex;align-items:center;gap:12px;"><div style="flex:1;display:flex;flex-direction:column;gap:2px;"><b style="font-size:15px;font-weight:600;">{{ r.label }}</b><span style="font-size:13px;color:{{ r.originColor }};">{{ r.origin }}</span></div><span style="font-size:15px;font-weight:600;font-family:var(--font-mono);">{{ r.value }}</span></div>
+                <div style="position:relative;height:8px;border-radius:4px;background:var(--surface-sunken);"><div style="position:absolute;left:0;top:0;bottom:0;width:{{ r.pct }};border-radius:4px;background:{{ r.fill }};"></div></div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="flex:1;"></div>
+          <div style="display:flex;align-items:center;gap:var(--sp-5);font-size:13px;color:var(--text-2);">
+            <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/S.svg" alt="A" width="24" height="24" style="display:block;flex:none;">Adjust</span>
+            <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/N.svg" alt="Y" width="24" height="24" style="display:block;flex:none;">Use Default</span>
+            <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/W.svg" alt="X" width="24" height="24" style="display:block;flex:none;">What's this?</span>
+            <span style="display:flex;align-items:center;gap:8px;"><img src="./glyphs/steam/E.svg" alt="B" width="24" height="24" style="display:block;flex:none;">Close</span>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <!-- 1e -->
+    <div id="1e" style="display:flex;flex-direction:column;gap:16px;width:1440px;">
+      <div style="display:flex;align-items:baseline;gap:12px;color:#e8eef4;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">1e</span><span style="font-size:20px;font-weight:600;">Shared: one state button + Configuration menu</span></div>
+      <div style="font-size:14px;line-height:21px;color:#b0bcc8;max-width:960px;">Undo, Redo, Save and Apply leave the title bar. What remains is one large button whose label states what it will do. Everything else about the file opens as a centred list from ☰ (1a, 1c) or View (1b). Ctrl+Z, Ctrl+S and Ctrl+Shift+A are unchanged.</div>
+      <div style="display:grid;grid-template-columns:420px minmax(0,1fr);gap:48px;align-items:start;">
+        <div style="display:flex;flex-direction:column;gap:14px;font-family:var(--font-ui);">
+          <sc-for list="{{ applyStates }}" as="s" hint-placeholder-count="4">
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="height:44px;display:flex;align-items:center;gap:10px;padding:0 18px;border-radius:10px;width:max-content;font-size:14px;font-weight:600;background:{{ s.bg }};color:{{ s.fg }};">{{ s.label }}</div>
+              <div style="font-size:13px;line-height:19px;color:#b0bcc8;">{{ s.note }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="position:relative;height:720px;border-radius:12px;overflow:hidden;background:var(--surface-canvas);box-shadow:0 0 0 1px var(--line-2);font-family:var(--font-ui);color:var(--text-1);">
+          <div style="position:absolute;inset:0;background:var(--surface-scrim);"></div>
+          <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:520px;display:flex;flex-direction:column;gap:4px;padding:var(--sp-5);border-radius:16px;background:var(--surface-raised);box-shadow:var(--shadow-menu);">
+            <div style="display:flex;flex-direction:column;gap:2px;padding:4px 12px 14px;"><span style="font-size:11px;letter-spacing:.12em;font-weight:600;color:var(--text-3);">CONFIGURATION</span><b style="font-size:20px;font-weight:600;">Wardogs</b></div>
+            <sc-for list="{{ menuItems }}" as="m" hint-placeholder-count="7">
+              <div style="height:52px;display:flex;align-items:center;gap:14px;padding:0 14px;border-radius:10px;background:{{ m.bg }};box-shadow:{{ m.ring }};color:{{ m.fg }};">
+                <span style="display:block;width:20px;height:20px;background:currentColor;-webkit-mask:url(./icons/ui/{{ m.icon }}.svg) center/contain no-repeat;mask:url(./icons/ui/{{ m.icon }}.svg) center/contain no-repeat;"></span>
+                <b style="flex:1;font-size:15px;font-weight:500;">{{ m.label }}</b>
+                <span style="font-size:13px;color:var(--text-3);">{{ m.meta }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const sel = (on) => on
+      ? { bg: 'var(--surface-selected)', fg: 'var(--text-1)', under: 'inset 0 -2px 0 var(--accent)' }
+      : { bg: 'transparent', fg: 'var(--text-2)', under: 'none' };
+    const cfg = [
+      ['overview', 'Overview', 'Overview'], ['buttons', 'Buttons', 'Buttons'], ['dpad', 'D-Pad', 'D-Pad'],
+      ['triggers', 'Triggers', 'Triggers'], ['joysticks', 'Joysticks', 'Sticks'], ['trackpads', 'Trackpads', 'Pads'],
+      ['gyro', 'Gyro', 'Gyro'], ['layers', 'Layers', 'Layers'],
+    ].map(([icon, label, short]) => ({ icon, label, short, ...sel(icon === 'gyro') }));
+    const tune = [
+      ['grips', 'Grip sensors', 'Grips'], ['padTuning', 'Trackpad tuning', 'Pad feel'], ['menuLayout', 'Menu layout', 'Menus'],
+      ['timing', 'Press timing & polling', 'Timing'], ['ai', 'AI assistant', 'AI'],
+    ].map(([icon, label, short]) => ({ icon, label, short }));
+    const row = (focused) => focused
+      ? { bg: 'var(--surface-selected)', ring: '0 0 0 2px var(--focus-controller)' }
+      : { bg: 'var(--surface-row)', ring: 'none' };
+    const eb = (eyebrow, r) => ({ eyebrow, ...r });
+    const plain = { bg: 'var(--surface-row)', ring: 'none' };
+    const focus = { bg: 'var(--surface-selected)', ring: '0 0 0 2px var(--focus-controller)' };
+    const t2 = {
+      homeTune: [
+        { icon: 'gyro', label: 'Gyro', where: 'Gyro page · 2.40×' },
+        { icon: 'padTuning', label: 'Mouse feel', where: 'Trackpads · right pad' },
+        { icon: 'grips', label: 'Grip sensors', where: 'Buttons › Grips' },
+      ],
+      homeStudio: [
+        { icon: 'library', label: 'Configurations', note: '12 profiles · 2 templates' },
+        { icon: 'associations', label: 'Associations', note: 'Load by app' },
+        { icon: 'chords', label: 'Global chords', note: 'Swap from any configuration' },
+        { icon: 'timing', label: 'Press timing & polling', note: 'Hold 0.15 s · 3 ms polling' },
+        { icon: 'ai', label: 'AI assistant', note: 'Describe a change in words' },
+        { icon: 'visibility', label: 'Device visibility', note: 'Hide the real controller' },
+        { icon: 'preferences', label: 'Preferences', note: 'Appearance, startup, controller' },
+        { icon: 'docs', label: 'Documentation', note: 'Offline reference' },
+        { icon: 'debug', label: 'Debug console', note: 'Mapper log and commands' },
+      ],
+      padTabs: cfg.map(t => ({ ...t, ...sel(t.icon === 'trackpads') })),
+      leftPadRows: [
+        { label: 'Mode', hint: 'What touching this pad does', value: 'Menu · 4-way', ...plain },
+        { label: 'Region 1 · Top', hint: 'Selected on the preview', value: 'G · Grenade', ...plain },
+        { label: 'Click required', hint: 'Regions fire only on pad click', value: 'On', ...plain },
+        { label: 'On-screen menu', hint: 'Shown on touch · bottom left · 320 px', value: 'Arrange', ...focus },
+      ],
+      rightPadRows: [
+        { label: 'Mode', hint: 'What touching this pad does', value: 'Mouse', ...plain },
+        { label: 'Sensitivity', hint: 'Cursor distance per swipe', value: '1.00×', ...plain },
+        { label: 'Click', hint: 'Pressing the pad in', value: 'Left mouse', ...plain },
+        { label: 'Mouse feel', hint: 'Balanced smoothing · glide on · light ticks', value: '', ...plain },
+      ],
+      mouseFeel: [
+        eb('MOTION', { label: 'Smoothing', hint: 'Steadies a resting thumb; flicks escape it', hintColor: 'var(--text-2)', value: 'Balanced', ...focus }),
+        eb(false, { label: 'Minimum movement', hint: 'Ignore motion slower than this', hintColor: 'var(--text-2)', value: '0 px/s', ...plain }),
+        eb('PRESS & RELEASE', { label: 'Lift-off protection', hint: 'Changed in Wardogs', hintColor: 'var(--accent)', value: '150 px/s', ...plain }),
+        eb(false, { label: 'Click damping', hint: 'Hold the cursor still while clicking', hintColor: 'var(--text-2)', value: 'Off', ...plain }),
+        eb('GLIDE', { label: 'Trackball glide', hint: 'Keep moving after a flick', hintColor: 'var(--text-2)', value: 'On · 12', ...plain }),
+        eb('HAPTICS', { label: 'Movement ticks', hint: 'From FPS Template', hintColor: 'var(--text-3)', value: 'Light', ...plain }),
+        eb(false, { label: 'Click and release', hint: 'Feedback when the pad clicks', hintColor: 'var(--text-2)', value: 'Click · 40%', ...plain }),
+      ],
+      menuChips: [
+        { label: 'Left pad', layer: 'Default', bg: 'var(--surface-selected)', fg: 'var(--text-1)', subFg: 'var(--text-2)', ring: '0 0 0 2px var(--focus-controller)' },
+        { label: 'Right stick wheel', layer: 'Default', bg: 'var(--surface-row)', fg: 'var(--text-1)', subFg: 'var(--text-3)', ring: 'none' },
+        { label: 'Right pad', layer: 'Comms', bg: 'var(--surface-row)', fg: 'var(--text-1)', subFg: 'var(--layer-2)', ring: 'none' },
+      ],
+      arrangeRows: [
+        { label: 'Position', value: 'Bottom left', ...focus },
+        { label: 'Width', value: '320 px', ...plain },
+        { label: 'Text size', value: '14 px', ...plain },
+        { label: 'Shows', value: 'Names, keys', ...plain },
+        { label: 'Appears', value: 'As soon as it’s touched', ...plain },
+      ],
+      gripRows: [
+        eb('SENSOR', { label: 'Touch sensitivity', hint: 'Shared by both grips (firmware limit)', value: '62%', ...focus }),
+        eb(false, { label: 'Flicker guard', hint: 'Ignore brief contact changes', value: '18%', ...plain }),
+        eb(false, { label: 'Release delay', hint: 'Left 40 ms · right 40 ms', value: '40 ms', ...plain }),
+        eb('HAPTICS', { label: 'On touch', hint: 'Feedback when a hand arrives', value: 'Click · 30%', ...plain }),
+        eb(false, { label: 'On release', hint: 'Feedback when a hand leaves', value: 'Off', ...plain }),
+      ],
+      studioTabs: ['Configurations', 'Associations', 'Global chords', 'Press timing & polling', 'AI assistant', 'Device visibility', 'Preferences', 'Documentation', 'Debug console']
+        .map(label => ({ label, ...sel(label === 'Press timing & polling') })),
+      timingRows: [
+        eb('PRESS TIMING', { label: 'Hold time', hint: 'How long a press counts as a hold', hintColor: 'var(--text-2)', value: '0.15 s', ...focus }),
+        eb(false, { label: 'Double-press window', hint: 'Second press must land within', hintColor: 'var(--text-2)', value: '0.20 s', ...plain }),
+        eb(false, { label: 'Simultaneous-press window', hint: 'Chords must start within', hintColor: 'var(--text-2)', value: '0.05 s', ...plain }),
+        eb(false, { label: 'Turbo rate', hint: 'Repeats per second while held', hintColor: 'var(--text-2)', value: '20 /s', ...plain }),
+        eb('POLLING', { label: 'Polling interval', hint: 'How often JSM reads the controller', hintColor: 'var(--text-2)', value: '3 ms · 333 Hz', ...plain }),
+      ],
+      overrides: [
+        { config: 'Wardogs.txt', what: 'HOLD_PRESS_TIME = 0.20 s' },
+        { config: 'Cyberpunk.txt', what: 'TICK_TIME = 1 ms' },
+        { config: 'Wardogs Menu.txt', what: 'TURBO_PERIOD = 12 /s' },
+      ],
+    };
+    return {
+      ...t2,
+      cfgTabs: cfg,
+      tuneTabs: tune,
+      sections: ['Essentials', 'Fine tuning', 'Diagnostics'].map((label, i) => ({
+        label, bg: i === 0 ? 'var(--surface-row)' : 'transparent', fg: i === 0 ? 'var(--text-1)' : 'var(--text-2)',
+      })),
+      essentials: [
+        { label: 'Gyro output', hint: 'What tilting moves', value: 'Mouse', ...row(true) },
+        { label: 'Turn gyro on', hint: 'When tilting counts', value: 'While holding right grip', ...row(false) },
+        { label: 'Sensitivity', hint: 'Turn speed in game', value: '2.40×', ...row(false) },
+        { label: 'Acceleration', hint: 'Faster flicks turn further', value: 'Off', ...row(false) },
+        { label: 'Match in-game sensitivity', hint: 'Calibrate once per game', value: 'Calibrated', ...row(false) },
+      ],
+      fine: [
+        { label: 'Steadying', summary: 'Smoothing 0.10 s · Snap off', changed: '2 changed' },
+        { label: 'Orientation', summary: 'Player space · X inverted', changed: false },
+        { label: 'Dampening', summary: 'Default', changed: false },
+        { label: 'Modeshift sensitivity', summary: 'Hold R4 · 1.20×', changed: '1 changed' },
+      ],
+      sheetRows: [
+        { label: 'Smoothing time', origin: 'Changed in Wardogs', originColor: 'var(--accent)', value: '0.10 s', pct: '40%', fill: 'var(--accent)', ...row(true) },
+        { label: 'Smoothing threshold', origin: 'Changed in Wardogs', originColor: 'var(--accent)', value: '4 °/s', pct: '20%', fill: 'var(--accent)', ...row(false) },
+        { label: 'Angle snap', origin: 'From FPS Template', originColor: 'var(--text-3)', value: 'Off', pct: '0%', fill: 'var(--text-3)', ...row(false) },
+        { label: 'Tighten at low speed', origin: 'From FPS Template', originColor: 'var(--text-3)', value: '0 °/s', pct: '0%', fill: 'var(--text-3)', ...row(false) },
+      ],
+      studio: [
+        ['library', 'Configurations'], ['associations', 'Associations'], ['chords', 'Global chords'],
+        ['visibility', 'Device visibility'], ['preferences', 'Preferences'], ['docs', 'Documentation'],
+      ].map(([icon, label]) => ({ icon, label })),
+      applyStates: [
+        { label: 'Apply 3 changes', bg: 'var(--accent)', fg: 'var(--text-on-accent)', note: 'Unsaved edits. Saves Wardogs and applies it in one step.' },
+        { label: 'Apply Wardogs', bg: 'var(--surface-control)', fg: 'var(--text-1)', note: 'Saved but not running. Makes it the applied configuration.' },
+        { label: '✓ Applied', bg: 'var(--surface-row)', fg: 'var(--text-2)', note: 'Saved and running. Stays focusable; A says so.' },
+        { label: 'Return to Studio', bg: 'var(--telemetry-soft)', fg: 'var(--text-1)', note: 'Test mode. Replaces the button until you exit.' },
+      ],
+      menuItems: [
+        { icon: 'undo', label: 'Undo', meta: 'Smoothing time', bg: 'var(--surface-selected)', ring: '0 0 0 2px var(--focus-controller)', fg: 'var(--text-1)' },
+        { icon: 'redo', label: 'Redo', meta: 'Nothing to redo', bg: 'transparent', ring: 'none', fg: 'var(--text-3)' },
+        { icon: 'save', label: 'Save without applying', meta: 'Ctrl+S', bg: 'transparent', ring: 'none', fg: 'var(--text-1)' },
+        { icon: 'copy', label: 'Save as copy…', meta: '', bg: 'transparent', ring: 'none', fg: 'var(--text-1)' },
+        { icon: 'remove', label: 'Discard 3 changes', meta: '', bg: 'transparent', ring: 'none', fg: 'var(--text-1)' },
+        { icon: 'test', label: 'Test while editing', meta: '', bg: 'transparent', ring: 'none', fg: 'var(--text-1)' },
+        { icon: 'inherited', label: 'Values & inheritance', meta: '', bg: 'transparent', ring: 'none', fg: 'var(--text-1)' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

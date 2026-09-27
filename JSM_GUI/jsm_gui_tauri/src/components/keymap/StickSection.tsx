@@ -1,18 +1,16 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { formatStickModeLabel, STICK_MODE_VALUES } from '../../constants/sticks'
 import type { ButtonDefinition } from '../../keymap/schema'
 import { hitTestRegion, type OverlayMenu } from '../../utils/overlayLayout'
 import type { IconName } from '../icons/iconData'
-import { NumberField } from '../NumberField'
-import { AdvancedDisclosure } from '../AdvancedDisclosure'
 import { IconSelect } from './IconSelect'
-import { AppSelect } from '../ui/AppSelect'
-import { SettingOrigin } from '../SettingOrigin'
+import { SettingOrigin, SettingOrigins } from '../SettingOrigin'
+import { Sheet } from '../ui/Sheet'
 import { MenuPreview } from './MenuPreview'
-import { MenuAppearance } from './MenuAppearance'
+import { SummaryRow } from '../ui/SummaryRow'
+import { describeMenuPlacement } from '../../utils/menuDescriptions'
 import { StickPlot } from './StickPlot'
-import { OriginMarker } from './OriginMarker'
 import keymapStyles from '../Keymap.module.css'
 
 const STICK_MODE_ICONS: Record<string, IconName> = {
@@ -95,9 +93,10 @@ export function StickSection({
   const innerValue = Number.parseFloat(inner || defaultInner) || 0
   const outerValue = Number.parseFloat(outer || defaultOuter) || 0
   const short = side === 'left' ? 'L3' : 'R3'
-  const [zonesOpen, setZonesOpen] = useState(false)
-  const [directionsOpen, setDirectionsOpen] = useState(false)
-  const [appearanceOpen, setAppearanceOpen] = useState(false)
+  // Directions, deadzone and flick/aim open as sheets from their rows (1d).
+  const [sheet, setSheet] = useState<null | 'directions' | 'zones' | 'extras'>(null)
+  const configName = useContext(SettingOrigins).config
+  const eyebrow = `Joysticks · ${configName ?? 'Configuration'}`
   // X on a segment row: light that wedge as the overlay would, for a second.
   const [hot, setHot] = useState<string | null>(null)
   useEffect(() => {
@@ -191,68 +190,57 @@ export function StickSection({
                   xAction: { label: t('keymap.testSegment', 'Test segment'), run: () => setHot(selectedSegment.command) },
                 })
               })()}
-              <NumberField setting={`${keyPrefix}STICK_MENU_SIZE`} layout="inline" label={t('keymap.stickRadialSegments', 'Segments')} value={radial.segments} onChange={radial.onSegmentsChange}
-                min={2} max={25} step={1} placeholder="8" disabled={disabled} hint={segmentsHint} />
-              <NumberField setting={`${keyPrefix}STICK_MENU_DEADZONE`} layout="inline" label={t('keymap.stickRadialDeadzone', 'Select past')} value={radial.deadzone} onChange={radial.onDeadzoneChange}
-                min={0} max={1} step={0.05} placeholder="0.35" disabled={disabled} hint={t('keymap.stickRadialDeadzoneHint', 'Deadzone before a segment is chosen')} />
+              <SummaryRow label={t('keymap.stickRadialSegments', 'Segments')} hint={segmentsHint} setting={`${keyPrefix}STICK_MENU_SIZE`} mono disabled={disabled}
+                value={String(segmentCount || 8)}
+                adjust={{ kind: 'number', value: segmentCount || 8, min: 2, max: 25, step: 1, onChange: value => radial.onSegmentsChange(String(value)) }} />
+              <SummaryRow label={t('keymap.stickRadialDeadzone', 'Select past')} hint={t('keymap.stickRadialDeadzoneHint', 'Deadzone before a segment is chosen')} setting={`${keyPrefix}STICK_MENU_DEADZONE`} mono disabled={disabled}
+                value={(Number.parseFloat(radial.deadzone) || 0.35).toFixed(2)}
+                adjust={{ kind: 'number', value: Number.parseFloat(radial.deadzone) || 0.35, min: 0, max: 1, step: 0.05, onChange: value => radial.onDeadzoneChange(String(value)) }} />
+              {/* The wheel's look and place on screen: the On-screen menus view (2d). */}
               {radial.menu && radial.appearance && (
-                <MenuAppearance menuKey={radial.appearance.menuKey} menu={radial.menu} onChange={radial.appearance.onChange} open={appearanceOpen} onOpenChange={setAppearanceOpen} />
+                <SummaryRow label="On-screen menu" hint={describeMenuPlacement(radial.menu)} value="Arrange" hints="A:Arrange;B:Back"
+                  onActivate={() => window.dispatchEvent(new CustomEvent('jsm:menu-layout', { detail: radial.appearance!.menuKey }))} />
               )}
             </>
           ) : directionButtons.length > 0 && (
-            <details className={`${keymapStyles.stickRowDetails}`} open={directionsOpen} onToggle={event => setDirectionsOpen(event.currentTarget.open)}>
-              <summary className={`setting-row setting-row--compact ${keymapStyles.stickRow} ${keymapStyles.stickRowSummary}`} data-hints={directionsOpen ? 'A:Close;B:Back' : 'A:Open;B:Back'}>
-                <div className={keymapStyles.stickRowText}>
-                  <span className={keymapStyles.stickRowTitle}>{t('keymap.stickDirections', 'Directions')}</span>
-                  <span className={keymapStyles.stickRowHint}>{directionSummary}</span>
-                </div>
-                <OriginMarker setting={directionButtons[0]?.command} />
-                <span className={keymapStyles.stickRowChevron} aria-hidden="true" />
-              </summary>
-              <div className={keymapStyles.stickRowBody}>
-                {directionButtons.map(button => <div key={button.command}>{renderButton(button)}</div>)}
-              </div>
-            </details>
+            <SummaryRow label={t('keymap.stickDirections', 'Directions')} hint={directionSummary} onActivate={() => setSheet('directions')}
+              data={{ 'data-input-command': directionButtons[0]?.command }} />
           )}
 
           {clickButton && renderButton(clickButton, { label: `${t('keymap.stickClick', 'Click')} (${short})` })}
 
-          <details className={keymapStyles.stickRowDetails} open={zonesOpen} onToggle={event => setZonesOpen(event.currentTarget.open)}>
-            <summary className={`setting-row setting-row--compact ${keymapStyles.stickRow} ${keymapStyles.stickRowSummary}`} data-hints={zonesOpen ? 'A:Close;B:Back' : 'A:Adjust;B:Back'}>
-              <div className={keymapStyles.stickRowText}>
-                <span className={keymapStyles.stickRowTitle}>{t('keymap.stickDeadzone', 'Deadzone')}</span>
-                <span className={keymapStyles.stickRowHint}>{t('keymap.stickDeadzoneSummary', 'Inner {{inner}} · outer {{outer}}', { inner: innerValue.toFixed(2), outer: outerValue.toFixed(2) })}</span>
-              </div>
-              <OriginMarker setting={`${keyPrefix}STICK_DEADZONE_INNER`} />
-              <span className={keymapStyles.valuePillNumber}>{innerValue.toFixed(2)}</span>
-              <span className={keymapStyles.stickRowChevron} aria-hidden="true" />
-            </summary>
-            <div className={keymapStyles.stickRowBody}>
-              <NumberField label={t('stickModes.innerDeadzone')} setting={`${keyPrefix}STICK_DEADZONE_INNER`} value={inner} onChange={onInnerChange} min={0} max={1} step={0.01} placeholder={defaultInner} disabled={disabled} layout="inline" />
-              <NumberField label={t('stickModes.outerDeadzone')} setting={`${keyPrefix}STICK_DEADZONE_OUTER`} value={outer} onChange={onOuterChange} min={0} max={1} step={0.01} placeholder={defaultOuter} disabled={disabled} layout="inline" />
-              <label className={keymapStyles.stickRingRow}>
-                <span>{t('stickModes.ringMode')}</span>
-                <AppSelect className="app-select" setting={`${keyPrefix}RING_MODE`} value={ring} onChange={event => onRingChange(event.target.value)} disabled={disabled}>
-                  <option value="">{t('common.defaultValue', { value: t('stickModes.outer') })}</option>
-                  <option value="INNER">{t('stickModes.inner')}</option>
-                  <option value="OUTER">{t('stickModes.outer')}</option>
-                </AppSelect>
-              </label>
-              {ringButton && renderButton(ringButton, { label: t('keymap.stickRingBinding', 'Ring binding') })}
-            </div>
-          </details>
+          <SummaryRow label={t('keymap.stickDeadzone', 'Deadzone')} setting={`${keyPrefix}STICK_DEADZONE_INNER`}
+            hint={t('keymap.stickDeadzoneSummary', 'Inner {{inner}} · outer {{outer}}', { inner: innerValue.toFixed(2), outer: outerValue.toFixed(2) })}
+            value={innerValue.toFixed(2)} mono onActivate={() => setSheet('zones')} />
 
           {touchButton && renderButton(touchButton)}
         </div>
       </div>
       {(extras || extrasAdvanced) && (
-        <section className={keymapStyles.stickExtras} id={`stick-extras-${side}`} aria-label={t('keymap.flickAndAim', 'Flick and aim')}>
-          <span className={keymapStyles.eyebrowHeading}>{t('keymap.flickAndAim', 'Flick and aim')}</span>
-          {extras}
-          {extrasAdvanced && <AdvancedDisclosure>{extrasAdvanced}</AdvancedDisclosure>}
-        </section>
+        <div className={keymapStyles.stickExtras} id={`stick-extras-${side}`}>
+          <SummaryRow label={t('keymap.flickAndAim', 'Flick and aim')} hint={`Tuning for ${formatStickModeLabel(upper, t)}`} onActivate={() => setSheet('extras')} />
+        </div>
       )}
       {modeshifts}
+
+      <Sheet open={sheet === 'directions'} onClose={() => setSheet(null)} eyebrow={eyebrow} title={`${title} · ${t('keymap.stickDirections', 'Directions')}`}
+        description={directionSummary} hints={[{ button: 'A', label: 'Select' }, { button: 'B', label: 'Close' }]}>
+        {directionButtons.map(button => <div key={button.command}>{renderButton(button)}</div>)}
+      </Sheet>
+      <Sheet open={sheet === 'zones'} onClose={() => setSheet(null)} eyebrow={eyebrow} title={`${title} · ${t('keymap.stickDeadzone', 'Deadzone')}`}
+        description="How far the stick moves before it counts, and where full tilt starts.">
+        <SummaryRow size="sheet" label={t('stickModes.innerDeadzone')} setting={`${keyPrefix}STICK_DEADZONE_INNER`} mono value={innerValue.toFixed(2)}
+          adjust={{ kind: 'number', value: innerValue, min: 0, max: 1, step: 0.01, onChange: value => onInnerChange(String(value)) }} />
+        <SummaryRow size="sheet" label={t('stickModes.outerDeadzone')} setting={`${keyPrefix}STICK_DEADZONE_OUTER`} mono value={outerValue.toFixed(2)}
+          adjust={{ kind: 'number', value: outerValue, min: 0, max: 1, step: 0.01, onChange: value => onOuterChange(String(value)) }} />
+        <SummaryRow size="sheet" label={t('stickModes.ringMode')} setting={`${keyPrefix}RING_MODE`}
+          adjust={{ kind: 'choice', value: ring || '', options: [{ value: '', label: t('common.defaultValue', { value: t('stickModes.outer') }) }, { value: 'INNER', label: t('stickModes.inner') }, { value: 'OUTER', label: t('stickModes.outer') }], onChange: onRingChange }} />
+        {ringButton && renderButton(ringButton, { label: t('keymap.stickRingBinding', 'Ring binding') })}
+      </Sheet>
+      <Sheet open={sheet === 'extras'} onClose={() => setSheet(null)} eyebrow={eyebrow} title={`${title} · ${t('keymap.flickAndAim', 'Flick and aim')}`}
+        description={STICK_MODE_DESCRIPTIONS[upper] ?? formatStickModeLabel(upper, t)} hints={[{ button: 'A', label: 'Select' }, { button: 'B', label: 'Close' }]}>
+        <div className="sheet-embed">{extras}{extrasAdvanced}</div>
+      </Sheet>
     </div>
   )
 }

@@ -77,6 +77,8 @@ RM2 = 2
    }};
   },fixture);
   await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
+  // The app opens on Home (console refinement 2a); these checks start in the editing shell.
+  await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
   await page.locator('.profile-chip').filter({hasText:'Wardogs'}).waitFor();
   const input=command=>page.locator(`[data-overview-input="${command}"]`);
   const group=id=>page.locator(`[data-overview-group="${id}"]`);

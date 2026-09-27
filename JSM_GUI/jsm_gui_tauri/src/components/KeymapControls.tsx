@@ -53,12 +53,17 @@ import { ButtonBindingsCard } from './keymap/ButtonBindingsCard'
 import { ButtonGridSection } from './keymap/ButtonGridSection'
 import { Card } from './Card'
 import keymapStyles from './Keymap.module.css'
-import { GlobalControlsSection } from './keymap/GlobalControlsSection'
 import { KeymapSection } from './KeymapSection'
 import { MappingRulesHelpModal } from './keymap/MappingRulesHelpModal'
 import stickStyles from './Sticks.module.css'
 import { TouchpadGridSection } from './keymap/TouchpadGridSection'
 import { PadSection } from './keymap/PadSection'
+import { bindingSummary } from '../utils/menuDescriptions'
+import { mouseFeelSummary } from '../utils/mouseFeel'
+import { gripSensorsSummary } from '../utils/gripCalibration'
+import { SummaryRow } from './ui/SummaryRow'
+import { Sheet } from './ui/Sheet'
+import { LightBarPicker } from './keymap/LightBarPicker'
 
 import { TouchpadSettingsSection, type TouchpadModeCardConfig } from './keymap/TouchpadSettingsSection'
 import { SideBlock, SideSplit } from './keymap/SideBlock'
@@ -69,15 +74,10 @@ import { TriggerMeter } from './keymap/TriggerMeter'
 import { StickSection } from './keymap/StickSection'
 import { describeBinding } from '../utils/bindingDescription'
 import { OPTION_HELP } from '../utils/optionHelp'
-import { TouchpadAccelSection } from './keymap/TouchpadAccelSection'
 import type { TouchpadAccelParamKey, TouchpadAccelValues } from '../hooks/useTouchpadConfig'
 import type { AccelCurveLink, AccelCurveShape } from '../utils/accelCurve'
 import type { BindingCommandPreset } from '../utils/bindingCommands'
-import { TouchpadSensorSection } from './keymap/TouchpadSensorSection'
-import { TouchpadHapticSection } from './keymap/TouchpadHapticSection'
-import { GripSettingsSection } from './keymap/GripSettingsSection'
 import { TouchpadStickSection } from './keymap/TouchpadStickSection'
-import { SectionActions } from './SectionActions'
 import { controllerHasTwoTrackpads, controllerSupportsInput, controllerVisualFamily } from '../utils/controllerStatus'
 import { padAspectFromDevices } from '../utils/padGeometry'
 import {
@@ -711,17 +711,7 @@ export function KeymapControls({
   onClearSpecialAction,
   trackballDecay,
   onTrackballDecayChange,
-  holdPressTimeSeconds,
-  onHoldPressTimeChange,
-  holdPressTimeIsCustom,
-  holdPressTimeDefault,
   onModifierChange,
-  doublePressWindowSeconds,
-  doublePressWindowIsCustom,
-  onDoublePressWindowChange,
-  simPressWindowSeconds,
-  simPressWindowIsCustom,
-  onSimPressWindowChange,
   lightBarColor,
   onLightBarChange,
   triggerThreshold,
@@ -733,47 +723,8 @@ export function KeymapControls({
   touchpadMinCutoff,
   touchpadSpeedCoeff,
   touchpadTrackballDecay,
-  touchpadTrackballMinVelocity,
-  touchpadMovementThreshold,
-  touchpadClickDampen,
-  touchpadClickDampenThreshold,
   touchpadHapticIntensity,
-  touchpadHapticEffect,
-  touchpadHapticInterval,
-  touchpadClickHapticIntensity,
-  touchpadClickHapticEffect,
-  touchpadReleaseHapticIntensity,
-  touchpadReleaseHapticEffect,
-  onTouchpadMinCutoffChange,
-  onTouchpadSpeedCoeffChange,
-  onTouchpadTrackballDecayChange,
-  onTouchpadTrackballMinVelocityChange,
-  onTouchpadMovementThresholdChange,
-  onTouchpadClickDampenChange,
-  onTouchpadClickDampenThresholdChange,
-  onTouchpadHapticIntensityChange,
-  onTouchpadHapticEffectChange,
-  onTouchpadHapticIntervalChange,
-  onTouchpadClickHapticIntensityChange,
-  onTouchpadClickHapticEffectChange,
-  onTouchpadReleaseHapticIntensityChange,
-  onTouchpadReleaseHapticEffectChange,
-  leftGripHaptics,
-  rightGripHaptics,
-  onLeftGripHapticsChange,
-  onRightGripHapticsChange,
   gripSensorRange,
-  gripFlickerGuard,
-  gripHapticIntensity,
-  gripHapticEffect,
-  gripReleaseHapticIntensity,
-  gripReleaseHapticEffect,
-  onGripSensorRangeChange,
-  onGripFlickerGuardChange,
-  onGripHapticIntensityChange,
-  onGripHapticEffectChange,
-  onGripReleaseHapticIntensityChange,
-  onGripReleaseHapticEffectChange,
   touchpadDualStageMode = '',
   touchpadGridRequiresClick,
   onTouchpadModeChange,
@@ -829,12 +780,6 @@ export function KeymapControls({
     bindingIcons,
     onBindingIconChange,
     onBindingLabelChange,
-    touchpadAccelValues,
-    accelCurveLink,
-    gyroAccelShape,
-    onTouchpadAccelCurveChange,
-    onTouchpadAccelParamChange,
-    onAccelCurveLinkChange,
   touchDeadzoneInner = '',
   touchRingMode = '',
   touchStickMode = '',
@@ -1180,14 +1125,6 @@ export function KeymapControls({
   // controller model, so any pad -- Steam, DualShock, DualSense -- is right.
   const livePadAspect = padAspectFromDevices(devices)
 
-  // Unlike livePadTouches this is not gated on contact: a pad reporting zero
-  // force while your finger rests on it is exactly what the click-damping
-  // threshold needs to show, since that is the value you are dialling against.
-  const livePadPressures = useMemo(() => {
-    const status = devices?.find(device => device.status)?.status
-    return { left: status?.leftPad?.pressure, right: status?.rightPad?.pressure }
-  }, [devices])
-
   useEffect(() => {
     if (view !== 'full') return
     if (!selectedVisualButton) return
@@ -1208,11 +1145,6 @@ export function KeymapControls({
   const showFullLayout = view === 'full'
   const showGlobalOnlyLayout = showFullLayout && visibleSections?.length === 1 && visibleSections[0] === 'global'
   const showMappedLayout = showFullLayout && !showGlobalOnlyLayout
-  // Press timing applies to the whole config, not to whichever
-  // control you happen to be editing. Repeating them above every control page was
-  // most of what made those pages feel like a wall of settings, so they only
-  // appear where they belong now: on their own page.
-  const showConfigWidePanels = showMappedLayout && (visibleSections ?? []).includes('global')
   const deadzoneDefaults = stickDeadzoneSettings?.defaults ?? {
     inner: DEFAULT_STICK_DEADZONE_INNER,
     outer: DEFAULT_STICK_DEADZONE_OUTER,
@@ -1240,9 +1172,6 @@ export function KeymapControls({
     })
   }, [replaceStickShiftDisplayModes, stickModeShiftAssignments])
 
-  const holdPressTimeInputValue = Number.isFinite(holdPressTimeSeconds) ? holdPressTimeSeconds : holdPressTimeDefault
-  const doublePressInputValue = Number.isFinite(doublePressWindowSeconds) ? doublePressWindowSeconds : holdPressTimeDefault
-  const simPressInputValue = Number.isFinite(simPressWindowSeconds) ? simPressWindowSeconds : holdPressTimeDefault
 
   useEffect(() => {
     const command = selectedMappingCommand?.toUpperCase()
@@ -1665,6 +1594,12 @@ export function KeymapControls({
   const renderTriggerCalibration = () => (
     <section id="trigger-calibration" className={keymapStyles.triggerCalibration} aria-label="Trigger calibration">
       <span className={keymapStyles.eyebrowHeading}>Calibration</span>
+      {/* Resistance is this configuration's, so it sits with the triggers
+          rather than on the (now global) timing page it used to share. */}
+      {onAdaptiveTriggerChange && (
+        <SummaryRow label={t('keymap.adaptiveTriggers')} hint="DualSense trigger resistance" setting="ADAPTIVE_TRIGGER"
+          toggle={{ on: (adaptiveTriggerValue || 'ON').toUpperCase() !== 'OFF', onChange: on => onAdaptiveTriggerChange(on ? '' : 'OFF') }} />
+      )}
       {adaptiveTriggers ? <>
         <p className={keymapStyles.calibrationNote}>Finds where each adaptive trigger starts to resist, so the soft press lines up with the feel. Press the right trigger softly until you feel resistance, then D-pad down; then the left trigger, then Cross. Home abandons.</p>
         <button type="button" className="button button--secondary" disabled={isCalibrating || triggerCalibrating} onClick={() => { void runTriggerCalibration() }}>{triggerCalibrating ? 'Calibrating…' : 'Calibrate triggers'}</button>
@@ -1675,6 +1610,15 @@ export function KeymapControls({
       )}
     </section>
   )
+
+  const gripCapable = Boolean(liveDevice) && controllerSupportsInput(liveDevice, 'MISC5')
+  const [lightBarOpen, setLightBarOpen] = useState(false)
+  const groupFor = <G extends { titleKey: string; descriptionKey?: string; buttons: ButtonDefinition[] }>(key: string, group: G): G => {
+    if (key !== 'extra') return group
+    const buttons = confirmedTwoPadTouchpads ? group.buttons.filter(button => button.command !== 'MISC2' && button.command !== 'MISC3') : group.buttons
+    const grips = buttons.some(button => button.command === 'MISC5' || button.command === 'MISC6')
+    return { ...group, buttons, ...(grips && gripCapable ? { titleKey: 'keymap.gripsTitle', descriptionKey: 'keymap.gripsDescription' } : {}) }
+  }
 
   const renderPadSide = (side: 'left' | 'right') => {
     const card = side === 'left' ? leftPadCard : rightPadCard
@@ -1731,8 +1675,11 @@ export function KeymapControls({
           onSelect={setSelectedTouchpadGridCommand}
           describeRegion={describeTouchpadRegion}
           renderButton={renderButtonCard}
-          trackballOn={(touchpadTrackballDecay ?? 0) > 0}
-          onTrackballChange={onTouchpadTrackballDecayChange ? on => onTouchpadTrackballDecayChange(on ? '30' : '0') : undefined}
+          mouseFeel={mouseFeelSummary({ cutoff: touchpadMinCutoff, speed: touchpadSpeedCoeff, trackballDecay: touchpadTrackballDecay, hapticIntensity: touchpadHapticIntensity })}
+          click={confirmedTwoPadTouchpads && padClick ? {
+            value: bindingSummary(describeTouchpadRegion(padClick.command)),
+            editor: renderButtonCard(padClick, { modeshifts: true, defaultOpen: true }),
+          } : undefined}
           otherControllers={otherBound.length ? {
             id: TRACKPAD_ANCHORS.other,
             count: otherBound.length,
@@ -1742,7 +1689,6 @@ export function KeymapControls({
             </>,
           } : undefined}
         >
-          {confirmedTwoPadTouchpads && padClick && renderButtonCard(padClick, { modeshifts: true })}
           {gridMode && isVisible('touch-stick') && (
             <TouchpadStickSection
               title={side === 'left' ? t('keymap.touchStickTitleLeft', 'Left touch stick') : t('keymap.touchStickTitleRight', 'Right touch stick')}
@@ -1755,7 +1701,6 @@ export function KeymapControls({
             this same pad section in another mode, and squeezed into the
             settings column it had a quarter of the room. */}
         {renderModeshifts(padModeshiftTarget(side), side)}
-        <SectionActions className={keymapStyles.keymapSectionActions} {...actionsProps} />
       </SideBlock></ConfigScope>
     )
   }
@@ -1883,56 +1828,6 @@ export function KeymapControls({
       {virtualControllerWarnings?.length ? <details><summary className="binding-summary">Output Needs Attention</summary>
         {virtualControllerWarnings.map((warning, index) => <p key={index}>{renderVirtualControllerWarning(warning)}</p>)}
       </details> : null}
-      {showGlobalOnlyLayout && (
-        <GlobalControlsSection
-          holdPressTimeSeconds={holdPressTimeInputValue}
-          holdPressTimeIsCustom={holdPressTimeIsCustom}
-          holdPressTimeDefault={holdPressTimeDefault}
-          onHoldPressTimeChange={onHoldPressTimeChange}
-          doublePressWindowSeconds={doublePressInputValue}
-          doublePressWindowIsCustom={doublePressWindowIsCustom}
-          onDoublePressWindowChange={onDoublePressWindowChange}
-          simPressWindowSeconds={simPressInputValue}
-          simPressWindowIsCustom={simPressWindowIsCustom}
-          onSimPressWindowChange={onSimPressWindowChange}
-          lightBarColor={lightBarColor}
-          onLightBarChange={onLightBarChange}
-          adaptiveTriggerValue={adaptiveTriggerValue}
-          onAdaptiveTriggerChange={onAdaptiveTriggerChange}
-          triggerThreshold={triggerThreshold}
-          onTriggerThresholdChange={onTriggerThresholdChange}
-          onOpenMappingHelp={() => setMappingHelpOpen(true)}
-          {...actionsProps}
-        />
-      )}
-
-      {showConfigWidePanels && (
-        <>
-          <GlobalControlsSection
-            compact
-            showActions={false}
-            holdPressTimeSeconds={holdPressTimeInputValue}
-            holdPressTimeIsCustom={holdPressTimeIsCustom}
-            holdPressTimeDefault={holdPressTimeDefault}
-            onHoldPressTimeChange={onHoldPressTimeChange}
-            doublePressWindowSeconds={doublePressInputValue}
-            doublePressWindowIsCustom={doublePressWindowIsCustom}
-            onDoublePressWindowChange={onDoublePressWindowChange}
-            simPressWindowSeconds={simPressInputValue}
-            simPressWindowIsCustom={simPressWindowIsCustom}
-            onSimPressWindowChange={onSimPressWindowChange}
-            lightBarColor={lightBarColor}
-            onLightBarChange={onLightBarChange}
-            adaptiveTriggerValue={adaptiveTriggerValue}
-            onAdaptiveTriggerChange={onAdaptiveTriggerChange}
-            triggerThreshold={triggerThreshold}
-            onTriggerThresholdChange={onTriggerThresholdChange}
-            onOpenMappingHelp={() => setMappingHelpOpen(true)}
-            {...actionsProps}
-          />
-        </>
-      )}
-
       {showMappedLayout && (
         <>
           {(
@@ -1944,7 +1839,7 @@ export function KeymapControls({
                   each stick was two columns inside half the page -- four
                   dense columns across it. */}
               <div className={keymapStyles.mappingListContent}>
-                {listMappingGroups.map(([groupKey, group]) => (
+                {listMappingGroups.map(([groupKey, fullGroup]) => { const group = groupFor(groupKey, fullGroup); return (
                   <ConfigScope key={groupKey} match={sectionScope(groupKey)}><div
                     key={groupKey}
                     id={`mapping-section-${groupKey}`}
@@ -2075,10 +1970,14 @@ export function KeymapControls({
                       {/* A button's modeshifts live in its own editor now (7a). A
                           stick is one input with a mode, so its shift stays
                           group-level, where the shifted mode can be chosen. */}
+                      {groupKey === 'extra' && group.buttons.some(button => button.command === 'MISC5' || button.command === 'MISC6') && (
+                        <SummaryRow label={t('keymap.gripSensors', 'Grip sensors')} icon={<Icon name="grips" size={20} />}
+                          hint={gripSensorsSummary(gripSensorRange, getKeymapValue(readText, 'LEFT_GRIP_RELEASE_DELAY') ?? '', getKeymapValue(readText, 'RIGHT_GRIP_RELEASE_DELAY') ?? '')}
+                          onActivate={() => window.dispatchEvent(new CustomEvent('jsm:open-sheet', { detail: 'gripSensors' }))} />
+                      )}
                     </KeymapSection>
-                    <SectionActions className={keymapStyles.keymapSectionActions} {...actionsProps} />
                   </div></ConfigScope>
-                ))}
+                )})}
               </div>
             </section>
           )}
@@ -2088,7 +1987,7 @@ export function KeymapControls({
       {view === 'touchpad' && (
         // Trackpad tuning reads in two columns (16b): motion, press and glide on
         // the left; the acceleration curve and haptics on the right.
-        <div className={visibleSections?.includes('touch-sensors') ? keymapStyles.sensorColumns : keymapStyles.sectionStack}>
+        <div className={keymapStyles.sectionStack}>
           {renderSections([
             {
               key: 'touch-sides',
@@ -2104,7 +2003,8 @@ export function KeymapControls({
                       ))}
                     </div>
                   )}
-                  <SideSplit stack>
+                  {/* The two pads side by side, a column each (2b). */}
+                  <SideSplit>
                     {renderPadSide('left')}
                     {renderPadSide('right')}
                   </SideSplit>
@@ -2175,102 +2075,6 @@ export function KeymapControls({
               ),
             },
             {
-              key: 'touch-sensors',
-              shouldRender: isVisible('touch-sensors'),
-              node: (
-                <TouchpadSensorSection
-                  touchpadMinCutoff={touchpadMinCutoff}
-                  touchpadSpeedCoeff={touchpadSpeedCoeff}
-                  touchpadTrackballDecay={touchpadTrackballDecay}
-                  touchpadTrackballMinVelocity={touchpadTrackballMinVelocity}
-                  touchpadMovementThreshold={touchpadMovementThreshold}
-                  touchpadClickDampen={touchpadClickDampen}
-                  touchpadClickDampenThreshold={touchpadClickDampenThreshold}
-                  livePadPressures={livePadPressures}
-                  liftSpeed={Number(getKeymapValue(readText, 'TOUCHPAD_LIFT_SPEED') ?? 150)}
-                  onLiftSpeedChange={v => onConfigTextChange?.(prev => updateKeymapEntry(prev, 'TOUCHPAD_LIFT_SPEED', [v]))}
-                  onTouchpadMinCutoffChange={onTouchpadMinCutoffChange}
-                  onTouchpadSpeedCoeffChange={onTouchpadSpeedCoeffChange}
-                  onTouchpadTrackballDecayChange={onTouchpadTrackballDecayChange}
-                  onTouchpadTrackballMinVelocityChange={onTouchpadTrackballMinVelocityChange}
-                  onTouchpadMovementThresholdChange={onTouchpadMovementThresholdChange}
-                  onTouchpadClickDampenChange={onTouchpadClickDampenChange}
-                  onTouchpadClickDampenThresholdChange={onTouchpadClickDampenThresholdChange}
-                  {...actionsProps}
-                />
-              ),
-            },
-            {
-              key: 'touch-haptics',
-              shouldRender: isVisible('touch-sensors'),
-              node: (
-                <TouchpadHapticSection
-                  touchpadHapticIntensity={touchpadHapticIntensity}
-                  touchpadHapticEffect={touchpadHapticEffect}
-                  touchpadHapticInterval={touchpadHapticInterval}
-                  touchpadClickHapticIntensity={touchpadClickHapticIntensity}
-                  touchpadClickHapticEffect={touchpadClickHapticEffect}
-                  touchpadReleaseHapticIntensity={touchpadReleaseHapticIntensity}
-                  touchpadReleaseHapticEffect={touchpadReleaseHapticEffect}
-                  onTouchpadHapticIntensityChange={onTouchpadHapticIntensityChange}
-                  onTouchpadHapticEffectChange={onTouchpadHapticEffectChange}
-                  onTouchpadHapticIntervalChange={onTouchpadHapticIntervalChange}
-                  onTouchpadClickHapticIntensityChange={onTouchpadClickHapticIntensityChange}
-                  onTouchpadClickHapticEffectChange={onTouchpadClickHapticEffectChange}
-                  onTouchpadReleaseHapticIntensityChange={onTouchpadReleaseHapticIntensityChange}
-                  onTouchpadReleaseHapticEffectChange={onTouchpadReleaseHapticEffectChange}
-                  {...actionsProps}
-                />
-              ),
-            },
-            {
-              key: 'touch-accel',
-              shouldRender: isVisible('touch-sensors') && Boolean(touchpadAccelValues && onTouchpadAccelCurveChange && onTouchpadAccelParamChange && onAccelCurveLinkChange),
-              node: (
-                <TouchpadAccelSection
-                  liveSpeed={Math.max(0, ...(devices ?? []).flatMap(d => [d.status?.leftPad?.speed ?? 0, d.status?.rightPad?.speed ?? 0]))}
-                  values={touchpadAccelValues ?? {}}
-                  gyroShape={gyroAccelShape}
-                  accelCurveLink={accelCurveLink}
-                  onCurveChange={onTouchpadAccelCurveChange ?? (() => {})}
-                  onParamChange={onTouchpadAccelParamChange ?? (() => {})}
-                  onLinkChange={onAccelCurveLinkChange ?? (() => {})}
-                  {...actionsProps}
-                />
-              ),
-            },
-            {
-              key: 'grip-sensors',
-              shouldRender: isVisible('grip-sensors'),
-              node: (
-                <GripSettingsSection
-                  leftGripHaptics={leftGripHaptics}
-                  rightGripHaptics={rightGripHaptics}
-                  onLeftGripHapticsChange={onLeftGripHapticsChange}
-                  onRightGripHapticsChange={onRightGripHapticsChange}
-                  gripSensorRange={gripSensorRange}
-                  gripFlickerGuard={gripFlickerGuard}
-                  gripHapticIntensity={gripHapticIntensity}
-                  gripHapticEffect={gripHapticEffect}
-                  gripReleaseHapticIntensity={gripReleaseHapticIntensity}
-                  gripReleaseHapticEffect={gripReleaseHapticEffect}
-                  onGripSensorRangeChange={onGripSensorRangeChange}
-                  onGripFlickerGuardChange={onGripFlickerGuardChange}
-                  onGripHapticIntensityChange={onGripHapticIntensityChange}
-                  onGripHapticEffectChange={onGripHapticEffectChange}
-                  onGripReleaseHapticIntensityChange={onGripReleaseHapticIntensityChange}
-                  onGripReleaseHapticEffectChange={onGripReleaseHapticEffectChange}
-                  liveGrips={liveDevice?.status ? { left: !!liveDevice.status.leftGrip?.pressed, right: !!liveDevice.status.rightGrip?.pressed } : null}
-                  bindings={MISC_BUTTONS.filter(button => button.command === 'MISC5' || button.command === 'MISC6').map(button => <div key={button.command}>{renderButtonCard(button)}</div>)}
-                  leftReleaseDelay={getKeymapValue(readText, 'LEFT_GRIP_RELEASE_DELAY') ?? ''}
-                  rightReleaseDelay={getKeymapValue(readText, 'RIGHT_GRIP_RELEASE_DELAY') ?? ''}
-                  onReleaseDelayChange={onConfigTextChange ? (side, value) => onConfigTextChange(previous => value === '' ? removeKeymapEntry(previous, `${side}_GRIP_RELEASE_DELAY`) : updateKeymapEntry(previous, `${side}_GRIP_RELEASE_DELAY`, [value])) : undefined}
-                  steamController={liveDevice?.type === 24}
-                  {...actionsProps}
-                />
-              ),
-            },
-            {
               key: 'touch-stick',
               shouldRender: !showPerPadTouchpads && isVisible('touch-stick') && touchpadMode === 'GRID_AND_STICK',
               node: (
@@ -2287,6 +2091,21 @@ export function KeymapControls({
                   onTouchStickAxisChange={onTouchStickAxisChange}
                   {...actionsProps}
                 />
+              ),
+            },
+            {
+              key: 'light-bar',
+              shouldRender: Boolean(onLightBarChange) && isVisible('touch-bind'),
+              node: (
+                <>
+                  <SummaryRow label={t('keymap.lightBarColor')} hint="The LED colour on controllers that have one" setting="LIGHT_BAR"
+                    value={lightBarColor ? <span className="light-bar-value"><span style={{ background: lightBarColor }} aria-hidden="true" />{lightBarColor.toLowerCase()}</span> : 'Controller default'}
+                    onActivate={() => setLightBarOpen(true)} />
+                  <Sheet open={lightBarOpen} onClose={() => setLightBarOpen(false)} eyebrow={`Trackpads · ${currentProfileName ?? 'Configuration'}`} title={t('keymap.lightBarColor')}
+                    description="The colour the controller's LED shows while this configuration is applied." hints={[{ button: 'A', label: 'Select' }, { button: 'B', label: 'Close' }]}>
+                    <div className="sheet-embed"><LightBarPicker value={lightBarColor ?? null} onChange={value => onLightBarChange?.(value)} /></div>
+                  </Sheet>
+                </>
               ),
             },
             {

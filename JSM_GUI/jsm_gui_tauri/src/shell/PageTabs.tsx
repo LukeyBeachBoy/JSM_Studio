@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { Icon } from '../components/icons/Icon'
-import { Menu } from '../components/ui/Menu'
-import { CONTROL_PAGES, STUDIO_PAGES, TUNING_PAGES, isStudioPage, isTuningPage, pageMeta, type PrimaryTab } from './pages'
+import { ButtonGlyph } from '../components/glyphs/ButtonGlyph'
+import { CONTROL_PAGES, STUDIO_PAGES, isStudioPage, pageMeta, type PrimaryTab } from './pages'
 import type { ShellWidth } from './useShellWidth'
 
 export type ControllerStatus =
@@ -17,13 +17,10 @@ type PageTabsProps = {
   sectionLabel?: string
   onOpenDrawer: () => void
   drawerOpen: boolean
-  /** Studio only: where the back chip returns to. */
-  returnLabel: string
-  onReturn: () => void
 }
 
-/** The shoulder-shaped LT / RT marks either side of the tabs. */
-export const TriggerMark = ({ label }: { label: string }) => <b className="trigger-mark" aria-hidden="true">{label}</b>
+/** LT / RT either side of the tabs, drawn as the controller's own triggers (D11). */
+export const TriggerMark = ({ side }: { side: 'LT' | 'RT' }) => <span className="trigger-mark" aria-hidden="true"><ButtonGlyph button={side} size={22} /></span>
 
 function ControllerStatusLabel({ status }: { status: ControllerStatus }) {
   if (status.kind === 'searching') {
@@ -37,7 +34,7 @@ function ControllerStatusLabel({ status }: { status: ControllerStatus }) {
   )
 }
 
-export function PageTabs({ width, current, onSelect, status, sectionLabel, onOpenDrawer, drawerOpen, returnLabel, onReturn }: PageTabsProps) {
+export function PageTabs({ width, current, onSelect, status, sectionLabel, onOpenDrawer, drawerOpen }: PageTabsProps) {
   const { t } = useTranslation()
   const studio = isStudioPage(current)
   const label = (tab: PrimaryTab) => t(pageMeta(tab).labelKey, pageMeta(tab).label)
@@ -76,46 +73,15 @@ export function PageTabs({ width, current, onSelect, status, sectionLabel, onOpe
     )
   }
 
-  const tuningSelected = isTuningPage(current)
   return (
     <nav className={`page-tabs${studio ? ' page-tabs--studio' : ''}`} data-focus-scope="page-tabs" aria-label={studio ? 'Studio' : 'Pages'}>
-      {studio && (
-        <button type="button" className="back-chip" onClick={onReturn} title={`Back to ${returnLabel}`}>
-          <Icon name="back" size={16} />
-          {(() => {
-            const at = returnLabel.indexOf(' · ')
-            // One text run, so the chip reads as one line.
-            return at < 0 ? <span>{returnLabel}</span> : <span>{returnLabel.slice(0, at)}<span className="back-chip__page">{returnLabel.slice(at)}</span></span>
-          })()}
-        </button>
-      )}
-      <TriggerMark label="LT" />
+      <TriggerMark side="LT" />
       <div className="page-tabs__list">
         {(studio ? STUDIO_PAGES : CONTROL_PAGES).map(item => tab(item.tab))}
-        {!studio && (
-          <Menu
-            ariaLabel="Tuning pages"
-            width={280}
-            items={TUNING_PAGES.map(item => ({
-              label: t(item.labelKey, item.label),
-              icon: <Icon name={item.icon} size={18} />,
-              checked: item.tab === current,
-              onSelect: () => onSelect(item.tab),
-            }))}
-            trigger={
-              <button type="button" className="page-tab page-tab--menu" aria-current={tuningSelected ? 'page' : undefined}
-                data-state={tuningSelected ? 'selected' : undefined} aria-label={width === 'wide' || tuningSelected ? undefined : 'Tuning'} title={width === 'wide' || tuningSelected ? undefined : 'Tuning'}>
-                <Icon name="tuning" size={18} />
-                {(width === 'wide' || tuningSelected) && <span>Tuning</span>}
-                <span className="titlebar__chevron" aria-hidden="true"><Icon name="chevronDown" size={16} /></span>
-              </button>
-            }
-          />
-        )}
       </div>
-      <TriggerMark label="RT" />
+      <TriggerMark side="RT" />
       <span className="page-tabs__spacer" />
-      <ControllerStatusLabel status={status} />
+      {!studio && <ControllerStatusLabel status={status} />}
     </nav>
   )
 }

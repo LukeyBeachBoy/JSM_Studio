@@ -131,6 +131,9 @@ const DEFAULT_PLACEMENT: Record<OverlaySurface, OverlayPlacement> = {
   RSTICK: { x: 0.65, y: 0.5, ...DEFAULTS, reveal: 'ring' },
 }
 
+/** Where a surface's menu sits when the profile says nothing (Reset position). */
+export const defaultPosition = (surface: OverlaySurface) => ({ x: DEFAULT_PLACEMENT[surface].x, y: DEFAULT_PLACEMENT[surface].y })
+
 /** What this surface does when the profile says nothing. */
 export const defaultReveal = (surface: OverlaySurface) => DEFAULT_PLACEMENT[surface].reveal
 

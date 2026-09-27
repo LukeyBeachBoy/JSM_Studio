@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import type { ControllerVisualFamily } from '../utils/controllerStatus'
-import { InputGlyph } from '../components/glyphs/InputGlyph'
+import { ButtonGlyph, type PadButtonName } from '../components/glyphs/ButtonGlyph'
 import type { ShellWidth } from './useShellWidth'
 
 // The floating hint capsule (HANDOFF.md, "Shell decisions"): 44px, inset 16px
@@ -10,17 +10,18 @@ import type { ShellWidth } from './useShellWidth'
 //
 // Anything focusable can declare its own hints with data-hints="A:Edit;X:Capture;Y:Details;B:Back".
 
-export type HintButton = 'A' | 'B' | 'X' | 'Y' | 'LB/RB' | 'LT/RT' | 'MOVE' | 'VIEW+MENU' | 'VIEW'
+export type HintButton = 'A' | 'B' | 'X' | 'Y' | 'LB/RB' | 'LT/RT' | 'MOVE' | 'VIEW+MENU' | 'VIEW' | 'MENU'
 type Hint = { button: HintButton; label: string }
 type CapsuleContent = { hints: Hint[]; message?: string }
 
-const FACE: Record<'A' | 'B' | 'X' | 'Y', string> = { A: 'S', B: 'E', X: 'W', Y: 'N' }
 const KEYBOARD: Record<HintButton, string> = {
-  A: 'Enter', B: 'Esc', X: 'X', Y: 'Y', 'LB/RB': 'Tab', 'LT/RT': 'PgUp PgDn', MOVE: '↑↓←→', 'VIEW+MENU': 'Esc', VIEW: '',
+  A: 'Enter', B: 'Esc', X: 'X', Y: 'Y', 'LB/RB': 'Tab', 'LT/RT': 'PgUp PgDn', MOVE: '↑↓←→', 'VIEW+MENU': 'Esc', VIEW: '', MENU: '',
 }
+// View and Menu have no key of their own; without a pad they are not offered.
+const PAD_ONLY: HintButton[] = ['VIEW', 'MENU']
 
-/** What each family prints on the left centre button. */
-const VIEW_NAME: Partial<Record<ControllerVisualFamily, string>> = { playstation: 'Create', nintendo: '−' }
+/** Which page strip is on screen, from the shell's own marker. */
+const pageGroup = () => document.querySelector<HTMLElement>('.app-shell')?.dataset.pageGroup ?? 'controls'
 
 const parseHints = (value: string): Hint[] => {
   const hints = value.split(';').map(part => part.split(':')).filter(pair => pair.length === 2)
@@ -31,36 +32,41 @@ const parseHints = (value: string): Hint[] => {
   return hints.filter(hint => hint.button !== 'X' || hint.label !== aLabel)
 }
 
+const overlayOpen = () => Boolean(document.querySelector('.modal-overlay, [data-focus-trap="true"], [data-radix-popper-content-wrapper]'))
+
 // LB/RB and LT/RT work from every row of a page (HANDOFF.md, "Focus model"),
 // so a row that declares only its own buttons still shows them. Not inside a
-// menu, dialog or picker, where they step categories or do nothing.
+// menu, dialog or picker, where they step categories or do nothing. The
+// configuration pages draw LT/RT beside their tabs, so the capsule names the
+// Configuration menu there instead (2b); Studio names the page step (2f).
 const withStepping = (hints: Hint[]): Hint[] => {
-  if (document.querySelector('.modal-overlay, [data-focus-trap="true"], [data-radix-popper-content-wrapper]')) return hints
+  if (overlayOpen()) return hints
   const has = (button: HintButton) => hints.some(hint => hint.button === button)
+  const group = pageGroup()
+  if (group === 'home') return hints
   return [
     ...hints,
     ...(!has('LB/RB') && document.querySelector('.section-list') ? [{ button: 'LB/RB' as const, label: 'Section' }] : []),
-    ...(!has('LT/RT') ? [{ button: 'LT/RT' as const, label: 'Page' }] : []),
+    ...(group === 'studio' && !has('LT/RT') ? [{ button: 'LT/RT' as const, label: 'Page' }] : []),
+    ...(group === 'controls' && !has('MENU') ? [{ button: 'MENU' as const, label: 'Configuration' }] : []),
   ]
 }
 
 /**
- * View jumps between the page and the title bar (nav/useControllerNavigation
- * toggleTitleBar) -- nothing on screen said so. Offered wherever the page or
- * the title bar has focus, not inside a menu, dialog or capture.
+ * View is Home from anywhere (D10). Home says so ("Home from anywhere");
+ * configuration pages offer it beside the Configuration menu; on a Studio
+ * page B already goes Home, so it says that instead.
  */
-const withTitleBar = (hints: Hint[]): Hint[] => {
-  if (document.querySelector('.modal-overlay, [data-focus-trap="true"], [data-radix-popper-content-wrapper]')) return hints
-  const active = document.activeElement as HTMLElement | null
-  const inBar = Boolean(active?.closest('.titlebar'))
-  return [...hints, { button: 'VIEW', label: inBar ? 'Back to page' : 'Title bar' }]
+const withHome = (hints: Hint[]): Hint[] => {
+  if (overlayOpen()) return hints
+  const group = pageGroup()
+  if (group === 'studio') return hints.map(hint => hint.button === 'B' && hint.label === 'Back' ? { ...hint, label: 'Home' } : hint)
+  return [...hints, { button: 'VIEW', label: group === 'home' ? 'Home from anywhere' : 'Home' }]
 }
 
 const DEFAULT_HINTS: Hint[] = [
   { button: 'A', label: 'Select' },
   { button: 'B', label: 'Back' },
-  { button: 'LB/RB', label: 'Section' },
-  { button: 'LT/RT', label: 'Page' },
 ]
 
 function readContext(): CapsuleContent {
@@ -85,25 +91,25 @@ function readContext(): CapsuleContent {
     return { hints: [{ button: 'B', label: 'Leave field' }], message: 'Type with the keyboard' }
   }
   const declared = active?.closest<HTMLElement>('[data-hints]')?.dataset.hints
-  if (declared) return { hints: withTitleBar(withStepping(parseHints(declared))) }
+  if (declared) return { hints: withHome(withStepping(parseHints(declared))) }
   const dialog = document.querySelector('.modal-overlay, [data-focus-trap="true"]')
   if (dialog) return { hints: [{ button: 'MOVE', label: 'Move' }, { button: 'A', label: 'Select' }, { button: 'B', label: 'Close' }] }
-  return { hints: withTitleBar(DEFAULT_HINTS) }
+  // Home before anything is focused: A opens what the pad lands on, B goes
+  // back to editing (2a).
+  if (pageGroup() === 'home') return { hints: withHome([{ button: 'A', label: 'Open' }, { button: 'B', label: 'Resume editing' }]) }
+  return { hints: withHome(withStepping(DEFAULT_HINTS)) }
 }
+
+// Every button is drawn as the controller's own art, in its family (D11);
+// without a pad the keyboard's keys stand in.
+const PAIRS: Partial<Record<HintButton, [PadButtonName, PadButtonName]>> = { 'LB/RB': ['LB', 'RB'], 'LT/RT': ['LT', 'RT'], 'VIEW+MENU': ['VIEW', 'MENU'] }
 
 function Badge({ button, family, controller }: { button: HintButton; family: ControllerVisualFamily; controller: boolean }) {
   if (!controller) return <kbd className="hint-key">{KEYBOARD[button]}</kbd>
-  if (button === 'A' || button === 'B' || button === 'X' || button === 'Y') {
-    // PlayStation prints shapes, so its face glyphs come from the glyph set;
-    // everything with letters uses the capsule's own lettered disc.
-    if (family === 'playstation') return <InputGlyph command={FACE[button]} family={family} size={22} className="hint-glyph" />
-    return <b className="hint-face" aria-hidden="true">{family === 'nintendo' ? { A: 'B', B: 'A', X: 'Y', Y: 'X' }[button] : button}</b>
-  }
-  if (button === 'LB/RB') return <><b className="hint-shoulder">LB</b><b className="hint-shoulder">RB</b></>
-  if (button === 'LT/RT') return <><b className="hint-trigger">LT</b><b className="hint-trigger">RT</b></>
-  if (button === 'VIEW+MENU') return <><b className="hint-pill">View</b><span>+</span><b className="hint-pill">Menu</b></>
-  if (button === 'VIEW') return <b className="hint-pill">{VIEW_NAME[family] ?? 'View'}</b>
-  return <InputGlyph command="DPAD" size={18} className="hint-glyph" />
+  const pair = PAIRS[button]
+  if (pair) return <>{pair.map(item => <ButtonGlyph key={item} button={item} family={family} size={24} className="hint-glyph" />)}</>
+  if (button === 'MOVE') return <ButtonGlyph button="DPAD" family={family} size={24} className="hint-glyph" />
+  return <ButtonGlyph button={button as PadButtonName} family={family} size={24} className="hint-glyph" />
 }
 
 type HintCapsuleProps = {
@@ -138,13 +144,11 @@ export function HintCapsule({ width, family, controller, override }: HintCapsule
     }
   }, [])
 
-  // View has no keyboard equivalent; without a pad it is not offered.
-  const shown = controller || !(override ?? content).hints.some(hint => hint.button === 'VIEW')
-    ? override ?? content
-    : { ...(override ?? content), hints: (override ?? content).hints.filter(hint => hint.button !== 'VIEW') }
+  const base = override ?? content
+  const shown = controller ? base : { ...base, hints: base.hints.filter(hint => !PAD_ONLY.includes(hint.button)) }
   // At 1024 the stepping hints keep their glyphs but drop their labels.
   const quiet = (button: HintButton) => width !== 'wide' && (button === 'LB/RB' || button === 'LT/RT')
-  const stepping = (button: HintButton) => button === 'LB/RB' || button === 'LT/RT' || button === 'VIEW'
+  const stepping = (button: HintButton) => button === 'LB/RB' || button === 'LT/RT' || button === 'VIEW' || button === 'MENU'
   const faces = shown.hints.filter(hint => !stepping(hint.button))
   const steps = shown.hints.filter(hint => stepping(hint.button))
   const render = (hint: Hint): ReactNode => (

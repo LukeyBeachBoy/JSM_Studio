@@ -111,6 +111,7 @@ export function RwcGuideModal({ isOpen, inGameSens, onClose, onApplyRwc }: RwcGu
           </div>
         )}
         <SectionActions
+        standalone
           hasPendingChanges={counts !== '' || sens !== ''}
           statusMessage={null}
           applyDisabled={computed === null}

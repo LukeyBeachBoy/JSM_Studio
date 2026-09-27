@@ -45,11 +45,15 @@ const CONFIG = [
       };
     });
     await page.goto(URL);
+    // The app opens on Home (console refinement 2a); these checks start in the editing shell.
+    await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
 
     // Drive the config editor the way a person would, so this exercises the
     // real render path rather than a hand-built DOM. "Edit source" lives on
-    // the Studio configurations page's detail panel, behind the app mark.
-    await page.locator('.titlebar__brand').click();
+    // the Studio configurations page's detail panel: Home chip, then the
+    // Configurations tile (the app mark is no longer a button).
+    await page.locator('.home-chip').click();
+    await page.getByRole('button', { name: /^Configurations/ }).first().click();
     await page.getByRole('button', { name: 'Edit source', exact: true }).click();
     const editor = page.locator('textarea').first();
     await editor.waitFor();
@@ -58,8 +62,10 @@ const CONFIG = [
     await page.getByRole('button', { name: 'Close', exact: true }).click();
     await editor.waitFor({ state: 'hidden' });
 
-    // Trackpads page, where the pad preview lives.
-    await page.locator('.back-chip').click();
+    // Trackpads page, where the pad preview lives: back to editing through
+    // Home's Continue editing (the Studio back chip is gone).
+    await page.locator('.home-chip').click();
+    await page.locator('[data-home-continue]').click();
     await page.getByRole('button', { name: 'Trackpads', exact: true }).first().click();
     // The editor preview and the live overlay are one renderer now, so a
     // region is the overlay's own element: a div with the button role, named
@@ -68,6 +74,9 @@ const CONFIG = [
     const cells = page.locator('[role=button][aria-label^="LT"]');
     await cells.first().waitFor();
     assert.equal(await cells.count(), 4, 'expected four rendered regions');
+    // Icons resolve asynchronously; the bug needs the icon drawn, so measure
+    // only once LT1's has arrived.
+    await page.locator('[role=button][aria-label^="LT1"] svg').first().waitFor({ timeout: 10000 });
 
     const named = await cells.evaluateAll(els => els.map(el => el.getAttribute('aria-label')));
     const boxes = [];

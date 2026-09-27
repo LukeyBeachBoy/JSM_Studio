@@ -4,9 +4,9 @@ import keymapStyles from '../Keymap.module.css'
 import styles from './Touchpad.module.css'
 import { SectionActions } from '../SectionActions'
 import { NumberField } from '../NumberField'
-import { AdvancedDisclosure } from '../AdvancedDisclosure'
 import { ShapePicker } from './ShapePicker'
 import { AppSelect } from '../ui/AppSelect'
+import { SummaryRow } from '../ui/SummaryRow'
 
 export type TouchpadModeCardConfig = {
   keyPrefix?: string
@@ -203,21 +203,10 @@ export function TouchpadModeCard({ config, title }: { config: TouchpadModeCardCo
               placeholder={config.sensitivity !== undefined ? String(config.sensitivity) : '1'}
             />
           </div>
-          {/* Acceleration, trackball glide and smoothing are one global set of
-              dials shared by both pads, so they live on the tuning page rather
-              than being duplicated into each pad's card. This is the signpost. */}
+          {/* How a mouse pad feels is one set of dials shared by every pad
+              set to Mouse: a row that opens its sheet (console refinement 2c). */}
           {config.onOpenTuning && (
-            <div className={styles.tuningPointer}>
-              <p>
-                {t(
-                  'keymap.touchpadTuningPointer',
-                  'Acceleration, trackball glide and smoothing are tuned for both pads at once on the Trackpad tuning page.'
-                )}
-              </p>
-              <button type="button" className="ghost-btn" onClick={config.onOpenTuning}>
-                {t('keymap.touchpadTuningPointerAction', 'Open trackpad tuning')}
-              </button>
-            </div>
+            <SummaryRow label="Mouse feel" hint="Smoothing, lift-off, glide and haptics" onActivate={config.onOpenTuning} />
           )}
         </>
       )}
@@ -237,24 +226,10 @@ export function TouchpadModeCard({ config, title }: { config: TouchpadModeCardCo
               <small>{t('keymap.gridRequiresClickHint')}</small>
             </span>
           </label>
-        <AdvancedDisclosure summary={config.dualStageMode || 'NO_SKIP'}>
-          <label>
-            {t('keymap.touchpadDualStageMode')}
-            <AppSelect
-              className="app-select"
-              setting={key('TOUCHPAD_DUAL_STAGE_MODE')} value={config.dualStageMode || 'NO_SKIP'}
-              onChange={e => config.onDualStageModeChange?.(e.target.value)}
-            >
-              {DUAL_STAGE_MODES.map(v => (
-                <option key={v} value={v}>{v}</option>
-              ))}
-            </AppSelect>
-          </label>
-          <p className={styles.touchpadHint}>
-            {t(DUAL_STAGE_MODE_DESC_KEYS[config.dualStageMode || 'NO_SKIP'] ?? DUAL_STAGE_MODE_DESC_KEYS.NO_SKIP)}
-          </p>
+        <SummaryRow label={t('keymap.touchpadDualStageMode')} setting={key('TOUCHPAD_DUAL_STAGE_MODE')}
+          help={t(DUAL_STAGE_MODE_DESC_KEYS[config.dualStageMode || 'NO_SKIP'] ?? DUAL_STAGE_MODE_DESC_KEYS.NO_SKIP)}
+          adjust={{ kind: 'choice', value: config.dualStageMode || 'NO_SKIP', options: DUAL_STAGE_MODES.map(value => ({ value, label: value })), onChange: value => config.onDualStageModeChange?.(value) }} />
 
-        </AdvancedDisclosure>
         </>
       )}
     </div>
