@@ -29,63 +29,69 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  // Bindings open in a focused detail panel now, so the card exists only once
  // its input row is opened.
  await page.locator('details[data-input-command="N"] > summary').click();
- const card = page.locator('[class*=commandCard]').first();
+ const open = page.locator('details[data-input-command="N"][open]');
+ const card = open.locator('[data-command-row]').first();
  await card.waitFor();
 
- // One trigger picker per card, not one in the header and another in the body.
- assert.equal(await card.getByRole('combobox',{name:'Trigger'}).count(), 1, 'the trigger is editable in more than one place');
+ // The open card (3c): a header with the card's cog and Details, no text-only
+ // buttons, and no reorder grip -- commands are not reorderable.
+ const head = open.locator(':scope > summary');
+ assert.equal(await head.getByRole('button',{name:'Binding settings'}).count(), 1, 'the header has one cog');
+ assert.equal(await head.getByRole('button',{name:'Details'}).count(), 1);
+ assert.equal(await head.getByRole('button',{name:/^(Copy|Paste)$/}).count(), 0, 'Copy and Paste are still text buttons in the header');
+ assert.equal(await open.locator('[data-icon="reorder"]').count(), 0, 'the reorder grip survived');
+ await head.getByRole('button',{name:'Binding settings'}).click();
+ const cardItems = (await page.getByRole('menuitem').allInnerTexts()).map(text => text.trim());
+ assert.deepEqual(cardItems, ['Copy','Paste','Reset to inherited'], `unexpected card menu: ${cardItems.join(', ')}`);
+ await page.keyboard.press('Escape');
 
- // A binding already written to the config is edited in place, so it offers
- // only the kinds that share its config line. The editor body used to offer
- // chord and the rest here too, where choosing one silently did nothing.
+ // One activation chip per row. Every kind this input can keep is offered:
+ // one that lives on another config line moves the command there. The
+ // group's modeshift panel owns chords, so no chord kind is offered here.
+ assert.equal(await card.getByRole('combobox',{name:'Trigger'}).count(), 1, 'the trigger is editable in more than one place');
  await card.getByRole('combobox',{name:'Trigger'}).click();
  const options = (await page.getByRole('option').allInnerTexts()).map(text => text.trim());
- assert.deepEqual(options, ['Press','Tap','Hold','Double press'],
-   `a written binding should not offer kinds it cannot become: ${options.join(', ')}`);
+ assert.deepEqual(options, ['Press','Tap','Hold','Double press','Release','Turbo'],
+   `the chip should offer every kind this row can keep: ${options.join(', ')}`);
  await page.keyboard.press('Escape');
 
  // The output reads as the key it sends -- by the legend on that key, not by
  // JoyShockMapper's name for it.
- assert.equal(await card.locator('kbd').first().innerText(), 'Space');
+ assert.equal(await card.getByRole('button',{name:/^Choose action/}).innerText(), 'Space');
 
- // The menu carries what the header does not, and nothing that does nothing.
- await card.getByRole('button',{name:'Command actions'}).click();
- const items = (await page.getByRole('menuitem').allInnerTexts()).map(text => text.trim());
- assert.deepEqual(items, ['Rename command','Copy binding','Duplicate'], `unexpected command menu: ${items.join(', ')}`);
+ // No ··· and no text-only Remove: the row has one cog, and its sheet holds
+ // the rest.
+ assert.equal(await card.getByRole('button',{name:'Command actions'}).count(), 0, 'the ··· menu survived');
+ assert.equal(await card.getByRole('button',{name:'Remove'}).count(), 0, 'Remove is still inline');
+ await card.getByRole('button',{name:'Command settings'}).click();
+ const sheet = page.getByRole('dialog',{name:'Space'});
+ await sheet.waitFor();
+ for (const name of ['Duplicate','Copy binding','Remove']) assert.equal(await sheet.getByRole('button',{name}).count(), 1, `the settings sheet has no ${name}`);
+ assert.equal(await sheet.getByRole('radio',{name:'Hold'}).count(), 1, 'output mode lives in the sheet');
  await page.keyboard.press('Escape');
+ await sheet.waitFor({state:'detached'});
 
- // Copy and Duplicate moved into the menu; Remove stays a button.
- assert.equal(await card.getByRole('button',{name:'Duplicate'}).count(), 0, 'Duplicate is still duplicated in the header');
- assert.equal(await card.getByRole('button',{name:'Copy binding'}).count(), 0, 'Copy binding is still duplicated in the header');
- assert.equal(await card.getByRole('button',{name:'Remove'}).count(), 1);
-
- // Retargeting within the config line does stick.
- await card.getByRole('combobox',{name:'Trigger'}).click();
+ // Retargeting within the config line sticks, and so does a kind on another
+ // line of the same input (Release shares it; Double is a line of its own).
+ const chip = () => open.locator('[data-command-row] [role=combobox]').first();
+ await chip().click();
  await page.getByRole('option',{name:'Hold',exact:true}).click();
- await page.waitForFunction(() => document.querySelector('[class*=commandCard] [role=combobox]')?.textContent.includes('Hold'));
+ await page.waitForFunction(() => document.querySelector('details[data-input-command="N"][open] [data-command-row] [role=combobox]')?.textContent.includes('Hold'));
+ await chip().click();
+ await page.getByRole('option',{name:'Double press',exact:true}).click();
+ await page.waitForFunction(() => document.querySelector('details[data-input-command="N"][open] [data-command-row] [role=combobox]')?.textContent.includes('Double'));
+ assert.equal(await open.locator('[data-command-row]').count(), 1, 'moving the command to its own line left a copy behind');
+ assert.equal(await open.locator('[data-command-row]').getByRole('button',{name:/^Choose action/}).innerText(), 'Space');
 
- // Adding a command is one menu now ("+ Add command", 7a), not nine buttons. It must not offer a
- // chord: this group's modeshift panel owns those, and one made here would be
- // written to a line the card filters straight back out and lost.
- // The add control belongs to the input, not to one of its commands.
- await page.locator('details[data-input-command="N"]').getByRole('button',{name:'Add command'}).click();
+ // Adding a command is one button; with commands there it offers the kinds,
+ // and never a chord here.
+ await open.getByRole('button',{name:'Add command'}).click();
  const addItems = (await page.getByRole('menuitem').allInnerTexts()).map(text => text.trim());
  assert.ok(!addItems.some(item => /chord/i.test(item)), `the card offers a chord it cannot keep: ${addItems.join(', ')}`);
- assert.ok(addItems.includes('Advanced'), `the rare kinds should stay behind a submenu: ${addItems.join(', ')}`);
-
- // A fresh draft row is written from scratch, so it offers the wider set.
- await page.getByRole('menuitem',{name:'Press',exact:true}).click();
- const draft = page.locator('[class*=commandCard]').last();
- await draft.getByRole('combobox',{name:'Trigger'}).click();
- const draftOptions = (await page.getByRole('option').allInnerTexts()).map(text => text.trim());
- assert.ok(draftOptions.includes('Turbo'), `a draft row should offer the wider set: ${draftOptions.join(', ')}`);
- assert.ok(!draftOptions.includes('Chord'), 'the card offers a chord it cannot keep');
- // An open Radix listbox hides the rest of the page from the role queries, so
- // close it before looking for the panel that does own chords.
  await page.keyboard.press('Escape');
- assert.ok(await page.getByRole('button',{name:'Add modeshift'}).count() > 0, 'chords have nowhere else to be made');
+ assert.ok(await open.getByRole('button',{name:'Add modeshift'}).count() > 0, 'chords have nowhere else to be made');
 
  assert.deepEqual(errors,[]);
- console.log('PASS: one trigger picker offering only workable kinds, keycap output, menu without dead or duplicated actions');
+ console.log('PASS: lanes card: one chip per row with every keepable kind, keycap output, cog sheets, no text-only buttons');
  } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exit(1); });

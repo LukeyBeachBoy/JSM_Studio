@@ -2352,3 +2352,51 @@
   .keymapRow > .bindingRow,
   .bindingColumns { grid-template-columns: 32px minmax(0, 1fr) 150px 180px; gap: 10px; }
 }
+
+/* ============ Open binding card (binding card refresh 3c) ============
+   A card of lanes: a header over a hairline -- glyph 40, the input's name and
+   yours, the card's cog and Details -- then Commands, Modeshifts and Layer
+   actions as tinted lanes of game rows. */
+.keymapRow[open] {
+  border-radius: 16px;
+  background: var(--surface-row);
+  box-shadow: 0 0 0 1px var(--line-2), 0 8px 24px rgba(0, 0, 0, .35);
+  overflow: hidden;
+}
+.keymapRow > .cardHead {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  min-height: 72px;
+  padding: 16px 16px 16px 18px;
+  border-radius: 16px 16px 0 0;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--command) 10%, transparent), transparent 55%);
+  box-shadow: inset 0 -1px 0 var(--line-1);
+}
+.keymapRow > .cardHead::after { content: none; display: none; }
+.keymapRow > .cardHead > .glyphBadge { width: 40px; height: 40px; }
+.keymapRow > .cardHead > .glyphBadge svg { width: 40px; height: 40px; }
+.cardTitle {
+  overflow: hidden;
+  color: var(--text-1);
+  font-size: 18px;
+  font-weight: var(--fw-semibold);
+  line-height: 24px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cardHead :global(.binding-summary-input) { display: flex; align-items: center; gap: var(--sp-2); min-height: 18px; }
+.cardHeadActions { display: flex; align-items: center; gap: 8px; }
+.cardHeadActions svg { width: auto; height: auto; color: inherit; }
+.keymapRow > .cardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 0;
+  border-radius: 0 0 16px 16px;
+  background: transparent;
+}
+/* A card drawn inside a sheet: its lanes alone. */
+.cardLanes { display: flex; flex-direction: column; gap: 12px; }

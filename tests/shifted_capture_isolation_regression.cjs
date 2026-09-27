@@ -68,23 +68,25 @@ assert.ok(normalIds.some(id => shiftedIds.includes(id)), 'the ids no longer coll
     await page.locator('.profile-chip').waitFor();
     await page.getByRole('button', { name: 'Buttons', exact: true }).click();
 
-    // The shift is edited from the input's own editor (Binding Editor 7a).
+    // A shift is a row in the input's Modeshifts lane; its cog opens the
+    // shift's sheet with its commands as ordinary rows (3c).
     await page.locator('details[data-input-command="S"] > summary').first().click();
+    await page.locator('details[data-input-command="S"][open] [data-modeshift-row="RSR"]').getByRole('button', { name: 'Modeshift settings' }).click();
     const shifted = page.locator('[data-input-command="RSR,S"]').first();
+    const keycap = shifted.locator('[data-command-row]').first().getByRole('button', { name: /^Choose action/ });
+    await keycap.waitFor();
+    const pickKey = async key => {
+      await keycap.click();
+      await page.getByRole('dialog', { name: 'Choose an action' }).locator('button.key-cap').filter({ hasText: new RegExp(`^${key}$`) }).click();
+    };
     const normal = page.locator('details[data-input-command="S"]').first();
-    await shifted.locator(':scope > summary').click();
-    await shifted.getByRole('button',{name:'Command options',exact:true}).first().click();
-    await shifted.getByRole('textbox', { name: /Output value/i }).first().waitFor();
 
     // --- capture on the shifted card -----------------------------------------
-    await shifted.getByRole('button', { name: /^Capture$/ }).first().click();
+    await shifted.getByRole('button', { name: 'Capture a key' }).click();
     // Only the row you asked should be waiting for a key.
-    const capturing = await page.locator('[class*=keymapRowCapturing]').count();
+    const capturing = await page.locator('[data-command-row][data-capturing="true"]').count();
     assert.equal(capturing, 1, `${capturing} rows are waiting for the same capture`);
-    assert.ok(
-      await shifted.evaluate(el => el.className.includes('Capturing')),
-      'the shifted row is not the one waiting'
-    );
+    assert.equal(await shifted.locator('[data-command-row][data-capturing="true"]').count(), 1, 'the shifted row is not the one waiting');
     await page.keyboard.press('KeyJ');
     await page.waitForTimeout(500);
 
@@ -94,9 +96,8 @@ assert.ok(normalIds.some(id => shiftedIds.includes(id)), 'the ids no longer coll
     assert.match(saved, /^RSR,S = J$/m, `the capture did not reach the shifted binding:\n${saved}`);
     assert.match(saved, /^S = SPACE$/m, `the capture landed on the unshifted binding instead:\n${saved}`);
 
-    // --- and the keyboard picker on the shifted card -------------------------
-    await shifted.getByRole('button', { name: /Keyboard…/ }).first().click();
-    await page.getByRole('button', { name: 'Tab', exact: true }).first().click();
+    // --- and the action picker on the shifted card ---------------------------
+    await pickKey('Tab');
     await page.keyboard.press('Control+s');
     await page.waitForFunction(() => /RSR,S = TAB/.test(window.__lastSaved || ''));
     const withTab = await page.evaluate(() => window.__lastSaved);

@@ -58,16 +58,15 @@ const fs = require('node:fs');
  await dialog.getByRole('button',{name:'Keyboard',exact:true}).click();
  await shot('action-picker-keyboard');
  // Tab wrapping stays in the modal.
- const advanced=dialog.getByRole('button',{name:'Command options',exact:true});
- await advanced.focus(); await page.keyboard.press('Tab');
+ const lastTab=dialog.getByRole('button',{name:'Custom',exact:true});
+ await lastTab.focus(); await page.keyboard.press('Tab');
  assert.equal(await dialog.evaluate(el=>el.contains(document.activeElement)),true);
  await dialog.getByRole('button',{name:'K',exact:true}).click();
  await page.keyboard.press('Control+s');
  await page.waitForFunction(()=>/^N = K$/m.test(window.__lastSaved));
  assert.deepEqual(await page.evaluate(()=>window.__calls),['save'],'selecting/saving an action must not apply it');
- await north.getByRole('button',{name:'Command options',exact:true}).click();
- await north.getByRole('combobox',{name:'Output',exact:true}).waitFor();
- await north.getByRole('button',{name:'Capture',exact:true}).click();
+ // Capture is the lane's own button beside Add command now (3c).
+ await north.getByRole('button',{name:'Capture a key',exact:true}).click();
  await page.waitForFunction(()=>document.body.dataset.bindingCapture==='true');
  await page.keyboard.press('ArrowRight');
  await page.waitForFunction(()=>!document.body.dataset.bindingCapture);

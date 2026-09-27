@@ -99,10 +99,12 @@ const heldInputName = (target: ModeshiftTarget, modifiers: InputModeshiftsProps[
  * out of the card's pickers here the same way it does for an input whose
  * chords live in this panel.
  */
-export function ShiftedBinding({ button, trigger, defaultOpen, rowLabel, subtitle, xAction, ...props }: InputModeshiftsProps & {
+export function ShiftedBinding({ button, trigger, defaultOpen, rowLabel, subtitle, xAction, embedded, ...props }: InputModeshiftsProps & {
   button: ButtonDefinition
   trigger: string
   defaultOpen?: boolean
+  /** Just the commands lane, inside the shift's sheet (3c). */
+  embedded?: boolean
   /** The row's own name where the section around it names the input ("Region 1 · Ping"). */
   rowLabel?: string
   subtitle?: string
@@ -170,6 +172,7 @@ export function ShiftedBinding({ button, trigger, defaultOpen, rowLabel, subtitl
       // jump-to-binding all go through this attribute.
       domCommand={key}
       defaultOpen={defaultOpen}
+      embedded={embedded}
       label={rowLabel}
       subtitle={subtitle}
       xAction={xAction}

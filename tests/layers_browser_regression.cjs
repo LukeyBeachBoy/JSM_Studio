@@ -67,11 +67,12 @@ const fs = require('node:fs');
   await card.waitFor();
   if(await card.getAttribute('open')===null) await card.locator('summary').first().click();
   // The editor's Layer actions panel: one add button, then the two pickers.
-  const details=card.locator('section[aria-label$="layer actions"]').first();
+  const details=card.locator('section[aria-label="Layer actions"]').first();
   await details.getByRole('button',{name:'Add layer action',exact:true}).click();
   await details.getByRole('combobox',{name:'Layer action',exact:true}).click();
-  await page.getByRole('option',{name:verb,exact:true}).click();
-  await details.getByRole('combobox',{name:'Layer action destination',exact:true}).click();
+  // The UI says Turn on / Turn off for apply / remove (3f); the file keeps the JSM words.
+  await page.getByRole('option',{name:{'Hold layer':'Hold','Toggle layer':'Toggle','Apply layer':'Turn on','Remove layer':'Turn off'}[verb]??verb,exact:true}).click();
+  await details.getByRole('combobox',{name:'Layer',exact:true}).click();
   await page.getByRole('option',{name:layerName,exact:true}).click();
  };
  const chooseLayer=async name=>{await closeManageLayers();await picker.click();await layerItem(name).click();};
@@ -136,12 +137,15 @@ const fs = require('node:fs');
  const north=page.locator('details[data-input-command="N"]').first();
  const northOutput=north.locator('summary kbd').first();
  // The keycap prints its activation over the key (3b); the key is its last line.
- const northText=async()=>(await northOutput.innerText()).split('\n').pop();
+ // Open, the card's first command names it on its keycap (3c).
+ const northText=async()=>await north.evaluate(e=>e.open)
+   ? north.locator('[data-command-row]').first().getByRole('button',{name:/^Choose action/}).innerText()
+   : (await northOutput.innerText()).split('\n').pop();
  assert.equal(await northText(),'J');
  await north.locator('summary').first().click();
- await north.getByRole('button',{name:'Command options',exact:true}).first().click();
- const output=north.locator('input[class*="valueInput"]').first();
- await output.fill('K');
+ // The output is chosen in the action picker, from the row's keycap (3c).
+ await north.locator('[data-command-row]').first().getByRole('button',{name:/^Choose action/}).click();
+ await page.getByRole('dialog',{name:'Choose an action'}).locator('button.key-cap').filter({hasText:/^K$/}).click();
  // A pointer switch must commit any focused input before projecting the next layer.
  await chooseLayer('Default');
  assert.equal(await northText(),'Space');
@@ -202,17 +206,16 @@ const fs = require('node:fs');
  // looking at the dropdown. The output list offers outputs.
  const northCard = page.locator('details[data-input-command="N"]').first();
  if (await northCard.getAttribute('open') === null) await northCard.locator('summary').first().click();
- await northCard.getByRole('button',{name:'Command options',exact:true}).first().click();
- const outputKind = northCard.getByRole('combobox',{name:'Output'}).first();
- await outputKind.click();
- const offered = await page.getByRole('option').evaluateAll(es => es.map(e => e.textContent.trim()));
+ // A command's settings hold no output list at all now (3c): outputs are
+ // chosen in the picker, and layers in their own lane.
+ await northCard.locator('[data-command-row]').first().getByRole('button',{name:'Command settings'}).click();
+ const settings = page.getByRole('dialog').last();
+ assert.equal(await settings.getByRole('combobox',{name:'Output'}).count(), 0, 'the output kind select survived');
+ assert.equal(await settings.getByText(/^(Hold|Apply|Remove) layer$/).count(), 0, 'the settings offer layer verbs as outputs');
  await page.keyboard.press('Escape');
- for (const gone of ['Hold layer','Apply layer','Remove layer']) {
-   assert.ok(!offered.includes(gone), `the output list must not offer ${gone}: ${offered.join(', ')}`);
- }
- assert.ok(offered.includes('Keyboard'), `the output list still offers real outputs: ${offered.join(', ')}`);
+ await settings.waitFor({state:'detached'});
  // ...and the section that does the job is still there on the same card.
- await northCard.getByText('Add layer action',{exact:true}).waitFor();
+ await northCard.getByRole('button',{name:'Add layer action',exact:true}).waitFor();
 
  await page.getByRole('button',{name:'Overview',exact:true}).click();
  // Comms is already applied by L5 and removed by R5; a hold on R4 as well is

@@ -57,12 +57,17 @@ const PROFILE = [
     assert.match(rowText.replace(/\s+/g, ' '), /LB → F \+1/, 'the row must show the first shift and count the rest');
 
     // --- the shifted card is the normal card --------------------------------
-    // The shift is edited from the input's own editor (Binding Editor 7a).
+    // A shift is a row in the input's Modeshifts lane; its cog opens the
+    // shift's sheet, which holds the shift's commands as the same rows the
+    // card's own Commands lane has (3c).
     await north.locator(':scope > summary').click();
+    const openN = page.locator('details[data-input-command="N"][open]');
+    const shiftRow = openN.locator('[data-modeshift-row="L"]');
+    await shiftRow.waitFor();
+    await shiftRow.getByRole('button', { name: 'Modeshift settings' }).click();
     const shifted = page.locator('[data-input-command="L,N"]');
     await shifted.waitFor();
     assert.equal(await shifted.count(), 1, 'a shifted card must be separately addressable from the normal one');
-    await shifted.locator(':scope > summary').click();
 
     // One trigger picker, offering the same activation kinds the normal card
     // offers for a binding already written to its line.
@@ -72,18 +77,22 @@ const PROFILE = [
     await trigger.first().click();
     assert.deepEqual(
       (await page.getByRole('option').allInnerTexts()).map(text => text.trim()),
-      ['Press', 'Tap', 'Hold', 'Double press'],
+      ['Press', 'Tap', 'Hold', 'Double press', 'Release', 'Turbo'],
       'a shifted binding must offer the same activation kinds as an unshifted one'
     );
     await page.keyboard.press('Escape');
 
-    await shifted.getByRole('button',{name:'Command options',exact:true}).first().click();
     // The editing capabilities the reduced version did not have.
-    for (const name of [/Add command/i, /Capture/i]) {
+    for (const name of [/Add command/i, /Capture a key/i]) {
       assert.ok(await shifted.getByRole('button', { name }).count() >= 1, `the shifted card is missing ${name}`);
     }
-    assert.equal(await shifted.getByRole('combobox', { name: /Output/i }).count(), 1, 'no output-kind picker in a shift');
-    assert.equal(await shifted.getByRole('textbox', { name: /Action name/i }).count(), 1, 'a shifted binding cannot be named');
+    // Its commands are named in their settings sheet, like any other.
+    await shifted.locator('[data-command-row]').first().getByRole('button', { name: 'Command settings' }).click();
+    const commandSheet = page.getByRole('dialog').last();
+    assert.equal(await commandSheet.getByRole('textbox', { name: /Action name/i }).count(), 1, 'a shifted binding cannot be named');
+    const sheets = await page.getByRole('dialog').count();
+    await commandSheet.locator('[data-modal-close]').click();
+    await page.waitForFunction(count => document.querySelectorAll('[role=dialog]').length < count, sheets);
 
     // A shift has no second condition to hang a chord on, so it must not offer
     // to make one: the line would be written where this card cannot show it.
@@ -93,9 +102,11 @@ const PROFILE = [
     await page.keyboard.press('Escape');
 
     // --- writes stay inside the shift ---------------------------------------
-    const output = shifted.getByRole('textbox', { name: /Output value/i }).first();
-    await output.fill('K');
-    await output.blur();
+    const choose = async (index, key) => {
+      await shifted.locator('[data-command-row]').nth(index).getByRole('button', { name: /^Choose action/ }).click();
+      await page.getByRole('dialog', { name: 'Choose an action' }).locator('button.key-cap').filter({ hasText: new RegExp(`^${key}$`) }).click();
+    };
+    await choose(0, 'K');
     await page.keyboard.press('Control+s');
     await page.waitForFunction(() => /L,N\s*=\s*K/.test(window.__lastSaved || ''));
     const saved = await page.evaluate(() => window.__lastSaved);
@@ -115,11 +126,8 @@ const PROFILE = [
     // binding expression.
     await shifted.getByRole('button', { name: /Add command/i }).click();
     await page.getByRole('menuitem', { name: 'Hold', exact: true }).click();
-    await shifted.getByRole('button',{name:'Command options',exact:true}).nth(1).click();
-    const outputs = shifted.getByRole('textbox', { name: /Output value/i });
-    await outputs.nth(1).waitFor();
-    await outputs.nth(1).fill('M');
-    await outputs.nth(1).blur();
+    await shifted.locator('[data-command-row]').nth(1).waitFor();
+    await choose(1, 'M');
     await page.keyboard.press('Control+s');
     await page.waitForFunction(() => /L,N\s*=.*M/.test(window.__lastSaved || ''));
     const both = await page.evaluate(() => window.__lastSaved);

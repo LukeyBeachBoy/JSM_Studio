@@ -4,6 +4,8 @@ import keymapStyles from '../Keymap.module.css'
 import { LayerUsageContext, useInputUses } from '../LayerBar'
 import { actionsOnInput, layerVerbLabels } from '../../utils/layers'
 import { Icon } from '../icons/Icon'
+import { Menu, type MenuItem } from '../ui/Menu'
+import { ButtonGlyph } from '../glyphs/ButtonGlyph'
 import { OriginMarker } from './OriginMarker'
 import { useSettingOriginInfo } from './settingOriginInfo'
 import { BindingDetailsPopover } from './BindingDetailsPopover'
@@ -31,8 +33,6 @@ type ButtonMappingCardProps = {
   /** The input's short name, for "Close RB". */
   shortName?: string
   summary?: BindingSummaryEntry[]
-  /** Activation kinds of the commands, "Tap / Hold". */
-  kinds?: string
   /** The shifts that reconfigure this input; the first is drawn on the row. */
   shifts?: ModeshiftSummary[]
   /** Whose names the held inputs go by: L4 on a Deck, LSL on nothing. */
@@ -47,15 +47,13 @@ type ButtonMappingCardProps = {
   /** What an unbound row says instead of "Unbound": "Analog passthrough · Xbox LT". */
   emptyLabel?: string
   isCapturing: boolean
-  commands: ReactNode
-  /** "+ Add command" and "Capture a key". */
-  addControl: ReactNode
-  /** The input's own rare settings, inside the Advanced disclosure. */
+  /** The open card's lanes: Commands, then Modeshifts and Layer actions
+   *  where the input has them (3c). */
+  lanes: ReactNode
+  /** The input's own rare settings (trackball decay), under the lanes. */
   extras?: ReactNode
-  /** The modeshift panel for this input; omitted on a shifted card. */
-  modeshifts?: ReactNode
-  /** The layer action panel; omitted on a shifted card. */
-  layerActions?: ReactNode
+  /** Just the lanes, for a card drawn inside a sheet (a modeshift's commands). */
+  embedded?: boolean
   /** The input's drawn glyph, 28px. */
   glyph?: ReactNode
   /** Your own name for what this input does; shown on the Overview diagram. */
@@ -86,18 +84,15 @@ export function ButtonMappingCard({
   title,
   shortName,
   summary,
-  kinds,
   shifts = NO_SHIFTS,
   family = 'generic',
   rowTitle,
   rowSubtitle,
   emptyLabel,
   isCapturing,
-  commands,
-  addControl,
+  lanes,
   extras,
-  modeshifts,
-  layerActions,
+  embedded,
   glyph,
   label,
   defaultOpen,
@@ -176,19 +171,18 @@ export function ButtonMappingCard({
     </span>
   )
 
-  // The open header (Binding Editor 7a): the input's name and a one-line
-  // account of the editor under it.
-  const openSummary = [
-    entries.length === 1 ? '1 command' : `${entries.length} commands`,
-    kinds || '',
-    modeshiftCount ? `${modeshiftCount} ${modeshiftCount === 1 ? 'modeshift' : 'modeshifts'}` : 'no modeshifts',
-    layerAction ? `${actionsOnInput(actions, command ?? '').length} layer ${actionsOnInput(actions, command ?? '').length === 1 ? 'action' : 'actions'}` : 'no layer actions',
-  ].filter(Boolean).join(' · ')
   const templateValue = origin?.kind === 'override' && origin.baseValue ? `template: ${describeBinding(origin.baseValue, t)}` : undefined
+  // The header's cog (3c): the card-level actions that were text buttons.
+  const cardMenu: MenuItem[] = [
+    { label: t('keymap.copy', 'Copy'), icon: <Icon name="copy" size={16} />, disabled: !onCopyAll, onSelect: () => onCopyAll?.() },
+    { label: canPaste && pasteLabel ? pasteLabel : t('keymap.paste', 'Paste'), icon: <Icon name="paste" size={16} />, disabled: !canPaste || !onPaste, onSelect: () => onPaste?.() },
+    { label: t('keymap.resetToInherited', 'Reset to inherited'), icon: <Icon name="inherited" size={16} />, disabled: !origin?.reset || origin.disabled, onSelect: () => origin?.reset?.() },
+  ]
 
   const stop = (event: { preventDefault: () => void; stopPropagation: () => void }) => { event.preventDefault(); event.stopPropagation() }
   const onSummaryKey = (event: KeyboardEvent<HTMLElement>) => {
-    if (event.defaultPrevented || isTextEntry(event.target)) return
+    // Keys on the header's own buttons are theirs (and the window's: Ctrl+S).
+    if (event.defaultPrevented || isTextEntry(event.target) || event.target !== event.currentTarget) return
     if (event.key === 'x' || event.key === 'X') {
       if (xAction) { event.preventDefault(); xAction.run(); return }
       if (onCapture) { event.preventDefault(); onCapture(); return }
@@ -201,6 +195,8 @@ export function ButtonMappingCard({
     ? `A:Close;${xHint}Y:Details;B:${closeLabel}`
     : `A:Open;${xHint}Y:Details;B:Back`
 
+  if (embedded) return <div className={keymapStyles.cardLanes} data-input-command={command}>{lanes}{extras}</div>
+
   return (
     <details ref={detailsRef} onToggle={event => {
       setOpen(event.currentTarget.open)
@@ -210,58 +206,38 @@ export function ButtonMappingCard({
       const current = event.currentTarget
       current.parentElement?.querySelectorAll<HTMLDetailsElement>(':scope > details[data-input-command][open]').forEach(other => { if (other !== current) other.open = false })
     }} data-input-command={command} tabIndex={-1} className={`${keymapStyles.keymapRow} ${isCapturing ? keymapStyles.keymapRowCapturing : ''}`}>
-      <summary ref={summaryRef} className={`binding-summary ${open ? keymapStyles.editorHead : keymapStyles.bindingRow}`} data-hints={hints} data-pad-keys="XY" onKeyDown={onSummaryKey}>
+      <summary ref={summaryRef} className={`binding-summary ${open ? keymapStyles.cardHead : keymapStyles.bindingRow}`} data-hints={hints} data-pad-keys="XY" onKeyDown={onSummaryKey}>
         <span className={keymapStyles.glyphBadge} aria-hidden="true">{glyph}</span>
         {open ? (
-          <span className="binding-summary-name">
-            <span className={keymapStyles.editorTitle}>{rowTitle ?? title}</span>
-            <span className={`binding-summary-input ${keymapStyles.editorSummaryLine}`}>
-              {entries.slice(0, 2).map((entry, index) => <kbd key={index} className={keymapStyles.editorSummaryKey} title={entry.outputTitle}>{entry.output}</kbd>)}
-              {entries.length > 2 && <span>+{entries.length - 2}</span>}
-              <span>{openSummary}</span>
+          <>
+            <span className="binding-summary-name">
+              <span className={keymapStyles.cardTitle}>{rowTitle ?? title}</span>
+              <span className="binding-summary-input">{(rowTitle ? rowSubtitle ?? label : label) || (unbound && !layerAction ? unboundText : '')}<OriginMarker setting={command} detail={templateValue} addressable /></span>
             </span>
-          </span>
-        ) : (
-          <span className="binding-summary-name">
-            <span className={`binding-summary-label ${quietTitle ? keymapStyles.unboundTitle : ''}`.trim()}>{closedTitle}</span>
-            <span className="binding-summary-input">{closedSubtitle}<OriginMarker setting={command} /></span>
-          </span>
-        )}
-        {open ? (
-          <span className="binding-summary-hint">
-            <OriginMarker setting={command} detail={templateValue} withReset addressable />
-            <span className={keymapStyles.editorHeadActions}>
-              <button type="button" className="button button--ghost button--sm" disabled={!onCopyAll} onClick={event => { stop(event); onCopyAll?.() }} data-hints="A:Copy;B:Back">{t('keymap.copy', 'Copy')}</button>
-              <button type="button" className="button button--ghost button--sm" disabled={!canPaste || !onPaste} title={canPaste ? pasteLabel : undefined} onClick={event => { stop(event); onPaste?.() }} data-hints="A:Paste;B:Back">{t('keymap.paste', 'Paste')}</button>
-              <button type="button" className="button button--ghost button--sm" onClick={event => { stop(event); setDetails(true) }} data-hints="A:Details;B:Back"><b className={keymapStyles.faceHint} aria-hidden="true">Y</b>{t('keymap.details', 'Details')}</button>
+            {/* Inside the summary, so a click must not also fold the card. */}
+            <span className={keymapStyles.cardHeadActions} onClick={stop}>
+              <Menu ariaLabel={t('keymap.cardSettings', 'Binding settings')} items={cardMenu} align="end"
+                trigger={<button type="button" className="console-btn console-btn--icon" aria-label={t('keymap.cardSettings', 'Binding settings')} data-hints={`A:Settings;B:${closeLabel}`}><Icon name="cog" size={18} /></button>} />
+              <button type="button" className="console-btn" onClick={() => setDetails(true)} data-hints={`A:Details;B:${closeLabel}`}>
+                <ButtonGlyph button="Y" size={20} family={family === 'generic' ? undefined : family} />{t('keymap.details', 'Details')}
+              </button>
             </span>
-          </span>
+          </>
         ) : (
           <>
+            <span className="binding-summary-name">
+              <span className={`binding-summary-label ${quietTitle ? keymapStyles.unboundTitle : ''}`.trim()}>{closedTitle}</span>
+              <span className="binding-summary-input">{closedSubtitle}<OriginMarker setting={command} /></span>
+            </span>
             {extrasColumn}
             {outputColumn}
           </>
         )}
       </summary>
-      <div className="binding-detail">
-        <div className={keymapStyles.editorBody}>
-          <div className={keymapStyles.editorSection}>
-            <span className={`${keymapStyles.eyebrowHeading} ${keymapStyles.eyebrowWithIcon}`}><Icon name="command" size={14} />{t('keymap.commandsHeading', 'Commands')}</span>
-            <div className={keymapStyles.commandList}>{commands}</div>
-            {addControl}
-          </div>
-          {(modeshifts || layerActions) && (
-            <div className={keymapStyles.editorPanels}>
-              {modeshifts}
-              {layerActions}
-            </div>
-          )}
-          {/* Per-command timing lives on each command's Timing button; the
-              only binding-wide option (trackball decay) shows when it applies.
-              What is left to say is where the shared press windows live. */}
-          {extras}
-          <p className={keymapStyles.advancedNote}>{t('keymap.advancedBindingNote', 'Hold, double-press and chord windows are shared by the whole configuration: Tuning · Press timing.')}</p>
-        </div>
+      <div className={`binding-detail ${keymapStyles.cardBody}`}>
+        {lanes}
+        {/* The only binding-wide option, trackball decay, when it applies. */}
+        {extras}
       </div>
       {details && (
         <BindingDetailsPopover
@@ -275,9 +251,4 @@ export function ButtonMappingCard({
       )}
     </details>
   )
-}
-
-/** The reorder grip of a command row (7a): six dots, decorative for now. */
-export function ReorderGrip() {
-  return <span className={keymapStyles.commandGrip} aria-hidden="true"><Icon name="reorder" size={16} /></span>
 }

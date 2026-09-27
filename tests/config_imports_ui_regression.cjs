@@ -43,8 +43,10 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  // The compact row carries the output; the badge is inside the card, so open
  // it to reach the badge.
  await west.locator(':scope > summary').click();
- await west.locator('kbd').first().waitFor();
- assert.equal((await west.locator('kbd').first().innerText()).split('\n').pop(), 'R',
+ // The open card's first command names its output on its keycap (3c).
+ const westOutput = west.locator('[data-command-row]').first().getByRole('button',{name:/^Choose action/});
+ await westOutput.waitFor();
+ assert.equal(await westOutput.innerText(), 'R',
    'an inherited binding must be visible, not blank');
 
  // ...and marked with the row's origin marker (Buttons Content), which names the file.

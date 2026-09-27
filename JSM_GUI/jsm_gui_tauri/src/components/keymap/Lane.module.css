@@ -1,0 +1,211 @@
+/* The open binding card's lanes and their rows (binding card refresh 3c).
+   One hue per lane, from the concept tokens, so the light theme follows. */
+
+.lane {
+  --hue: var(--command);
+  --hue-on: var(--command-on);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--hue) 9%, transparent), color-mix(in srgb, var(--hue) 2%, transparent));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--hue) 18%, transparent);
+}
+.lane[data-concept='shift'] {
+  --hue: var(--shift);
+  --hue-on: var(--shift-on);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--hue) 12%, transparent), color-mix(in srgb, var(--hue) 3%, transparent));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--hue) 30%, transparent), 0 0 28px color-mix(in srgb, var(--hue) 8%, transparent);
+}
+.lane[data-concept='layer'] {
+  --hue: var(--layer-1);
+  --hue-on: var(--layer-on);
+  background: linear-gradient(135deg, color-mix(in oklch, var(--hue) 12%, transparent), color-mix(in oklch, var(--hue) 3%, transparent));
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--hue) 28%, transparent);
+}
+
+.head { display: flex; align-items: center; gap: 10px; min-height: 28px; }
+.icon {
+  width: 28px;
+  height: 28px;
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--hue) 19%, transparent);
+  color: var(--hue);
+}
+.lane[data-concept='shift'] .icon { box-shadow: 0 0 12px color-mix(in srgb, var(--hue) 35%, transparent); }
+.label {
+  color: var(--hue);
+  font-size: 12px;
+  font-weight: var(--fw-bold);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.count { color: var(--hue); opacity: .7; font-size: 12px; font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; }
+
+.footer { display: flex; flex-direction: column; }
+.footerTwoUp { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+/* ---- Add buttons: filled, bordered, 44 high, a bottom bevel, and a solid
+   "+" cap in the lane's colour. */
+.add,
+.side {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px 0 8px;
+  border: 0;
+  border-radius: var(--r-row);
+  color: var(--text-1);
+  font: inherit;
+  font-size: var(--fs-body);
+  font-weight: var(--fw-bold);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--dur-1) var(--ease-standard), filter var(--dur-1) var(--ease-standard);
+}
+.add {
+  background: color-mix(in srgb, var(--hue) 16%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--hue) 40%, transparent), inset 0 -3px 0 color-mix(in srgb, var(--hue) 25%, transparent);
+}
+.add:hover:not(:disabled) { filter: brightness(1.12); }
+.add:disabled { opacity: var(--disabled-opacity); cursor: default; }
+.addCap {
+  width: 28px;
+  height: 28px;
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  border-radius: 7px;
+  background: var(--hue);
+  color: var(--hue-on);
+  font-size: 18px;
+  font-weight: var(--fw-bold);
+  line-height: 1;
+}
+.side {
+  background: var(--surface-control);
+  box-shadow: inset 0 0 0 1px var(--line-2), inset 0 -3px 0 var(--line-2);
+}
+.side:hover { background: var(--surface-control-hover); }
+.side svg { flex: none; }
+
+/* ---- Rows: all three lanes share one row, 56 high, on the hover surface. */
+.rows { display: flex; flex-direction: column; gap: 8px; }
+.row {
+  display: grid;
+  align-items: center;
+  gap: 12px;
+  height: 56px;
+  padding: 0 8px 0 12px;
+  border-radius: var(--r-row);
+  background: var(--surface-row-hover);
+  min-width: 0;
+  transition: background var(--dur-1) var(--ease-standard), box-shadow var(--dur-2) var(--ease-standard);
+}
+.row[data-kind='command'] { grid-template-columns: 30px 96px 16px auto minmax(0, 1fr) 40px; }
+.row[data-kind='command-bare'] { grid-template-columns: 96px 16px minmax(0, 1fr) 40px; }
+.row[data-kind='shift'] { grid-template-columns: auto 16px auto minmax(0, 1fr) 40px; }
+.row[data-kind='layer'] { grid-template-columns: 30px 16px auto minmax(0, 1fr) 40px; }
+:global(body[data-input-source='controller']) .row:focus-within {
+  background: var(--surface-selected);
+  box-shadow: 0 0 0 var(--focus-controller-width) var(--focus-controller);
+}
+.row > * { min-width: 0; }
+.glyph { display: inline-grid; place-items: center; width: 30px; height: 30px; }
+.glyph svg { width: 28px; height: 28px; }
+
+.arrow { color: var(--hue); font-weight: var(--fw-semibold); text-align: center; }
+.chain { display: inline-flex; align-items: center; gap: 6px; }
+.chainPlus { color: var(--shift); font-weight: 800; }
+
+/* The activation chip-select: coloured, so it reads as part of the combo. */
+.chip {
+  width: 96px;
+  height: 32px;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 0 10px 0 12px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--command-soft);
+  box-shadow: inset 0 0 0 1px var(--command-line);
+  color: var(--command);
+  font: inherit;
+  font-size: 12px;
+  font-weight: var(--fw-bold);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  cursor: pointer;
+}
+.chip > span:first-child { overflow: hidden; text-overflow: ellipsis; }
+.chip svg { width: 10px; height: 10px; flex: none; }
+.chip:hover { background: color-mix(in srgb, var(--command) 20%, transparent); }
+.chip[data-static='true'] { cursor: default; }
+
+/* The output keycap: A opens the action picker. */
+.keycap {
+  height: 36px;
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--surface-control);
+  box-shadow: inset 0 -3px 0 var(--line-2);
+  color: var(--text-1);
+  font: inherit;
+  font-size: var(--fs-label);
+  font-weight: var(--fw-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.keycap:hover { background: var(--surface-control-hover); }
+.keycapText { overflow: hidden; text-overflow: ellipsis; }
+.keycapEmpty { color: var(--text-3); font-weight: var(--fw-medium); }
+.keycapMore { color: var(--command); font-size: 12px; font-weight: var(--fw-bold); }
+.badge {
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 6px;
+  border-radius: var(--r-xs);
+  background: var(--surface-sunken);
+  color: var(--text-3);
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-semibold);
+}
+
+.text { overflow: hidden; color: var(--text-2); font-size: var(--fs-body); text-overflow: ellipsis; white-space: nowrap; }
+.textEmpty { color: var(--text-4); }
+.warning { padding: 0 12px; color: var(--warn); font-size: var(--fs-hint); }
+
+/* The layer tile as the row's button: A edits that layer. */
+.tileButton {
+  display: inline-flex;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-md);
+  background: none;
+  cursor: pointer;
+}
+.tileButton:disabled { cursor: default; }
+.row[data-capturing='true'] { box-shadow: 0 0 0 2px var(--warn); }
+
+/* An inline add, until its sheet replaces it. */
+.inlineAdd { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+
+.textCell { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
+.textCell > :global(.origin-marker) { flex: none; }

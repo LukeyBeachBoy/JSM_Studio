@@ -25,7 +25,9 @@ export const layerVerbLabels: Record<LayerVerb, string> = {
 export const layerVerbKeys: Record<LayerVerb, string> = {
   hold: 'keymap.layerVerbHold', toggle: 'keymap.layerVerbToggle', apply: 'keymap.layerVerbApply', remove: 'keymap.layerVerbRemove',
 }
-export const actionsForLayer =(actions: LayerAction[], layerId: string) => actions.filter(a => a.layerId === layerId)
+/** The order the verbs are offered in (3f): Hold · Toggle · Turn on · Turn off. */
+export const layerVerbOrder: readonly LayerVerb[] = ['hold', 'toggle', 'apply', 'remove']
+export const actionsForLayer = (actions: LayerAction[], layerId: string) => actions.filter(a => a.layerId === layerId)
 /** The actions an input drives, pressed ("X") or released ("!X"): both are
  *  that input's, and its editor lists and rewrites them together. */
 export const actionsOnInput = (actions: LayerAction[], input: string) => actions.filter(a => a.input === input || a.input === `!${input}`)

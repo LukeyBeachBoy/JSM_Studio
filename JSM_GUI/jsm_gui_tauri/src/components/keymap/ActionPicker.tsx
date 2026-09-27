@@ -10,13 +10,15 @@ import { MAIN_ROWS, NAV_ROWS, NUMPAD_ROWS, MEDIA_KEYS } from './KeyboardBindingM
 import { mouseOptions, wheelOptions, builtInCommandOptions } from './actionCatalog'
 import { COMMAND_LABELS } from '../../utils/commandLabels'
 import './ActionPicker.css'
+import { HapticOutputPicker } from './HapticOutputPicker'
+import { DEFAULT_HAPTIC_BINDING, formatHapticBinding } from '../../utils/hapticBindings'
 import { TRIGGER_LABEL_KEYS } from './triggerKinds'
 import { InputGlyph } from '../glyphs/InputGlyph'
 import { ButtonGlyph } from '../glyphs/ButtonGlyph'
 import { Icon } from '../icons/Icon'
 import { PAD_EVENT, type PadEventDetail } from '../../nav/useControllerNavigation'
 
-type Category = 'Gamepad' | 'Mouse' | 'Keyboard' | 'Numpad' | 'Layers' | 'System' | 'JSM' | 'Configurations'
+type Category = 'Gamepad' | 'Mouse' | 'Keyboard' | 'Numpad' | 'Layers' | 'System' | 'JSM' | 'Configurations' | 'Custom'
 type Props = {
   inputLabel: string
   layerInput?: string
@@ -24,9 +26,10 @@ type Props = {
   virtualControllerType: VirtualControllerType
   specialOptions: { value: string; label: string; disabled?: boolean }[]
   libraryProfiles?: string[]
+  /** The configuration being edited, marked in the Configurations list. */
+  currentProfileName?: string | null
   onSelect: (patch: BindingCommandPatch) => void
   onClose: () => void
-  onAdvanced: () => void
   onEnableVirtualController?: () => void
   /** Capture a key or mouse button instead of choosing one. */
   onCapture?: () => void
@@ -54,16 +57,26 @@ const usedTokens = (text: string) => {
  * The full-screen picker (Binding Editor 7b): categories stepped by LB / RB,
  * a real keyboard with dots on keys already in use, a detail panel naming the
  * focused choice and its raw token, search across every category on Y. */
-export function ActionPicker({ inputLabel, layerInput, command, virtualControllerType, specialOptions, libraryProfiles = [], onSelect, onClose, onAdvanced, onEnableVirtualController, onCapture }: Props) {
+export function ActionPicker({ inputLabel, layerInput, command, virtualControllerType, specialOptions, libraryProfiles = [], currentProfileName, onSelect, onClose, onEnableVirtualController, onCapture }: Props) {
   const { t } = useTranslation()
   const title = useId()
   const { onSetActions, text: configText = '' } = useContext(LayerUsageContext)
-  const [category, setCategory] = useState<Category>(command.outputKind === 'virtualController' ? 'Gamepad' : command.outputKind === 'mouse' || command.outputKind === 'wheel' ? 'Mouse' : 'Keyboard')
+  const custom = command.outputKind === 'raw' || command.outputKind === 'haptic' || (command.outputKind === 'command' && !builtInCommandOptions.includes(command.outputValue) && !/^LED_BRIGHTNESS/i.test(command.outputValue))
+  // Open on the category the current action is in.
+  const systemTokens = new Set([...MEDIA_KEYS.map(key => key.token), 'SCREENSHOT'])
+  const [category, setCategory] = useState<Category>(
+    command.outputKind === 'virtualController' ? 'Gamepad'
+    : command.outputKind === 'mouse' || command.outputKind === 'wheel' ? 'Mouse'
+    : command.outputKind === 'loadConfig' && libraryProfiles.length ? 'Configurations'
+    : command.outputKind === 'special' || (command.outputKind === 'command' && !custom) ? 'JSM'
+    : custom ? 'Custom'
+    : systemTokens.has(command.outputValue) ? 'System'
+    : 'Keyboard')
   const [query, setQuery] = useState('')
   const [focused, setFocused] = useState<Choice | null>(null)
   const rootRef = useRef<HTMLElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
-  const categories: Category[] = ['Gamepad', 'Mouse', 'Keyboard', 'Numpad', ...(onSetActions && layerInput ? ['Layers' as const] : []), 'System', 'JSM', ...(libraryProfiles.length ? ['Configurations' as const] : [])]
+  const categories: Category[] = ['Gamepad', 'Mouse', 'Keyboard', 'Numpad', ...(onSetActions && layerInput ? ['Layers' as const] : []), 'System', 'JSM', ...(libraryProfiles.length ? ['Configurations' as const] : []), 'Custom']
   const glyphs: Record<string, string> = { faceSouth: 'S', faceNorth: 'N', faceWest: 'W', faceEast: 'E', leftBumper: 'L', rightBumper: 'R', leftStickClick: 'L3', rightStickClick: 'R3', back: '-', start: '+', home: 'HOME', dpadUp: 'UP', dpadDown: 'DOWN', dpadLeft: 'LEFT', dpadRight: 'RIGHT', leftTriggerDigital: 'ZL', rightTriggerDigital: 'ZR', padClick: 'CAPTURE' }
   const outputType = virtualControllerType === 'NONE' ? 'XBOX' : virtualControllerType
   const used = useMemo(() => usedTokens(configText), [configText])
@@ -106,10 +119,12 @@ export function ActionPicker({ inputLabel, layerInput, command, virtualControlle
         ...builtInCommandOptions.filter(token => token !== 'CALIBRATE_GYRO').map(token => ({ key: `command:${token}`, label: COMMAND_LABELS[token]?.label ?? token.toLowerCase().replace(/_/g, ' '), token, kind: 'command' as const, describe: COMMAND_LABELS[token]?.describe ?? 'JoyShockMapper command', commit: () => pick('command', token) })),
         { key: 'led', label: `LED brightness ${led}%`, token: ledToken, kind: 'command' as const, describe: 'Sets the Steam Controller light while this input fires', commit: () => pick('command', ledToken) },
       ],
-      Configurations: libraryProfiles.map(name => ({ key: `config:${name}`, label: name, token: loadConfigBindingValue(name), kind: 'loadConfig' as const, describe: `Loads ${name}`, commit: () => pick('loadConfig', loadConfigBindingValue(name)) })),
+      Custom: [],
+      // The one being edited is marked: loading the configuration you are in does nothing.
+      Configurations: libraryProfiles.map(name => ({ key: `config:${name}`, label: name === currentProfileName ? t('keymap.commandLoadConfigCurrent', { name }) : name, token: loadConfigBindingValue(name), kind: 'loadConfig' as const, describe: `Loads ${name}`, commit: () => pick('loadConfig', loadConfigBindingValue(name)) })),
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [outputType, specialOptions, libraryProfiles, virtualControllerType, t, led])
+  }, [outputType, specialOptions, libraryProfiles, currentProfileName, virtualControllerType, t, led])
 
   const results = query.trim()
     ? Object.values(choices).flat().filter(choice => `${choice.label} ${choice.token} ${choice.describe}`.toLowerCase().includes(query.trim().toLowerCase())).slice(0, 60)
@@ -239,14 +254,13 @@ export function ActionPicker({ inputLabel, layerInput, command, virtualControlle
         <span className="action-picker__step" aria-hidden="true"><ButtonGlyph button="RB" size={22} /></span>
         <span className="action-picker__spacer" />
         {onCapture && <button type="button" className="action-tab" onClick={() => { onClose(); onCapture() }}><ButtonGlyph button="X" size={20} />Capture</button>}
-        <button type="button" className="action-tab" onClick={() => { onClose(); onAdvanced() }}>Custom / raw</button>
       </nav>
 
       <div className="action-picker__body">
         <div className="action-picker__content" role="region" aria-label={results ? 'Search results' : `${category} actions`}>
           {results && (results.length
             ? <div className="action-grid">{results.map(choice => choiceButton(choice))}</div>
-            : <p className="action-picker-note">No action matches “{query}”. Custom / raw takes any JoyShockMapper token.</p>)}
+            : <p className="action-picker-note">No action matches “{query}”. Custom takes any JoyShockMapper token.</p>)}
           {!results && category === 'Gamepad' && <>
             <p className="action-picker-note">{outputType === 'DS4' ? 'DualShock 4' : 'Xbox'} output{virtualControllerType === 'NONE' ? ' · Choosing a button enables virtual gamepad output.' : ''}</p>
             <div className="action-grid gamepad-actions">{getVirtualControllerOptions(outputType, t).map((option, index) => choiceButton(choices.Gamepad[index], { content: <><InputGlyph command={glyphs[option.value]} family={outputType === 'DS4' ? 'playstation' : 'xbox'} size={26} />{option.label}</> }))}</div>
@@ -265,8 +279,9 @@ export function ActionPicker({ inputLabel, layerInput, command, virtualControlle
               <button type="button" className="icon-button" aria-label="Brighter" disabled={led >= 100} onClick={() => setLed(value => Math.min(100, value + 10))}>+</button>
               {choiceButton(choices.JSM.find(choice => choice.key === 'led')!, { className: 'action-choice action-led__set', content: 'Use' })}
             </div>
-            <p className="action-picker-note">Haptics, console commands and raw expressions are available under Command options.</p></>}
+            <p className="action-picker-note">Haptics, console commands and raw expressions are under Custom.</p></>}
           {!results && category === 'Configurations' && <div className="action-grid">{choices.Configurations.map(choice => choiceButton(choice))}</div>}
+          {!results && category === 'Custom' && <CustomAction command={command} onPick={pick} />}
         </div>
         <aside className="picker-detail" aria-live="polite">
           <span className="picker-detail__eyebrow">{focused ? 'Selected' : 'Current'}</span>
@@ -277,9 +292,43 @@ export function ActionPicker({ inputLabel, layerInput, command, virtualControlle
               : 'Keys with a dot are already bound; choosing one keeps both.'}</span>
             <span className="picker-detail__raw">Raw token <code>{detail.token}</code></span>
           </> : <span className="picker-detail__note">Move to an action to see what it sends.</span>}
-          <button type="button" className="secondary-btn" onClick={() => { onClose(); onAdvanced() }}>Command options</button>
         </aside>
       </div>
     </section>
   </div>, document.body)
+}
+
+type CustomKind = 'raw' | 'command' | 'haptic'
+
+/**
+ * The picker's Custom category: what has no tile of its own -- a raw
+ * JoyShockMapper expression, a console command, or a haptic pulse. These
+ * used to live in the command's expanded editor, which is now a settings sheet
+ * of true options only (binding card refresh §4).
+ */
+function CustomAction({ command, onPick }: { command: BindingCommand; onPick: (kind: BindingOutputKind, value: string) => void }) {
+  const { t } = useTranslation()
+  const initial: CustomKind = command.outputKind === 'haptic' ? 'haptic' : command.outputKind === 'command' ? 'command' : 'raw'
+  const [kind, setKind] = useState<CustomKind>(initial)
+  const [text, setText] = useState(command.outputKind === 'raw' || command.outputKind === 'command' ? command.outputValue : '')
+  const [haptic, setHaptic] = useState(command.outputKind === 'haptic' ? command.outputValue : formatHapticBinding(DEFAULT_HAPTIC_BINDING))
+  const kinds: Array<[CustomKind, string]> = [['raw', t('keymap.customRaw', 'Raw expression')], ['command', t('keymap.customCommand', 'Console command')], ['haptic', t('keymap.customHaptic', 'Haptic')]]
+  return (
+    <div className="action-custom">
+      <div className="segmented" role="radiogroup" aria-label={t('keymap.customKind', 'Custom action')} data-hints="MOVE:Choose;A:Select;B:Back">
+        {kinds.map(([value, label]) => <button key={value} type="button" role="radio" aria-checked={kind === value} onClick={() => setKind(value)}>{label}</button>)}
+      </div>
+      {kind === 'haptic'
+        ? <HapticOutputPicker value={haptic} onChange={setHaptic} />
+        : <input className="text-field action-custom__field" type="text" value={text} spellCheck={false} data-capture-ignore="true"
+            aria-label={kind === 'raw' ? t('keymap.customRaw', 'Raw expression') : t('keymap.customCommand', 'Console command')}
+            placeholder={kind === 'raw' ? t('keymap.customRawPlaceholder', 'Any JoyShockMapper binding, e.g. LCONTROL+C') : t('keymap.advancedCommandPlaceholder')}
+            onChange={event => setText(event.target.value)}
+            onKeyDown={event => { if (event.key === 'Enter' && text.trim()) { event.preventDefault(); onPick(kind, text.trim()) } }} />}
+      <button type="button" className="console-btn console-btn--primary" disabled={kind !== 'haptic' && !text.trim()}
+        onClick={() => onPick(kind, kind === 'haptic' ? haptic : text.trim())} data-hints="A:Use;B:Back">
+        {t('keymap.customUse', 'Use')}
+      </button>
+    </div>
+  )
 }

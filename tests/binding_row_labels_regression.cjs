@@ -98,10 +98,13 @@ const STEAM = 24;
     // --- a modeshift names its trigger the same way --------------------------
     // The shift lives in the input's own editor (Binding Editor 7a).
     await page.locator('details[data-input-command="N"] > summary').first().click();
-    const shiftRow = (await page.locator('details[data-input-command="N"] [class*=modeshiftRowHead]').first().innerText()).replace(/\s+/g, ' ').trim();
+    const shiftRow = (await page.locator('details[data-input-command="N"] [data-modeshift-row]').first().innerText()).replace(/\s+/g, ' ').trim();
     assert.ok(!/RSR|Paddle 1/.test(shiftRow), `the trigger should use the pad's own name: ${shiftRow}`);
     assert.match(shiftRow, /R4/, `a Steam Controller calls it R4: ${shiftRow}`);
+    // Its cog opens the shift's own card (3c).
+    await page.locator('details[data-input-command="N"] [data-modeshift-row="RSR"]').getByRole('button', { name: 'Modeshift settings' }).click();
     await page.locator('[data-input-command="RSR,N"]').first().waitFor();
+    await page.getByRole('dialog').last().locator('[data-modal-close]').click();
 
     // --- no phantom thumb in the editor preview -----------------------------
     // Scoped to the content pane: the header carries its own unrelated status

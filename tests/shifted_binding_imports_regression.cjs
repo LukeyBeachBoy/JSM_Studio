@@ -67,27 +67,29 @@ const PROFILE = [
     await page.waitForFunction(() => (window.__reads || []).length > 0);
     assert.deepEqual(await page.evaluate(() => window.__reads), ['profiles-library/FPS Template.txt']);
 
-    // The shift is edited from the input's own editor (Binding Editor 7a).
+    // A shift is a row in the input's Modeshifts lane; its cog opens the
+    // shift's sheet with its commands as ordinary rows (3c).
     await page.locator('details[data-input-command="S"] > summary').first().click();
+    await page.locator('details[data-input-command="S"][open] [data-modeshift-row="RSR"]').getByRole('button', { name: 'Modeshift settings' }).click();
     const shifted = page.locator('[data-input-command="RSR,S"]').first();
-    await shifted.locator(':scope > summary').click();
-    // Output/value fields fold behind the advanced-settings gear now.
-    await shifted.getByRole('button', { name: 'Command options', exact: true }).first().click();
-    const field = shifted.getByRole('textbox', { name: /Output value/i }).first();
-    await field.waitFor();
-    assert.equal(await field.inputValue(), 'Hyphen', 'the shifted binding did not load');
+    const keycap = shifted.locator('[data-command-row]').first().getByRole('button', { name: /^Choose action/ });
+    await keycap.waitFor();
+    const pickKey = async key => {
+      await keycap.click();
+      await page.getByRole('dialog', { name: 'Choose an action' }).locator('button.key-cap').filter({ hasText: new RegExp(`^${key}$`) }).click();
+    };
+    assert.match(await keycap.innerText(), /Hyphen|^-$/, 'the shifted binding did not load');
 
-    // --- the keyboard picker --------------------------------------------------
-    await shifted.getByRole('button', { name: /Keyboard…/ }).first().click();
-    await page.getByRole('button', { name: 'Tab', exact: true }).first().click();
+    // --- the action picker ----------------------------------------------------
+    await pickKey('Tab');
     await page.waitForTimeout(400);
-    assert.equal(await field.inputValue(), 'Tab', 'the edit snapped back: the card read a different line than it wrote');
+    assert.equal(await keycap.innerText(), 'Tab', 'the edit snapped back: the card read a different line than it wrote');
 
     // --- capture --------------------------------------------------------------
-    await shifted.getByRole('button', { name: /^Capture$/ }).first().click();
+    await shifted.getByRole('button', { name: 'Capture a key' }).click();
     await page.keyboard.press('KeyJ');
     await page.waitForTimeout(400);
-    assert.equal(await field.inputValue(), 'J', 'capture did not reach the shifted binding');
+    assert.equal(await keycap.innerText(), 'J', 'capture did not reach the shifted binding');
 
     // --- and it is the shifted line that changed ------------------------------
     await page.keyboard.press('Control+s');

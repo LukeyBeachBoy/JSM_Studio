@@ -143,7 +143,8 @@ const WARDOGS = [
     assert.match(r5, /\bM\b/, `and still its key: ${r5}`);
     const face = page.locator('details[data-input-command="RSL"]');
     await face.locator(':scope > summary').click();
-    await face.getByRole('button', { name: 'Command options', exact: true }).first().waitFor();
+    // A command's options are behind its row's cog now (3c).
+    await face.getByRole('button', { name: 'Command settings', exact: true }).first().waitFor();
     assert.equal(await face.getByText('Timing', { exact: true }).count(), 0, 'nothing is labelled Timing any more');
 
     assert.deepEqual(errors, []);

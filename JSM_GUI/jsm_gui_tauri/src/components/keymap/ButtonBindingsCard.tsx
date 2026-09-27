@@ -1,4 +1,4 @@
-import { memo, useContext, useMemo, useState } from 'react'
+import { memo, useMemo, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   BindingCommand,
@@ -39,12 +39,11 @@ import { controllerButtonLabel, type ControllerVisualFamily } from '../../utils/
 import { InputGlyph } from '../glyphs/InputGlyph'
 
 import { ButtonMappingCard, type BindingSummaryEntry } from './ButtonMappingCard'
-import { BindingLabelField } from './BindingLabelField'
 import { IconPicker } from './IconPicker'
-import { Icon } from '../icons/Icon'
+import { ButtonGlyph } from '../glyphs/ButtonGlyph'
+import { Lane, LaneAddButton, LaneSideButton, laneStyles } from './Lane'
 import { InputModeshiftPanel } from './InputModeshiftPanel'
-import { InputLayerActions, LayerUsageContext } from '../LayerBar'
-import { actionsOnInput } from '../../utils/layers'
+import { LayerActionsLane } from './LayerActionsLane'
 import { inputLongName, inputShortName } from '../../keymap/inputNames'
 import type { InputModeshiftsProps } from './InputModeshifts'
 import type { ModeshiftSummary } from '../../utils/modeshift'
@@ -143,6 +142,8 @@ type ButtonBindingsCardProps = {
   modeshifts?: ModeshiftSummary[]
   /** Chord bindings are edited in this group's modeshift panel, not here. */
   chordsLiveInModeshifts?: boolean
+  /** Just the lanes, for a card inside a sheet (a modeshift's commands). */
+  embedded?: boolean
 }
 
 const triggerToSlot = (trigger: BindingTriggerKind): BindingSlot => {
@@ -186,7 +187,6 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
   ensureManualRow,
   updateManualRow,
   removeManualRow,
-  captureLabel,
   isCapturing,
   isCapturingValue,
   beginValueCapture,
@@ -216,6 +216,7 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
   xAction,
   modeshifts,
   beginCapture,
+  embedded,
 }: ButtonBindingsCardProps) {
   const { t } = useTranslation()
 
@@ -226,9 +227,6 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
   // `domCommand` is what tells the two apart.
   const captureKeyFor = (command: BindingCommand) =>
     domCommand ? `${domCommand}:${command.id}` : command.id
-  // Parsing a draft into a real command can change its id. Keep disclosure at
-  // input level so typing the first character cannot close the active editor.
-  const [expandedCommands, setExpandedCommands] = useState<Set<number>>(() => new Set())
   const buttonKey = button.command.toUpperCase()
   const specialKey = specialsByButton[button.command]
   const stickShiftEntries = useMemo(
@@ -425,6 +423,21 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
       return
     }
 
+    // A new activation that lives on another config line (Press → Chord, Double
+    // → Press): the command moves there, rather than the change being dropped
+    // because the line it is on cannot say it (3c, every kind on the chip).
+    if (patch.triggerKind && patch.triggerKind !== command.triggerKind && command.source.slot !== commandSlot(nextCommand.triggerKind)) {
+      removeCommand(command)
+      writeCommand({
+        triggerKind: nextCommand.triggerKind,
+        outputKind: nextCommand.outputKind,
+        outputValue: nextCommand.outputValue,
+        outputBehavior: nextCommand.outputBehavior,
+        conditionInput: nextCommand.conditionInput,
+      })
+      return
+    }
+
     const expression = updateCommandExpression(command, patch)
     if (!expression) return
     const nextValue = serializeBindingExpression(expression)
@@ -597,46 +610,59 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
   const longName = label ?? inputLongName(button, controllerFamily, t)
   const closeLabel = `Close ${shortName}`
   const isShifted = Boolean(domCommand?.includes(','))
+  const inputGlyph = <InputGlyph command={button.command} family={controllerFamily} size={28} />
 
-  // The input's own name, on its first command; beside "+ Add command" when
-  // there is none yet. One label per input in the configuration.
-  const labelField = (
-    <>
-      {onBindingLabelChange && <BindingLabelField value={bindingLabel} onChange={value => onBindingLabelChange(button.command, value)} />}
-      {onBindingIconChange && <IconPicker value={bindingIcon ?? ''} onChange={value => onBindingIconChange(button.command, value)} />}
-    </>
-  )
-
-  // Nothing bound yet: one press adds a Press command, same as Steam Input's
-  // own empty-slot affordance. With a command already there the same button
-  // opens the menu of activation kinds.
-  const addControl = (
-    <div className={keymapStyles.addCommandRow} data-capture-ignore="true">
-      {commands.length === 0 ? (
-        <button type="button" className={`button button--secondary button--sm ${keymapStyles.editorPanelAddButton}`} onClick={() => handleAddCommand('regular')} data-hints={`A:Add command;B:${closeLabel}`}>
-          <Icon name="command" size={16} />{t('keymap.addCommand')}
-        </button>
-      ) : (
-        <Menu
-          ariaLabel={t('keymap.addCommand')}
-          items={addMenuItems}
-          trigger={
-            <button type="button" className={`button button--secondary button--sm ${keymapStyles.editorPanelAddButton}`} data-hints={`A:Add command;B:${closeLabel}`}>
-              <Icon name="command" size={16} />{t('keymap.addCommand')}
-            </button>
-          }
-        />
+  // Nothing bound yet: one press adds a Press command, as Steam Input's own
+  // empty slot does. With a command there the same button offers the kinds.
+  const addButtonProps = { concept: 'command' as const, label: t('keymap.addCommand'), hints: `A:Add command;X:Capture;B:${closeLabel}` }
+  const commandsLane = (
+    <Lane concept="command" label={t('keymap.commandsHeading', 'Commands')} count={commands.length} twoUpFooter
+      footer={
+        <>
+          {commands.length === 0
+            ? <LaneAddButton {...addButtonProps} onClick={() => handleAddCommand('regular')} />
+            : <Menu ariaLabel={t('keymap.addCommand')} items={addMenuItems} trigger={<LaneAddButton {...addButtonProps} />} />}
+          <LaneSideButton glyph={<ButtonGlyph button="X" size={28} family={controllerFamily === 'generic' ? undefined : controllerFamily} />}
+            label={t('keymap.captureAKey', 'Capture a key')} onClick={capturePrimary} hints={`A:Capture a key;B:${closeLabel}`} />
+        </>
+      }>
+      {commands.length > 0 && (
+        <div className={laneStyles.rows} data-capture-ignore="true">
+          {commands.map((command, index) => (
+            <BindingCommandCard
+              key={command.id}
+              layerInput={isShifted ? undefined : button.command}
+              inputLabel={controllerButtonLabel(button, controllerFamily)}
+              command={command}
+              glyph={inputGlyph}
+              // One name per input, on its first row (3c).
+              label={index === 0 && onBindingLabelChange ? bindingLabel ?? '' : undefined}
+              onLabelChange={onBindingLabelChange ? value => onBindingLabelChange(button.command, value) : undefined}
+              modifierOptions={modifierOptions}
+              specialOptions={command.source.kind === 'special' ? allSpecialOptionList : actionSpecialOptionList}
+              virtualControllerType={virtualControllerType}
+              libraryProfiles={libraryProfiles}
+              currentProfileName={currentProfileName}
+              isCapturing={isCapturingValue(captureKeyFor(command))}
+              onUpdate={updateCommand}
+              onRemove={removeCommand}
+              chordsLiveInModeshifts={chordsLiveInModeshifts}
+              onDuplicate={duplicateCommand}
+              onCopy={onCopyBindings ? (picked) => copyCommands([picked]) : undefined}
+              onCapture={captureCommand}
+              closeLabel={closeLabel}
+              onEnableVirtualController={onEnableVirtualController}
+            />
+          ))}
+        </div>
       )}
-      <button type="button" className="button button--ghost button--sm" onClick={capturePrimary} data-hints={`A:Capture a key;B:${closeLabel}`}>
-        {t('keymap.captureAKey', 'Capture a key')}
-      </button>
-      {commands.length === 0 && labelField}
-    </div>
+    </Lane>
   )
 
-  const extras = buttonHasTrackball ? (
+  const extras = (buttonHasTrackball || onBindingIconChange) ? (
     <div className={keymapStyles.trackballInline} data-capture-ignore="true">
-      <NumberField setting="TRACKBALL_DECAY"
+      {onBindingIconChange && <IconPicker value={bindingIcon ?? ''} onChange={value => onBindingIconChange(button.command, value)} />}
+      {buttonHasTrackball && <NumberField setting="TRACKBALL_DECAY"
         label={t('keymap.trackballDecay')}
         value={trackballDecay}
         onChange={onTrackballDecayChange}
@@ -645,14 +671,10 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
         step={0.1}
         coarseStep={0.5}
         placeholder={t('common.defaultValue', { value: '1.0' })}
-      />
+      />}
     </div>
   ) : null
 
-  const kindLabels = commands
-    .filter(command => command.outputValue.trim().toUpperCase() !== 'NONE')
-    .map(command => t(TRIGGER_LABEL_KEYS[command.triggerKind]))
-    .filter((kind, index, all) => all.indexOf(kind) === index)
   // NONE is how a profile says "nothing" over an imported binding, and a pill
   // reading "Unbound" beside a row that drives a layer said the opposite of
   // what the input does.
@@ -666,8 +688,6 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
       outputTitle: explainBinding(command.outputValue, t),
       jsm: command.outputKind === 'special' || command.source.kind === 'special' || command.source.kind === 'stickShift',
     }))
-  const requestDetails = (element: HTMLElement | null) => element?.dispatchEvent(new CustomEvent('jsm:binding-details', { bubbles: true }))
-  const selector = `[data-input-command="${(domCommand ?? button.command).replace(/"/g, '\\"')}"]`
 
   return (
     <ButtonMappingCard
@@ -675,7 +695,6 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
       title={longName}
       shortName={shortName}
       summary={summary}
-      kinds={kindLabels.join(' / ')}
       defaultOpen={defaultOpen}
       shifts={modeshifts}
       family={controllerFamily}
@@ -688,71 +707,24 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
       onCopyAll={onCopyBindings && commands.length > 0 ? () => copyCommands(commands) : undefined}
       onCapture={capturePrimary}
       xAction={xAction}
-      glyph={<InputGlyph command={button.command} family={controllerFamily} size={30} />}
+      glyph={<InputGlyph command={button.command} family={controllerFamily} size={embedded ? 30 : 40} />}
       isCapturing={rowCapturing}
-      addControl={addControl}
+      embedded={embedded}
+      lanes={
+        <>
+          {commandsLane}
+          {modeshiftPanel && !isShifted && <InputModeshiftPanel {...modeshiftPanel} button={button} shortName={shortName} />}
+          {!isShifted && <LayerActionsPanel command={button.command} label={`${longName} layer actions`} glyph={inputGlyph} shortName={shortName} />}
+        </>
+      }
       extras={extras}
       label={bindingLabel}
-      modeshifts={modeshiftPanel && !isShifted ? <InputModeshiftPanel {...modeshiftPanel} button={button} shortName={shortName} /> : undefined}
-      layerActions={!isShifted ? (
-        <LayerActionsPanel command={button.command} label={`${longName} layer actions`} />
-      ) : undefined}
-      commands={
-        commands.length > 0 ? (
-          commands.map((command, index) => (
-            <BindingCommandCard
-              key={command.id}
-              layerInput={isShifted ? undefined : button.command}
-              inputLabel={controllerButtonLabel(button, controllerFamily)}
-              expanded={expandedCommands.has(index)}
-              onExpandedChange={open => setExpandedCommands(previous => { const next = new Set(previous); if (open) next.add(index); else next.delete(index); return next })}
-              command={command}
-              modifierOptions={modifierOptions}
-              specialOptions={command.source.kind === 'special' ? allSpecialOptionList : actionSpecialOptionList}
-              virtualControllerType={virtualControllerType}
-              libraryProfiles={libraryProfiles}
-              currentProfileName={currentProfileName}
-              isCapturing={isCapturingValue(captureKeyFor(command))}
-              captureLabel={captureLabel}
-              onUpdate={updateCommand}
-              onRemove={removed => { setExpandedCommands(previous => new Set([...previous].filter(i => i !== index).map(i => i > index ? i - 1 : i))); removeCommand(removed) }}
-              chordsLiveInModeshifts={chordsLiveInModeshifts}
-              onDuplicate={duplicateCommand}
-              onCopy={onCopyBindings ? (picked) => copyCommands([picked]) : undefined}
-              onRename={() => document.querySelector<HTMLInputElement>(`${selector} input[aria-label]`)?.focus()}
-              onCapture={captureCommand}
-              onDetails={() => requestDetails(document.querySelector<HTMLElement>(selector))}
-              labelField={index === 0 ? labelField : undefined}
-              closeLabel={closeLabel}
-              onEnableVirtualController={onEnableVirtualController}
-            />
-          ))
-        ) : (
-          <div className={keymapStyles.commandEmptyState}>{t('keymap.commandEmptyState')}</div>
-        )
-      }
     />
   )
 })
 
-// The LAYER ACTIONS panel (7a), the same shape as the Modeshifts panel: title
-// and count, one line of what it is, the actions, one add button.
-function LayerActionsPanel({ command, label }: { command: string; label: string }) {
-  const { t } = useTranslation()
-  const { actions } = useContext(LayerUsageContext)
-  const mine = actionsOnInput(actions, command)
-  return (
-    <section className={keymapStyles.editorPanel} aria-label={label}>
-      <div className={keymapStyles.editorPanelHead}>
-        <span className={`${keymapStyles.eyebrowHeading} ${keymapStyles.eyebrowWithIcon}`}><Icon name="layers" size={14} />{t('keymap.layerActionsHeading', 'Layer actions')}</span>
-        <span className={keymapStyles.editorPanelCount}>{mine.length}</span>
-      </div>
-      <span className={keymapStyles.editorPanelEmpty}>
-        {mine.length
-          ? t('keymap.layerActionsNote', 'Layers this input turns on or off.')
-          : t('keymap.layerActionsEmpty', 'None. Hold, apply, remove or toggle a layer from this input.')}
-      </span>
-      <InputLayerActions command={command} variant="panel" />
-    </section>
-  )
+// The LAYER ACTIONS lane (3c): one row per action -- the input, an arrow, the
+// layer's tile and what it does -- and one add button.
+function LayerActionsPanel({ command, label, glyph, shortName }: { command: string; label: string; glyph: ReactNode; shortName: string }) {
+  return <LayerActionsLane command={command} label={label} glyph={glyph} shortName={shortName} />
 }

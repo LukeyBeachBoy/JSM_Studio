@@ -65,12 +65,15 @@ const fs = require('node:fs');
  await output.click();
  const north=page.locator('[data-input-command="N"]');await north.waitFor();
  assert(await north.evaluate(el=>el.contains(document.activeElement)),'preview shortcut did not focus N');
- await north.locator('input').filter({visible:true}).first().waitFor();
- await north.getByRole('button',{name:'Command actions',exact:true}).click();
- // The command menu carries what the header does not; its exact contents are
+ const firstRow=north.locator('[data-command-row]').first();
+ await firstRow.waitFor();
+ await firstRow.getByRole('button',{name:'Command settings',exact:true}).click();
+ // The row's cog opens its settings sheet; its exact contents are
  // binding_card_regression's business, this only proves it opens here.
- await page.getByRole('menuitem',{name:'Duplicate',exact:true}).waitFor();
- await page.keyboard.press('Escape');
+ const settingsSheet=page.getByRole('dialog').last();
+ await settingsSheet.getByRole('button',{name:'Duplicate',exact:true}).waitFor();
+ await settingsSheet.locator('[data-modal-close]').click();
+ await settingsSheet.waitFor({state:'detached'});
  await page.getByRole('button',{name:'Overview',exact:true}).click();
  // A callout names the action, not the command -- 'LT3' is what it is called
  // in the configuration, not what it does -- so reach it by accessible name.

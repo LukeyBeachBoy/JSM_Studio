@@ -460,3 +460,35 @@ export function createBindingCommandPreset(
     ...overrides,
   }
 }
+
+/**
+ * A value read as its first command, standing alone: what the action picker
+ * needs to open on a binding that has no card row of its own, such as a
+ * modeshift's output or a command about to be added.
+ */
+export function commandForValue(physicalInput: string, value: string, triggerKind: BindingTriggerKind = 'regular'): BindingCommand {
+  const token = parseBindingExpression(value)?.tokens[0]
+  const outputKind = token ? outputKindFromToken(token) : 'keyboard'
+  return {
+    id: `${physicalInput}-value`,
+    physicalInput,
+    triggerKind,
+    outputKind,
+    outputValue: token?.value ?? '',
+    outputBehavior: token ? ACTION_TO_BEHAVIOR[token.actionModifier] : 'normal',
+    tokens: token ? [token] : [],
+    sourceLine: physicalInput,
+    isRoundTripSafe: outputKind !== 'raw',
+    source: { kind: 'row', slot: 'tap', rowId: `${physicalInput}-value`, writeMode: 'line', expression: null, tokenIndex: 0, lineValue: value, isManual: false },
+  }
+}
+
+/** The value with its first output swapped for another, keeping how it fires
+ *  (event and action modifiers) and every output after it. */
+export function replaceFirstOutput(value: string, outputKind: BindingOutputKind, outputValue: string): string {
+  const expression = parseBindingExpression(value)
+  const kind = tokenKindFromOutput(outputKind)
+  const first = expression?.tokens[0] ?? createBindingToken(kind)
+  const token: BindingToken = { ...first, kind, value: outputValue, raw: '' }
+  return serializeBindingExpression(createBindingExpression([token, ...(expression?.tokens.slice(1) ?? [])]))
+}

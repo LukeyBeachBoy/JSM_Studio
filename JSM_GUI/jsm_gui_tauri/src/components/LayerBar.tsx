@@ -4,8 +4,7 @@ import { type ControllerVisualFamily } from '../utils/controllerStatus'
 import { inputDisplayName } from '../keymap/inputNames'
 import { AppSelect } from './ui/AppSelect'
 import { Icon } from './icons/Icon'
-import { ReleaseSwitch } from './keymap/ReleaseSwitch'
-import { isReleasedInput, withRelease } from '../utils/released'
+import { withRelease } from '../utils/released'
 import './Layers.css'
 
 /** The layer mark (binding card refresh 2a): stacked sheets, the top one filled. */
@@ -54,12 +53,11 @@ export function InputUsageInspector() {
   </section></div>
 }
 /** Layer actions belong to the input editor while remaining portable metadata. */
-export function InputLayerActions({ command, variant }: { command?: string; variant?: 'panel' }) {
+export function InputLayerActions({ command }: { command?: string }) {
   const { layers, actions, onSetActions, onSelect, disabled } = useContext(LayerUsageContext)
   const [verb, setVerb] = useState<LayerVerb>('hold')
-  const [adding, setAdding] = useState(false)
   // Pressed, or released ("!X"): a layer held while a grip is let go.
-  const [released, setReleased] = useState(false)
+  const [released] = useState(false)
   if (!command || !onSetActions) return null
   const mine = actionsOnInput(actions, command)
   const drop = (action: LayerAction) => onSetActions(command, mine.filter(a => a !== action))
@@ -68,42 +66,6 @@ export function InputLayerActions({ command, variant }: { command?: string; vari
   const add = (layerId: string) => {
     const input = withRelease(command, released)
     onSetActions(command, [...mine.filter(a => !(a.layerId === layerId && a.input === input)), { input, verb, layerId }])
-  }
-  const when = (action: LayerAction) => isReleasedInput(action.input) ? (action.verb === 'hold' ? 'while released' : 'on release') : null
-  const whenLabels: [string, string] = verb === 'hold' ? ['While held', 'While released'] : ['On press', 'On release']
-  // The binding editor's panel (7a): one row per action -- the layer's colour,
-  // what it does, Remove at the end -- and one add button, the same shape as
-  // the Modeshifts panel beside it rather than chips and a disclosure.
-  if (variant === 'panel') {
-    return <div className="input-layer-actions input-layer-actions--panel">
-      {mine.map((action, index) => {
-        const layerIndex = layers.findIndex(layer => layer.id === action.layerId)
-        const color = `var(--layer-${(Math.max(0, layerIndex) % 3) + 1})`
-        return <div className="layer-action-item" key={action.layerId + action.verb + index}>
-          <span className="layer-action-swatch" style={{ background: color }} aria-hidden="true" />
-          <button type="button" className="layer-action-name" disabled={disabled} onClick={() => onSelect?.(action.layerId)} title="Edit this layer">
-            <b>{layerVerbLabels[action.verb]}</b> {layers[layerIndex]?.name ?? action.layerId}
-            {when(action) && <span className="layer-action-when"> · {when(action)}</span>}
-          </button>
-          <button type="button" className="button button--ghost button--sm layer-action-remove" disabled={disabled} aria-label={`Remove ${describeAction(action, layers)}`} onClick={() => drop(action)}>Remove</button>
-        </div>
-      })}
-      {!layers.length
-        ? <span className="layer-action-note">Create a named layer on the Layers page, then assign it here.</span>
-        : adding
-          ? <div className="layer-action-add">
-              <ReleaseSwitch released={released} onChange={setReleased} ariaLabel="When the layer action happens" labels={whenLabels} disabled={disabled} />
-              <AppSelect aria-label="Layer action" value={verb} disabled={disabled} onChange={e => setVerb(e.target.value as LayerVerb)}>
-                {layerVerbs.map(v => <option key={v} value={v}>{layerVerbLabels[v]}</option>)}
-              </AppSelect>
-              <AppSelect aria-label="Layer action destination" value="" disabled={disabled} onChange={e => { if (e.target.value) { add(e.target.value); setAdding(false) } }}>
-                <option value="">Choose layer</option>
-                {layers.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-              </AppSelect>
-              <button type="button" className="button button--ghost button--sm" onClick={() => setAdding(false)}>Cancel</button>
-            </div>
-          : <div><button type="button" className="button button--secondary button--sm layer-action-add-button" disabled={disabled} data-hints="A:Add layer action;B:Back" onClick={() => setAdding(true)}><Icon name="layers" size={16} />Add layer action</button></div>}
-    </div>
   }
   return <div className="input-layer-actions">
     {mine.map((action, index) => <div className="layer-binding-row" key={action.layerId + action.verb + index}>

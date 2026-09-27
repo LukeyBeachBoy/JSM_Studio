@@ -31,7 +31,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
     assert.ok(await picker.getByText('Calibrate gyro', { exact: true }).count() >= 1, 'search should find Calibrate gyro by its description');
     await picker.getByText('Calibrate gyro', { exact: true }).first().click();
 
-    await page.waitForFunction(() => document.querySelector('details[data-input-command="MISC6"] summary')?.textContent?.includes('Calibrate gyro'));
+    await page.waitForFunction(() => document.querySelector('details[data-input-command="MISC6"] [data-command-row]')?.textContent?.includes('Calibrate gyro'));
     assert.deepEqual(errors, []);
     console.log('PASS Calibrate gyro is a named, described action, first in the JSM tab');
   } finally {

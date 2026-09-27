@@ -187,9 +187,13 @@ const ownLines = text => text.split(/\r?\n/).map(l => l.trim()).filter(l => l &&
     const field = label => `.main-pane input[aria-label="${label}"]`;
     const combo = label => `.main-pane [role=combobox][aria-label="${label}"]`;
     const group = label => `.main-pane [role=group][aria-label="${label}"]`;
-    const card = command => page.locator(`details[data-input-command="${command}"]`).first();
+    // A shift ("RSR,W") is a row in its input's Modeshifts lane now (3c).
+    const card = command => command.includes(',')
+      ? page.locator(`details[data-input-command="${command.split(',')[1]}"] [data-modeshift-row="${command.split(',')[0]}"]`).first()
+      : page.locator(`details[data-input-command="${command}"]`).first();
     const cardOrigin = command => page.evaluate(command => {
-      const marker = document.querySelector(`.main-pane details[data-input-command="${command}"] .origin-marker`);
+      const [held, key] = command.includes(',') ? command.split(',') : [null, command];
+      const marker = document.querySelector(held ? `.main-pane details[data-input-command="${key}"] [data-modeshift-row="${held}"] .origin-marker` : `.main-pane details[data-input-command="${command}"] .origin-marker`);
       return marker ? marker.getAttribute('data-origin') : 'none';
     }, command);
     const setNumber = async (label, value) => {
@@ -207,7 +211,7 @@ const ownLines = text => text.split(/\r?\n/).map(l => l.trim()).filter(l => l &&
       await page.locator(group(label)).getByRole('button', { name: option, exact: true }).click();
       await page.waitForTimeout(200);
     };
-    const open = async details => { if (!(await details.evaluate(e => e.open))) { await details.locator(':scope > summary').click(); await page.waitForTimeout(250) } };
+    const open = async details => { if (!(await details.evaluate(e => e.tagName !== 'DETAILS' || e.open))) { await details.locator(':scope > summary').click(); await page.waitForTimeout(250) } };
     // The binding editor's action picker: `last` is the main block's key where
     // a name appears twice (Ctrl is left and right; the left one is first).
     const bindKey = async (details, key, which = 'last') => {
@@ -233,8 +237,14 @@ const ownLines = text => text.split(/\r?\n/).map(l => l.trim()).filter(l => l &&
       await page.waitForTimeout(200);
       await page.keyboard.press('Escape');
     };
-    const labelField = () => card('W').locator('input[aria-label="Action name"]').first();
-    const setLabel = async text => { const f = labelField(); await f.fill(text); await f.press('Enter'); await page.waitForTimeout(200) };
+    // The input's name is set in its first command's settings sheet (3c).
+    const openLabel = async () => {
+      await card('W').locator('[data-command-row]').first().getByRole('button', { name: 'Command settings' }).click();
+      return page.getByRole('dialog').last().locator('input[aria-label="Action name"]');
+    };
+    const closeLabel = async () => { const sheet = page.getByRole('dialog').last(); await sheet.locator('[data-modal-close]').click(); await sheet.waitFor({ state: 'detached' }) };
+    const labelField = () => ({ inputValue: async () => { const f = await openLabel(); const value = await f.inputValue(); await closeLabel(); return value } });
+    const setLabel = async text => { const f = await openLabel(); await f.fill(text); await f.press('Enter'); await page.waitForTimeout(200); await closeLabel() };
     const save = async () => {
       const count = await page.evaluate(() => window.__saved.length);
       await page.keyboard.press('Control+s');

@@ -35,19 +35,22 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.cache
  await overviewNorth.waitFor();assert.equal(await overviewNorth.evaluate(e=>e===document.activeElement),true,'Back restores originating input focus');
  await overviewNorth.click();
  // Output/value fields fold behind the advanced-settings gear now.
- await north().getByRole('button',{name:'Command options',exact:true}).first().click();
- const output=north().locator('input[class*="valueInput"]').first();await output.fill('P');await output.press('Tab');
+ // The output is chosen in the action picker, from the row's keycap (3c).
+ await north().locator('[data-command-row]').first().getByRole('button',{name:/^Choose action/}).click();
+ await page.getByRole('dialog',{name:'Choose an action'}).locator('button.key-cap').filter({hasText:/^P$/}).click();
  // The library entry, not the "Applied · Running now" shortcut above the list (which also names Dense).
  const choose=async name=>{await page.locator('.profile-chip').click();await page.getByRole('menuitem').filter({has:page.locator('[class*=itemLabel]').getByText(name,{exact:true})}).filter({hasNotText:/Running now/}).click()};
  const closeLibrary=async()=>{const close=page.locator('.profile-modal [data-modal-close]');if(await close.count())await close.click()};
  await choose('Other');await page.getByRole('alertdialog').getByRole('button',{name:/Discard/i}).click();await page.locator('.profile-chip').filter({hasText:'Other'}).waitFor();await closeLibrary();
  await choose('Dense');await page.locator('.profile-chip').filter({hasText:'Dense'}).waitFor();await closeLibrary();
- assert.equal(await north().locator('summary kbd').first().innerText(),'F','discarded output must not return from draft cache');
+ assert.equal(await north().locator('[data-command-row]').first().getByRole('button',{name:/^Choose action/}).innerText(),'F','discarded output must not return from draft cache');
  await page.getByRole('button',{name:/^Editing layer:/}).click();await page.getByRole('menuitem').filter({has:page.locator('[class*=itemLabel]').getByText('Comms',{exact:true})}).click();
  if(await north().getAttribute('open')===null)await north().locator('summary').first().click();
  const origin=north().locator('[data-setting-origin="N"]').first();assert.match(await origin.innerText(),/Override/);
- await origin.getByRole('button',{name:'Use Default',exact:true}).click();
- assert.equal(await north().locator('summary kbd').first().innerText(),'F','per-binding reset restores Default');
+ // The per-binding reset is on the card's cog now (3c).
+ await north().getByRole('button',{name:'Binding settings',exact:true}).click();
+ await page.getByRole('menuitem',{name:'Reset to inherited',exact:true}).click();
+ assert.equal(await north().locator('[data-command-row]').first().getByRole('button',{name:/^Choose action/}).innerText(),'F','per-binding reset restores Default');
  await page.keyboard.press('Control+s');await page.waitForFunction(()=>window.__saved.includes('@layer'));
  const layer=JSON.parse((await page.evaluate(()=>window.__saved)).split('\n').find(l=>l.startsWith('# @layer ')).slice(9));assert.equal(layer.overrides.N,undefined);
  await page.getByRole('button',{name:'Overview',exact:true}).click();

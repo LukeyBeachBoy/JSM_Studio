@@ -38,11 +38,11 @@ const mount = async (page, profile) => {
   await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
   await page.locator('.profile-chip').waitFor();
   await page.getByRole('button', { name: 'Buttons', exact: true }).click();
-  // The shift is edited from the input's own editor (Binding Editor 7a).
+  // The shift is a row in the input's Modeshifts lane (3c); its keycap opens
+  // the action picker, where configurations are a category of their own.
   await page.locator('details[data-input-command="S"] > summary').first().click();
-  const row = page.locator('[data-input-command="RSR,S"]').first();
-  await row.locator(':scope > summary').click();
-  await row.getByRole('button',{name:'Command options',exact:true}).first().click();
+  const row = page.locator('details[data-input-command="S"][open] [data-modeshift-row="RSR"]');
+  await row.waitFor();
   return row;
 };
 
@@ -56,12 +56,10 @@ const mount = async (page, profile) => {
     page.setDefaultTimeout(15000);
     let row = await mount(page, 'RESET_MAPPINGS\nRSR,S = -\n');
 
-    await row.getByRole('combobox', { name: /^Output$/ }).first().click();
-    await page.getByRole('option', { name: 'Load configuration', exact: true }).click();
-
-    const value = row.getByRole('combobox', { name: /Output value/i }).first();
-    await value.click();
-    const offered = (await page.getByRole('option').allInnerTexts()).map(text => text.replace(/\s+/g, ' ').trim());
+    await row.getByRole('button', { name: /^Choose action/ }).click();
+    const picker = page.getByRole('dialog', { name: 'Choose an action' });
+    await picker.getByRole('button', { name: 'Configurations', exact: true }).click();
+    const offered = (await picker.locator('.action-picker__content button').allInnerTexts()).map(text => text.replace(/\s+/g, ' ').trim());
     // Every configuration in the library, with the one being edited marked --
     // binding an input to load the profile it is already in does nothing.
     assert.ok(offered.some(item => /^Wardogs \(this configuration\)$/.test(item)), `the current config is not marked: ${offered.join(', ')}`);
@@ -69,7 +67,7 @@ const mount = async (page, profile) => {
     assert.ok(offered.includes('Cyberpunk'), `the other configs are missing: ${offered.join(', ')}`);
     assert.ok(!offered.some(item => item.includes('.txt')), `the picker shows paths rather than names: ${offered.join(', ')}`);
 
-    await page.getByRole('option', { name: 'Wardogs Menu', exact: true }).click();
+    await picker.locator('.action-picker__content').getByRole('button', { name: 'Wardogs Menu', exact: true }).click();
     await page.keyboard.press('Control+s');
     await page.waitForFunction(() => /RSR,S/.test(window.__lastSaved || ''));
     const saved = await page.evaluate(() => window.__lastSaved);
@@ -88,19 +86,19 @@ const mount = async (page, profile) => {
     row = await mount(page, 'RESET_MAPPINGS\n' + WRITTEN + '\n');
 
     assert.match(
-      (await row.locator(':scope > summary').innerText()).replace(/\s+/g, ' ').trim(),
+      (await row.innerText()).replace(/\s+/g, ' ').trim(),
       /Load Wardogs Menu/,
       'the row should name the configuration, not print its path'
     );
+    // The picker opens on it: a configuration switch, not a command with a path.
+    await row.getByRole('button', { name: /^Choose action/ }).click();
+    const reopened = page.getByRole('dialog', { name: 'Choose an action' });
     assert.equal(
-      (await row.getByRole('combobox', { name: /^Output$/ }).first().innerText()).trim(),
-      'Load configuration',
+      await reopened.locator('.action-picker__content [aria-pressed="true"]').innerText(),
+      'Wardogs Menu',
       'an existing config-switch binding did not come back as one'
     );
-    assert.equal(
-      (await row.getByRole('combobox', { name: /Output value/i }).first().innerText()).trim(),
-      'Wardogs Menu'
-    );
+    await reopened.getByRole('button', { name: 'Cancel', exact: true }).click();
 
     // Saving it again without touching it must not rewrite the line.
     await page.keyboard.press('Control+s');

@@ -1,32 +1,44 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AppSelect } from '../ui/AppSelect'
+import { Sheet } from '../ui/Sheet'
 import { Icon } from '../icons/Icon'
 import { InputGlyph } from '../glyphs/InputGlyph'
-import { addModeshift, modeshiftTriggers, removeModeshift, renameModeshift, type ModeshiftTarget } from '../../utils/modeshift'
+import { addModeshift, modeshiftTriggers, readModeshift, removeModeshift, renameModeshift, writeModeshift, type ModeshiftTarget } from '../../utils/modeshift'
 import { heldInput, isReleasedInput, withRelease } from '../../utils/released'
+import { getBindingLabel } from '../../utils/bindingLabels'
+import { describeBinding, explainBinding } from '../../utils/bindingDescription'
+import { commandForValue, replaceFirstOutput } from '../../utils/bindingCommands'
+import { parseBindingExpression, serializeBindingToken } from '../../utils/keymap'
+import { inputDisplayName } from '../../keymap/inputNames'
+import { getActionSpecialOptionList, getButtonDescription, type ButtonDefinition } from '../../keymap/schema'
 import { ReleaseSwitch } from './ReleaseSwitch'
-import { getButtonDescription, type ButtonDefinition } from '../../keymap/schema'
 import { ShiftedBinding, type InputModeshiftsProps } from './InputModeshifts'
-import keymapStyles from '../Keymap.module.css'
+import { ActionPicker } from './ActionPicker'
+import { Lane, LaneAddButton, laneStyles } from './Lane'
+import { TriggerCap } from './ConceptTiles'
+import { OriginMarker } from './OriginMarker'
+import sheetStyles from './BindingEditor.module.css'
 
 type Props = Omit<InputModeshiftsProps, 'target' | 'initiallyOpen' | 'livePad'> & {
   button: ButtonDefinition
-  /** The input's short name, for the empty copy: "A modeshift makes RB do…". */
+  /** The input's short name: "A", for "Close A" and the sheet's eyebrow. */
   shortName: string
 }
 
 /**
- * The MODESHIFTS section of one input's editor (Binding Editor 7a): what this
- * input does while another input is held. Each shift is a `TRIGGER,INPUT`
- * line, edited with the same card the unshifted input uses. The section has
- * the shape every editor panel has -- title and count, one line of what it
- * is, the list, one add button -- so it and Layer actions read as a pair.
+ * The Modeshifts lane of the open binding card (binding card refresh 3c):
+ * what this input does while another input is held. One row per shift --
+ * the held input's cap, "+", this input, an arrow, what it sends then -- with
+ * the output keycap opening the action picker and the cog opening the shift's
+ * sheet: held or released, which input, every command of the shift (the same
+ * rows the card's own Commands lane has) and Remove.
  */
 export function InputModeshiftPanel({ button, shortName, ...props }: Props) {
   const { t } = useTranslation()
   const [adding, setAdding] = useState(false)
-  const [fresh, setFresh] = useState<string | null>(null)
+  const [editing, setEditing] = useState<string | null>(null)
+  const [picking, setPicking] = useState<string | null>(null)
   // A new shift holds while its input is held, or while it is released ("!X").
   const [releasedNew, setReleasedNew] = useState(false)
   const target = useMemo<ModeshiftTarget>(() => ({
@@ -34,67 +46,141 @@ export function InputModeshiftPanel({ button, shortName, ...props }: Props) {
     title: getButtonDescription(button, t),
     buttons: [{ command: button.command, label: getButtonDescription(button, t), definition: button }],
   }), [button, t])
-  const { text, onChange, modifiers } = props
+  const { text, onChange, modifiers, controllerFamily = 'generic' } = props
   const triggers = useMemo(() => modeshiftTriggers(text, target), [text, target])
   const available = modifiers.filter(option => !option.disabled && !triggers.includes(withRelease(option.value, releasedNew)) && option.value !== button.command.toUpperCase())
-  const labelFor = (trigger: string) => (modifiers.find(option => option.value === heldInput(trigger))?.label ?? heldInput(trigger)).split(' — ')[0]
-  // Held and released versions of one input are two different shifts; the
-  // switch swaps a shift between them unless the other already exists.
-  const flip = (trigger: string, released: boolean) => onChange(previous => renameModeshift(previous, target, trigger, withRelease(trigger, released)))
-  // The example in the empty copy: a paddle if the controller has one, else
-  // whatever the first available trigger is.
-  const example = available.find(option => /^(LSL|RSR|LSR|RSL)$/.test(option.value)) ?? available[0]
+  const heldName = (trigger: string) => inputDisplayName(heldInput(trigger), controllerFamily)
+  const closeLabel = `Close ${shortName}`
+  const specialOptions = useMemo(() => getActionSpecialOptionList(t), [t])
+  const command = button.command.toUpperCase()
+  const pickingValue = picking ? readModeshift(text, picking, command) ?? '' : ''
 
   return (
-    <section className={keymapStyles.editorPanel} aria-label={`${target.title} modeshifts`}>
-      <div className={keymapStyles.editorPanelHead}>
-        <span className={`${keymapStyles.eyebrowHeading} ${keymapStyles.eyebrowWithIcon}`}><Icon name="modeshift" size={14} />{t('keymap.modeshiftsTitle', 'Modeshifts')}</span>
-        <span className={keymapStyles.editorPanelCount}>{triggers.length}</span>
-      </div>
-      <span className={keymapStyles.editorPanelEmpty}>
-        {triggers.length
-          ? t('keymap.modeshiftsPanelNote', 'What {{input}} does instead while another input is held.', { input: shortName })
-          : example
-            ? t('keymap.modeshiftsEmpty', 'None. A modeshift makes {{input}} do something else while, say, {{trigger}} is held.', { input: shortName, trigger: labelFor(example.value) })
-            : t('keymap.modeshiftsNone', 'None.')}
-      </span>
-      {triggers.map(trigger => (
-        <div key={trigger} className={keymapStyles.modeshiftRow}>
-          <div className={keymapStyles.modeshiftRowHead}>
-            <InputGlyph command={heldInput(trigger)} family={props.controllerFamily} size={20} />
-            <span>{t('keymap.modeshiftWhile', 'While')} <b>{labelFor(trigger)}</b> {isReleasedInput(trigger) ? t('keymap.modeshiftIsReleased', 'is released') : t('keymap.modeshiftIsHeld', 'is held')}</span>
-            <ReleaseSwitch released={isReleasedInput(trigger)} ariaLabel={`${labelFor(trigger)}: held or released`}
-              disabled={triggers.includes(withRelease(trigger, !isReleasedInput(trigger)))}
-              onChange={released => flip(trigger, released)} />
-            <button type="button" className={`button button--ghost button--sm ${keymapStyles.editorPanelRemove}`} data-hints="A:Remove modeshift;B:Back" onClick={() => onChange(previous => removeModeshift(previous, target, trigger))}>
-              {t('keymap.removeModeshift', 'Remove')}
-            </button>
-          </div>
-          <ShiftedBinding {...props} target={target} trigger={trigger} button={button} defaultOpen={trigger === fresh} />
-        </div>
-      ))}
-      {adding ? (
-        <div className={keymapStyles.editorPanelAdd}>
+    <Lane concept="shift" label={t('keymap.modeshiftsTitle', 'Modeshifts')} count={triggers.length}
+      footer={adding ? (
+        // Replaced by the "Hold which button?" sheet (3e).
+        <div className={laneStyles.inlineAdd}>
           <ReleaseSwitch released={releasedNew} onChange={setReleasedNew} ariaLabel={t('keymap.modeshiftWhen', 'While the input is held or released')} />
           <AppSelect aria-label={t('keymap.modeshiftTrigger', 'Held input')} value="" onChange={event => {
             const trigger = event.target.value && withRelease(event.target.value, releasedNew)
             if (!trigger) return
-            setFresh(trigger)
             onChange(previous => addModeshift(previous, target, trigger))
             setAdding(false)
           }}>
             <option value="">{t('keymap.modeshiftChooseTrigger', 'Choose a trigger…')}</option>
             {available.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
           </AppSelect>
-          <button type="button" className="button button--ghost button--sm" onClick={() => setAdding(false)}>{t('common.cancel', 'Cancel')}</button>
+          <button type="button" className="console-btn" onClick={() => setAdding(false)}>{t('common.cancel', 'Cancel')}</button>
         </div>
       ) : (
-        <div>
-          <button type="button" className={`button button--secondary button--sm ${keymapStyles.editorPanelAddButton}`} disabled={!available.length} data-hints="A:Add modeshift;B:Back" onClick={() => setAdding(true)}>
-            <Icon name="modeshift" size={16} />{t('keymap.addModeshiftShort', 'Add modeshift')}
-          </button>
+        <LaneAddButton concept="shift" label={t('keymap.addModeshiftShort', 'Add modeshift')} disabled={!available.length}
+          hints={`A:Add modeshift;B:${closeLabel}`} onClick={() => setAdding(true)} />
+      )}>
+      {triggers.length > 0 && (
+        <div className={laneStyles.rows} aria-label={`${target.title} modeshifts`}>
+          {triggers.map(trigger => {
+            const value = readModeshift(text, trigger, command) ?? ''
+            const tokens = parseBindingExpression(value)?.tokens ?? []
+            const first = tokens[0] ? describeBinding(serializeBindingToken(tokens[0]), t) : ''
+            const shown = value && value.toUpperCase() !== 'NONE' ? first || describeBinding(value, t) : ''
+            const single = tokens.length <= 1 && commandForValue(command, value).isRoundTripSafe
+            const label = getBindingLabel(text, `${trigger},${command}`) ?? ''
+            const rowHints = `A:${single ? 'Change action' : 'Settings'};Y:Settings;B:${closeLabel}`
+            return (
+              <div key={trigger} className={laneStyles.row} data-kind="shift" data-modeshift-row={trigger} data-pad-keys="Y" data-hints={rowHints}
+                onKeyDown={event => { if (event.key === 'y' || event.key === 'Y') { event.preventDefault(); setEditing(trigger) } }}>
+                <span className={laneStyles.chain} title={`${inputDisplayName(trigger, controllerFamily)} + ${shortName}`}>
+                  <TriggerCap label={heldName(trigger)} size="lg" />
+                  <span className={laneStyles.chainPlus} aria-hidden="true">+</span>
+                  <InputGlyph command={button.command} family={controllerFamily} size={28} />
+                  {isReleasedInput(trigger) && <span className={laneStyles.badge}>{t('keymap.whileReleased', 'Released')}</span>}
+                </span>
+                <span className={laneStyles.arrow} aria-hidden="true">→</span>
+                <button type="button" className={laneStyles.keycap} title={explainBinding(value, t)} data-hints={rowHints}
+                  aria-label={`${t('keymap.chooseAction', 'Choose action')}: ${shown || t('keymap.commandNoOutput')}`}
+                  onClick={() => single ? setPicking(trigger) : setEditing(trigger)}>
+                  <span className={`${laneStyles.keycapText} ${shown ? '' : laneStyles.keycapEmpty}`}>{shown || t('keymap.commandChooseOutput', 'Choose…')}</span>
+                  {tokens.length > 1 && <span className={laneStyles.keycapMore}>+{tokens.length - 1}</span>}
+                </button>
+                <span className={laneStyles.textCell}>
+                  <span className={`${laneStyles.text} ${label ? '' : laneStyles.textEmpty}`}>{label || t('keymap.bindingLabelPlaceholder', 'Name this action')}</span>
+                  {/* Inherited from a template, or overriding one. */}
+                  <OriginMarker setting={`${trigger},${command}`} />
+                </span>
+                <button type="button" className="console-btn console-btn--icon" aria-label={t('keymap.modeshiftSettings', 'Modeshift settings')}
+                  onClick={() => setEditing(trigger)} data-hints={`A:Settings;B:${closeLabel}`}>
+                  <Icon name="cog" size={18} />
+                </button>
+              </div>
+            )
+          })}
         </div>
       )}
-    </section>
+      {picking && (
+        <ActionPicker inputLabel={`${heldName(picking)} + ${shortName}`} command={commandForValue(command, pickingValue)}
+          virtualControllerType={props.virtualControllerType} specialOptions={specialOptions} libraryProfiles={props.libraryProfiles} currentProfileName={props.currentProfileName}
+          onEnableVirtualController={props.onEnableVirtualController}
+          onSelect={patch => {
+            const trigger = picking
+            onChange(previous => writeModeshift(previous, trigger, command,
+              replaceFirstOutput(readModeshift(previous, trigger, command) ?? '', patch.outputKind ?? 'keyboard', patch.outputValue ?? '')))
+          }}
+          onClose={() => setPicking(null)} />
+      )}
+      {editing && triggers.includes(editing) && (
+        <ModeshiftSheet {...props} button={button} target={target} trigger={editing} triggers={triggers} shortName={shortName}
+          onClose={() => setEditing(null)} onRename={setEditing} />
+      )}
+    </Lane>
+  )
+}
+
+/** A shift's cog (3c): held or released, which input, its commands, Remove. */
+function ModeshiftSheet({ button, target, trigger, triggers, shortName, onClose, onRename, ...props }: Omit<Props, 'shortName'> & {
+  target: ModeshiftTarget
+  trigger: string
+  triggers: string[]
+  shortName: string
+  onClose: () => void
+  /** The shift's key changed (another input, or held ↔ released). */
+  onRename: (trigger: string) => void
+}) {
+  const { t } = useTranslation()
+  const { onChange, modifiers, controllerFamily = 'generic' } = props
+  const released = isReleasedInput(trigger)
+  const held = inputDisplayName(heldInput(trigger), controllerFamily)
+  const choices = modifiers.filter(option => !option.disabled && option.value !== button.command.toUpperCase() &&
+    (option.value === heldInput(trigger) || !triggers.includes(withRelease(option.value, released))))
+  const rename = (next: string) => { onChange(previous => renameModeshift(previous, target, trigger, next)); onRename(next) }
+  return (
+    <Sheet open onClose={onClose} width={760}
+      eyebrow={t('keymap.modeshiftEyebrow', 'Modeshift · {{input}}', { input: shortName })}
+      title={released ? t('keymap.modeshiftWhileReleased', 'While {{trigger}} is released', { trigger: held }) : t('keymap.modeshiftWhileHeld', 'While {{trigger}} is held', { trigger: held })}
+      hints={[{ button: 'A', label: t('keymap.sheetSelect', 'Select') }, { button: 'B', label: t('keymap.sheetClose', 'Close') }]}>
+      <div className={sheetStyles.sheet} data-capture-ignore="true">
+        <label className={sheetStyles.field}>
+          <span>{t('keymap.modeshiftHeldButton', 'Held button')}</span>
+          <AppSelect aria-label={t('keymap.modeshiftHeldButton', 'Held button')} value={heldInput(trigger)} onChange={event => rename(withRelease(event.target.value, released))}>
+            {choices.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </AppSelect>
+        </label>
+        <div className={sheetStyles.field}>
+          <span>{t('keymap.modeshiftAppliesWhile', 'Applies while it is')}</span>
+          <ReleaseSwitch released={released} ariaLabel={`${held}: held or released`}
+            disabled={triggers.includes(withRelease(trigger, !released))}
+            onChange={next => rename(withRelease(trigger, next))} />
+        </div>
+        <div className={sheetStyles.field}>
+          <span>{t('keymap.modeshiftCommands', 'Commands while held')}</span>
+          <ShiftedBinding {...props} target={target} trigger={trigger} button={button} embedded />
+        </div>
+        <div className={sheetStyles.actions}>
+          <button type="button" className="console-btn console-btn--danger" data-hints="A:Remove modeshift;B:Close"
+            onClick={() => { onChange(previous => removeModeshift(previous, target, trigger)); onClose() }}>
+            <Icon name="remove" size={18} />{t('keymap.removeModeshift', 'Remove modeshift')}
+          </button>
+        </div>
+      </div>
+    </Sheet>
   )
 }
