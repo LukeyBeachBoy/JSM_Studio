@@ -2467,3 +2467,31 @@
   .keymapRow::details-content, .keymapRow[open]::details-content { transition: none; }
   .keymapRow[open] > .cardBody > * { animation: chips-in var(--dur-3) linear both; animation-delay: 0ms; }
 }
+
+/* ---- Collapsed <-> open (2f): the header grows from the row's 60 to 72 and
+   its glyph from 30 to 40, both on the body's curve; the title eases between
+   15 and 18. A header with no second line centres its title. */
+.keymapRow > .bindingRow,
+.keymapRow > .cardHead {
+  transition: height var(--dur-3) var(--ease-emphasis), min-height var(--dur-3) var(--ease-emphasis), padding var(--dur-3) var(--ease-emphasis), background var(--dur-1) var(--ease-standard);
+}
+.keymapRow > .cardHead { height: 72px; }
+.keymapRow > :global(.binding-summary) > .glyphBadge,
+.keymapRow > :global(.binding-summary) > .glyphBadge svg {
+  transition: width var(--dur-3) var(--ease-emphasis), height var(--dur-3) var(--ease-emphasis);
+}
+.keymapRow:not([open]) > :global(.binding-summary) > .glyphBadge,
+.keymapRow:not([open]) > :global(.binding-summary) > .glyphBadge svg { transition-duration: var(--dur-2); transition-timing-function: var(--ease-exit); }
+.cardHead :global(.binding-summary-input):empty { display: none; }
+.keymapRow[data-toggled='true'][open] .cardTitle { animation: title-grow var(--dur-3) var(--ease-emphasis); }
+.keymapRow[data-toggled='true']:not([open]) > .bindingRow :global(.binding-summary-label) { animation: title-shrink var(--dur-2) var(--ease-exit); }
+.keymapRow[data-toggled='true'] > :global(.binding-summary) :global(.binding-summary-input) { animation: chips-in var(--dur-2) var(--ease-standard); }
+@keyframes title-grow { from { font-size: 15px; } }
+@keyframes title-shrink { from { font-size: 18px; } }
+@media (prefers-reduced-motion: reduce) {
+  .keymapRow > .bindingRow, .keymapRow > .cardHead,
+  .keymapRow > :global(.binding-summary) > .glyphBadge,
+  .keymapRow > :global(.binding-summary) > .glyphBadge svg { transition: none; }
+  .keymapRow[data-toggled='true'][open] .cardTitle,
+  .keymapRow[data-toggled='true']:not([open]) > .bindingRow :global(.binding-summary-label) { animation: none; }
+}

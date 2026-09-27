@@ -176,6 +176,8 @@ const fs = require('node:fs');
  // Badges and outputs must share the value column, without forcing the chevron onto a second line.
  // Compared closed: an open row is a 64px card header by design (Binding Editor).
  if(await north.getAttribute('open')!==null){ await north.locator('summary').first().click(); await page.waitForFunction(()=>!document.querySelector('details[data-input-command="N"]')?.open); }
+ // The header shrinks back to a row over 160ms (2f); measure the settled row.
+ await page.waitForFunction(()=>document.getAnimations().every(animation=>animation.playState!=='running'));
  const northSummary=await north.locator('summary').first().boundingBox();
  const inheritedSummary=await page.locator('details[data-input-command="E"] > summary').first().boundingBox();
  assert.equal(northSummary.height,inheritedSummary.height,'override and inherited rows keep the same height');

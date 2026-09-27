@@ -110,6 +110,9 @@ export function ButtonMappingCard({
   const detailsRef = useRef<HTMLDetailsElement>(null)
   const summaryRef = useRef<HTMLElement>(null)
   const [open, setOpen] = useState(Boolean(defaultOpen))
+  // Set by the first open or close, so the row's glyph and title animate
+  // between their two sizes then -- and not on every row as the page loads.
+  const [toggled, setToggled] = useState(false)
   const [details, setDetails] = useState(false)
   const inputUses = useInputUses(command)
   const { actions, layers } = useContext(LayerUsageContext)
@@ -203,12 +206,13 @@ export function ButtonMappingCard({
   return (
     <details ref={detailsRef} onToggle={event => {
       setOpen(event.currentTarget.open)
+      setToggled(true)
       // Focus stays on the summary across a toggle, so the capsule is told.
       window.dispatchEvent(new Event('jsm:interaction-hint'))
       if (!event.currentTarget.open) return
       const current = event.currentTarget
       current.parentElement?.querySelectorAll<HTMLDetailsElement>(':scope > details[data-input-command][open]').forEach(other => { if (other !== current) other.open = false })
-    }} data-input-command={command} tabIndex={-1} className={`${keymapStyles.keymapRow} ${isCapturing ? keymapStyles.keymapRowCapturing : ''}`}>
+    }} data-input-command={command} data-toggled={toggled ? 'true' : undefined} tabIndex={-1} className={`${keymapStyles.keymapRow} ${isCapturing ? keymapStyles.keymapRowCapturing : ''}`}>
       <summary ref={summaryRef} className={`binding-summary ${open ? keymapStyles.cardHead : keymapStyles.bindingRow}`} data-hints={hints} data-pad-keys="XY" onKeyDown={onSummaryKey}>
         {open && iconWell
           ? <span className={keymapStyles.iconWell} aria-hidden="true">{iconWell}</span>
