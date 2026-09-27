@@ -8,7 +8,8 @@ import { ReleaseSwitch } from './keymap/ReleaseSwitch'
 import { isReleasedInput, withRelease } from '../utils/released'
 import './Layers.css'
 
-export function LayerIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5" /></svg> }
+/** The layer mark (binding card refresh 2a): stacked sheets, the top one filled. */
+export function LayerIcon({ size = 16 }: { size?: number }) { return <Icon name="layer" size={size} /> }
 
 export const LayerUsageContext = createContext<{
   text: string; layers: ConfigLayer[]; actions: LayerAction[]; selected?: ConfigLayer

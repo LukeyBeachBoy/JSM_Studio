@@ -19,6 +19,10 @@ export const opticalStroke = (size: number) => {
   return STROKE_RAMP[STROKE_RAMP.length - 1][1]
 }
 
+// Drawings imported with a stroke of their own rather than the ramp: the cog
+// is Lucide's "settings" at 1.8 (binding card refresh §1).
+const FIXED_STROKE: Partial<Record<IconName, number>> = { cog: 1.8 }
+
 type IconProps = {
   name: IconName
   size?: number
@@ -36,7 +40,7 @@ export function Icon({ name, size = 20, className, title }: IconProps) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={opticalStroke(size)}
+      strokeWidth={FIXED_STROKE[name] ?? opticalStroke(size)}
       strokeLinecap="round"
       strokeLinejoin="round"
       className={className}

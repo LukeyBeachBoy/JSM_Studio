@@ -124,6 +124,53 @@
   --glyph-ink: var(--surface-frame);
 }
 
+/* Concept identity (binding card refresh §1, 3a/2a): one colour and one mark
+   each for commands, modeshifts and layers, used on every surface that names
+   one. Commands keep the app blue; modeshift is the only thing that glows,
+   and error never borrows its crimson or its hex mark. */
+:root,
+:root[data-theme='dark'] {
+  --command: var(--accent);
+  --command-soft: rgba(110, 195, 244, .14);
+  --command-line: rgba(110, 195, 244, .3);
+  --command-ink: var(--text-1);
+  --command-on: #07131d;
+  --shift: #ff4368;
+  --shift-soft: rgba(255, 67, 104, .14);
+  --shift-line: rgba(255, 67, 104, .35);
+  --shift-ink: #ffc4d0;
+  --shift-on: #1a0409;
+  --shift-glow: 0 0 18px rgba(255, 67, 104, .25);
+  --layer-1-ink: oklch(86% .07 300);
+  --layer-2-ink: oklch(86% .07 160);
+  --layer-3-ink: oklch(86% .07 60);
+  --layer-on: #120a1c;
+  /* The held-input cap drawn in front of a shifted input (L4 + A). */
+  --trigger-cap: #e8eef4;
+  --trigger-cap-ink: #0d1217;
+}
+
+/* Light: the same hues at L≈52%, inks darker than their fills. */
+:root[data-theme='light'] {
+  --command: var(--accent);
+  --command-soft: rgba(11, 111, 184, .1);
+  --command-line: rgba(11, 111, 184, .3);
+  --command-ink: var(--text-1);
+  --command-on: #ffffff;
+  --shift: oklch(52% .19 15);
+  --shift-soft: oklch(52% .19 15 / .12);
+  --shift-line: oklch(52% .19 15 / .35);
+  --shift-ink: oklch(42% .16 15);
+  --shift-on: #ffffff;
+  --shift-glow: 0 0 18px oklch(52% .19 15 / .2);
+  --layer-1-ink: oklch(40% .12 300);
+  --layer-2-ink: oklch(40% .12 160);
+  --layer-3-ink: oklch(40% .12 60);
+  --layer-on: #ffffff;
+  --trigger-cap: #141c24;
+  --trigger-cap-ink: #ffffff;
+}
+
 @media (max-width: 1279px) {
   /* :root[data-theme] too: the themed blocks above outrank a bare :root, and
      the theme is painted on <html> from launch, so without it the compact

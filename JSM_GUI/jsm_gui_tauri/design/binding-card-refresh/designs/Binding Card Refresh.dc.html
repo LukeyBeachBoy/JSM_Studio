@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<link rel="stylesheet" href="./tokens/tokens.css">
+<style>html,body{margin:0;min-height:100%;background:#0a0e12;font-family:"Geist",system-ui,sans-serif;font-feature-settings:"tnum" 1;} a{color:#6ec3f4;text-decoration:none;} a:hover{color:#e8eef4;}</style>
+</helmet>
+
+<section data-screen-label="Turn 3 · Hybrid card" style="padding:64px;display:flex;flex-direction:column;gap:56px;color:#e8eef4;border-bottom:1px solid rgba(214,228,242,.07);">
+  <div style="display:flex;flex-direction:column;gap:8px;max-width:980px;">
+    <div style="font-size:12px;letter-spacing:.12em;color:#808c99;">BINDING CARD REFRESH · TURN 3</div>
+    <div style="font-size:32px;font-weight:600;letter-spacing:-.015em;">Lanes from 2b, game parts from 2c</div>
+    <div style="font-size:15px;line-height:22px;color:#b0bcc8;text-wrap:pretty;">Vertical lanes keep the reading order. Inside them every row is built from controller glyphs, keycaps and rounded output tiles. No inline text buttons or ···: every action is a filled console button, and per-row settings sit behind a cog.</div>
+  </div>
+
+  <!-- 3a colour -->
+  <div id="3a" style="display:flex;flex-direction:column;gap:16px;">
+    <div style="display:flex;align-items:baseline;gap:12px;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">3a</span><span style="font-size:20px;font-weight:600;">Modeshift colour nudged to crimson</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:stretch;">
+      <div style="flex:none;width:220px;display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:12px;background:#1f2730;opacity:.55;">
+        <div style="height:56px;border-radius:10px;background:#ff5ea8;"></div>
+        <div style="display:flex;flex-direction:column;"><span style="font-size:14px;font-weight:600;">Was · Neon pink</span><span style="font-family:'Geist Mono';font-size:12px;color:#b0bcc8;">#FF5EA8 · hue 355</span></div>
+      </div>
+      <div style="flex:none;width:220px;display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:12px;background:#1f2730;box-shadow:0 0 0 2px #ff4368,0 0 24px rgba(255,67,104,.25);">
+        <div style="height:56px;border-radius:10px;background:#ff4368;"></div>
+        <div style="display:flex;flex-direction:column;"><span style="font-size:14px;font-weight:600;">Now · Crimson</span><span style="font-family:'Geist Mono';font-size:12px;color:#b0bcc8;">#FF4368 · hue 10</span></div>
+      </div>
+      <div style="flex:none;width:420px;display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:12px;background:#1f2730;">
+        <div style="font-size:11px;letter-spacing:.12em;font-weight:600;color:#808c99;">NEXT TO ITS NEIGHBOURS</div>
+        <div style="display:flex;gap:8px;">
+          <div style="flex:1;display:flex;flex-direction:column;gap:6px;"><div style="height:32px;border-radius:8px;background:#6ec3f4;"></div><span style="font-size:12px;color:#b0bcc8;">Command</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:6px;"><div style="height:32px;border-radius:8px;background:#ff4368;"></div><span style="font-size:12px;color:#b0bcc8;">Modeshift</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:6px;"><div style="height:32px;border-radius:8px;background:oklch(76% .11 300);"></div><span style="font-size:12px;color:#b0bcc8;">Layer 1</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:6px;"><div style="height:32px;border-radius:8px;background:oklch(76% .11 60);"></div><span style="font-size:12px;color:#b0bcc8;">Layer 3</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:6px;"><div style="height:32px;border-radius:8px;background:#ef8a8f;"></div><span style="font-size:12px;color:#b0bcc8;">Error</span></div>
+        </div>
+        <div style="font-size:12px;line-height:17px;color:#808c99;">Crimson is much more saturated than error and always carries the hex mark or glow; error never glows. Tokens: <span style="font-family:'Geist Mono';color:#ffc4d0;">--shift #FF4368 · --shift-soft .14 · --shift-ink #FFC4D0</span>.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3b collapsed -->
+  <div id="3b" style="display:flex;flex-direction:column;gap:16px;">
+    <div style="display:flex;align-items:baseline;gap:12px;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">3b</span><span style="font-size:20px;font-weight:600;">Collapsed rows · two fixed columns</span></div>
+    <div style="font-size:14px;line-height:21px;color:#b0bcc8;max-width:980px;text-wrap:pretty;">The <b style="color:#e8eef4;">Output</b> column always starts at the same x, so R, Space and C line up. Up to two commands show as keycaps with the activation printed on the cap; a third becomes “+1”. The <b style="color:#e8eef4;">Extras</b> column shows at most one modeshift tile and one layer tile, then a single “+n”. A row never gets taller or wider.</div>
+    <div style="flex:none;width:900px;display:flex;flex-direction:column;gap:6px;padding:20px;border-radius:12px;background:#131920;box-shadow:0 0 0 1px rgba(214,228,242,.13);">
+      <div style="display:grid;grid-template-columns:32px minmax(0,1fr) 250px 220px;gap:14px;padding:0 14px 6px;font-size:11px;letter-spacing:.12em;font-weight:600;color:#5b6571;"><span></span><span>FACE BUTTONS</span><span>EXTRAS</span><span>OUTPUT</span></div>
+      <sc-for list="{{ rows3 }}" as="r" hint-placeholder-count="5">
+        <div style="height:60px;display:grid;grid-template-columns:32px minmax(0,1fr) 250px 220px;align-items:center;gap:14px;padding:0 14px;border-radius:10px;background:{{ r.bg }};box-shadow:{{ r.ring }};">
+          <span style="width:30px;height:30px;background:url({{ r.glyph }}) center/contain no-repeat;"></span>
+          <div style="min-width:0;display:flex;flex-direction:column;"><span style="font-size:15px;font-weight:500;color:{{ r.nameC }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ r.name }}</span><span style="font-size:13px;color:#808c99;">{{ r.input }}</span></div>
+          <div style="display:flex;align-items:center;gap:6px;min-width:0;">
+            <sc-if value="{{ r.shift }}" hint-placeholder-val="{{ false }}">
+              <span style="height:32px;display:flex;align-items:center;gap:6px;padding:0 10px 0 5px;border-radius:8px;background:rgba(255,67,104,.14);box-shadow:inset 0 0 0 1px rgba(255,67,104,.4);font-size:13px;font-weight:600;color:#ffc4d0;"><span style="height:22px;min-width:26px;display:grid;place-items:center;padding:0 4px;border-radius:6px;background:#e8eef4;color:#0d1217;font-size:10px;font-weight:800;box-sizing:border-box;">{{ r.shift.btn }}</span><span style="color:#ff4368;">→</span>{{ r.shift.out }}</span>
+            </sc-if>
+            <sc-if value="{{ r.layer }}" hint-placeholder-val="{{ false }}">
+              <span style="height:32px;display:flex;align-items:center;gap:6px;padding:0 10px;border-radius:8px;background:oklch(76% .11 300 / .16);box-shadow:inset 0 0 0 1px oklch(76% .11 300 / .4);font-size:13px;font-weight:600;color:oklch(76% .11 300);"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M8 2 14 5.3 8 8.6 2 5.3z" fill="currentColor" fill-opacity=".3"></path><path d="M2 8.4 8 11.7l6-3.3"></path></svg>{{ r.layer }}</span>
+            </sc-if>
+            <sc-if value="{{ r.more }}" hint-placeholder-val="{{ false }}"><span style="height:32px;min-width:32px;display:grid;place-items:center;padding:0 8px;border-radius:8px;background:#2e3844;font-size:12px;font-weight:700;color:#b0bcc8;box-sizing:border-box;">{{ r.more }}</span></sc-if>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <sc-for list="{{ r.keys }}" as="k" hint-placeholder-count="1">
+              <span style="height:34px;display:flex;flex-direction:column;justify-content:center;padding:0 12px;border-radius:7px;background:#2e3844;box-shadow:inset 0 -3px 0 rgba(214,228,242,.13);"><span style="font-size:8px;letter-spacing:.1em;font-weight:700;color:#6ec3f4;line-height:9px;">{{ k.act }}</span><span style="font-size:13px;font-weight:600;line-height:16px;white-space:nowrap;">{{ k.key }}</span></span>
+            </sc-for>
+            <sc-if value="{{ r.keyMore }}" hint-placeholder-val="{{ false }}"><span style="height:34px;min-width:34px;display:grid;place-items:center;padding:0 8px;border-radius:7px;background:rgba(110,195,244,.14);font-size:12px;font-weight:700;color:#6ec3f4;box-sizing:border-box;">{{ r.keyMore }}</span></sc-if>
+            <sc-if value="{{ r.none }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;color:#5b6571;">None</span></sc-if>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- 3c open card -->
+  <div id="3c" style="display:flex;flex-direction:column;gap:16px;">
+    <div style="display:flex;align-items:baseline;gap:12px;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">3c</span><span style="font-size:20px;font-weight:600;">Open card · lanes of game rows</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start;">
+      <div style="flex:none;width:760px;display:flex;flex-direction:column;border-radius:16px;background:#1f2730;box-shadow:0 0 0 1px rgba(214,228,242,.13),0 8px 24px rgba(0,0,0,.35);overflow:hidden;">
+        <div style="display:flex;align-items:center;gap:14px;padding:16px 16px 16px 18px;background:linear-gradient(90deg,rgba(110,195,244,.10),rgba(110,195,244,0) 55%);border-bottom:1px solid rgba(214,228,242,.07);">
+          <img src="glyphs/xbox/A.svg" style="width:40px;height:40px;" alt="A">
+          <div style="flex:1;display:flex;flex-direction:column;gap:2px;"><span style="font-size:18px;font-weight:600;">A button</span><span style="font-size:13px;color:#808c99;">Jump</span></div>
+          <span style="width:40px;height:40px;border-radius:10px;background:#2e3844;box-shadow:inset 0 0 0 1px rgba(214,228,242,.13);display:grid;place-items:center;color:#e8eef4;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg></span>
+          <span style="height:40px;display:flex;align-items:center;gap:8px;padding:0 14px 0 10px;border-radius:10px;background:#2e3844;box-shadow:inset 0 0 0 1px rgba(214,228,242,.13);font-size:13px;font-weight:600;"><img src="glyphs/xbox/Y.svg" style="width:20px;" alt="Y">Details</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px;padding:16px;">
+          <!-- commands lane -->
+          <div style="display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:12px;background:linear-gradient(135deg,rgba(110,195,244,.09),rgba(110,195,244,.02));box-shadow:inset 0 0 0 1px rgba(110,195,244,.18);">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="width:28px;height:28px;border-radius:8px;background:rgba(110,195,244,.18);display:grid;place-items:center;color:#6ec3f4;"><svg width="17" height="17" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="2" y="2.5" width="12" height="11" rx="2.5"></rect><path d="M8.9 4.4 6.3 8h2.2l-.9 2.6L10.2 7H8z" fill="currentColor" stroke="none"></path></svg></span>
+              <span style="font-size:12px;letter-spacing:.12em;font-weight:700;color:#6ec3f4;">COMMANDS</span><span style="font-size:12px;font-weight:700;color:#6ec3f4;opacity:.7;">2</span>
+            </div>
+            <sc-for list="{{ laneCmds }}" as="c" hint-placeholder-count="2">
+              <div style="height:56px;display:grid;grid-template-columns:30px 96px 16px auto minmax(0,1fr) 40px;align-items:center;gap:12px;padding:0 8px 0 12px;border-radius:10px;background:{{ c.bg }};box-shadow:{{ c.ring }};">
+                <img src="glyphs/xbox/A.svg" style="width:28px;" alt="A">
+                <span style="height:32px;display:flex;align-items:center;justify-content:space-between;padding:0 10px 0 12px;border-radius:8px;background:rgba(110,195,244,.14);box-shadow:inset 0 0 0 1px rgba(110,195,244,.3);font-size:12px;letter-spacing:.06em;font-weight:700;color:#6ec3f4;">{{ c.act }}<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M2.5 3.75 5 6.25 7.5 3.75"></path></svg></span>
+                <span style="color:#6ec3f4;text-align:center;">→</span>
+                <span style="height:36px;display:flex;align-items:center;padding:0 14px;border-radius:8px;background:#2e3844;box-shadow:inset 0 -3px 0 rgba(214,228,242,.13);font-size:15px;font-weight:600;">{{ c.key }}</span>
+                <span style="font-size:14px;color:#b0bcc8;">{{ c.name }}</span>
+                <span style="width:40px;height:40px;border-radius:10px;background:#2e3844;box-shadow:inset 0 0 0 1px rgba(214,228,242,.13);display:grid;place-items:center;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#e8eef4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg></span>
+              </div>
+            </sc-for>
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;">
+              <span style="height:44px;display:flex;align-items:center;gap:10px;padding:0 14px 0 8px;border-radius:10px;background:rgba(110,195,244,.16);box-shadow:inset 0 0 0 1px rgba(110,195,244,.4),inset 0 -3px 0 rgba(110,195,244,.25);font-size:14px;font-weight:700;color:#e8eef4;"><span style="width:28px;height:28px;border-radius:7px;background:#6ec3f4;color:#07131d;display:grid;place-items:center;font-size:18px;font-weight:700;">+</span>Add command</span>
+              <span style="height:44px;display:flex;align-items:center;gap:10px;padding:0 14px 0 8px;border-radius:10px;background:#2e3844;box-shadow:inset 0 0 0 1px rgba(214,228,242,.13),inset 0 -3px 0 rgba(214,228,242,.08);font-size:14px;font-weight:700;color:#e8eef4;"><img src="glyphs/xbox/X.svg" style="width:28px;" alt="X">Capture a key</span>
+            </div>
+          </div>
+          <!-- modeshift lane -->
+          <div style="display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:12px;background:linear-gradient(135deg,rgba(255,67,104,.12),rgba(255,67,104,.03));box-shadow:inset 0 0 0 1px rgba(255,67,104,.3),0 0 28px rgba(255,67,104,.08);">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="width:28px;height:28px;border-radius:8px;background:rgba(255,67,104,.2);display:grid;place-items:center;color:#ff4368;box-shadow:0 0 12px rgba(255,67,104,.35);"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path d="M8 1.3 13.8 4.6v6.8L8 14.7 2.2 11.4V4.6z"></path><path d="M5.3 8.1 8 5.5l2.7 2.6"></path><path d="M5.3 10.9 8 8.3l2.7 2.6"></path></svg></span>
+              <span style="font-size:12px;letter-spacing:.12em;font-weight:700;color:#ff4368;">MODESHIFTS</span><span style="font-size:12px;font-weight:700;color:#ff4368;opacity:.7;">1</span>
+            </div>
+            <div style="height:56px;display:grid;grid-template-columns:auto 16px auto minmax(0,1fr) 40px;align-items:center;gap:12px;padding:0 8px 0 12px;border-radius:10px;background:#26303a;">
+              <span style="display:flex;align-items:center;gap:6px;"><span style="height:28px;min-width:34px;display:grid;place-items:center;padding:0 6px;border-radius:7px;background:#e8eef4;color:#0d1217;font-size:12px;font-weight:800;box-sizing:border-box;">L4</span><span style="color:#ff4368;font-weight:800;">+</span><img src="glyphs/xbox/A.svg" style="width:28px;" alt="A"></span>
+              <span style="color:#ff4368;text-align:center;">→</span>
+              <span style="height:36px;display:flex;align-items:center;padding:0 14px;border-radius:8px;background:#2e3844;box-shadow:inset 0 -3px 0 rgba(214,228,242,.13);font-size:15px;font-weight:600;">V</span>
+              <span style="font-size:14px;color:#b0bcc8;">Melee</span>
+              <span style="width:40px;height:40px;border-radius:10px;background:#2e3844;box-shadow:inset 0 0 0 1px rgba(214,228,242,.13);display:grid;place-items:center;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#e8eef4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg></span>
+            </div>
+            <span style="height:44px;display:flex;align-items:center;gap:10px;padding:0 14px 0 8px;border-radius:10px;background:rgba(255,67,104,.16);box-shadow:inset 0 0 0 1px rgba(255,67,104,.45),inset 0 -3px 0 rgba(255,67,104,.25);font-size:14px;font-weight:700;"><span style="width:28px;height:28px;border-radius:7px;background:#ff4368;color:#1a0409;display:grid;place-items:center;font-size:18px;font-weight:700;">+</span>Add modeshift</span>
+          </div>
+          <!-- layer lane -->
+          <div style="display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:12px;background:linear-gradient(135deg,oklch(76% .11 300 / .12),oklch(76% .11 300 / .03));box-shadow:inset 0 0 0 1px oklch(76% .11 300 / .28);">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="width:28px;height:28px;border-radius:8px;background:oklch(76% .11 300 / .2);display:grid;place-items:center;color:oklch(76% .11 300);"><svg width="17" height="17" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M8 2 14 5.3 8 8.6 2 5.3z" fill="currentColor" fill-opacity=".3"></path><path d="M2 8.4 8 11.7l6-3.3"></path><path d="M2 11.1 8 14.4l6-3.3" stroke-opacity=".55"></path></svg></span>
+              <span style="font-size:12px;letter-spacing:.12em;font-weight:700;color:oklch(76% .11 300);">LAYER ACTIONS</span><span style="font-size:12px;font-weight:700;color:oklch(76% .11 300);opacity:.7;">1</span>
+            </div>
+            <div style="height:56px;display:grid;grid-template-columns:30px 16px auto minmax(0,1fr) 40px;align-items:center;gap:12px;padding:0 8px 0 12px;border-radius:10px;background:#26303a;">
+              <img src="glyphs/xbox/A.svg" style="width:28px;" alt="A">
+              <span style="color:oklch(76% .11 300);text-align:center;">→</span>
+              <span style="height:36px;display:flex;align-items:center;gap:8px;padding:0 14px 0 10px;border-radius:8px;background:oklch(76% .11 300 / .18);box-shadow:inset 0 0 0 1px oklch(76% .11 300 / .45);font-size:14px;font-weight:600;color:oklch(86% .07 300);"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="oklch(76% .11 300)" stroke-width="1.6" stroke-linejoin="round"><path d="M8 2 14 5.3 8 8.6 2 5.3z" fill="oklch(76% .11 300)" fill-opacity=".3"></path><path d="M2 8.4 8 11.7l6-3.3"></path></svg>Hold Vehicles</span>
+              <span style="font-size:14px;color:#808c99;">On while A is held</span>
+              <span style="width:40px;height:40px;border-radius:10px;background:#2e3844;box-shadow:inset 0 0 0 1px rgba(214,228,242,.13);display:grid;place-items:center;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#e8eef4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg></span>
+            </div>
+            <span style="height:44px;display:flex;align-items:center;gap:10px;padding:0 14px 0 8px;border-radius:10px;background:oklch(76% .11 300 / .16);box-shadow:inset 0 0 0 1px oklch(76% .11 300 / .4),inset 0 -3px 0 oklch(76% .11 300 / .22);font-size:14px;font-weight:700;"><span style="width:28px;height:28px;border-radius:7px;background:oklch(76% .11 300);color:#120a1c;display:grid;place-items:center;font-size:18px;font-weight:700;">+</span>Add layer action</span>
+          </div>
+        </div>
+      </div>
+      <div style="flex:none;width:400px;display:flex;flex-direction:column;gap:12px;font-size:14px;line-height:21px;color:#b0bcc8;">
+        <div style="font-size:11px;letter-spacing:.12em;font-weight:600;color:#808c99;">RULES</div>
+        <div><b style="color:#e8eef4;">Every row starts with the input,</b> drawn as glyphs: A, or L4 + A. L4 is a white rounded cap, the same art as the capsule.</div>
+        <div><b style="color:#e8eef4;">Outputs are tiles:</b> keycaps for keys and mouse, rounded colour tiles for layers (“Hold Vehicles”).</div>
+        <div><b style="color:#e8eef4;">Activation is a coloured chip-select</b> (PRESS / HOLD / DOUBLE…), not a grey dropdown, so it reads as part of the combo.</div>
+        <div><b style="color:#e8eef4;">One cog per row</b> opens that row’s settings sheet (output mode, rename, duplicate, copy, remove). Header cog holds card-level Copy / Paste / Reset. No ··· and no text-only buttons anywhere.</div>
+        <div><b style="color:#e8eef4;">Add buttons are console buttons:</b> filled, bordered, 44px, bottom bevel, with a solid “+” cap in the lane colour. Capture sits beside Add with its real X glyph.</div>
+        <div><b style="color:#e8eef4;">Empty lanes</b> show only their header and Add button.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3d menu item -->
+  <div id="3d" style="display:flex;flex-direction:column;gap:16px;">
+    <div style="display:flex;align-items:baseline;gap:12px;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">3d</span><span style="font-size:20px;font-weight:600;">Menu item card · same parts</span></div>
+    <div style="flex:none;width:480px;display:flex;flex-direction:column;border-radius:16px;background:#1f2730;box-shadow:0 0 0 1px rgba(214,228,242,.13),0 8px 24px rgba(0,0,0,.35);overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:12px;padding:14px 14px 14px 16px;background:linear-gradient(90deg,rgba(110,195,244,.10),rgba(110,195,244,0) 55%);border-bottom:1px solid rgba(214,228,242,.07);">
+        <span style="width:44px;height:44px;border-radius:10px;background:#0f151b;box-shadow:inset 0 0 0 1px rgba(214,228,242,.13);display:grid;place-items:center;"><span style="width:22px;height:22px;-webkit-mask:url(icons/ui/overview.svg) center/contain no-repeat;mask:url(icons/ui/overview.svg) center/contain no-repeat;background:#e8eef4;"></span></span>
+        <div style="flex:1;display:flex;flex-direction:column;gap:2px;"><span style="font-size:16px;font-weight:600;">Home</span><span style="font-size:12px;color:#808c99;">Region 1 · Row 1, Col 1</span></div>
+        <span style="width:40px;height:40px;border-radius:10px;background:#2e3844;box-shadow:inset 0 0 0 1px rgba(214,228,242,.13);display:grid;place-items:center;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#e8eef4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg></span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;padding:14px;">
+        <div style="display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;">
+          <span style="height:44px;display:flex;align-items:center;gap:8px;padding:0 14px 0 12px;border-radius:10px;background:#2e3844;box-shadow:inset 0 0 0 1px rgba(214,228,242,.13),inset 0 -3px 0 rgba(214,228,242,.08);font-size:14px;font-weight:700;"><span style="width:18px;height:18px;-webkit-mask:url(icons/ui/overview.svg) center/contain no-repeat;mask:url(icons/ui/overview.svg) center/contain no-repeat;background:#e8eef4;"></span>Change icon</span>
+          <span style="height:44px;display:flex;align-items:center;padding:0 14px;border-radius:10px;background:#0f151b;box-shadow:inset 0 0 0 1px rgba(214,228,242,.07);font-size:14px;">Home</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:12px;background:linear-gradient(135deg,rgba(110,195,244,.09),rgba(110,195,244,.02));box-shadow:inset 0 0 0 1px rgba(110,195,244,.18);">
+          <div style="display:flex;align-items:center;gap:10px;"><span style="width:28px;height:28px;border-radius:8px;background:rgba(110,195,244,.18);display:grid;place-items:center;color:#6ec3f4;"><svg width="17" height="17" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="2" y="2.5" width="12" height="11" rx="2.5"></rect><path d="M8.9 4.4 6.3 8h2.2l-.9 2.6L10.2 7H8z" fill="currentColor" stroke="none"></path></svg></span><span style="font-size:12px;letter-spacing:.12em;font-weight:700;color:#6ec3f4;">COMMANDS</span></div>
+          <div style="height:56px;display:grid;grid-template-columns:96px 16px minmax(0,1fr) 40px;align-items:center;gap:12px;padding:0 8px 0 12px;border-radius:10px;background:#26303a;">
+            <span style="height:32px;display:flex;align-items:center;justify-content:space-between;padding:0 10px 0 12px;border-radius:8px;background:rgba(110,195,244,.14);box-shadow:inset 0 0 0 1px rgba(110,195,244,.3);font-size:12px;letter-spacing:.06em;font-weight:700;color:#6ec3f4;">PRESS<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M2.5 3.75 5 6.25 7.5 3.75"></path></svg></span>
+            <span style="color:#6ec3f4;text-align:center;">→</span>
+            <span style="justify-self:start;height:36px;display:flex;align-items:center;padding:0 14px;border-radius:8px;background:#2e3844;box-shadow:inset 0 -3px 0 rgba(214,228,242,.13);font-size:15px;font-weight:600;">Home</span>
+            <span style="width:40px;height:40px;border-radius:10px;background:#2e3844;box-shadow:inset 0 0 0 1px rgba(214,228,242,.13);display:grid;place-items:center;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#e8eef4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg></span>
+          </div>
+          <span style="height:44px;display:flex;align-items:center;gap:10px;padding:0 14px 0 8px;border-radius:10px;background:rgba(110,195,244,.16);box-shadow:inset 0 0 0 1px rgba(110,195,244,.4),inset 0 -3px 0 rgba(110,195,244,.25);font-size:14px;font-weight:700;"><span style="width:28px;height:28px;border-radius:7px;background:#6ec3f4;color:#07131d;display:grid;place-items:center;font-size:18px;font-weight:700;">+</span>Add command</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3e hold which button -->
+  <div id="3e" style="display:flex;flex-direction:column;gap:16px;">
+    <div style="display:flex;align-items:baseline;gap:12px;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">3e</span><span style="font-size:20px;font-weight:600;">Hold which button · every input the controller has</span></div>
+    <div style="font-size:14px;line-height:21px;color:#b0bcc8;max-width:980px;">Grouped like the controller. Shown for a Steam Deck–class pad; groups the connected controller lacks are hidden. The input being edited is dimmed. Pressing any button on the pad also selects it.</div>
+    <div style="position:relative;flex:none;width:1100px;height:760px;border-radius:12px;overflow:hidden;background:#131920;box-shadow:0 0 0 1px rgba(214,228,242,.13);">
+      <div style="position:absolute;inset:0;background:rgba(5,9,13,.64);"></div>
+      <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:900px;display:flex;flex-direction:column;border-radius:16px;background:#232c36;box-shadow:0 12px 32px rgba(0,0,0,.45),0 0 0 1px rgba(255,67,104,.35),0 0 40px rgba(255,67,104,.14);overflow:hidden;">
+        <div style="display:flex;align-items:center;gap:16px;padding:20px 24px;background:linear-gradient(135deg,rgba(255,67,104,.16),rgba(255,67,104,0) 70%);">
+          <div style="flex:1;display:flex;flex-direction:column;gap:6px;"><span style="font-size:11px;letter-spacing:.12em;font-weight:700;color:#ff4368;">NEW MODESHIFT · STEP 1 OF 2</span><span style="font-size:20px;font-weight:600;">Hold which button to change what A does?</span></div>
+          <span style="display:flex;align-items:center;gap:8px;"><span style="width:40px;height:30px;border-radius:7px;box-shadow:inset 0 0 0 2px #ff4368;display:grid;place-items:center;color:#ff4368;font-weight:700;">?</span><span style="color:#ff4368;font-weight:800;">+</span><img src="glyphs/xbox/A.svg" style="width:30px;" alt="A"></span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 28px;padding:8px 24px 22px;">
+          <sc-for list="{{ holdGroups }}" as="g" hint-placeholder-count="8">
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <span style="font-size:11px;letter-spacing:.12em;font-weight:600;color:#808c99;">{{ g.name }}</span>
+              <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                <sc-for list="{{ g.items }}" as="b" hint-placeholder-count="4">
+                  <span style="height:44px;display:flex;align-items:center;gap:8px;padding:0 12px 0 8px;border-radius:10px;background:{{ b.bg }};box-shadow:{{ b.ring }};opacity:{{ b.op }};"><span style="height:26px;min-width:30px;display:grid;place-items:center;padding:0 6px;border-radius:{{ b.r }};background:#e8eef4;color:#0d1217;font-size:11px;font-weight:800;box-sizing:border-box;">{{ b.k }}</span><span style="font-size:13px;color:{{ b.subC }};">{{ b.sub }}</span></span>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="height:56px;display:flex;align-items:center;gap:20px;padding:0 24px;background:#1b232b;font-size:13px;color:#b0bcc8;"><span style="flex:1;color:#808c99;">Or press it on your controller</span><span style="display:flex;align-items:center;gap:8px;"><img src="glyphs/xbox/A.svg" style="width:22px;" alt="A">Next</span><span style="display:flex;align-items:center;gap:8px;"><img src="glyphs/xbox/B.svg" style="width:22px;" alt="B">Cancel</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3f layer sheet -->
+  <div id="3f" style="display:flex;flex-direction:column;gap:16px;">
+    <div style="display:flex;align-items:baseline;gap:12px;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">3f</span><span style="font-size:20px;font-weight:600;">Layer action · “When A is pressed”</span></div>
+    <div style="font-size:14px;line-height:21px;color:#b0bcc8;max-width:980px;">“Verb” is gone. The choice is phrased as the outcome and each option explains itself on one fixed line. The result preview uses the same “Hold Vehicles” tile the card will show.</div>
+    <div style="position:relative;flex:none;width:900px;height:640px;border-radius:12px;overflow:hidden;background:#131920;box-shadow:0 0 0 1px rgba(214,228,242,.13);">
+      <div style="position:absolute;inset:0;background:rgba(5,9,13,.64);"></div>
+      <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:600px;display:flex;flex-direction:column;border-radius:16px;background:#232c36;box-shadow:0 12px 32px rgba(0,0,0,.45),0 0 0 1px oklch(76% .11 300 / .35);overflow:hidden;">
+        <div style="display:flex;flex-direction:column;gap:6px;padding:20px 24px 14px;"><span style="font-size:11px;letter-spacing:.12em;font-weight:700;color:oklch(76% .11 300);">NEW LAYER ACTION · A BUTTON</span><span style="font-size:20px;font-weight:600;">Which layer?</span></div>
+        <div style="display:flex;flex-direction:column;gap:6px;padding:0 24px;">
+          <div style="height:52px;display:flex;align-items:center;gap:12px;padding:0 14px;border-radius:10px;background:oklch(76% .11 300 / .16);box-shadow:0 0 0 2px #9ad8ff;"><span style="width:14px;height:14px;border-radius:4px;background:oklch(76% .11 300);"></span><span style="flex:1;font-size:15px;font-weight:600;">Vehicles &amp; utility</span><span style="font-size:13px;color:#b0bcc8;">12 bindings</span></div>
+          <div style="height:52px;display:flex;align-items:center;gap:12px;padding:0 14px;border-radius:10px;background:#1f2730;"><span style="width:14px;height:14px;border-radius:4px;background:oklch(76% .11 160);"></span><span style="flex:1;font-size:15px;font-weight:500;">Comms</span><span style="font-size:13px;color:#808c99;">6 bindings</span></div>
+          <div style="height:52px;display:flex;align-items:center;gap:12px;padding:0 14px;border-radius:10px;background:#1f2730;"><span style="width:14px;height:14px;border-radius:4px;background:oklch(76% .11 60);"></span><span style="flex:1;font-size:15px;font-weight:500;">Tactical map</span><span style="font-size:13px;color:#808c99;">9 bindings</span></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;padding:18px 24px 20px;">
+          <span style="font-size:14px;font-weight:600;">When A is pressed</span>
+          <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:4px;border-radius:12px;background:#0f151b;">
+            <span style="height:40px;display:grid;place-items:center;border-radius:9px;background:oklch(76% .11 300);color:#120a1c;font-size:14px;font-weight:700;">Hold</span>
+            <span style="height:40px;display:grid;place-items:center;border-radius:9px;color:#b0bcc8;font-size:14px;font-weight:600;">Toggle</span>
+            <span style="height:40px;display:grid;place-items:center;border-radius:9px;color:#b0bcc8;font-size:14px;font-weight:600;">Turn on</span>
+            <span style="height:40px;display:grid;place-items:center;border-radius:9px;color:#b0bcc8;font-size:14px;font-weight:600;">Turn off</span>
+          </div>
+          <div style="height:44px;display:flex;align-items:center;gap:12px;">
+            <span style="height:36px;display:flex;align-items:center;gap:8px;padding:0 14px 0 10px;border-radius:8px;background:oklch(76% .11 300 / .18);box-shadow:inset 0 0 0 1px oklch(76% .11 300 / .45);font-size:14px;font-weight:600;color:oklch(86% .07 300);">Hold Vehicles</span>
+            <span style="font-size:13px;color:#808c99;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Layer is on only while A is held down.</span>
+          </div>
+        </div>
+        <div style="height:56px;display:flex;align-items:center;justify-content:flex-end;gap:20px;padding:0 24px;background:#1b232b;font-size:13px;color:#b0bcc8;"><span style="display:flex;align-items:center;gap:8px;"><img src="glyphs/xbox/LB.svg" style="height:18px;" alt="LB"><img src="glyphs/xbox/RB.svg" style="height:18px;" alt="RB">Hold / Toggle / On / Off</span><span style="display:flex;align-items:center;gap:8px;"><img src="glyphs/xbox/A.svg" style="width:22px;" alt="A">Add</span><span style="display:flex;align-items:center;gap:8px;"><img src="glyphs/xbox/B.svg" style="width:22px;" alt="B">Cancel</span></div>
+      </div>
+    </div>
+    <div style="font-size:13px;line-height:19px;color:#808c99;max-width:980px;">“Turn on / Turn off” replace “Apply / Remove” in the UI; the config still writes the same JSM layer commands.</div>
+  </div>
+</section>
+
+<section data-screen-label="Turn 2 · Binding flow end to end" style="padding:64px;display:flex;flex-direction:column;gap:56px;color:#e8eef4;border-bottom:1px solid rgba(214,228,242,.07);">
+  <div style="display:flex;flex-direction:column;gap:8px;max-width:980px;">
+    <div style="font-size:12px;letter-spacing:.12em;color:#808c99;">BINDING CARD REFRESH · TURN 2</div>
+    <div style="font-size:32px;font-weight:600;letter-spacing:-.015em;">Pick an input, read it, add to it</div>
+    <div style="font-size:15px;line-height:22px;color:#b0bcc8;text-wrap:pretty;">The concept marks from <a href="#1a">1a</a> become app-wide tokens. <a href="#1b">1b</a> and <a href="#1c">1c</a> are followed end to end: collapsed row → open card → adding a command, modeshift and layer action. The add sheets are shared by both. Motion and layout-stability rules close the turn.</div>
+  </div>
+
+  <!-- 2a app-wide -->
+  <div id="2a" style="display:flex;flex-direction:column;gap:16px;">
+    <div style="display:flex;align-items:baseline;gap:12px;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">2a</span><span style="font-size:20px;font-weight:600;">Marks everywhere · Overview, header, capsule</span></div>
+    <div style="font-size:14px;line-height:21px;color:#b0bcc8;max-width:980px;text-wrap:pretty;">New tokens: <span style="font-family:'Geist Mono';color:#6ec3f4;">--command</span> (alias of accent), <span style="font-family:'Geist Mono';color:#ff5ea8;">--shift #FF5EA8</span>, <span style="font-family:'Geist Mono';color:#ff5ea8;">--shift-soft .14</span>, <span style="font-family:'Geist Mono';color:#ff5ea8;">--shift-glow 0 0 18px .25</span>; layers keep <span style="font-family:'Geist Mono';">--layer-n</span>. Any surface that mentions a modeshift or a layer uses its chip; prose like “While held, changes A, B, X and 3 more” is replaced by the chip plus a count.</div>
+    <div style="display:grid;grid-template-columns:1040px 420px;gap:24px;align-items:start;">
+      <div style="display:flex;flex-direction:column;border-radius:12px;overflow:hidden;background:#131920;box-shadow:0 0 0 1px rgba(214,228,242,.13);">
+        <div style="height:44px;display:flex;align-items:center;gap:10px;padding:0 20px;background:#0d1217;font-size:13px;color:#b0bcc8;">
+          <span style="font-weight:600;color:#e8eef4;">Wardogs</span><span style="color:#5b6571;">/</span>
+          <span style="height:28px;display:flex;align-items:center;gap:6px;padding:0 10px 0 8px;border-radius:999px;background:oklch(76% .11 300 / .16);color:oklch(76% .11 300);font-weight:600;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M8 2 14 5.3 8 8.6 2 5.3z" fill="currentColor" fill-opacity=".25"></path><path d="M2 8.4 8 11.7l6-3.3"></path></svg>Editing layer: Vehicles</span>
+          <span style="flex:1;"></span>
+          <span style="width:220px;height:28px;display:flex;align-items:center;gap:8px;padding:0 10px;border-radius:999px;background:rgba(255,94,168,.14);box-shadow:0 0 18px rgba(255,94,168,.25);color:#ff5ea8;font-weight:600;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M8 1.3 13.8 4.6v6.8L8 14.7 2.2 11.4V4.6z"></path><path d="M5.3 8.1 8 5.5l2.7 2.6"></path><path d="M5.3 10.9 8 8.3l2.7 2.6"></path></svg>L4 held<span style="flex:1;"></span><span style="color:#ffd1e6;">3 inputs shifted</span></span>
+        </div>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px;padding:24px;">
+          <div style="height:380px;border-radius:12px;background:#0f151b;box-shadow:inset 0 0 0 1px rgba(214,228,242,.07);display:grid;place-items:center;color:#5b6571;font-size:13px;">Controller art (existing Overview diagram) · shifted inputs get a pink ring while L4 is held</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div style="font-size:11px;letter-spacing:.12em;font-weight:600;color:#808c99;padding-bottom:4px;">CALLOUTS · FIXED TWO LINES</div>
+            <div style="height:56px;display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;gap:12px;padding:0 12px;border-radius:10px;background:#1f2730;box-shadow:0 0 0 1px rgba(255,94,168,.4),0 0 18px rgba(255,94,168,.18);">
+              <img src="glyphs/xbox/A.svg" style="width:28px;" alt="A">
+              <div style="min-width:0;display:flex;flex-direction:column;"><span style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#ffd1e6;">Melee</span><span style="font-size:12px;color:#808c99;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">was Jump</span></div>
+              <span style="min-width:56px;height:26px;display:flex;align-items:center;justify-content:center;padding:0 10px;border-radius:6px;background:#2e3844;box-shadow:inset 0 -2px 0 rgba(214,228,242,.13);font-size:12px;font-weight:600;">V</span>
+            </div>
+            <div style="height:56px;display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;gap:12px;padding:0 12px;border-radius:10px;background:#1f2730;">
+              <img src="glyphs/xbox/B.svg" style="width:28px;" alt="B">
+              <div style="min-width:0;display:flex;flex-direction:column;gap:3px;"><span style="font-size:14px;font-weight:600;">Crouch</span><span style="display:flex;gap:6px;"><span style="height:18px;display:flex;align-items:center;gap:4px;padding:0 6px 0 4px;border-radius:999px;background:oklch(76% .11 300 / .16);color:oklch(76% .11 300);font-size:11px;font-weight:600;"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M8 2 14 5.3 8 8.6 2 5.3z" fill="currentColor" fill-opacity=".25"></path><path d="M2 8.4 8 11.7l6-3.3"></path></svg>Vehicles</span></span></div>
+              <span style="min-width:56px;height:26px;display:flex;align-items:center;justify-content:center;padding:0 10px;border-radius:6px;background:#2e3844;box-shadow:inset 0 -2px 0 rgba(214,228,242,.13);font-size:12px;font-weight:600;">C</span>
+            </div>
+            <div style="height:56px;display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;gap:12px;padding:0 12px;border-radius:10px;background:rgba(255,94,168,.08);box-shadow:inset 0 0 0 1px rgba(255,94,168,.3);">
+              <span style="width:28px;height:20px;border-radius:5px;background:#e8eef4;color:#0d1217;display:grid;place-items:center;font-size:10px;font-weight:700;">L4</span>
+              <div style="min-width:0;display:flex;flex-direction:column;gap:3px;"><span style="font-size:14px;font-weight:600;">Melee shift</span><span style="display:flex;gap:6px;"><span style="height:18px;display:flex;align-items:center;gap:4px;padding:0 6px 0 4px;border-radius:999px;background:rgba(255,94,168,.16);color:#ff5ea8;font-size:11px;font-weight:600;"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M8 1.3 13.8 4.6v6.8L8 14.7 2.2 11.4V4.6z"></path><path d="M5.3 8.1 8 5.5l2.7 2.6"></path></svg>Shifts 3</span></span></div>
+              <span style="min-width:56px;height:26px;display:flex;align-items:center;justify-content:center;padding:0 10px;border-radius:6px;font-size:12px;font-weight:600;color:#ff5ea8;">Held</span>
+            </div>
+            <div style="height:56px;display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;gap:12px;padding:0 12px;border-radius:10px;background:#1f2730;">
+              <img src="glyphs/xbox/RB.svg" style="width:28px;" alt="RB">
+              <div style="min-width:0;display:flex;flex-direction:column;gap:3px;"><span style="font-size:14px;font-weight:600;">Ping</span><span style="display:flex;gap:6px;"><span style="height:18px;display:flex;align-items:center;gap:4px;padding:0 6px 0 4px;border-radius:999px;background:rgba(110,195,244,.16);color:#6ec3f4;font-size:11px;font-weight:600;"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="2" y="2.5" width="12" height="11" rx="2.5"></rect><path d="M8.9 4.4 6.3 8h2.2l-.9 2.6L10.2 7H8z" fill="currentColor" stroke="none"></path></svg>2</span></span></div>
+              <span style="min-width:56px;height:26px;display:flex;align-items:center;justify-content:center;padding:0 10px;border-radius:6px;background:#2e3844;box-shadow:inset 0 -2px 0 rgba(214,228,242,.13);font-size:12px;font-weight:600;">Mouse 3</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;font-size:14px;line-height:21px;color:#b0bcc8;">
+        <div style="font-size:11px;letter-spacing:.12em;font-weight:600;color:#808c99;">WHERE THE MARKS APPEAR</div>
+        <div><b style="color:#e8eef4;">Overview callouts.</b> Name on line 1, chips on line 2, value pill on the right. Holding a modeshift swaps the callout’s name and value in place (pink), old name moves to line 2 as “was …”.</div>
+        <div><b style="color:#e8eef4;">Context header.</b> The layer segment takes its layer’s hue; a held modeshift shows a fixed-width pink status pill.</div>
+        <div><b style="color:#e8eef4;">Binding rows and cards.</b> Chips on collapsed rows, lanes / tiles when open (<a href="#2b">2b</a>, <a href="#2c">2c</a>).</div>
+        <div><b style="color:#e8eef4;">Layers page, page tabs, gyro modeshift sensitivity, grip and pad modeshifts.</b> Same chip, same colour, never a second pink.</div>
+        <div><b style="color:#e8eef4;">Commands keep the app blue</b>, so blue continues to mean “primary / focused” and “this fires an output”.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2b flow 1b -->
+  <div id="2b" style="display:flex;flex-direction:column;gap:16px;">
+    <div style="display:flex;align-items:baseline;gap:12px;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">2b</span><span style="font-size:20px;font-weight:600;">Flow · Colour lanes (from 1b)</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start;">
+      <div style="flex:none;width:560px;display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:13px;color:#808c99;"><b style="color:#e8eef4;">① Collapsed.</b> Chips say what else lives on the input. A opens.</div>
+        <div style="display:flex;flex-direction:column;gap:6px;padding:20px;border-radius:12px;background:#131920;box-shadow:0 0 0 1px rgba(214,228,242,.13);">
+          <div style="font-size:15px;font-weight:600;padding-bottom:6px;">Face buttons</div>
+          <div style="height:56px;display:grid;grid-template-columns:28px minmax(0,1fr) auto auto;align-items:center;gap:12px;padding:0 14px 0 12px;border-radius:10px;background:#2a4a63;box-shadow:0 0 0 2px #9ad8ff;">
+            <img src="glyphs/xbox/A.svg" style="width:28px;" alt="A">
+            <div style="min-width:0;display:flex;flex-direction:column;"><span style="font-size:15px;font-weight:500;">Jump</span><span style="font-size:13px;color:#b0bcc8;">A button</span></div>
+            <div style="display:flex;gap:6px;">
+              <span style="height:24px;display:flex;align-items:center;gap:5px;padding:0 8px 0 6px;border-radius:999px;background:rgba(110,195,244,.16);color:#6ec3f4;font-size:12px;font-weight:600;"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="2" y="2.5" width="12" height="11" rx="2.5"></rect><path d="M8.9 4.4 6.3 8h2.2l-.9 2.6L10.2 7H8z" fill="currentColor" stroke="none"></path></svg>2</span>
+              <span style="height:24px;display:flex;align-items:center;gap:5px;padding:0 8px 0 6px;border-radius:999px;background:rgba(255,94,168,.16);color:#ff5ea8;font-size:12px;font-weight:600;"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M8 1.3 13.8 4.6v6.8L8 14.7 2.2 11.4V4.6z"></path><path d="M5.3 8.1 8 5.5l2.7 2.6"></path></svg>L4</span>
+            </div>
+            <span style="height:28px;display:flex;align-items:center;padding:0 12px;border-radius:6px;background:#2e3844;box-shadow:inset 0 -2px 0 rgba(214,228,242,.13);font-size:13px;font-weight:600;">Space</span>
+          </div>
+          <div style="height:56px;display:grid;grid-template-columns:28px minmax(0,1fr) auto auto;align-items:center;gap:12px;padding:0 14px 0 12px;border-radius:10px;background:#1f2730;">
+            <img src="glyphs/xbox/B.svg" style="width:28px;" alt="B">
+            <div style="display:flex;flex-direction:column;"><span style="font-size:15px;font-weight:500;">Crouch</span><span style="font-size:13px;color:#808c99;">B button</span></div>
+            <span style="height:24px;display:flex;align-items:center;gap:5px;padding:0 8px 0 6px;border-radius:999px;background:oklch(76% .11 300 / .16);color:oklch(76% .11 300);font-size:12px;font-weight:600;"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M8 2 14 5.3 8 8.6 2 5.3z" fill="currentColor" fill-opacity=".25"></path><path d="M2 8.4 8 11.7l6-3.3"></path></svg>Vehicles</span>
+            <span style="height:28px;display:flex;align-items:center;padding:0 12px;border-radius:6px;background:#2e3844;box-shadow:inset 0 -2px 0 rgba(214,228,242,.13);font-size:13px;font-weight:600;">C</span>
+          </div>
+          <div style="height:56px;display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;gap:12px;padding:0 14px 0 12px;border-radius:10px;background:#1f2730;">
+            <img src="glyphs/xbox/X.svg" style="width:28px;" alt="X">
+            <div style="display:flex;flex-direction:column;"><span style="font-size:15px;font-weight:500;">Reload</span><span style="font-size:13px;color:#808c99;">X button</span></div>
+            <span style="height:28px;display:flex;align-items:center;padding:0 12px;border-radius:6px;background:#2e3844;box-shadow:inset 0 -2px 0 rgba(214,228,242,.13);font-size:13px;font-weight:600;">R</span>
+          </div>
+          <div style="height:56px;display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;gap:12px;padding:0 14px 0 12px;border-radius:10px;background:#1f2730;">
+            <img src="glyphs/xbox/Y.svg" style="width:28px;" alt="Y">
+            <div style="display:flex;flex-direction:column;"><span style="font-size:15px;font-weight:500;color:#808c99;">Unbound</span><span style="font-size:13px;color:#5b6571;">Y button</span></div>
+            <span style="font-size:13px;color:#5b6571;">None</span>
+          </div>
+        </div>
+      </div>
+      <div style="flex:none;width:620px;display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:13px;color:#808c99;"><b style="color:#e8eef4;">② Open.</b> Every lane ends in its own + row, in its colour. Empty lanes shrink to that row.</div>
+        <div style="display:flex;flex-direction:column;border-radius:14px;background:#1f2730;box-shadow:0 0 0 1px rgba(214,228,242,.13),0 2px 8px rgba(0,0,0,.28);">
+          <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;border-bottom:1px solid rgba(214,228,242,.07);">
+            <img src="glyphs/xbox/A.svg" style="width:36px;" alt="A">
+            <div style="flex:1;display:flex;flex-direction:column;gap:2px;"><span style="font-size:17px;font-weight:600;">A button</span><span style="font-size:13px;color:#808c99;">Jump</span></div>
+            <span style="width:32px;height:32px;display:grid;place-items:center;color:#b0bcc8;font-size:18px;">···</span>
+            <span style="display:flex;align-items:center;gap:8px;padding:0 4px;color:#b0bcc8;font-size:13px;font-weight:600;"><img src="glyphs/xbox/Y.svg" style="width:18px;" alt="Y">Details</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;padding:14px;">
+            <div style="display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:10px;background:rgba(110,195,244,.06);box-shadow:inset 0 0 0 1px rgba(110,195,244,.14);">
+              <div style="display:flex;align-items:center;gap:8px;padding:2px 2px 4px;color:#6ec3f4;"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="2" y="2.5" width="12" height="11" rx="2.5"></rect><path d="M8.9 4.4 6.3 8h2.2l-.9 2.6L10.2 7H8z" fill="currentColor" stroke="none"></path></svg><span style="font-size:11px;letter-spacing:.12em;font-weight:700;">COMMANDS</span></div>
+              <div style="height:44px;display:grid;grid-template-columns:104px 14px auto minmax(0,1fr) 28px;align-items:center;gap:10px;padding:0 8px;border-radius:8px;background:#26303a;">
+                <span style="height:30px;display:flex;align-items:center;justify-content:space-between;padding:0 10px 0 12px;border-radius:8px;background:#2e3844;font-size:13px;font-weight:600;">Press<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#808c99" stroke-width="1.75" stroke-linecap="round"><path d="M2.5 3.75 5 6.25 7.5 3.75"></path></svg></span><span style="color:#6ec3f4;">→</span>
+                <span style="height:28px;display:flex;align-items:center;padding:0 12px;border-radius:6px;background:#2e3844;box-shadow:inset 0 -2px 0 rgba(214,228,242,.13);font-size:13px;font-weight:600;">Space</span><span style="font-size:13px;color:#b0bcc8;">Jump</span><span style="color:#808c99;text-align:center;">···</span>
+              </div>
+              <div style="height:44px;display:grid;grid-template-columns:104px 14px auto minmax(0,1fr) 28px;align-items:center;gap:10px;padding:0 8px;border-radius:8px;background:#26303a;">
+                <span style="height:30px;display:flex;align-items:center;justify-content:space-between;padding:0 10px 0 12px;border-radius:8px;background:#2e3844;font-size:13px;font-weight:600;">Hold<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#808c99" stroke-width="1.75" stroke-linecap="round"><path d="M2.5 3.75 5 6.25 7.5 3.75"></path></svg></span><span style="color:#6ec3f4;">→</span>
+                <span style="height:28px;display:flex;align-items:center;padding:0 12px;border-radius:6px;background:#2e3844;box-shadow:inset 0 -2px 0 rgba(214,228,242,.13);font-size:13px;font-weight:600;">Left Ctrl</span><span style="font-size:13px;color:#b0bcc8;">Slide</span><span style="color:#808c99;text-align:center;">···</span>
+              </div>
+              <div style="height:36px;display:flex;align-items:center;gap:8px;padding:0 10px;border-radius:8px;box-shadow:inset 0 0 0 1px rgba(110,195,244,.22);color:#6ec3f4;font-size:13px;font-weight:600;">+ Add command<span style="flex:1;"></span><span style="display:flex;align-items:center;gap:6px;color:#808c99;font-weight:500;"><img src="glyphs/xbox/X.svg" style="width:16px;" alt="X">Capture a key</span></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:10px;background:rgba(255,94,168,.06);box-shadow:inset 0 0 0 1px rgba(255,94,168,.18);">
+              <div style="display:flex;align-items:center;gap:8px;padding:2px 2px 4px;color:#ff5ea8;"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path d="M8 1.3 13.8 4.6v6.8L8 14.7 2.2 11.4V4.6z"></path><path d="M5.3 8.1 8 5.5l2.7 2.6"></path><path d="M5.3 10.9 8 8.3l2.7 2.6"></path></svg><span style="font-size:11px;letter-spacing:.12em;font-weight:700;">MODESHIFTS</span></div>
+              <div style="height:44px;display:grid;grid-template-columns:104px 14px auto minmax(0,1fr) 28px;align-items:center;gap:10px;padding:0 8px;border-radius:8px;background:#26303a;">
+                <span style="height:30px;display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:8px;background:rgba(255,94,168,.16);color:#ffd1e6;font-size:13px;font-weight:600;"><span style="color:#ff5ea8;">While</span>L4</span><span style="color:#ff5ea8;">→</span>
+                <span style="height:28px;display:flex;align-items:center;padding:0 12px;border-radius:6px;background:#2e3844;box-shadow:inset 0 -2px 0 rgba(214,228,242,.13);font-size:13px;font-weight:600;">V</span><span style="font-size:13px;color:#b0bcc8;">Melee</span><span style="color:#808c99;text-align:center;">···</span>
+              </div>
+              <div style="height:36px;display:flex;align-items:center;gap:8px;padding:0 10px;border-radius:8px;background:rgba(255,94,168,.12);box-shadow:0 0 0 2px #9ad8ff;color:#ff5ea8;font-size:13px;font-weight:600;">+ Add modeshift</div>
+            </div>
+            <div style="height:40px;display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:10px;box-shadow:inset 0 0 0 1px oklch(76% .11 300 / .22);color:oklch(76% .11 300);font-size:13px;font-weight:600;"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M8 2 14 5.3 8 8.6 2 5.3z" fill="currentColor" fill-opacity=".25"></path><path d="M2 8.4 8 11.7l6-3.3"></path><path d="M2 11.1 8 14.4l6-3.3" stroke-opacity=".55"></path></svg>+ Add layer action</div>
+          </div>
+        </div>
+      </div>
+      <div style="flex:none;width:520px;display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:13px;color:#808c99;"><b style="color:#e8eef4;">③ Back from the add sheet.</b> New row slides in, holds a pink glow for 900ms, keeps focus.</div>
+        <div style="display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:10px;background:rgba(255,94,168,.06);box-shadow:inset 0 0 0 1px rgba(255,94,168,.18);">
+          <div style="display:flex;align-items:center;gap:8px;padding:2px 2px 4px;color:#ff5ea8;"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path d="M8 1.3 13.8 4.6v6.8L8 14.7 2.2 11.4V4.6z"></path><path d="M5.3 8.1 8 5.5l2.7 2.6"></path><path d="M5.3 10.9 8 8.3l2.7 2.6"></path></svg><span style="font-size:11px;letter-spacing:.12em;font-weight:700;">MODESHIFTS</span></div>
+          <div style="height:44px;display:grid;grid-template-columns:104px 14px auto minmax(0,1fr) 28px;align-items:center;gap:10px;padding:0 8px;border-radius:8px;background:#26303a;">
+            <span style="height:30px;display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:8px;background:rgba(255,94,168,.16);color:#ffd1e6;font-size:13px;font-weight:600;"><span style="color:#ff5ea8;">While</span>L4</span><span style="color:#ff5ea8;">→</span>
+            <span style="height:28px;display:flex;align-items:center;padding:0 12px;border-radius:6px;background:#2e3844;box-shadow:inset 0 -2px 0 rgba(214,228,242,.13);font-size:13px;font-weight:600;">V</span><span style="font-size:13px;color:#b0bcc8;">Melee</span><span style="color:#808c99;text-align:center;">···</span>
+          </div>
+          <div style="height:44px;display:grid;grid-template-columns:104px 14px auto minmax(0,1fr) 28px;align-items:center;gap:10px;padding:0 8px;border-radius:8px;background:#2a4a63;box-shadow:0 0 0 2px #9ad8ff,0 0 22px rgba(255,94,168,.45);">
+            <span style="height:30px;display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:8px;background:rgba(255,94,168,.16);color:#ffd1e6;font-size:13px;font-weight:600;"><span style="color:#ff5ea8;">While</span>L5</span><span style="color:#ff5ea8;">→</span>
+            <span style="height:28px;display:flex;align-items:center;padding:0 12px;border-radius:6px;background:#2e3844;box-shadow:inset 0 -2px 0 rgba(214,228,242,.13);font-size:13px;font-weight:600;">Mouse 4</span><span style="font-size:13px;color:#5b6571;">Name this action</span><span style="color:#808c99;text-align:center;">···</span>
+          </div>
+          <div style="height:36px;display:flex;align-items:center;gap:8px;padding:0 10px;border-radius:8px;box-shadow:inset 0 0 0 1px rgba(255,94,168,.22);color:#ff5ea8;font-size:13px;font-weight:600;">+ Add modeshift</div>
+        </div>
+        <div style="font-size:13px;line-height:19px;color:#b0bcc8;">The collapsed row’s chip becomes <span style="color:#ff5ea8;font-weight:600;">L4 L5</span>; past two it reads <span style="color:#ff5ea8;font-weight:600;">3 shifts</span>, so the row never grows.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2c flow 1c -->
+  <div id="2c" style="display:flex;flex-direction:column;gap:16px;">
+    <div style="display:flex;align-items:baseline;gap:12px;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">2c</span><span style="font-size:20px;font-weight:600;">Flow · Combo cards (from 1c)</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start;">
+      <div style="flex:none;width:560px;display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:13px;color:#808c99;"><b style="color:#e8eef4;">① Collapsed.</b> The row previews its combos as mini chains, max two, then “+n”.</div>
+        <div style="display:flex;flex-direction:column;gap:6px;padding:20px;border-radius:12px;background:#131920;box-shadow:0 0 0 1px rgba(214,228,242,.13);">
+          <div style="font-size:15px;font-weight:600;padding-bottom:6px;">Face buttons</div>
+          <div style="height:56px;display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;gap:12px;padding:0 12px;border-radius:10px;background:#2a4a63;box-shadow:0 0 0 2px #9ad8ff;">
+            <img src="glyphs/xbox/A.svg" style="width:28px;" alt="A">
+            <div style="display:flex;flex-direction:column;"><span style="font-size:15px;font-weight:500;">Jump</span><span style="font-size:13px;color:#b0bcc8;">A button</span></div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="height:28px;display:flex;align-items:center;padding:0 10px;border-radius:6px;background:#2e3844;box-shadow:inset 0 -2px 0 rgba(214,228,242,.13);font-size:13px;font-weight:600;">Space</span>
+              <span style="height:28px;display:flex;align-items:center;gap:6px;padding:0 10px 0 6px;border-radius:6px;background:rgba(255,94,168,.16);box-shadow:inset 0 0 0 1px rgba(255,94,168,.35);font-size:13px;font-weight:600;"><span style="height:16px;display:flex;align-items:center;padding:0 4px;border-radius:4px;background:#e8eef4;color:#0d1217;font-size:9px;font-weight:700;">L4</span><span style="color:#ff5ea8;">+</span>V</span>
+              <span style="font-size:12px;font-weight:600;color:#b0bcc8;">+1</span>
+            </div>
+          </div>
+          <div style="height:56px;display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;gap:12px;padding:0 12px;border-radius:10px;background:#1f2730;">
+            <img src="glyphs/xbox/B.svg" style="width:28px;" alt="B">
+            <div style="display:flex;flex-direction:column;"><span style="font-size:15px;font-weight:500;">Crouch</span><span style="font-size:13px;color:#808c99;">B button</span></div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="height:28px;display:flex;align-items:center;padding:0 10px;border-radius:6px;background:#2e3844;box-shadow:inset 0 -2px 0 rgba(214,228,242,.13);font-size:13px;font-weight:600;">C</span>
+              <span style="height:28px;display:flex;align-items:center;gap:6px;padding:0 10px 0 8px;border-radius:6px;background:oklch(76% .11 300 / .16);box-shadow:inset 0 0 0 1px oklch(76% .11 300 / .35);color:oklch(76% .11 300);font-size:13px;font-weight:600;"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M8 2 14 5.3 8 8.6 2 5.3z" fill="currentColor" fill-opacity=".25"></path><path d="M2 8.4 8 11.7l6-3.3"></path></svg>Hold Vehicles</span>
+            </div>
+          </div>
+          <div style="height:56px;display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;gap:12px;padding:0 12px;border-radius:10px;background:#1f2730;">
+            <img src="glyphs/xbox/X.svg" style="width:28px;" alt="X">
+            <div style="display:flex;flex-direction:column;"><span style="font-size:15px;font-weight:500;">Reload</span><span style="font-size:13px;color:#808c99;">X button</span></div>
+            <span style="height:28px;display:flex;align-items:center;padding:0 10px;border-radius:6px;background:#2e3844;box-shadow:inset 0 -2px 0 rgba(214,228,242,.13);font-size:13px;font-weight:600;">R</span>
+          </div>
+          <div style="height:56px;display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;gap:12px;padding:0 12px;border-radius:10px;background:#1f2730;">
+            <img src="glyphs/xbox/Y.svg" style="width:28px;" alt="Y">
+            <div style="display:flex;flex-direction:column;"><span style="font-size:15px;font-weight:500;color:#808c99;">Unbound</span><span style="font-size:13px;color:#5b6571;">Y button</span></div>
+            <span style="font-size:13px;color:#5b6571;">None</span>
+          </div>
+        </div>
+      </div>
+      <div style="flex:none;width:620px;display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:13px;color:#808c99;"><b style="color:#e8eef4;">② Open.</b> Tiles in a 2-column grid; the add tile is always the last cell and splits three ways.</div>
+        <div style="display:flex;flex-direction:column;border-radius:14px;background:#1f2730;box-shadow:0 0 0 1px rgba(214,228,242,.13),0 2px 8px rgba(0,0,0,.28);overflow:hidden;">
+          <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;background:linear-gradient(90deg,rgba(110,195,244,.10),rgba(110,195,244,0) 60%);">
+            <img src="glyphs/xbox/A.svg" style="width:36px;" alt="A">
+            <div style="flex:1;display:flex;flex-direction:column;gap:2px;"><span style="font-size:17px;font-weight:600;">A button</span><span style="display:flex;gap:12px;font-size:13px;color:#808c99;"><span style="color:#6ec3f4;">2 commands</span><span style="color:#ff5ea8;">1 modeshift</span><span>no layers</span></span></div>
+            <span style="width:32px;height:32px;display:grid;place-items:center;color:#b0bcc8;font-size:18px;">···</span>
+            <span style="display:flex;align-items:center;gap:8px;padding:0 4px;color:#b0bcc8;font-size:13px;font-weight:600;"><img src="glyphs/xbox/Y.svg" style="width:18px;" alt="Y">Details</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:92px;gap:10px;padding:14px;">
+            <div style="display:flex;flex-direction:column;justify-content:space-between;padding:12px 14px;border-radius:12px;background:#26303a;box-shadow:inset 0 2px 0 #6ec3f4;">
+              <div style="display:flex;align-items:center;gap:8px;"><img src="glyphs/xbox/A.svg" style="width:22px;" alt="A"><span style="font-size:12px;font-weight:600;color:#6ec3f4;letter-spacing:.06em;">PRESS</span><span style="flex:1;"></span><span style="color:#808c99;">···</span></div>
+              <div style="display:flex;align-items:center;gap:10px;"><span style="height:32px;display:flex;align-items:center;padding:0 12px;border-radius:8px;background:#2e3844;box-shadow:inset 0 -3px 0 rgba(214,228,242,.13);font-size:14px;font-weight:600;">Space</span><span style="font-size:13px;color:#b0bcc8;">Jump</span></div>
+            </div>
+            <div style="display:flex;flex-direction:column;justify-content:space-between;padding:12px 14px;border-radius:12px;background:#26303a;box-shadow:inset 0 2px 0 #6ec3f4;">
+              <div style="display:flex;align-items:center;gap:8px;"><img src="glyphs/xbox/A.svg" style="width:22px;" alt="A"><span style="font-size:12px;font-weight:600;color:#6ec3f4;letter-spacing:.06em;">HOLD</span><span style="flex:1;"></span><span style="color:#808c99;">···</span></div>
+              <div style="display:flex;align-items:center;gap:10px;"><span style="height:32px;display:flex;align-items:center;padding:0 12px;border-radius:8px;background:#2e3844;box-shadow:inset 0 -3px 0 rgba(214,228,242,.13);font-size:14px;font-weight:600;">Left Ctrl</span><span style="font-size:13px;color:#b0bcc8;">Slide</span></div>
+            </div>
+            <div style="display:flex;flex-direction:column;justify-content:space-between;padding:12px 14px;border-radius:12px;background:linear-gradient(135deg,rgba(255,94,168,.16),rgba(255,94,168,.04));box-shadow:inset 0 0 0 1px rgba(255,94,168,.35),0 0 24px rgba(255,94,168,.12);">
+              <div style="display:flex;align-items:center;gap:6px;"><span style="height:22px;display:flex;align-items:center;padding:0 6px;border-radius:5px;background:#e8eef4;color:#0d1217;font-size:10px;font-weight:700;">L4</span><span style="color:#ff5ea8;font-weight:700;">+</span><img src="glyphs/xbox/A.svg" style="width:22px;" alt="A"><span style="font-size:12px;font-weight:600;color:#ff5ea8;letter-spacing:.06em;margin-left:4px;">MODESHIFT</span><span style="flex:1;"></span><span style="color:#808c99;">···</span></div>
+              <div style="display:flex;align-items:center;gap:10px;"><span style="height:32px;display:flex;align-items:center;padding:0 12px;border-radius:8px;background:#2e3844;box-shadow:inset 0 -3px 0 rgba(214,228,242,.13);font-size:14px;font-weight:600;">V</span><span style="font-size:13px;color:#b0bcc8;">Melee</span></div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;">
+              <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border-radius:12px;box-shadow:inset 0 0 0 1px rgba(110,195,244,.3);color:#6ec3f4;font-size:12px;font-weight:600;"><svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><rect x="2" y="2.5" width="12" height="11" rx="2.5"></rect><path d="M8.9 4.4 6.3 8h2.2l-.9 2.6L10.2 7H8z" fill="currentColor" stroke="none"></path></svg>+ Command</div>
+              <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border-radius:12px;background:rgba(255,94,168,.12);box-shadow:0 0 0 2px #9ad8ff;color:#ff5ea8;font-size:12px;font-weight:600;"><svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><path d="M8 1.3 13.8 4.6v6.8L8 14.7 2.2 11.4V4.6z"></path><path d="M5.3 8.1 8 5.5l2.7 2.6"></path><path d="M5.3 10.9 8 8.3l2.7 2.6"></path></svg>+ Shift</div>
+              <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border-radius:12px;box-shadow:inset 0 0 0 1px oklch(76% .11 300 / .3);color:oklch(76% .11 300);font-size:12px;font-weight:600;"><svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M8 2 14 5.3 8 8.6 2 5.3z" fill="currentColor" fill-opacity=".25"></path><path d="M2 8.4 8 11.7l6-3.3"></path><path d="M2 11.1 8 14.4l6-3.3" stroke-opacity=".55"></path></svg>+ Layer</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="flex:none;width:520px;display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:13px;color:#808c99;"><b style="color:#e8eef4;">③ Back from the add sheet.</b> The new tile drops into the grid before the add cell; tiles reflow with a 240ms slide.</div>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:92px;gap:10px;padding:14px;border-radius:14px;background:#1f2730;box-shadow:0 0 0 1px rgba(214,228,242,.13);">
+          <div style="display:flex;flex-direction:column;justify-content:space-between;padding:12px 14px;border-radius:12px;background:linear-gradient(135deg,rgba(255,94,168,.16),rgba(255,94,168,.04));box-shadow:inset 0 0 0 1px rgba(255,94,168,.35);">
+            <div style="display:flex;align-items:center;gap:6px;"><span style="height:22px;display:flex;align-items:center;padding:0 6px;border-radius:5px;background:#e8eef4;color:#0d1217;font-size:10px;font-weight:700;">L4</span><span style="color:#ff5ea8;font-weight:700;">+</span><img src="glyphs/xbox/A.svg" style="width:22px;" alt="A"></div>
+            <div style="display:flex;align-items:center;gap:10px;"><span style="height:32px;display:flex;align-items:center;padding:0 12px;border-radius:8px;background:#2e3844;box-shadow:inset 0 -3px 0 rgba(214,228,242,.13);font-size:14px;font-weight:600;">V</span><span style="font-size:13px;color:#b0bcc8;">Melee</span></div>
+          </div>
+          <div style="display:flex;flex-direction:column;justify-content:space-between;padding:12px 14px;border-radius:12px;background:linear-gradient(135deg,rgba(255,94,168,.22),rgba(255,94,168,.06));box-shadow:0 0 0 2px #9ad8ff,0 0 26px rgba(255,94,168,.45);">
+            <div style="display:flex;align-items:center;gap:6px;"><span style="height:22px;display:flex;align-items:center;padding:0 6px;border-radius:5px;background:#e8eef4;color:#0d1217;font-size:10px;font-weight:700;">L5</span><span style="color:#ff5ea8;font-weight:700;">+</span><img src="glyphs/xbox/A.svg" style="width:22px;" alt="A"><span style="flex:1;"></span><span style="font-size:11px;font-weight:700;color:#ff5ea8;letter-spacing:.08em;">NEW</span></div>
+            <div style="display:flex;align-items:center;gap:10px;"><span style="height:32px;display:flex;align-items:center;padding:0 12px;border-radius:8px;background:#2e3844;box-shadow:inset 0 -3px 0 rgba(214,228,242,.13);font-size:14px;font-weight:600;">Mouse 4</span><span style="font-size:13px;color:#5b6571;">Name this</span></div>
+          </div>
+        </div>
+        <div style="font-size:13px;line-height:19px;color:#b0bcc8;">Trade-off vs 2b: tiles scan faster and look more “game”, but activation (Press / Hold) is edited through ··· instead of an inline dropdown.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2d add sheets -->
+  <div id="2d" style="display:flex;flex-direction:column;gap:16px;">
+    <div style="display:flex;align-items:baseline;gap:12px;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">2d</span><span style="font-size:20px;font-weight:600;">Adding · shared by 2b and 2c</span></div>
+    <div style="display:flex;flex-direction:column;gap:6px;font-size:14px;line-height:21px;color:#b0bcc8;max-width:1100px;">
+      <div><b style="color:#6ec3f4;">+ Command</b> → action picker (<a href="#1f">1f</a>) straight away, activation defaults to Press. Choose returns with the new command focused. X on the + row captures a key instead.</div>
+      <div><b style="color:#ff5ea8;">+ Modeshift</b> → sheet ① “Hold which button?” → action picker → back. Two steps, the header keeps the chain visible.</div>
+      <div><b style="color:oklch(76% .11 300);">+ Layer action</b> → sheet ② pick layer and verb → back. No picker; the layer is the output.</div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start;">
+      <div style="position:relative;flex:none;width:760px;height:560px;border-radius:12px;overflow:hidden;background:#131920;box-shadow:0 0 0 1px rgba(214,228,242,.13);">
+        <div style="position:absolute;inset:0;background:rgba(5,9,13,.64);"></div>
+        <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:600px;display:flex;flex-direction:column;border-radius:14px;background:#232c36;box-shadow:0 12px 32px rgba(0,0,0,.45),0 0 0 1px rgba(255,94,168,.35),0 0 40px rgba(255,94,168,.15);overflow:hidden;">
+          <div style="display:flex;flex-direction:column;gap:12px;padding:20px 24px;background:linear-gradient(135deg,rgba(255,94,168,.14),rgba(255,94,168,0) 70%);">
+            <div style="font-size:11px;letter-spacing:.12em;font-weight:700;color:#ff5ea8;">NEW MODESHIFT · STEP 1 OF 2</div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:20px;font-weight:600;">
+              <span style="width:44px;height:32px;border-radius:8px;box-shadow:inset 0 0 0 2px #ff5ea8;display:grid;place-items:center;color:#ff5ea8;font-size:18px;">?</span><span style="color:#ff5ea8;">+</span><img src="glyphs/xbox/A.svg" style="width:32px;" alt="A"><span style="color:#b0bcc8;">→</span><span style="width:60px;height:32px;border-radius:8px;box-shadow:inset 0 0 0 1px rgba(214,228,242,.2);"></span>
+            </div>
+            <div style="font-size:14px;color:#b0bcc8;">Hold which button to change what A does?</div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;padding:16px 24px 20px;">
+            <sc-for list="{{ shiftBtns }}" as="b" hint-placeholder-count="12">
+              <div style="height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:10px;background:{{ b.bg }};box-shadow:{{ b.ring }};opacity:{{ b.op }};">
+                <span style="height:22px;display:flex;align-items:center;padding:0 6px;border-radius:5px;background:#e8eef4;color:#0d1217;font-size:11px;font-weight:700;">{{ b.k }}</span>
+                <span style="font-size:11px;color:{{ b.subC }};">{{ b.sub }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="height:52px;display:flex;align-items:center;gap:20px;padding:0 24px;background:#1b232b;font-size:13px;color:#b0bcc8;"><span style="flex:1;color:#808c99;">Or press the button on your controller</span><span style="display:flex;align-items:center;gap:8px;"><img src="glyphs/xbox/A.svg" style="width:20px;" alt="A">Next</span><span style="display:flex;align-items:center;gap:8px;"><img src="glyphs/xbox/B.svg" style="width:20px;" alt="B">Cancel</span></div>
+        </div>
+      </div>
+      <div style="position:relative;flex:none;width:760px;height:560px;border-radius:12px;overflow:hidden;background:#131920;box-shadow:0 0 0 1px rgba(214,228,242,.13);">
+        <div style="position:absolute;inset:0;background:rgba(5,9,13,.64);"></div>
+        <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:560px;display:flex;flex-direction:column;border-radius:14px;background:#232c36;box-shadow:0 12px 32px rgba(0,0,0,.45),0 0 0 1px rgba(214,228,242,.13);overflow:hidden;">
+          <div style="display:flex;flex-direction:column;gap:6px;padding:20px 24px 12px;">
+            <div style="font-size:11px;letter-spacing:.12em;font-weight:700;color:#808c99;">NEW LAYER ACTION · A BUTTON</div>
+            <div style="font-size:20px;font-weight:600;">Which layer?</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;padding:0 24px;">
+            <div style="height:52px;display:flex;align-items:center;gap:12px;padding:0 14px;border-radius:10px;background:oklch(76% .11 300 / .16);box-shadow:0 0 0 2px #9ad8ff;"><span style="width:12px;height:12px;border-radius:3px;background:oklch(76% .11 300);"></span><span style="flex:1;font-size:15px;font-weight:600;">Vehicles &amp; utility</span><span style="font-size:13px;color:#b0bcc8;">12 bindings</span></div>
+            <div style="height:52px;display:flex;align-items:center;gap:12px;padding:0 14px;border-radius:10px;background:#1f2730;"><span style="width:12px;height:12px;border-radius:3px;background:oklch(76% .11 160);"></span><span style="flex:1;font-size:15px;font-weight:500;">Comms</span><span style="font-size:13px;color:#808c99;">6 bindings</span></div>
+            <div style="height:52px;display:flex;align-items:center;gap:12px;padding:0 14px;border-radius:10px;background:#1f2730;"><span style="width:12px;height:12px;border-radius:3px;background:oklch(76% .11 60);"></span><span style="flex:1;font-size:15px;font-weight:500;">Tactical map</span><span style="font-size:13px;color:#808c99;">9 bindings</span></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;padding:18px 24px 20px;">
+            <div style="font-size:13px;color:#b0bcc8;">What should A do with it?</div>
+            <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:4px;border-radius:10px;background:#0f151b;">
+              <span style="height:36px;display:grid;place-items:center;border-radius:7px;background:oklch(76% .11 300);color:#07131d;font-size:13px;font-weight:700;">Hold</span>
+              <span style="height:36px;display:grid;place-items:center;border-radius:7px;color:#b0bcc8;font-size:13px;font-weight:600;">Toggle</span>
+              <span style="height:36px;display:grid;place-items:center;border-radius:7px;color:#b0bcc8;font-size:13px;font-weight:600;">Apply</span>
+              <span style="height:36px;display:grid;place-items:center;border-radius:7px;color:#b0bcc8;font-size:13px;font-weight:600;">Remove</span>
+            </div>
+            <div style="height:18px;font-size:12px;color:#808c99;">Vehicles is on while A is held.</div>
+          </div>
+          <div style="height:52px;display:flex;align-items:center;justify-content:flex-end;gap:20px;padding:0 24px;background:#1b232b;font-size:13px;color:#b0bcc8;"><span style="display:flex;align-items:center;gap:8px;"><img src="glyphs/xbox/LB.svg" style="height:18px;" alt="LB"><img src="glyphs/xbox/RB.svg" style="height:18px;" alt="RB">Verb</span><span style="display:flex;align-items:center;gap:8px;"><img src="glyphs/xbox/A.svg" style="width:20px;" alt="A">Add</span><span style="display:flex;align-items:center;gap:8px;"><img src="glyphs/xbox/B.svg" style="width:20px;" alt="B">Cancel</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2e menu item cards -->
+  <div id="2e" style="display:flex;flex-direction:column;gap:16px;">
+    <div style="display:flex;align-items:baseline;gap:12px;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">2e</span><span style="font-size:20px;font-weight:600;">Menu item card in each direction</span></div>
+    <div style="font-size:14px;line-height:21px;color:#b0bcc8;max-width:980px;">Same header, same lanes / tiles, same + rows as the binding card. The only addition is the identity row (icon + label on menu). Menu items can’t hold modeshifts or layer actions, so those lanes are absent, not empty.</div>
+    <div style="display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start;">
+      <div style="flex:none;width:480px;display:flex;flex-direction:column;gap:8px;">
+        <div style="font-size:13px;font-weight:600;">Lanes</div>
+        <div style="display:flex;flex-direction:column;border-radius:14px;background:#1f2730;box-shadow:0 0 0 1px rgba(214,228,242,.13),0 2px 8px rgba(0,0,0,.28);">
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid rgba(214,228,242,.07);">
+            <div style="width:40px;height:40px;border-radius:10px;background:#0f151b;display:grid;place-items:center;"><span style="width:20px;height:20px;-webkit-mask:url(icons/ui/overview.svg) center/contain no-repeat;mask:url(icons/ui/overview.svg) center/contain no-repeat;background:#e8eef4;"></span></div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:2px;"><span style="font-size:15px;font-weight:600;">Home</span><span style="font-size:12px;color:#808c99;">Region 1 · Row 1, Col 1</span></div>
+            <span style="width:32px;height:32px;display:grid;place-items:center;color:#b0bcc8;font-size:18px;">···</span>
+            <img src="glyphs/xbox/Y.svg" style="width:18px;" alt="Y">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;padding:14px;">
+            <div style="display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:center;">
+              <span style="height:36px;display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:8px;background:#2e3844;font-size:13px;font-weight:600;"><span style="width:16px;height:16px;-webkit-mask:url(icons/ui/overview.svg) center/contain no-repeat;mask:url(icons/ui/overview.svg) center/contain no-repeat;background:#e8eef4;"></span>Icon</span>
+              <span style="height:36px;display:flex;align-items:center;padding:0 12px;border-radius:8px;background:#0f151b;font-size:14px;">Home</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:10px;background:rgba(110,195,244,.06);box-shadow:inset 0 0 0 1px rgba(110,195,244,.14);">
+              <div style="display:flex;align-items:center;gap:8px;padding:2px 2px 4px;color:#6ec3f4;"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="2" y="2.5" width="12" height="11" rx="2.5"></rect><path d="M8.9 4.4 6.3 8h2.2l-.9 2.6L10.2 7H8z" fill="currentColor" stroke="none"></path></svg><span style="font-size:11px;letter-spacing:.12em;font-weight:700;">COMMANDS</span></div>
+              <div style="height:44px;display:grid;grid-template-columns:96px 14px minmax(0,1fr) 28px;align-items:center;gap:10px;padding:0 8px;border-radius:8px;background:#26303a;">
+                <span style="height:30px;display:flex;align-items:center;justify-content:space-between;padding:0 10px 0 12px;border-radius:8px;background:#2e3844;font-size:13px;font-weight:600;">Press<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#808c99" stroke-width="1.75" stroke-linecap="round"><path d="M2.5 3.75 5 6.25 7.5 3.75"></path></svg></span><span style="color:#6ec3f4;">→</span>
+                <span style="justify-self:start;height:28px;display:flex;align-items:center;padding:0 12px;border-radius:6px;background:#2e3844;box-shadow:inset 0 -2px 0 rgba(214,228,242,.13);font-size:13px;font-weight:600;">Home</span><span style="color:#808c99;text-align:center;">···</span>
+              </div>
+              <div style="height:36px;display:flex;align-items:center;gap:8px;padding:0 10px;border-radius:8px;box-shadow:inset 0 0 0 1px rgba(110,195,244,.22);color:#6ec3f4;font-size:13px;font-weight:600;">+ Add command</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="flex:none;width:480px;display:flex;flex-direction:column;gap:8px;">
+        <div style="font-size:13px;font-weight:600;">Combo tiles</div>
+        <div style="display:flex;flex-direction:column;border-radius:14px;background:#1f2730;box-shadow:0 0 0 1px rgba(214,228,242,.13),0 2px 8px rgba(0,0,0,.28);overflow:hidden;">
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:linear-gradient(90deg,rgba(110,195,244,.10),rgba(110,195,244,0) 60%);">
+            <div style="width:40px;height:40px;border-radius:10px;background:#0f151b;display:grid;place-items:center;"><span style="width:20px;height:20px;-webkit-mask:url(icons/ui/overview.svg) center/contain no-repeat;mask:url(icons/ui/overview.svg) center/contain no-repeat;background:#e8eef4;"></span></div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:2px;"><span style="font-size:15px;font-weight:600;">Home</span><span style="font-size:12px;color:#808c99;">Region 1 · Row 1, Col 1 · <span style="color:#6ec3f4;">1 command</span></span></div>
+            <span style="width:32px;height:32px;display:grid;place-items:center;color:#b0bcc8;font-size:18px;">···</span>
+            <img src="glyphs/xbox/Y.svg" style="width:18px;" alt="Y">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;padding:14px;">
+            <div style="display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:center;">
+              <span style="height:36px;display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:8px;background:#2e3844;font-size:13px;font-weight:600;"><span style="width:16px;height:16px;-webkit-mask:url(icons/ui/overview.svg) center/contain no-repeat;mask:url(icons/ui/overview.svg) center/contain no-repeat;background:#e8eef4;"></span>Icon</span>
+              <span style="height:36px;display:flex;align-items:center;padding:0 12px;border-radius:8px;background:#0f151b;font-size:14px;">Home</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:92px;gap:10px;">
+              <div style="display:flex;flex-direction:column;justify-content:space-between;padding:12px 14px;border-radius:12px;background:#26303a;box-shadow:inset 0 2px 0 #6ec3f4;">
+                <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:12px;font-weight:600;color:#6ec3f4;letter-spacing:.06em;">PRESS</span><span style="flex:1;"></span><span style="color:#808c99;">···</span></div>
+                <span style="align-self:flex-start;height:32px;display:flex;align-items:center;padding:0 12px;border-radius:8px;background:#2e3844;box-shadow:inset 0 -3px 0 rgba(214,228,242,.13);font-size:14px;font-weight:600;">Home</span>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border-radius:12px;box-shadow:inset 0 0 0 1px rgba(110,195,244,.3);color:#6ec3f4;font-size:13px;font-weight:600;"><svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><rect x="2" y="2.5" width="12" height="11" rx="2.5"></rect><path d="M8.9 4.4 6.3 8h2.2l-.9 2.6L10.2 7H8z" fill="currentColor" stroke="none"></path></svg>+ Command</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2f motion -->
+  <div id="2f" style="display:flex;flex-direction:column;gap:16px;">
+    <div style="display:flex;align-items:baseline;gap:12px;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">2f</span><span style="font-size:20px;font-weight:600;">Motion proposal · live demo</span></div>
+    <div style="font-size:14px;line-height:21px;color:#b0bcc8;max-width:980px;">Click the card header to expand / collapse; use the + rows to see add and remove. Built on the existing motion tokens only.</div>
+    <div style="display:grid;grid-template-columns:620px 520px;gap:40px;align-items:start;">
+      <div style="display:flex;flex-direction:column;border-radius:14px;background:#1f2730;box-shadow:{{ demoShadow }};transition:box-shadow 240ms cubic-bezier(.3,0,0,1);">
+        <div onClick="{{ toggle }}" style="display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer;">
+          <img src="glyphs/xbox/A.svg" style="width:36px;" alt="A">
+          <div style="flex:1;display:flex;flex-direction:column;gap:2px;"><span style="font-size:17px;font-weight:600;">A button</span><span style="font-size:13px;color:#808c99;">Jump</span></div>
+          <div style="display:flex;gap:6px;opacity:{{ chipsOpacity }};transition:opacity 160ms;">
+            <span style="height:24px;display:flex;align-items:center;gap:5px;padding:0 8px;border-radius:999px;background:rgba(110,195,244,.16);color:#6ec3f4;font-size:12px;font-weight:600;">{{ cmdCount }} cmd</span>
+            <span style="height:24px;display:flex;align-items:center;gap:5px;padding:0 8px;border-radius:999px;background:rgba(255,94,168,.16);color:#ff5ea8;font-size:12px;font-weight:600;">{{ shiftCount }} shift</span>
+          </div>
+          <svg width="14" height="14" viewBox="0 0 10 10" fill="none" stroke="#b0bcc8" stroke-width="1.6" stroke-linecap="round" style="transform:{{ chevron }};transition:transform 240ms cubic-bezier(.3,0,0,1);"><path d="M2.5 3.75 5 6.25 7.5 3.75"></path></svg>
+        </div>
+        <div style="display:grid;grid-template-rows:{{ bodyRows }};transition:grid-template-rows {{ bodyDur }} {{ bodyEase }};">
+          <div style="min-height:0;overflow:hidden;">
+            <div style="display:flex;flex-direction:column;gap:10px;padding:0 14px 14px;">
+              <div style="display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:10px;background:rgba(110,195,244,.06);box-shadow:inset 0 0 0 1px rgba(110,195,244,.14);opacity:{{ secOpacity }};transform:{{ secShift }};transition:opacity 240ms 40ms,transform 240ms 40ms cubic-bezier(.3,0,0,1);">
+                <div style="display:flex;align-items:center;gap:8px;color:#6ec3f4;font-size:11px;letter-spacing:.12em;font-weight:700;padding:2px;">COMMANDS</div>
+                <sc-for list="{{ cmds }}" as="r" hint-placeholder-count="2">
+                  <div style="display:grid;grid-template-rows:{{ r.rows }};transition:grid-template-rows 160ms cubic-bezier(.2,0,0,1);">
+                    <div style="min-height:0;overflow:hidden;">
+                      <div style="height:44px;display:grid;grid-template-columns:auto 14px auto minmax(0,1fr) auto;align-items:center;gap:10px;padding:0 8px;border-radius:8px;background:#26303a;box-shadow:{{ r.glow }};transition:box-shadow 900ms cubic-bezier(.2,0,0,1);">
+                        <span style="height:30px;display:flex;align-items:center;padding:0 12px;border-radius:8px;background:#2e3844;font-size:13px;font-weight:600;">{{ r.act }}</span><span style="color:#6ec3f4;">→</span>
+                        <span style="height:28px;display:flex;align-items:center;padding:0 12px;border-radius:6px;background:#2e3844;box-shadow:inset 0 -2px 0 rgba(214,228,242,.13);font-size:13px;font-weight:600;">{{ r.key }}</span><span style="font-size:13px;color:#b0bcc8;">{{ r.name }}</span>
+                        <span onClick="{{ r.remove }}" style="font-size:12px;font-weight:600;color:#ef8a8f;cursor:pointer;padding:0 6px;">Remove</span>
+                      </div>
+                    </div>
+                  </div>
+                </sc-for>
+                <div onClick="{{ addCmd }}" style="height:36px;display:flex;align-items:center;padding:0 10px;border-radius:8px;box-shadow:inset 0 0 0 1px rgba(110,195,244,.22);color:#6ec3f4;font-size:13px;font-weight:600;cursor:pointer;">+ Add command</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:10px;background:rgba(255,94,168,.06);box-shadow:inset 0 0 0 1px rgba(255,94,168,.18);opacity:{{ secOpacity }};transform:{{ secShift }};transition:opacity 240ms 64ms,transform 240ms 64ms cubic-bezier(.3,0,0,1);">
+                <div style="color:#ff5ea8;font-size:11px;letter-spacing:.12em;font-weight:700;padding:2px;">MODESHIFTS</div>
+                <sc-for list="{{ shifts }}" as="r" hint-placeholder-count="1">
+                  <div style="display:grid;grid-template-rows:{{ r.rows }};transition:grid-template-rows 160ms cubic-bezier(.2,0,0,1);">
+                    <div style="min-height:0;overflow:hidden;">
+                      <div style="height:44px;display:grid;grid-template-columns:auto 14px auto minmax(0,1fr) auto;align-items:center;gap:10px;padding:0 8px;border-radius:8px;background:#26303a;box-shadow:{{ r.glow }};transition:box-shadow 900ms cubic-bezier(.2,0,0,1);">
+                        <span style="height:30px;display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:8px;background:rgba(255,94,168,.16);color:#ffd1e6;font-size:13px;font-weight:600;"><span style="color:#ff5ea8;">While</span>{{ r.act }}</span><span style="color:#ff5ea8;">→</span>
+                        <span style="height:28px;display:flex;align-items:center;padding:0 12px;border-radius:6px;background:#2e3844;box-shadow:inset 0 -2px 0 rgba(214,228,242,.13);font-size:13px;font-weight:600;">{{ r.key }}</span><span style="font-size:13px;color:#b0bcc8;">{{ r.name }}</span>
+                        <span onClick="{{ r.remove }}" style="font-size:12px;font-weight:600;color:#ef8a8f;cursor:pointer;padding:0 6px;">Remove</span>
+                      </div>
+                    </div>
+                  </div>
+                </sc-for>
+                <div onClick="{{ addShift }}" style="height:36px;display:flex;align-items:center;padding:0 10px;border-radius:8px;box-shadow:inset 0 0 0 1px rgba(255,94,168,.22);color:#ff5ea8;font-size:13px;font-weight:600;cursor:pointer;">+ Add modeshift</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:0;font-size:13px;line-height:19px;">
+        <sc-for list="{{ motionSpec }}" as="m" hint-placeholder-count="8">
+          <div style="display:grid;grid-template-columns:150px minmax(0,1fr);gap:16px;padding:10px 0;border-top:1px solid rgba(214,228,242,.07);">
+            <span style="font-weight:600;color:#e8eef4;">{{ m.what }}</span><span style="color:#b0bcc8;">{{ m.how }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2g stability -->
+  <div id="2g" style="display:flex;flex-direction:column;gap:16px;">
+    <div style="display:flex;align-items:baseline;gap:12px;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">2g</span><span style="font-size:20px;font-weight:600;">Stable layout · nothing moves when state changes</span></div>
+    <div style="font-size:14px;line-height:21px;color:#b0bcc8;max-width:980px;text-wrap:pretty;">The shift comes from <span style="font-family:'Geist Mono';color:#e8eef4;">OverviewPage.tsx</span> joining every relation line into one label (“Jump · While held, changes A, B, X and 3 more · Pressed together with …”) and from live states swapping text of different lengths. Holding a chord or modeshift button grows callouts, the capsule and the header.</div>
+    <div style="display:grid;grid-template-columns:repeat(2,560px);gap:24px;">
+      <div style="display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:12px;background:#131920;box-shadow:0 0 0 1px rgba(239,138,143,.3);">
+        <div style="font-size:11px;letter-spacing:.12em;font-weight:700;color:#ef8a8f;">NOW · HOLDING L4</div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;background:#1f2730;"><img src="glyphs/xbox/A.svg" style="width:28px;" alt="A"><span style="font-size:13px;line-height:18px;color:#b0bcc8;">Jump · While held, changes A, B, X and 3 more · Pressed together with RB</span></div>
+        <div style="height:44px;display:flex;align-items:center;gap:14px;padding:0 16px;border-radius:999px;background:#1f2730;font-size:13px;color:#b0bcc8;align-self:flex-start;"><img src="glyphs/xbox/A.svg" style="width:20px;" alt="A">Select<img src="glyphs/xbox/B.svg" style="width:20px;" alt="B">Back<span style="color:#e8eef4;">L4 held — A, B, X, RB, LT, RT are now using their modeshifted bindings</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:12px;background:#131920;box-shadow:0 0 0 1px rgba(124,199,160,.3);">
+        <div style="font-size:11px;letter-spacing:.12em;font-weight:700;color:#7cc7a0;">PROPOSED · HOLDING L4</div>
+        <div style="height:56px;display:grid;grid-template-columns:28px minmax(0,1fr) 72px;align-items:center;gap:12px;padding:0 12px;border-radius:10px;background:#1f2730;box-shadow:0 0 0 1px rgba(255,94,168,.4);"><img src="glyphs/xbox/A.svg" style="width:28px;" alt="A"><div style="min-width:0;display:flex;flex-direction:column;"><span style="font-size:14px;font-weight:600;color:#ffd1e6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Melee</span><span style="font-size:12px;color:#808c99;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">was Jump</span></div><span style="height:26px;display:grid;place-items:center;border-radius:6px;background:#2e3844;font-size:12px;font-weight:600;">V</span></div>
+        <div style="flex:none;width:520px;height:44px;display:grid;grid-template-columns:auto auto minmax(0,1fr);align-items:center;gap:14px;padding:0 16px;border-radius:999px;background:#1f2730;font-size:13px;color:#b0bcc8;box-sizing:border-box;"><span style="display:flex;align-items:center;gap:8px;"><img src="glyphs/xbox/A.svg" style="width:20px;" alt="A">Select</span><span style="display:flex;align-items:center;gap:8px;"><img src="glyphs/xbox/B.svg" style="width:20px;" alt="B">Back</span><span style="justify-self:end;width:170px;height:26px;display:flex;align-items:center;gap:6px;padding:0 10px;border-radius:999px;background:rgba(255,94,168,.14);color:#ff5ea8;font-weight:600;box-sizing:border-box;">L4 held<span style="flex:1;"></span><span style="color:#ffd1e6;">6 shifted</span></span></span></div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,360px));gap:16px;font-size:13px;line-height:19px;color:#b0bcc8;">
+      <div style="display:flex;flex-direction:column;gap:4px;"><b style="color:#e8eef4;">Fixed boxes for live text</b>Callouts are always 2 lines × fixed height; value pills have a min-width; both ellipsize. Details go to the inspector, never inline.</div>
+      <div style="display:flex;flex-direction:column;gap:4px;"><b style="color:#e8eef4;">Reserved slots</b>The capsule and header keep a fixed-width status slot, empty when idle. Live states fill it with a chip and a count; they never append sentences.</div>
+      <div style="display:flex;flex-direction:column;gap:4px;"><b style="color:#e8eef4;">Swap, don’t reflow</b>State changes crossfade text in place (90ms) with <span style="font-family:'Geist Mono';">tabular-nums</span>. Only user actions (expand, add, remove) are allowed to move layout.</div>
+    </div>
+  </div>
+</section>
+
+<section data-screen-label="Turn 1 · Binding card refresh" style="padding:64px;display:flex;flex-direction:column;gap:56px;color:#e8eef4;">
+  <div style="display:flex;flex-direction:column;gap:8px;max-width:980px;">
+    <div style="font-size:12px;letter-spacing:.12em;color:#808c99;">BINDING CARD REFRESH · TURN 1</div>
+    <div style="font-size:32px;font-weight:600;letter-spacing:-.015em;">One colour per concept, cards without the clutter</div>
+    <div style="font-size:15px;line-height:22px;color:#b0bcc8;text-wrap:pretty;">Commands stay on the app blue, modeshifts get their own hot pink and a hex-chevron mark, layers keep their per-layer hues. The same three marks appear on binding rows, the controller overview and the capsule so a modeshift looks like a modeshift everywhere. Drag handles are gone: commands fire in activation order, not list order.</div>
+  </div>
+
+  <!-- ===== Identity system ===== -->
+  <div id="1a" style="display:flex;flex-direction:column;gap:16px;">
+    <div style="display:flex;align-items:baseline;gap:12px;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">1a</span><span style="font-size:20px;font-weight:600;">Concept marks and colour</span></div>
+    <div style="display:grid;grid-template-columns:repeat(3,300px);gap:16px;">
+      <div style="display:flex;flex-direction:column;gap:14px;padding:20px;border-radius:14px;background:#1f2730;">
+        <div style="width:48px;height:48px;border-radius:12px;background:rgba(110,195,244,.14);box-shadow:inset 0 0 0 1px rgba(110,195,244,.35);display:grid;place-items:center;color:#6ec3f4;"><svg width="26" height="26" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><rect x="2" y="2.5" width="12" height="11" rx="2.5"></rect><path d="M2 11h12" stroke-opacity=".5"></path><path d="M8.9 4.4 6.3 8h2.2l-.9 2.6L10.2 7H8z" fill="currentColor" stroke="none"></path></svg></div>
+        <div style="display:flex;flex-direction:column;gap:4px;"><span style="font-size:17px;font-weight:600;">Commands</span><span style="font-size:13px;line-height:18px;color:#b0bcc8;">Keycap with a bolt: an input that fires an output. App accent <span style="font-family:'Geist Mono';color:#6ec3f4;">#6EC3F4</span>.</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px;padding:20px;border-radius:14px;background:#1f2730;">
+        <div style="width:48px;height:48px;border-radius:12px;background:rgba(255,94,168,.14);box-shadow:inset 0 0 0 1px rgba(255,94,168,.4),0 0 18px rgba(255,94,168,.25);display:grid;place-items:center;color:#ff5ea8;"><svg width="28" height="28" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><path d="M8 1.3 13.8 4.6v6.8L8 14.7 2.2 11.4V4.6z"></path><path d="M5.3 8.1 8 5.5l2.7 2.6"></path><path d="M5.3 10.9 8 8.3l2.7 2.6"></path></svg></div>
+        <div style="display:flex;flex-direction:column;gap:4px;"><span style="font-size:17px;font-weight:600;">Modeshifts</span><span style="font-size:13px;line-height:18px;color:#b0bcc8;">Rank chevrons in a hex: “power up while held”. Neon pink <span style="font-family:'Geist Mono';color:#ff5ea8;">#FF5EA8</span> with a soft glow, used nowhere else.</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px;padding:20px;border-radius:14px;background:#1f2730;">
+        <div style="display:flex;gap:8px;">
+          <div style="width:48px;height:48px;border-radius:12px;background:oklch(76% .11 300 / .16);box-shadow:inset 0 0 0 1px oklch(76% .11 300 / .4);display:grid;place-items:center;color:oklch(76% .11 300);"><svg width="26" height="26" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M8 2 14 5.3 8 8.6 2 5.3z" fill="currentColor" fill-opacity=".25"></path><path d="M2 8.4 8 11.7l6-3.3"></path><path d="M2 11.1 8 14.4l6-3.3" stroke-opacity=".55"></path></svg></div>
+          <div style="width:48px;height:48px;border-radius:12px;background:oklch(76% .11 160 / .16);box-shadow:inset 0 0 0 1px oklch(76% .11 160 / .4);display:grid;place-items:center;color:oklch(76% .11 160);"><svg width="26" height="26" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M8 2 14 5.3 8 8.6 2 5.3z" fill="currentColor" fill-opacity=".25"></path><path d="M2 8.4 8 11.7l6-3.3"></path><path d="M2 11.1 8 14.4l6-3.3" stroke-opacity=".55"></path></svg></div>
+          <div style="width:48px;height:48px;border-radius:12px;background:oklch(76% .11 60 / .16);box-shadow:inset 0 0 0 1px oklch(76% .11 60 / .4);display:grid;place-items:center;color:oklch(76% .11 60);"><svg width="26" height="26" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M8 2 14 5.3 8 8.6 2 5.3z" fill="currentColor" fill-opacity=".25"></path><path d="M2 8.4 8 11.7l6-3.3"></path><path d="M2 11.1 8 14.4l6-3.3" stroke-opacity=".55"></path></svg></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;"><span style="font-size:17px;font-weight:600;">Layers</span><span style="font-size:13px;line-height:18px;color:#b0bcc8;">Top sheet filled. Each named layer keeps its own hue (existing <span style="font-family:'Geist Mono';">--layer-n</span> tokens).</span></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;width:932px;padding:20px;border-radius:14px;background:#131920;box-shadow:0 0 0 1px rgba(214,228,242,.07);">
+      <div style="font-size:11px;letter-spacing:.12em;font-weight:600;color:#808c99;">THE SAME MARKS ON COLLAPSED BINDING ROWS</div>
+      <div style="height:56px;display:flex;align-items:center;gap:16px;padding:0 16px 0 12px;border-radius:10px;background:#1f2730;">
+        <img src="glyphs/xbox/A.svg" style="width:28px;height:28px;" alt="A">
+        <div style="flex:1;display:flex;flex-direction:column;"><span style="font-size:15px;font-weight:500;">Jump</span><span style="font-size:13px;color:#808c99;">A button</span></div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="height:24px;display:flex;align-items:center;gap:6px;padding:0 8px 0 6px;border-radius:999px;background:rgba(255,94,168,.14);color:#ff5ea8;font-size:12px;font-weight:600;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M8 1.3 13.8 4.6v6.8L8 14.7 2.2 11.4V4.6z"></path><path d="M5.3 8.1 8 5.5l2.7 2.6"></path><path d="M5.3 10.9 8 8.3l2.7 2.6"></path></svg>L4</span>
+          <span style="height:24px;display:flex;align-items:center;gap:6px;padding:0 8px 0 6px;border-radius:999px;background:oklch(76% .11 300 / .16);color:oklch(76% .11 300);font-size:12px;font-weight:600;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M8 2 14 5.3 8 8.6 2 5.3z" fill="currentColor" fill-opacity=".25"></path><path d="M2 8.4 8 11.7l6-3.3"></path></svg>Vehicles</span>
+          <span style="min-width:28px;height:28px;display:flex;align-items:center;padding:0 12px;border-radius:6px;background:#2e3844;box-shadow:inset 0 -2px 0 rgba(214,228,242,.13);font-size:13px;font-weight:600;">Space</span>
+        </div>
+      </div>
+      <div style="height:56px;display:flex;align-items:center;gap:16px;padding:0 16px 0 12px;border-radius:10px;background:#1f2730;">
+        <img src="glyphs/xbox/B.svg" style="width:28px;height:28px;" alt="B">
+        <div style="flex:1;display:flex;flex-direction:column;"><span style="font-size:15px;font-weight:500;">Crouch</span><span style="font-size:13px;color:#808c99;">B button</span></div>
+        <span style="min-width:28px;height:28px;display:flex;align-items:center;padding:0 12px;border-radius:6px;background:#2e3844;box-shadow:inset 0 -2px 0 rgba(214,228,242,.13);font-size:13px;font-weight:600;">C</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Card directions ===== -->
+  <div style="display:flex;flex-direction:column;gap:12px;">
+    <div style="font-size:20px;font-weight:600;">Card directions · A button with one of each</div>
+    <div style="font-size:14px;line-height:21px;color:#b0bcc8;max-width:980px;">All three drop the drag handle, fold Copy / Paste into the header’s ··· (X), and keep Details on Y. Empty sections collapse to a single “+ Add” line instead of an explanation box.</div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start;">
+
+    <!-- 1b Lanes -->
+    <div id="1b" style="display:flex;flex-direction:column;gap:14px;width:720px;">
+      <div style="display:flex;align-items:baseline;gap:12px;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">1b</span><span style="font-size:18px;font-weight:600;">Colour lanes</span></div>
+      <div style="font-size:13px;line-height:19px;color:#b0bcc8;">Each concept is a tinted well headed by its mark. Rows read left to right as a sentence.</div>
+      <div style="display:flex;flex-direction:column;border-radius:14px;background:#1f2730;box-shadow:0 0 0 1px rgba(214,228,242,.13),0 2px 8px rgba(0,0,0,.28);">
+        <div style="display:flex;align-items:center;gap:14px;padding:16px 16px 16px 16px;border-bottom:1px solid rgba(214,228,242,.07);">
+          <img src="glyphs/xbox/A.svg" style="width:36px;height:36px;" alt="A">
+          <div style="flex:1;display:flex;flex-direction:column;gap:2px;"><span style="font-size:17px;font-weight:600;">A button</span><span style="font-size:13px;color:#808c99;">Jump</span></div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="width:32px;height:32px;border-radius:8px;display:grid;place-items:center;color:#b0bcc8;font-size:18px;line-height:1;">···</span>
+            <span style="height:32px;display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:8px;color:#b0bcc8;font-size:13px;font-weight:600;"><img src="glyphs/xbox/Y.svg" style="width:18px;height:18px;" alt="Y">Details</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px;padding:16px;">
+          <div style="display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:10px;background:rgba(110,195,244,.06);box-shadow:inset 0 0 0 1px rgba(110,195,244,.14);">
+            <div style="display:flex;align-items:center;gap:8px;color:#6ec3f4;"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><rect x="2" y="2.5" width="12" height="11" rx="2.5"></rect><path d="M8.9 4.4 6.3 8h2.2l-.9 2.6L10.2 7H8z" fill="currentColor" stroke="none"></path></svg><span style="font-size:11px;letter-spacing:.12em;font-weight:700;">COMMANDS</span><span style="font-size:11px;font-weight:700;padding:1px 6px;border-radius:999px;background:rgba(110,195,244,.18);">2</span></div>
+            <div style="height:48px;display:grid;grid-template-columns:112px 16px auto minmax(0,1fr) 32px;align-items:center;gap:12px;padding:0 8px 0 8px;border-radius:8px;background:#26303a;">
+              <span style="height:32px;display:flex;align-items:center;justify-content:space-between;padding:0 10px 0 12px;border-radius:8px;background:#2e3844;font-size:13px;font-weight:600;">Press<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#808c99" stroke-width="1.75" stroke-linecap="round"><path d="M2.5 3.75 5 6.25 7.5 3.75"></path></svg></span>
+              <span style="color:#6ec3f4;text-align:center;">→</span>
+              <span style="height:28px;display:flex;align-items:center;padding:0 12px;border-radius:6px;background:#2e3844;box-shadow:inset 0 -2px 0 rgba(214,228,242,.13);font-size:13px;font-weight:600;">Space</span>
+              <span style="font-size:13px;color:#b0bcc8;">Jump</span>
+              <span style="width:32px;height:32px;border-radius:8px;display:grid;place-items:center;color:#808c99;">···</span>
+            </div>
+            <div style="height:48px;display:grid;grid-template-columns:112px 16px auto minmax(0,1fr) 32px;align-items:center;gap:12px;padding:0 8px;border-radius:8px;background:#26303a;">
+              <span style="height:32px;display:flex;align-items:center;justify-content:space-between;padding:0 10px 0 12px;border-radius:8px;background:#2e3844;font-size:13px;font-weight:600;">Hold<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#808c99" stroke-width="1.75" stroke-linecap="round"><path d="M2.5 3.75 5 6.25 7.5 3.75"></path></svg></span>
+              <span style="color:#6ec3f4;text-align:center;">→</span>
+              <span style="height:28px;display:flex;align-items:center;padding:0 12px;border-radius:6px;background:#2e3844;box-shadow:inset 0 -2px 0 rgba(214,228,242,.13);font-size:13px;font-weight:600;">Left Ctrl</span>
+              <span style="font-size:13px;color:#b0bcc8;">Slide</span>
+              <span style="width:32px;height:32px;border-radius:8px;display:grid;place-items:center;color:#808c99;">···</span>
+            </div>
+            <div style="height:36px;display:flex;align-items:center;gap:8px;padding:0 10px;border-radius:8px;box-shadow:inset 0 0 0 1px rgba(110,195,244,.22);color:#6ec3f4;font-size:13px;font-weight:600;"><span style="font-size:16px;">+</span>Add command<span style="flex:1;"></span><span style="color:#808c99;font-weight:500;">or capture a key</span></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:10px;background:rgba(255,94,168,.06);box-shadow:inset 0 0 0 1px rgba(255,94,168,.18);">
+            <div style="display:flex;align-items:center;gap:8px;color:#ff5ea8;"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path d="M8 1.3 13.8 4.6v6.8L8 14.7 2.2 11.4V4.6z"></path><path d="M5.3 8.1 8 5.5l2.7 2.6"></path><path d="M5.3 10.9 8 8.3l2.7 2.6"></path></svg><span style="font-size:11px;letter-spacing:.12em;font-weight:700;">MODESHIFTS</span><span style="font-size:11px;font-weight:700;padding:1px 6px;border-radius:999px;background:rgba(255,94,168,.18);">1</span></div>
+            <div style="height:48px;display:grid;grid-template-columns:112px 16px auto minmax(0,1fr) 32px;align-items:center;gap:12px;padding:0 8px;border-radius:8px;background:#26303a;">
+              <span style="height:32px;display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:8px;background:rgba(255,94,168,.16);color:#ffd1e6;font-size:13px;font-weight:600;"><span style="color:#ff5ea8;">While</span>L4</span>
+              <span style="color:#ff5ea8;text-align:center;">→</span>
+              <span style="height:28px;display:flex;align-items:center;padding:0 12px;border-radius:6px;background:#2e3844;box-shadow:inset 0 -2px 0 rgba(214,228,242,.13);font-size:13px;font-weight:600;">V</span>
+              <span style="font-size:13px;color:#b0bcc8;">Melee</span>
+              <span style="width:32px;height:32px;border-radius:8px;display:grid;place-items:center;color:#808c99;">···</span>
+            </div>
+          </div>
+          <div style="height:44px;display:flex;align-items:center;gap:10px;padding:0 12px;border-radius:10px;box-shadow:inset 0 0 0 1px oklch(76% .11 300 / .22);color:oklch(76% .11 300);">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M8 2 14 5.3 8 8.6 2 5.3z" fill="currentColor" fill-opacity=".25"></path><path d="M2 8.4 8 11.7l6-3.3"></path><path d="M2 11.1 8 14.4l6-3.3" stroke-opacity=".55"></path></svg>
+            <span style="font-size:11px;letter-spacing:.12em;font-weight:700;">LAYER ACTIONS</span>
+            <span style="flex:1;"></span>
+            <span style="font-size:13px;font-weight:600;">+ Add layer action</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1c Combo cards -->
+    <div id="1c" style="display:flex;flex-direction:column;gap:14px;width:720px;">
+      <div style="display:flex;align-items:baseline;gap:12px;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">1c</span><span style="font-size:18px;font-weight:600;">Combo cards</span></div>
+      <div style="font-size:13px;line-height:19px;color:#b0bcc8;">Every binding is a tile showing the actual input chain with controller art. Modeshifts read as “L4 + A”, fighting-game style.</div>
+      <div style="display:flex;flex-direction:column;border-radius:14px;background:#1f2730;box-shadow:0 0 0 1px rgba(214,228,242,.13),0 2px 8px rgba(0,0,0,.28);overflow:hidden;">
+        <div style="display:flex;align-items:center;gap:14px;padding:16px;background:linear-gradient(90deg,rgba(110,195,244,.10),rgba(110,195,244,0) 60%);">
+          <img src="glyphs/xbox/A.svg" style="width:40px;height:40px;" alt="A">
+          <div style="flex:1;display:flex;flex-direction:column;gap:2px;"><span style="font-size:17px;font-weight:600;">A button</span><span style="display:flex;gap:12px;font-size:13px;color:#808c99;"><span style="color:#6ec3f4;">2 commands</span><span style="color:#ff5ea8;">1 modeshift</span><span>no layers</span></span></div>
+          <span style="width:32px;height:32px;border-radius:8px;display:grid;place-items:center;color:#b0bcc8;font-size:18px;">···</span>
+          <span style="height:32px;display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:8px;color:#b0bcc8;font-size:13px;font-weight:600;"><img src="glyphs/xbox/Y.svg" style="width:18px;height:18px;" alt="Y">Details</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:16px;">
+          <div style="display:flex;flex-direction:column;gap:12px;padding:14px;border-radius:12px;background:#26303a;box-shadow:inset 0 2px 0 #6ec3f4;">
+            <div style="display:flex;align-items:center;gap:8px;"><img src="glyphs/xbox/A.svg" style="width:24px;height:24px;" alt="A"><span style="font-size:12px;font-weight:600;color:#6ec3f4;letter-spacing:.06em;">PRESS</span><span style="flex:1;"></span><span style="color:#808c99;">···</span></div>
+            <div style="display:flex;align-items:center;gap:10px;"><span style="height:36px;display:flex;align-items:center;padding:0 14px;border-radius:8px;background:#2e3844;box-shadow:inset 0 -3px 0 rgba(214,228,242,.13);font-size:15px;font-weight:600;">Space</span><span style="font-size:14px;color:#b0bcc8;">Jump</span></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;padding:14px;border-radius:12px;background:#26303a;box-shadow:inset 0 2px 0 #6ec3f4;">
+            <div style="display:flex;align-items:center;gap:8px;"><img src="glyphs/xbox/A.svg" style="width:24px;height:24px;" alt="A"><span style="font-size:12px;font-weight:600;color:#6ec3f4;letter-spacing:.06em;">HOLD</span><span style="flex:1;"></span><span style="color:#808c99;">···</span></div>
+            <div style="display:flex;align-items:center;gap:10px;"><span style="height:36px;display:flex;align-items:center;padding:0 14px;border-radius:8px;background:#2e3844;box-shadow:inset 0 -3px 0 rgba(214,228,242,.13);font-size:15px;font-weight:600;">Left Ctrl</span><span style="font-size:14px;color:#b0bcc8;">Slide</span></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;padding:14px;border-radius:12px;background:linear-gradient(135deg,rgba(255,94,168,.16),rgba(255,94,168,.04));box-shadow:inset 0 0 0 1px rgba(255,94,168,.35),0 0 24px rgba(255,94,168,.12);">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="height:24px;display:flex;align-items:center;padding:0 7px;border-radius:6px;background:#e8eef4;color:#0d1217;font-size:11px;font-weight:700;">L4</span>
+              <span style="color:#ff5ea8;font-weight:700;">+</span>
+              <img src="glyphs/xbox/A.svg" style="width:24px;height:24px;" alt="A">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#ff5ea8" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" style="margin-left:4px;"><path d="M8 1.3 13.8 4.6v6.8L8 14.7 2.2 11.4V4.6z"></path><path d="M5.3 8.1 8 5.5l2.7 2.6"></path><path d="M5.3 10.9 8 8.3l2.7 2.6"></path></svg>
+              <span style="font-size:12px;font-weight:600;color:#ff5ea8;letter-spacing:.06em;">MODESHIFT</span><span style="flex:1;"></span><span style="color:#808c99;">···</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;"><span style="height:36px;display:flex;align-items:center;padding:0 14px;border-radius:8px;background:#2e3844;box-shadow:inset 0 -3px 0 rgba(214,228,242,.13);font-size:15px;font-weight:600;">V</span><span style="font-size:14px;color:#b0bcc8;">Melee</span></div>
+          </div>
+          <div style="display:grid;grid-template-rows:1fr 1fr;gap:10px;">
+            <div style="display:flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;box-shadow:inset 0 0 0 1px rgba(214,228,242,.13);color:#b0bcc8;font-size:13px;font-weight:600;"><span style="color:#6ec3f4;font-size:16px;">+</span>Command</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <div style="display:flex;align-items:center;justify-content:center;gap:6px;border-radius:12px;box-shadow:inset 0 0 0 1px rgba(214,228,242,.13);color:#b0bcc8;font-size:13px;font-weight:600;"><span style="color:#ff5ea8;font-size:16px;">+</span>Modeshift</div>
+              <div style="display:flex;align-items:center;justify-content:center;gap:6px;border-radius:12px;box-shadow:inset 0 0 0 1px rgba(214,228,242,.13);color:#b0bcc8;font-size:13px;font-weight:600;"><span style="color:oklch(76% .11 300);font-size:16px;">+</span>Layer</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== Menu item card ===== -->
+  <div id="1e" style="display:flex;flex-direction:column;gap:14px;">
+    <div style="display:flex;align-items:baseline;gap:12px;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">1e</span><span style="font-size:20px;font-weight:600;">Menu item card · same component, compact variant</span></div>
+    <div style="font-size:14px;line-height:21px;color:#b0bcc8;max-width:980px;text-wrap:pretty;">Menu items reuse the binding card with an identity row on top: icon slot + label, since that is what shows on the on-screen menu. Every row sits on one 12px inner edge, one border per container, controls right-aligned on a single column. Options open inline under the command; Advanced keeps only output behaviour. System keys moved to the action picker (<a href="#1f">1f</a>).</div>
+    <div style="display:flex;gap:40px;align-items:flex-start;">
+      <div style="width:480px;display:flex;flex-direction:column;border-radius:14px;background:#1f2730;box-shadow:0 0 0 1px rgba(214,228,242,.13),0 2px 8px rgba(0,0,0,.28);">
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 12px 12px 16px;border-bottom:1px solid rgba(214,228,242,.07);">
+          <div style="flex:1;display:flex;flex-direction:column;gap:2px;"><span style="font-size:15px;font-weight:600;">Region 1 · Row 1, Col 1</span><span style="font-size:12px;color:#808c99;">Radial menu · Right pad</span></div>
+          <span style="width:32px;height:32px;display:grid;place-items:center;color:#b0bcc8;font-size:18px;">···</span>
+          <img src="glyphs/xbox/Y.svg" style="width:18px;height:18px;" alt="Y">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px;padding:12px;">
+          <div style="display:grid;grid-template-columns:56px minmax(0,1fr);gap:12px;align-items:center;">
+            <div style="width:56px;height:56px;border-radius:12px;background:#0f151b;box-shadow:0 0 0 2px #9ad8ff;display:grid;place-items:center;position:relative;">
+              <span style="width:26px;height:26px;-webkit-mask:url(icons/ui/overview.svg) center/contain no-repeat;mask:url(icons/ui/overview.svg) center/contain no-repeat;background:#e8eef4;"></span>
+              <span style="position:absolute;right:-6px;bottom:-6px;"><img src="glyphs/xbox/A.svg" style="width:18px;height:18px;display:block;" alt="A"></span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <span style="font-size:11px;letter-spacing:.12em;font-weight:600;color:#808c99;">LABEL ON MENU</span>
+              <span style="height:36px;display:flex;align-items:center;padding:0 12px;border-radius:8px;background:#0f151b;font-size:14px;">Home</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;border-radius:10px;background:rgba(110,195,244,.06);box-shadow:inset 0 0 0 1px rgba(110,195,244,.14);overflow:hidden;">
+            <div style="display:flex;align-items:center;gap:8px;padding:10px 12px 0;color:#6ec3f4;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="2" y="2.5" width="12" height="11" rx="2.5"></rect><path d="M8.9 4.4 6.3 8h2.2l-.9 2.6L10.2 7H8z" fill="currentColor" stroke="none"></path></svg><span style="font-size:11px;letter-spacing:.12em;font-weight:700;">COMMAND</span></div>
+            <div style="display:grid;grid-template-columns:104px 14px minmax(0,1fr) 32px;align-items:center;gap:10px;padding:10px 12px;">
+              <span style="height:32px;display:flex;align-items:center;justify-content:space-between;padding:0 10px 0 12px;border-radius:8px;background:#2e3844;font-size:13px;font-weight:600;">Press<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#808c99" stroke-width="1.75" stroke-linecap="round"><path d="M2.5 3.75 5 6.25 7.5 3.75"></path></svg></span>
+              <span style="color:#6ec3f4;">→</span>
+              <span style="height:32px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-radius:8px;background:#2e3844;box-shadow:inset 0 -2px 0 rgba(214,228,242,.13);font-size:13px;font-weight:600;">Home<span style="font-size:12px;font-weight:500;color:#808c99;">Keyboard</span></span>
+              <span style="width:32px;height:32px;border-radius:8px;background:#2e3844;display:grid;place-items:center;"><span style="width:16px;height:16px;-webkit-mask:url(icons/ui/tuning.svg) center/contain no-repeat;mask:url(icons/ui/tuning.svg) center/contain no-repeat;background:#e8eef4;"></span></span>
+            </div>
+            <div style="display:flex;flex-direction:column;border-top:1px solid rgba(214,228,242,.07);background:#1a2129;">
+              <div style="height:44px;display:grid;grid-template-columns:minmax(0,1fr) 176px;align-items:center;gap:12px;padding:0 12px;"><span style="font-size:13px;color:#b0bcc8;">Output mode</span><span style="height:32px;display:flex;align-items:center;justify-content:space-between;padding:0 10px 0 12px;border-radius:8px;background:#2e3844;font-size:13px;font-weight:600;">Hold while pressed<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#808c99" stroke-width="1.75" stroke-linecap="round"><path d="M2.5 3.75 5 6.25 7.5 3.75"></path></svg></span></div>
+              <div style="height:44px;display:grid;grid-template-columns:minmax(0,1fr) 176px;align-items:center;gap:12px;padding:0 12px;border-top:1px solid rgba(214,228,242,.07);"><span style="font-size:13px;color:#b0bcc8;">Release early</span><span style="justify-self:end;width:40px;height:22px;border-radius:999px;background:#2e3844;position:relative;"><span style="position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:#b0bcc8;"></span></span></div>
+              <div style="height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-top:1px solid rgba(214,228,242,.07);"><span style="font-size:12px;color:#808c99;">Timing: Tuning · Press timing</span><span style="font-size:13px;font-weight:600;color:#ef8a8f;">Remove</span></div>
+            </div>
+          </div>
+          <div style="height:36px;display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:8px;box-shadow:inset 0 0 0 1px rgba(214,228,242,.13);color:#b0bcc8;font-size:13px;font-weight:600;"><span style="color:#6ec3f4;">+</span>Add command</div>
+        </div>
+      </div>
+      <div style="width:420px;display:flex;flex-direction:column;gap:12px;font-size:14px;line-height:21px;color:#b0bcc8;">
+        <div style="font-size:11px;letter-spacing:.12em;font-weight:600;color:#808c99;">WHAT CHANGED FROM THE CURRENT CARD</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div><b style="color:#e8eef4;">Icon + label promoted.</b> They describe the menu slot, not a command, so they move out of the command row. A on the icon opens the icon modal (<a href="#1g">1g</a>).</div>
+          <div><b style="color:#e8eef4;">Output is one pill.</b> “Output: Keyboard” dropdown, value field, Capture and Keyboard… collapse into the output pill; A opens the picker, which already has Capture and every category.</div>
+          <div><b style="color:#e8eef4;">Options is an icon.</b> Options / ··· / Remove become one tuning button; Remove lives at the bottom of the open options.</div>
+          <div><b style="color:#e8eef4;">No nested boxes.</b> Options is a flat list with hairlines inside the command well, so borders never double up or clip at the edge.</div>
+          <div><b style="color:#e8eef4;">Copy / Paste</b> go under ··· on the header, same as binding cards.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Action picker ===== -->
+  <div id="1f" style="display:flex;flex-direction:column;gap:14px;">
+    <div style="display:flex;align-items:baseline;gap:12px;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">1f</span><span style="font-size:20px;font-weight:600;">Choose an action · System &amp; media category</span></div>
+    <div style="font-size:14px;line-height:21px;color:#b0bcc8;max-width:980px;">Volume, mute, media and Print Screen are outputs like any other, so they become a picker category. Nothing about them stays in Advanced.</div>
+    <div style="width:1280px;height:720px;display:grid;grid-template-rows:72px minmax(0,1fr) 56px;border-radius:12px;overflow:hidden;background:#131920;box-shadow:0 0 0 1px rgba(214,228,242,.13);">
+      <div style="display:flex;align-items:center;gap:16px;padding:0 32px;background:#0d1217;">
+        <div style="display:flex;flex-direction:column;"><span style="font-size:11px;letter-spacing:.12em;font-weight:600;color:#808c99;">REGION 1 · ROW 1, COL 1 · PRESS</span><span style="font-size:22px;font-weight:600;">Choose an action</span></div>
+        <span style="flex:1;"></span>
+        <span style="width:360px;height:40px;display:flex;align-items:center;gap:10px;padding:0 14px;border-radius:8px;background:#0f151b;color:#5b6571;font-size:14px;"><span style="width:16px;height:16px;-webkit-mask:url(icons/ui/search.svg) center/contain no-repeat;mask:url(icons/ui/search.svg) center/contain no-repeat;background:#808c99;"></span>Search every action</span>
+      </div>
+      <div style="display:grid;grid-template-columns:240px minmax(0,1fr);min-height:0;">
+        <div style="display:flex;flex-direction:column;gap:2px;padding:20px 12px;background:#181f27;">
+          <sc-for list="{{ cats }}" as="c" hint-placeholder-count="7">
+            <div style="height:44px;display:flex;align-items:center;gap:12px;padding:0 14px;border-radius:8px;background:{{ c.bg }};color:{{ c.fg }};font-size:14px;font-weight:{{ c.fw }};">{{ c.label }}</div>
+          </sc-for>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:20px;padding:24px 32px;">
+          <div style="font-size:17px;font-weight:600;">System &amp; media</div>
+          <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;">
+            <sc-for list="{{ sysKeys }}" as="k" hint-placeholder-count="7">
+              <div style="height:96px;display:flex;flex-direction:column;justify-content:space-between;padding:14px;border-radius:12px;background:{{ k.bg }};box-shadow:{{ k.ring }};">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e8eef4" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="{{ k.d }}"></path></svg>
+                <span style="font-size:15px;font-weight:600;">{{ k.label }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:24px;padding:0 32px;background:#0d1217;font-size:13px;color:#b0bcc8;">
+        <span style="display:flex;align-items:center;gap:8px;"><img src="glyphs/xbox/A.svg" style="width:22px;height:22px;" alt="A">Choose</span>
+        <span style="display:flex;align-items:center;gap:8px;"><img src="glyphs/xbox/B.svg" style="width:22px;height:22px;" alt="B">Back</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Icon modal ===== -->
+  <div id="1g" style="display:flex;flex-direction:column;gap:14px;">
+    <div style="display:flex;align-items:baseline;gap:12px;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">1g</span><span style="font-size:20px;font-weight:600;">Icon picker · centred modal</span></div>
+    <div style="font-size:14px;line-height:21px;color:#b0bcc8;max-width:980px;">Replaces the inline popover that ran off-screen. Always centred on the viewport with a scrim. Import custom icon sits in the Custom tab and the header, ready for later.</div>
+    <div style="position:relative;width:1280px;height:720px;border-radius:12px;overflow:hidden;background:#131920;box-shadow:0 0 0 1px rgba(214,228,242,.13);">
+      <div style="position:absolute;inset:0;background:rgba(5,9,13,.72);"></div>
+      <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:840px;height:580px;display:grid;grid-template-rows:68px 52px minmax(0,1fr) 56px;border-radius:14px;background:#232c36;box-shadow:0 12px 32px rgba(0,0,0,.45),0 0 0 1px rgba(214,228,242,.13);overflow:hidden;">
+        <div style="display:flex;align-items:center;gap:14px;padding:0 24px;">
+          <div style="width:40px;height:40px;border-radius:10px;background:#0f151b;display:grid;place-items:center;"><span style="width:20px;height:20px;-webkit-mask:url(icons/ui/overview.svg) center/contain no-repeat;mask:url(icons/ui/overview.svg) center/contain no-repeat;background:#e8eef4;"></span></div>
+          <div style="flex:1;display:flex;flex-direction:column;"><span style="font-size:17px;font-weight:600;">Icon for “Home”</span><span style="font-size:12px;color:#808c99;">Shown above the label on the menu</span></div>
+          <span style="width:240px;height:36px;display:flex;align-items:center;gap:10px;padding:0 12px;border-radius:8px;background:#0f151b;color:#5b6571;font-size:13px;"><span style="width:14px;height:14px;-webkit-mask:url(icons/ui/search.svg) center/contain no-repeat;mask:url(icons/ui/search.svg) center/contain no-repeat;background:#808c99;"></span>Search icons</span>
+          <span style="height:36px;display:flex;align-items:center;gap:8px;padding:0 14px;border-radius:8px;background:#2e3844;font-size:13px;font-weight:600;">+ Import</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;padding:0 24px;border-bottom:1px solid rgba(214,228,242,.07);">
+          <img src="glyphs/xbox/LB.svg" style="height:18px;margin-right:6px;" alt="LB">
+          <sc-for list="{{ iconTabs }}" as="t" hint-placeholder-count="5">
+            <span style="height:32px;display:flex;align-items:center;padding:0 14px;border-radius:999px;background:{{ t.bg }};color:{{ t.fg }};font-size:13px;font-weight:600;">{{ t.label }}</span>
+          </sc-for>
+          <img src="glyphs/xbox/RB.svg" style="height:18px;margin-left:6px;" alt="RB">
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(10,56px);gap:10px;justify-content:start;align-content:start;padding:20px 24px;overflow:hidden;">
+          <sc-for list="{{ iconGrid }}" as="i" hint-placeholder-count="40">
+            <div style="width:56px;height:56px;border-radius:10px;background:{{ i.bg }};box-shadow:{{ i.ring }};display:grid;place-items:center;"><span style="width:24px;height:24px;-webkit-mask:url({{ i.src }}) center/contain no-repeat;mask:url({{ i.src }}) center/contain no-repeat;background:#d6dee6;"></span></div>
+          </sc-for>
+        </div>
+        <div style="display:flex;align-items:center;gap:24px;padding:0 24px;background:#1b232b;font-size:13px;color:#b0bcc8;">
+          <span style="flex:1;color:#808c99;">Bundled with the configuration</span>
+          <span style="display:flex;align-items:center;gap:8px;"><img src="glyphs/xbox/X.svg" style="width:20px;height:20px;" alt="X">No icon</span>
+          <span style="display:flex;align-items:center;gap:8px;"><img src="glyphs/xbox/A.svg" style="width:20px;height:20px;" alt="A">Use icon</span>
+          <span style="display:flex;align-items:center;gap:8px;"><img src="glyphs/xbox/B.svg" style="width:20px;height:20px;" alt="B">Cancel</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Capsule fix ===== -->
+  <div id="1h" style="display:flex;flex-direction:column;gap:14px;">
+    <div style="display:flex;align-items:baseline;gap:12px;"><span style="padding:2px 8px;border-radius:6px;background:#6ec3f4;color:#07131d;font-weight:700;font-size:14px;">1h</span><span style="font-size:20px;font-weight:600;">Capsule · one hint per button</span></div>
+    <div style="font-size:14px;line-height:21px;color:#b0bcc8;max-width:980px;text-wrap:pretty;">Cause (from the code): <span style="font-family:'Geist Mono';color:#e8eef4;">SummaryRow</span> always appends <span style="font-family:'Geist Mono';color:#e8eef4;">B:Back</span> after the caller’s <span style="font-family:'Geist Mono';color:#e8eef4;">hints</span>, and callers like PadSection already pass <span style="font-family:'Geist Mono';color:#e8eef4;">"A:Bind;B:Back"</span>. <span style="font-family:'Geist Mono';color:#e8eef4;">parseHints</span> in HintCapsule never dedupes. Fix: parseHints keeps one hint per button (last declared wins) and sorts into a fixed order: MOVE, A, X, Y, B, LB/RB, LT/RT, then the separator and Menu, View. SummaryRow only adds B when the caller didn’t.</div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div style="display:flex;align-items:center;gap:16px;"><span style="width:56px;font-size:12px;font-weight:600;color:#ef8a8f;letter-spacing:.08em;">NOW</span>
+        <div style="height:44px;display:flex;align-items:center;gap:18px;padding:0 18px;border-radius:999px;background:#1f2730;box-shadow:0 8px 24px rgba(0,0,0,.4),0 0 0 1px rgba(214,228,242,.07);font-size:13px;color:#b0bcc8;opacity:.6;">
+          <span style="display:flex;align-items:center;gap:8px;"><img src="glyphs/xbox/B.svg" style="width:20px;" alt="B">Back</span><span style="display:flex;align-items:center;gap:8px;"><img src="glyphs/xbox/B.svg" style="width:20px;" alt="B">Back</span><span style="display:flex;align-items:center;gap:8px;"><img src="glyphs/xbox/A.svg" style="width:20px;" alt="A">Select</span><span style="display:flex;align-items:center;gap:8px;"><img src="glyphs/xbox/B.svg" style="width:20px;" alt="B">Back</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;"><span style="width:56px;font-size:12px;font-weight:600;color:#7cc7a0;letter-spacing:.08em;">FIXED</span>
+        <div style="height:44px;display:flex;align-items:center;gap:18px;padding:0 18px;border-radius:999px;background:#1f2730;box-shadow:0 8px 24px rgba(0,0,0,.4),0 0 0 1px rgba(214,228,242,.07);font-size:13px;color:#e8eef4;">
+          <span style="display:flex;align-items:center;gap:8px;"><img src="glyphs/xbox/A.svg" style="width:20px;" alt="A">Select</span><span style="display:flex;align-items:center;gap:8px;"><img src="glyphs/xbox/B.svg" style="width:20px;" alt="B">Back</span><span style="width:1px;height:18px;background:rgba(214,228,242,.13);"></span><span style="color:#b0bcc8;">Configuration</span><span style="color:#b0bcc8;">Home</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    open: true,
+    cmds: [{ id: 1, act: 'Press', key: 'Space', name: 'Jump', shown: true }, { id: 2, act: 'Hold', key: 'Left Ctrl', name: 'Slide', shown: true }],
+    shifts: [{ id: 3, act: 'L4', key: 'V', name: 'Melee', shown: true }],
+    fresh: null, n: 10,
+  };
+  add(list, row) {
+    const id = this.state.n + 1;
+    this.setState(s => ({ n: id, fresh: id, [list]: [...s[list], { ...row, id, shown: false }] }));
+    setTimeout(() => this.setState(s => ({ [list]: s[list].map(r => r.id === id ? { ...r, shown: true } : r) })), 30);
+    setTimeout(() => this.setState(s => (s.fresh === id ? { fresh: null } : null)), 1000);
+  }
+  remove(list, id) {
+    this.setState(s => ({ [list]: s[list].map(r => r.id === id ? { ...r, shown: false } : r) }));
+    setTimeout(() => this.setState(s => ({ [list]: s[list].filter(r => r.id !== id) })), 180);
+  }
+  renderVals() {
+    const st = this.state, open = st.open;
+    const mapRows = (list, glow) => st[list].map(r => ({ ...r, rows: r.shown ? '1fr' : '0fr', glow: st.fresh === r.id ? glow : '0 0 0 0 transparent', remove: () => this.remove(list, r.id) }));
+    const keys = ['E', 'F', 'G', 'Mouse 4', 'Mouse 5'], shiftKeys = ['L5', 'R4', 'R5', 'LB'];
+    const demo = {
+      toggle: () => this.setState(s => ({ open: !s.open })),
+      demoShadow: open ? '0 0 0 1px rgba(214,228,242,.13),0 8px 24px rgba(0,0,0,.35)' : '0 0 0 1px rgba(214,228,242,.07),0 0 0 rgba(0,0,0,0)',
+      chevron: open ? 'rotate(180deg)' : 'rotate(0deg)',
+      chipsOpacity: open ? 0 : 1,
+      bodyRows: open ? '1fr' : '0fr',
+      bodyDur: open ? '240ms' : '160ms',
+      bodyEase: open ? 'cubic-bezier(.3,0,0,1)' : 'cubic-bezier(.4,0,1,1)',
+      secOpacity: open ? 1 : 0,
+      secShift: open ? 'translateY(0)' : 'translateY(-4px)',
+      cmdCount: st.cmds.length, shiftCount: st.shifts.length,
+      cmds: mapRows('cmds', '0 0 0 1px rgba(110,195,244,.6),0 0 22px rgba(110,195,244,.45)'),
+      shifts: mapRows('shifts', '0 0 0 1px rgba(255,94,168,.6),0 0 22px rgba(255,94,168,.45)'),
+      addCmd: () => this.add('cmds', { act: 'Press', key: keys[st.n % keys.length], name: 'New action' }),
+      addShift: () => this.add('shifts', { act: shiftKeys[st.n % shiftKeys.length], key: 'Mouse 4', name: 'New action' }),
+      motionSpec: [
+        { what: 'Expand', how: 'Height via grid rows 0fr→1fr, 240ms emphasis ease. Sections fade + rise 4px, staggered 24ms.' },
+        { what: 'Collapse', how: '160ms exit ease, no stagger. Summary chips fade back in as the body closes.' },
+        { what: 'Chevron', how: 'Rotates 180°, 240ms, in step with the body.' },
+        { what: 'Add', how: 'Row grows open in 160ms, then a glow in its concept colour fades over 900ms. Focus lands on it.' },
+        { what: 'Remove', how: 'Row collapses in 160ms; neighbours slide up. Focus moves to the next row, or the + row.' },
+        { what: 'Picker / sheets', how: 'Scale 0.96→1 from the pill or + row that opened them, 240ms; scrim fades 160ms.' },
+        { what: 'Modeshift held', how: 'Affected callouts crossfade to shifted text (90ms) and take the pink glow; no size change.' },
+        { what: 'Reduced motion', how: 'Heights snap; only opacity fades remain, capped at 120ms (existing token override).' },
+      ],
+    };
+    const shiftBtns = [['L4','Back grip'],['L5','Back grip'],['R4','Back grip'],['R5','Back grip'],['LB','Bumper'],['RB','Bumper'],['LT','Trigger'],['RT','Trigger'],['X','Face'],['Y','Face'],['B','Face'],['A','This input']].map(([k, sub], i) => ({
+      k, sub, bg: i === 1 ? 'rgba(255,94,168,.16)' : '#1f2730', ring: i === 1 ? '0 0 0 2px #9ad8ff' : 'none', op: k === 'A' ? .35 : 1, subC: i === 1 ? '#ffd1e6' : '#808c99',
+    }));
+    const cats = ['Keyboard','Mouse','Controller','System & media','Gyro & mouse','Layers','Special'].map(l => {
+      const on = l === 'System & media';
+      return { label: l, bg: on ? '#2a4a63' : 'transparent', fg: on ? '#e8eef4' : '#b0bcc8', fw: on ? 600 : 500 };
+    });
+    const sysKeys = [
+      ['Volume up','M4 9h3l4-3v12l-4-3H4z M15 9.5a3.5 3.5 0 0 1 0 5 M17.5 7a7 7 0 0 1 0 10'],
+      ['Volume down','M5 9h3l4-3v12l-4-3H5z M16 9.5a3.5 3.5 0 0 1 0 5'],
+      ['Mute','M4 9h3l4-3v12l-4-3H4z M15 9.5l5 5 M20 9.5l-5 5'],
+      ['Play / Pause','M5 6v12l7-6z M15 6v12 M19 6v12'],
+      ['Next track','M5 6v12l9-6z M18 6v12'],
+      ['Previous track','M19 6v12l-9-6z M6 6v12'],
+      ['Print Screen','M4 8V5h3 M17 5h3v3 M20 16v3h-3 M7 19H4v-3 M9 12a3 3 0 1 0 6 0a3 3 0 1 0-6 0'],
+    ].map(([label,d],i) => ({ label, d, bg: i===3 ? '#2a4a63' : '#1f2730', ring: i===3 ? '0 0 0 2px #9ad8ff' : 'inset 0 0 0 1px rgba(214,228,242,.07)' }));
+    const iconTabs = ['General','Game','Media','Navigation','Custom'].map((l,i) => ({ label: l, bg: i===0 ? '#6ec3f4' : 'transparent', fg: i===0 ? '#07131d' : '#b0bcc8' }));
+    const names = ['overview','buttons','dpad','gyro','joysticks','layers','library','menuLayout','search','preferences','test','timing','triggers','trackpads','visibility','capture','copy','paste','docs','folder','info','warning','success','battery','connected','calibrate','chords','grips','ai','debug','save','apply','back','add','filter','details','source','padTuning','associations','tuning'];
+    const iconGrid = names.map((n,i) => ({ src: 'icons/ui/' + n + '.svg', bg: i===0 ? '#2a4a63' : '#1b232b', ring: i===0 ? '0 0 0 2px #9ad8ff' : 'none' }));
+    const g = n => 'glyphs/xbox/' + n + '.svg';
+    const row = (o, i) => ({ shift: false, layer: false, more: false, keyMore: false, none: false, keys: [], nameC: '#e8eef4', bg: i === 0 ? '#2a4a63' : '#1f2730', ring: i === 0 ? '0 0 0 2px #9ad8ff' : 'none', ...o });
+    const rows3 = [
+      { glyph: g('A'), name: 'Jump', input: 'A button', shift: { btn: 'L4', out: 'V' }, keys: [{ act: 'PRESS', key: 'Space' }, { act: 'HOLD', key: 'L Ctrl' }] },
+      { glyph: g('B'), name: 'Crouch', input: 'B button', layer: 'Hold Vehicles', keys: [{ act: 'PRESS', key: 'C' }] },
+      { glyph: g('X'), name: 'Reload', input: 'X button', keys: [{ act: 'PRESS', key: 'R' }] },
+      { glyph: g('RB'), name: 'Ping', input: 'Right bumper', shift: { btn: 'L4', out: 'Mouse 4' }, more: '+2', keys: [{ act: 'TAP', key: 'Mouse 3' }, { act: 'HOLD', key: 'Q' }], keyMore: '+1' },
+      { glyph: g('Y'), name: 'Unbound', input: 'Y button', none: true, nameC: '#808c99' },
+    ].map(row);
+    const laneCmds = [{ act: 'PRESS', key: 'Space', name: 'Jump' }, { act: 'HOLD', key: 'Left Ctrl', name: 'Slide' }].map((c, i) => ({ ...c, bg: i === 1 ? '#2a4a63' : '#26303a', ring: i === 1 ? '0 0 0 2px #9ad8ff' : 'none' }));
+    const it = (k, sub, o = {}) => ({ k, sub, bg: '#1f2730', ring: 'none', op: 1, subC: '#b0bcc8', r: '6px', ...o });
+    const circ = { r: '999px' };
+    const holdGroups = [
+      { name: 'BACK GRIPS', items: [it('L4', 'Upper left', { bg: 'rgba(255,67,104,.16)', ring: '0 0 0 2px #9ad8ff', subC: '#ffc4d0' }), it('L5', 'Lower left'), it('R4', 'Upper right'), it('R5', 'Lower right')] },
+      { name: 'FACE', items: [it('A', 'This input', { ...circ, op: .35 }), it('B', '', circ), it('X', '', circ), it('Y', '', circ)] },
+      { name: 'SHOULDERS', items: [it('LB', ''), it('RB', ''), it('LT', 'Soft pull'), it('RT', 'Soft pull'), it('LT', 'Full pull'), it('RT', 'Full pull')] },
+      { name: 'STICKS', items: [it('L3', 'Click', circ), it('R3', 'Click', circ), it('LS', 'Touch', circ), it('RS', 'Touch', circ), it('LS', 'Ring', circ)] },
+      { name: 'D-PAD', items: [it('↑', 'Up'), it('↓', 'Down'), it('←', 'Left'), it('→', 'Right')] },
+      { name: 'TRACKPADS', items: [it('LP', 'Touch'), it('LP', 'Click'), it('RP', 'Touch'), it('RP', 'Click')] },
+      { name: 'SYSTEM', items: [it('View', ''), it('Menu', ''), it('Home', ''), it('Share', '')] },
+    ];
+    return { cats, sysKeys, iconTabs, iconGrid, shiftBtns, rows3, laneCmds, holdGroups, ...demo };
+  }
+}
+</script>
+</body>
+</html>
