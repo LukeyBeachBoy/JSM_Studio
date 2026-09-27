@@ -50,11 +50,29 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  assert.equal(await row.getAttribute('data-kind'), 'command-bare');
  assert.equal(await row.getByRole('button',{name:/^Choose action/}).innerText(), 'Home');
 
+ // Change icon opens the icon modal (1g): centred, titled for the item,
+ // tabs stepped by LB / RB, a left-aligned grid; choosing writes the icon.
+ await card.getByRole('button',{name:'Change icon'}).click();
+ const modal = page.getByRole('dialog',{name:'Icon for “Home”'});
+ await modal.waitFor();
+ const box = await modal.boundingBox();
+ const viewport = page.viewportSize();
+ assert.ok(Math.abs(box.x + box.width / 2 - viewport.width / 2) < 2 && Math.abs(box.y + box.height / 2 - viewport.height / 2) < 2, 'the icon modal is not centred');
+ await modal.getByRole('button',{name:'Media',exact:true}).click();
+ const first = modal.getByRole('button',{name:'play',exact:true});
+ await first.waitFor();
+ const grid = await first.evaluate(tile => { const g = tile.parentElement; return { tile: tile.getBoundingClientRect().left, grid: g.getBoundingClientRect().left + parseFloat(getComputedStyle(g).paddingLeft), justify: getComputedStyle(g).justifyContent } });
+ assert.equal(grid.justify, 'start', 'the icon grid is not left-aligned');
+ assert.ok(Math.abs(grid.tile - grid.grid) < 1, 'the first icon does not start at the left edge');
+ await first.click();
+ await modal.waitFor({state:'detached'});
+
  // The label field writes the menu's label.
  await labelField.fill('Go home');
  await labelField.press('Enter');
  await page.keyboard.press('Control+s');
  await page.waitForFunction(() => /# @label LT1 = Go home/.test(window.__lastSaved));
+ assert.match(await page.evaluate(() => window.__lastSaved), /# @icon LT1 = lucide:play/);
 
  assert.deepEqual(errors,[]);
  console.log('PASS: a menu item card has its icon, its label, and a Commands lane only');

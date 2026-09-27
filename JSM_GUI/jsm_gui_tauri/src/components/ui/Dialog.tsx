@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useId, useRef, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { ButtonGlyph, type PadButtonName } from '../glyphs/ButtonGlyph'
 import { PAD_EVENT, type PadEventDetail } from '../../nav/useControllerNavigation'
@@ -17,8 +17,14 @@ type DialogProps = {
   /** Drawn uppercase over the title. */
   eyebrow?: ReactNode
   title: ReactNode
+  /** A line under the title. */
+  subtitle?: ReactNode
+  /** Left of the title: the icon modal's preview well. */
+  lead?: ReactNode
   /** Right of the title: a preview, a search field, an action. */
   aside?: ReactNode
+  /** A fixed row between the header and the scrolling body: tabs. */
+  toolbar?: ReactNode
   /** The footer's lead text, left of the hints: "Or press it on your controller". */
   footerNote?: ReactNode
   /** The footer's controller hints, drawn as the pad's own art. */
@@ -36,10 +42,11 @@ type DialogProps = {
   className?: string
   /** LB / RB and the other buttons a dialog can claim from the pad. */
   onPad?: (button: string) => boolean
+  onKeyDown?: (event: KeyboardEvent<HTMLElement>) => void
   children: ReactNode
 }
 
-export function Dialog({ onClose, eyebrow, title, aside, footerNote, hints = [], actions, width, height, scrim, tone, hue, className = '', onPad, children }: DialogProps) {
+export function Dialog({ onClose, eyebrow, title, subtitle, lead, aside, toolbar, footerNote, hints = [], actions, width, height, scrim, tone, hue, className = '', onPad, onKeyDown, children }: DialogProps) {
   const titleId = useId()
   const ref = useRef<HTMLElement>(null)
   const padRef = useRef(onPad)
@@ -58,15 +65,18 @@ export function Dialog({ onClose, eyebrow, title, aside, footerNote, hints = [],
   return createPortal(
     <div className="dialog-layer" data-focus-trap="true" style={scrim !== undefined ? { background: `rgba(5, 9, 13, ${scrim})` } : undefined}
       onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}>
-      <section ref={ref} className={`dialog ${className}`.trim()} data-tone={tone} role="dialog" aria-modal="true" aria-labelledby={titleId} style={style}>
+      <section ref={ref} className={`dialog ${className}`.trim()} data-tone={tone} role="dialog" aria-modal="true" aria-labelledby={titleId} style={style} onKeyDown={onKeyDown}>
         <header className="dialog__header">
+          {lead}
           <div className="dialog__heading">
             {eyebrow && <span className="dialog__eyebrow">{eyebrow}</span>}
             <h2 id={titleId} className="dialog__title">{title}</h2>
+            {subtitle && <span className="dialog__subtitle">{subtitle}</span>}
           </div>
           {aside}
           <button type="button" className="dialog__close" tabIndex={-1} data-nav-skip data-modal-close aria-label="Close" onClick={onClose} />
         </header>
+        {toolbar}
         <div className="dialog__body">{children}</div>
         <footer className="dialog__footer" aria-label="Controls">
           {footerNote && <span className="dialog__note">{footerNote}</span>}

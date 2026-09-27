@@ -1,29 +1,4 @@
-.wrap {
-  position: relative;
-  display: inline-block;
-}
-
-.trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.3rem 0.7rem;
-  border-radius: 999px;
-  border: 1px solid var(--border-1);
-  background: var(--bg-input);
-  color: var(--text-mid);
-  font: 500 0.8rem/1 "Segoe UI", system-ui, sans-serif;
-  cursor: pointer;
-  max-width: 16rem;
-}
-
-.trigger:hover { border-color: var(--border-strong); }
-
-.triggerText {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+/* Change icon and the icon modal (binding card refresh 3d, 1g). */
 
 .glyph {
   width: 18px;
@@ -32,110 +7,85 @@
   flex: 0 0 auto;
 }
 
-.placeholder {
-  width: 18px;
-  text-align: center;
-  opacity: 0.7;
-}
+/* The modal: 840 × 580, radius 14; header 68 · tabs 52 · grid · footer 56. */
+.modal { border-radius: 14px; box-shadow: var(--shadow-menu); }
+.modal :global(.dialog__header) { height: 68px; padding: 0 24px; }
+.modal :global(.dialog__title) { font-size: 17px; line-height: 22px; }
 
-/* Floated over the surrounding card rather than pushing it open, so opening the
-   picker does not shove the binding you are editing off screen. */
-.panel {
-  position: absolute;
-  z-index: 20;
-  top: calc(100% + 0.35rem);
-  left: 0;
-  width: min(24rem, 80vw);
-  padding: 0.6rem;
-  border-radius: var(--radius-card);
-  border: 1px solid var(--border-1);
-  background: var(--bg-elevated);
-  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35);
-}
-
-.controls {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  margin-bottom: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.setChip {
-  border: 1px solid var(--border-1);
-  background: var(--bg-input);
-  color: var(--text-mid);
-  border-radius: 999px;
-  padding: 0.22rem 0.6rem;
-  font: 600 0.75rem/1 "Segoe UI", system-ui, sans-serif;
-  cursor: pointer;
-}
-
-.setChipActive {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 20%, var(--bg-input));
-  color: var(--text-strong);
+.preview {
+  width: 40px;
+  height: 40px;
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  border-radius: var(--r-row);
+  background: var(--surface-sunken);
+  color: var(--text-1);
 }
 
 .search {
-  flex: 1 1 8rem;
-  min-width: 0;
-  border-radius: 999px;
-  border: 1px solid var(--border-1);
-  background: var(--bg-input);
-  color: var(--text-strong);
-  padding: 0.28rem 0.7rem;
-  font: 500 0.8rem/1.2 "Segoe UI", system-ui, sans-serif;
+  width: 240px;
+  height: 36px;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border-radius: var(--r-md);
+  background: var(--surface-sunken);
+  color: var(--text-3);
 }
+.search input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--text-1); font: inherit; font-size: var(--fs-hint); outline: none; }
 
+.tabs {
+  height: 52px;
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding: 0 24px;
+  box-shadow: inset 0 -1px 0 var(--line-1);
+}
+.tab {
+  height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-size: var(--fs-hint);
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+}
+.tab:hover { background: var(--surface-control); }
+.tab[aria-pressed='true'] { background: var(--accent); color: var(--text-on-accent); }
+
+/* 56 tiles, left-aligned: a short row starts at the left, not the middle. */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(34px, 1fr));
-  gap: 0.3rem;
-  max-height: 14rem;
-  overflow-y: auto;
+  grid-template-columns: repeat(auto-fill, 56px);
+  grid-auto-rows: 56px;
+  justify-content: start;
+  align-content: start;
+  gap: 10px;
+  padding: 20px 24px;
 }
-
-.option {
+.tile {
+  width: 56px;
+  height: 56px;
   display: grid;
   place-items: center;
-  aspect-ratio: 1;
-  border-radius: 8px;
-  border: 1px solid transparent;
-  background: var(--bg-input);
-  color: var(--text-mid);
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-row);
+  background: #1b232b;
+  color: var(--text-1);
   cursor: pointer;
 }
+:root[data-theme='light'] .tile { background: var(--surface-row); }
+.tile:hover { background: var(--surface-row-hover); }
+.tile[aria-pressed='true'] { background: var(--surface-selected); box-shadow: 0 0 0 var(--focus-controller-width) var(--focus-controller); }
+.tileGlyph { width: 24px; height: 24px; fill: currentColor; }
 
-.option:hover { border-color: var(--border-strong); color: var(--text-strong); }
-
-.optionActive {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 22%, var(--bg-input));
-  color: var(--text-strong);
-}
-
-.clear {
-  grid-column: 1 / -1;
-  border: 1px dashed var(--border-1);
-  background: transparent;
-  color: var(--text-mid);
-  border-radius: 8px;
-  padding: 0.3rem;
-  font: 500 0.78rem/1 "Segoe UI", system-ui, sans-serif;
-  cursor: pointer;
-}
-
-.status {
-  grid-column: 1 / -1;
-  padding: 0.6rem;
-  color: var(--text-mid);
-  font-size: 0.82rem;
-}
-
-.hint {
-  margin: 0.5rem 0 0;
-  color: var(--text-mid);
-  font-size: 0.76rem;
-  line-height: 1.4;
-}
+.status { grid-column: 1 / -1; margin: 0; color: var(--text-3); font-size: var(--fs-hint); }

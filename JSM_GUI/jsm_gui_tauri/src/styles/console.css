@@ -513,3 +513,4 @@ body:has(.menus-overlay) .hint-capsule { visibility: hidden; }
 .dialog__hints { display: flex; flex: 1; align-items: center; justify-content: flex-end; gap: var(--sp-5); }
 .dialog__hint { display: inline-flex; align-items: center; gap: 6px; font-weight: var(--fw-semibold); color: var(--text-2); }
 .dialog__footer .console-btn { height: 36px; }
+.dialog__subtitle { color: var(--text-3); font-size: 12px; line-height: 16px; }

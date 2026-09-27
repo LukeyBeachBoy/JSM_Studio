@@ -651,7 +651,7 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
   // Change icon and the text shown on the menu (3d).
   const identity = menuItem ? (
     <div className={keymapStyles.identityRow} data-capture-ignore="true">
-      <IconPicker value={bindingIcon ?? ''} onChange={value => onBindingIconChange?.(button.command, value)} />
+      <IconPicker value={bindingIcon ?? ''} label={bindingLabel || undefined} onChange={value => onBindingIconChange?.(button.command, value)} />
       {onBindingLabelChange && (
         <BindingLabelField value={bindingLabel} onChange={value => onBindingLabelChange(button.command, value)}
           className={keymapStyles.identityField} placeholder={t('keymap.menuLabelPlaceholder', 'Label on the menu')} />
