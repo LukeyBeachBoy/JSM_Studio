@@ -1199,6 +1199,8 @@ on the configuration being edited.
 
 **Status:** built 2026-09-27 · committed 2026-09-27 · 0.7.91 (Studio and the JoyShockMapper
 submodule) · the foreground fix and "while released" need a try on hardware
+· **2026-09-27:** "while released" could not have worked -- the line splitter
+refused `!`; see the Done entry of the same date
 
 **What was done**
 
@@ -1337,6 +1339,51 @@ Six remarks from Luke on 2026-09-27:
 ---
 
 ## Done
+
+### "While released" modeshift never loaded: `!MISC6,S = X_UP` was an unknown command — 2026-09-27
+
+**Status:** DONE 2026-09-27 (JoyShockMapper submodule, mapper rebuilt and bundled) · **needs a live check**
+
+Reported as: a modeshift that should make A send d-pad Up while the left grip
+is released did nothing. The line Studio wrote is right, and the mapper's
+released-chord machinery (TODO-36: `InvertedChords.cpp`, `operator>>`,
+`JSMAssignment::getModifiedCmd`) all understood it. The one place that did not
+was the first: the regex `CmdRegistry::processLine` splits every line with
+admitted `[+-]?\w*` as the chord, so a leading `!` failed the match and the
+line was reported as `unknown command !MISC6,S = X_UP`. `isCommandValid` had
+the same pattern. The end-to-end `inverted_chord_mapper_regression.cjs` would
+have caught it and had never been run (it needs the live mapper out of the way;
+it still cannot get telemetry with Studio running).
+
+Fix: the split lives once in `include/ConfigLine.h` (`splitConfigLine`), used
+by both sites, and its chord group takes an optional `!`. Nothing else in the
+pattern changed; a `!` anywhere but the chord still ends up refused by the
+registry as before. `tests/config_line_tests.cpp` (standalone, MSVC) covers
+the released chord, sign buttons, labels and the plain lines.
+
+---
+
+### Overlay and HUD vanished behind Cyberpunk after alt-tabbing — 2026-09-27
+
+**Status:** DONE 2026-09-27 · confirmed in-game by Luke
+
+Reported as: the left-pad chord menu stopped drawing, in-game and on the
+desktop, while its bindings kept working; toggling the overlay did nothing,
+restarting Studio fixed it until the next few alt-tabs. Codex's live check
+found the game window topmost and stacked above the overlay: the shell promotes
+a borderless-fullscreen window to the top of the topmost band when it takes
+focus, and nothing in Studio ever raised the overlay again. `set_always_on_top(true)`
+on enable is a no-op once the flag is set, hence the useless toggle.
+
+Fix (`services/overlay.rs`): a native repair that walks the windows above ours
+and re-raises with `HWND_TOPMOST` + `SWP_NOACTIVATE` only when a visible,
+non-click-through window overlaps. It runs from the foreground hook, after every
+show of the overlay or HUD, and from a 250 ms guard thread (a covered WebView
+throttles its JS, so the page cannot rescue itself). Covered by a real-Win32
+unit test (`stacking::tests`). Whether RenoDX/ReShade have any part in the
+game's promotion is unconfirmed; the fix does not depend on it.
+
+---
 
 ### TODO-38 — Gyro calibration survives a reconnect; hardware calibration switch
 
