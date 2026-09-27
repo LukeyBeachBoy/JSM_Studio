@@ -14,6 +14,8 @@ import { ControllerStatusSvg } from './ControllerStatusSvg'
 import { NoController } from './NoController'
 import { SettingOrigins } from './SettingOrigin'
 import { desktopBridge } from '../platform/desktopBridge'
+import { PAD_EVENT, type PadEventDetail } from '../nav/useControllerNavigation'
+import { ButtonGlyph } from './glyphs/ButtonGlyph'
 import { FACE_BUTTONS, DPAD_BUTTONS, BUMPER_BUTTONS, TRIGGER_BUTTONS, CENTER_BUTTONS, PADDLE_BUTTONS, MINI_BUTTONS, MISC_BUTTONS, LEFT_STICK_BUTTONS, RIGHT_STICK_BUTTONS, TOUCH_BUTTONS, TOUCH_STICK_BUTTONS } from '../keymap/schema'
 import { controllerSupportsInput } from '../utils/controllerStatus'
 import { getButtonBindingRows, getKeymapValue, isTrackballBindingPresent } from '../utils/keymap'
@@ -91,6 +93,25 @@ export function OverviewPage({ devices, onNavigate, configText, onSelectCommand,
   const origins = useContext(SettingOrigins)
   const [hoveredCommand, setHoveredCommand] = useState<string | null>(null)
   const [query, setQuery] = useState('')
+  const pageRef = useRef<HTMLDivElement>(null)
+  const searchRef = useRef<HTMLInputElement>(null)
+  // Y is search from anywhere on the page; X on an input that has uses opens
+  // them ("Inspect uses"). The keyboard's X and Y arrive here too.
+  useEffect(() => {
+    const page = pageRef.current
+    if (!page) return
+    const onPad = (event: Event) => {
+      const { button } = (event as CustomEvent<PadEventDetail>).detail
+      if (button === 'Y') { event.preventDefault(); searchRef.current?.focus(); searchRef.current?.select(); return }
+      if (button !== 'X') return
+      const command = (event.target as Element | null)?.closest<HTMLElement>('[data-overview-input][data-has-uses]')?.dataset.overviewInput
+      if (!command) return
+      event.preventDefault()
+      window.dispatchEvent(new CustomEvent('jsm:input-uses', { detail: command }))
+    }
+    page.addEventListener(PAD_EVENT, onPad)
+    return () => page.removeEventListener(PAD_EVENT, onPad)
+  }, [])
   const [filter, setFilter] = useState('all')
   const [modifier, setModifier] = useState('')
   const [showDiagram, setShowDiagram] = useState(true)
@@ -259,7 +280,8 @@ export function OverviewPage({ devices, onNavigate, configText, onSelectCommand,
     const unbound = !title
     const named = UNLETTERED.has(command)
     return <div key={command} className={styles.inputRow}><button type="button" className={`${styles.callout} ${compact ? styles.calloutCompact : ''} ${unbound ? styles.calloutAvailable : ''}`} data-overview-input={command}
-      data-hints="A:Edit;X:Show affected;Y:Search;B:Back"
+      data-has-uses={entry.hasUses ? '' : undefined}
+      data-hints={entry.hasUses ? 'A:Edit;X:Inspect uses;Y:Search;B:Back' : 'A:Edit;Y:Search;B:Back'}
       aria-label={command + ': ' + labels[command]} title={inputName(command, family) + '\n' + inputUses(configText ?? '', command, layers).join('\n')}
       onClick={() => onSelectCommand?.(command)}
       onFocus={() => setHoveredCommand(command)} onBlur={() => setHoveredCommand(null)}
@@ -370,15 +392,15 @@ export function OverviewPage({ devices, onNavigate, configText, onSelectCommand,
   const trackball = isTrackballBindingPresent(configText ?? '')
 
   return (
-    <div className={styles.page}>
+    <div className={styles.page} ref={pageRef}>
       {/* The search sits on the page header's right (Overview.dc.html); the
           header is the shell's, so the field is placed over it from here. */}
       {/* Y reaches search from anywhere; entering the page lands on the
           first callout, not in a text field the pad cannot type into. */}
-      <label className={styles.search} data-pad-keys="Y" data-nav-entry-skip="">
+      <label className={styles.search} data-nav-entry-skip="">
         <Icon name="search" size={16} />
-        <input type="search" aria-label="Search bindings" placeholder="Find an input, action or key" value={query} onChange={e => setQuery(e.target.value)} />
-        <kbd className={styles.searchKey} aria-hidden="true">Y</kbd>
+        <input ref={searchRef} type="search" aria-label="Search bindings" placeholder="Find an input, action or key" value={query} onChange={e => setQuery(e.target.value)} />
+        <span className={styles.searchKey} aria-hidden="true"><ButtonGlyph button="Y" size={18} /></span>
       </label>
       <div className={styles.filterBar} role="toolbar" aria-label="Filter bindings">
         {([['all', 'All bindings', null], ['overrides', 'Overrides', overrideCount], ['available', 'Available', availableCount]] as const).map(([id, label, count]) => (

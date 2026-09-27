@@ -95,9 +95,12 @@ export function MenuDrawing({ menu, icons, onRegionRef, onDotRef, onSelect, sele
                     placed inside its own slice rather than centred in the box --
                     otherwise every label stacks in the middle of the wheel. */}
                 {radial ? (
+                  // data-nav-box: every segment's box is the whole wheel, so the
+                  // pad measures a segment by its label, which sits in its slice.
                   <span
                     className={styles.segmentLabel}
                     style={radialLabelPosition(index, segments, menu.deadzone)}
+                    data-nav-box={onSelect ? '' : undefined}
                   >
                     {content}
                   </span>
@@ -109,7 +112,7 @@ export function MenuDrawing({ menu, icons, onRegionRef, onDotRef, onSelect, sele
                   // block off centre, which also edge-aligned the icon and key
                   // against the label instead of stacking them centred the way
                   // up and down do.
-                  <span className={styles.wedgeContent}>{content}</span>
+                  <span className={styles.wedgeContent} data-nav-box={onSelect ? '' : undefined}>{content}</span>
                 ) : (
                   content
                 )}

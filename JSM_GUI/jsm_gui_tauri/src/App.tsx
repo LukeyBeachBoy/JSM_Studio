@@ -54,7 +54,7 @@ import { controllerHasTwoTrackpads } from './utils/controllerStatus'
 import { useSectionScrollSpy } from './hooks/useSectionScrollSpy'
 
 
-import { TitleBar, layerColor, type MappingPlateState, type StateButton, type TitleBarProfile, type VirtualOutput } from './shell/TitleBar'
+import { TitleBar, layerColor, OUTPUT_LABELS, OUTPUT_DESCRIPTIONS, type MappingPlateState, type StateButton, type TitleBarProfile, type VirtualOutput } from './shell/TitleBar'
 import { ConfigurationMenu, type ConfigurationMenuItem } from './shell/ConfigurationMenu'
 import { HomePage, type HomeTune } from './components/HomePage'
 import { MouseFeelSheet } from './components/keymap/MouseFeelSheet'
@@ -1108,12 +1108,19 @@ function App() {
   // Your own names for what each input does. They live in the configuration as
   // their own comment lines, so they survive editing the binding they describe
   // and JoyShockMapper ignores them. See utils/bindingLabels.
-  const bindingLabels = useMemo(() => parseBindingLabels(configText), [configText])
+  // Read through the imports, like every other value: a label the template
+  // gives an input is that input's label here too.
+  const bindingLabels = useMemo(() => parseBindingLabels(effectiveConfigText), [effectiveConfigText])
+  const resolveIncludedText = configIncludes.resolveText
   const handleBindingLabelChange = useCallback((command: string, label: string) => {
-    setConfigText(prev => setBindingLabel(prev, command, label))
-  }, [setConfigText])
+    // Clearing a name the template supplies has to say so in this profile
+    // (an empty label line), or the template's name would come straight back.
+    setConfigText(prev => setBindingLabel(prev, command, label, {
+      keepEmpty: Boolean(parseBindingLabels(resolveIncludedText(setBindingLabel(prev, command, '')))[command.trim().toUpperCase()]),
+    }))
+  }, [setConfigText, resolveIncludedText])
   // Icons ride alongside labels on their own comment lines, same contract.
-  const bindingIcons = useMemo(() => parseBindingIcons(configText), [configText])
+  const bindingIcons = useMemo(() => parseBindingIcons(effectiveConfigText), [effectiveConfigText])
   const handleBindingIconChange = useCallback((command: string, icon: string) => {
     setConfigText(prev => setBindingIcon(prev, command, icon))
   }, [setConfigText])
@@ -1183,6 +1190,12 @@ function App() {
   const runningProfilePath = isStudioNavigationProfile(sample?.activeProfile)
     ? (appliedProfileName ? `profiles-library/${appliedProfileName.replace(/\.txt$/i, '')}.txt` : '')
     : typeof sample?.activeProfile === 'string' ? sample.activeProfile : ''
+  // What this configuration's imports alone produce, and which import each
+  // value came from: the value an override replaces, and whose it was.
+  const importedBase = useMemo(() => {
+    const imports = defaultLayer(documentText).split(/\r?\n/).filter(line => !line.includes('=')).join('\n')
+    return { text: configIncludes.resolveText(imports), origins: configIncludes.resolveOrigins(imports) }
+  }, [documentText, configIncludes.resolveText, configIncludes.resolveOrigins])
   const templateNames = useMemo(() => new Set(configIncludes.imports.map(includeDisplayName)), [configIncludes.imports])
   const titleBarProfiles = useMemo<TitleBarProfile[]>(() => libraryProfiles.map(name => ({
     name,
@@ -1355,6 +1368,9 @@ function App() {
     return true
   }, [primaryTab, setPrimaryTab])
 
+  // Hints draw the pad's buttons only while one is connected (nav/inputSource.ts).
+  const padConnected = Boolean(device)
+  useEffect(() => { document.body.dataset.padConnected = String(padConnected) }, [padConnected])
   useControllerNavigation({
     enabled: mappingPlate === 'studio',
     testing,
@@ -1364,8 +1380,11 @@ function App() {
     onHome: () => setPrimaryTab('home'),
     // Menu opens the Configuration menu wherever a configuration is being
     // edited or shown (Home's card counts); Studio has none to act on.
+    // Menu opens the Configuration menu wherever there is a configuration
+    // to switch to or act on -- with nothing chosen yet, it is where one is
+    // chosen. Studio's own pages apply to every configuration and have none.
     onMenu: () => {
-      if (isStudioPage(primaryTab) || !currentLibraryProfile) return false
+      if (isStudioPage(primaryTab)) return false
       setConfigMenuOpen(true)
     },
   })
@@ -1413,8 +1432,46 @@ function App() {
   }
   const [configMenuOpen, setConfigMenuOpen] = useState(false)
   const testReason = !device ? 'Connect a controller to test' : mappingPlate !== 'studio' ? 'Test runs while Studio has the controller' : !currentLibraryProfile ? 'Choose a configuration to test' : null
+  // What the title bar holds, reachable from the pad through Menu: Apply,
+  // then the configuration, layer and output being worked on, then mapping.
+  const stateLabel = stateButton.kind === 'changes' ? `Apply ${stateButton.count} ${stateButton.count === 1 ? 'change' : 'changes'}`
+    : stateButton.kind === 'apply' ? `Apply ${stateButton.name}`
+    : stateButton.kind === 'applied' ? 'Applied'
+    : stateButton.kind === 'testing' ? 'Return to Studio'
+    : 'Apply'
+  const currentOutput = ((virtualControllerType as VirtualOutput) ?? 'NONE') as VirtualOutput
+  const titleBarMenuItems: ConfigurationMenuItem[] = [
+    { key: 'apply', icon: 'apply', label: stateLabel,
+      meta: stateButton.kind === 'applied' ? 'Saved and running' : stateButton.kind === 'idle' ? stateButton.reason : undefined,
+      idle: stateButton.kind === 'applied' || stateButton.kind === 'idle', onSelect: pressStateButton },
+    { key: 'configuration', icon: 'library', label: 'Configuration', meta: currentLibraryProfile ?? 'None chosen', idle: isCalibrating,
+      choices: [
+        ...titleBarProfiles.map(profile => ({
+          key: `profile:${profile.name}`, label: profile.name, checked: profile.name === currentLibraryProfile,
+          meta: profile.name === appliedName ? 'Applied' : profile.template ? 'Template' : undefined,
+          onSelect: () => requestLoadProfile(profile.name),
+        })),
+        { key: 'library', label: 'Open configuration library…', onSelect: () => setPrimaryTab('configurations') },
+      ] },
+    ...(currentLibraryProfile ? [{ key: 'layer', icon: 'layers' as const, label: 'Editing layer', meta: layers.find(layer => layer.id === layerId)?.name ?? 'Default', idle: isCalibrating,
+      choices: [
+        { key: 'layer:', label: 'Default', meta: 'Base bindings', checked: !layerId, onSelect: () => selectLayer('') },
+        ...titleBarLayers.map(layer => ({ key: `layer:${layer.id}`, label: layer.name, meta: layer.description, checked: layer.id === layerId, swatch: layerColor(layer.colorIndex), onSelect: () => selectLayer(layer.id) })),
+        { key: 'manage', label: 'Manage layers…', onSelect: () => setLayerManagerOpen(true) },
+      ] }] : []),
+    ...(currentLibraryProfile ? [{ key: 'output', icon: 'stVirtual' as const, label: 'Controller output', meta: OUTPUT_LABELS[currentOutput],
+      choices: [
+        ...(Object.keys(OUTPUT_LABELS) as VirtualOutput[]).map(value => ({ key: `output:${value}`, label: OUTPUT_LABELS[value], meta: OUTPUT_DESCRIPTIONS[value], checked: value === currentOutput, onSelect: () => handleVirtualControllerTypeChange(value) })),
+        { key: 'bind', label: 'Bind whole controller', meta: currentOutput === 'NONE' ? 'Choose a virtual output first' : undefined, idle: currentOutput === 'NONE',
+          onSelect: () => handleBindGamepadPassthrough(currentOutput === 'DS4' ? 'DS4' : 'XBOX') },
+      ] }] : []),
+    { key: 'mapping', icon: 'catJsm', label: mappingPlate === 'off' ? 'Turn mapping on' : 'Turn mapping off',
+      meta: mappingPlate === 'off' ? 'Your controller is not mapped' : 'JSM is reading the controller', idle: runtimeMappingBusy,
+      onSelect: () => { void handleToggleMappingEnabled() } },
+  ]
   const configMenuItems: ConfigurationMenuItem[] = [
-    { key: 'undo', icon: 'undo', label: 'Undo', meta: canUndo && !isCalibrating ? describeChange(undoTarget, documentText) ?? 'Last change' : 'Nothing to undo', idle: !canUndo || isCalibrating, onSelect: undo },
+    ...titleBarMenuItems,
+    { key: 'undo', divider: true, icon: 'undo', label: 'Undo', meta: canUndo && !isCalibrating ? describeChange(undoTarget, documentText) ?? 'Last change' : 'Nothing to undo', idle: !canUndo || isCalibrating, onSelect: undo },
     { key: 'redo', icon: 'redo', label: 'Redo', meta: canRedo && !isCalibrating ? describeChange(documentText, redoTarget ?? documentText) ?? 'Last undo' : 'Nothing to redo', idle: !canRedo || isCalibrating, onSelect: redo },
     { key: 'save', icon: 'save', label: 'Save without applying', meta: saveIdleReason ?? 'Ctrl+S', idle: Boolean(saveIdleReason), onSelect: () => void runEditorAction('save') },
     { key: 'copy', icon: 'copy', label: 'Save as copy…', idle: !currentLibraryProfile || isCalibrating, meta: !currentLibraryProfile ? 'Choose a configuration first' : undefined, onSelect: () => void handleSaveAsCopy(finalizePendingValues?.() ?? configText) },
@@ -2293,7 +2350,7 @@ function App() {
           <span className="test-banner__dot" aria-hidden="true" />
           <b>Testing {currentLibraryProfile ?? 'configuration'}</b>
           <span className="test-banner__text">Your controller is running the profile. Studio navigation is paused.</span>
-          <span className="test-banner__exit">Hold <ButtonGlyph button="VIEW" size={22} /><span>+</span><ButtonGlyph button="MENU" size={22} /> or press Esc to return</span>
+          <span className="test-banner__exit">Hold <ButtonGlyph button="VIEW" size={22} pad /><span>+</span><ButtonGlyph button="MENU" size={22} pad /> or press Esc to return</span>
         </div>
       ) : <div />}
       {!isHomePage(primaryTab) && <PageTabs
@@ -2334,7 +2391,7 @@ function App() {
             )}
             <ConfigBaseline.Provider value={{ text: configText, saved: savedLayerText, onChange: text => { resetPendingSensitivityChanges(); setConfigText(text) } }}>
             <LayerUsageContext.Provider value={{ text: effectiveConfigText, layers, actions: layerActions, selected: layers.find(layer => layer.id === layerId), onChangeLayers: next => setDocumentText(previous => writeLayers(previous, next)), onSetActions: (input, next) => setDocumentText(previous => setLayerActions(previous, input, next)), onSelect: selectLayer, onNavigate: navigateInput, disabled: isCalibrating, family: controllerFamily }}>
-            <SettingOrigins.Provider value={{ config: currentLibraryProfile ?? undefined, text: effectiveConfigText, own: layerId ? Object.entries(layers.find(l => l.id === layerId)?.overrides ?? {}).map(([k,v]) => `${k} = ${v}`).join('\n') : defaultLayer(documentText), base: configIncludes.resolveText(defaultLayer(documentText).split(/\r?\n/).filter(line => !line.includes('=')).join('\n')), origins: configIncludes.resolution?.origins ?? {}, layer: layers.find(l => l.id === layerId)?.name, disabled: isCalibrating, reset: key => { resetPendingSensitivityChanges(); setDocumentText(previous => layerId ? writeLayers(previous, layers.map(l => { if(l.id !== layerId) return l; const overrides = {...l.overrides}; delete overrides[key]; return {...l, overrides} })) : previous.split(/\r?\n/).filter(line => !Object.prototype.hasOwnProperty.call(layerEntries(line), key)).join('\n')) } }}>
+            <SettingOrigins.Provider value={{ config: currentLibraryProfile ?? undefined, text: effectiveConfigText, own: layerId ? Object.entries(layers.find(l => l.id === layerId)?.overrides ?? {}).map(([k,v]) => `${k} = ${v}`).join('\n') : defaultLayer(documentText), base: importedBase.text, baseOrigins: importedBase.origins, origins: configIncludes.resolution?.origins ?? {}, layer: layers.find(l => l.id === layerId)?.name, disabled: isCalibrating, reset: key => { resetPendingSensitivityChanges(); setDocumentText(previous => layerId ? writeLayers(previous, layers.map(l => { if(l.id !== layerId) return l; const overrides = {...l.overrides}; delete overrides[key]; return {...l, overrides} })) : previous.split(/\r?\n/).filter(line => !Object.prototype.hasOwnProperty.call(layerEntries(line), key)).join('\n')) } }}>
             <InputUsageInspector />
             <LayerBar text={documentText} layers={layers} selected={layerId} managing={layerManagerOpen} onChange={setDocumentText} onSelect={selectCreatedLayer} disabled={isCalibrating} family={controllerVisualFamily(sample?.devices?.[0]?.type)} onClose={() => setLayerManagerOpen(false)} />
             <ConfigScope match={primaryTab === 'gyro' ? /^(GYRO_|MIN_GYRO|MAX_GYRO|ACCEL_|SMOOTH_|CUTOFF_|ONE_EURO|ANGLE_|DECEL_|ROLL_|IN_GAME|REAL_WORLD)/ : /./}>{renderPrimaryContent()}</ConfigScope>

@@ -133,6 +133,38 @@ mod tests {
     }
     const LSL: u64 = 1 << 19;
     const RSR: u64 = 1 << 20;
+    const MISC6: u64 = 1 << 32;
+
+    // A layer held while the left grip is let go ("!MISC6"), not while it is
+    // held: on from the start, off while gripping, back on at release.
+    #[test]
+    fn a_hold_on_a_released_grip_is_on_while_the_grip_is_up() {
+        let layers = [layer("aim", "!MISC6", "", "")];
+        let mut state = LayerActivation::default();
+        assert_eq!(run(&mut state, &layers, 0), vec!["aim"], "released from the start");
+        assert_eq!(run(&mut state, &layers, MISC6), Vec::<String>::new(), "gripping lets it go");
+        assert_eq!(run(&mut state, &layers, 0), vec!["aim"], "and releasing brings it back");
+        // Stacked with an ordinary hold, it follows its own input.
+        let both = [layer("aim", "!MISC6", "", ""), layer("comms", "RSR", "", "")];
+        let mut state = LayerActivation::default();
+        assert_eq!(run(&mut state, &both, RSR), vec!["aim", "comms"]);
+        assert_eq!(run(&mut state, &both, RSR | MISC6), vec!["comms"]);
+    }
+
+    // Toggle on "!X" flips as X is released, not as it is pressed.
+    #[test]
+    fn a_toggle_on_a_released_input_flips_on_release() {
+        let mut map = layer("map", "", "", "");
+        map.toggles = one("!RSR");
+        let layers = [map];
+        let mut state = LayerActivation::default();
+        // Up at the start is the released state already, not a release edge.
+        assert_eq!(run(&mut state, &layers, 0), Vec::<String>::new(), "loading does not toggle");
+        assert_eq!(run(&mut state, &layers, RSR), Vec::<String>::new(), "pressing does nothing");
+        assert_eq!(run(&mut state, &layers, 0), vec!["map"], "releasing toggles it on");
+        assert_eq!(run(&mut state, &layers, RSR), vec!["map"]);
+        assert_eq!(run(&mut state, &layers, 0), Vec::<String>::new(), "and the next release off");
+    }
     const LSR: u64 = 1 << 21;
     const RSL: u64 = 1 << 22;
 

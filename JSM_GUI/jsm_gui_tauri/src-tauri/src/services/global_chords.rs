@@ -187,10 +187,19 @@ pub(super) fn pressed(device: &Value, button: &str) -> bool {
 /// An activator may be a chord: every input in "LSL,+" has to be down for it
 /// to count, the same way a chorded binding reads in a configuration. A single
 /// input is just the one-part case.
+///
+/// "!X" counts while X is up -- a layer held while a grip is let go, the same
+/// "while released" the mapper reads in a `!MISC5,W` modeshift. Its edges
+/// are X's edges reversed, so Toggle, Apply and Remove on "!X" act as X is
+/// released.
 pub(super) fn layer_pressed(device: &Value, button: &str, base: &str) -> bool {
     let mut parts = button.split(',').map(str::trim).filter(|part| !part.is_empty()).peekable();
     if parts.peek().is_none() { return false; }
-    parts.all(|part| layer_input_pressed(device, part, base))
+    parts.all(|part| match part.strip_prefix('!') {
+        Some(released) if !released.is_empty() => !layer_input_pressed(device, released, base),
+        Some(_) => false,
+        None => layer_input_pressed(device, part, base),
+    })
 }
 
 /// Grid/menu activators use Default geometry so changing the active layer's

@@ -89,6 +89,8 @@
   align-items: center;
   gap: 2px;
   min-width: 0;
+  /* Kept a line tall when empty: the pad measures a wedge by it (data-nav-box). */
+  min-height: 1.2em;
   text-align: center;
 }
 
@@ -161,6 +163,9 @@
   gap: 2px;
   text-align: center;
   pointer-events: none;
+  /* An unbound segment's label is empty; it still needs a height, because in
+     the editor the pad measures and rings a segment by its label (data-nav-box). */
+  min-height: 1.2em;
   /* width, margin and transform come from radialLabelPosition: they depend on
      the dead zone, which CSS cannot see. */
 }

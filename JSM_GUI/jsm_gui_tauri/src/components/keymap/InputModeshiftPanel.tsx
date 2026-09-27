@@ -3,7 +3,9 @@ import { useTranslation } from 'react-i18next'
 import { AppSelect } from '../ui/AppSelect'
 import { Icon } from '../icons/Icon'
 import { InputGlyph } from '../glyphs/InputGlyph'
-import { addModeshift, modeshiftTriggers, removeModeshift, type ModeshiftTarget } from '../../utils/modeshift'
+import { addModeshift, modeshiftTriggers, removeModeshift, renameModeshift, type ModeshiftTarget } from '../../utils/modeshift'
+import { heldInput, isReleasedInput, withRelease } from '../../utils/released'
+import { ReleaseSwitch } from './ReleaseSwitch'
 import { getButtonDescription, type ButtonDefinition } from '../../keymap/schema'
 import { ShiftedBinding, type InputModeshiftsProps } from './InputModeshifts'
 import keymapStyles from '../Keymap.module.css'
@@ -25,6 +27,8 @@ export function InputModeshiftPanel({ button, shortName, ...props }: Props) {
   const { t } = useTranslation()
   const [adding, setAdding] = useState(false)
   const [fresh, setFresh] = useState<string | null>(null)
+  // A new shift holds while its input is held, or while it is released ("!X").
+  const [releasedNew, setReleasedNew] = useState(false)
   const target = useMemo<ModeshiftTarget>(() => ({
     id: button.command,
     title: getButtonDescription(button, t),
@@ -32,8 +36,11 @@ export function InputModeshiftPanel({ button, shortName, ...props }: Props) {
   }), [button, t])
   const { text, onChange, modifiers } = props
   const triggers = useMemo(() => modeshiftTriggers(text, target), [text, target])
-  const available = modifiers.filter(option => !option.disabled && !triggers.includes(option.value) && option.value !== button.command.toUpperCase())
-  const labelFor = (trigger: string) => (modifiers.find(option => option.value === trigger)?.label ?? trigger).split(' — ')[0]
+  const available = modifiers.filter(option => !option.disabled && !triggers.includes(withRelease(option.value, releasedNew)) && option.value !== button.command.toUpperCase())
+  const labelFor = (trigger: string) => (modifiers.find(option => option.value === heldInput(trigger))?.label ?? heldInput(trigger)).split(' — ')[0]
+  // Held and released versions of one input are two different shifts; the
+  // switch swaps a shift between them unless the other already exists.
+  const flip = (trigger: string, released: boolean) => onChange(previous => renameModeshift(previous, target, trigger, withRelease(trigger, released)))
   // The example in the empty copy: a paddle if the controller has one, else
   // whatever the first available trigger is.
   const example = available.find(option => /^(LSL|RSR|LSR|RSL)$/.test(option.value)) ?? available[0]
@@ -41,7 +48,7 @@ export function InputModeshiftPanel({ button, shortName, ...props }: Props) {
   return (
     <section className={keymapStyles.editorPanel} aria-label={`${target.title} modeshifts`}>
       <div className={keymapStyles.editorPanelHead}>
-        <span className={keymapStyles.eyebrowHeading}>{t('keymap.modeshiftsTitle', 'Modeshifts')}</span>
+        <span className={`${keymapStyles.eyebrowHeading} ${keymapStyles.eyebrowWithIcon}`}><Icon name="modeshift" size={14} />{t('keymap.modeshiftsTitle', 'Modeshifts')}</span>
         <span className={keymapStyles.editorPanelCount}>{triggers.length}</span>
       </div>
       <span className={keymapStyles.editorPanelEmpty}>
@@ -54,8 +61,11 @@ export function InputModeshiftPanel({ button, shortName, ...props }: Props) {
       {triggers.map(trigger => (
         <div key={trigger} className={keymapStyles.modeshiftRow}>
           <div className={keymapStyles.modeshiftRowHead}>
-            <InputGlyph command={trigger} family={props.controllerFamily} size={20} />
-            <span>{t('keymap.modeshiftWhile', 'While')} <b>{labelFor(trigger)}</b> {t('keymap.modeshiftIsHeld', 'is held')}</span>
+            <InputGlyph command={heldInput(trigger)} family={props.controllerFamily} size={20} />
+            <span>{t('keymap.modeshiftWhile', 'While')} <b>{labelFor(trigger)}</b> {isReleasedInput(trigger) ? t('keymap.modeshiftIsReleased', 'is released') : t('keymap.modeshiftIsHeld', 'is held')}</span>
+            <ReleaseSwitch released={isReleasedInput(trigger)} ariaLabel={`${labelFor(trigger)}: held or released`}
+              disabled={triggers.includes(withRelease(trigger, !isReleasedInput(trigger)))}
+              onChange={released => flip(trigger, released)} />
             <button type="button" className={`button button--ghost button--sm ${keymapStyles.editorPanelRemove}`} data-hints="A:Remove modeshift;B:Back" onClick={() => onChange(previous => removeModeshift(previous, target, trigger))}>
               {t('keymap.removeModeshift', 'Remove')}
             </button>
@@ -65,8 +75,9 @@ export function InputModeshiftPanel({ button, shortName, ...props }: Props) {
       ))}
       {adding ? (
         <div className={keymapStyles.editorPanelAdd}>
+          <ReleaseSwitch released={releasedNew} onChange={setReleasedNew} ariaLabel={t('keymap.modeshiftWhen', 'While the input is held or released')} />
           <AppSelect aria-label={t('keymap.modeshiftTrigger', 'Held input')} value="" onChange={event => {
-            const trigger = event.target.value
+            const trigger = event.target.value && withRelease(event.target.value, releasedNew)
             if (!trigger) return
             setFresh(trigger)
             onChange(previous => addModeshift(previous, target, trigger))
@@ -80,7 +91,7 @@ export function InputModeshiftPanel({ button, shortName, ...props }: Props) {
       ) : (
         <div>
           <button type="button" className={`button button--secondary button--sm ${keymapStyles.editorPanelAddButton}`} disabled={!available.length} data-hints="A:Add modeshift;B:Back" onClick={() => setAdding(true)}>
-            <Icon name="add" size={16} />{t('keymap.addModeshiftShort', 'Add modeshift')}
+            <Icon name="modeshift" size={16} />{t('keymap.addModeshiftShort', 'Add modeshift')}
           </button>
         </div>
       )}

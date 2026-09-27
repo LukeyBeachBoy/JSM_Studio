@@ -258,7 +258,7 @@ export function ButtonMappingCard({
       <div className="binding-detail">
         <div className={keymapStyles.editorBody}>
           <div className={keymapStyles.editorSection}>
-            <span className={keymapStyles.eyebrowHeading}>{t('keymap.commandsHeading', 'Commands')}</span>
+            <span className={`${keymapStyles.eyebrowHeading} ${keymapStyles.eyebrowWithIcon}`}><Icon name="command" size={14} />{t('keymap.commandsHeading', 'Commands')}</span>
             <div className={keymapStyles.commandList}>{commands}</div>
             {addControl}
           </div>

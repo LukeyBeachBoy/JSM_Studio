@@ -42,6 +42,9 @@ pub fn run() {
                 eprintln!("Failed to initialize Tauri runtime files: {error}");
             }
             telemetry::start(app.handle().clone(), state.clone());
+            // Whether Studio is in front, from Windows rather than the
+            // window's focus events (services/foreground.rs).
+            services::foreground::start(app.handle().clone());
             services::global_chords::start(app.handle().clone(), state.clone());
             // Built hidden and click-through up front: creating a WebView window
             // costs around 100ms, which is not something to spend on the first
@@ -194,7 +197,7 @@ pub fn run() {
             if window.label() == "main" {
                 let state = window.state::<AppState>();
                 match event {
-                    WindowEvent::Focused(focused) => {
+                    WindowEvent::Focused(focused) if services::foreground::FOLLOW_WINDOW_EVENTS => {
                         state.telemetry_ui_active.store(*focused, std::sync::atomic::Ordering::Relaxed);
                         let app = window.app_handle().clone();
                         let focused = *focused;

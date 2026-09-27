@@ -133,6 +133,9 @@ pub struct RuntimeMappingState {
     pub connect_sound: i32,
     #[serde(default = "no_sound")]
     pub shutdown_sound: i32,
+    /// How loud those tunes play: the firmware's gain in dB, 0 = as recorded.
+    #[serde(default)]
+    pub sound_gain: i32,
     /// Studio's reserved chords: Quick Access + R5 pauses or resumes mapping,
     /// Quick Access + R4 calibrates the gyro, from any configuration. Off by
     /// default so they cannot fight a configuration that binds those inputs.
@@ -1510,7 +1513,7 @@ fn studio_defaults_text(state: &RuntimeMappingState) -> String {
     // The simultaneous-press window goes before the hold time: the mapper
     // rejects a hold time that is not longer than it.
     format!(
-        "# JSM Studio global defaults\nTICK_TIME = {}\nSIM_PRESS_WINDOW = {}\nHOLD_PRESS_TIME = {}\nDBL_PRESS_WINDOW = {}\nTURBO_PERIOD = {}\nGYRO_CALIBRATION_DELAY = {}\nGYRO_CALIBRATION_TIME = {}\nCONNECT_SOUND = {}\nSHUTDOWN_SOUND = {}\n",
+        "# JSM Studio global defaults\nTICK_TIME = {}\nSIM_PRESS_WINDOW = {}\nHOLD_PRESS_TIME = {}\nDBL_PRESS_WINDOW = {}\nTURBO_PERIOD = {}\nGYRO_CALIBRATION_DELAY = {}\nGYRO_CALIBRATION_TIME = {}\nCONNECT_SOUND = {}\nSHUTDOWN_SOUND = {}\nSOUND_GAIN = {}\n",
         state.default_polling_ms,
         state.sim_press_ms,
         state.hold_press_ms,
@@ -1520,6 +1523,7 @@ fn studio_defaults_text(state: &RuntimeMappingState) -> String {
         state.gyro_calibration_seconds,
         state.connect_sound,
         state.shutdown_sound,
+        state.sound_gain,
     )
 }
 
@@ -1536,6 +1540,8 @@ pub struct ControllerPreferences {
     pub gyro_calibration_delay: f64,
     pub connect_sound: i32,
     pub shutdown_sound: i32,
+    #[serde(default)]
+    pub sound_gain: i32,
 }
 
 pub fn set_controller_preferences(
@@ -1550,6 +1556,7 @@ pub fn set_controller_preferences(
     state.gyro_calibration_delay = finite(preferences.gyro_calibration_delay, "Calibration delay")?.clamp(0.0, 30.0);
     state.connect_sound = preferences.connect_sound.clamp(-1, 13);
     state.shutdown_sound = preferences.shutdown_sound.clamp(-1, 13);
+    state.sound_gain = preferences.sound_gain.clamp(-30, 0);
     persist_runtime_mapping_state(app, &state)?;
     ensure_runtime_support_files(app, &read_backend_choice(app)?)?;
     Ok(state)
@@ -1686,6 +1693,7 @@ fn default_runtime_mapping_state(app: &AppHandle) -> Result<RuntimeMappingState,
         gyro_calibration_delay: 0.0,
         connect_sound: -1,
         shutdown_sound: -1,
+        sound_gain: 0,
         reserved_chords: false,
         calibration_hud_enabled: true,
         studio_navigation_migrated: true,

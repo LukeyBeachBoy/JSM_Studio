@@ -90,8 +90,11 @@ export function useConfigIncludes(configText: string, rootPath: string) {
   }, [configText, files, rootPath, directIncludes.length])
 
   const resolveText = useCallback((text: string) => resolveIncludes(rootPath, { ...files, [rootPath]: text }).effectiveText, [files, rootPath])
+  // Which file each value in that text comes from, keyed as resolution.origins is.
+  const resolveOrigins = useCallback((text: string) => resolveIncludes(rootPath, { ...files, [rootPath]: text }).origins, [files, rootPath])
   return {
     resolveText,
+    resolveOrigins,
     resolution,
     // The text every read should go through. Identical to the profile's own
     // text when it imports nothing, so the no-imports case is untouched.

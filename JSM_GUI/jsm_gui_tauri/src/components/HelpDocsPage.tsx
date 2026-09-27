@@ -461,7 +461,10 @@ export function HelpDocsPage({ onOpenPage, focusSetting }: { onOpenPage?: (tab: 
 
   return (
     <div className={styles.docs}>
-      <nav className={styles.topics} aria-label="Documentation topics">
+      {/* Two columns the pad walks separately (data-nav-region): Down through
+          the topics used to zigzag into whichever link in the article sat a
+          few pixels nearer than the next topic. Right and Left cross. */}
+      <nav className={styles.topics} aria-label="Documentation topics" data-nav-region="topics">
         <label className={styles.searchField}>
           <span className={styles.srOnly}>{t('help.searchDocumentation')}</span>
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true"><circle cx="6" cy="6" r="4.25" /><path d="m9.2 9.2 3.3 3.3" /></svg>
@@ -517,7 +520,7 @@ export function HelpDocsPage({ onOpenPage, focusSetting }: { onOpenPage?: (tab: 
         </div>
       </nav>
 
-      <article className={styles.article} aria-label={topic.title}>
+      <article className={styles.article} aria-label={topic.title} data-nav-region="article">
         <span className={styles.eyebrow}>{topic.title}</span>
         <div ref={docsMarkdownRef} className={styles.docsMarkdown}>
           <TopicMarkdown key={topic.id} markdown={topic.markdown} onJump={onJump} />

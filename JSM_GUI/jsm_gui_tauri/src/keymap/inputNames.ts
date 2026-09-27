@@ -66,6 +66,9 @@ const ALL_INPUTS = [...FACE_BUTTONS, ...DPAD_BUTTONS, ...BUMPER_BUTTONS, ...TRIG
  *  "L4 + RB". Anything that is not an input comes back unchanged. */
 export function inputDisplayName(command: string, family: ControllerVisualFamily): string {
   const raw = command.trim()
+  // "!X": the input released (utils/released.ts), a modeshift or layer that
+  // holds while it is up.
+  if (raw.length > 1 && raw.startsWith('!') && !raw.includes(',')) return `${inputDisplayName(raw.slice(1), family)} released`
   // A lone + or - is the button; an interior + joins a chord, a comma a modeshift.
   if (raw.length > 1 && raw.includes(',')) return raw.split(',').map(part => inputDisplayName(part, family)).join(', ')
   const chord = raw.length > 1 ? raw.match(/^(.+?)\+(.+)$/) : null

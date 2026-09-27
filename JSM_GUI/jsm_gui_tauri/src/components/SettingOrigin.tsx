@@ -4,8 +4,10 @@ import { DirtyScope } from '../hooks/configContext'
 
 export const SettingOrigins = createContext<{
   text: string; base: string; own: string; origins: Record<string, string>; layer?: string;
-  /** The configuration being edited, for "Changed in {config}". */
+  /** The configuration being edited. */
   config?: string
+  /** Which import each value in `base` came from, for "Overrides FPS Template". */
+  baseOrigins?: Record<string, string>
   reset?: (key: string) => void; disabled?: boolean
 }>({ text: '', base: '', own: '', origins: {} })
 

@@ -131,17 +131,17 @@ export const STEAM_GLYPHS: Record<string, { label: string; id: string; svg: stri
   "MINUS": {
     "label": "View",
     "id": "MINUS",
-    "svg": "<rect x=\"2.5\" y=\"6.5\" width=\"19\" height=\"11\" rx=\"5.5\" fill=\"currentColor\"/><rect x=\"7\" y=\"9.5\" width=\"5\" height=\"4\" rx=\"1\" fill=\"none\" stroke=\"var(--glyph-ink)\" stroke-width=\"1.5\"/><rect x=\"10.5\" y=\"11\" width=\"5.5\" height=\"4\" rx=\"1\" fill=\"var(--glyph-ink)\"/>"
+    "svg": "<rect x=\"1\" y=\"5\" width=\"22\" height=\"14\" rx=\"7\" fill=\"currentColor\"/><path d=\"M6 13V8h7\" fill=\"none\" stroke=\"var(--glyph-ink)\" stroke-width=\"2\"/><rect x=\"9\" y=\"10\" width=\"9\" height=\"6\" rx=\"1\" fill=\"var(--glyph-ink)\"/>"
   },
   "PLUS": {
     "label": "Menu",
     "id": "PLUS",
-    "svg": "<rect x=\"2.5\" y=\"6.5\" width=\"19\" height=\"11\" rx=\"5.5\" fill=\"currentColor\"/><path d=\"M8 10h8M8 12h8M8 14h8\" stroke=\"var(--glyph-ink)\" stroke-width=\"1.4\" stroke-linecap=\"round\"/>"
+    "svg": "<rect x=\"1\" y=\"5\" width=\"22\" height=\"14\" rx=\"7\" fill=\"currentColor\"/><path d=\"M7 9h10M7 12h10M7 15h10\" stroke=\"var(--glyph-ink)\" stroke-width=\"2\"/>"
   },
   "HOME": {
     "label": "Steam",
     "id": "HOME",
-    "svg": "<circle cx=\"12\" cy=\"12\" r=\"10\" fill=\"currentColor\"/><circle cx=\"12\" cy=\"12\" r=\"4.5\" fill=\"none\" stroke=\"var(--glyph-ink)\" stroke-width=\"2\"/>"
+    "svg": "<circle cx=\"12\" cy=\"12\" r=\"10\" fill=\"currentColor\"/><circle cx=\"14.8\" cy=\"9.4\" r=\"3.4\" fill=\"none\" stroke=\"var(--glyph-ink)\" stroke-width=\"1.5\"/><circle cx=\"14.8\" cy=\"9.4\" r=\"1.7\" fill=\"var(--glyph-ink)\"/><circle cx=\"8.9\" cy=\"15.4\" r=\"2\" fill=\"none\" stroke=\"var(--glyph-ink)\" stroke-width=\"1.4\"/><path d=\"m10.3 14 2.4-2.5M7.1 14.7 2.4 12.8\" stroke=\"var(--glyph-ink)\" stroke-width=\"1.6\" stroke-linecap=\"round\"/>"
   },
   "MISC1": {
     "label": "Quick Access",
@@ -216,14 +216,15 @@ export const STEAM_SMALL_GLYPHS: Record<string, string> = {
   "DPAD": "<path d=\"M8.5 2h7v6.5H22v7h-6.5V22h-7v-6.5H2v-7h6.5z\" fill=\"currentColor\"></path>",
   "E": "<circle cx=\"12\" cy=\"12\" r=\"11\" fill=\"currentColor\"></circle><text x=\"12\" y=\"12.5\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Geist, 'Segoe UI', system-ui\" font-weight=\"700\" font-size=\"14\" fill=\"var(--glyph-ink)\">B</text>",
   "GYRO": "<circle cx=\"12\" cy=\"12\" r=\"11\" fill=\"currentColor\"></circle><ellipse cx=\"12\" cy=\"11\" rx=\"3.2\" ry=\"6\" fill=\"none\" stroke=\"var(--glyph-ink)\" stroke-width=\"2.2\"></ellipse><ellipse cx=\"12\" cy=\"11\" rx=\"6.5\" ry=\"2.4\" fill=\"none\" stroke=\"var(--glyph-ink)\" stroke-width=\"2.2\"></ellipse>",
+  "HOME": "<circle cx=\"12\" cy=\"12\" r=\"11\" fill=\"currentColor\"/><circle cx=\"15\" cy=\"9.2\" r=\"3.6\" fill=\"var(--glyph-ink)\"/><circle cx=\"8.6\" cy=\"15.6\" r=\"2.4\" fill=\"var(--glyph-ink)\"/><path d=\"m10.2 14 2.7-2.7M6.8 14.8 1.8 12.8\" stroke=\"var(--glyph-ink)\" stroke-width=\"2\" stroke-linecap=\"round\"/>",
   "L": "<path d=\"M1.5 18V11.5A5.5 5.5 0 0 1 7 6h10a5.5 5.5 0 0 1 5.5 5.5V18a1 1 0 0 1-1 1h-19a1 1 0 0 1-1-1z\" fill=\"currentColor\"></path><text x=\"12\" y=\"13\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Geist, 'Segoe UI', system-ui\" font-weight=\"700\" font-size=\"12\" fill=\"var(--glyph-ink)\">L</text>",
   "LSL": "<rect x=\"2.5\" y=\"2.5\" width=\"19\" height=\"19\" rx=\"5.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\"></rect><text x=\"12\" y=\"12.5\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Geist, 'Segoe UI', system-ui\" font-weight=\"700\" font-size=\"13\" fill=\"currentColor\">4</text>",
   "LT1": "<rect x=\"2.5\" y=\"2.5\" width=\"19\" height=\"19\" rx=\"5.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\"></rect><path d=\"M8 2.5h4V12H2.5V8A5.5 5.5 0 0 1 8 2.5z\" fill=\"currentColor\"></path><text x=\"16.5\" y=\"16.5\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Geist, 'Segoe UI', system-ui\" font-weight=\"700\" font-size=\"10\" fill=\"currentColor\">1</text>",
-  "MINUS": "<rect x=\"1.5\" y=\"5.5\" width=\"21\" height=\"13\" rx=\"6.5\" fill=\"currentColor\"></rect><rect x=\"6.5\" y=\"9\" width=\"6\" height=\"4.5\" rx=\"1\" fill=\"none\" stroke=\"var(--glyph-ink)\" stroke-width=\"1.8\"></rect><rect x=\"10.5\" y=\"11\" width=\"7\" height=\"4.5\" rx=\"1\" fill=\"var(--glyph-ink)\"></rect>",
+  "MINUS": "<rect x=\"1.333\" y=\"5.333\" width=\"21.333\" height=\"12\" rx=\"6\" fill=\"currentColor\"/><path d=\"M7.333 14V8.667H14\" fill=\"none\" stroke=\"var(--glyph-ink)\" stroke-width=\"1.333\"/><rect x=\"9.333\" y=\"10.667\" width=\"8\" height=\"4\" rx=\"0.667\" fill=\"var(--glyph-ink)\"/>",
   "MISC2": "<rect x=\"2\" y=\"2\" width=\"20\" height=\"20\" rx=\"5.5\" fill=\"currentColor\"></rect><text x=\"12\" y=\"12.5\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Geist, 'Segoe UI', system-ui\" font-weight=\"700\" font-size=\"13\" fill=\"var(--glyph-ink)\">R</text>",
   "MISC5": "<path d=\"M18 2.5H8.8a2.5 2.5 0 0 0-2.46 2.95L8.5 19.2a2.5 2.5 0 0 0 2.46 2.3H18a2.5 2.5 0 0 0 2.5-2.5V5A2.5 2.5 0 0 0 18 2.5z\" fill=\"currentColor\"></path><text x=\"14.2\" y=\"8.8\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Geist, 'Segoe UI', system-ui\" font-weight=\"700\" font-size=\"10\" fill=\"var(--glyph-ink)\">R</text><path d=\"M9.3 16h9.2M9.6 19.2h8.9\" stroke=\"var(--glyph-ink)\" stroke-width=\"1.8\" stroke-linecap=\"round\"></path>",
   "MISC6": "<path d=\"M6 2.5h9.2a2.5 2.5 0 0 1 2.46 2.95L15.5 19.2a2.5 2.5 0 0 1-2.46 2.3H6A2.5 2.5 0 0 1 3.5 19V5A2.5 2.5 0 0 1 6 2.5z\" fill=\"currentColor\"></path><text x=\"9.8\" y=\"8.8\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Geist, 'Segoe UI', system-ui\" font-weight=\"700\" font-size=\"10\" fill=\"var(--glyph-ink)\">L</text><path d=\"M5.5 16h9.2M5.5 19.2h8.6\" stroke=\"var(--glyph-ink)\" stroke-width=\"1.8\" stroke-linecap=\"round\"></path>",
-  "PLUS": "<rect x=\"1.5\" y=\"5.5\" width=\"21\" height=\"13\" rx=\"6.5\" fill=\"currentColor\"></rect><path d=\"M7.5 10h9M7.5 14h9\" stroke=\"var(--glyph-ink)\" stroke-width=\"2\" stroke-linecap=\"round\"></path>",
+  "PLUS": "<rect x=\"1.333\" y=\"5.333\" width=\"21.333\" height=\"12\" rx=\"6\" fill=\"currentColor\"/><path d=\"M6.667 8.667h10.667M6.667 11.333h10.667M6.667 14h10.667\" stroke=\"var(--glyph-ink)\" stroke-width=\"1.333\"/>",
   "R3": "<circle cx=\"12\" cy=\"10\" r=\"8.5\" fill=\"currentColor\"></circle><path d=\"M7 21.5h10\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\"></path>",
   "RM1": "<circle cx=\"12\" cy=\"12\" r=\"10\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\"></circle><path d=\"M12 12V2a10 10 0 0 1 7.1 2.9z\" fill=\"currentColor\"></path>",
   "S": "<circle cx=\"12\" cy=\"12\" r=\"11\" fill=\"currentColor\"></circle><text x=\"12\" y=\"12.5\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Geist, 'Segoe UI', system-ui\" font-weight=\"700\" font-size=\"14\" fill=\"var(--glyph-ink)\">A</text>",

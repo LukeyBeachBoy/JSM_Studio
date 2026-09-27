@@ -100,14 +100,17 @@ const roundTo = (value: number, step: number) => {
   return Number(value.toFixed(digits))
 }
 
-/** The origin line (§4 2c): "Changed in Wardogs" or "From FPS Template". */
+/** The origin line (§4 2c): "Overrides FPS Template", "Changed in the
+ *  Vehicles layer" or "From FPS Template". A value the configuration simply
+ *  sets, with nothing behind it, says nothing: naming the configuration being
+ *  edited tells no one anything. */
 function useOriginLine(setting?: string): { text: string; tone: 'changed' | 'inherited' } | null {
   const info = useSettingOriginInfo(setting)
   const context = useContext(SettingOrigins)
-  if (!info) return null
-  if (info.kind === 'own' || info.kind === 'override') {
-    const where = context.layer ?? context.config
-    return where ? { text: `Changed in ${where}`, tone: 'changed' } : null
+  if (!info || info.kind === 'own') return null
+  if (info.kind === 'override') {
+    if (context.layer) return { text: `Changed in the ${context.layer} layer`, tone: 'changed' }
+    return { text: info.sourceName ? `Overrides ${info.sourceName}` : 'Overrides the template', tone: 'changed' }
   }
   if (info.kind === 'inherited' && info.sourceName) return { text: `From ${info.sourceName}`, tone: 'inherited' }
   return null
@@ -218,7 +221,7 @@ export function SummaryRow(props: SummaryRowProps) {
     adjusting ? undefined : props.hints,
     props.onX && !adjusting ? `X:${props.onX.label}` : undefined,
     reason || ownsA ? (adjusting ? 'A:Drop;B:Put back' : undefined) : adjusting ? 'A:Keep;B:Put back' : adjust ? 'A:Adjust' : toggle ? 'A:Turn on / off' : props.expanded !== undefined ? (props.expanded ? 'A:Fold' : 'A:Unfold') : onActivate ? 'A:Open' : undefined,
-    !adjusting && resetToDefault ? `Y:${props.defaultLabel ?? 'Use Default'}` : undefined,
+    !adjusting && !disabled && resetToDefault ? `Y:${props.defaultLabel ?? 'Use Default'}` : undefined,
     !adjusting && help && !props.onX ? `X:${helpOpen ? 'Hide help' : 'What’s this?'}` : undefined,
     adjusting ? undefined : 'B:Back',
   ].filter(Boolean).join(';')

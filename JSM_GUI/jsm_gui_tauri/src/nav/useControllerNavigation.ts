@@ -281,6 +281,36 @@ export function useControllerNavigation(options: Options) {
       return false
     }
 
+    // The keyboard does everything the pad does, with the keys the hints name
+    // when it is in use (nav/inputSource.ts): X and Y reach the same
+    // handlers as the pad's (Show affected, Search, Use Default...), [ and ]
+    // step sections as LB/RB do, Home goes Home as View does, and M opens the
+    // Configuration menu as Menu does. Enter, Esc, the arrows and PgUp/PgDn
+    // already were keys. Only keys nothing else took, and never while typing.
+    const TYPED = 'input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="range"]), textarea, select, [contenteditable="true"]'
+    const onKey = (event: KeyboardEvent) => {
+      if (!event.isTrusted || event.defaultPrevented || event.repeat || event.ctrlKey || event.altKey || event.metaKey) return
+      if (document.body.dataset.bindingCapture === 'true') return
+      const target = event.target instanceof Element ? event.target : null
+      if (target?.closest(TYPED)) return
+      const key = event.key.length === 1 ? event.key.toLowerCase() : event.key
+      if (key === 'x' || key === 'y') {
+        if (padButton(key === 'x' ? 'X' : 'Y')) event.preventDefault()
+        return
+      }
+      if (key === '[' || key === ']') {
+        const button = key === '[' ? 'LB' : 'RB'
+        if (overlayOpen()) { if (sendPad(button)) event.preventDefault(); return }
+        event.preventDefault()
+        latest.current.onSectionStep(button === 'LB' ? -1 : 1)
+        return
+      }
+      if (overlayOpen()) return
+      if (key === 'Home') { event.preventDefault(); latest.current.onHome(); return }
+      if (key === 'm') { if (latest.current.onMenu() !== false) event.preventDefault() }
+    }
+    window.addEventListener('keydown', onKey)
+
     const dispose = desktopBridge.onTelemetrySample(payload => {
       const { enabled, testing } = latest.current
       // Only while Studio is in front, and only while the navigation profile
@@ -304,6 +334,6 @@ export function useControllerNavigation(options: Options) {
     })
     const host = document.querySelector<HTMLElement>('.shell-scroll')
     const unwatch = host ? watchManualScroll(host) : undefined
-    return () => { dispose?.(); unwatch?.() }
+    return () => { window.removeEventListener('keydown', onKey); dispose?.(); unwatch?.() }
   }, [])
 }

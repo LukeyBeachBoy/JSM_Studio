@@ -110,6 +110,12 @@ body[data-input-source='controller'] :is(.section-item, .nav-item, .nav-subitem,
   background: var(--surface-selected);
   transform: translateY(-1px);
 }
+/* A dropdown's list is never the thing the pad is on -- an option is (Menu's
+   enterMenu). Should the list hold focus for a frame while it opens, it
+   keeps its own shadow rather than wearing a ring round the whole menu. */
+body[data-input-source='controller'] [data-radix-popper-content-wrapper] :is([role='menu'], [role='listbox']):focus {
+  box-shadow: var(--shadow-menu), 0 0 0 1px var(--line-1);
+}
 /* The mouse gets hover fills only; a click must not leave a ring behind. */
 body[data-input-source='mouse'] :focus:not(:focus-visible) { outline: none; }
 

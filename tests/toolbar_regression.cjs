@@ -51,7 +51,12 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  const menuItem = label => configMenu.locator('.config-menu__item').filter({has:page.locator('.config-menu__label').getByText(label,{exact:true})});
  await openConfigMenu();
  assert.equal(await configMenu.locator('.config-menu__title').innerText(), 'Desktop');
- assert.deepEqual((await configMenu.locator('.config-menu__label').allInnerTexts()).map(t => t.trim()),
+ // What the title bar holds comes first (the pad reaches it through Menu),
+ // then the file's own actions.
+ const labels = (await configMenu.locator('.config-menu__label').allInnerTexts()).map(t => t.trim());
+ assert.deepEqual(labels.slice(1, 5), ['Configuration','Editing layer','Controller output','Turn mapping off'], labels.join(' | '));
+ assert.match(labels[0], /^(Apply|Applied|Return to Studio)/, 'the state button leads');
+ assert.deepEqual(labels.slice(5),
    ['Undo','Redo','Save without applying','Save as copy…','Discard changes','Test while editing','Values & inheritance']);
  for (const [label, reason] of [['Undo','Nothing to undo'],['Redo','Nothing to redo'],['Save without applying','No unsaved changes']]) {
    assert.equal(await menuItem(label).getAttribute('aria-disabled'), 'true', `${label} should idle`);

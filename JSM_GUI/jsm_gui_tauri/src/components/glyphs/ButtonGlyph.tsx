@@ -1,12 +1,15 @@
 import type { ControllerVisualFamily } from '../../utils/controllerStatus'
 import { useLastSeenController } from '../../hooks/useLastSeenController'
 import { InputGlyph } from './InputGlyph'
+import { KEY_FOR_BUTTON, useShowsKeys } from '../../nav/inputSource'
 
 // Controller button art for hints, badges and inline references (console
 // refinement D11): a button is always drawn, never named. The positions are
 // the standard (Xbox-lettered) ones the navigation reads; each maps to the
 // JSM input id whose glyph the family draws, so a PlayStation pad shows its
-// cross and a Switch pad its B.
+// cross and a Switch pad its B. While the keyboard or mouse is in use, or
+// no controller is connected, it is the key that does the same thing instead
+// (nav/inputSource.ts).
 export type PadButtonName = 'A' | 'B' | 'X' | 'Y' | 'LB' | 'RB' | 'LT' | 'RT' | 'VIEW' | 'MENU' | 'DPAD'
 
 const PAD_BUTTON_IDS: Record<PadButtonName, string> = {
@@ -27,10 +30,14 @@ type ButtonGlyphProps = {
   className?: string
   /** Announce the button; off where the label beside it already says what it does. */
   spoken?: boolean
+  /** Always the pad's art, whatever input is in use. */
+  pad?: boolean
 }
 
-export function ButtonGlyph({ button, size = 22, family, className, spoken = false }: ButtonGlyphProps) {
+export function ButtonGlyph({ button, size = 22, family, className, spoken = false, pad = false }: ButtonGlyphProps) {
   const seen = useLastSeenController()
+  const keys = useShowsKeys()
+  if (keys && !pad) return <kbd className="hint-key" data-key-hint={button} aria-hidden={spoken ? undefined : true} aria-label={spoken ? `${KEY_FOR_BUTTON[button]} key` : undefined}>{KEY_FOR_BUTTON[button]}</kbd>
   return <InputGlyph command={PAD_BUTTON_IDS[button]} family={family ?? seen.family} size={size}
     className={className ?? 'button-glyph'} title={spoken ? SPOKEN[button] : undefined} />
 }

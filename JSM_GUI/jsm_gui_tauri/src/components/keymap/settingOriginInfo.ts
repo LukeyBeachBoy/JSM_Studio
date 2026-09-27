@@ -41,6 +41,8 @@ export function useSettingOriginInfo(setting?: string): OriginInfo | null {
   const inBase = has(baseEntries, setting)
   const canReset = own && Boolean(context.layer || imported || inBase)
   const baseValue = inBase ? baseEntries[setting] : null
+  const baseSource = inBase ? context.baseOrigins?.[setting] : undefined
+  const overridden = baseSource && baseSource !== '<editor>' ? baseSource.split('/').pop()?.replace(/\.txt$/i, '') ?? null : null
   let kind: OriginKind
   let shown: string
   let spoken = ''
@@ -63,7 +65,7 @@ export function useSettingOriginInfo(setting?: string): OriginInfo | null {
     kind,
     shown,
     spoken,
-    sourceName: imported ?? (context.layer ? 'Default' : null),
+    sourceName: imported ?? (context.layer ? 'Default' : overridden),
     baseValue,
     canReset,
     resetLabel: context.layer ? 'Use Default' : 'Use inherited',

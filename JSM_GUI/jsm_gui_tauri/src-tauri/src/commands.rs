@@ -574,11 +574,17 @@ pub fn play_controller_sound(
     app: AppHandle,
     state: State<'_, AppState>,
     sound: i32,
+    gain: Option<i32>,
 ) -> CommandResult<SimpleSuccessResult> {
     if !(0..=13).contains(&sound) {
         return Err("Sound must be 0-13.".into());
     }
-    let success = jsm_process::inject_console_command(&app, state.inner(), &format!("PLAY_SOUND {sound}"))?;
+    // The gain the preview names, so it plays at the level just picked.
+    let command = match gain {
+        Some(gain) => format!("PLAY_SOUND {sound} {}", gain.clamp(-30, 0)),
+        None => format!("PLAY_SOUND {sound}"),
+    };
+    let success = jsm_process::inject_console_command(&app, state.inner(), &command)?;
     Ok(SimpleSuccessResult { success })
 }
 

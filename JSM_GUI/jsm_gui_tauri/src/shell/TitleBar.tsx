@@ -68,8 +68,8 @@ type TitleBarProps = {
   onStatePress: () => void
 }
 
-const OUTPUT_LABELS: Record<VirtualOutput, string> = { NONE: 'Disabled', XBOX: 'Virtual Xbox', DS4: 'Virtual DualShock 4' }
-const OUTPUT_DESCRIPTIONS: Record<VirtualOutput, string> = {
+export const OUTPUT_LABELS: Record<VirtualOutput, string> = { NONE: 'Disabled', XBOX: 'Virtual Xbox', DS4: 'Virtual DualShock 4' }
+export const OUTPUT_DESCRIPTIONS: Record<VirtualOutput, string> = {
   NONE: 'Keyboard and mouse only',
   XBOX: 'Games see an Xbox 360 pad',
   DS4: 'Games see a DualShock 4',
@@ -210,7 +210,9 @@ export function TitleBar(props: TitleBarProps) {
       title="Home: this configuration and Studio">
       <img src={appMark} alt="" width={20} height={20} />
       <span>Home</span>
-      <ButtonGlyph button="VIEW" size={22} />
+      {/* 24, not 22: the glyphs are drawn on a 24 grid, so this is the size
+          at which every edge lands on a whole pixel. */}
+      <ButtonGlyph button="VIEW" size={24} />
     </button>
   )
 
@@ -280,7 +282,7 @@ export function TitleBar(props: TitleBarProps) {
           onOpenChange={open => { if (!open) setProfileQuery('') }}
           trigger={
             <button type="button" className="context-segment context-segment--editing profile-chip" disabled={props.editingDisabled}
-              data-hints="A:Switch configuration;X:Edit applied;B:Back" data-pad-keys="X" onKeyDown={event => { if ((event.key === 'x' || event.key === 'X') && props.appliedName) { event.preventDefault(); props.onEditApplied() } }}
+              data-hints={props.appliedName ? 'A:Switch configuration;X:Edit applied;B:Back' : 'A:Switch configuration;B:Back'} data-pad-keys="X" onKeyDown={event => { if ((event.key === 'x' || event.key === 'X') && props.appliedName) { event.preventDefault(); props.onEditApplied() } }}
               aria-label={`${t('app.profileSummary.editingTitle', 'Editing')}: ${editingLabel}${props.dirty ? ', unsaved changes' : ''}`}>
               <b className="profile-chip-name">{editingLabel}</b>
               {props.dirty && <span className="unsaved-dot profile-chip-dot" title="Unsaved changes" />}

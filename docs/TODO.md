@@ -1112,6 +1112,137 @@ the design renames or removes what they asserted).
 
 ---
 
+### TODO-35 — Pad focus in menus and dialogs; the title bar from Menu
+
+**Status:** built 2026-09-27 · uncommitted · not yet tried on hardware
+
+**Context**
+
+Luke on 0.7.83: the delete confirmation could not be used; dropdowns wore a
+ring round the whole list as well as the option; no way from the pad to the
+configuration, layer, output and Apply (View now goes Home); Static
+sensitivity blank with no description; the editor's add buttons inconsistent;
+a corner leak on the open binding card; View/Menu glyphs looking low-res.
+
+**What was done**
+
+- Delete/Rename from a row's options (Y): the menu's close handler put focus
+  back on the row 80 ms later, unconditionally -- behind the dialog it had
+  just opened, and away from the name field. It now only does that when focus
+  is nowhere, and Rename's field takes focus then. Menus can name where
+  focus returns (`returnFocusTo`) when their trigger is a hidden button.
+- Dropdowns (`ui/Menu`): opened by pad or keyboard, focus moves to the current
+  option, else the first enabled one (`enterMenu`, a few frames, since Radix
+  focuses the list after mounting); the list never wears the pad ring.
+- The Configuration menu (Menu / ☰) leads with the state button (Apply…),
+  Configuration, Editing layer, Controller output and mapping on/off; the
+  first three open their choices in place, B steps back, B again closes. The
+  list effect is keyed on the view: keyed on the rebuilt items it snapped
+  focus back to the current choice on every preview render. Menu now opens on
+  Home and editing pages whether or not a configuration is chosen.
+- Static sensitivity shows the maximum the mapper would use when unset (1,
+  or the file's MAX_GYRO_SENS) and has a description.
+- Editor: Commands, Modeshifts and Layer actions headings and add buttons
+  share one icon + label pattern; new `command` and `modeshift` icons in the
+  design handoff set (regenerated, nothing else changed).
+- The open binding card's body takes the card's bottom corners.
+- View and Menu glyphs redrawn on the 24 grid (and a 0.75 grid for the small
+  cut) so their edges land on whole pixels; the Home chip's glyph is 24px.
+- `tests/pad_menus_regression.cjs` covers the dropdown entry, the menu's
+  choice lists, and Delete/Rename focus; `toolbar_regression` updated.
+
+---
+
+### TODO-37 — Keyboard hints, duplicate Back, pages open at the top, sound intensity, origin wording
+
+**Status:** built 2026-09-27 · uncommitted (Studio and the JoyShockMapper
+submodule) · sound intensity needs a try on hardware
+
+**Reported as**
+
+"Add the option to change the intensity of the connect/disconnect haptic
+sound" · "lots of duplicate 'back' buttons" · "Should show keyboard shortcut
+glyphs instead of controller glyphs if the last used input method was
+keyboard/mouse, and they should actually WORK" · "Some pages randomly scroll
+after they load such as the Trackpads page" · "Changed in Quick Access Chord"
+on the configuration being edited.
+
+**What was done**
+
+- *Keyboard hints:* `nav/inputSource.ts` decides pad art or keys (the pad's
+  only while it is the input in use and connected); `ButtonGlyph` and the
+  capsule draw keycaps otherwise. Every key named works: X/Y reach the same
+  handlers as the pad's, `[`/`]` step sections, Home goes Home, M opens the
+  Configuration menu, PgUp/PgDn step pages (bridge in
+  `useControllerNavigation`). Overview's X (Inspect uses) and Y (search) had
+  no handler at all, for the pad either; they do now.
+- *Dead hints (audit):* the sheet footer names the focused row's buttons
+  instead of a fixed list; Gyro rows say Documentation when Y opens it; Use
+  Default not offered on disabled rows; X Edit applied only with something
+  applied; Y Type removed from the AI page; X Fine only on sliders.
+- *Duplicate Back:* the capsule keyed hints by button + label, and rows that
+  declared B:Back got a second one from SummaryRow; repeated keys let React
+  leave stale copies. One hint per button, keyed by button.
+- *Pages open at the top:* the page landing restored the last focused control
+  and scrolled to it after the page drew. It now lands on the first control.
+- *Sound intensity:* mapper `SOUND_GAIN` (dB, the haptic-script report's
+  gain byte, which was always 0); `PLAY_SOUND n [gain]`; Preferences →
+  Controller sounds → Sound Intensity (Quiet −18, Soft −12, Medium −6, Full 0).
+- *Origin wording:* a value the configuration sets with nothing behind it
+  names no origin; an override says what it overrides ("Overrides FPS
+  Template"); in a layer, "Changed in the Comms layer".
+- `tests/keyboard_hints_regression.cjs`; origin tests updated.
+
+---
+
+### TODO-36 — Axis-true navigation, template overrides, "while released", Studio in front
+
+**Status:** built 2026-09-27 · uncommitted (Studio and the JoyShockMapper
+submodule) · the foreground fix and "while released" need a try on hardware
+
+**What was done**
+
+- *Navigation audit:* every page, sheet, editor and menu walked at 1440 and
+  1024. Up/Down only move vertically, Left/Right only horizontally, Down then
+  Up retraces; straight ahead always wins over diagonal (`useKeyboardNav`),
+  one box for "which control is this" shared by the pad and the ring
+  (`nav/navBox.ts`), Documentation columns, two focus steals (Values &
+  inheritance from the menu; the page-landing step overriding an early
+  press). `tests/pad_axis_audit_regression.cjs` (~4 min).
+- *Template overrides:* inheritance showed right except a template's label in
+  the editor; a single-axis edit of an inherited pair zeroed the other axis.
+  Setting an override back to what the child would inherit now drops the line
+  (`utils/inheritedOverrides.ts`, through `useKeymapConfig`), counted as a
+  change against the saved file; lines already equal on open are left alone.
+  Layers do the same against Default (`foldLayer`).
+  `tests/template_override_roundtrip_regression.cjs`.
+- *While released:* `!X` -- a modeshift `!MISC6,W = U` holds while the grip
+  is up (mapper: `InvertedChords.cpp`, `tests/inverted_chord_tests.cpp`), a
+  layer action `# @layer-action !MISC6 = hold <id>` likewise (Studio's layer
+  worker). Held/Released switches on modeshifts and in Add layer action.
+  `tests/released_bindings_regression.cjs`; the mapper end-to-end
+  `inverted_chord_mapper_regression.cjs` needs Studio closed.
+- *Studio in front:* the window's Focused event follows the top-level
+  window's keyboard focus, which the WebView's child window takes -- so
+  Studio could count itself as not in front, stop feeding the UI telemetry,
+  and a controller switched on did not appear until an app switch. The
+  foreground window's process now decides (`services/foreground.rs`), for the
+  UI feed and the controller handover. It follows Windows' foreground
+  events (SetWinEventHook), not a poll; the hook thread asks once more after
+  installing, since the main window is shown before the hook exists and its
+  foreground event would otherwise be missed at launch.
+- *Controller in Lizard Mode until an app switch:* SDL only handles its HID
+  device-change window on the thread that called SDL_Init -- the mapper's
+  main thread, which sat in `getline` and never pumped messages. A Steam
+  Controller switched on through the dongle went unseen (still in Lizard
+  Mode) until the next command Studio happened to send, typically the
+  AppNavigation load on refocus. The mapper now waits for console input with
+  `MsgWaitForMultipleObjectsEx` and dispatches window messages meanwhile
+  (`waitForConsoleCommand`, main.cpp). An idle rescan that finds a device now
+  connects in the same tick instead of the next.
+
+---
+
 ## Done
 
 ### TODO-22 — A shifted binding could not be un-named

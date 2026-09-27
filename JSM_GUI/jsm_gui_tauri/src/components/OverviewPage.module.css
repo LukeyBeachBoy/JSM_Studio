@@ -34,18 +34,11 @@
   font-size: var(--fs-body);
 }
 .search input::placeholder { color: var(--text-3); }
+/* The Y glyph, or the Y key while the keyboard is in use. */
 .searchKey {
-  width: 20px;
-  height: 20px;
   flex: none;
   display: grid;
   place-items: center;
-  border-radius: 50%;
-  background: var(--text-1);
-  color: var(--surface-frame);
-  font-family: var(--font-ui);
-  font-size: 10px;
-  font-weight: var(--fw-bold);
 }
 
 /* ---- Filter bar: chips, check chips on the right. */

@@ -381,3 +381,6 @@ details[data-input-command] { display: block; padding: 0; width: 100%; }
 /* Preferences (16j): a sound row is one card, its preview button inside it. */
 .prefs-section .controller-sound-row { align-items: center; gap: var(--sp-2); margin: 0; padding-right: var(--sp-3); border-radius: var(--r-row); background: var(--surface-row); }
 .prefs-section .controller-sound-row > .controller-sound-label { background: transparent; box-shadow: none; }
+/* Sound intensity: laid out as the sound rows are, its choices on the right. */
+.prefs-section .controller-sound-intensity { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-2) var(--sp-4); min-height: 60px; padding: 12px var(--sp-4); }
+.prefs-section .controller-sound-intensity > .segmented { margin-left: auto; }

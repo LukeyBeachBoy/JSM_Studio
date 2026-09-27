@@ -70,8 +70,13 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
    assert.equal(await page.locator('.titlebar').getByRole('button',{name,exact:true}).count(), 0, `${name} is still in the title bar`);
  for (const name of ['Overview','Buttons','D-Pad','Triggers','Joysticks','Trackpads','Gyro','Layers'])
    assert.equal(await tabs.getByRole('button',{name,exact:true}).count(), 1, `${name} tab missing`);
- // LT/RT are the controller's own trigger art, never text (D11).
+ // LT/RT are the controller's own trigger art, never text (D11) -- while the
+ // pad is the input in use. With the keyboard or mouse, they name the keys
+ // that step pages instead (nav/inputSource.ts).
+ await page.evaluate(() => { document.body.dataset.padConnected = 'true'; document.body.dataset.inputSource = 'controller' });
  assert.deepEqual(await tabs.locator('.trigger-mark svg').evaluateAll(els => els.map(el => el.dataset.glyph)), ['ZL','ZR']);
+ await page.evaluate(() => { document.body.dataset.inputSource = 'keyboard' });
+ assert.deepEqual(await tabs.locator('.trigger-mark kbd').allInnerTexts(), ['PgUp','PgDn'], 'the keyboard in use names its keys');
  assert.equal(await tabs.getByRole('button',{name:/^Tuning/}).count(), 0, 'the Tuning dropdown is back');
  assert.equal(await tabs.getByRole('button',{name:'Overview',exact:true}).getAttribute('aria-current'), 'page');
  for (const bar of ['.titlebar','.page-tabs'])

@@ -298,6 +298,16 @@ body:has(.config-menu-overlay) .hint-capsule { visibility: hidden; }
 body[data-input-source='controller'] .config-menu__item:focus { background: var(--surface-selected); }
 .config-menu__label { flex: 1; font-size: var(--fs-label); font-weight: var(--fw-medium); }
 .config-menu__meta { font-size: var(--fs-hint); color: var(--text-3); }
+/* A new group (what the title bar holds, then the file's own actions). */
+.config-menu__item--divided { margin-top: 9px; position: relative; }
+.config-menu__item--divided::before { content: ''; position: absolute; left: 14px; right: 14px; top: -7px; height: 1px; background: var(--line-1); }
+/* An in-place list of choices: long ones (every configuration) scroll. */
+.config-menu__items--choices { max-height: min(60vh, 520px); overflow-y: auto; }
+.config-menu__back { color: var(--text-2); }
+.config-menu__swatch { width: 12px; height: 12px; margin: 0 4px; border-radius: 3px; flex: none; }
+.config-menu__spacer { width: 20px; flex: none; }
+.config-menu__item[aria-checked='true'] { color: var(--text-1); }
+.config-menu__item[aria-checked='true'] > svg { color: var(--accent); }
 
 @media (prefers-reduced-motion: reduce) {
   .sheet, .sheet-layer, .config-menu { animation: none; }

@@ -47,6 +47,8 @@ export type RuntimeMappingState = {
   /** Built-in controller tune 0-13, or -1 for none. */
   connectSound?: number
   shutdownSound?: number
+  /** How loud they play, in dB; 0 = as recorded. */
+  soundGain?: number
   /** Studio's reserved chords (pause mapping, calibrate gyro). */
   reservedChords?: boolean
   /** Whether the calibration HUD appears over games. */
@@ -73,6 +75,7 @@ export type ControllerPreferences = {
   gyroCalibrationDelay: number
   connectSound: number
   shutdownSound: number
+  soundGain: number
 }
 
 export type AutoloadRule = {
@@ -264,7 +267,8 @@ export interface DesktopBridge {
   /** The global timing store; saved and handed to the running mapper at once. */
   setGlobalTiming: (timing: GlobalTiming) => Promise<RuntimeMappingState>
   setControllerPreferences: (preferences: ControllerPreferences) => Promise<RuntimeMappingState>
-  playControllerSound: (sound: number) => Promise<{ success: boolean }>
+  /** gain: dB, 0 = as recorded; omitted plays at the saved level. */
+  playControllerSound: (sound: number, gain?: number) => Promise<{ success: boolean }>
   setControllerNavEnabled: (enabled: boolean) => Promise<RuntimeMappingState>
   /** Ends Test mode: loads Studio's navigation profile so the pad drives Studio again. */
   resumeStudioNavigation: () => Promise<boolean>
@@ -520,8 +524,8 @@ export const desktopBridge: DesktopBridge = {
     if (isTauriWindow()) return invokeTauri<RuntimeMappingState>('set_controller_preferences', { preferences })
     return { activeProfilePath: 'profiles-library/Profile 1.txt', mappingEnabled: true, autoloadEnabled: true, controllerNavEnabled: true, ...preferences }
   },
-  async playControllerSound(sound) {
-    if (isTauriWindow()) return invokeTauri<{ success: boolean }>('play_controller_sound', { sound })
+  async playControllerSound(sound, gain) {
+    if (isTauriWindow()) return invokeTauri<{ success: boolean }>('play_controller_sound', { sound, gain })
     return { success: false }
   },
   async setControllerNavEnabled(enabled) {

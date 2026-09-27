@@ -298,6 +298,19 @@ export function useSensitivityConfig({ configText, readText, setConfigText }: Se
     setConfigText(prev => updateKeymapEntry(prev, keyName.GYRO_OUTPUT, [value]))
   }
 
+  // The pair an edit completes: the profile's own values, and whatever it
+  // inherits for the rest. Reading only the profile's own text made editing
+  // one axis of an imported pair write the other as 0 (MIN_GYRO_SENS = 3 0
+  // under a template's 2 1.5) -- finalizePendingValues has the same merge.
+  const ownOverInherited = (own: string, prefix?: string) => {
+    const options = prefix ? { prefix } : undefined
+    const merged = { ...parseSensitivityValues(readSource, options) }
+    for (const [field, value] of Object.entries(parseSensitivityValues(own, options))) {
+      if (value !== undefined) (merged as Record<string, unknown>)[field] = value
+    }
+    return merged
+  }
+
   const handleDualSensChange = (key: typeof keyName.MIN_GYRO_SENS | typeof keyName.MAX_GYRO_SENS, index: 0 | 1) => (value: string) => {
     const keyPrefix = prefixKey(activeSensitivityPrefix)
     const axisKey = index === 0 ? 'x' : 'y'
@@ -335,7 +348,7 @@ export function useSensitivityConfig({ configText, readText, setConfigText }: Se
     setPendingDual(nextPending)
 
     setConfigText(prev => {
-      const parsed = parseSensitivityValues(prev, activeSensitivityPrefix ? { prefix: activeSensitivityPrefix } : undefined)
+      const parsed = ownOverInherited(prev, activeSensitivityPrefix)
       const pendingForPrefix = nextPending[keyPrefix] ?? {}
       const current =
         key === keyName.MIN_GYRO_SENS
@@ -374,7 +387,7 @@ export function useSensitivityConfig({ configText, readText, setConfigText }: Se
     setPendingDual(nextPending)
 
     setConfigText(prev => {
-      const parsed = parseSensitivityValues(prev, activeSensitivityPrefix ? { prefix: activeSensitivityPrefix } : undefined)
+      const parsed = ownOverInherited(prev, activeSensitivityPrefix)
       const pendingForPrefix = nextPending[keyPrefix] ?? {}
       const baseX =
         pendingForPrefix.static?.x === ''
@@ -792,7 +805,9 @@ export function useSensitivityConfig({ configText, readText, setConfigText }: Se
     return clone
   }, [activeSensitivityPrefix, readSource, modeshiftSensitivity, pendingDual, sensitivity])
 
-  const finalizePendingValues = useCallback((): string => {
+  // What finalizing would write, without doing it: no state is touched, so it
+  // is safe to call while rendering (useKeymapConfig's unsaved-changes check).
+  const previewPendingValues = useCallback((drafts: PendingDual = pendingDualRef.current): string => {
     // This returns the text that gets SAVED, so it must build on the profile's
     // own text. Starting from the import-resolved text would write every
     // imported line into the profile and dissolve the import.
@@ -801,7 +816,7 @@ export function useSensitivityConfig({ configText, readText, setConfigText }: Se
     if (sensitivityModeshiftButton) {
       allowed.add(prefixKey(`${sensitivityModeshiftButton},`))
     }
-    Object.entries(pendingDualRef.current).forEach(([key, pending]) => {
+    Object.entries(drafts).forEach(([key, pending]) => {
       if (!allowed.has(key)) return
       const prefix = key === '__base__' ? undefined : key
       const mode = key === '__base__' ? selectedBaseMode : selectedModeshiftMode
@@ -886,13 +901,18 @@ export function useSensitivityConfig({ configText, readText, setConfigText }: Se
         }
       }
     })
+    return next
+  }, [configText, readSource, selectedBaseMode, selectedModeshiftMode, sensitivityModeshiftButton])
+
+  const finalizePendingValues = useCallback((): string => {
+    const next = previewPendingValues()
     setPendingDual({})
     pendingDualRef.current = {}
     if (next !== readSource) {
       setConfigText(next)
     }
     return next
-  }, [configText, readSource, selectedBaseMode, selectedModeshiftMode, sensitivityModeshiftButton, setConfigText])
+  }, [previewPendingValues, readSource, setConfigText])
 
   const resetPendingSensitivityChanges = useCallback(() => {
     setPendingDual({})
@@ -992,6 +1012,8 @@ export function useSensitivityConfig({ configText, readText, setConfigText }: Se
     handleSigmoidWidthChange,
     switchToAccelMode,
     hasPendingSensitivityChanges,
+    pendingSensitivity: pendingDual,
+    previewPendingValues,
     resetPendingSensitivityChanges,
   }
 }

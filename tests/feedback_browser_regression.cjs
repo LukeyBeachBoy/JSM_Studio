@@ -34,9 +34,12 @@ const fs = require('node:fs');
   await page.getByRole('menuitem').filter({hasText:name}).first().click();
  };
  await picker.filter({hasText:'Desktop'}).waitFor();
- // A controller is connected, so the capsule draws its buttons, never names or keys (D11).
+ // A controller is connected and in use, so the capsule draws its buttons,
+ // never names or keys (D11); the mouse just used brings the keys back.
+ await page.locator('.hint-capsule kbd').first().waitFor();
+ await page.evaluate(()=>{ document.body.dataset.inputSource='controller' });
  await page.locator('.hint-capsule svg.hint-glyph[data-glyph]').first().waitFor();
- assert.equal(await page.locator('.hint-capsule kbd').count(),0,'capsule should show glyphs with a controller');
+ assert.equal(await page.locator('.hint-capsule kbd').count(),0,'capsule should show glyphs with a controller in use');
  await selectProfile('Game');
  await picker.filter({hasText:'Game'}).waitFor();
  assert.deepEqual(await page.evaluate(()=>window.__calls),[],'selecting a profile applied it');

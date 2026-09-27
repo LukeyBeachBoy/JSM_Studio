@@ -13,14 +13,56 @@ const SOUNDS = [
   'Warm Boot', 'Next Level', 'Shake It Off', 'Access Denied', 'Deactivate', 'Discovery', 'Triumph', 'The Mann',
 ]
 
-const DEFAULTS: Preferences = { gyroCalibrationSeconds: 5, gyroCalibrationDelay: 0, connectSound: -1, shutdownSound: -1 }
+const DEFAULTS: Preferences = { gyroCalibrationSeconds: 5, gyroCalibrationDelay: 0, connectSound: -1, shutdownSound: -1, soundGain: 0 }
+
+// How loud the tunes play: the firmware's gain in dB. Full is the tune as the
+// controller plays it (and what played before there was a choice).
+const INTENSITIES = [
+  { gain: -18, label: 'Quiet' },
+  { gain: -12, label: 'Soft' },
+  { gain: -6, label: 'Medium' },
+  { gain: 0, label: 'Full' },
+]
+const gainHelp = 'How strongly the controller plays the connect and shutdown sounds, and their previews.'
+
+function SoundIntensity({ gain, onChange, onPreview }: { gain: number; onChange: (gain: number) => void; onPreview: (gain: number) => void }) {
+  const nearest = INTENSITIES.reduce((best, option) => Math.abs(option.gain - gain) < Math.abs(best.gain - gain) ? option : best)
+  const index = INTENSITIES.indexOf(nearest)
+  const choose = (next: number) => { onChange(next); onPreview(next) }
+  const step = (delta: number) => choose(INTENSITIES[Math.min(INTENSITIES.length - 1, Math.max(0, index + delta))].gain)
+  return (
+    <div className="controller-sound-row" data-hints="MOVE:Choose;A:Select;B:Back">
+      <div className="controller-sound-label controller-sound-intensity" title={gainHelp}>
+        <span>Sound Intensity</span>
+        <small>{gainHelp}</small>
+        <div className="segmented" role="radiogroup" aria-label="Sound intensity"
+          onKeyDown={event => {
+            // Left/Right pick within the control; Up/Down leave it to the page walk.
+            if (event.key === 'ArrowLeft') { event.preventDefault(); step(-1) }
+            if (event.key === 'ArrowRight') { event.preventDefault(); step(1) }
+          }}>
+          {INTENSITIES.map(option => (
+            <button key={option.gain} type="button" role="radio" aria-checked={option === nearest} tabIndex={option === nearest ? 0 : -1}
+              onClick={() => choose(option.gain)}>
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 const delayHelp = 'Seconds to wait before calibration starts, so a chord or binding leaves time to put the controller down. The countdown shows in the overlay.'
 const timeHelp = 'Seconds the gyro is sampled for. Keep the controller still on a flat surface for the whole time.'
 const soundHelp = 'Played by the controller when it connects to JSM Studio. The controller’s own power-on jingle is built into its firmware and still plays first.'
 const shutdownHelp = 'Played before JSM Studio turns the controller off (Turn off controller, or a binding to it). Turning it off with its own button still plays the firmware’s jingle.'
 
-function SoundPicker({ label, value, hint, onChange }: { label: string; value: number; hint: string; onChange: (value: number) => void }) {
+const preview = (sound: number, gain: number) => desktopBridge.playControllerSound(sound, gain).then(result => {
+  if (!result.success) showToast('No controller is connected to play the sound on.', 'error')
+}).catch(error => showToast(String(error), 'error'))
+
+function SoundPicker({ label, value, gain, hint, onChange }: { label: string; value: number; gain: number; hint: string; onChange: (value: number) => void }) {
   return (
     <div className="controller-sound-row">
       <label className="controller-sound-label" title={hint}>
@@ -37,9 +79,7 @@ function SoundPicker({ label, value, hint, onChange }: { label: string; value: n
         aria-label={`Preview ${label}`}
         title="Preview"
         disabled={value < 0}
-        onClick={() => desktopBridge.playControllerSound(value).then(result => {
-          if (!result.success) showToast('No controller is connected to play the sound on.', 'error')
-        }).catch(error => showToast(String(error), 'error'))}
+        onClick={() => void preview(value, gain)}
       >
         ▶
       </button>
@@ -52,6 +92,7 @@ const fromRuntime = (state: Partial<Preferences>): Preferences => ({
   gyroCalibrationDelay: state.gyroCalibrationDelay ?? DEFAULTS.gyroCalibrationDelay,
   connectSound: state.connectSound ?? DEFAULTS.connectSound,
   shutdownSound: state.shutdownSound ?? DEFAULTS.shutdownSound,
+  soundGain: state.soundGain ?? DEFAULTS.soundGain,
 })
 
 export function ControllerPreferences({ part = 'all' }: { part?: 'all' | 'calibration' | 'sounds' }) {
@@ -95,8 +136,12 @@ export function ControllerPreferences({ part = 'all' }: { part?: 'all' | 'calibr
       </>}
       {part !== 'calibration' && <>
       <h3 className="prefs-eyebrow">Controller sounds</h3>
-      <SoundPicker label="Connect Sound" value={prefs.connectSound} hint={soundHelp} onChange={connectSound => update({ connectSound })} />
-      <SoundPicker label="Shutdown Sound" value={prefs.shutdownSound} hint={shutdownHelp} onChange={shutdownSound => update({ shutdownSound })} />
+      <SoundPicker label="Connect Sound" value={prefs.connectSound} gain={prefs.soundGain} hint={soundHelp} onChange={connectSound => update({ connectSound })} />
+      <SoundPicker label="Shutdown Sound" value={prefs.shutdownSound} gain={prefs.soundGain} hint={shutdownHelp} onChange={shutdownSound => update({ shutdownSound })} />
+      {/* Picking a level plays the connect sound at it (or the shutdown
+          sound, when only that one is set), so it can be judged by feel. */}
+      <SoundIntensity gain={prefs.soundGain} onChange={soundGain => update({ soundGain })}
+        onPreview={gain => { const sound = prefs.connectSound >= 0 ? prefs.connectSound : prefs.shutdownSound; if (sound >= 0) void preview(sound, gain) }} />
       </>}
     </section>
   )

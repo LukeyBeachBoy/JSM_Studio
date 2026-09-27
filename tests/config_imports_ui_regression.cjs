@@ -69,7 +69,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  // their effective value from the same import here. On Trackpads (console
  // refinement 2b) each is a summary row, and a row whose value is not Default
  // says where it comes from on its second line: "From Base" (inherited) or
- // "Changed in Desktop" -- this replaced the separate origin markers.
+ // "Overrides Base" -- this replaced the separate origin markers.
  await page.getByRole('button',{name:'Trackpads',exact:true}).click();
  const sheet = page.locator('.sheet');
  const row = (scope, label) => scope.locator('button.summary-row').filter({has:page.locator('.summary-row__label').getByText(label,{exact:true})}).first();
@@ -106,9 +106,9 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  await page.waitForFunction(() => document.activeElement?.getAttribute('data-adjusting') === 'true');
  await page.keyboard.press('ArrowLeft'); await page.keyboard.press('Enter');
  assert.equal((await columns.locator('.summary-row__value').innerText()).trim(), '2');
- // An override is marked as one: the configuration that changed it.
+ // An override is marked as one: the import it overrides.
  assert.equal(await line(columns).getAttribute('data-tone'), 'changed');
- assert.equal(await line(columns).innerText(), 'Changed in Desktop');
+ assert.equal(await line(columns).innerText(), 'Overrides Base', 'named by what it overrides, not by the configuration being edited');
  await assertInherited(row(sheet, 'Mode'), 'editing the grid size must not mark the mode as owned');
 
  // ...and the value can be handed back to the import from the control itself:

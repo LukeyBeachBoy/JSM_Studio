@@ -1,4 +1,5 @@
 /** Layers travel with their profile. Only explicit overrides are stored. */
+import { sameValue } from './inheritedOverrides'
 import { FACE_BUTTONS, DPAD_BUTTONS, BUMPER_BUTTONS, TRIGGER_BUTTONS, CENTER_BUTTONS, PADDLE_BUTTONS, MINI_BUTTONS, MISC_BUTTONS, LEFT_STICK_BUTTONS, RIGHT_STICK_BUTTONS, TOUCH_BUTTONS, TOUCH_STICK_BUTTONS } from '../keymap/schema'
 /** What turns a layer on or off belongs to the input, the way Steam binds
  *  "Apply Action Layer" onto a button rather than storing it on the layer. So a
@@ -19,9 +20,11 @@ export const layerVerbLabels: Record<LayerVerb, string> = {
   hold: 'Hold layer', apply: 'Apply layer', remove: 'Remove layer', toggle: 'Toggle layer',
 }
 export const actionsForLayer = (actions: LayerAction[], layerId: string) => actions.filter(a => a.layerId === layerId)
-export const actionsOnInput = (actions: LayerAction[], input: string) => actions.filter(a => a.input === input)
+/** The actions an input drives, pressed ("X") or released ("!X"): both are
+ *  that input's, and its editor lists and rewrites them together. */
+export const actionsOnInput = (actions: LayerAction[], input: string) => actions.filter(a => a.input === input || a.input === `!${input}`)
 export const describeAction = (action: LayerAction, layers: ConfigLayer[]) =>
-  `${layerVerbLabels[action.verb]}: ${layers.find(l => l.id === action.layerId)?.name ?? action.layerId}`
+  `${layerVerbLabels[action.verb]}: ${layers.find(l => l.id === action.layerId)?.name ?? action.layerId}${action.input.startsWith('!') ? (action.verb === 'hold' ? ' while released' : ' on release') : ''}`
 /** Names an input for people; callers pass inputDisplayName with the pad's family. */
 export type InputNamer = (command: string) => string
 const rawName: InputNamer = command => command
@@ -72,7 +75,8 @@ export function inputUsage(text: string, command: string, layers = readLayers(te
   for (const [key, raw] of Object.entries(layerEntries(text))) {
     if (key.startsWith('#')) continue
     const value = raw.split('#')[0].trim(), parts = key.split(',')
-    if (parts.length > 1 && parts[0] === command) uses.push({ kind: 'shift', target: parts.slice(1).join(','), label: `${inputs.has(parts.slice(1).join(',')) ? name(parts.slice(1).join(',')) : readableSetting(parts.slice(1).join(','))} → ${value.replace(/_/g, ' ')}` })
+    // A modeshift held by this input, or by its release ("!X,KEY").
+    if (parts.length > 1 && parts[0].replace(/^!/, '') === command) uses.push({ kind: 'shift', target: parts.slice(1).join(','), label: `${inputs.has(parts.slice(1).join(',')) ? name(parts.slice(1).join(',')) : readableSetting(parts.slice(1).join(','))} → ${value.replace(/_/g, ' ')}${parts[0].startsWith('!') ? ' · while released' : ''}` })
     if (key.length > 1 && key.includes('+') && key.split('+').includes(command)) uses.push({ kind: 'chord', target: key, label: `Together ${name(key)}: ${value}` })
     if (/^(GYRO_ON|GYRO_OFF|[A-Z_]+_(ON|OFF|BUTTON|TRIGGER))$/.test(parts[parts.length - 1]) && value.split(/\s+/).includes(command)) uses.push({ kind: 'setting', target: key, label: readableSetting(parts[parts.length - 1]) + (parts.length > 1 ? ` (hold ${name(parts[0])})` : '') })
     if (key === `${command}_MODE` && /^X_[LR]T$/.test(value)) uses.push({ kind: 'analog', target: key, label: `Analog ${command === 'ZL' ? 'left' : 'right'} trigger → Xbox` })
@@ -171,7 +175,7 @@ export function writeLayers(text: string, layers: ConfigLayer[], actions = readL
 /** Replace the activation for one input, keeping every other input intact. */
 export function setLayerActions(text: string, input: string, next: LayerAction[]) {
   const layers = readLayers(text)
-  const kept = readLayerActions(text, layers).filter(action => action.input !== input)
+  const kept = readLayerActions(text, layers).filter(action => action.input !== input && action.input !== `!${input}`)
   return writeLayers(text, layers, [...kept, ...next])
 }
 // Parsing a whole configuration is pure, and the text only changes when the
@@ -233,9 +237,13 @@ export function foldLayer(text: string, id: string, edited: string, before = pro
   const layers = readLayers(text)
   const layer = layers.find(layer => layer.id === id)
   if (!layer) return writeLayers(edited, layers)
-  const old = layerEntries(before), next = layerEntries(edited)
+  const old = layerEntries(before), next = layerEntries(edited), base = layerEntries(defaultLayer(text))
   for (const key of new Set([...Object.keys(old), ...Object.keys(next)])) {
     if (old[key] === next[key]) continue
+    // Set by hand back to what Default has: the layer stops overriding it, so
+    // it follows Default again (the same rule the Default layer applies to
+    // its imports, utils/inheritedOverrides.ts).
+    if (next[key] !== undefined && base[key] !== undefined && sameValue(next[key], base[key])) { delete layer.overrides[key]; continue }
     if (next[key] === undefined && !key.startsWith('#') && !isBinding(key)) delete layer.overrides[key]
     else layer.overrides[key] = next[key] ?? (key.startsWith('#') ? '' : 'NONE')
   }

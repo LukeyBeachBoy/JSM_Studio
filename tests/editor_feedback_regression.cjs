@@ -58,13 +58,12 @@ const fs = require('node:fs');
  };
  await adjustSens(1);
  assert.equal(await rowValue(sens),'1.05×');
- assert.equal(await rowLine(sens).getAttribute('data-tone'),'changed');
- assert.equal(await rowLine(sens).innerText(),'Changed in Desktop');
+ assert.equal(await sens.locator('.summary-row__hint[data-tone]').count(),0,'a value the configuration sets with nothing behind it names no origin: the configuration is the one being edited');
  await page.keyboard.press('Escape');
  await sheet.waitFor({state:'detached'});
  // The edit shows on its own pad's row and nowhere else.
  assert.equal(await rowValue(padSens),'1.05×');
- assert.equal(await rowLine(padSens).innerText(),'Changed in Desktop');
+ assert.equal(await padSens.locator('.summary-row__hint[data-tone]').count(),0);
  assert.equal(await left.innerText(),leftBefore,'unrelated pad changed');
  // One state button says what it will do (1e).
  await page.waitForFunction(()=>document.querySelector('.state-button')?.textContent==='Apply 1 change');

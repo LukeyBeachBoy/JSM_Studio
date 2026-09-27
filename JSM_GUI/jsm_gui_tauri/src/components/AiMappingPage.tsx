@@ -434,7 +434,7 @@ export function AiMappingPage({
                   {message.result.warnings.length > 0 && <div className={`${styles.block} ${styles.warn}`}><b>{t('ai.warnings')}</b><ul>{message.result.warnings.map((item, index) => <li key={index}>{item}</li>)}</ul></div>}
                   {isLatest && (
                     <div className={styles.proposalActions}>
-                      <button type="button" className="button button--primary" onClick={() => void handleApplyGeneratedConfig()} disabled={applying} data-hints="A:Apply change;Y:Type;B:Back">{applying ? t('ai.applyingToJsm') : 'Apply change'}</button>
+                      <button type="button" className="button button--primary" onClick={() => void handleApplyGeneratedConfig()} disabled={applying} data-hints="A:Apply change;B:Back">{applying ? t('ai.applyingToJsm') : 'Apply change'}</button>
                       {!picked && <button type="button" className="button button--secondary" onClick={handleEditInButtons}>Edit in Buttons</button>}
                       <button type="button" className="button button--tertiary" onClick={handleResetConversation}>Discard</button>
                     </div>

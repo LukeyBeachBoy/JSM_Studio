@@ -100,4 +100,15 @@ assert.deepEqual(readLayerActions(migrated),readLayerActions(legacy),'with no ch
 
 assert.equal(readLayers('# @layer '+JSON.stringify({id:'x',name:'X',overrides:{N:123}})).length,0,'an override must be text');
 
+// A layer value set back by hand to what Default has stops being an override.
+{
+  const text = 'S = SPACE\nMIN_GYRO_SENS = 2 1.5\n# @layer '+JSON.stringify({id:'aim',name:'Aim',overrides:{S:'Q',MIN_GYRO_SENS:'3 1.5'}});
+  const before = projectLayer(text,'aim');
+  const edited = before.replace('S = Q','S = SPACE').replace('MIN_GYRO_SENS = 3 1.5','MIN_GYRO_SENS = 2.0 1.50');
+  const layer = readLayers(foldLayer(text,'aim',edited,before))[0];
+  assert.deepEqual(layer.overrides,{},'both follow Default again, numbers compared by value');
+  const kept = readLayers(foldLayer(text,'aim',before.replace('S = Q','S = E'),before))[0];
+  assert.equal(kept.overrides.S,'E','a different value is still an override');
+}
+
 console.log('PASS: activation belongs to inputs, several may drive one layer, it round-trips through save and import, and a pre-move profile still works and is migrated on write');

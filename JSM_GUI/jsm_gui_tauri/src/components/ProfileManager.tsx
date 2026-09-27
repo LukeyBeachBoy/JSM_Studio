@@ -240,6 +240,7 @@ export function ProfileManager({
   const renamed = current ? (editedProfileNames[current] ?? current) : ''
   const canRename = !!current && !!renamed.trim() && renamed.trim() !== current
   const startRename = (name: string) => { setSelected(name); setRenaming(true) }
+  const rowButton = (name: string) => listRef.current?.querySelector<HTMLElement>(`[data-profile="${CSS.escape(name)}"] > button`)
   const cancelRename = () => { if (current) onProfileNameChange(current, current); setRenaming(false) }
   const commitRename = () => { if (current && canRename) { onRenameProfile(current); setRenaming(false) } }
   useEffect(() => { if (renaming) { renameRef.current?.focus(); renameRef.current?.select() } }, [renaming])
@@ -277,10 +278,23 @@ export function ProfileManager({
           open={optionsFor === name}
           // Closing lands back on the row, not on the hidden trigger: Radix
           // refocuses the trigger as its content unmounts, so this waits it out.
+          // Only then, though: an option that moved focus on purpose keeps it.
+          // Delete opens its confirmation and Rename its name field, and this
+          // used to pull focus back to the row behind the dialog, so the pad
+          // could not reach Cancel or Delete.
           onOpenChange={open => {
             setOptionsFor(open ? name : null)
-            if (!open) window.setTimeout(() => listRef.current?.querySelector<HTMLElement>(`[data-profile="${CSS.escape(name)}"] > button`)?.focus(), 80)
+            if (!open) window.setTimeout(() => {
+              const active = document.activeElement as HTMLElement | null
+              const stray = !active || active === document.body || active.matches('[data-nav-skip]') || Boolean(active.closest('[data-radix-popper-content-wrapper]'))
+              if (!stray || document.querySelector('.modal-overlay, [data-focus-trap="true"]')) return
+              // Rename opened its field while the menu still held focus, so
+              // the field could not take it then; it takes it now.
+              if (renameRef.current) { renameRef.current.focus(); renameRef.current.select(); return }
+              rowButton(name)?.focus()
+            }, 80)
           }}
+          returnFocusTo={() => rowButton(name)}
           align="end"
           ariaLabel={`Options for ${name}`}
           trigger={<button type="button" className={`icon-button ${styles.options}`} aria-label={`Options for ${name}`} tabIndex={-1} data-nav-skip onClick={() => setSelected(name)}><Icon name="more" size={18} /></button>}

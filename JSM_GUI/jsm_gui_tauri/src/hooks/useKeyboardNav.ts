@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { navOrigin, noteFocus, noteHover } from '../nav/navAnchor'
 import { CLEAR_BOTTOM, CLEAR_TOP, cancelScroll, ensureVisible, scrollDestination } from '../nav/scroller'
+import { navBox } from '../nav/navBox'
 
 // Everything the controller can reach once AppNavigation.txt has turned it into
 // a keyboard: arrows move focus, Enter activates (native), Escape closes the
@@ -88,20 +89,9 @@ export const pageEntryTarget = (items: HTMLElement[]) => items.find(element => !
 const focusablesIn = (scope: ParentNode) =>
   Array.from(scope.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(element => !element.matches(NAV_SKIP_SELECTOR) && isVisible(element))
 
-/**
- * What identifies a control across a remount: the page is rebuilt every time
- * it is shown, so the element itself is gone by the time it is re-entered,
- * and an index is wrong until the page's data has loaded.
- */
-const signatureOf = (element: HTMLElement) => {
-  const keyed = element.closest<HTMLElement>('[data-input-command], [data-profile], [data-overview-input], [id]')
-  const key = keyed ? `${keyed.dataset.inputCommand ?? keyed.dataset.profile ?? keyed.dataset.overviewInput ?? keyed.id}` : ''
-  const label = element.getAttribute('aria-label') ?? element.id ?? ''
-  const text = (element.textContent ?? '').trim().slice(0, 48)
-  return `${element.tagName}|${key}|${label}|${text}`
-}
-
-type Remembered = { element: HTMLElement; index: number; signature: string }
+// Where focus was on the page being shown, for Down from the page tabs.
+// Forgotten when the page is left: a page always opens at its top.
+type Remembered = { element: HTMLElement }
 
 type Options = {
   onPageStep: (delta: 1 | -1) => void
@@ -140,12 +130,8 @@ export function useKeyboardNav({ onPageStep, onEscape, activePage, contentSelect
   const activePageRef = useRef(activePage)
   activePageRef.current = activePage
 
-  // Remember where focus is in each page. The element is kept at once; its
-  // index and signature (only needed after the page is rebuilt) are worked out
-  // once the pad stops moving, so a burst of D-pad presses does not walk the
-  // whole page per press.
+  // Remember where focus is in the page.
   useEffect(() => {
-    let timer = 0
     const remember = (event: FocusEvent) => {
       const target = event.target
       if (!(target instanceof HTMLElement) || target === document.body) return
@@ -153,16 +139,7 @@ export function useKeyboardNav({ onPageStep, onEscape, activePage, contentSelect
       if (topmostOverlay()) return
       const content = document.querySelector(contentSelector)
       if (!content?.contains(target)) return
-      const page = activePageRef.current
-      const previous = pageFocus.current.get(page)
-      pageFocus.current.set(page, { element: target, index: previous?.index ?? -1, signature: previous?.signature ?? '' })
-      window.clearTimeout(timer)
-      timer = window.setTimeout(() => {
-        const entry = pageFocus.current.get(page)
-        if (!entry?.element.isConnected) return
-        entry.index = focusablesIn(content).indexOf(entry.element)
-        entry.signature = signatureOf(entry.element)
-      }, 150)
+      pageFocus.current.set(activePageRef.current, { element: target })
     }
     // The mouse pointing at a control makes it where the pad continues from
     // (it does not take focus; clicking still does).
@@ -188,7 +165,6 @@ export function useKeyboardNav({ onPageStep, onEscape, activePage, contentSelect
     document.addEventListener('focusin', remember)
     document.addEventListener('pointermove', hover, true)
     return () => {
-      window.clearTimeout(timer)
       document.removeEventListener('focusin', remember)
       document.removeEventListener('pointermove', hover, true)
     }
@@ -213,27 +189,18 @@ export function useKeyboardNav({ onPageStep, onEscape, activePage, contentSelect
     const started = performance.now()
     let lastChange = started
     let done = false
-    const saved = pageFocus.current.get(activePage)
+    // A page always opens at its top, on its first control. Returning to
+    // where it was left scrolled the page after it had drawn -- Trackpads
+    // jumping down a moment after it opened -- so that is forgotten too.
+    pageFocus.current.delete(activePage)
     const loading = () => Boolean(content.querySelector('.lazy-panel-fallback, [aria-busy="true"]'))
-    const pick = (final: boolean) => {
-      const items = focusablesIn(content)
-      if (saved) {
-        if (items.includes(saved.element)) return saved.element
-        const match = saved.signature ? items.find(item => signatureOf(item) === saved.signature) : undefined
-        if (match) return match
-        // The remembered control has not been drawn yet; give the page's
-        // data the chance to arrive before settling for a guess.
-        if (!final) return null
-        if (saved.index >= 0 && items[saved.index]) return items[saved.index]
-      }
-      return pageEntryTarget(items) ?? null
-    }
-    const land = (final: boolean) => {
+    const pick = () => pageEntryTarget(focusablesIn(content)) ?? null
+    const land = () => {
       if (done) return true
       // Moved while it settled (a section picked, the wheel, the stick): land
       // in what is on screen and leave the page where it was taken.
       const moved = Boolean(scrollHost && scrollDestination(scrollHost) > 1)
-      const target = moved ? visibleEntry('ArrowDown') ?? pick(final) : pick(final)
+      const target = moved ? visibleEntry('ArrowDown') ?? pick() : pick()
       if (!target) return false
       done = true
       target.focus({ preventScroll: true })
@@ -241,9 +208,12 @@ export function useKeyboardNav({ onPageStep, onEscape, activePage, contentSelect
       return true
     }
     // Anything the person does first wins: a press that already moved focus
-    // into the page is not overridden when the page settles.
+    // is not overridden when the page settles. Not only into the page: Up to
+    // the page tabs, or Menu opening the Configuration menu, in the moment
+    // before the page settled used to be undone by the landing, which pulled
+    // focus back into the page -- behind the menu's scrim.
     const claimed = (event: FocusEvent) => {
-      if (event.target instanceof Node && content.contains(event.target)) done = true
+      if (event.target instanceof Node && event.target !== document.body) done = true
     }
     document.addEventListener('focusin', claimed)
     const observer = new MutationObserver(() => { lastChange = performance.now() })
@@ -256,7 +226,7 @@ export function useKeyboardNav({ onPageStep, onEscape, activePage, contentSelect
       // Most of the page's slide-in (--dur-3, 240ms) has played by then; the
       // ring follows the rest.
       const settled = now - lastChange >= SETTLE_QUIET_MS && now - started >= 160 && !loading()
-      if ((settled || final) && land(final)) return
+      if ((settled || final) && land()) return
       frame = requestAnimationFrame(tick)
     }
     frame = requestAnimationFrame(tick)
@@ -292,9 +262,19 @@ export function useKeyboardNav({ onPageStep, onEscape, activePage, contentSelect
       }
       if (lastOverlay && !lastOverlay.isConnected) {
         const previous = returnFocus.get(lastOverlay)
-        if (previous?.element.isConnected) previous.element.focus({ preventScroll: true })
-        else if (previous?.input) document.querySelector<HTMLElement>(`details[data-input-command="${CSS.escape(previous.input)}"] > summary`)?.focus()
         returnFocus.delete(lastOverlay)
+        const replaced = overlay && overlay !== lastOverlay && previous && !overlay.contains(previous.element)
+        if (replaced) {
+          // Closed by opening another in its place (the Configuration menu's
+          // "Values & inheritance" opens a dialog as the menu closes): focus
+          // stays in the new one. Handing it back to the menu's opener here
+          // pulled it out from under the dialog, behind the scrim. The new
+          // one returns there instead, since what it was opened from -- an
+          // item of the closed menu -- is gone.
+          const opened = returnFocus.get(overlay)
+          if (!opened || opened.element === document.body || !opened.element.isConnected || lastOverlay.contains(opened.element)) returnFocus.set(overlay, previous)
+        } else if (previous?.element.isConnected) previous.element.focus({ preventScroll: true })
+        else if (previous?.input) document.querySelector<HTMLElement>(`details[data-input-command="${CSS.escape(previous.input)}"] > summary`)?.focus()
       }
       lastOverlay = overlay
     }
@@ -517,58 +497,114 @@ export function shellTarget(current: HTMLElement | null, key: string, remembered
   }
 }
 
-// Prefer candidates in the same visual row/column, then the closest diagonal.
-// Never wrap from a page edge to an unrelated control at the opposite edge.
+// Up and Down keep to the column, Left and Right to the row: a move goes to
+// the nearest control straight ahead -- one whose box shares some of the
+// current one's width (Up/Down) or height (Left/Right) -- and only when there
+// is none to a control wholly past the current one's edge, the nearest
+// diagonally. Never wrap from a page edge to an unrelated control at the
+// opposite edge.
+//
+// The walk used to take whichever control was nearest ahead, lane or not, so
+// columns whose rows were a few pixels out of step (the Overview's binding
+// cards, the Documentation topics beside the article's links) were walked as
+// a zigzag between them, and a Left from the leftmost column slid down to
+// whatever narrower control sat below it. Boxes are navBox's (nav/navBox.ts),
+// the ones the ring is drawn round: a setting row's control is measured as
+// its row, so walking a list of rows whose controls sit at different places
+// along them is still straight down.
 //
 // A container marked data-nav-region (a list beside its detail panel, one of
 // two setting columns) keeps Up and Down inside it: the walk down a list never
 // jumps into the panel beside it because one of the panel's buttons happens to
-// sit a little nearer than the next list item. Left and Right cross freely.
+// sit a little nearer than the next list item. At its end the walk carries on
+// straight past it, never into the column beside it. Left and Right cross
+// freely.
 export function directionalTarget(current: HTMLElement, candidates: HTMLElement[], direction: string) {
   const horizontal = direction === 'ArrowLeft' || direction === 'ArrowRight'
-  const region = horizontal ? null : current.closest('[data-nav-region]')
+  const region = horizontal ? null : current.closest<HTMLElement>('[data-nav-region]')
   if (region) {
     const inside = candidates.filter(candidate => candidate.closest('[data-nav-region]') === region)
-    return nearestIn(current, inside, direction)
+    const next = nearestIn(current, inside, direction)
+    if (next) return next
+    const edge = region.getBoundingClientRect()
+    const past = candidates.filter(candidate => {
+      if (region.contains(candidate)) return false
+      const box = navBox(candidate)
+      return direction === 'ArrowDown' ? box.top >= edge.bottom - 1 : box.bottom <= edge.top + 1
+    })
+    return nearestIn(current, past, direction, true)
   }
   // From outside any region, a region is entered like anything else.
   return nearestIn(current, candidates, direction)
 }
 
-function nearestIn(current: HTMLElement, candidates: HTMLElement[], direction: string) {
-  const from = current.getBoundingClientRect()
+function nearestIn(current: HTMLElement, candidates: HTMLElement[], direction: string, straightOnly = false) {
+  const from = navBox(current)
   const horizontal = direction === 'ArrowLeft' || direction === 'ArrowRight'
   const sign = direction === 'ArrowLeft' || direction === 'ArrowUp' ? -1 : 1
   const x = from.left + from.width / 2, y = from.top + from.height / 2
-  let best: HTMLElement | undefined, score = Infinity
+  let straight: HTMLElement | undefined, straightScore = Infinity
+  let diagonal: HTMLElement | undefined, diagonalScore = Infinity
+  const fromHeader = Boolean(current.closest('.page-header'))
+  const fromRegion = current.closest('[data-nav-region]')
+  const boxes = new Map<HTMLElement, DOMRect>()
+  const boxOf = (element: HTMLElement) => { let box = boxes.get(element); if (!box) { box = navBox(element); boxes.set(element, box) } return box }
   for (const candidate of candidates) {
     if (candidate === current) continue
-    const to = candidate.getBoundingClientRect()
-    const dx = to.left + to.width / 2 - x, dy = to.top + to.height / 2 - y
-    const forward = (horizontal ? dx : dy) * sign
+    const to = boxOf(candidate)
+    const forward = (horizontal ? to.left + to.width / 2 - x : to.top + to.height / 2 - y) * sign
     if (forward <= 1) continue
-    const overlap = horizontal ? to.top < from.bottom && to.bottom > from.top : to.left < from.right && to.right > from.left
-    // The gap between the two boxes across the direction of travel; nothing
-    // for a candidate in the current element's lane. Measured edge to edge,
-    // not centre to centre, so from a full-width row Down lands on the
-    // nearest control beneath it rather than on whichever wide element
-    // happens to share its centre line (from an open binding row that used
-    // to be "Add layer action", three rows down, past the name field and
-    // the command).
-    const cross = overlap ? 0 : horizontal
-      ? Math.max(to.top - from.bottom, from.top - to.bottom)
-      : Math.max(to.left - from.right, from.left - to.right)
-    // Up and Down read the page as rows: the nearest row wins, and the
-    // sideways gap only breaks ties, so a slider thumb on the left and a
-    // select on the right of consecutive setting rows are visited in turn
-    // instead of the walk skipping every control that is not in its lane.
-    // Left and Right stay in the row: anything outside it costs its gap
-    // three times over, plus a step, so a row is only left when it has no
-    // more controls in that direction.
-    const distance = horizontal
-      ? forward + cross * 3 + (overlap ? 0 : 1000)
-      : forward + cross * 0.2
-    if (distance < score) { score = distance; best = candidate }
+    // How much the two boxes share across the direction of travel; negative
+    // is the gap between them.
+    const overlap = horizontal
+      ? Math.min(to.bottom, from.bottom) - Math.max(to.top, from.top)
+      : Math.min(to.right, from.right) - Math.max(to.left, from.left)
+    if (overlap > 1) {
+      // Straight ahead: the nearest wins. Of two level with each other (a
+      // full-width row above a pair of buttons), the one more squarely ahead,
+      // then the first in reading order.
+      const across = horizontal ? Math.min(to.height, from.height) : Math.min(to.width, from.width)
+      const score = forward - 4 * Math.min(1, overlap / Math.max(1, across))
+      if (score < straightScore) { straightScore = score; straight = candidate }
+      continue
+    }
+    if (straightOnly) continue
+    // Diagonally: only a control wholly past this one's edge, or a Left from
+    // the leftmost column would land on a narrower control below it whose
+    // centre happens to sit further left.
+    const clear = horizontal
+      ? (sign > 0 ? to.left >= from.right - 4 : to.right <= from.left + 4)
+      : (sign > 0 ? to.top >= from.bottom - 4 : to.bottom <= from.top + 4)
+    if (!clear) continue
+    // The page header's actions are one Up from the page's first row, not a
+    // step sideways from anywhere in it: Left and Right leave the row for them
+    // (or come out of them) only when they are level with it. Otherwise Right
+    // from the Configurations list reached Import, above, instead of the
+    // selected configuration's actions beside it.
+    if (horizontal && Boolean(candidate.closest('.page-header')) !== fromHeader) continue
+    // Nor does a step sideways pass rows of this column on the way: Left from
+    // a left-stick row dropped to the right stick's wheel, a section further
+    // down, past every row between. Entering a declared column
+    // (data-nav-region: a list's detail panel, Home's Studio tiles, the
+    // Documentation article) is what the column beside is for, from any row.
+    const intoRegion = candidate.closest('[data-nav-region]')
+    if (horizontal && (!intoRegion || intoRegion === fromRegion)) {
+      const toY = to.top + to.height / 2
+      const low = Math.min(y, toY) + 2, high = Math.max(y, toY) - 2
+      const passes = candidates.some(other => {
+        if (other === current || other === candidate) return false
+        const box = boxOf(other), middle = box.top + box.height / 2
+        return middle > low && middle < high && Math.min(box.right, from.right) - Math.max(box.left, from.left) > 1
+      })
+      if (passes) continue
+    }
+    // Up and Down read the page as rows: the nearest row wins and the sideways
+    // gap only breaks ties (the page header's actions are one Up from its
+    // first row wherever they sit). Left and Right take the column beside at
+    // the height nearest this row: from a Documentation topic, the link level
+    // with it rather than whichever link sat furthest left, rows below.
+    const score = forward - overlap * (horizontal ? 8 : 0.2)
+    if (score < diagonalScore) { diagonalScore = score; diagonal = candidate }
   }
-  return best
+  return straight ?? diagonal
 }

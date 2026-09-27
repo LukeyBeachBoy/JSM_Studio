@@ -1,4 +1,4 @@
-import { useRef, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import * as RadixMenu from '@radix-ui/react-dropdown-menu'
 import { Icon } from '../icons/Icon'
 import styles from './Menu.module.css'
@@ -47,6 +47,12 @@ type MenuProps = {
   search?: MenuSearch
   /** Rendered when search leaves nothing to show. */
   empty?: string
+  /**
+   * Where focus goes back to when the trigger is not somewhere the pad can
+   * stand (a hidden "…" button beside a row): the row, say. Defaults to the
+   * trigger.
+   */
+  returnFocusTo?: () => HTMLElement | null | undefined
 }
 
 // Leading column: check for the current value, a swatch for a layer, an icon,
@@ -115,14 +121,46 @@ function renderItems(items: MenuItem[]) {
   })
 }
 
-export function Menu({ trigger, items, align = 'start', ariaLabel, open, onOpenChange, width, search, empty }: MenuProps) {
+/**
+ * Opened from the pad or the keyboard, focus lands on an option: the current
+ * value, else the first one that can be chosen. Radix only does that for a
+ * menu opened by its own keys; opened any other way (A through the pad, Y's
+ * options, a controlled `open`) it focuses the list itself, which wore the
+ * ring round the whole menu and cost a D-pad press before an option was even
+ * reached -- a disabled one, as often as not. Checked for a few frames: the
+ * list mounts, then Radix moves focus into it.
+ */
+/** True once an option has focus (or the mouse is driving): nothing more to do. */
+const enterMenu = (content: HTMLElement | null) => {
+  if (document.body.dataset.inputSource === 'mouse') return true
+  if (!content) return false
+  const active = document.activeElement
+  if (active && active !== content && content.contains(active)) return true
+  // Focus is still outside (Radix has not moved it in yet) or on the list.
+  if (active !== content) return false
+  const target = content.querySelector<HTMLElement>('[data-current="true"]:not([data-disabled])')
+    ?? content.querySelector<HTMLElement>('[role^="menuitem"]:not([data-disabled])')
+  target?.focus()
+  return true
+}
+
+export function Menu({ trigger, items, align = 'start', ariaLabel, open, onOpenChange, width, search, empty, returnFocusTo }: MenuProps) {
   const contentRef = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const hasItems = items.some(item => item.kind !== 'separator' && item.kind !== 'label')
+  const [isOpen, setIsOpen] = useState(false)
+  const shown = open ?? isOpen
+  useEffect(() => {
+    if (!shown) return
+    let frames = 0, frame = 0
+    const check = () => { if (!enterMenu(contentRef.current) && ++frames < 8) frame = requestAnimationFrame(check) }
+    frame = requestAnimationFrame(check)
+    return () => cancelAnimationFrame(frame)
+  }, [shown])
 
   return (
-    <RadixMenu.Root open={open} onOpenChange={onOpenChange}>
+    <RadixMenu.Root open={open} onOpenChange={next => { setIsOpen(next); onOpenChange?.(next) }}>
       <RadixMenu.Trigger ref={triggerRef} asChild aria-label={ariaLabel}
         // Radix opens the menu on Down. Down from a title-bar segment or a
         // page tab is meant to move focus (HANDOFF.md, "Focus model": Down
@@ -160,19 +198,15 @@ export function Menu({ trigger, items, align = 'start', ariaLabel, open, onOpenC
               if (overlay.isConnected) return
               observer.disconnect()
               const active = document.activeElement
-              if (trigger?.isConnected && (!active || active === document.body)) trigger.focus()
+              if (active && active !== document.body) return
+              const back = returnFocusTo?.() ?? trigger
+              if (back?.isConnected) back.focus()
             })
             observer.observe(document.body, { childList: true, subtree: true })
           }}
           // Focus lands on the current value rather than the first row
-          // (HANDOFF.md, "Focus model"), synchronously as focus enters the list.
-          // Radix runs this before its own entry focus and skips that when
-          // the default is prevented.
-          onFocus={event => {
-            if (event.target !== event.currentTarget) return
-            const current = event.currentTarget.querySelector<HTMLElement>('[data-current="true"]:not([data-disabled])')
-            if (current) { event.preventDefault(); current.focus() }
-          }}
+          // (HANDOFF.md, "Focus model"); see enterMenu for the frames after.
+          onFocus={event => { if (event.target === event.currentTarget) enterMenu(event.currentTarget) }}
           onKeyDown={event => {
             // Y focuses search, the way the capsule says it does.
             if (search && (event.key === 'y' || event.key === 'Y') && document.activeElement !== searchRef.current) {

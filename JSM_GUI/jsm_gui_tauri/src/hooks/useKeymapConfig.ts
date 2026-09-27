@@ -10,6 +10,7 @@ import { useStickConfig } from './useStickConfig'
 import { useBindingsConfig } from './useBindingsConfig'
 import { useConfigIncludes } from './useConfigIncludes'
 import { INCLUDE_ROOT } from '../utils/configIncludes'
+import { dropRedundantOverrides } from '../utils/inheritedOverrides'
 
 export function useKeymapConfig() {
   const history = useConfigHistory()
@@ -24,12 +25,20 @@ export function useKeymapConfig() {
   const includes = useConfigIncludes(baseText, INCLUDE_ROOT)
   const projection = useCallback((text: string) => projectLayer(layerId ? writeLayers(includes.resolveText(defaultLayer(text)), readLayers(text)) : text, layerId), [layerId, includes.resolveText])
   const configText = useMemo(() => projection(documentText), [projection, documentText])
+  // Every edit made through the controls lands here, so this is where a value
+  // set back to what the imports already say stops being an override (see
+  // utils/inheritedOverrides). Only the Default layer: a layer's overrides
+  // are measured against Default, which foldLayer owns. A profile that
+  // imports nothing has nothing to inherit, and is passed straight through.
+  const hasImports = includes.resolution !== null
+  const settle = useCallback((id: string, before: string, after: string) =>
+    id || !hasImports ? after : dropRedundantOverrides(before, after, includes.resolveText), [hasImports, includes.resolveText])
   const setConfigText: Dispatch<SetStateAction<string>> = useCallback(update => {
     setDocumentText(previous => {
       const before = projection(previous)
-      return foldLayer(previous, layerId, typeof update === 'function' ? update(before) : update, before)
+      return foldLayer(previous, layerId, settle(layerId, before, typeof update === 'function' ? update(before) : update), before)
     })
-  }, [layerId, setDocumentText, projection])
+  }, [layerId, setDocumentText, projection, settle])
   const resetConfigHistory = useCallback((text: string) => { selectLayer(''); history.reset(text) }, [history.reset])
   // The same projection and write, for a layer other than the one being
   // edited: On-screen menus (2d) draws and moves every layer's menus at once.
@@ -38,9 +47,9 @@ export function useKeymapConfig() {
   const setConfigTextFor = useCallback((id: string, update: (previous: string) => string) => {
     setDocumentText(previous => {
       const before = projectionFor(id, previous)
-      return foldLayer(previous, id, update(before), before)
+      return foldLayer(previous, id, settle(id, before, update(before)), before)
     })
-  }, [setDocumentText, projectionFor])
+  }, [setDocumentText, projectionFor, settle])
   const [appliedConfig, setAppliedConfig] = useState('')
 
   // A profile that imports a template is not the same thing as the text in its
@@ -71,7 +80,18 @@ export function useKeymapConfig() {
   // loaded text by layout alone and read as unsaved for good.
   const canonical = useCallback((text: string) => writeLayers(text, readLayers(text)), [])
   const textChanged = useMemo(() => documentText !== appliedConfig && canonical(documentText) !== canonical(appliedConfig), [documentText, appliedConfig, canonical])
-  const hasPendingChanges = textChanged || sensitivityConfig.hasPendingSensitivityChanges
+  // A sensitivity draft only counts when saving would still write something:
+  // every value typed is already in the text, so a draft typed and then set
+  // back (or set back to what the imports say) is not an unsaved change.
+  // Asked of the side-effect-free preview: finalizing itself clears the
+  // drafts and writes the text, which must never happen while rendering.
+  const { hasPendingSensitivityChanges, pendingSensitivity, previewPendingValues } = sensitivityConfig
+  const draftChanged = useMemo(() => {
+    if (!hasPendingSensitivityChanges) return false
+    const finalized = foldLayer(documentText, layerId, settle(layerId, configText, previewPendingValues(pendingSensitivity)), configText)
+    return finalized !== appliedConfig && canonical(finalized) !== canonical(appliedConfig)
+  }, [hasPendingSensitivityChanges, pendingSensitivity, previewPendingValues, documentText, layerId, configText, appliedConfig, settle, canonical])
+  const hasPendingChanges = textChanged || draftChanged
   const handleCancel = () => {
     sensitivityConfig.resetPendingSensitivityChanges()
     setDocumentText(appliedConfig)
@@ -108,7 +128,9 @@ export function useKeymapConfig() {
     hasPendingChanges,
     handleCancel,
     ignoredGyroDevices,
-    finalizePendingValues: () => foldLayer(documentText, layerId, sensitivityConfig.finalizePendingValues(), configText),
+    // Pending sensitivity drafts are written back here on save, so they go
+    // through the same check: a draft equal to the import writes no line.
+    finalizePendingValues: () => foldLayer(documentText, layerId, settle(layerId, configText, sensitivityConfig.finalizePendingValues()), configText),
     // Sensitivity slice
     sensitivityView: sensitivityConfig.sensitivityView,
     setSensitivityView: sensitivityConfig.setSensitivityView,

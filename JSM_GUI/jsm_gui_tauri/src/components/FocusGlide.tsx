@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { ringTarget } from '../nav/navBox'
 
 // Focus glide (HANDOFF: focus model): with the pad driving, the focus ring is
 // one shared highlight that moves from control to control instead of a ring
@@ -26,27 +27,14 @@ import { useEffect, useRef } from 'react'
 const SCOPE = '[data-radix-popper-content-wrapper], [data-focus-scope], [role="dialog"], [role="alertdialog"], main, .shell-scroll'
 const PILL = '.button, .icon-button, .back-chip, .segmented > *'
 const CLIP = '.shell-scroll, [role="listbox"], [role="menu"], .modal-card, [data-focus-scope]'
-const PAD_STOP = 'button:not([disabled]):not([tabindex="-1"]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"]), summary, a[href]'
 
 const GLIDE_MS = 150
 const REVEAL_WAIT_MS = 400
 /** How far the ring's glow may spill past its scroll area. */
 const SPILL = 6
 
-/**
- * The element that wears the ring. A setting row whose only pad stop is this
- * control rings as a whole (a slider row is one stop); a row holding several
- * choices -- a segmented control, say -- rings the choice, so the pad shows
- * which one A would pick.
- */
-const ringTarget = (element: HTMLElement) => {
-  if (element.matches(PILL)) return element
-  const row = element.closest<HTMLElement>('.setting-row')
-  if (!row) return element
-  const stops = Array.from(row.querySelectorAll<HTMLElement>(PAD_STOP))
-    .filter(stop => !stop.matches('.help-button, [data-nav-skip]') && stop.getClientRects().length > 0)
-  return stops.length <= 1 ? row : element
-}
+// ringTarget (nav/navBox.ts): the element that wears the ring -- a setting row
+// with one pad stop rings as a whole. The D-pad measures moves by the same box.
 
 type Box = { x: number; y: number; w: number; h: number; r: number }
 

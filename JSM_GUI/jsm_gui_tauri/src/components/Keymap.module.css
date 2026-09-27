@@ -1731,6 +1731,9 @@
   background: var(--surface-row);
   box-shadow: 0 0 0 1px var(--line-2), var(--shadow-lift);
 }
+/* The open row's body is the card's lower half: it takes the card's bottom
+   corners, or its own square fill shows past the curve. */
+.keymapRow[open] :global(.binding-detail) { border-radius: 0 0 var(--r-card) var(--r-card); }
 .keymapRowCapturing { box-shadow: 0 0 0 2px var(--warn); }
 
 .keymapLabel {
@@ -2043,8 +2046,16 @@
 /* Every panel: title and count, a line of what it is, the list, one add. */
 .editorPanelHead { display: flex; align-items: center; gap: var(--sp-2); }
 .editorPanelCount { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; display: inline-grid; place-items: center; background: var(--surface-control); color: var(--text-2); font-size: 11px; font-weight: var(--fw-semibold); }
+/* Every add button in the editor is the same shape: its section's icon,
+   then the words -- command, modeshift, layer action -- so they read as a
+   set and say which kind of thing they add. */
+.editorPanelAddButton,
+.editorPanel :global(.layer-action-add-button) { display: inline-flex; align-items: center; gap: 6px; }
 .editorPanelAddButton svg,
-.editorPanel :global(.layer-action-add-button) svg { margin-right: 6px; }
+.editorPanel :global(.layer-action-add-button) svg { flex: none; }
+/* A section heading led by that same icon. */
+.eyebrowWithIcon { display: inline-flex; align-items: center; gap: 6px; }
+.eyebrowWithIcon svg { flex: none; }
 .editorPanelAdd { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
 .editorPanelAdd > :global(label), .editorPanelAdd > :global(.app-select) { flex: 1 1 200px; }
 .editorPanelRemove { margin-left: auto; color: var(--error); }

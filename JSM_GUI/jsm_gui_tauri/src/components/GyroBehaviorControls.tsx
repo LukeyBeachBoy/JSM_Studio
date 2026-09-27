@@ -54,7 +54,7 @@ export function GyroSettingRow({ setting, label, help, description, control, val
   }, [setting])
   return (
     <div ref={rowRef} className={`setting-row ${styles.row} ${className}`.trim()} data-capture-ignore="true"
-      data-hints={hints ?? (help || description ? 'A:Select;Y:Help;B:Back' : 'A:Select;Y:Documentation;B:Back')}>
+      data-hints={(hints ?? 'A:Select;Y:Help;B:Back').replace(/(^|;)Y:[^;]*/, `$1Y:${help ? 'Help' : 'Documentation'}`)}>
       <div className={styles.head}>
         <span className={styles.labelGroup}>
           <span className={styles.label}>{label}</span>

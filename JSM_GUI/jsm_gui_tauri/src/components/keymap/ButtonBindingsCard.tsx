@@ -41,6 +41,7 @@ import { InputGlyph } from '../glyphs/InputGlyph'
 import { ButtonMappingCard, type BindingSummaryEntry } from './ButtonMappingCard'
 import { BindingLabelField } from './BindingLabelField'
 import { IconPicker } from './IconPicker'
+import { Icon } from '../icons/Icon'
 import { InputModeshiftPanel } from './InputModeshiftPanel'
 import { InputLayerActions, LayerUsageContext } from '../LayerBar'
 import { actionsOnInput } from '../../utils/layers'
@@ -611,16 +612,16 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
   const addControl = (
     <div className={keymapStyles.addCommandRow} data-capture-ignore="true">
       {commands.length === 0 ? (
-        <button type="button" className="button button--secondary button--sm" onClick={() => handleAddCommand('regular')} data-hints={`A:Add command;B:${closeLabel}`}>
-          {t('keymap.addCommand')}
+        <button type="button" className={`button button--secondary button--sm ${keymapStyles.editorPanelAddButton}`} onClick={() => handleAddCommand('regular')} data-hints={`A:Add command;B:${closeLabel}`}>
+          <Icon name="command" size={16} />{t('keymap.addCommand')}
         </button>
       ) : (
         <Menu
           ariaLabel={t('keymap.addCommand')}
           items={addMenuItems}
           trigger={
-            <button type="button" className="button button--secondary button--sm" data-hints={`A:Add command;B:${closeLabel}`}>
-              {t('keymap.addCommand')}
+            <button type="button" className={`button button--secondary button--sm ${keymapStyles.editorPanelAddButton}`} data-hints={`A:Add command;B:${closeLabel}`}>
+              <Icon name="command" size={16} />{t('keymap.addCommand')}
             </button>
           }
         />
@@ -740,7 +741,7 @@ function LayerActionsPanel({ command, label }: { command: string; label: string 
   return (
     <section className={keymapStyles.editorPanel} aria-label={label}>
       <div className={keymapStyles.editorPanelHead}>
-        <span className={keymapStyles.eyebrowHeading}>{t('keymap.layerActionsHeading', 'Layer actions')}</span>
+        <span className={`${keymapStyles.eyebrowHeading} ${keymapStyles.eyebrowWithIcon}`}><Icon name="layers" size={14} />{t('keymap.layerActionsHeading', 'Layer actions')}</span>
         <span className={keymapStyles.editorPanelCount}>{mine.length}</span>
       </div>
       <span className={keymapStyles.editorPanelEmpty}>

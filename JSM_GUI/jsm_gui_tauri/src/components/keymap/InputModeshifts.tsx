@@ -22,6 +22,8 @@ import { InputGlyph } from '../glyphs/InputGlyph'
 import { useButtonRowState } from '../../keymap/useButtonRowState'
 import { useBindingsConfig } from '../../hooks/useBindingsConfig'
 import styles from './InputModeshifts.module.css'
+import { ReleaseSwitch } from './ReleaseSwitch'
+import { heldInput, isReleasedInput, withRelease } from '../../utils/released'
 
 type SectionActionProps = {
   hasPendingChanges: boolean
@@ -70,7 +72,9 @@ const definitionFor = (button: ModeshiftTarget['buttons'][number]): ButtonDefini
  * short name for a header ("LB"), the whole option ("LB — top-left bumper")
  * for a picker.
  */
-const heldInputName = (target: ModeshiftTarget, modifiers: InputModeshiftsProps['modifiers'], trigger: string, full = false) => {
+const heldInputName = (target: ModeshiftTarget, modifiers: InputModeshiftsProps['modifiers'], rawTrigger: string, full = false) => {
+  // "!X" (while released) is named for X; the sentence around it says released.
+  const trigger = heldInput(rawTrigger)
   // A pad's click is named for its side: "Pad click" on the right pad's
   // modeshift left you to guess which pad's click it meant.
   if (target.grid && trigger === target.grid.clickButton && target.pad) {
@@ -422,16 +426,18 @@ function ModeshiftCard({ trigger, triggers, ...props }: InputModeshiftsProps & {
   const heldName = heldInputName(target, props.modifiers, trigger)
   const summary = useShiftSummary(props, trigger)
   const ownBinding = target.grid ? getKeymapValue(text, trigger) : undefined
-  const choices = props.modifiers.filter(option => !option.disabled && ((!triggers.includes(option.value) && !target.buttons.some(button => button.command === option.value)) || option.value === trigger))
+  const released = isReleasedInput(trigger)
+  const choices = props.modifiers.filter(option => !option.disabled && ((!triggers.includes(withRelease(option.value, released)) && !target.buttons.some(button => button.command === option.value)) || option.value === heldInput(trigger)))
+  const heldWord = released ? t('keymap.modeshiftIsReleased', 'is released') : t('keymap.modeshiftIsHeld', 'is held')
 
   return (
-    <details open={props.initiallyOpen || undefined} className={styles.card} aria-label={`${target.title}: while ${heldName} is held`} data-modeshift={trigger}>
+    <details open={props.initiallyOpen || undefined} className={styles.card} aria-label={`${target.title}: while ${heldName} ${heldWord}`} data-modeshift={trigger}>
       <summary className={styles.cardHead} data-hints="A:Open;B:Back">
-        <span className={styles.cardGlyph} aria-hidden="true"><InputGlyph command={trigger} family={props.controllerFamily} size={24} /></span>
+        <span className={styles.cardGlyph} aria-hidden="true"><InputGlyph command={heldInput(trigger)} family={props.controllerFamily} size={24} /></span>
         <span className={styles.cardText}>
           <span className={styles.cardTitle}>
             <span className={styles.cardBadge}>{t('keymap.modeshiftBadge', 'Modeshift')}</span>
-            {t('keymap.modeshiftWhile', 'While')} <b>{heldName}</b> {t('keymap.modeshiftIsHeld', 'is held')}
+            {t('keymap.modeshiftWhile', 'While')} <b>{heldName}</b> {heldWord}
           </span>
           <span className={styles.cardSummary}>{summary}</span>
         </span>
@@ -441,9 +447,15 @@ function ModeshiftCard({ trigger, triggers, ...props }: InputModeshiftsProps & {
         <div className={styles.controls}>
           <label className={styles.heldField}>
             <span>{t('keymap.modeshiftHeldInput', 'Held input')}</span>
-            <AppSelect aria-label={t('keymap.modeshiftHeldInput', 'Held input')} value={trigger} onChange={event => onChange(previous => renameModeshift(previous, target, trigger, event.target.value))}>
+            <AppSelect aria-label={t('keymap.modeshiftHeldInput', 'Held input')} value={heldInput(trigger)} onChange={event => onChange(previous => renameModeshift(previous, target, trigger, withRelease(event.target.value, released)))}>
               {choices.map(option => <option key={option.value} value={option.value}>{heldInputName(target, props.modifiers, option.value, true)}</option>)}
             </AppSelect>
+          </label>
+          <label className={styles.heldField}>
+            <span>{t('keymap.modeshiftWhen', 'Applies while it is')}</span>
+            <ReleaseSwitch released={released} ariaLabel={`${heldName}: held or released`}
+              disabled={triggers.includes(withRelease(trigger, !released))}
+              onChange={next => onChange(previous => renameModeshift(previous, target, trigger, withRelease(trigger, next)))} />
           </label>
           {target.mode && !target.pad && (
             <label className={styles.heldField}>
@@ -482,6 +494,7 @@ export function InputModeshifts(props: InputModeshiftsProps & { heading?: ReactN
   const { t } = useTranslation()
   const [adding, setAdding] = useState(false)
   const [newTrigger, setNewTrigger] = useState('')
+  const [releasedNew, setReleasedNew] = useState(false)
 
   // A scan of the whole config; the target is rebuilt by the caller on every
   // render, so it is keyed on what the scan actually reads from it.
@@ -489,7 +502,7 @@ export function InputModeshifts(props: InputModeshiftsProps & { heading?: ReactN
   const targetKey = `${target.id}|${target.buttons.map(button => button.command).join(',')}|${target.mode?.key ?? ''}|${target.settings?.join(',') ?? ''}`
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const triggers = useMemo(() => modeshiftTriggers(text, target), [text, targetKey])
-  const available = props.modifiers.filter(option => !option.disabled && !triggers.includes(option.value) && !target.buttons.some(button => button.command === option.value))
+  const available = props.modifiers.filter(option => !option.disabled && !triggers.includes(withRelease(option.value, releasedNew)) && !target.buttons.some(button => button.command === option.value))
   const what = target.pad ? t('keymap.modeshiftWhatPad', 'this pad') : t('keymap.modeshiftWhatStick', 'this stick')
 
   return (
@@ -509,24 +522,26 @@ export function InputModeshifts(props: InputModeshiftsProps & { heading?: ReactN
         </span>
         {!adding && (
           <button type="button" className="button button--secondary button--lg" disabled={!available.length} data-hints="A:Add modeshift;B:Back" onClick={() => setAdding(true)}>
-            <Icon name="add" size={16} />{t('keymap.addModeshiftShort', 'Add modeshift')}
+            <Icon name="modeshift" size={16} />{t('keymap.addModeshiftShort', 'Add modeshift')}
           </button>
         )}
       </header>
       {adding && (
         <div className={styles.addRow}>
           <label className={styles.heldField}>
-            <span>{t('keymap.modeshiftHeldInputNew', 'While this is held')}</span>
+            <span>{releasedNew ? t('keymap.modeshiftReleasedInputNew', 'While this is released') : t('keymap.modeshiftHeldInputNew', 'While this is held')}</span>
             <AppSelect aria-label={t('keymap.modeshiftTrigger', 'Modeshift trigger')} value="" onChange={event => {
               if (!event.target.value) return
-              setNewTrigger(event.target.value)
-              props.onChange(previous => addModeshift(previous, target, event.target.value))
+              const trigger = withRelease(event.target.value, releasedNew)
+              setNewTrigger(trigger)
+              props.onChange(previous => addModeshift(previous, target, trigger))
               setAdding(false)
             }}>
               <option value="">{t('keymap.modeshiftChooseTrigger', 'Choose a trigger…')}</option>
               {available.map(option => <option key={option.value} value={option.value}>{heldInputName(target, props.modifiers, option.value, true)}</option>)}
             </AppSelect>
           </label>
+          <ReleaseSwitch released={releasedNew} onChange={setReleasedNew} ariaLabel={t('keymap.modeshiftWhen', 'While the input is held or released')} />
           <button type="button" className="button button--ghost button--lg" onClick={() => setAdding(false)}>{t('common.cancel', 'Cancel')}</button>
         </div>
       )}

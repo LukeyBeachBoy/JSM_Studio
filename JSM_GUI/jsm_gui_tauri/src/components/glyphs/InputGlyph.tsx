@@ -99,7 +99,8 @@ const patternGlyph = (key: string, small: boolean): string | null => {
 
 /** The inner markup for one input, before the <svg> around it. */
 export const glyphMarkup = (command: string, family: ControllerVisualFamily = 'generic', size = 24): string => {
-  const upper = command.toUpperCase()
+  // "!X" (X released, utils/released.ts) draws X.
+  const upper = command.toUpperCase().replace(/^!(?=.)/, '')
   const key = COMMAND_KEYS[upper] ?? upper
   const small = size <= SMALL_CUT_MAX
 

@@ -99,7 +99,7 @@ const fs = require('node:fs');
  await page.waitForFunction(()=>document.activeElement?.getAttribute('data-adjusting')==='true');
  await page.keyboard.press('ArrowRight'); await page.keyboard.press('Enter');
  // The origin line names the layer the value now lives in.
- assert.equal(await horizontal.locator('.summary-row__hint').innerText(),'Changed in Comms');
+ assert.equal(await horizontal.locator('.summary-row__hint').innerText(),'Changed in the Comms layer');
  await page.keyboard.press('Escape');
  await page.locator('.sheet').waitFor({state:'detached'});
  assert.equal(await sensValue(),'1.05×');
