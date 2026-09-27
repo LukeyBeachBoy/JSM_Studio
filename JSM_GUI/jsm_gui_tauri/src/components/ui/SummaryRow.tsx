@@ -223,7 +223,9 @@ export function SummaryRow(props: SummaryRowProps) {
     reason || ownsA ? (adjusting ? 'A:Drop;B:Put back' : undefined) : adjusting ? 'A:Keep;B:Put back' : adjust ? 'A:Adjust' : toggle ? 'A:Turn on / off' : props.expanded !== undefined ? (props.expanded ? 'A:Fold' : 'A:Unfold') : onActivate ? 'A:Open' : undefined,
     !adjusting && !disabled && resetToDefault ? `Y:${props.defaultLabel ?? 'Use Default'}` : undefined,
     !adjusting && help && !props.onX ? `X:${helpOpen ? 'Hide help' : 'What’s this?'}` : undefined,
-    adjusting ? undefined : 'B:Back',
+    // Only when the caller has not named B itself (1h): "A:Bind;B:Back" plus
+    // this drew B twice in the capsule.
+    adjusting || /(^|;)B:/.test(props.hints ?? '') ? undefined : 'B:Back',
   ].filter(Boolean).join(';')
 
   return (

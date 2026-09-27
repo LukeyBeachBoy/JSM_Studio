@@ -26,9 +26,23 @@ const KEYBOARD: Record<HintButton, string> = {
 /** Which page strip is on screen, from the shell's own marker. */
 const pageGroup = () => document.querySelector<HTMLElement>('.app-shell')?.dataset.pageGroup ?? 'controls'
 
+// The order the capsule reads in, whatever order the hints were declared in
+// (binding card refresh 1h). VIEW+MENU is the capture-era pair; it goes last.
+const HINT_ORDER: HintButton[] = ['MOVE', 'A', 'X', 'Y', 'B', 'LB/RB', 'LT/RT', 'MENU', 'VIEW', 'VIEW+MENU']
+
+/** One hint per button, the last one declared, in HINT_ORDER. A row that
+ *  names its own B and a component that adds "B:Back" after it must not draw
+ *  two; the list is also keyed by button, and a repeated key let React leave
+ *  stale copies behind until the capsule read "B Back · B Back · A Select". */
+const onePerButton = (hints: Hint[]): Hint[] => {
+  const last = new Map<HintButton, Hint>()
+  hints.forEach(hint => last.set(hint.button, hint))
+  return [...last.values()].sort((a, b) => HINT_ORDER.indexOf(a.button) - HINT_ORDER.indexOf(b.button))
+}
+
 const parseHints = (value: string): Hint[] => {
-  const hints = value.split(';').map(part => part.split(':')).filter(pair => pair.length === 2)
-    .map(([button, label]) => ({ button: button.trim() as HintButton, label: label.trim() }))
+  const hints = onePerButton(value.split(';').map(part => part.split(':')).filter(pair => pair.length === 2)
+    .map(([button, label]) => ({ button: button.trim() as HintButton, label: label.trim() })))
   // X doing what A does is still true, but saying "A Toggle · X Toggle"
   // reads as a mistake; the capsule names each action once.
   const aLabel = hints.find(hint => hint.button === 'A')?.label
@@ -38,9 +52,7 @@ const parseHints = (value: string): Hint[] => {
 /** What the focused element declares (it or its nearest ancestor), one hint per button. */
 export const declaredHints = (element: Element | null): Hint[] => {
   const declared = element?.closest<HTMLElement>('[data-hints]')?.dataset.hints
-  if (!declared) return []
-  const hints = parseHints(declared)
-  return hints.filter((hint, index) => hints.findIndex(other => other.button === hint.button) === index)
+  return declared ? parseHints(declared) : []
 }
 
 const overlayOpen = () => Boolean(document.querySelector('.modal-overlay, [data-focus-trap="true"], [data-radix-popper-content-wrapper]'))
@@ -72,6 +84,7 @@ const withHome = (hints: Hint[]): Hint[] => {
   if (overlayOpen()) return hints
   const group = pageGroup()
   if (group === 'studio') return hints.map(hint => hint.button === 'B' && hint.label === 'Back' ? { ...hint, label: 'Home' } : hint)
+  if (hints.some(hint => hint.button === 'VIEW')) return hints
   return [...hints, { button: 'VIEW', label: group === 'home' ? 'Home from anywhere' : 'Home' }]
 }
 
@@ -162,12 +175,8 @@ export function HintCapsule({ width, family, controller: connected, override }: 
   }, [])
 
   const base = override ?? content
-  // One hint per button, the first one declared: a row that names its own B
-  // and the row component that adds "B:Back" again must not draw two. It is
-  // also what keys the list -- a repeated key let React leave stale copies
-  // behind as focus moved, until the capsule read "B Back · B Back · A Select".
-  const hints = base.hints.filter((hint, index) => base.hints.findIndex(other => other.button === hint.button) === index)
-  const shown = { ...base, hints }
+  // Declared hints arrive de-duplicated; the shell's own and an override may not.
+  const shown = { ...base, hints: onePerButton(base.hints) }
   // At 1024 the stepping hints keep their glyphs but drop their labels.
   const quiet = (button: HintButton) => width !== 'wide' && (button === 'LB/RB' || button === 'LT/RT')
   const stepping = (button: HintButton) => button === 'LB/RB' || button === 'LT/RT' || button === 'VIEW' || button === 'MENU'

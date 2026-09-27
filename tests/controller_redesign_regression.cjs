@@ -60,6 +60,8 @@ const fs = require('node:fs');
  assert.equal(await row(page.locator('#trackpad-right'),/^On-screen menu$/).count(),0,'a mouse pad has no On-screen menu row');
  const menuRow = row(left,/^On-screen menu$/);
  assert.match(await menuRow.locator('.summary-row__value').innerText(),/Arrange/);
+ // The row names its own B ("A:Arrange;B:Back"); SummaryRow adds no second (1h).
+ assert.equal((await menuRow.getAttribute('data-hints')).match(/(^|;)B:/g).length,1,'B is declared once on the row');
  await menuRow.click();
  const menus = page.getByRole('dialog',{name:'On-screen menus',exact:true});
  await menus.waitFor();

@@ -47,7 +47,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  await page.evaluate(() => {
    const probe = document.createElement('button');
    probe.id = 'hint-probe'; probe.textContent = 'probe';
-   probe.dataset.hints = 'B:Back;A:Select;B:Back;X:Do;B:Back';
+   probe.dataset.hints = 'B:Back;A:Select;B:Back;X:Do;MOVE:Move;B:Close';
    document.querySelector('.main-pane').prepend(probe);
  });
  for (let i = 0; i < 4; i++) {
@@ -59,7 +59,10 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  await page.locator('#hint-probe').focus();
  await page.waitForTimeout(80);
  const labels = await capsule.locator('.hint-capsule__item').allInnerTexts();
- assert.equal(labels.filter(text => /Back$/.test(text)).length, 1, 'B is named once: ' + labels.join(' | '));
+ assert.equal(labels.filter(text => /(Back|Close)$/.test(text)).length, 1, 'B is named once: ' + labels.join(' | '));
+ // The last B declared wins, and the capsule reads in its fixed order (1h):
+ // MOVE, A, X, Y, B, then the stepping hints.
+ assert.deepEqual(labels.slice(0, 4).map(text => text.split(/\s+/).pop()), ['Move', 'Select', 'Do', 'Close'], 'one hint per button, in order: ' + labels.join(' | '));
  await page.evaluate(() => document.getElementById('hint-probe').remove());
 
  // --- Overview: Y is search from anywhere, X inspects an input's uses.
