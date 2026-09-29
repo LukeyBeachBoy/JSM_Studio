@@ -1349,6 +1349,31 @@ Six remarks from Luke on 2026-09-27:
 
 ## Done
 
+### QAM + Steam loading Gamepad lost navigation and did not stick — 2026-09-29
+
+**Status:** DONE 2026-09-29 · **needs a live check**
+
+Holding QAM (Quick Access Chord) and pressing Steam runs
+`HOME = "profiles-library/Gamepad.txt"`. The mapper loaded it, but nothing
+recorded it: inside Studio the pad stayed with Gamepad (navigation stopped,
+since Studio will not read the pad while another configuration drives it),
+and the next window switch loaded the applied configuration over it.
+
+Luke chose: a configuration loaded by a binding inside a held global chord
+**becomes the applied configuration**, as if picked in Studio (startup file
+too), and Studio takes the controller back while it is in front
+(`commands::adopt_profile_loaded_by_binding`, `applied-profile-changed`
+event for the Profiles page). Only a different `profiles-library/` file
+counts; going back to the configuration the chord was held over does not.
+
+Also fixed a race in the 2026-09-29 (ChatGPT) change to
+`services/global_chords.rs`: 32 ms after STUDIO_CHORD_BEGIN a packet can
+still name the previous configuration, which it read as a profile switch
+and gave up on the chord, leaving the chord configuration stuck after
+release. Switch detection now waits (up to 400 ms) for telemetry to show the
+chord path first.
+
+
 ### Rebrand to JSM Evolved, Appearance page with four accents — 2026-09-27
 
 **Status:** DONE 2026-09-27 · uncommitted · needs a live check of the tray and window icon in the built app

@@ -22,7 +22,7 @@ pub struct ApplyProfileResult {
     mapping_enabled: bool,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct NamedProfile {
     path: String,
@@ -380,6 +380,26 @@ fn keep_studio_navigation(app: &AppHandle, state: &AppState, runtime_state: &run
         let _ = jsm_process::inject_console_command(app, state, runtime::APP_NAVIGATION_FILE_NAME)?;
     }
     Ok(())
+}
+
+/// A binding inside a held global chord loaded a library configuration
+/// (`HOME = "profiles-library/Gamepad.txt"` in the Quick Access chord). That
+/// is a choice, the same as picking it here: it becomes the applied
+/// configuration, so leaving Studio or restarting keeps it rather than
+/// bringing the old one back. If Studio is in front it keeps the controller,
+/// as it does after Apply.
+pub(crate) fn adopt_profile_loaded_by_binding(app: &AppHandle, state: &AppState, path: &str) {
+    use tauri::Emitter;
+    if let Err(error) = runtime::set_active_profile(app, path) {
+        eprintln!("Could not make {path} the applied configuration: {error}");
+        return;
+    }
+    let Ok(runtime_state) = runtime::get_runtime_mapping_state(app) else { return };
+    let _ = app.emit("runtime-mapping-state", &runtime_state);
+    if let Ok((path, content)) = runtime::get_active_profile(app) {
+        let _ = app.emit("applied-profile-changed", named_profile(path, content));
+    }
+    let _ = keep_studio_navigation(app, state, &runtime_state);
 }
 
 /// Studio's window gained or lost focus. AutoLoad only acts when the

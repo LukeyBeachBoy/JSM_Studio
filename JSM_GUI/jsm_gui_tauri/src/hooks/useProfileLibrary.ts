@@ -52,6 +52,12 @@ export function useProfileLibrary({ resetConfigHistory, configText, setConfigTex
   // Profiles that appear without the app's help: a .txt copied into the folder
   // by hand, one deleted outside the app, or a sync client.
   useEffect(() => desktopBridge.onLibraryProfilesChanged(applyLibraryProfileList), [applyLibraryProfileList])
+  // A binding on the controller loaded a configuration (QAM + Steam loading
+  // Gamepad), which is now the applied one. What is being edited stays put.
+  useEffect(() => desktopBridge.onAppliedProfileChanged(profile => {
+    setAppliedProfileName(profile.name)
+    setRuntimeConfig(profile.content)
+  }), [])
   const selectProfile = useCallback((profile: NamedProfile, discardPrevious = false) => {
     const previous = editor.current
     if (previous.currentLibraryProfile) {

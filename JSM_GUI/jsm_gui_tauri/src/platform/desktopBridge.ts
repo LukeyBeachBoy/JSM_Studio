@@ -309,6 +309,8 @@ export interface DesktopBridge {
   listLibraryProfiles: () => Promise<string[]>
   listLibraryProfileMeta: () => Promise<LibraryProfileMeta[]>
   onLibraryProfilesChanged: (callback: (profiles: string[]) => void) => Unsubscribe
+  /** A binding (in a held global chord) loaded a configuration, which became the applied one. */
+  onAppliedProfileChanged: (callback: (profile: NamedProfile) => void) => Unsubscribe
   saveLibraryProfile: (name: string, content: string) => Promise<{ name: string } | null>
   loadLibraryProfile: (name: string) => Promise<{ name: string; content: string } | null>
   readConfigFile: (path: string) => Promise<string | null>
@@ -718,6 +720,9 @@ export const desktopBridge: DesktopBridge = {
       return listenTauri<string[]>('library-profiles-changed', callback)
     }
     return noop
+  },
+  onAppliedProfileChanged(callback) {
+    return isTauriWindow() ? listenTauri<NamedProfile>('applied-profile-changed', callback) : noop
   },
   async saveLibraryProfile(name, content) {
     if (isTauriWindow()) {

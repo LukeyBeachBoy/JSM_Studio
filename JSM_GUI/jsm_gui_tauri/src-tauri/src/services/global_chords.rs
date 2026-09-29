@@ -32,6 +32,12 @@ pub fn start(app: AppHandle, state: AppState) {
         // profile, do not immediately put the held chord back on top of it.
         // The chord is consumed until its trigger is released once.
         let mut global_cancelled_until_release = false;
+        // When STUDIO_CHORD_BEGIN went out, and whether telemetry has shown
+        // its path since. Until it has, a packet still naming the previous
+        // configuration is late, not a new load: the injector returns once
+        // the line is typed, not once the mapper has read it.
+        let mut begun_at = Instant::now();
+        let mut begin_acknowledged = true;
         let mut chords = Vec::new();
         let mut layers = Vec::new();
         let mut activation = LayerActivation::default();
@@ -74,16 +80,20 @@ pub fn start(app: AppHandle, state: AppState) {
             let devices = packet.as_ref().and_then(|p| p.get("devices")).and_then(Value::as_array);
             let held_global = global_profile(&chords, devices, enabled);
             let live = packet.as_ref().and_then(|p| p.get("activeProfile")).and_then(Value::as_str).unwrap_or("").replace('\\', "/");
+            if active.as_deref() == Some(live.as_str()) { begin_acknowledged = true; }
+            let late_packet = active.is_some() && !begin_acknowledged && begun_at.elapsed() < BEGIN_ACK_WAIT;
             // A normal profile load cancels a held config in the mapper. Do not
             // restore over that new profile, or carry its predecessor's layers.
-            if !live.is_empty() && !live.starts_with("profiles-library/.layers/") &&
+            if !live.is_empty() && !live.starts_with("profiles-library/.layers/") && !late_packet &&
                 active.as_deref() != Some(live.as_str()) && (live != source || active.is_some()) {
                 // A config-load binding inside the active global chord clears
                 // the mapper's chord restore state. If its trigger is still
                 // physically held, re-running STUDIO_CHORD_BEGIN here would
-                // instantly overwrite the profile that binding just selected.
-                if active.as_deref().is_some_and(|path| held_global.as_deref() == Some(path)) {
+                // instantly overwrite the profile that binding just selected;
+                // and it was chosen, so it becomes the applied configuration.
+                if binding_chose_profile(active.as_deref(), held_global.as_deref(), &live, &source) {
                     global_cancelled_until_release = true;
+                    crate::commands::adopt_profile_loaded_by_binding(&app, &state, &live);
                 }
                 active = None;
                 source = live;
@@ -137,7 +147,11 @@ pub fn start(app: AppHandle, state: AppState) {
                 if released {
                     if let Some(path) = desired {
                         let command = format!("STUDIO_CHORD_BEGIN {path}");
-                        if jsm_process::inject_console_command(&app, &state, &command).unwrap_or(false) { active = Some(path); }
+                        if jsm_process::inject_console_command(&app, &state, &command).unwrap_or(false) {
+                            active = Some(path);
+                            begun_at = Instant::now();
+                            begin_acknowledged = false;
+                        }
                     }
                 }
                 // Console injection completes before telemetry acknowledges the
@@ -173,6 +187,20 @@ fn global_profile(chords: &[runtime::GlobalChord], devices: Option<&Vec<Value>>,
     chords.iter().find(|chord| !chord.buttons.is_empty() && devices.map(|devices|
         devices.iter().any(|device| chord.buttons.iter().all(|button| pressed(device, button)))
     ).unwrap_or(false)).map(|chord| chord.profile_path.clone())
+}
+
+/// How long a packet naming the previous configuration counts as late after
+/// STUDIO_CHORD_BEGIN. Past it, a mapper that refused the chord is believed.
+const BEGIN_ACK_WAIT: Duration = Duration::from_millis(400);
+
+/// The live configuration moved off a held global chord's to another library
+/// configuration: a binding in the chord loaded it. Back to the configuration
+/// the chord was held over is a refused or undone chord, not a choice; and a
+/// layer composition or the applied-preview scratch file is Studio's own.
+fn binding_chose_profile(active: Option<&str>, held_global: Option<&str>, live: &str, before_chord: &str) -> bool {
+    active.is_some() && active == held_global && live != before_chord
+        && live.starts_with("profiles-library/") && !live.starts_with("profiles-library/.layers/")
+        && !live.eq_ignore_ascii_case(runtime::APPLIED_PREVIEW_RELATIVE)
 }
 
 fn eligible_global_profile(detected: Option<String>, blocked_until_release: &mut bool) -> Option<String> {
@@ -301,6 +329,22 @@ mod tests {
         assert_eq!(eligible_global_profile(None, &mut blocked), None);
         assert!(!blocked, "releasing the trigger rearms the chord");
         assert_eq!(eligible_global_profile(Some("quick.txt".into()), &mut blocked).as_deref(), Some("quick.txt"));
+    }
+    #[test]
+    fn only_a_different_library_profile_under_a_held_chord_is_a_choice() {
+        let quick = Some("profiles-library/Quick Access Chord.txt");
+        let before = "AppNavigation.txt";
+        assert!(binding_chose_profile(quick, quick, "profiles-library/Gamepad.txt", before));
+        // Back to what the chord was held over: refused or undone, not chosen.
+        assert!(!binding_chose_profile(quick, quick, before, before));
+        // The chord's trigger is already up: an ordinary switch.
+        assert!(!binding_chose_profile(quick, None, "profiles-library/Gamepad.txt", before));
+        // A composed layer, not a global chord.
+        let layer = Some("profiles-library/.layers/Wardogs/1-Menu.txt");
+        assert!(!binding_chose_profile(layer, quick, "profiles-library/Gamepad.txt", before));
+        assert!(!binding_chose_profile(quick, quick, "profiles-library/applied-preview.txt", before));
+        assert!(!binding_chose_profile(quick, quick, "profiles-library/.layers/Gamepad/1-X.txt", before));
+        assert!(!binding_chose_profile(quick, quick, "AutoLoad/Game.txt", before));
     }
     #[test]
     fn steam_button_uses_the_home_telemetry_bit() {
