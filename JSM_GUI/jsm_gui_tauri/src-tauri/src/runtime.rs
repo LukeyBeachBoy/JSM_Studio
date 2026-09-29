@@ -59,6 +59,8 @@ const RECONNECT_HOOK_FILE_NAME: &str = "OnReconnect.txt";
 /// (via an AutoLoad rule named after our own executable). App-owned: refreshed
 /// on every launch so an update ships its improvements.
 pub const APP_NAVIGATION_FILE_NAME: &str = "AppNavigation.txt";
+/// The exe stem before the rebrand, whose built-in rule is cleaned up on sync.
+const LEGACY_APP_PROCESS_STEM: &str = "JSM Studio";
 const USER_OWNED_LAYER_FILES: [&str; 1] = [RECONNECT_HOOK_FILE_NAME];
 /// Registry of button(s) -> configuration for the global chord feature: hold
 /// the button(s), the whole configuration swaps in; release, the configuration
@@ -1351,6 +1353,16 @@ fn sync_app_navigation_rule(app: &AppHandle, state: &RuntimeMappingState) -> Res
     let Some(stem) = app_process_stem() else {
         return Ok(());
     };
+    // The rule was named after the exe, so the rename left a "JSM Studio"
+    // rule behind on upgraded installs; it can never match again, so drop it.
+    if !stem.eq_ignore_ascii_case(LEGACY_APP_PROCESS_STEM) {
+        if let Ok(legacy) = autoload_rule_path(app, LEGACY_APP_PROCESS_STEM) {
+            let is_ours = fs::read_to_string(&legacy).map(|s| s.trim() == APP_NAVIGATION_FILE_NAME).unwrap_or(false);
+            if is_ours {
+                let _ = fs::remove_file(&legacy);
+            }
+        }
+    }
     let path = autoload_rule_path(app, &stem)?;
     if state.controller_nav_enabled {
         ensure_parent_dir(&path)?;
@@ -1517,7 +1529,7 @@ fn studio_defaults_text(state: &RuntimeMappingState) -> String {
     // The simultaneous-press window goes before the hold time: the mapper
     // rejects a hold time that is not longer than it.
     format!(
-        "# JSM Studio global defaults\nTICK_TIME = {}\nSIM_PRESS_WINDOW = {}\nHOLD_PRESS_TIME = {}\nDBL_PRESS_WINDOW = {}\nTURBO_PERIOD = {}\nGYRO_CALIBRATION_DELAY = {}\nGYRO_CALIBRATION_TIME = {}\nCONNECT_SOUND = {}\nSHUTDOWN_SOUND = {}\nSOUND_GAIN = {}\nDISABLE_HARDWARE_GYRO_CALIBRATION = {}\n",
+        "# JSM Evolved global defaults\nTICK_TIME = {}\nSIM_PRESS_WINDOW = {}\nHOLD_PRESS_TIME = {}\nDBL_PRESS_WINDOW = {}\nTURBO_PERIOD = {}\nGYRO_CALIBRATION_DELAY = {}\nGYRO_CALIBRATION_TIME = {}\nCONNECT_SOUND = {}\nSHUTDOWN_SOUND = {}\nSOUND_GAIN = {}\nDISABLE_HARDWARE_GYRO_CALIBRATION = {}\n",
         state.default_polling_ms,
         state.sim_press_ms,
         state.hold_press_ms,

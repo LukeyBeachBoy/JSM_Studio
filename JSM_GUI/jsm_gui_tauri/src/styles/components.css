@@ -312,8 +312,24 @@ input[type='checkbox']:not([class*='SelectCheckbox'])::before {
 input[type='checkbox']:not([class*='SelectCheckbox']):checked { background: var(--accent); }
 input[type='checkbox']:not([class*='SelectCheckbox']):checked::before {
   transform: translateX(22px);
-  background: var(--text-on-accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%236ec3f4' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 6.2 5 8.2 9 4'/%3E%3C/svg%3E") center / 12px no-repeat;
+  background: var(--text-on-accent);
 }
+/* The tick on the thumb, masked so it takes the accent (any of the four). */
+input[type='checkbox']:not([class*='SelectCheckbox'])::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 22px;
+  height: 22px;
+  background: var(--accent);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 6.2 5 8.2 9 4'/%3E%3C/svg%3E") center / 12px no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 6.2 5 8.2 9 4'/%3E%3C/svg%3E") center / 12px no-repeat;
+  opacity: 0;
+  pointer-events: none;
+  transition: transform var(--dur-2) var(--ease-emphasis), opacity var(--dur-2) var(--ease-standard);
+}
+input[type='checkbox']:not([class*='SelectCheckbox']):checked::after { transform: translateX(22px); opacity: 1; }
 input[type='checkbox']:not([class*='SelectCheckbox']):disabled { opacity: var(--disabled-opacity); cursor: default; }
 input[type='checkbox']:not([class*='SelectCheckbox']):focus-visible { outline: none; box-shadow: 0 0 0 2px var(--surface-canvas), 0 0 0 4px var(--focus-keyboard); }
 @media (prefers-reduced-motion: reduce) {

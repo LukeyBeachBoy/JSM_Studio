@@ -17,20 +17,13 @@ export function ThemeToggle({ compact = false, className = '' }: ThemeToggleProp
     { value: 'light', label: t('theme.light') },
     { value: 'system', label: t('theme.system', 'System') },
   ]
-  const index = options.findIndex(option => option.value === theme)
-  const step = (delta: number) => setTheme(options[(index + delta + options.length) % options.length].value)
 
   return (
     <div className={`${styles.row} ${compact ? styles.compact : ''} ${className}`.trim()} data-hints="MOVE:Choose;A:Select;B:Back">
       {!compact && <span className={styles.text}>{t('theme.label', 'Theme')}</span>}
-      <div className="segmented" role="radiogroup" aria-label={t('theme.label', 'Theme')}
-        onKeyDown={event => {
-          // Left/Right pick within the control; Up/Down leave it to the page walk.
-          if (event.key === 'ArrowLeft') { event.preventDefault(); step(-1) }
-          if (event.key === 'ArrowRight') { event.preventDefault(); step(1) }
-        }}>
+      <div className="segmented" role="radiogroup" aria-label={t('theme.label', 'Theme')}>
         {options.map(option => (
-          <button key={option.value} type="button" role="radio" aria-checked={theme === option.value} tabIndex={theme === option.value ? 0 : -1}
+          <button key={option.value} type="button" role="radio" aria-checked={theme === option.value}
             onClick={() => setTheme(option.value)}>
             {option.label}
           </button>

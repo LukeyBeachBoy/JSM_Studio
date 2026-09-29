@@ -14,21 +14,16 @@ type ReleaseSwitchProps = {
 /**
  * Held or released: whether a modeshift or layer action follows its input
  * being down (the usual) or being up -- "hold a layer while I let go of the
- * grip". Two segments like Theme's, Left/Right to choose.
+ * grip". Two segments like Theme's: the arrows move between them, A picks.
  */
 export function ReleaseSwitch({ released, onChange, ariaLabel, disabled, labels }: ReleaseSwitchProps) {
   const { t } = useTranslation()
   const [held, up] = labels ?? [t('keymap.whileHeld', 'Held'), t('keymap.whileReleased', 'Released')]
   const options: [boolean, string][] = [[false, held], [true, up]]
   return (
-    <div className="segmented segmented--tiny" role="radiogroup" aria-label={ariaLabel} data-hints="MOVE:Choose;A:Select;B:Back"
-      onKeyDown={event => {
-        // Left/Right pick; Up/Down leave it to the page walk.
-        if (event.key === 'ArrowLeft' && released) { event.preventDefault(); onChange(false) }
-        if (event.key === 'ArrowRight' && !released) { event.preventDefault(); onChange(true) }
-      }}>
+    <div className="segmented segmented--tiny" role="radiogroup" aria-label={ariaLabel} data-hints="MOVE:Choose;A:Select;B:Back">
       {options.map(([value, label]) => (
-        <button key={label} type="button" role="radio" aria-checked={released === value} tabIndex={released === value ? 0 : -1} disabled={disabled}
+        <button key={label} type="button" role="radio" aria-checked={released === value} disabled={disabled}
           onClick={() => { if (released !== value) onChange(value) }}>
           {label}
         </button>

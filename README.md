@@ -1,8 +1,8 @@
-# JSM Studio
+# JSM Evolved (formerly JSM Studio)
 
 [`Chinese Documentation`](./README_zh.md)
 
-JSM Studio is a graphical tool for JoyShockMapper on Windows. It integrates JoyShockMapper’s gyro aiming, key mapping, config management, and HidHide controller-hiding workflow into a single desktop application, aiming to enable users to complete common configuration tasks without using the command line.
+JSM Evolved (JSM Studio until 0.7.91) is a graphical tool for JoyShockMapper on Windows. It integrates JoyShockMapper’s gyro aiming, key mapping, config management, and HidHide controller-hiding workflow into a single desktop application, aiming to enable users to complete common configuration tasks without using the command line.
 
 ![alt text](docs/1.png)
 

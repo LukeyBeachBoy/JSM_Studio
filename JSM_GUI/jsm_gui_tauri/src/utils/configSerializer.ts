@@ -125,7 +125,7 @@ const KEYMAP_SUB_ORDER: KeymapSubsection[] = [
 const STRUCTURAL_COMMENTS = new Set([
   '# Required Settings',
   '# Imports',
-  '# Labels, icons and overlay layout (read by JSM Studio, ignored by JoyShockMapper)',
+  '# Labels, icons and overlay layout (read by JSM Evolved, ignored by JoyShockMapper)',
   ...Object.values(SECTION_HEADERS),
   ...Object.values(KEYMAP_SUB_HEADERS),
 ])
@@ -533,7 +533,7 @@ export function serializeConfig(parsed: ParsedConfig): string {
   // They are comments, so position is cosmetic to JoyShockMapper -- but not to
   // the reader, so they get their own block rather than being scattered.
   if (parsed.annotations?.length) {
-    output.push('# Labels, icons and overlay layout (read by JSM Studio, ignored by JoyShockMapper)')
+    output.push('# Labels, icons and overlay layout (read by JSM Evolved, ignored by JoyShockMapper)')
     parsed.annotations.forEach(entry => output.push(entry.line))
     output.push('')
   }

@@ -69,7 +69,7 @@ export function installMockDesktop() {
   const mockAutostart = { enabled: true }
   // Association rules, mutable so pausing one under ?mock shows in the list.
   const mockRules: { processName: string; fileName: string; kind: string; profileName: string; missingProfile: boolean; builtIn: boolean; paused?: boolean; lastMatchedAtMs?: number }[] = [
-    { processName: 'JSM Studio', fileName: 'JSM Studio.txt', kind: 'profile', profileName: 'AppNavigation', missingProfile: false, builtIn: true },
+    { processName: 'JSM Evolved', fileName: 'JSM Evolved.txt', kind: 'profile', profileName: 'AppNavigation', missingProfile: false, builtIn: true },
     { processName: 'Wardogs', fileName: 'Wardogs.txt', kind: 'profile', profileName: 'Wardogs', missingProfile: false, builtIn: false, lastMatchedAtMs: Date.now() - 12 * 60_000 },
     { processName: 'Cyberpunk2077', fileName: 'Cyberpunk2077.txt', kind: 'profile', profileName: 'Cyberpunk', missingProfile: false, builtIn: false, lastMatchedAtMs: Date.now() - 26 * 3_600_000 },
     { processName: 'steamwebhelper', fileName: 'steamwebhelper.txt.paused', kind: 'profile', profileName: 'Gamepad', missingProfile: false, builtIn: false, paused: true },

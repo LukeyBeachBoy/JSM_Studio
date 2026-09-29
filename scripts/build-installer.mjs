@@ -178,14 +178,14 @@ try {
   }
 
   const how = explicitVersion ? 'set with --version' : bump ? `${bump} bump from ${current}` : 'no bump';
-  console.log(`\nBuilding JSM Studio ${version} (${how}) from ${root}\nLocal changes are included. Keep source files unchanged until the build finishes.`);
+  console.log(`\nBuilding JSM Evolved ${version} (${how}) from ${root}\nLocal changes are included. Keep source files unchanged until the build finishes.`);
   if (!skipInstall) run(process.execPath, [npmCli, 'ci', '--no-audit', '--no-fund']);
   if (!existsSync(path.join(app, 'node_modules', '@tauri-apps', 'cli', 'tauri.js'))) {
     throw new Error('Tauri dependencies are missing. Rerun without --skip-install.');
   }
   const started = Date.now();
   run(process.execPath, [npmCli, 'run', 'tauri', '--', 'build', '--bundles', 'nsis']);
-  const installer = path.join(env.CARGO_TARGET_DIR, 'release', 'bundle', 'nsis', `JSM Studio_${version}_x64-setup.exe`);
+  const installer = path.join(env.CARGO_TARGET_DIR, 'release', 'bundle', 'nsis', `JSM Evolved_${version}_x64-setup.exe`);
   if (!existsSync(installer) || statSync(installer).mtimeMs < started - 2000) {
     throw new Error(`The build did not produce a fresh installer at ${installer}`);
   }

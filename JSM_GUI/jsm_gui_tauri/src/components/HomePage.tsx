@@ -54,7 +54,8 @@ const STUDIO_NOTES: Record<StudioTab, string> = {
   timing: 'Hold time and polling',
   ai: 'Describe a change in words',
   deviceVisibility: 'Hide the real controller',
-  settings: 'Appearance, startup, controller',
+  appearance: 'Theme and accent',
+  settings: 'Startup and controller',
   help: 'Offline reference',
   debugConsole: 'Mapper log and commands',
 }

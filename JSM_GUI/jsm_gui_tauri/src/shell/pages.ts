@@ -3,7 +3,7 @@ import type { IconName } from '../components/icons/Icon'
 // One page per physical control, the way Steam Input splits them up, instead of
 // one page carrying every binding on the controller.
 export type ControlTab = 'buttons' | 'dpad' | 'triggers' | 'joysticks'
-export type StudioTab = 'configurations' | 'associations' | 'globalChords' | 'timing' | 'ai' | 'deviceVisibility' | 'settings' | 'help' | 'debugConsole'
+export type StudioTab = 'configurations' | 'associations' | 'globalChords' | 'timing' | 'ai' | 'deviceVisibility' | 'appearance' | 'settings' | 'help' | 'debugConsole'
 export type PrimaryTab = 'home' | 'overview' | ControlTab | 'touchpad' | 'gyro' | 'layers' | StudioTab
 
 /**
@@ -48,8 +48,9 @@ export const STUDIO_PAGES: PageMeta[] = [
   page('timing', 'app.nav.timing', 'Press timing & polling', 'timing', 'studio', 'Shared by every configuration.'),
   page('ai', 'app.nav.aiAssistant', 'AI assistant', 'ai', 'studio', 'Describe what you want in plain words; review the change before it’s applied.'),
   page('deviceVisibility', 'app.nav.deviceVisibility', 'Device visibility', 'visibility', 'studio', 'Hide the physical controller from games so they only see the virtual one. Without this, some games read both and double your inputs.'),
-  page('settings', 'app.nav.preferences', 'Preferences', 'preferences', 'studio', 'App-wide settings. Configuration settings live on each page.'),
-  page('help', 'app.nav.documentation', 'Documentation', 'docs', 'studio', 'JoyShockMapper reference and Studio guides, offline.'),
+  page('appearance', 'app.nav.appearance', 'Appearance', 'appearance', 'studio', 'Theme, language and the accent the app wears. The window and tray icons follow it.'),
+  page('settings', 'app.nav.preferences', 'Preferences', 'preferences', 'studio', 'Startup and controller settings. Configuration settings live on each page.'),
+  page('help', 'app.nav.documentation', 'Documentation', 'docs', 'studio', 'JoyShockMapper reference and JSM Evolved guides, offline.'),
   page('debugConsole', 'app.nav.debugConsole', 'Debug console', 'debug', 'studio', 'The mapper’s live log, and a line to send it commands.'),
 ]
 

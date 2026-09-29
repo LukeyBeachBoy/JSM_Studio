@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNo
 import { invoke } from '@tauri-apps/api/core'
 import { emitTo, listen } from '@tauri-apps/api/event'
 import styles from './TrayMenu.module.css'
+import { BrandMark } from '../components/BrandMark'
 
 // The tray icon's right-click menu: Studio's actions and the mapper's, in one
 // place, since the mapper no longer has an icon of its own
@@ -84,13 +85,13 @@ export function TrayMenu() {
 
   return (
     <div className={styles.frame} style={{ padding: MARGIN }}>
-      <div ref={card} className={styles.card} role="menu" aria-label="JSM Studio">
+      <div ref={card} className={styles.card} role="menu" aria-label="JSM Evolved">
         <button className={styles.header} role="menuitem" onClick={run(() => invoke('tray_show_studio'))}>
           <span className={styles.logo} aria-hidden>
-            <Glyph d="M7 9h10a4 4 0 0 1 3.9 4.8l-.9 4.4a2.3 2.3 0 0 1-4 .9L14.3 17H9.7l-1.7 2.1a2.3 2.3 0 0 1-4-.9l-.9-4.4A4 4 0 0 1 7 9Z" />
+            <BrandMark size={28} />
           </span>
           <span className={styles.headerText}>
-            <span className={styles.title}>JSM Studio</span>
+            <span className={styles.title}>JSM Evolved</span>
             <span className={styles.status}>
               <span className={styles.dot} data-state={!running ? 'off' : !mapping ? 'paused' : 'on'} />
               {status}
@@ -134,7 +135,7 @@ export function TrayMenu() {
         </Section>
 
         <Section>
-          <Item onClick={run(() => invoke('tray_show_studio'))}>Open JSM Studio</Item>
+          <Item onClick={run(() => invoke('tray_show_studio'))}>Open JSM Evolved</Item>
           <Item onClick={run(() => invoke('tray_quit'))}>Quit</Item>
         </Section>
       </div>

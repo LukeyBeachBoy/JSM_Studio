@@ -1,6 +1,7 @@
 pub mod ai;
 pub mod app_state;
 pub mod autostart;
+pub mod brand_icon;
 pub mod hidhide;
 pub mod input_debug;
 pub mod jsm_process;

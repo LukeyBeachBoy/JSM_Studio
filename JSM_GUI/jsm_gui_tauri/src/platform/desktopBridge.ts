@@ -40,7 +40,7 @@ export type RuntimeMappingState = {
   activeProfilePath: string
   mappingEnabled: boolean
   autoloadEnabled: boolean
-  /** Built-in AutoLoad rule that lets the controller drive JSM Studio itself. */
+  /** Built-in AutoLoad rule that lets the controller drive JSM Evolved itself. */
   defaultPollingMs?: number
   controllerNavEnabled: boolean
   trackpadOverlayEnabled?: boolean
@@ -90,7 +90,7 @@ export type AutoloadRule = {
   profileName?: string
   profilePath?: string
   missingProfile: boolean
-  /** The rule JSM Studio installs for its own window; read-only in the UI. */
+  /** The rule JSM Evolved installs for its own window; read-only in the UI. */
   builtIn: boolean
   /** Kept but not used (the file is renamed so AutoLoad skips it). */
   paused?: boolean
@@ -871,13 +871,13 @@ export const desktopBridge: DesktopBridge = {
         notifyTauriUpdateAvailable(pendingTauriUpdate.version)
       }
     } catch (error) {
-      console.warn('Failed to check for JSM Studio updates', error)
+      console.warn('Failed to check for JSM Evolved updates', error)
     }
   },
   async downloadUpdate() {
     if (isTauriWindow()) {
       if (!pendingTauriUpdate) {
-        throw new Error('No JSM Studio update is available to download.')
+        throw new Error('No JSM Evolved update is available to download.')
       }
 
       let contentLength = 0
@@ -905,7 +905,7 @@ export const desktopBridge: DesktopBridge = {
   async installUpdate() {
     if (isTauriWindow()) {
       if (!pendingTauriUpdate) {
-        throw new Error('No downloaded JSM Studio update is ready to install.')
+        throw new Error('No downloaded JSM Evolved update is ready to install.')
       }
 
       await pendingTauriUpdate.install()

@@ -2,12 +2,15 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import './index.css'
 import { initI18n } from './i18n'
-import appIcon from './assets/app-icon.svg'
+import { markFor } from './brand/brand'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { initTheme } from './hooks/useTheme'
+import { currentAccent, initAccent } from './hooks/useAccent'
 
 // Before anything draws, so a Light or System choice never flashes dark.
 initTheme()
+// The main window owns the window and tray icons; they follow the accent.
+initAccent({ syncIcons: true })
 
 const rootElement = document.getElementById('root')
 
@@ -34,9 +37,9 @@ const App = React.lazy(async () => {
 const bootFallback = (
   <div className="boot-shell" data-capture-ignore="true">
     <div className="boot-card">
-      <img className="boot-mark" src={appIcon} alt="" />
+      <img className="boot-mark" src={markFor(currentAccent(), 40)} alt="" />
       <div className="boot-copy">
-        <div className="boot-title">JSM Studio</div>
+        <div className="boot-title">JSM Evolved</div>
         <div className="boot-subtitle">Loading interface...</div>
       </div>
     </div>

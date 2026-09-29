@@ -43,7 +43,7 @@ static HUD: Mutex<Option<HudState>> = Mutex::new(None);
 
 fn build(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
     WebviewWindowBuilder::new(app, HUD_LABEL, WebviewUrl::App("hud.html".into()))
-        .title("JSM Studio Calibration")
+        .title("JSM Evolved Calibration")
         .transparent(true)
         .decorations(false)
         .always_on_top(true)

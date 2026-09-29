@@ -1,3 +1,4 @@
+import { BrandMark } from './BrandMark'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { desktopBridge, type AutoloadRule, type LibraryProfileMeta } from '../platform/desktopBridge'
@@ -322,8 +323,8 @@ export function ProfileManager({
   // First run (System States 17d): nothing in the library yet.
   if (!libraryLoading && libraryProfiles.length === 0) return (
     <div className={styles.welcome} data-hints="A:Choose;B:Skip">
-      <img className={styles.welcomeMark} src="/app-icon.svg" alt="" />
-      <h2>Welcome to JSM Studio</h2>
+      <BrandMark size={64} className={styles.welcomeMark} />
+      <h2>Welcome to JSM Evolved</h2>
       <p>Start from a template, import an existing JoyShockMapper config, or begin with an empty configuration. You can change everything later.</p>
       <input ref={importRef} type="file" accept=".txt,.cfg,.ini,*/*" hidden onChange={async event => {
         const file = event.target.files?.[0]

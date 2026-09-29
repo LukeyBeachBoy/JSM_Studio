@@ -30,7 +30,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  const group = name => page.locator(`.app-shell[data-page-group="${name}"]`).waitFor();
  const homeChip = page.locator('.titlebar .home-chip');
  const studioColumn = page.locator('section[aria-labelledby="home-studio-title"]');
- const studioPages = ['Configurations','Associations','Global chords','Press timing & polling','AI assistant','Device visibility','Preferences','Documentation','Debug console'];
+ const studioPages = ['Configurations','Associations','Global chords','Press timing & polling','AI assistant','Device visibility','Appearance','Preferences','Documentation','Debug console'];
 
  // Home (2a): the mark is a name, not a button, and there are no page tabs.
  // Studio is its own labelled column, nine tiles in Studio tab order.

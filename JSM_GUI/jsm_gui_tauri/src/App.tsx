@@ -24,7 +24,7 @@ import { inputPage, normalizePreviewInput } from './utils/inputNavigation'
 // tauri.conf.json is what the installer is built from.
 import tauriConf from '../src-tauri/tauri.conf.json'
 import sideNavStyles from './components/SideNav.module.css'
-import { ThemeToggle } from './components/ThemeToggle'
+import { AppearancePage } from './components/AppearancePage'
 import { ControllerFeedbackSetting } from './components/ControllerFeedbackSetting'
 import themeToggleStyles from './components/ThemeToggle.module.css'
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
@@ -50,7 +50,6 @@ import { parseBindingIcons, setBindingIcon } from './utils/bindingIcons'
 import { resolveTouchpadGrids, touchpadGridCommands } from './utils/touchpadGrids'
 import { showToast } from './utils/toast'
 import { includeDisplayName } from './utils/configIncludes'
-import { LanguageSelect } from './components/LanguageSelect'
 import { useKeyboardNav } from './hooks/useKeyboardNav'
 import { AppSelect } from './components/ui/AppSelect'
 import { controllerHasTwoTrackpads } from './utils/controllerStatus'
@@ -303,7 +302,7 @@ function AutostartToggle() {
 }
 
 // Installs / removes the AutoLoad rule that maps the controller to keyboard
-// and mouse while JSM Studio's own window is in front (AppNavigation.txt).
+// and mouse while JSM Evolved's own window is in front (AppNavigation.txt).
 // Needs AutoLoad on to do anything, which the toggle's hint says.
 function ControllerNavToggle() {
   const { t } = useTranslation()
@@ -1791,20 +1790,17 @@ function App() {
       return <LayersPage text={documentText} layers={layers} selected={layerId} onChange={setDocumentText} onSelect={selectCreatedLayer} disabled={isCalibrating} family={controllerVisualFamily(sample?.devices?.[0]?.type)}
         liveStack={mapperExit ? null : stack} liveProfileName={!isThis && runningName ? runningName : null} />
     }
-    // Preferences (Tuning and Studio Pages 16j): appearance and startup on the
-    // left, the controller on the right.
+    // Appearance: theme, language and the accent (components/AppearancePage).
+    if (primaryTab === 'appearance') return <AppearancePage />
+    // Preferences (Tuning and Studio Pages 16j): startup on the left, the
+    // controller on the right. Theme and language moved to Appearance.
     if (primaryTab === 'settings') return <div className="prefs-columns">
       {/* Each column is its own region for the pad's Up/Down. */}
-      <div className="prefs-column" data-nav-region="appearance">
-        <h3 className="prefs-eyebrow">Appearance</h3>
-        <div className={sideNavStyles.navSettings}>
-          <LanguageSelect className={sideNavStyles.navLanguageSelect} />
-          <ThemeToggle className={sideNavStyles.navThemeToggle} />
-        </div>
+      <div className="prefs-column" data-nav-region="startup">
         <h3 className="prefs-eyebrow">Startup</h3>
         <div className={sideNavStyles.navSettings}><AutostartToggle /></div>
         <ControllerPreferences part="sounds" />
-        <p className="settings-version">JSM Studio v{tauriConf.version}</p>
+        <p className="settings-version">JSM Evolved v{tauriConf.version}</p>
       </div>
       <div className="prefs-column" data-nav-region="controller">
         <h3 className="prefs-eyebrow">Controller</h3>

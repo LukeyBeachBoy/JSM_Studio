@@ -282,8 +282,8 @@
 .wedge, .segment { box-shadow: none; }
 
 .region[data-selected='true'] {
-  background: #6ec3f4;
-  color: #0d1217;
+  background: var(--accent, #6ec3f4);
+  color: var(--text-on-accent, #0d1217);
   text-shadow: none;
 }
 

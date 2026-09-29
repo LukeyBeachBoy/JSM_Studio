@@ -834,7 +834,7 @@ fn ensure_hidhide_visibility_for_jsm(app: &AppHandle, state: &AppState) -> Comma
     }
     if status.requires_elevation {
         return Err(
-            "HidHide is installed, but JSM Studio cannot repair the whitelist without administrator rights. Restart JSM Studio as administrator."
+            "HidHide is installed, but JSM Evolved cannot repair the whitelist without administrator rights. Restart JSM Evolved as administrator."
                 .to_string(),
         );
     }
@@ -1272,4 +1272,12 @@ pub fn tray_show_studio(app: AppHandle) {
 #[tauri::command]
 pub fn tray_quit(app: AppHandle) {
     app.exit(0);
+}
+
+// --- Brand icon --------------------------------------------------------------
+// The Appearance page draws the chosen mark and sends the pixels; see
+// services/brand_icon.rs.
+#[tauri::command]
+pub fn set_brand_icon(app: AppHandle, request: tauri::ipc::Request<'_>) -> CommandResult<()> {
+    crate::services::brand_icon::set_from_request(&app, request)
 }

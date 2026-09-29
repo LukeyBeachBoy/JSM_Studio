@@ -1,6 +1,6 @@
 export const zhCN = {
   common: {
-    appName: 'JSM Studio',
+    appName: 'JSM Evolved',
     applyChanges: '应用更改',
     cancel: '取消',
     close: '关闭',
@@ -69,7 +69,7 @@ export const zhCN = {
     importProfileFailed: '导入配置失败。',
     copyProfileFailed: '复制当前配置失败。',
     emptyProfileName: '配置名称不能为空。',
-    autostartFailed: '无法更新 Windows 开机启动任务。请重试，或确认 JSM Studio 正以管理员身份运行。',
+    autostartFailed: '无法更新 Windows 开机启动任务。请重试，或确认 JSM Evolved 正以管理员身份运行。',
     profileApplied: '已将 {{profileName}} 应用到 JoyShockMapper。',
     profileAppliedRestarted: '已将 {{profileName}} 应用到 JoyShockMapper（已重启）。',
     profileLoaded: '已从配置库加载“{{profileName}}”并应用到 JoyShockMapper。',
@@ -284,7 +284,7 @@ export const zhCN = {
   },
   autoload: {
     builtInRule: '内置',
-    builtInNote: '让手柄在 JSM Studio 窗口处于前台时操作界面。可在侧边栏关闭。',
+    builtInNote: '让手柄在 JSM Evolved 窗口处于前台时操作界面。可在侧边栏关闭。',
     title: '自动切换',
     description: '把游戏的 exe 进程名绑定到配置。当前台窗口切到该 exe 时，JoyShockMapper 会自动切换配置。',
     toggleLabel: '按游戏自动切换',
@@ -559,19 +559,19 @@ export const zhCN = {
     hidHideInactive: '\u8fc7\u6ee4\u672a\u542f\u7528',
     hidHideWhitelistReady: '\u767d\u540d\u5355\u6b63\u5e38',
     hidHideWhitelistNeedsRepair: '\u767d\u540d\u5355\u9700\u4fee\u590d',
-    hidHideManagedCount: 'JSM Studio \u5df2\u7ba1\u7406 {{count}} \u4e2a',
+    hidHideManagedCount: 'JSM Evolved \u5df2\u7ba1\u7406 {{count}} \u4e2a',
     hidHideError: 'HidHide \u9519\u8bef\uff1a{{error}}',
     hidHideUnsupported: 'HidHide \u63a7\u5236\u4ec5\u5728 Windows \u684c\u9762\u7248\u4e2d\u53ef\u7528\u3002',
     hidHidePrerequisiteTitle: '\u8bf7\u5148\u5b89\u88c5 HidHide',
     hidHidePrerequisiteBody:
-      'JSM Studio \u5df2\u5185\u7f6e HidHide \u5b89\u88c5\u5668\u3002\u8fd0\u884c\u5b89\u88c5\u5668\uff0c\u786e\u8ba4 Windows \u6743\u9650\u63d0\u793a\uff0c\u5982\u679c\u7cfb\u7edf\u8981\u6c42\u5c31\u91cd\u542f\uff0c\u7136\u540e\u56de\u5230\u8fd9\u91cc\u9009\u62e9\u9700\u8981\u5bf9\u6e38\u620f\u9690\u85cf\u7684\u5b9e\u4f53\u624b\u67c4\u3002',
+      'JSM Evolved \u5df2\u5185\u7f6e HidHide \u5b89\u88c5\u5668\u3002\u8fd0\u884c\u5b89\u88c5\u5668\uff0c\u786e\u8ba4 Windows \u6743\u9650\u63d0\u793a\uff0c\u5982\u679c\u7cfb\u7edf\u8981\u6c42\u5c31\u91cd\u542f\uff0c\u7136\u540e\u56de\u5230\u8fd9\u91cc\u9009\u62e9\u9700\u8981\u5bf9\u6e38\u620f\u9690\u85cf\u7684\u5b9e\u4f53\u624b\u67c4\u3002',
     hidHideInstallButton: '\u5b89\u88c5\u5185\u7f6e HidHide',
     hidHideDownloadButton: '\u6253\u5f00\u5b98\u65b9\u4e0b\u8f7d\u9875',
     hidHideElevationTitle: '\u9700\u8981\u7ba1\u7406\u5458\u6743\u9650',
     hidHideElevationBody:
-      'HidHide \u5df2\u5b89\u88c5\uff0c\u4f46\u5f53\u524d JSM Studio \u8fdb\u7a0b\u65e0\u6cd5\u6253\u5f00 HidHide \u63a7\u5236\u8bbe\u5907\u3002\u8bf7\u4ee5\u7ba1\u7406\u5458\u8eab\u4efd\u542f\u52a8 JSM Studio \u540e\u518d\u5237\u65b0\u3002\u5982\u679c\u4f60\u6b63\u5728\u4f7f\u7528\u5f00\u53d1\u6a21\u5f0f\uff0c\u8bf7\u5148\u4ee5\u7ba1\u7406\u5458\u6743\u9650\u6253\u5f00\u7ec8\u7aef\uff0c\u7136\u540e\u8fd0\u884c npx tauri dev\u3002',
+      'HidHide \u5df2\u5b89\u88c5\uff0c\u4f46\u5f53\u524d JSM Evolved \u8fdb\u7a0b\u65e0\u6cd5\u6253\u5f00 HidHide \u63a7\u5236\u8bbe\u5907\u3002\u8bf7\u4ee5\u7ba1\u7406\u5458\u8eab\u4efd\u542f\u52a8 JSM Evolved \u540e\u518d\u5237\u65b0\u3002\u5982\u679c\u4f60\u6b63\u5728\u4f7f\u7528\u5f00\u53d1\u6a21\u5f0f\uff0c\u8bf7\u5148\u4ee5\u7ba1\u7406\u5458\u6743\u9650\u6253\u5f00\u7ec8\u7aef\uff0c\u7136\u540e\u8fd0\u884c npx tauri dev\u3002',
     hidHideElevationStartupBody:
-      'HidHide \u5df2\u5b89\u88c5\uff0c\u4f46 JSM Studio \u542f\u52a8\u65f6\u6ca1\u6709\u7ba1\u7406\u5458\u6743\u9650\u3002\u5728\u4f60\u4ee5\u7ba1\u7406\u5458\u8eab\u4efd\u91cd\u65b0\u6253\u5f00\u5e94\u7528\u4e4b\u524d\uff0cHidHide \u63a7\u4ef6\u4f1a\u4fdd\u6301\u4e0d\u53ef\u7528\u3002',
+      'HidHide \u5df2\u5b89\u88c5\uff0c\u4f46 JSM Evolved \u542f\u52a8\u65f6\u6ca1\u6709\u7ba1\u7406\u5458\u6743\u9650\u3002\u5728\u4f60\u4ee5\u7ba1\u7406\u5458\u8eab\u4efd\u91cd\u65b0\u6253\u5f00\u5e94\u7528\u4e4b\u524d\uff0cHidHide \u63a7\u4ef6\u4f1a\u4fdd\u6301\u4e0d\u53ef\u7528\u3002',
     hidHideOpenStatusPage: '\u6253\u5f00\u624b\u67c4\u72b6\u6001\u9875',
     hidHideHeuristicWarning:
       '\u5f53\u524d\u6709\u591a\u4e2a\u540c\u578b\u53f7\u8bbe\u5907\u5728\u7ebf\uff0c\u201c\u53ef\u80fd\u662f\u5f53\u524d\u624b\u67c4\u201d\u6807\u7b7e\u53ea\u57fa\u4e8e VID/PID \u542f\u53d1\u5f0f\u5224\u65ad\u3002',
@@ -592,7 +592,7 @@ export const zhCN = {
     hidHidePresent: '\u5f53\u524d\u5728\u7ebf',
     hidHideSavedOnly: '\u4ec5\u4fdd\u5b58\u8bb0\u5f55',
     hidHideLikelyCurrent: '\u53ef\u80fd\u662f\u5f53\u524d\u624b\u67c4',
-    hidHideManagedByApp: '\u7531 JSM Studio \u7ba1\u7406',
+    hidHideManagedByApp: '\u7531 JSM Evolved \u7ba1\u7406',
     hidHideManagedExternally: '\u7531\u5176\u4ed6\u7a0b\u5e8f\u7ba1\u7406',
     hidHideSerialLabel: '\u5e8f\u5217\u53f7\uff1a{{value}}',
     title: '手柄状态',
@@ -601,7 +601,7 @@ export const zhCN = {
     connectionRequiredTitle: '\u5148\u8fde\u63a5\u624b\u67c4',
     connectionConnectedTitle: '\u624b\u67c4\u5df2\u8fde\u63a5',
     connectionDescription:
-      'JSM Studio \u4f7f\u7528 JoyShockMapper \u81ea\u52a8\u8fde\u63a5\u3002\u4e0b\u65b9\u72b6\u6001\u6765\u81ea\u5b9e\u65f6\u8f93\u5165\u6570\u636e\u3002',
+      'JSM Evolved \u4f7f\u7528 JoyShockMapper \u81ea\u52a8\u8fde\u63a5\u3002\u4e0b\u65b9\u72b6\u6001\u6765\u81ea\u5b9e\u65f6\u8f93\u5165\u6570\u636e\u3002',
     connectionRequiredDescription:
       '\u6620\u5c04\u3001\u89e6\u6478\u677f\u3001\u9640\u87ba\u4eea\u8c03\u6821\u3001HidHide \u548c\u5b9e\u65f6\u8f93\u5165\u90fd\u9700\u8981\u5148\u8fde\u63a5\u624b\u67c4\u3002',
     connectionReconnect: '\u91cd\u65b0\u8fde\u63a5',
@@ -611,7 +611,7 @@ export const zhCN = {
     connectionDisconnected: '\u672a\u8fde\u63a5',
     connectionError: '\u624b\u67c4\u8fde\u63a5\u9519\u8bef\uff1a{{error}}',
     connectionMissingStateTitle: '\u672a\u68c0\u6d4b\u5230\u624b\u67c4',
-    connectionMissingStateBody: '\u8bf7\u63d2\u5165\u6216\u5524\u9192\u624b\u67c4\uff0c\u7136\u540e\u70b9\u51fb\u91cd\u65b0\u8fde\u63a5\u3002JSM Studio \u4f1a\u8bf7\u6c42 JoyShockMapper \u91cd\u65b0\u626b\u63cf\u624b\u67c4\u3002',
+    connectionMissingStateBody: '\u8bf7\u63d2\u5165\u6216\u5524\u9192\u624b\u67c4\uff0c\u7136\u540e\u70b9\u51fb\u91cd\u65b0\u8fde\u63a5\u3002JSM Evolved \u4f1a\u8bf7\u6c42 JoyShockMapper \u91cd\u65b0\u626b\u63cf\u624b\u67c4\u3002',
     connectionConnectedStateTitle: '\u5df2\u68c0\u6d4b\u5230 {{count}} \u4e2a\u624b\u67c4',
     connectionConnectedStateBody: 'JoyShockMapper \u6b63\u5728\u63a5\u6536\u5b9e\u65f6\u8f93\u5165\u3002\u5982\u679c\u63d2\u62d4\u624b\u67c4\u6216\u5207\u6362 HidHide \u8bbe\u7f6e\uff0c\u53ef\u4ee5\u70b9\u51fb\u91cd\u65b0\u8fde\u63a5\u3002',
     noControllersTitle: '未检测到手柄',

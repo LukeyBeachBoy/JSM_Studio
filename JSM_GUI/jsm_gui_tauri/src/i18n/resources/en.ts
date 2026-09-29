@@ -1,6 +1,6 @@
 export const en = {
   common: {
-    appName: 'JSM Studio',
+    appName: 'JSM Evolved',
     applyChanges: 'Apply Changes',
     cancel: 'Cancel',
     close: 'Close',
@@ -71,7 +71,7 @@ export const en = {
     copyProfileFailed: 'Failed to copy active configuration.',
     openConfigDirectoryFailed: 'Failed to open config directory.',
     emptyProfileName: 'Configuration name cannot be empty.',
-    autostartFailed: 'Couldn\'t update the Windows startup task. Try again, or check that JSM Studio is running as administrator.',
+    autostartFailed: 'Couldn\'t update the Windows startup task. Try again, or check that JSM Evolved is running as administrator.',
     profileApplied: 'Applied {{profileName}} to JoyShockMapper.',
     profileAppliedRestarted: 'Applied {{profileName}} to JoyShockMapper (restarted).',
     profileLoaded: 'Loaded "{{profileName}}" from library and applied it to JoyShockMapper.',
@@ -289,7 +289,7 @@ export const en = {
   },
   autoload: {
     builtInRule: 'Built in',
-    builtInNote: 'Lets the controller navigate JSM Studio while its window is focused. Turn it off from the sidebar.',
+    builtInNote: 'Lets the controller navigate JSM Evolved while its window is focused. Turn it off from the sidebar.',
     title: 'Auto switch',
     description: 'Bind game executable names to configurations. JoyShockMapper switches when that .exe becomes the foreground window.',
     toggleLabel: 'Switch by game',
@@ -508,7 +508,7 @@ export const en = {
     connectionRequiredTitle: 'Connect a controller first',
     connectionConnectedTitle: 'Controller connected',
     connectionDescription:
-      'JSM Studio uses JoyShockMapper auto-connect. The status below comes from live telemetry.',
+      'JSM Evolved uses JoyShockMapper auto-connect. The status below comes from live telemetry.',
     connectionRequiredDescription:
       'Mapping, touchpad controls, gyro tuning, HidHide, and live input all depend on a connected controller.',
     connectionReconnect: 'Reconnect',
@@ -518,7 +518,7 @@ export const en = {
     connectionDisconnected: 'Not connected',
     connectionError: 'Controller connection error: {{error}}',
     connectionMissingStateTitle: 'No controller detected',
-    connectionMissingStateBody: 'Plug in or wake your controller, then click Reconnect. JSM Studio will ask JoyShockMapper to rescan controllers.',
+    connectionMissingStateBody: 'Plug in or wake your controller, then click Reconnect. JSM Evolved will ask JoyShockMapper to rescan controllers.',
     connectionConnectedStateTitle: '{{count}} controller(s) detected',
     connectionConnectedStateBody: 'JoyShockMapper is receiving live input. If you unplug or switch HidHide settings, use Reconnect to rescan.',
     hidHideTitle: 'Device Visibility',
@@ -535,19 +535,19 @@ export const en = {
     hidHideInactive: 'Filtering inactive',
     hidHideWhitelistReady: 'Whitelist ready',
     hidHideWhitelistNeedsRepair: 'Whitelist needs repair',
-    hidHideManagedCount: '{{count}} managed by JSM Studio',
+    hidHideManagedCount: '{{count}} managed by JSM Evolved',
     hidHideError: 'HidHide error: {{error}}',
     hidHideUnsupported: 'HidHide control is only available on Windows desktop builds.',
     hidHidePrerequisiteTitle: 'Install HidHide first',
     hidHidePrerequisiteBody:
-      'JSM Studio includes a HidHide installer. Run it, approve Windows prompts, reboot if asked, then return here to choose which physical controllers should be hidden from games.',
+      'JSM Evolved includes a HidHide installer. Run it, approve Windows prompts, reboot if asked, then return here to choose which physical controllers should be hidden from games.',
     hidHideInstallButton: 'Install bundled HidHide',
     hidHideDownloadButton: 'Open official downloads',
     hidHideElevationTitle: 'Administrator access required',
     hidHideElevationBody:
-      'HidHide is installed, but this JSM Studio process cannot open the HidHide control device. Start JSM Studio as administrator and refresh. In development, open an elevated terminal first, then run npx tauri dev.',
+      'HidHide is installed, but this JSM Evolved process cannot open the HidHide control device. Start JSM Evolved as administrator and refresh. In development, open an elevated terminal first, then run npx tauri dev.',
     hidHideElevationStartupBody:
-      'HidHide is installed, but JSM Studio was not started with administrator rights. HidHide controls will stay unavailable until you reopen the app as administrator.',
+      'HidHide is installed, but JSM Evolved was not started with administrator rights. HidHide controls will stay unavailable until you reopen the app as administrator.',
     hidHideOpenStatusPage: 'Open Controller Status',
     hidHideHeuristicWarning:
       'Multiple same-model devices are active. The “likely current controller” badge is only a VID/PID heuristic.',
@@ -568,7 +568,7 @@ export const en = {
     hidHidePresent: 'Connected',
     hidHideSavedOnly: 'Saved only',
     hidHideLikelyCurrent: 'Likely current',
-    hidHideManagedByApp: 'Managed by JSM Studio',
+    hidHideManagedByApp: 'Managed by JSM Evolved',
     hidHideManagedExternally: 'Managed elsewhere',
     hidHideSerialLabel: 'Serial: {{value}}',
     noControllersTitle: 'No controllers detected',

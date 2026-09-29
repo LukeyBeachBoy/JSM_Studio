@@ -78,6 +78,11 @@ pub fn run() {
             // instead of the app just vanishing with no way back but the taskbar.
             // It is the only icon: the mapper's own is off (services/tray_menu.rs).
             services::tray_menu::install(&app.handle())?;
+            // ... in the accent chosen last time (services/brand_icon.rs).
+            services::brand_icon::restore(&app.handle());
+            // The logon task points at the exe by path; refresh it in case the
+            // install moved (the JSM Studio -> JSM Evolved rename did that).
+            std::thread::spawn(services::autostart::refresh_after_launch);
 
             // The window starts hidden (tauri.conf.json) so an autostart launch
             // never flashes it visible before this decides otherwise. Everything
@@ -168,6 +173,7 @@ pub fn run() {
             commands::tray_menu_hide,
             commands::tray_show_studio,
             commands::tray_quit,
+            commands::set_brand_icon,
         ])
         .on_window_event(|window, event| {
             // The tray menu dismisses as a native menu does: on losing focus.
@@ -242,7 +248,7 @@ mod tests {
 
     #[test]
     fn only_the_autostart_flag_suppresses_the_window() {
-        let exe = "JSM Studio.exe".to_string();
+        let exe = "JSM Evolved.exe".to_string();
         assert!(launched_at_autostart(vec![exe.clone(), "--autostart".into()]));
         // A second launch from the shortcut must still restore the window.
         assert!(!launched_at_autostart(vec![exe.clone()]));

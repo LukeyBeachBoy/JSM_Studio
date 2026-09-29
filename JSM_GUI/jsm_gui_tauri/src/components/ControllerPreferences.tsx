@@ -28,22 +28,15 @@ const gainHelp = 'How strongly the controller plays the connect and shutdown sou
 
 function SoundIntensity({ gain, onChange, onPreview }: { gain: number; onChange: (gain: number) => void; onPreview: (gain: number) => void }) {
   const nearest = INTENSITIES.reduce((best, option) => Math.abs(option.gain - gain) < Math.abs(best.gain - gain) ? option : best)
-  const index = INTENSITIES.indexOf(nearest)
   const choose = (next: number) => { onChange(next); onPreview(next) }
-  const step = (delta: number) => choose(INTENSITIES[Math.min(INTENSITIES.length - 1, Math.max(0, index + delta))].gain)
   return (
     <div className="controller-sound-row" data-hints="MOVE:Choose;A:Select;B:Back">
       <div className="controller-sound-label controller-sound-intensity" title={gainHelp}>
         <span>Sound Intensity</span>
         <small>{gainHelp}</small>
-        <div className="segmented" role="radiogroup" aria-label="Sound intensity"
-          onKeyDown={event => {
-            // Left/Right pick within the control; Up/Down leave it to the page walk.
-            if (event.key === 'ArrowLeft') { event.preventDefault(); step(-1) }
-            if (event.key === 'ArrowRight') { event.preventDefault(); step(1) }
-          }}>
+        <div className="segmented" role="radiogroup" aria-label="Sound intensity">
           {INTENSITIES.map(option => (
-            <button key={option.gain} type="button" role="radio" aria-checked={option === nearest} tabIndex={option === nearest ? 0 : -1}
+            <button key={option.gain} type="button" role="radio" aria-checked={option === nearest}
               onClick={() => choose(option.gain)}>
               {option.label}
             </button>
@@ -72,8 +65,8 @@ function HardwareCalibrationSwitch({ value, disabled, onChange }: { value: boole
 
 const delayHelp ='Seconds to wait before calibration starts, so a chord or binding leaves time to put the controller down. The countdown shows in the overlay.'
 const timeHelp = 'Seconds the gyro is sampled for. Keep the controller still on a flat surface for the whole time.'
-const soundHelp = 'Played by the controller when it connects to JSM Studio. The controller’s own power-on jingle is built into its firmware and still plays first.'
-const shutdownHelp = 'Played before JSM Studio turns the controller off (Turn off controller, or a binding to it). Turning it off with its own button still plays the firmware’s jingle.'
+const soundHelp = 'Played by the controller when it connects to JSM Evolved. The controller’s own power-on jingle is built into its firmware and still plays first.'
+const shutdownHelp = 'Played before JSM Evolved turns the controller off (Turn off controller, or a binding to it). Turning it off with its own button still plays the firmware’s jingle.'
 
 const preview = (sound: number, gain: number) => desktopBridge.playControllerSound(sound, gain).then(result => {
   if (!result.success) showToast('No controller is connected to play the sound on.', 'error')

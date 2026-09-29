@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "JSM Studio",
-  "mainBinaryName": "JSM Studio",
-  "version": "0.7.91",
+  "productName": "JSM Evolved",
+  "mainBinaryName": "JSM Evolved",
+  "version": "0.7.94",
   "identifier": "com.lukeybeachboy.jsmstudio",
   "build": {
     "beforeDevCommand": "npm run dev:web",
@@ -14,7 +14,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "JSM Studio",
+        "title": "JSM Evolved",
         "width": 1440,
         "height": 900,
         "minWidth": 900,

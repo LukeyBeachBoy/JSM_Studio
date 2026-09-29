@@ -34,7 +34,7 @@ export function UpdateBanner() {
       const version = versionRef.current
       setUpdate({ phase: 'installing', version })
       void desktopBridge.installUpdate().catch(error => {
-        console.error('Failed to install JSM Studio update', error)
+        console.error('Failed to install JSM Evolved update', error)
         setUpdate({ phase: 'error', version })
       })
     })
@@ -56,7 +56,7 @@ export function UpdateBanner() {
     setProgress(0)
     setUpdate({ phase: 'downloading', version: target })
     void desktopBridge.downloadUpdate().catch(error => {
-      console.error('Failed to download JSM Studio update', error)
+      console.error('Failed to download JSM Evolved update', error)
       setUpdate({ phase: 'error', version: target })
     })
   }
@@ -74,12 +74,12 @@ export function UpdateBanner() {
       </b>
       <span className={styles.updateBannerDetail}>
         {update.phase === 'downloading'
-          ? `JSM Studio ${version} · ${Math.round(progress)}%`
+          ? `JSM Evolved ${version} · ${Math.round(progress)}%`
           : update.phase === 'installing'
-            ? 'JSM Studio restarts on its own'
+            ? 'JSM Evolved restarts on its own'
             : update.phase === 'error'
               ? 'Try again, or download it from the releases page'
-              : `JSM Studio ${version}`}
+              : `JSM Evolved ${version}`}
       </span>
       <span className={styles.updateBannerSpacer} />
       {(update.phase === 'available' || (update.phase === 'error' && version)) && (

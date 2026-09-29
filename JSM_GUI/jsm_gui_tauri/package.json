@@ -1,8 +1,8 @@
 {
-  "name": "jsm-studio",
+  "name": "jsm-evolved",
   "private": true,
-  "version": "0.7.91",
-  "description": "JSM Studio for JoyShockMapper (Tauri)",
+  "version": "0.7.94",
+  "description": "JSM Evolved for JoyShockMapper (Tauri)",
   "author": "Evan McLean",
   "type": "module",
   "scripts": {

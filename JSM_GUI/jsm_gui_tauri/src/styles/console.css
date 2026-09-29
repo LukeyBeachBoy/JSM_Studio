@@ -411,7 +411,7 @@ body[data-input-source='controller'] .config-menu__item:focus { background: var(
   box-shadow: inset 0 0 0 2px var(--menu-ring);
   cursor: grab;
 }
-.menus-screen__menu[data-state='selected'] { box-shadow: 0 0 0 2px var(--focus-controller), 0 0 0 8px var(--accent-soft); background: rgba(110, 195, 244, .08); z-index: 1; }
+.menus-screen__menu[data-state='selected'] { box-shadow: 0 0 0 2px var(--focus-controller), 0 0 0 8px var(--accent-soft); background: color-mix(in srgb, var(--accent) 8%, transparent); z-index: 1; }
 .menus-screen__menu[data-carrying='true'] { cursor: grabbing; box-shadow: 0 0 0 2px var(--focus-controller), 0 0 0 12px var(--accent-soft); }
 .menus-screen__drawing { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; }
 .menus-screen__handle {

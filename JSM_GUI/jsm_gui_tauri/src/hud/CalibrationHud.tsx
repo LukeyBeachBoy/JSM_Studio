@@ -11,7 +11,9 @@ type Phase = 'hidden' | 'waiting' | 'calibrating' | 'done' | 'failed'
 type Run = { phase: Phase; remainingMs: number; totalMs: number; at: number; since: number; reached?: number }
 
 const SEGMENTS = 60
-const COLORS = { accent: '#6ec3f4', ok: '#7cc7a0', warn: '#e8b56a', idle: '#aebbc8' }
+// Read from the tokens (design-tokens.css + accents.css) so the ring wears the chosen accent.
+const token = (name: string, fallback: string) => (typeof document === 'undefined' ? fallback : getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback)
+const colors = () => ({ accent: token('--accent', '#6ec3f4'), ok: token('--ok', '#7cc7a0'), warn: token('--warn', '#e8b56a'), idle: token('--art-detail', '#aebbc8') })
 const ease = (x: number) => 1 - Math.pow(1 - Math.max(0, Math.min(1, x)), 3)
 const clamp = (x: number) => Math.max(0, Math.min(1, x))
 
@@ -43,6 +45,7 @@ function demoRun(demo: string, t: number): Run {
 }
 
 export function CalibrationHud() {
+  const COLORS = colors()
   const [run, setRun] = useState<Run>({ phase: 'hidden', remainingMs: 0, totalMs: 1, at: 0, since: 0 })
   const [, setFrame] = useState(0)
   const runRef = useRef(run)

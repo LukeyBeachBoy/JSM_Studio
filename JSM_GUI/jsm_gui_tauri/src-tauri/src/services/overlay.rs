@@ -156,7 +156,7 @@ mod stacking {
 
 fn build(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
     WebviewWindowBuilder::new(app, OVERLAY_LABEL, WebviewUrl::App("overlay.html".into()))
-        .title("JSM Studio Overlay")
+        .title("JSM Evolved Overlay")
         .transparent(true)
         .decorations(false)
         .always_on_top(true)

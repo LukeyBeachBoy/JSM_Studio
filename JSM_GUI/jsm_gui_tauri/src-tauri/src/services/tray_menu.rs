@@ -31,7 +31,7 @@ static ANCHOR: Mutex<Option<(f64, f64)>> = Mutex::new(None);
 
 fn build(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
     WebviewWindowBuilder::new(app, TRAY_MENU_LABEL, WebviewUrl::App("traymenu.html".into()))
-        .title("JSM Studio")
+        .title("JSM Evolved")
         .transparent(true)
         .decorations(false)
         .always_on_top(true)
@@ -58,7 +58,7 @@ pub fn install(app: &AppHandle) -> tauri::Result<()> {
     }
     TrayIconBuilder::with_id("main")
         .icon(app.default_window_icon().cloned().expect("bundled tray icon"))
-        .tooltip("JSM Studio")
+        .tooltip("JSM Evolved")
         .show_menu_on_left_click(false)
         .on_tray_icon_event(|tray, event| {
             // Act on release, as Windows' own icons do: opening on press lets

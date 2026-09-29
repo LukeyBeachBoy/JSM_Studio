@@ -28,6 +28,10 @@ fn publish_layer_stack(app: &AppHandle, profile: &str, layers: &[config_layers::
 pub fn start(app: AppHandle, state: AppState) {
     thread::spawn(move || {
         let mut active: Option<String> = None;
+        // If a binding inside a held global chord deliberately loads a normal
+        // profile, do not immediately put the held chord back on top of it.
+        // The chord is consumed until its trigger is released once.
+        let mut global_cancelled_until_release = false;
         let mut chords = Vec::new();
         let mut layers = Vec::new();
         let mut activation = LayerActivation::default();
@@ -67,11 +71,20 @@ pub fn start(app: AppHandle, state: AppState) {
                 next_reload = Instant::now() + Duration::from_millis(480);
             }
             let packet = telemetry::latest_packet(&state).ok().flatten();
+            let devices = packet.as_ref().and_then(|p| p.get("devices")).and_then(Value::as_array);
+            let held_global = global_profile(&chords, devices, enabled);
             let live = packet.as_ref().and_then(|p| p.get("activeProfile")).and_then(Value::as_str).unwrap_or("").replace('\\', "/");
             // A normal profile load cancels a held config in the mapper. Do not
             // restore over that new profile, or carry its predecessor's layers.
             if !live.is_empty() && !live.starts_with("profiles-library/.layers/") &&
                 active.as_deref() != Some(live.as_str()) && (live != source || active.is_some()) {
+                // A config-load binding inside the active global chord clears
+                // the mapper's chord restore state. If its trigger is still
+                // physically held, re-running STUDIO_CHORD_BEGIN here would
+                // instantly overwrite the profile that binding just selected.
+                if active.as_deref().is_some_and(|path| held_global.as_deref() == Some(path)) {
+                    global_cancelled_until_release = true;
+                }
                 active = None;
                 source = live;
                 activation.reset();
@@ -83,7 +96,6 @@ pub fn start(app: AppHandle, state: AppState) {
                 });
             }
             if reserved {
-                let devices = packet.as_ref().and_then(|p| p.get("devices")).and_then(Value::as_array);
                 let now_down: Vec<&'static str> = RESERVED_CHORDS.iter()
                     .filter(|(_, buttons)| devices.is_some_and(|devices| devices.iter().any(|device| buttons.iter().all(|button| pressed(device, button)))))
                     .map(|(name, _)| *name).collect();
@@ -106,8 +118,7 @@ pub fn start(app: AppHandle, state: AppState) {
                 thread::sleep(Duration::from_millis(if reserved { 16 } else { 480 }));
                 continue;
             }
-            let devices = packet.as_ref().and_then(|p| p.get("devices")).and_then(Value::as_array);
-            let global = global_profile(&chords, devices, enabled);
+            let global = eligible_global_profile(held_global, &mut global_cancelled_until_release);
             let ids = activation.update(&layers, devices.map(Vec::as_slice).unwrap_or(&[]), enabled, global.is_some());
             publish_layer_stack(&app, &source, &layers, &ids);
             if ids != composed_ids {
@@ -162,6 +173,14 @@ fn global_profile(chords: &[runtime::GlobalChord], devices: Option<&Vec<Value>>,
     chords.iter().find(|chord| !chord.buttons.is_empty() && devices.map(|devices|
         devices.iter().any(|device| chord.buttons.iter().all(|button| pressed(device, button)))
     ).unwrap_or(false)).map(|chord| chord.profile_path.clone())
+}
+
+fn eligible_global_profile(detected: Option<String>, blocked_until_release: &mut bool) -> Option<String> {
+    if *blocked_until_release {
+        if detected.is_none() { *blocked_until_release = false; }
+        return None;
+    }
+    detected
 }
 
 pub(super) fn pressed(device: &Value, button: &str) -> bool {
@@ -273,6 +292,21 @@ mod tests {
         assert_eq!(global_profile(&[chord.clone()], Some(&devices), true).as_deref(), Some("quick.txt"));
         assert_eq!(global_profile(&[chord.clone()], Some(&devices), false), None);
         assert_eq!(global_profile(&[chord], None, true), None);
+    }
+    #[test]
+    fn profile_switch_inside_global_chord_waits_for_release_before_rearming() {
+        let mut blocked = true;
+        assert_eq!(eligible_global_profile(Some("quick.txt".into()), &mut blocked), None);
+        assert!(blocked, "still held: the chord must not immediately re-enter");
+        assert_eq!(eligible_global_profile(None, &mut blocked), None);
+        assert!(!blocked, "releasing the trigger rearms the chord");
+        assert_eq!(eligible_global_profile(Some("quick.txt".into()), &mut blocked).as_deref(), Some("quick.txt"));
+    }
+    #[test]
+    fn steam_button_uses_the_home_telemetry_bit() {
+        let device = json!({"status": {"buttons": 1u64 << 16}});
+        assert!(pressed(&device, "HOME"));
+        assert!(!pressed(&device, "MISC1"));
     }
     #[test]
     fn quick_access_is_not_guide_and_triggers_do_not_need_digital_buttons() {

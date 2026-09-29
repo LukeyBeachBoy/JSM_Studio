@@ -15,7 +15,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error('JSM Studio failed to render', error, info.componentStack)
+    console.error('JSM Evolved failed to render', error, info.componentStack)
   }
 
   render() {
@@ -25,7 +25,7 @@ export class ErrorBoundary extends Component<Props, State> {
       <div className="boot-shell" role="alert">
         <div className="boot-card error-card">
           <div className="boot-copy">
-            <div className="boot-title">JSM Studio hit a problem</div>
+            <div className="boot-title">JSM Evolved hit a problem</div>
             <div className="boot-subtitle">The interface stopped drawing. The mapper is still running with the last applied configuration.</div>
             <pre className="error-card__detail">{error.message}</pre>
             <div className="error-card__actions">

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Icon } from '../components/icons/Icon'
 import { Menu, type MenuItem } from '../components/ui/Menu'
 import { ButtonGlyph } from '../components/glyphs/ButtonGlyph'
-import appMark from '../assets/app-icon-16.svg'
+import { BrandMark } from '../components/BrandMark'
 import type { ShellWidth } from './useShellWidth'
 import { windowControls } from './windowControls'
 import { layerHue, layerSlotOf } from '../utils/layers'
@@ -214,7 +214,7 @@ export function TitleBar(props: TitleBarProps) {
   const homeChip = (
     <button type="button" className="home-chip" onClick={props.onHome} data-hints="A:Home;B:Back"
       title="Home: this configuration and Studio">
-      <img src={appMark} alt="" width={20} height={20} />
+      <BrandMark size={20} />
       <span>Home</span>
       {/* 24, not 22: the glyphs are drawn on a 24 grid, so this is the size
           at which every edge lands on a whole pixel. */}
@@ -268,8 +268,8 @@ export function TitleBar(props: TitleBarProps) {
         ? (
           // Home's mark is a name, not a button (§8: the logo isn't clickable).
           <div className="titlebar__brand" data-tauri-drag-region>
-            <img src={appMark} alt="" width={20} height={20} />
-            {t('common.appName', 'JSM Studio')}
+            <BrandMark size={20} />
+            {t('common.appName', 'JSM Evolved')}
           </div>
         )
         : <>{homeChip}<span className="titlebar__divider" aria-hidden="true" /></>}

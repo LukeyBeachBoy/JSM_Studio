@@ -113,3 +113,92 @@ combinations, independent noisy transitions, simultaneous transitions, contact a
 release strengths/effects, live enable, and independent devices. The updated native
 binary was copied into Studio's bundle by the normal build script. No installer
 was produced or installed, and physical haptic feel remains untested.
+
+## Per-grip range, firmware re-check — 2026-09-27
+
+Luke asked for a much longer left-grip range than right-grip range, and for the
+firmware to be checked properly since the PCB has two separate grip contacts.
+This pass disassembled the Triton firmware Steam currently installs
+(`IBEX_FW_6AA43B55.fw`, which `hardwareupdater.cfg` names as `TRITON_FW_TS`)
+end to end for the settings path, rather than only the handler found in 2026-09-10.
+
+### How
+
+- Image: 32-byte header (`magic, size, crc32(body)`), body loads at `0x8000`
+  (reset vector `0x25db1` decodes as a prologue only at that base). Thumb-2,
+  Zephyr RTOS on a Nordic part (ESB and BLE strings). The host side does no
+  signature check: `hardwareupdater.exe` only carries a `header crc mismatch` string.
+- Disassembled with a 60-line Rust program over the `yaxpeax-arm` crate (no
+  disassembler is installed on this machine; `radare2`/`objdump` are absent).
+  Cross-references were found by scanning the image for 32-bit words equal to a
+  string or function address, which also catches `.data` tables.
+
+### What the settings path looks like
+
+- Feature-report commands are dispatched from a `{id, get_fn, set_fn}` table in
+  the image's `.data` tail (`0x685e0..0x6872c`). Handled ids: `0x81 0x83 0x85
+  0x86 0x87 0x89 0x8e 0x90 0x95 0x9f 0xa1 0xa2 0xae 0xbe 0xc0 0xc3 0xc5 0xd8 0xdb
+  0xdc 0xe2 0xe9 0xed 0xee 0xef 0xf0 0xf2 0xfe`. The legacy trackpad commands
+  (`0xa7`, `0xaa`, `0xac`) are **not** handled.
+- `ID_SET_SETTINGS_VALUES` (`0x87`, handler `0x1fb08`) walks 3-byte
+  `{id u8, value s16}` entries. Ids `0x54`/`0x55` are written straight to the
+  Zephyr settings store (gyro auto-cal); everything else goes to
+  `set_setting(id, value)` at `0x1bfb0`.
+- `set_setting` accepts ids **0..85** only, clamps against a range table at
+  `0x50338` (`default, min, max, label`; every label points at the same empty
+  string, so `ID_GET_SETTING_LABEL` is useless), stores into one shared
+  `int16 settings[86]` at `0x2000ce7c`, and broadcasts `(id, value)` to up to 12
+  registered "changed" callbacks and 12 "set" callbacks.
+- Grip range is id **0x22** (default 100, 25..400) and flicker guard **0x23**
+  (default 80, 25..100), unchanged from the earlier notes.
+
+### Why both grips always get the same value
+
+- The trackpad-and-grip callback is `0x1cde0`. Ids `0x21/0x22/0x23` map to
+  sensor attributes 3/4/5, ids `0x48/0x49/0x42` to attributes 0/1/2, and ids
+  `0x1e/0x1f/0x34/0x35` only flag both instances for refresh. Every one of
+  those goes through `0x1cda8`, which calls the trackpad-controller attribute
+  setter `0x4c46e` **twice**: once with the left instance (`0x200022d0`, device
+  `olympus-trackpad-left`) and once with the right (`0x2000219c`,
+  `olympus-trackpad-right`), with the same value, then sets both refresh flags.
+- Grip sensing is an auxiliary capacitance channel of each side's trackpad
+  controller (Steam's own field is `nAuxCapSenseThreshold`). The attribute
+  setter stores attr 4/5 at offsets `0x0e`/`0x10` of **per-device** state, and
+  the touch/de-touch thresholds (attrs 6/7, conversion `0x3cb5c`) are computed
+  from only those two per-device fields. The per-side processing loop
+  `0x1cfb0` then compares each side's averaged aux reading with **its own**
+  copy of those thresholds (`[inst+0xc8]`/`[inst+0xcc]`).
+- So the hardware and the firmware data model are per side, exactly as the two
+  PCB contacts suggest. What is missing is any host path that writes one side:
+  `0x4c46e` has exactly one caller in the whole image (`0x1cda8`), and none of
+  the other 27 command handlers call into the pad module or trackpad driver
+  apart from a work-queue submit and a global clear. The per-side Zephyr keys
+  `cal/touch_l` / `cal/touch_r` (10-byte blobs at `0x2000d162`/`0x2000d158`)
+  are loaded from flash but referenced by nothing else, so they are not a lever
+  either.
+- `ID_GET_SETTINGS_VALUES` reads the shared array, so there is no per-side
+  readback to diff against.
+
+### Conclusion
+
+There is no command, setting id, or calibration blob that a host can send to
+give the left grip a different range from the right on firmware `6AA43B55`.
+The earlier "not possible" answer stands, now with the whole command surface
+checked rather than one handler.
+
+What would work, in order of sanity:
+
+1. **Physical electrode change** (TODO-17). Because the trip point is a
+   capacitance threshold per side, a larger or shallower left electrode raises
+   the left channel's reading at a given hand distance, which is precisely a
+   longer left range with the shared threshold. This is the only per-side
+   lever that exists today.
+2. **Time, not distance**: `LEFT_GRIP_RELEASE_DELAY` (already implemented,
+   hardware check pending).
+3. **A firmware patch.** Setting id `0x20` (range 100..1200) is dispatched by
+   the pad callback to a no-op, so a ~6-instruction patch could make it a
+   left-only attr-4 write; the header CRC is plain CRC32 and the updater does
+   not check a signature. The controller's bootloader (flash `0..0x8000`, not in
+   the image) may still verify the image, and a bad flash can brick the
+   controller. Not attempted and not recommended without that bootloader being
+   inspected first.

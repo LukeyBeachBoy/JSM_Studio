@@ -90,7 +90,7 @@ const ARROW_KEEPERS = 'input:not([type="checkbox"]):not([type="radio"]):not([typ
 const padOwnedElsewhere = (activeProfile: unknown) => {
   if (typeof activeProfile !== 'string' || !activeProfile.trim()) return false
   if (isStudioNavigationProfile(activeProfile)) return false
-  // Studio's own AutoLoad rule (JSM Studio.txt), which loads AppNavigation.
+  // Studio's own AutoLoad rule (JSM Evolved.txt), which loads AppNavigation.
   return !/(^|[/])AutoLoad[/][^/]+$/i.test(activeProfile.trim())
 }
 

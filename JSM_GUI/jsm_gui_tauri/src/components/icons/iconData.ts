@@ -4,6 +4,7 @@
 export const UI_ICONS = {
   "add": "<path d=\"M12 5v14M5 12h14\"></path>",
   "ai": "<path d=\"M12 3.5 13.8 10.2 20.5 12 13.8 13.8 12 20.5 10.2 13.8 3.5 12 10.2 10.2z\"></path>",
+  "appearance": "<path d=\"M12 3.5a8.5 8.5 0 1 0 0 17c1.4 0 2-.9 2-1.8 0-.6-.3-1-.6-1.4-.3-.4-.5-.8-.5-1.3 0-1 .8-1.7 1.8-1.7h1.6a4.2 4.2 0 0 0 4.2-4.2c0-3.7-3.9-6.6-8.5-6.6z\"></path><circle cx=\"7.5\" cy=\"11\" r=\"1.1\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"10.5\" cy=\"7.5\" r=\"1.1\" fill=\"currentColor\" stroke=\"none\"></circle><circle cx=\"15\" cy=\"7.5\" r=\"1.1\" fill=\"currentColor\" stroke=\"none\"></circle>",
   "apply": "<path d=\"M12 3.5v11M7.5 10l4.5 4.5 4.5-4.5\"></path><path d=\"M4.5 16.5v4h15v-4\"></path>",
   "associations": "<rect x=\"3.5\" y=\"4.5\" width=\"17\" height=\"12\" rx=\"2.5\"></rect><path d=\"M9 20h6M12 16.5V20\"></path>",
   "back": "<path d=\"M14 7l-5 5 5 5\"></path>",

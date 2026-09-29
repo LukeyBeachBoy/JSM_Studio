@@ -88,13 +88,9 @@ export function AddLayerActionSheet({ shortName, longName, existing = [], onAdd,
         <div className={styles.field}>
           <span className={styles.groupLabel}>{whenLabel}</span>
           <div className={styles.verbTrack} role="radiogroup" aria-label={whenLabel} style={{ ['--verb-hue' as string]: hue }}
-            data-hints="MOVE:Choose;A:Add;LB/RB:Hold / Toggle / On / Off;B:Cancel"
-            onKeyDown={event => {
-              if (event.key === 'ArrowLeft') { event.preventDefault(); step(-1) }
-              if (event.key === 'ArrowRight') { event.preventDefault(); step(1) }
-            }}>
+            data-hints="MOVE:Choose;A:Add;LB/RB:Hold / Toggle / On / Off;B:Cancel">
             {layerVerbOrder.map(value => (
-              <button key={value} type="button" role="radio" aria-checked={verb === value} tabIndex={verb === value ? 0 : -1}
+              <button key={value} type="button" role="radio" aria-checked={verb === value}
                 className={styles.verb} onClick={() => setVerb(value)}>
                 {t(layerVerbKeys[value])}
               </button>

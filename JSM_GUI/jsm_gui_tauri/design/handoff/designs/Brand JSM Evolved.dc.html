@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<style>html,body{margin:0;min-height:100%;background:#0a0e12;font-family:"Geist",system-ui,sans-serif;} a{color:#6ec3f4;text-decoration:none;} a:hover{color:#e8eef4;}</style>
+</helmet>
+<section data-screen-label="Turn 1 · JSM Evolved brand" style="padding:64px;display:flex;flex-direction:column;gap:40px;color:#e8eef4;">
+  <div style="display:flex;flex-direction:column;gap:8px;max-width:960px;">
+    <div style="font-size:12px;letter-spacing:.12em;color:#808c99;">JSM EVOLVED · BRAND · TURN 1</div>
+    <div style="font-size:32px;font-weight:600;letter-spacing:-.015em;">One orbit through a Steam Controller (2026)</div>
+    <div style="font-size:15px;line-height:22px;color:#b0bcc8;text-wrap:pretty;">Like the JoyShockMapper mark, a tilted controller sits on a disc inside one gyro orbit. The ring is continuous and in perspective: its near half passes in front of the controller, widest at the closest point, and its far half runs behind the disc. The controller is the Steam Controller (2026) drawing at its true proportions. Three colours, each away from command blue, modeshift crimson and the three layer hues.</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:24px;">
+    <div style="width:112px;height:112px;border-radius:16px;background:#fff;display:grid;place-items:center;"><img src="uploads/pasted-1790341530279-0.png" alt="JoyShockMapper" style="width:84px;height:84px;"></div>
+    <span style="font-size:22px;color:#5b6571;">→</span>
+    <img src="icons/app/jsm-studio.svg" style="width:112px;height:112px;" alt="JSM Studio">
+    <span style="font-size:22px;color:#5b6571;">→</span>
+    <span style="font-size:14px;color:#808c99;">JoyShockMapper · JSM Studio · JSM Evolved (below)</span>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start;">
+    <sc-for list="{{ options }}" as="o" hint-placeholder-count="3">
+      <div id="{{ o.id }}" style="flex:none;width:520px;display:flex;flex-direction:column;gap:18px;padding:24px;border-radius:16px;background:#131920;box-shadow:0 0 0 1px rgba(214,228,242,.1);">
+        <div style="display:flex;align-items:baseline;gap:12px;"><span style="padding:2px 8px;border-radius:6px;background:{{ o.base }};color:#07131d;font-weight:700;font-size:14px;">{{ o.id }}</span><span style="font-size:20px;font-weight:600;white-space:nowrap;">{{ o.name }}</span><span style="font-family:'Geist Mono';font-size:12px;color:#808c99;">{{ o.hex }}</span></div>
+        <div style="display:flex;align-items:center;gap:20px;">
+          <span style="width:200px;height:200px;background:url({{ o.full }}) center/contain no-repeat;flex:none;"></span>
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <div style="display:flex;align-items:flex-end;gap:14px;">
+              <span style="width:64px;height:64px;background:url({{ o.full }}) center/contain no-repeat;"></span>
+              <span style="width:32px;height:32px;background:url({{ o.full }}) center/contain no-repeat;"></span>
+              <span style="width:16px;height:16px;background:url({{ o.small }}) center/contain no-repeat;"></span>
+            </div>
+            <div style="display:flex;align-items:flex-end;gap:14px;padding:10px;border-radius:10px;background:#f1f4f7;">
+              <span style="width:64px;height:64px;background:url({{ o.full }}) center/contain no-repeat;"></span>
+              <span style="width:32px;height:32px;background:url({{ o.full }}) center/contain no-repeat;"></span>
+              <span style="width:16px;height:16px;background:url({{ o.small }}) center/contain no-repeat;"></span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:16px;padding:18px 20px;border-radius:12px;background:#0d1217;">
+          <span style="width:56px;height:56px;background:url({{ o.full }}) center/contain no-repeat;flex:none;"></span>
+          <div style="display:flex;align-items:baseline;gap:8px;font-size:34px;letter-spacing:-.025em;line-height:1;"><span style="font-weight:800;">JSM</span><span style="font-weight:500;color:{{ o.base }};">Evolved</span></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;padding:16px 20px;border-radius:12px;background:#f1f4f7;color:#141c24;">
+          <span style="width:44px;height:44px;background:url({{ o.full }}) center/contain no-repeat;flex:none;"></span>
+          <div style="display:flex;flex-direction:column;gap:3px;"><span style="font-size:24px;font-weight:800;letter-spacing:-.02em;line-height:1;">JSM</span><span style="font-size:11px;font-weight:700;letter-spacing:.32em;color:{{ o.ink }};line-height:1;">EVOLVED</span></div>
+        </div>
+        <div style="height:44px;display:flex;align-items:center;gap:10px;padding:0 14px;border-radius:10px;background:#0d1217;box-shadow:0 0 0 1px rgba(214,228,242,.1);font-size:13px;">
+          <span style="width:20px;height:20px;background:url({{ o.small }}) center/contain no-repeat;"></span>
+          <span style="font-weight:600;white-space:nowrap;">JSM Evolved</span>
+          <span style="color:#5b6571;">/</span><span style="color:#b0bcc8;">Wardogs</span>
+          <span style="flex:1;"></span>
+          <span style="height:28px;display:flex;align-items:center;padding:0 12px;border-radius:8px;background:{{ o.base }};color:#07131d;font-weight:700;white-space:nowrap;">Apply 3 changes</span>
+        </div>
+        <div style="font-size:13px;line-height:19px;color:#b0bcc8;">{{ o.note }}</div>
+      </div>
+    </sc-for>
+  </div>
+  <div style="max-width:960px;font-size:14px;line-height:21px;color:#b0bcc8;">The bar mockups show the brand colour on Apply only. If the new colour should also replace the app accent (focus, selection, primary buttons), commands would need to follow it or keep blue as their own colour. That is a separate decision from the logo.</div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const o = (id, key, name, base, ink, note) => ({ id, name, base, ink, hex: base.toUpperCase(), full: `icons/app/jsm-evolved-${key}.svg`, small: `icons/app/jsm-evolved-${key}-16.svg`, note });
+    return { options: [
+      o('1a', 'cyan', 'Deep cyan', '#3e9fd8', '#175c93', 'The JoyShockMapper cyan, one step darker and slightly more saturated so it holds up on the light tile and beside the app’s lighter blue.'),
+      o('1b', 'teal', 'Volt teal', '#2ee6c5', '#0c7f6f', 'Closest to the original cyan, pushed toward green so it reads as new. Sits between command blue and the green layer; the layer is a softer pastel, so they stay apart.'),
+      o('1c', 'amber', 'Solar amber', '#ffb020', '#9a5c00', 'The biggest break from JSM Studio. Warm and high-energy, reads well on dark and light. Close in hue to the orange layer and to warning, so those would need a nudge.'),
+      o('1d', 'violet', 'Ultraviolet', '#8f72ff', '#4a2fc0', 'Most “next-gen” feel. More saturated than the violet layer, but shares its hue family; the layer would move or be desaturated further.'),
+    ] };
+  }
+}
+</script>
+</body>
+</html>

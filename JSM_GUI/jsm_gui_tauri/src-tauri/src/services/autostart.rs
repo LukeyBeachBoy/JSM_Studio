@@ -21,7 +21,9 @@ use std::env;
 use std::os::windows::process::CommandExt;
 use std::process::Command;
 
-const TASK_NAME: &str = "JSM Studio Autostart";
+const TASK_NAME: &str = "JSM Evolved Autostart";
+// The name the task had before the rebrand; found and replaced at launch.
+const LEGACY_TASK_NAME: &str = "JSM Studio Autostart";
 // Suppresses the console window schtasks.exe would otherwise flash briefly.
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
@@ -87,4 +89,23 @@ pub fn set_autostart_enabled(enabled: bool) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+/// Runs once per launch, off the main thread. A task under the old product
+/// name, or one pointing at an exe that has since moved (a rename changes the
+/// install folder), is replaced by one for this exe; if there is none, the
+/// person never turned it on and nothing is created.
+pub fn refresh_after_launch() {
+    let legacy = run_schtasks(&["/Query", "/TN", LEGACY_TASK_NAME]).map(|o| o.status.success()).unwrap_or(false);
+    let current = is_autostart_enabled().unwrap_or(false);
+    if !legacy && !current {
+        return;
+    }
+    if legacy {
+        let _ = run_schtasks(&["/Delete", "/TN", LEGACY_TASK_NAME, "/F"]);
+    }
+    // /F recreates in place, so this is also the path refresh for `current`.
+    if let Err(error) = set_autostart_enabled(true) {
+        eprintln!("Could not refresh the startup task: {error}");
+    }
 }

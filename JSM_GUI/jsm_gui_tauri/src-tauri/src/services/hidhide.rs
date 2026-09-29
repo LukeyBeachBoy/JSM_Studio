@@ -445,7 +445,7 @@ mod imp {
     const FILE_READ_DATA: u32 = 0x0001;
     const INVALID_DEVICE_INFO_SET: HDEVINFO = -1isize;
     const HIDHIDE_ACCESS_DENIED_MESSAGE: &str =
-        "Access denied opening the HidHide control device. Run JSM Studio as administrator.";
+        "Access denied opening the HidHide control device. Run JSM Evolved as administrator.";
     const HIDHIDE_INSTALLER_REBOOT_REQUIRED_EXIT_CODE: i32 = 3010;
 
     enum ControlDeviceStatus {
