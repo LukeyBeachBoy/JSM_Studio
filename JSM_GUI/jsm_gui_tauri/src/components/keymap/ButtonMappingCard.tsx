@@ -23,6 +23,8 @@ type ButtonMappingCardProps = {
   extras?: ReactNode
   /** The input's drawn glyph, shown beside its name. */
   glyph?: ReactNode
+  /** The glyph prints the title on itself (L3, R3), so it is not repeated beside it. */
+  glyphPrintsTitle?: boolean
   /** Your own name for what this input does; shown on the Overview diagram. */
   label?: string
   onLabelChange?: (label: string) => void
@@ -59,6 +61,7 @@ export function ButtonMappingCard({
   addControl,
   extras,
   glyph,
+  glyphPrintsTitle,
   label,
   onLabelChange,
   icon,
@@ -96,7 +99,7 @@ export function ButtonMappingCard({
           The output wears the same keycap as it does inside the card, so the
           row and the editor describe a binding the same way. */}
       <summary className="binding-summary">
-        {glyph}<span className="binding-summary-name"><span className="binding-summary-label">{label || title}</span>{label && <span className="binding-summary-input">{title}</span>}</span>
+        {glyph}<span className="binding-summary-name"><span className="binding-summary-label">{label || (glyphPrintsTitle ? null : title)}</span>{label && !glyphPrintsTitle && <span className="binding-summary-input">{title}</span>}</span>
         <span className="binding-summary-hint">
           <InputUseBadge command={command} /><LayerValueBadge command={command} />
           {summary?.length
@@ -129,7 +132,7 @@ export function ButtonMappingCard({
       <div className={keymapStyles.keymapLabel}>
         <span className={keymapStyles.buttonNameRow}>
           {glyph && <span className={keymapStyles.buttonGlyph}>{glyph}</span>}
-          <span className={keymapStyles.buttonName}>{title}</span>
+          {!glyphPrintsTitle && <span className={keymapStyles.buttonName}>{title}</span>}
           {inheritedFrom && <InheritedBadge source={inheritedFrom} onOpenConfigEditor={onOpenConfigEditor} />}
         </span>
         <span className={keymapStyles.buttonMeta}>{description}</span>
