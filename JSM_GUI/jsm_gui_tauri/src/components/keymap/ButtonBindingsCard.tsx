@@ -38,6 +38,7 @@ import { NumberField } from '../NumberField'
 import { Menu, type MenuItem } from '../ui/Menu'
 import { controllerButtonLabel, type ControllerVisualFamily } from '../../utils/controllerStatus'
 import { InputGlyph } from '../glyphs/InputGlyph'
+import { glyphPrintedName } from '../glyphs/printedName'
 
 import { ButtonMappingCard } from './ButtonMappingCard'
 import { getVirtualControllerLogicalOutput, type VirtualControllerType } from '../../utils/virtualController'
@@ -652,6 +653,10 @@ export const ButtonBindingsCard = ({
       </div>
     ) : null
 
+  const title = label ?? controllerButtonLabel(button, controllerFamily)
+  // The stick clicks print their name on the glyph; the row does not say it twice.
+  const glyphPrintsTitle = glyphPrintedName(button.command) === title
+
   return (
     <ButtonMappingCard
       command={domCommand ?? button.command}
@@ -667,8 +672,9 @@ export const ButtonBindingsCard = ({
       modeshiftCount={modeshiftCount}
       onPaste={bindingClipboard.length > 0 && !selectionMode ? pasteBindings : undefined}
       pasteLabel={t('keymap.bindingsPaste', { count: bindingClipboard.length })}
-      title={label ?? controllerButtonLabel(button, controllerFamily)}
-      glyph={<InputGlyph command={button.command} family={controllerFamily} size={19} />}
+      title={title}
+      glyph={<InputGlyph command={button.command} family={controllerFamily} size={19} title={glyphPrintsTitle ? title : undefined} />}
+      glyphPrintsTitle={glyphPrintsTitle}
       description={getButtonDescription(button, t)}
       isCapturing={rowCapturing}
       inheritedFrom={inheritedFrom}

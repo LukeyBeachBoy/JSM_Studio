@@ -1,5 +1,6 @@
 import type { ControllerVisualFamily } from '../../utils/controllerStatus'
 import { FAMILY_GLYPHS, STEAM_GLYPHS, STEAM_SMALL_GLYPHS } from './glyphData'
+import { STICK_CLICKS } from './printedName'
 
 // Controller glyphs from the design set (design/handoff/designs/glyphs, see
 // scripts/build-design-icons.mjs). Solid badge = front input, outline =
@@ -41,6 +42,17 @@ const REGULAR_SIBLINGS: Record<string, () => string | undefined> = {
   RIGHT_PAD: () => STEAM_GLYPHS.LTOUCH?.svg.replace('cx="14" cy="10" r="3"', 'cx="10" cy="10" r="3"').replace('cx="14" cy="10" r="5.5"', 'cx="10" cy="10" r="5.5"'),
 }
 
+// Stick clicks, both cuts. The set's small cut was a blank disc that L3 shared
+// with R3, and its regular cut printed the label too small to read beside the
+// other glyphs, so on a row only the text next to it said which stick it was.
+// Drawn here with the label knocked out of the cap, on the largest disc the
+// click bar under it leaves room for.
+const stickClick = (side: 'L' | 'R', small: boolean) => small
+  ? `<circle cx="12" cy="10" r="9.5" fill="currentColor"/>` + label(12, 10.5, 10.5, `${side}3`, 'var(--glyph-ink)') +
+    `<path d="M7 22.5h10" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>`
+  : `<circle cx="12" cy="10" r="9" fill="currentColor"/>` + label(12, 10.5, 9, `${side}3`, 'var(--glyph-ink)') +
+    `<path d="M7.5 22h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>`
+
 // Small cuts derived from a sibling's small cut by swapping the label.
 const SMALL_SIBLINGS: Record<string, () => string | undefined> = {
   N: () => relabel(STEAM_SMALL_GLYPHS.S, 'A', 'Y'),
@@ -49,7 +61,6 @@ const SMALL_SIBLINGS: Record<string, () => string | undefined> = {
   ZL: () => relabel(STEAM_SMALL_GLYPHS.ZR, 'R', 'L'),
   ZLF: () => relabel(STEAM_SMALL_GLYPHS.ZR, 'R', 'L'),
   ZRF: () => STEAM_SMALL_GLYPHS.ZR,
-  L3: () => STEAM_SMALL_GLYPHS.R3,
   MISC3: () => relabel(STEAM_SMALL_GLYPHS.MISC2, 'R', 'L'),
   LSR: () => relabel(STEAM_SMALL_GLYPHS.LSL, '4', '5'),
   RSR: () => STEAM_SMALL_GLYPHS.LSL,
@@ -109,6 +120,8 @@ export const glyphMarkup = (command: string, family: ControllerVisualFamily = 'g
     const svg = FAMILY_GLYPHS[familyItem.set]?.items[familyItem.items[key]]
     if (svg) return svg
   }
+
+  if (STICK_CLICKS[key]) return stickClick(STICK_CLICKS[key], small)
 
   if (small) {
     const cut = STEAM_SMALL_GLYPHS[key] ?? SMALL_SIBLINGS[key]?.()
