@@ -1,10 +1,14 @@
 /* Overview (Overview.dc.html): search on the page header's right, filter
    chips, the controller as hero between two callout columns, a band of cards
    for sticks, pads and buttons, and quick settings last. */
-.page { position: relative; display: flex; flex-direction: column; gap: var(--sp-6); }
+.page { display: flex; flex-direction: column; gap: var(--sp-6); }
 
 /* ---- Search: 320 wide on the header row. The header is the shell's, so the
-   field is lifted over it: the header's bottom margin plus its own height. */
+   field is lifted over it: the header's bottom margin plus its own height.
+   It is measured from the top of the page body, not from this page, so the
+   rows the shell puts above the page (the controller scope, config errors)
+   don't carry it down with them. */
+:global(.main-pane):has(> .page) { position: relative; }
 .search {
   position: absolute;
   top: calc(-1 * (var(--sp-7) + var(--control-h)));

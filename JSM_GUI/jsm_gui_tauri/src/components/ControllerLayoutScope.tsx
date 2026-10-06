@@ -17,20 +17,22 @@ export function ControllerLayoutScope({ text, effectiveText, devices, model, onM
   const variant = hasControllerVariant(text, model) || /^\s*#\s*@controller-pad\s+/m.test(text) && controllerPadSource(text, model) === 'left'
   const savedModels = [...new Set([...text.matchAll(/#\s*@controller(?:-pad)?\s+(type-\d+(?:-edge)?)/g)].map(match => match[1]))].filter(key => !models.some(candidate => controllerModelKey(candidate) === key))
   if (model && !savedModels.includes(model) && !models.some(candidate => controllerModelKey(candidate) === model)) savedModels.push(model)
-  return <section className={styles.scope} aria-label="Controller layout">
+  return <section className={styles.scope} aria-label="Controller layout" data-nav-entry-skip="">
     <div className={styles.header}>
-      <label className={styles.target}>Editing for <AppSelect aria-label="Editing for controller" value={model} onChange={event => onModel(event.target.value)}>
+      <div className={styles.target}><span>Editing for</span><AppSelect aria-label="Editing for controller" value={model} onChange={event => onModel(event.target.value)}>
         <option value="">Shared base</option>
         {models.map(candidate => <option key={controllerModelKey(candidate)} value={controllerModelKey(candidate)}>{controllerVariantLabel(candidate)}</option>)}
       {savedModels.map(key => <option key={key} value={key}>{controllerVariantLabel({type:Number(key.match(/type-(\d+)/)?.[1]),handle:0} as TelemetryDevice)} (disconnected)</option>)}
-      </AppSelect></label>
+      </AppSelect></div>
       <span className={styles.note}>{model ? variant ? 'Controller variant · edits leave the shared base unchanged' : 'Inherited layout · your first edit creates a controller variant' : 'Shared base · edits affect controllers that inherit these values'}</span>
-      {model && <button type="button" className="button button--secondary button--sm" onClick={() => onChange(regularControllerGamepad(text, effectiveText, model))}>Use regular gamepad</button>}
-      {model && variant && <button type="button" className="button button--tertiary button--sm" onClick={() => setResetting(true)}>Reset variant</button>}
+      {model && <span className={styles.actions}>
+        <button type="button" className="button button--secondary button--sm" onClick={() => onChange(regularControllerGamepad(text, effectiveText, model))}>Use regular gamepad</button>
+        {variant && <button type="button" className="button button--tertiary button--sm" onClick={() => setResetting(true)}>Reset variant</button>}
+      </span>}
     </div>
-    {single && dualLayout && <label className={styles.target}>Touchpad uses <AppSelect aria-label="Touchpad fallback source" value={controllerPadSource(text, model)} onChange={event => onChange(setControllerPadSource(text, model, event.target.value as 'left' | 'right'))}>
+    {single && dualLayout && <div className={styles.target}><span>Touchpad uses</span><AppSelect aria-label="Touchpad fallback source" value={controllerPadSource(text, model)} onChange={event => onChange(setControllerPadSource(text, model, event.target.value as 'left' | 'right'))}>
       <option value="right">Steam right trackpad</option><option value="left">Steam left trackpad</option>
-    </AppSelect><span className={styles.note}>The other trackpad layout stays saved in the base.</span></label>}
+    </AppSelect><span className={styles.note}>The other trackpad layout stays saved in the base.</span></div>}
     {missing.length > 0 && <details className={styles.missing}><summary>{missing.length} unavailable binding{missing.length === 1 ? '' : 's'} · saved for their original controller</summary>
       <p>Choose another input to make these actions available on this controller. Existing sticks and buttons are kept as configured.</p>
       <ul>{missing.map((entry, index) => <li key={`${entry.assignment}:${entry.input}:${index}`}><InputGlyph command={entry.input} family={controllerVisualFamily(device?.type)} size={20} /><strong>{entry.input}</strong><span>{entry.assignment} → {entry.value}</span></li>)}</ul>
