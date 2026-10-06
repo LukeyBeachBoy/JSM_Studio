@@ -1063,12 +1063,13 @@ pub struct OverlayWorkarea {
     y: i32,
     width: u32,
     height: u32,
+    scale: f64,
 }
 
 #[tauri::command]
 pub fn overlay_workarea(app: AppHandle) -> CommandResult<OverlayWorkarea> {
-    let (x, y, width, height) = overlay::workarea(&app)?;
-    Ok(OverlayWorkarea { x, y, width, height })
+    let (x, y, width, height, scale) = overlay::workarea(&app)?;
+    Ok(OverlayWorkarea { x, y, width, height, scale })
 }
 #[cfg(test)]
 mod tests {
