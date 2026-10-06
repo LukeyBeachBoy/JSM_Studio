@@ -85,6 +85,11 @@ export function Overlay() {
   const activeKeyRef = useRef(activeKey)
   const selectedRef = useRef(-1)
   const aspectRef = useRef(FALLBACK_PAD_ASPECT)
+  const menusJsonRef = useRef('')
+  // The menu the window has been moved for. Until the move lands the window is
+  // still wherever the last menu was, which with several displays can be a
+  // different screen entirely, so nothing is drawn before then.
+  const placedKeyRef = useRef<string | null>(null)
   menusRef.current = menus
   activeKeyRef.current = activeKey
 
@@ -160,6 +165,13 @@ export function Overlay() {
         const resolved = resolveIncludes(root, files)
         if (cancelled) return
         const next = resolveOverlayMenus(resolved.effectiveText ?? rootText)
+        // This runs every two seconds. Only an actual change is a new menu set:
+        // a fresh object each time re-ran the placement effect below and moved
+        // the always-on-top window every two seconds for as long as a menu was
+        // up, for nothing.
+        const json = JSON.stringify(next)
+        if (json === menusJsonRef.current) return
+        menusJsonRef.current = json
         setMenus(next)
         // Resolved here rather than at draw time: loading a set is a disk read
         // of up to a few megabytes, and the overlay has to appear instantly.
@@ -197,6 +209,7 @@ export function Overlay() {
         liveProfileRef.current = live
         if (!first) {
           menusRef.current = {}
+          menusJsonRef.current = ''
           setMenus({})
           if (rootRef.current) rootRef.current.dataset.visible = 'false'
           reloadRef.current?.()
@@ -291,7 +304,7 @@ export function Overlay() {
       }
 
       const menu = menusRef.current[key]
-      if (rootRef.current) rootRef.current.dataset.visible = 'true'
+      if (rootRef.current) rootRef.current.dataset.visible = placedKeyRef.current === key ? 'true' : 'false'
 
       // Imperative from here: no React work per packet.
       if (dotRef.current) {
@@ -327,8 +340,12 @@ export function Overlay() {
   // wherever the user put it rather than all sharing one spot.
   useEffect(() => {
     const menu = activeKey ? menus[activeKey] : null
+    placedKeyRef.current = null
     if (!menu) return
     let cancelled = false
+    // Shown either way once this settles: a failed move should still draw the
+    // menu where the window is rather than not at all.
+    const placed = () => { if (!cancelled) placedKeyRef.current = activeKey }
     invoke<{ x: number; y: number; width: number; height: number; scale?: number }>('overlay_workarea')
       .then(area => {
         if (cancelled) return
@@ -344,9 +361,10 @@ export function Overlay() {
           area,
           area.scale || window.devicePixelRatio || 1
         )
-        invoke('overlay_set_bounds', box).catch(() => {})
+        return invoke('overlay_set_bounds', box)
       })
       .catch(() => {})
+      .finally(placed)
     return () => { cancelled = true }
   }, [activeKey, menus, aspect])
 
