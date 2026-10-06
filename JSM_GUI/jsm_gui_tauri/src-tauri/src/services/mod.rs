@@ -19,6 +19,7 @@ pub mod foreground;
 pub mod virtual_keyboard;
 pub mod global_chords;
 pub mod profile_library;
+pub mod steam_layouts;
 
 pub mod config_layers;
 

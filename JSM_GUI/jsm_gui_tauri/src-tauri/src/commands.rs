@@ -144,6 +144,17 @@ pub fn set_autoload_rule_paused(app: AppHandle, process_name: String, paused: bo
 }
 
 /// The configuration layers active right now, in stack order.
+/// Steam Input layouts found in the local Steam install, for the import dialog.
+#[tauri::command]
+pub fn list_steam_layouts() -> Vec<crate::services::steam_layouts::SteamLayout> {
+    crate::services::steam_layouts::list_layouts()
+}
+
+#[tauri::command]
+pub fn read_steam_layout(path: String) -> CommandResult<String> {
+    crate::services::steam_layouts::read_layout(&path)
+}
+
 #[tauri::command]
 pub fn get_layer_stack() -> serde_json::Value {
     crate::services::global_chords::layer_stack()
@@ -1290,12 +1301,13 @@ pub struct OverlayWorkarea {
     y: i32,
     width: u32,
     height: u32,
+    scale: f64,
 }
 
 #[tauri::command]
 pub fn overlay_workarea(app: AppHandle) -> CommandResult<OverlayWorkarea> {
-    let (x, y, width, height) = overlay::workarea(&app)?;
-    Ok(OverlayWorkarea { x, y, width, height })
+    let (x, y, width, height, scale) = overlay::workarea(&app)?;
+    Ok(OverlayWorkarea { x, y, width, height, scale })
 }
 
 // --- Mouse area picker -------------------------------------------------------

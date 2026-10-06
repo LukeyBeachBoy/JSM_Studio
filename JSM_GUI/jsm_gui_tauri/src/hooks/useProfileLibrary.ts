@@ -6,6 +6,8 @@ import { parseConfigText, serializeConfig } from '../utils/configSerializer'
 import { showToast } from '../utils/toast'
 import { OperationCancelled, runLongOperation, throwIfCancelled } from '../components/LongOperation'
 import type { NewConfigurationDraft } from '../components/ConfigurationDialog'
+import { loadConfigBindingValue } from '../utils/loadConfigBinding'
+import type { SteamConversion } from '../utils/steamLayout'
 
 type Options = { textOverride?: string; profileNameOverride?: string; profilePathOverride?: string; normalize?: boolean }
 type Params = {
@@ -216,6 +218,49 @@ export function useProfileLibrary({ resetConfigHistory, configText, setConfigTex
       report(`Import of ${baseName} cancelled.`)
     }
   }
+  // A Steam layout can become several configurations: one per action set, each
+  // loading the others by name. The library picks the final names (it may add
+  // a number to avoid a clash), so every file is created first and the
+  // references are rewritten to the names it chose before anything is written.
+  const handleImportSteamLayout = async (conversion: SteamConversion) => {
+    const created: string[] = []
+    try {
+      await runLongOperation(`Importing ${conversion.title}…`, async ({ progress, signal }) => {
+        const names = new Map<string, string>()
+        for (const [index, set] of conversion.sets.entries()) {
+          progress(0.1 + 0.3 * (index / conversion.sets.length), `Creating ${set.name}`)
+          const profile = await desktopBridge.createLibraryProfile(set.name)
+          if (!profile) { report(t('messages.importProfileFailed'), true); return }
+          created.push(profile.name)
+          names.set(set.name, profile.name)
+          throwIfCancelled(signal)
+        }
+        for (const [index, set] of conversion.sets.entries()) {
+          progress(0.4 + 0.3 * (index / conversion.sets.length), `Writing ${names.get(set.name)}`)
+          let text = set.text
+          for (const [planned, actual] of names) {
+            if (planned !== actual) text = text.split(loadConfigBindingValue(planned)).join(loadConfigBindingValue(actual))
+          }
+          const result = await desktopBridge.saveLibraryProfile(names.get(set.name)!, serializeConfig(parseConfigText(ensureHeaderLines(text))))
+          if (!result) { report(t('messages.importProfileFailed'), true); return }
+          throwIfCancelled(signal)
+        }
+        progress(0.8, 'Updating the library')
+        await refreshLibraryProfiles()
+        throwIfCancelled(signal)
+        const main = names.get(conversion.sets[0].name)!
+        progress(0.9, `Opening ${main}`)
+        await handleLoadProfileFromLibrary(main)
+        progress(1)
+        report(t('messages.profileImported', { profileName: main }))
+      }, { cancellable: true })
+    } catch (error) {
+      if (!(error instanceof OperationCancelled)) throw error
+      for (const name of created) await desktopBridge.deleteLibraryProfile(name)
+      await refreshLibraryProfiles()
+      report(`Import of ${conversion.title} cancelled.`)
+    }
+  }
   const handleCopyActiveProfile = async () => {
     const profile = await desktopBridge.copyActiveProfile()
     if (profile) { ++selection.current; selectProfile(profile); await refreshLibraryProfiles(); report(t('messages.profileCopied', { profileName: profile.name })) }
@@ -242,6 +287,6 @@ export function useProfileLibrary({ resetConfigHistory, configText, setConfigTex
     libraryProfiles, isLibraryLoading, editedLibraryNames, currentLibraryProfile, activeProfilePath,
     appliedProfileName, runtimeConfig, refreshLibraryProfiles, applyConfig, saveConfig, handleLoadProfileFromLibrary,
     handleLibraryProfileNameChange: (name: string, value: string) => setEditedLibraryNames(prev => ({ ...prev, [name]: value })),
-    handleCreateProfile, handleRenameProfile, handleDeleteLibraryProfile, handleImportProfile, handleCopyActiveProfile, handleSaveAsCopy,
+    handleCreateProfile, handleRenameProfile, handleDeleteLibraryProfile, handleImportProfile, handleImportSteamLayout, handleCopyActiveProfile, handleSaveAsCopy,
   }
 }

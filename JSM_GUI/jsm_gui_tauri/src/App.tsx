@@ -170,6 +170,10 @@ const ProfileManager = lazy(async () => {
   return { default: module.ProfileManager }
 })
 
+const SteamImportDialog = lazy(async () => {
+  const module = await import('./components/SteamImportDialog')
+  return { default: module.SteamImportDialog }
+})
 const AutoloadManager = lazy(async () => {
   const module = await import('./components/AutoloadManager')
   return { default: module.AutoloadManager }
@@ -360,6 +364,7 @@ function App() {
   const [recalibrating, setRecalibrating] = useState(false)
   const [isProfileModalOpen, setProfileModalOpen] = useState(false)
   const [isAutoloadModalOpen, setAutoloadModalOpen] = useState(false)
+  const [isSteamImportOpen, setSteamImportOpen] = useState(false)
   const [isRwcGuideModalOpen, setIsRwcGuideModalOpen] = useState(false)
   const [isConfigDrawerOpen, setConfigDrawerOpen] = useState(false)
   const [configWindowPosition, setConfigWindowPosition] = useState<FloatingWindowPosition | null>(null)
@@ -476,6 +481,7 @@ function App() {
       return true
     }
     if (isAutoloadModalOpen) { setAutoloadModalOpen(false); return true }
+    if (isSteamImportOpen) { setSteamImportOpen(false); return true }
     if (drawerOpen) { setDrawerOpen(false); return true }
     if (returnToInput.current) { const restore = returnToInput.current; returnToInput.current = null; restore(); return true }
     // Home: B resumes editing. A Studio page: B is Home (2f). A configuration
@@ -484,7 +490,7 @@ function App() {
     if (isStudioPage(primaryTab)) { setPrimaryTab('home'); return true }
     if (primaryTab !== 'overview') { setPrimaryTab('overview'); return true }
     return false
-  }, [isConfigDrawerOpen, isAutoloadModalOpen, drawerOpen, primaryTab, setPrimaryTab])
+  }, [isConfigDrawerOpen, isAutoloadModalOpen, isSteamImportOpen, drawerOpen, primaryTab, setPrimaryTab])
   useKeyboardNav({ onPageStep: stepPage, onEscape: closeFloatingWindows, activePage: primaryTab })
 
   useEffect(() => {
@@ -878,6 +884,7 @@ function App() {
     handleRenameProfile,
     handleDeleteLibraryProfile,
     handleImportProfile,
+    handleImportSteamLayout,
     handleCopyActiveProfile,
     handleSaveAsCopy,
   } = useProfileLibrary({
@@ -1838,6 +1845,7 @@ function App() {
                 isCalibrating={isCalibrating}
                 profileApplied={currentLibraryProfile === appliedProfileName && documentText === runtimeConfig}
                 onImportProfile={handleImportProfile}
+                onImportFromSteam={() => setSteamImportOpen(true)}
                 libraryProfiles={libraryProfiles}
                 libraryLoading={isLibraryLoading}
                 editedProfileNames={editedLibraryNames}
@@ -2486,6 +2494,7 @@ function App() {
               event.target.value = ''
             }} />
             <button type="button" className="button button--secondary" onClick={() => importInputRef.current?.click()}>Import</button>
+            <button type="button" className="button button--secondary" onClick={() => setSteamImportOpen(true)}>Import from Steam</button>
             {/* Opens the New configuration dialog on the page (TODO-46): name, optional game, auto-apply off by default. */}
             <button type="button" className="button button--primary" onClick={() => window.dispatchEvent(new Event('jsm:new-configuration'))}>+ New configuration</button>
           </>
@@ -2793,6 +2802,14 @@ function App() {
             </Suspense>
           </div>
         </div>
+      )}
+      {isSteamImportOpen && (
+        <Suspense fallback={<LazyPanelFallback title="Import from Steam" compact />}>
+          <SteamImportDialog
+            onClose={() => setSteamImportOpen(false)}
+            onImport={conversion => { setSteamImportOpen(false); void handleImportSteamLayout(conversion) }}
+          />
+        </Suspense>
       )}
       {isAutoloadModalOpen && (
         <Suspense fallback={<LazyPanelFallback title={t('autoload.title')} compact />}>

@@ -103,6 +103,8 @@ pub fn run() {
             commands::launch_jsm,
             commands::get_mapper_status,
             commands::get_layer_stack,
+            commands::list_steam_layouts,
+            commands::read_steam_layout,
             commands::set_autoload_rule_paused,
             commands::set_calibration_hud_enabled,
             services::virtual_keyboard::keyboard_preferences,

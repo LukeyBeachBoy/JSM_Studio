@@ -179,6 +179,17 @@ export type GlobalChord = {
   profilePath: string
 }
 
+/** A Steam Input layout file found in the local Steam install. */
+export type SteamLayoutFile = {
+  path: string
+  title: string
+  game: string
+  appId?: string | null
+  controllerType: string
+  source: 'personal' | 'cloud' | 'template'
+  modifiedMs: number
+}
+
 export type NamedProfile = {
   path: string
   name: string
@@ -423,6 +434,8 @@ export interface DesktopBridge {
   onGyroCalibrationResult: (callback: (payload: GyroCalibrationResult) => void) => Unsubscribe
   listLibraryProfiles: () => Promise<string[]>
   listLibraryProfileMeta: () => Promise<LibraryProfileMeta[]>
+  listSteamLayouts: () => Promise<SteamLayoutFile[]>
+  readSteamLayout: (path: string) => Promise<string>
   onLibraryProfilesChanged: (callback: (profiles: string[]) => void) => Unsubscribe
   /** A binding (in a held global chord) loaded a configuration, which became the applied one. */
   onAppliedProfileChanged: (callback: (profile: NamedProfile) => void) => Unsubscribe
@@ -947,6 +960,20 @@ export const desktopBridge: DesktopBridge = {
       return invokeTauri<LibraryProfileMeta[]>('library_list_profile_meta').catch(() => [])
     }
     return (await getElectronAPI()?.listLibraryProfileMeta?.()) ?? []
+  },
+  async listSteamLayouts() {
+    if (isTauriWindow()) {
+      return invokeTauri<SteamLayoutFile[]>('list_steam_layouts').catch(() => [])
+    }
+    return (await getElectronAPI()?.listSteamLayouts?.()) ?? []
+  },
+  async readSteamLayout(path) {
+    if (isTauriWindow()) {
+      return invokeTauri<string>('read_steam_layout', { path })
+    }
+    const read = getElectronAPI()?.readSteamLayout
+    if (!read) throw new Error('Reading Steam layouts needs the desktop app.')
+    return read(path)
   },
   onLibraryProfilesChanged(callback) {
     if (isTauriWindow()) {
