@@ -2,7 +2,7 @@
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "JSM Evolved",
   "mainBinaryName": "JSM Evolved",
-  "version": "0.7.133",
+  "version": "0.7.134",
   "identifier": "com.lukeybeachboy.jsmstudio",
   "build": {
     "beforeDevCommand": "npm run dev:web",
