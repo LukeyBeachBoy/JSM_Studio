@@ -84,8 +84,16 @@ fn show(app: &AppHandle) {
         let width = (WIDTH * scale).round() as i32;
         let x = monitor.position().x + (monitor.size().width as i32 - width) / 2;
         let y = monitor.position().y + (TOP_MARGIN * scale).round() as i32;
-        let _ = window.set_size(tauri::LogicalSize::new(WIDTH, HEIGHT));
-        let _ = window.set_position(tauri::PhysicalPosition::new(x, y));
+        let height = (HEIGHT * scale).round() as u32;
+        let position = tauri::PhysicalPosition::new(x, y);
+        // Physical size in the target display's scale, not a logical size
+        // (which converts with the scale of the display the window is still
+        // on), and the position set again after it: moving onto a display
+        // with a different scale makes Windows resize and nudge the window
+        // for the new DPI.
+        let _ = window.set_position(position);
+        let _ = window.set_size(tauri::PhysicalSize::new(width as u32, height));
+        let _ = window.set_position(position);
     }
     let _ = window.show();
     let _ = window.set_always_on_top(true);

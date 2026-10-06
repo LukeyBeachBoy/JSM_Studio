@@ -107,12 +107,17 @@ pub fn reset_refresh(state: &AppState) {
 /// menu wherever the user wants it rather than assuming one blob in the middle.
 pub fn set_bounds(app: &AppHandle, x: i32, y: i32, width: u32, height: u32) -> Result<(), String> {
     let window = ensure(app)?;
+    let position = tauri::PhysicalPosition::new(x, y);
     window
-        .set_position(tauri::PhysicalPosition::new(x, y))
+        .set_position(position)
         .map_err(|error| format!("Failed to move the overlay: {error}"))?;
     window
         .set_size(tauri::PhysicalSize::new(width.max(64), height.max(64)))
         .map_err(|error| format!("Failed to resize the overlay: {error}"))?;
+    // Moving onto a display with a different scale makes Windows resize and
+    // nudge the window to its suggested rect for the new DPI. The size above
+    // already overrides that; this puts the position back too.
+    let _ = window.set_position(position);
     Ok(())
 }
 
