@@ -329,11 +329,12 @@ export function Overlay() {
     const menu = activeKey ? menus[activeKey] : null
     if (!menu) return
     let cancelled = false
-    invoke<{ x: number; y: number; width: number; height: number }>('overlay_workarea')
+    invoke<{ x: number; y: number; width: number; height: number; scale?: number }>('overlay_workarea')
       .then(area => {
         if (cancelled) return
         // The work area is in physical pixels, so the stored logical size is
-        // scaled by the display's DPI. placeMenu keeps the box fully on screen
+        // scaled by the DPI of the display the menu is going to (the game's,
+        // which may not be the one this window is on yet). placeMenu keeps the box fully on screen
         // near an edge. A stick wheel is round and owes nothing to the pad's
         // shape, so it stays square whatever the touchpad happens to be.
         const surface = (activeKey ?? '').split(':')[0] as OverlaySurfaceKey
@@ -341,7 +342,7 @@ export function Overlay() {
           menu.placement,
           isStickSurface(surface) ? 1 : aspect,
           area,
-          window.devicePixelRatio || 1
+          area.scale || window.devicePixelRatio || 1
         )
         invoke('overlay_set_bounds', box).catch(() => {})
       })

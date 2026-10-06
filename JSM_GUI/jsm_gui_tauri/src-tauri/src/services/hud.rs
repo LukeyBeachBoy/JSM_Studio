@@ -51,6 +51,7 @@ fn build(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
         .resizable(false)
         .shadow(false)
         .focused(false)
+        .content_protected(false)
         .visible(false)
         .inner_size(WIDTH, HEIGHT)
         .build()
@@ -75,9 +76,10 @@ fn show(app: &AppHandle) {
         return;
     }
     let Ok(window) = ensure(app) else { return };
-    // Top centre of the primary display: where a notification would be, and
-    // clear of the middle of the screen the player is aiming at.
-    if let Ok(Some(monitor)) = window.primary_monitor() {
+    // Top centre of the display the game is on (the one a stream captures, see
+    // overlay.rs): where a notification would be, and clear of the middle of
+    // the screen the player is aiming at.
+    if let Some(monitor) = crate::services::overlay::target_monitor(app, &window) {
         let scale = monitor.scale_factor();
         let width = (WIDTH * scale).round() as i32;
         let x = monitor.position().x + (monitor.size().width as i32 - width) / 2;

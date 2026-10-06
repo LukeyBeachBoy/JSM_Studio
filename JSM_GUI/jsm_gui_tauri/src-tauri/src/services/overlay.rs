@@ -9,6 +9,12 @@
 //! window over a game in EXCLUSIVE fullscreen -- borderless windowed is
 //! required. Drawing over exclusive fullscreen means hooking the game's
 //! present chain, which is exactly the thing worth avoiding.
+//!
+//! Streaming (Steam Remote Play, Sunshine/Moonlight) captures one display, the
+//! one the game is on -- often a virtual display the host created for the
+//! client, or the TV rather than the desk monitor. So the overlay follows the
+//! foreground window's display every time it is placed, instead of staying on
+//! whichever monitor it happened to be created on.
 
 use std::sync::atomic::Ordering;
 
@@ -33,6 +39,9 @@ fn build(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
         .resizable(false)
         .shadow(false)
         .focused(false)
+        // Explicitly capturable: the whole point is that a stream or a
+        // recording shows the menu too.
+        .content_protected(false)
         .visible(false)
         .inner_size(520.0, 520.0)
         .build()
@@ -107,16 +116,62 @@ pub fn set_bounds(app: &AppHandle, x: i32, y: i32, width: u32, height: u32) -> R
     Ok(())
 }
 
-/// The work area of the monitor the overlay is on, so the frontend can turn the
-/// fractional positions a config stores into real pixels.
-pub fn workarea(app: &AppHandle) -> Result<(i32, i32, u32, u32), String> {
+/// The display the player is looking at: the one holding the foreground window
+/// (the game), falling back to the overlay's own display and then the primary.
+/// Physical pixels, plus the display's scale factor so the caller can size a
+/// menu for the display it is about to land on rather than the one it left.
+pub fn workarea(app: &AppHandle) -> Result<(i32, i32, u32, u32, f64), String> {
     let window = ensure(app)?;
-    let monitor = window
-        .current_monitor()
-        .map_err(|error| format!("Failed to read the monitor: {error}"))?
-        .or_else(|| window.primary_monitor().ok().flatten())
+    let monitor = target_monitor(app, &window)
         .ok_or_else(|| "No monitor reported for the overlay.".to_string())?;
     let position = monitor.position();
     let size = monitor.size();
-    Ok((position.x, position.y, size.width, size.height))
+    Ok((
+        position.x,
+        position.y,
+        size.width,
+        size.height,
+        monitor.scale_factor(),
+    ))
+}
+
+/// Shared with the calibration HUD, which wants the same display.
+pub fn target_monitor(app: &AppHandle, window: &tauri::WebviewWindow) -> Option<tauri::Monitor> {
+    foreground_monitor(app)
+        .or_else(|| window.current_monitor().ok().flatten())
+        .or_else(|| window.primary_monitor().ok().flatten())
+}
+
+#[cfg(target_os = "windows")]
+fn foreground_monitor(app: &AppHandle) -> Option<tauri::Monitor> {
+    use windows_sys::Win32::Graphics::Gdi::{
+        GetMonitorInfoW, MonitorFromWindow, MONITORINFO, MONITOR_DEFAULTTONULL,
+    };
+    use windows_sys::Win32::UI::WindowsAndMessaging::GetForegroundWindow;
+
+    let foreground = unsafe { GetForegroundWindow() };
+    if foreground.is_null() {
+        return None;
+    }
+    let handle = unsafe { MonitorFromWindow(foreground, MONITOR_DEFAULTTONULL) };
+    if handle.is_null() {
+        return None;
+    }
+    let mut info: MONITORINFO = unsafe { std::mem::zeroed() };
+    info.cbSize = std::mem::size_of::<MONITORINFO>() as u32;
+    if unsafe { GetMonitorInfoW(handle, &mut info) } == 0 {
+        return None;
+    }
+    // Tauri reports monitors by their top-left corner in the same virtual
+    // screen coordinates, which is enough to match one up.
+    let (left, top) = (info.rcMonitor.left, info.rcMonitor.top);
+    app.available_monitors()
+        .ok()?
+        .into_iter()
+        .find(|monitor| monitor.position().x == left && monitor.position().y == top)
+}
+
+#[cfg(not(target_os = "windows"))]
+fn foreground_monitor(_app: &AppHandle) -> Option<tauri::Monitor> {
+    None
 }
