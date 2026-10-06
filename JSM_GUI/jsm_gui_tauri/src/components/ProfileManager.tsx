@@ -10,6 +10,7 @@ type ProfileManagerProps = {
   isCalibrating: boolean
   profileApplied: boolean
   onImportProfile?: (fileName: string, content: string) => void
+  onImportFromSteam?: () => void
   libraryProfiles: string[]
   libraryLoading?: boolean
   editedProfileNames: Record<string, string>
@@ -46,6 +47,7 @@ export function ProfileManager({
   onDeleteProfile,
   onAddProfile,
   onImportProfile,
+  onImportFromSteam,
   onLoadLibraryProfile,
   lockMessage,
   onCopyActiveProfile,
@@ -124,6 +126,9 @@ export function ProfileManager({
       <div className={styles.welcomeChoices}>
         {onImportProfile && <button type="button" className={styles.choice} onClick={() => importRef.current?.click()}>
           <b>Import a config</b><span>Pick a .txt from your JSM folder</span>
+        </button>}
+        {onImportFromSteam && <button type="button" className={styles.choice} onClick={onImportFromSteam}>
+          <b>From Steam</b><span>Convert a Steam Input layout</span>
         </button>}
         <button type="button" className={styles.choice} onClick={onAddProfile}>
           <b>Empty</b><span>Every input unbound</span>
