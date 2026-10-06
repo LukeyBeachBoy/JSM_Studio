@@ -20,6 +20,12 @@ jobs:
           submodules: recursive
 
       - name: Compile and run numeric touch regression tests
+        # The pinned harness runner copies only some headers into its build
+        # directory, so touch_four_way_harness.cpp cannot find
+        # TouchGridRouting.h. Put the backend's include directory on the
+        # search path until run_touch_harness.py copies it itself.
+        env:
+          CPLUS_INCLUDE_PATH: ${{ github.workspace }}/JoyShockMapper/JoyShockMapper/include
         run: python3 JoyShockMapper/tests/run_touch_harness.py
 
       - name: Verify SDL contact patch and cached-source upgrades
