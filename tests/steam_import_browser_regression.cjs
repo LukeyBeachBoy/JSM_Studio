@@ -48,8 +48,7 @@ const fixture = name => fs.readFileSync(path.join(__dirname, 'fixtures/steam', n
     const artifacts = path.resolve(__dirname, '../tmp/steam-import'); fs.mkdirSync(artifacts, { recursive: true });
     const shot = name => page.screenshot({ path: path.join(artifacts, name + '.png') });
 
-    await page.locator('.profile-chip').first().click();
-    await page.getByRole('menuitem', { name: 'Open configuration library' }).click();
+    await page.getByRole('button', { name: /^Configurations/ }).first().click();
     await page.getByRole('button', { name: 'Import from Steam' }).click();
 
     // The list: the person's own layouts, then Valve's templates.
@@ -81,7 +80,7 @@ const fixture = name => fs.readFileSync(path.join(__dirname, 'fixtures/steam', n
     await page.getByRole('dialog', { name: 'Choose a Steam layout' }).getByRole('button', { name: /Wardogs Steam/ }).click();
     await page.getByRole('button', { name: 'Import 2 configurations' }).click();
     await page.getByRole('dialog').waitFor({ state: 'detached' });
-    await page.locator('.profile-chip').filter({ hasText: 'Wardogs Steam 2' }).waitFor();
+    await page.waitForFunction(() => 'Wardogs Steam 2' in window.__profiles);
 
     const profiles = await page.evaluate(() => window.__profiles);
     assert.equal(profiles['Wardogs Steam'], 'RESET_MAPPINGS\nS = ENTER\n', 'an existing configuration is never overwritten');
