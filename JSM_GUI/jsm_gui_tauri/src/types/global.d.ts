@@ -15,6 +15,8 @@ declare interface Window {
     onMapperStatus?: (callback: (payload: import('../platform/desktopBridge').MapperStatus) => void) => () => void
     onGyroCalibrationResult?: (callback: (payload: import('../platform/desktopBridge').GyroCalibrationResult) => void) => () => void
     listLibraryProfiles?: () => Promise<string[]>
+    listSteamLayouts?: () => Promise<import('../platform/desktopBridge').SteamLayoutFile[]>
+    readSteamLayout?: (path: string) => Promise<string>
     saveLibraryProfile?: (name: string, content: string) => Promise<{ name: string }>
     loadLibraryProfile?: (name: string) => Promise<{ name: string; content: string }>
     readConfigFile?: (path: string) => Promise<string | null>

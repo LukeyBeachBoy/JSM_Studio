@@ -2,6 +2,9 @@
 // library and a live Steam Controller without the desktop runtime, the same
 // shape the Playwright regressions inject. Never bundled into a build (see
 // main.tsx, which only imports this behind import.meta.env.DEV).
+import steamSampleV3 from '../../../../tests/fixtures/steam/wardogs_v3.vdf?raw'
+import steamSampleV2 from '../../../../tests/fixtures/steam/gamepad_v2.vdf?raw'
+
 const profiles: Record<string, string> = {
   Wardogs: [
     'RESET_MAPPINGS',
@@ -19,6 +22,14 @@ const profiles: Record<string, string> = {
   Cyberpunk: 'RESET_MAPPINGS\nS = SPACE\nZL = RMOUSE\n',
   Gamepad: 'RESET_MAPPINGS\n',
 }
+
+// Steam layouts for the Import from Steam dialog: the regression fixtures, so
+// the preview shows exactly what the tests convert.
+const steamLayouts = [
+  { path: 'C:\\Program Files (x86)\\Steam\\steamapps\\common\\Steam Controller Configs\\1\\config\\1203220\\controller_triton.vdf', title: 'Wardogs Steam', game: 'Wardogs', appId: '1203220', controllerType: 'controller_triton', source: 'personal' as const, modifiedMs: Date.parse('2026-09-28'), text: steamSampleV3 },
+  { path: 'C:\\Program Files (x86)\\Steam\\userdata\\1\\241100\\remote\\controller_config\\cyberpunk2077\\controller_neptune.vdf', title: 'Gamepad With Camera Controls', game: 'Cyberpunk 2077', appId: null, controllerType: 'controller_neptune', source: 'cloud' as const, modifiedMs: Date.parse('2026-08-02'), text: steamSampleV2 },
+  { path: 'C:\\Program Files (x86)\\Steam\\controller_base\\templates\\gamepad_fps.vdf', title: 'Gamepad With Camera Controls', game: 'Steam template', appId: null, controllerType: 'controller_neptune', source: 'template' as const, modifiedMs: 0, text: steamSampleV2 },
+]
 
 // Raw button bits (utils/controllerStatus RAW_BUTTONS) for the commands the
 // scriptable pad below can hold.
@@ -49,6 +60,15 @@ export function installMockDesktop() {
     listLibraryProfiles: async () => Object.keys(profiles),
     loadLibraryProfile: async (name: string) => ({ name, content: profiles[name] ?? '' }),
     saveLibraryProfile: async (name: string, content: string) => { profiles[name] = content; return { name } },
+    createLibraryProfile: async (preferred = 'New configuration') => {
+      let name = preferred
+      for (let n = 2; name in profiles; n++) name = `${preferred} ${n}`
+      profiles[name] = 'RESET_MAPPINGS\n'
+      return { name, path: `profiles-library/${name}.txt`, content: profiles[name] }
+    },
+    deleteLibraryProfile: async (name: string) => { delete profiles[name]; return { success: true } },
+    listSteamLayouts: async () => steamLayouts.map(layout => ({ ...layout, text: undefined })),
+    readSteamLayout: async (path: string) => steamLayouts.find(layout => layout.path === path)?.text ?? '',
     applyProfile: async (path: string) => ({ path, mappingEnabled: true }),
     listAutoloadRules: async () => [
       { processName: 'JSM Studio', fileName: 'JSM Studio.txt', kind: 'profile', profileName: 'AppNavigation', missingProfile: false, builtIn: true },

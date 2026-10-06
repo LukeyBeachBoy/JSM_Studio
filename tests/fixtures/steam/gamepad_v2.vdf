@@ -1,0 +1,63 @@
+"controller_mappings"
+{
+	"version" "2"
+	"game" "Gamepad Camera"
+	"title" "#Title"
+	"group"
+	{
+		"id"		"0"
+		"mode"		"four_buttons"
+		"bindings"
+		{
+			"button_a"		"xinput_button A"
+			"button_b"		"xinput_button B"
+		}
+	}
+	"group"
+	{
+		"id"		"1"
+		"mode"		"trigger"
+		"bindings"
+		{
+			"click"		"xinput_button TRIGGER_LEFT"
+		}
+		"settings"
+		{
+			"output_trigger"		"1"
+		}
+	}
+	"group"
+	{
+		"id"		"2"
+		"mode"		"joystick_move"
+		"bindings"
+		{
+			"click"		"xinput_button JOYSTICK_RIGHT"
+		}
+		"settings"
+		{
+			"output_joystick"		"1"
+		}
+	}
+	"group_source_bindings"
+	{
+		"0"		"button_diamond active"
+		"1"		"left_trigger active"
+		"2"		"right_trackpad active"
+	}
+	"switch_bindings"
+	{
+		"bindings"
+		{
+			"button_escape"		"xinput_button start"
+			"button_back_left"		"xinput_button a"
+		}
+	}
+	"Localization"
+	{
+		"english"
+		{
+			"Title" "Gamepad With Camera Controls"
+		}
+	}
+}
