@@ -35,11 +35,14 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  await jump.waitFor();
  const status = page.locator('.shift-status');
  const capsule = page.locator('.hint-capsule');
+ // Mouse clicks render keyboard hint keycaps; a physical pad takeover renders
+ // controller glyphs of different widths. Compare both states in pad mode.
+ await page.evaluate(() => { document.body.dataset.inputSource = 'controller'; });
+ await page.waitForTimeout(300);
 
- // Idle: the slots are there, and empty.
- assert.equal(await status.count(), 1, 'the title bar keeps no slot for a held modeshift');
- assert.equal((await status.innerText()).trim(), '');
- const before = { jump: await jump.boundingBox(), status: await status.boundingBox(), capsule: await capsule.boundingBox() };
+ // The shell has no live modeshift indicator or reserved slot.
+ assert.equal(await status.count(), 0, 'the title bar still draws a live modeshift indicator');
+ const before = { jump: await jump.boundingBox(), capsule: await capsule.boundingBox() };
  assert.match(await jump.innerText(), /Jump/);
 
  // Hold L4.
@@ -50,21 +53,21 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  assert.match(text, /was Jump/, 'and says what it was');
  assert.match(text, /\bV\b/, 'with the shifted value');
  assert.match(await trigger.innerText(), /Held/, 'the trigger says Held');
- assert.match((await status.innerText()).replace(/\s+/g, ' '), /L4 held 2 inputs shifted/);
- // Said once: the title bar has the slot here, so the capsule keeps none.
+ assert.equal(await status.count(), 0, 'holding a trigger restores the removed indicator');
+ // The capsule has no alternate live indicator either.
  assert.equal(await capsule.locator('.hint-capsule__status').count(), 0, 'the capsule repeats the title bar\'s held status');
  assert.doesNotMatch((await capsule.innerText()).replace(/\s+/g, ' '), /L4 held/);
- const after = { jump: await jump.boundingBox(), status: await status.boundingBox(), capsule: await capsule.boundingBox() };
- for (const key of ['jump', 'status', 'capsule']) {
+ const after = { jump: await jump.boundingBox(), capsule: await capsule.boundingBox() };
+ for (const key of ['jump', 'capsule']) {
   assert.deepEqual([after[key].width, after[key].height].map(Math.round), [before[key].width, before[key].height].map(Math.round), `${key} changed size while L4 was held`);
  }
 
  // Let go: back as it was.
  await page.evaluate(() => { window.__buttons = 0 });
  await page.waitForFunction(() => !document.querySelector('[data-overview-input="L"]')?.dataset.shifted);
- assert.equal((await status.innerText()).trim(), '');
+ assert.equal(await status.count(), 0);
 
  assert.deepEqual(errors,[]);
- console.log('PASS: a held modeshift swaps its inputs in place and fills the reserved slots without moving anything');
+ console.log('PASS: a held modeshift swaps its inputs in place and leaves the shell free of live shift indicators');
  } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exit(1); });

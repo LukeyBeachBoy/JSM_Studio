@@ -1,3 +1,4 @@
+import { BINDING_ALIASES } from './bindingAliases'
 import {
   BUMPER_BUTTONS,
   CENTER_BUTTONS,
@@ -72,7 +73,7 @@ export type ParsedConfig = {
 }
 
 /** `# @label RT1 = Reload`, `# @icon RT1 = lucide:refresh-cw`, `# @overlay ...` */
-const ANNOTATION = /^\s*#\s*@(label|icon|overlay|layer)\b/i
+const ANNOTATION = /^\s*#\s*@(label|icon|overlay|layer|controller|controller-pad)\b/i
 
 const SECTION_HEADERS: Record<SectionKey, string> = {
   gyro_behavior: '# Gyro Behavior',
@@ -164,6 +165,9 @@ const isDirectiveKey = (key: string) => {
 const classifyButton = (command: string | undefined | null): KeymapSubsection => {
   if (!command) return 'misc'
   const upper = command.toUpperCase()
+  // Keep legacy shared targets alongside the physical targets they assign.
+  // Stable paddle ordering then preserves SL/SR versus individual precedence.
+  if (upper in BINDING_ALIASES) return 'paddles'
   for (const entry of BUTTON_TO_SUBSECTION) {
     if (entry.commands.includes(upper)) {
       return entry.subsection
@@ -395,8 +399,16 @@ export function serializeConfig(parsed: ParsedConfig): string {
     output.push('')
   }
 
+  // The engine rejects gyro/stick/trigger virtual modes until a device is
+  // selected. Emit the configuration's selection before those assignments,
+  // after imports so an imported selection cannot overwrite this override.
+  const virtualOutput = parsed.sections.keymap.filter(entry => /^\s*VIRTUAL_CONTROLLER\s*=/i.test(entry.line))
+  if (virtualOutput.length) {
+    output.push(...virtualOutput.flatMap(serializeEntry), '')
+  }
+
   SECTION_ORDER.forEach(sectionKey => {
-    const entries = parsed.sections[sectionKey]
+    const entries = sectionKey === 'keymap' ? parsed.sections.keymap.filter(entry => !virtualOutput.includes(entry)) : parsed.sections[sectionKey]
     if (!entries || entries.length === 0) return
 
     if (sectionKey === 'keymap') {

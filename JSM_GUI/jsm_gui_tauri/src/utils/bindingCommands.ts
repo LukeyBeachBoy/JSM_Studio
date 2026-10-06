@@ -1,5 +1,7 @@
+import { parseMenuCommand } from './menuCommands'
 import { isLoadConfigBindingValue } from './loadConfigBinding'
 import {
+  explicitBindingTokens,
   BindingActionModifier,
   BindingEventModifier,
   BindingExpression,
@@ -21,6 +23,8 @@ import {
   type VirtualControllerLogicalOutput,
 } from './virtualController'
 import { isHapticBindingValue } from './hapticBindings'
+import type { LayerAction } from './layers'
+import { isReleasedInput } from './released'
 
 export type BindingTriggerKind =
   | 'regular'
@@ -39,13 +43,22 @@ export type BindingOutputKind =
   | 'mouse'
   | 'wheel'
   | 'special'
+  /** A queued native gyro override, distinct from a profile activation condition. */
+  | 'gyroAction'
   | 'command'
   /** A console command that loads another configuration; see loadConfigBinding. */
   | 'loadConfig'
   | 'raw'
   | 'virtualController'
   | 'haptic'
+  /** The LED while this input is held: the chorded LIGHT_BAR / LED_BRIGHTNESS settings (TODO-54). */
+  | 'heldLed'
+  /** A layer action annotation on this input (TODO-55). */
+  | 'layerAction'
 export type BindingOutputBehavior = 'normal' | 'tapOnce' | 'toggle' | 'releaseOnly'
+
+/** What the light does while the input is down; null leaves the profile's value. */
+export type HeldLed = { color: string | null; brightness: number | null }
 
 export type BindingCommandSource =
   | {
@@ -56,6 +69,7 @@ export type BindingCommandSource =
       modifierCommand?: string
       expression: BindingExpression | null
       tokenIndex: number
+      ledBrightnessTokenIndex?: number
       lineValue: string
       isManual: boolean
     }
@@ -68,6 +82,19 @@ export type BindingCommandSource =
       target: 'LEFT' | 'RIGHT'
       mode: string
     }
+  // Two rows that are not tokens of a binding line: the settings and the
+  // annotation stay in the file exactly as they were, so older configurations
+  // and the layer runtime read them unchanged; only the card shows them as
+  // commands. Neither can move to another line or be paired with a tap/hold.
+  | {
+      kind: 'heldLed'
+      color: string | null
+      brightness: number | null
+    }
+  | {
+      kind: 'layerAction'
+      action: LayerAction
+    }
 
 export type BindingCommand = {
   id: string
@@ -77,6 +104,8 @@ export type BindingCommand = {
   outputValue: string
   virtualControllerLogicalOutput?: VirtualControllerLogicalOutput
   outputBehavior: BindingOutputBehavior
+  turboIntervalMs?: number | null
+  ledBrightness?: number | null
   conditionInput?: string
   tokens: BindingToken[]
   sourceLine: string
@@ -87,13 +116,50 @@ export type BindingCommand = {
 export type BindingCommandPatch = Partial<
   Pick<
     BindingCommand,
-    'triggerKind' | 'outputKind' | 'outputValue' | 'virtualControllerLogicalOutput' | 'outputBehavior' | 'conditionInput'
+    'triggerKind' | 'outputKind' | 'outputValue' | 'virtualControllerLogicalOutput' | 'outputBehavior' | 'conditionInput' | 'turboIntervalMs'
   >
->
+> & {
+  ledBrightness?: number | null
+  /** Switch the controller light between a lasting press and a temporary hold. */
+  ledActivation?: 'press' | 'hold'
+  /** For an LED-while-held row: the colour or the brightness; null clears one. */
+  heldLed?: Partial<HeldLed>
+  /** For a layer-action row: the layer, the verb, or the input ("!X" = on release). */
+  layerAction?: Partial<LayerAction>
+}
+
+/** Names belong to outputs, not their physical input. The ordinal distinguishes
+ * repeated outputs; changing activation does not change a command's identity. */
+export function commandNameKey(command: BindingCommand, siblings: BindingCommand[] = [], input = command.physicalInput) {
+  const identity = command.source.kind === 'heldLed'
+    ? 'LED' : command.source.kind === 'layerAction' ? `LAYER:${command.source.action.layerId}` : `${command.sourceLine}:${command.outputValue}`
+  const ordinal = siblings.slice(0, siblings.indexOf(command)).filter(other => other.sourceLine === command.sourceLine && other.outputValue === command.outputValue).length
+  return `${input}::${encodeURIComponent(identity)}::${ordinal}`.toUpperCase()
+}
+
+/** A row that is a setting or an annotation rather than a token: it cannot be
+ *  retargeted, duplicated, copied or captured into. */
+export const isFixedCommand = (command: BindingCommand) =>
+  command.source.kind === 'heldLed' || command.source.kind === 'layerAction'
+
+/** How a layer action's row reads on its chip: a hold is a Hold, the rest a
+ *  Press, and "!X" (utils/released.ts) happens on Release. */
+export const layerActionTrigger = (action: LayerAction): BindingTriggerKind =>
+  isReleasedInput(action.input) ? 'release' : action.verb === 'hold' ? 'hold' : 'regular'
+
+export const HELD_LED_COMMAND_SUFFIX = 'held-led'
+export const heldLedCommandId = (physicalInput: string) => `${physicalInput}-${HELD_LED_COMMAND_SUFFIX}`
+/** Stable across the verb and the layer: what the sheet keeps open while both
+ *  change. A press and a release action on the same layer are told apart. */
+export const layerActionCommandId = (physicalInput: string, action: LayerAction, siblings: LayerAction[] = []) => {
+  const released = isReleasedInput(action.input)
+  const twin = released && siblings.some(other => other !== action && other.layerId === action.layerId && !isReleasedInput(other.input))
+  return `${physicalInput}-layer-${action.layerId}${twin ? '-release' : ''}`
+}
 
 export type BindingCommandPreset = Pick<
   BindingCommand,
-  'triggerKind' | 'outputKind' | 'outputValue' | 'outputBehavior' | 'conditionInput'
+  'triggerKind' | 'outputKind' | 'outputValue' | 'outputBehavior' | 'conditionInput' | 'ledBrightness' | 'turboIntervalMs'
 >
 
 const TRIGGER_KINDS = new Set<BindingTriggerKind>([
@@ -114,18 +180,24 @@ const OUTPUT_KINDS = new Set<BindingOutputKind>([
   'mouse',
   'wheel',
   'special',
+  'gyroAction',
   'command',
   'loadConfig',
   'raw',
   'virtualController',
   'haptic',
+  'heldLed',
+  'layerAction',
 ])
 const OUTPUT_BEHAVIORS = new Set<BindingOutputBehavior>(['normal', 'tapOnce', 'toggle', 'releaseOnly'])
 const MOUSE_OUTPUT_VALUES = new Set(['LMOUSE', 'MMOUSE', 'RMOUSE', 'BMOUSE', 'FMOUSE'])
 const WHEEL_OUTPUT_VALUES = new Set(['SCROLLUP', 'SCROLLDOWN'])
 
+export const isQueuedGyroAction = (value: string) => /^(GYRO_ON|GYRO_OFF)$/.test(value.trim().toUpperCase())
+
 export const inferOutputKindFromBindingValue = (value: string): BindingOutputKind => {
   const normalized = value.trim().toUpperCase()
+  if (isQueuedGyroAction(normalized)) return 'gyroAction'
   if (MOUSE_OUTPUT_VALUES.has(normalized)) return 'mouse'
   if (WHEEL_OUTPUT_VALUES.has(normalized)) return 'wheel'
   if (isVirtualControllerToken(normalized)) return 'virtualController'
@@ -193,7 +265,7 @@ const outputKindFromToken = (token: BindingToken): BindingOutputKind => {
     case 'wheel':
       return 'wheel'
     case 'special':
-      return 'special'
+      return isQueuedGyroAction(token.value) ? 'gyroAction' : 'special'
     case 'console_command':
       // Loading a configuration is a console command like any other; it is
       // only told apart so the editor can offer the configurations by name.
@@ -214,6 +286,7 @@ const tokenKindFromOutput = (kind: BindingOutputKind): BindingTokenKind => {
     case 'wheel':
       return 'wheel'
     case 'special':
+    case 'gyroAction':
       return 'special'
     case 'command':
     case 'loadConfig':
@@ -333,6 +406,7 @@ export function bindingTokenToCommand(
     virtualControllerLogicalOutput:
       outputKind === 'virtualController' ? getVirtualControllerLogicalOutput(token.value) ?? undefined : undefined,
     outputBehavior: ACTION_TO_BEHAVIOR[token.actionModifier],
+    turboIntervalMs: token.turboIntervalMs,
     conditionInput: context.row.modifierCommand,
     tokens: [token],
     sourceLine,
@@ -358,8 +432,9 @@ export function bindingCommandToToken(command: BindingCommandPreset, fallback?: 
     kind,
     value: command.outputValue || createBindingToken(kind).value,
     raw: '',
-    actionModifier: BEHAVIOR_TO_ACTION[command.outputBehavior],
+    actionModifier: parseMenuCommand(command.outputValue) ? '' : BEHAVIOR_TO_ACTION[command.outputBehavior],
     eventModifier,
+    turboIntervalMs: command.triggerKind === 'turbo' ? command.turboIntervalMs : undefined,
   }
 }
 
@@ -370,6 +445,17 @@ export function commandTokenPreview(command: BindingCommand | BindingCommandPres
 export function commandLinePreview(command: BindingCommand) {
   if (command.source.kind === 'special') return `${command.source.specialKey} = ${command.physicalInput}`
   if (command.source.kind === 'stickShift') return `${command.physicalInput},${command.source.target}_STICK_MODE = ${command.source.mode}`
+  if (command.source.kind === 'heldLed') {
+    const { color, brightness } = command.source
+    return [
+      color ? `${command.physicalInput},LIGHT_BAR = x${color.replace(/^#/, '')}` : null,
+      brightness !== null ? `${command.physicalInput},LED_BRIGHTNESS = ${brightness}` : null,
+    ].filter(Boolean).join('\n')
+  }
+  if (command.source.kind === 'layerAction') {
+    const { input, verb, layerId } = command.source.action
+    return `# @layer-action ${input} = ${verb} ${layerId}`
+  }
   if (command.source.writeMode === 'line') return `${command.sourceLine} = ${command.source.lineValue}`
   return `${command.sourceLine} = ${commandTokenPreview(command)}`
 }
@@ -378,11 +464,28 @@ export function updateCommandExpression(command: BindingCommand, patch: BindingC
   if (command.source.kind !== 'row') return null
   const nextCommand = { ...command, ...patch }
   const nextToken = bindingCommandToToken(nextCommand, command.tokens[0])
+  // A change to the output or its behaviour keeps how the token fires. The
+  // second Press of `SPACE\ J\` carries an explicit `\`; rebuilt from its kind
+  // alone it would lose it and read as the hold of a tap-and-hold pair.
+  if (command.tokens[0] && (!patch.triggerKind || patch.triggerKind === command.triggerKind)) {
+    nextToken.eventModifier = command.tokens[0].eventModifier
+  }
   const expression =
     command.source.writeMode === 'line'
       ? command.source.expression ?? createBindingExpression(command.tokens)
       : createBindingExpression([command.tokens[0] ?? createBindingToken()])
-  return updateBindingExpressionToken(expression, command.source.writeMode === 'line' ? command.source.tokenIndex : 0, nextToken)
+  const index = command.source.writeMode === 'line' ? command.source.tokenIndex : 0
+  const updated = updateBindingExpressionToken(expression, index, nextToken)
+  if ('ledBrightness' in patch) {
+    const tokens = explicitBindingTokens(updated.tokens)
+    const brightnessIndex = command.source.ledBrightnessTokenIndex
+    if (brightnessIndex !== undefined) tokens.splice(brightnessIndex, 1)
+    if (patch.ledBrightness !== null && patch.ledBrightness !== undefined) {
+      tokens.splice(index + 1, 0, { ...tokens[index], value: `LED_BRIGHTNESS = ${patch.ledBrightness}`, raw: '' })
+    }
+    return createBindingExpression(tokens)
+  }
+  return updated
 }
 
 export function parseRowsToCommands(
@@ -391,6 +494,10 @@ export function parseRowsToCommands(
   options: {
     specialKey?: string
     stickShiftAssignments?: StickModeShiftAssignment[]
+    /** The chorded LIGHT_BAR / LED_BRIGHTNESS of this input: one row when either is set. */
+    heldLed?: HeldLed | null
+    /** This input's layer-action annotations, pressed ("X") and released ("!X"): one row each. */
+    layerActions?: LayerAction[]
   } = {}
 ) {
   const commands: BindingCommand[] = []
@@ -402,6 +509,14 @@ export function parseRowsToCommands(
       return
     }
     tokens.forEach((token, index) => {
+      const previous = tokens[index - 1]
+      const paired = row.writeMode === 'line' && previous && /^LIGHT_BAR\s*=/i.test(previous.value) && /^LED_BRIGHTNESS\s*=\s*\d+$/i.test(token.value)
+        && previous.eventModifier === token.eventModifier && previous.actionModifier === token.actionModifier
+      if (paired) return
+      const next = tokens[index + 1]
+      const brightness = row.writeMode === 'line' && /^LIGHT_BAR\s*=/i.test(token.value) && next
+        && next.eventModifier === token.eventModifier && next.actionModifier === token.actionModifier
+        ? /^LED_BRIGHTNESS\s*=\s*(\d+)$/i.exec(next.value) : null
       commands.push(
         bindingTokenToCommand(token, {
           physicalInput,
@@ -414,6 +529,11 @@ export function parseRowsToCommands(
           tokenCount: row.writeMode === 'slot' && row.slot === 'tap' && row.expression ? row.expression.tokens.length : expression?.tokens.length ?? tokens.length,
         })
       )
+      if (brightness) {
+        const command = commands[commands.length - 1]
+        command.ledBrightness = Number(brightness[1])
+        if (command.source.kind === 'row') command.source.ledBrightnessTokenIndex = index + 1
+      }
     })
   })
 
@@ -448,6 +568,37 @@ export function parseRowsToCommands(
     })
   })
 
+  const heldLed = options.heldLed
+  if (heldLed && (heldLed.color || heldLed.brightness !== null)) {
+    commands.push({
+      id: heldLedCommandId(physicalInput),
+      physicalInput,
+      triggerKind: 'hold',
+      outputKind: 'heldLed',
+      outputValue: [heldLed.color, heldLed.brightness !== null ? `${heldLed.brightness}%` : null].filter(Boolean).join(' '),
+      outputBehavior: 'normal',
+      tokens: [],
+      sourceLine: `${physicalInput},LIGHT_BAR`,
+      isRoundTripSafe: true,
+      source: { kind: 'heldLed', color: heldLed.color, brightness: heldLed.brightness },
+    })
+  }
+
+  options.layerActions?.forEach(action => {
+    commands.push({
+      id: layerActionCommandId(physicalInput, action, options.layerActions),
+      physicalInput,
+      triggerKind: layerActionTrigger(action),
+      outputKind: 'layerAction',
+      outputValue: `${action.verb} ${action.layerId}`,
+      outputBehavior: 'normal',
+      tokens: [],
+      sourceLine: `# @layer-action ${action.input}`,
+      isRoundTripSafe: true,
+      source: { kind: 'layerAction', action },
+    })
+  })
+
   return commands
 }
 
@@ -479,6 +630,7 @@ export function commandForValue(physicalInput: string, value: string, triggerKin
     outputKind,
     outputValue: token?.value ?? '',
     outputBehavior: token ? ACTION_TO_BEHAVIOR[token.actionModifier] : 'normal',
+    turboIntervalMs: token?.turboIntervalMs,
     tokens: token ? [token] : [],
     sourceLine: physicalInput,
     isRoundTripSafe: outputKind !== 'raw',

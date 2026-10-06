@@ -37,6 +37,8 @@ export type ApplyProfileResult = {
 }
 
 export type RuntimeMappingState = {
+  ledColor?: string
+  ledBrightness?: number
   activeProfilePath: string
   mappingEnabled: boolean
   autoloadEnabled: boolean
@@ -53,8 +55,6 @@ export type RuntimeMappingState = {
   soundGain?: number
   /** Switch off the Steam Controller's firmware gyro auto-calibration. */
   disableHardwareGyroCalibration?: boolean
-  /** Studio's reserved chords (pause mapping, calibrate gyro). */
-  reservedChords?: boolean
   /** Whether the calibration HUD appears over games. */
   calibrationHudEnabled?: boolean
   /** The global timing store (console refinement D8), in milliseconds. */
@@ -62,6 +62,40 @@ export type RuntimeMappingState = {
   dblPressMs?: number
   simPressMs?: number
   turboPeriodMs?: number
+  /** Trackpad orientation, degrees per pad, positive clockwise as seen by the user. */
+  leftPadRotation?: number
+  rightPadRotation?: number
+  /** The controller's own power jingle volume: 2 normal, 1 quiet, 0 off, -1 leave it. */
+  bootSoundLevel?: number
+  /** The first-connect question about that jingle has been answered (either way). */
+  firmwareSoundPromptDone?: boolean
+  /** A library sound's id; when set it plays instead of connectSound / shutdownSound. */
+  connectSoundFile?: string | null
+  shutdownSoundFile?: string | null
+  /** Which actuators play those sequences: the grip motors (where the
+   *  controller's own tunes play), the trackpads, or both. */
+  soundActuators?: SoundActuators
+}
+
+export type SoundActuators = 'grips' | 'pads' | 'both'
+
+/** One note of a converted sound (docs/plans/controller-sounds-library.md):
+ *  frequency 0 is a rest, gain is relative to SOUND_GAIN. */
+export type Tone = { frequencyHz: number; durationMs: number; gainDb: number }
+
+/** A sound in Studio's library (`sounds/<id>/`). `ready` once tones.txt exists. */
+export type SoundEntry = {
+  sourceFormat?: 'mp3' | 'midi'
+  midiTrack?: string
+  id: string
+  name: string
+  createdAt: number
+  /** The whole original, as decoded. */
+  durationMs: number
+  trimStartMs?: number
+  trimEndMs?: number
+  noteCount?: number
+  ready: boolean
 }
 
 /** Any of the global timing values; each is optional so one can change alone. */
@@ -70,17 +104,35 @@ export type GlobalTiming = { pollingMs?: number; holdPressMs?: number; dblPressM
 // Outside Tauri (the ?mock preview and the browser tests) the global store
 // lives here, so the Timing page behaves the same.
 const previewRuntime: RuntimeMappingState = {
+  ledColor: '#ffffff', ledBrightness: 100,
   activeProfilePath: 'profiles-library/Profile 1.txt', mappingEnabled: true, autoloadEnabled: true, controllerNavEnabled: true, trackpadOverlayEnabled: false,
   defaultPollingMs: 3, holdPressMs: 150, dblPressMs: 150, simPressMs: 50, turboPeriodMs: 80,
 }
 
+// The preview's sound library: one converted sound to start from, so the
+// pickers and the action picker have a "Your sounds" entry, plus whatever the
+// dialog imports (its audio kept so the editor can decode it).
+const previewSounds: SoundEntry[] = [
+  { id: 'snd-1727640000000-1a2b', name: 'Victory riff', createdAt: 1727640000000, durationMs: 12340, trimStartMs: 1000, trimEndMs: 4200, noteCount: 37, ready: true },
+]
+const previewAudio = new Map<string, string>()
+
 export type ControllerPreferences = {
+  ledColor: string
+  ledBrightness: number
   gyroCalibrationSeconds: number
   gyroCalibrationDelay: number
   connectSound: number
   shutdownSound: number
   soundGain: number
   disableHardwareGyroCalibration: boolean
+  leftPadRotation: number
+  rightPadRotation: number
+  bootSoundLevel: number
+  firmwareSoundPromptDone: boolean
+  connectSoundFile: string | null
+  shutdownSoundFile: string | null
+  soundActuators: SoundActuators
 }
 
 export type AutoloadRule = {
@@ -96,6 +148,25 @@ export type AutoloadRule = {
   paused?: boolean
   /** Unix milliseconds of the last time this app came to the front while the rule was on. */
   lastMatchedAtMs?: number
+  /** The executable the association was made from (TODO-46): where its icon comes from.
+   *  Absent for rules written by hand or before it was remembered. */
+  exePath?: string
+}
+
+/** An executable's icon as raw pixels (TODO-46); useAppIcon paints it once. */
+export type AppIcon = {
+  width: number
+  height: number
+  /** width × height × 4 bytes, rows top-down, base64. */
+  rgbaBase64: string
+}
+
+/** What saving a rule may also set; either left out leaves it as it was. */
+export type SaveAutoloadRuleOptions = {
+  /** The executable to remember for the icon. */
+  exePath?: string
+  /** false saves the rule paused: associated, not applied automatically. */
+  autoApply?: boolean
 }
 
 // One global chord: hold any button in `buttons`, the configuration at
@@ -103,6 +174,8 @@ export type AutoloadRule = {
 export type GlobalChord = {
   id: string
   buttons: string[]
+  triggerGroups?: string[][]
+  controllerModel?: string | null
   profilePath: string
 }
 
@@ -132,6 +205,8 @@ export type RunningProcess = {
   processName: string
   pid: number
   windowTitle?: string
+  /** Full path of the executable, when the process let Studio ask (TODO-46). */
+  exePath?: string
 }
 
 /** The configuration loaded when the front app has no rule of its own (16f "Desktop · Fallback"). */
@@ -260,6 +335,22 @@ export type AiGenerateResponse = {
 
 type Unsubscribe = () => void
 
+/** A rectangle as fractions of the screen (utils/mouseArea). */
+export type MouseAreaRect = { x: number; y: number; w: number; h: number }
+
+export type MouseAreaPickRequest = {
+  /** Which setting the result is for: 'LEFT', 'RIGHT', or '' for a single pad. */
+  pad: string
+  /** The area the pad already has, drawn ready to adjust. */
+  area: MouseAreaRect | null
+  /** STRETCH or UNIFORM, for the picker's pad-footprint ghost. */
+  fit: string
+  /** The pad's width over its height, for the same ghost. */
+  padAspect: number
+}
+
+export type MouseAreaPickResult = { pad: string; area: MouseAreaRect | null }
+
 export interface DesktopBridge {
   launchJSM: (calibrationSeconds?: number) => Promise<void>
   terminateJSM: () => Promise<void>
@@ -272,8 +363,21 @@ export interface DesktopBridge {
   /** The global timing store; saved and handed to the running mapper at once. */
   setGlobalTiming: (timing: GlobalTiming) => Promise<RuntimeMappingState>
   setControllerPreferences: (preferences: ControllerPreferences) => Promise<RuntimeMappingState>
-  /** gain: dB, 0 = as recorded; omitted plays at the saved level. */
-  playControllerSound: (sound: number, gain?: number) => Promise<{ success: boolean }>
+  /** gain: dB, 0 = as recorded; omitted plays at the saved level. With a
+   *  soundId the library sound plays instead of the built-in tune `sound`. */
+  playControllerSound: (sound: number, gain?: number, soundId?: string) => Promise<{ success: boolean }>
+  previewControllerTones: (tones: Tone[], gain?: number) => Promise<{ success: boolean }>
+  // The sound library (docs/plans/controller-sounds-library.md): MP3s kept
+  // under the runtime directory, converted to tone sequences the controller's
+  // haptics can play.
+  soundLibraryList: () => Promise<SoundEntry[]>
+  soundLibraryImport: (name: string, mp3Base64: string) => Promise<SoundEntry>
+  /** Base64 of the original MP3, for re-trimming. */
+  soundLibraryReadAudio: (id: string) => Promise<string>
+  soundLibrarySave: (id: string, name: string, durationMs: number, trimStartMs: number, trimEndMs: number, tones: Tone[], midiTrack?: string) => Promise<SoundEntry>
+  soundLibraryRename: (id: string, name: string) => Promise<SoundEntry>
+  /** Also clears the sound from connect / shutdown when it was chosen there. */
+  soundLibraryDelete: (id: string) => Promise<void>
   setControllerNavEnabled: (enabled: boolean) => Promise<RuntimeMappingState>
   /** Ends Test mode: loads Studio's navigation profile so the pad drives Studio again. */
   resumeStudioNavigation: () => Promise<boolean>
@@ -281,14 +385,25 @@ export interface DesktopBridge {
   /** A haptic tick/click (or a rumble pulse on pads without actuators) for Studio's own UI. Fire and forget. */
   controllerFeedback: (request: ControllerFeedbackRequest) => Promise<void>
   setTrackpadOverlayEnabled: (enabled: boolean) => Promise<void>
+  /**
+   * Opens the full-screen picker on which a MOUSE_AREA pad's rectangle is
+   * drawn over the game (services/area_picker.rs). Resolves when the picker
+   * is up; the result arrives through onMouseAreaPicked.
+   */
+  openMouseAreaPicker: (request: MouseAreaPickRequest) => Promise<void>
+  /** The picker finished: `area` is the rectangle kept, or null for a cancel. */
+  onMouseAreaPicked: (callback: (result: MouseAreaPickResult) => void) => Unsubscribe
   listAutoloadRules: () => Promise<AutoloadRule[]>
   listRunningProcesses: () => Promise<RunningProcess[]>
   getAutoloadFallback: () => Promise<AutoloadFallback>
   setAutoloadFallback: (fallback: AutoloadFallback) => Promise<AutoloadFallback | null>
-  saveAutoloadRule: (processName: string, profileName: string) => Promise<AutoloadRule | null>
+  saveAutoloadRule: (processName: string, profileName: string, options?: SaveAutoloadRuleOptions) => Promise<AutoloadRule | null>
   deleteAutoloadRule: (processName: string) => Promise<{ success: boolean }>
+  /** The icon inside an executable, or null when it has none (TODO-46). */
+  appIcon: (exePath: string) => Promise<AppIcon | null>
+  /** The Open dialog filtered to .exe; null when cancelled. */
+  pickExecutable: () => Promise<string | null>
   setAutoloadRulePaused: (processName: string, paused: boolean) => Promise<AutoloadRule | null>
-  setReservedChords: (enabled: boolean) => Promise<RuntimeMappingState | null>
   setCalibrationHudEnabled: (enabled: boolean) => Promise<RuntimeMappingState | null>
   onRuntimeMappingState: (callback: (state: RuntimeMappingState) => void) => Unsubscribe
   // What the tray menu asks of this window (src/traymenu/TrayMenu.tsx).
@@ -384,6 +499,43 @@ const noop: Unsubscribe = () => {}
 
 const getElectronAPI = () => (typeof window === 'undefined' ? undefined : window.electronAPI)
 const getTelemetryAPI = () => (typeof window === 'undefined' ? undefined : window.telemetry)
+
+// The ?mock preview's association calls (dev/mockDesktop.ts), typed here so
+// the global declaration need not grow for a dev-only surface.
+type MockAssociationApi = {
+  saveAutoloadRule?: (processName: string, profileName: string, options?: SaveAutoloadRuleOptions) => Promise<AutoloadRule | null>
+  appIcon?: (exePath: string) => Promise<AppIcon | null>
+  pickExecutable?: () => Promise<string | null>
+  deleteAutoloadRule?: (processName: string) => Promise<{ success: boolean }>
+}
+const mockAssociationApi = () => getElectronAPI() as MockAssociationApi | undefined
+
+// Outside Tauri every executable has an icon: a 32 × 32 rounded square whose
+// hue comes from the path, so two games in the preview look different.
+const previewAppIcon = (exePath: string): AppIcon => {
+  const size = 32
+  let hash = 0
+  for (const char of exePath.toLowerCase()) hash = (hash * 31 + char.charCodeAt(0)) >>> 0
+  const hue = hash % 360
+  const channel = (offset: number) => {
+    const k = (offset + hue / 30) % 12
+    return Math.round(255 * (0.55 - 0.4 * Math.max(-1, Math.min(k - 3, 9 - k, 1))))
+  }
+  const [r, g, b] = [channel(0), channel(8), channel(4)]
+  const pixels = new Uint8Array(size * size * 4)
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    const inset = 3
+    const dx = Math.max(inset - x, x - (size - 1 - inset), 0)
+    const dy = Math.max(inset - y, y - (size - 1 - inset), 0)
+    const corner = Math.hypot(Math.max(dx - 4, 0), Math.max(dy - 4, 0))
+    const inside = (dx === 0 || dy === 0 || corner <= 4)
+    const offset = (y * size + x) * 4
+    pixels.set(inside ? [r, g, b, 255] : [0, 0, 0, 0], offset)
+  }
+  let binary = ''
+  for (const byte of pixels) binary += String.fromCharCode(byte)
+  return { width: size, height: size, rgbaBase64: btoa(binary) }
+}
 const isTauriWindow = () => typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
 
 type TauriUpdate = import('@tauri-apps/plugin-updater').Update
@@ -515,6 +667,27 @@ export const desktopBridge: DesktopBridge = {
   async setTrackpadOverlayEnabled(enabled) {
     if (isTauriWindow()) await invokeTauri<void>('overlay_set_enabled', { enabled })
   },
+  async openMouseAreaPicker(request) {
+    if (isTauriWindow()) {
+      await invokeTauri<unknown>('area_picker_open', { request })
+      return
+    }
+    // Without the desktop runtime there is no screen to draw on. Stand in
+    // with a plausible hotbar strip so the editor's flow can still be walked
+    // through in the browser and the regressions. A pad that already has an
+    // area keeps it, as a real pick left untouched would.
+    const whole = !request.area || (request.area.x === 0 && request.area.y === 0 && request.area.w >= 1 && request.area.h >= 1)
+    const area = whole ? { x: 0.3, y: 0.9, w: 0.4, h: 0.08 } : request.area
+    window.setTimeout(() => {
+      window.dispatchEvent(new CustomEvent<MouseAreaPickResult>('jsm:mock-mouse-area', { detail: { pad: request.pad, area } }))
+    }, 250)
+  },
+  onMouseAreaPicked(callback) {
+    if (isTauriWindow()) return listenTauri<MouseAreaPickResult>('mouse-area-picked', callback)
+    const handler = (event: Event) => callback((event as CustomEvent<MouseAreaPickResult>).detail)
+    window.addEventListener('jsm:mock-mouse-area', handler)
+    return () => window.removeEventListener('jsm:mock-mouse-area', handler)
+  },
 
   async setDefaultPollingMs(value: number): Promise<RuntimeMappingState> {
     return desktopBridge.setGlobalTiming({ pollingMs: value })
@@ -535,11 +708,63 @@ export const desktopBridge: DesktopBridge = {
   },
   async setControllerPreferences(preferences) {
     if (isTauriWindow()) return invokeTauri<RuntimeMappingState>('set_controller_preferences', { preferences })
-    return { activeProfilePath: 'profiles-library/Profile 1.txt', mappingEnabled: true, autoloadEnabled: true, controllerNavEnabled: true, ...preferences }
+    // Kept, so the ?mock preview's first-connect prompt stays answered and the
+    // pickers hold their choice across the Preferences page's three instances.
+    Object.assign(previewRuntime, preferences)
+    return { ...previewRuntime }
   },
-  async playControllerSound(sound, gain) {
-    if (isTauriWindow()) return invokeTauri<{ success: boolean }>('play_controller_sound', { sound, gain })
+  async playControllerSound(sound, gain, soundId) {
+    if (isTauriWindow()) return invokeTauri<{ success: boolean }>('play_controller_sound', { sound, gain, soundId })
     return { success: false }
+  },
+  async previewControllerTones(tones, gain) {
+    if (isTauriWindow()) return invokeTauri<{ success: boolean }>('preview_controller_tones', { tones, gain })
+    return { success: false }
+  },
+  async soundLibraryList() {
+    if (isTauriWindow()) return invokeTauri<SoundEntry[]>('sound_library_list')
+    return previewSounds.map(entry => ({ ...entry }))
+  },
+  async soundLibraryImport(name, mp3Base64) {
+    if (isTauriWindow()) return invokeTauri<SoundEntry>('sound_library_import', { name, mp3Base64 })
+    const trimmed = name.trim().slice(0, 60)
+    if (!trimmed) throw new Error('The sound needs a name')
+    const id = `snd-${Date.now()}-${Math.floor(Math.random() * 0xffff).toString(16).padStart(4, '0')}`
+    // The mock cannot decode audio; the editor measures the real length itself.
+    const entry: SoundEntry = { id, name: trimmed, createdAt: Date.now(), durationMs: 0, ready: false, sourceFormat: atob(mp3Base64.slice(0, 8)).startsWith('MThd') ? 'midi' : 'mp3' }
+    previewSounds.push(entry)
+    previewAudio.set(id, mp3Base64)
+    return { ...entry }
+  },
+  async soundLibraryReadAudio(id) {
+    if (isTauriWindow()) return invokeTauri<string>('sound_library_read_audio', { id })
+    const audio = previewAudio.get(id)
+    if (audio === undefined) throw new Error(`No sound ${id}`)
+    return audio
+  },
+  async soundLibrarySave(id, name, durationMs, trimStartMs, trimEndMs, tones, midiTrack) {
+    if (isTauriWindow()) return invokeTauri<SoundEntry>('sound_library_save', { id, name, durationMs, trimStartMs, trimEndMs, tones, midiTrack })
+    const entry = previewSounds.find(candidate => candidate.id === id)
+    if (!entry) throw new Error(`No sound ${id}`)
+    Object.assign(entry, { name: name.trim().slice(0, 60) || entry.name, durationMs, trimStartMs, trimEndMs, noteCount: tones.length, ready: tones.length > 0, midiTrack })
+    return { ...entry }
+  },
+  async soundLibraryRename(id, name) {
+    if (isTauriWindow()) return invokeTauri<SoundEntry>('sound_library_rename', { id, name })
+    const entry = previewSounds.find(candidate => candidate.id === id)
+    if (!entry) throw new Error(`No sound ${id}`)
+    const trimmed = name.trim().slice(0, 60)
+    if (!trimmed) throw new Error('The sound needs a name')
+    entry.name = trimmed
+    return { ...entry }
+  },
+  async soundLibraryDelete(id) {
+    if (isTauriWindow()) { await invokeTauri<void>('sound_library_delete', { id }); return }
+    const index = previewSounds.findIndex(candidate => candidate.id === id)
+    if (index >= 0) previewSounds.splice(index, 1)
+    previewAudio.delete(id)
+    if (previewRuntime.connectSoundFile === id) previewRuntime.connectSoundFile = null
+    if (previewRuntime.shutdownSoundFile === id) previewRuntime.shutdownSoundFile = null
   },
   async setControllerNavEnabled(enabled) {
     if (isTauriWindow()) {
@@ -553,7 +778,8 @@ export const desktopBridge: DesktopBridge = {
   async controllerFeedback(request) {
     if (isTauriWindow()) { await invokeTauri<void>('controller_feedback', { ...request }).catch(() => {}); return }
     // Web preview: the dev mock records what would have been played.
-    ;(window as unknown as { __padFeedback?: ControllerFeedbackRequest[] }).__padFeedback?.push(request)
+    const preview = window as unknown as { __padFeedback?: ControllerFeedbackRequest[] }
+    preview.__padFeedback?.push(request)
   },
   async resumeStudioNavigation() {
     if (isTauriWindow()) {
@@ -606,11 +832,23 @@ export const desktopBridge: DesktopBridge = {
     }
     return (await getElectronAPI()?.setAutoloadFallback?.(fallback)) ?? null
   },
-  async saveAutoloadRule(processName, profileName) {
+  async saveAutoloadRule(processName, profileName, options) {
     if (isTauriWindow()) {
-      return invokeTauri<AutoloadRule>('save_autoload_rule', { processName, profileName }).catch(() => null)
+      return invokeTauri<AutoloadRule>('save_autoload_rule', { processName, profileName, exePath: options?.exePath, autoApply: options?.autoApply }).catch(() => null)
     }
-    return null
+    return (await mockAssociationApi()?.saveAutoloadRule?.(processName, profileName, options)) ?? null
+  },
+  async appIcon(exePath) {
+    if (isTauriWindow()) {
+      return invokeTauri<AppIcon | null>('app_icon', { exePath }).catch(() => null)
+    }
+    return (await mockAssociationApi()?.appIcon?.(exePath)) ?? previewAppIcon(exePath)
+  },
+  async pickExecutable() {
+    if (isTauriWindow()) {
+      return invokeTauri<string | null>('pick_executable').catch(() => null)
+    }
+    return (await mockAssociationApi()?.pickExecutable?.()) ?? 'C:\\Games\\DOOM Eternal\\DOOMEternalx64vk.exe'
   },
   async setCalibrationHudEnabled(enabled) {
     if (isTauriWindow()) {
@@ -618,12 +856,7 @@ export const desktopBridge: DesktopBridge = {
     }
     return null
   },
-  async setReservedChords(enabled) {
-    if (isTauriWindow()) {
-      return invokeTauri<RuntimeMappingState>('set_reserved_chords', { enabled }).catch(() => null)
-    }
-    return null
-  },
+
   onRuntimeMappingState(callback) {
     if (isTauriWindow()) {
       return listenTauri<RuntimeMappingState>('runtime-mapping-state', callback)
@@ -646,7 +879,7 @@ export const desktopBridge: DesktopBridge = {
     if (isTauriWindow()) {
       return invokeTauri<{ success: boolean }>('delete_autoload_rule', { processName }).catch(() => ({ success: false }))
     }
-    return { success: true }
+    return (await mockAssociationApi()?.deleteAutoloadRule?.(processName)) ?? { success: true }
   },
   async recalibrateGyro() {
     if (isTauriWindow()) {

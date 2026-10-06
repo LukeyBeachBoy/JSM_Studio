@@ -338,3 +338,9 @@ SDL/
 # Scratch and package-manager caches, never part of a build:
 tmp/
 .pnpm-store/
+/.vite/
+/.tmp-keyboard-video-*
+
+# Raw capture streams and recorder control files stay local; retain analysis.
+/captures/**/controller-telemetry.jsonl
+/captures/**/STOP

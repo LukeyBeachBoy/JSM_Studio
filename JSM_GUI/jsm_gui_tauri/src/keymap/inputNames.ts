@@ -25,7 +25,7 @@ const FIXED_NAMES: Record<string, string> = {
 
 const STEAM_NAMES: Record<string, string> = {
   '+': 'Menu button', '-': 'View button', HOME: 'Steam button', MISC1: 'Quick Access button',
-  MISC2: 'Right pad click', MISC3: 'Left pad click', MISC5: 'Right grip', MISC6: 'Left grip',
+  MISC2: 'Right pad click', MISC3: 'Left pad click', MISC4: 'Left pad touch', TOUCH: 'Right pad touch', MISC5: 'Right grip', MISC6: 'Left grip',
 }
 
 const FACE = new Set(['N', 'E', 'S', 'W'])

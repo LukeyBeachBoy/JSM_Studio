@@ -45,10 +45,11 @@ export function CurvePreview({ sensitivity, sample, hasPendingChanges, telemetry
       <SensitivityGraph
         minThreshold={sensitivity.minThreshold ?? 0}
         maxThreshold={sensitivity.maxThreshold ?? 0}
-        minSensX={sensitivity.minSensX}
-        minSensY={sensitivity.minSensY}
-        maxSensX={sensitivity.maxSensX}
-        maxSensY={sensitivity.maxSensY}
+        minSensX={sensitivity.gyroSensX ?? sensitivity.minSensX ?? 0}
+        minSensY={sensitivity.gyroSensY ?? sensitivity.gyroSensX ?? sensitivity.minSensY ?? sensitivity.minSensX ?? 0}
+        maxSensX={sensitivity.gyroSensX ?? sensitivity.maxSensX ?? 1}
+        maxSensY={sensitivity.gyroSensY ?? sensitivity.gyroSensX ?? sensitivity.maxSensY ?? sensitivity.maxSensX ?? 1}
+        steadying={{ cutoff: sensitivity.cutoffSpeed ?? 0, recovery: sensitivity.cutoffRecovery ?? 0, floor: sensitivity.steadyingFloorX ?? 0, enabled: (sensitivity.steadyingFloorX ?? 0) > 0 || (sensitivity.steadyingFloorY ?? 0) > 0 }}
         curveType={curveType}
         naturalVHalf={sensitivity.naturalVHalf ?? GYRO_ACCEL_DEFAULTS.naturalVHalf}
         powerVRef={sensitivity.powerVRef ?? GYRO_ACCEL_DEFAULTS.powerVRef}

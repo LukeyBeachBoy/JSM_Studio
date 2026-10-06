@@ -1,6 +1,9 @@
+import { namedMenuOverlay } from '../../utils/namedMenuOverlay'
+import { StickMenuCard, type StickMenuConfig } from './StickMenuCard'
+import { stickMenuLinks, isDirectStickMenu } from '../../utils/stickMenus'
 import { useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { formatStickModeLabel, STICK_MODE_VALUES } from '../../constants/sticks'
+import { formatStickModeLabel, STICK_MODE_PICKER_VALUES, isFlickStickMode, stickModePickerValue, stickModeTuningLabel } from '../../constants/sticks'
 import type { ButtonDefinition } from '../../keymap/schema'
 import { hitTestRegion, type OverlayMenu } from '../../utils/overlayLayout'
 import type { IconName } from '../icons/iconData'
@@ -9,6 +12,7 @@ import { SettingOrigin, SettingOrigins } from '../SettingOrigin'
 import { Sheet } from '../ui/Sheet'
 import { MenuPreview } from './MenuPreview'
 import { SummaryRow } from '../ui/SummaryRow'
+import { OPTION_HELP } from '../../utils/optionHelp'
 import { describeMenuPlacement } from '../../utils/menuDescriptions'
 import { StickPlot } from './StickPlot'
 import keymapStyles from '../Keymap.module.css'
@@ -20,9 +24,9 @@ const STICK_MODE_ICONS: Record<string, IconName> = {
 }
 
 const STICK_MODE_DESCRIPTIONS: Record<string, string> = {
-  '': 'Up, down, left, right bindings', NO_MOUSE: 'Up, down, left, right bindings', AIM: 'Moves the mouse, like the gyro does',
+  '': 'Up, down, left, right bindings', NO_MOUSE: 'Up, down, left, right bindings', AIM: 'Tilt to move the mouse continuously',
   FLICK: 'Flick to turn, rotate to sweep', FLICK_ONLY: 'Flick to turn', ROTATE_ONLY: 'Rotate to sweep',
-  MOUSE_AREA: 'Positions the cursor inside a ring', SCROLL_WHEEL: 'Rotate to scroll', HYBRID_AIM: 'Aim on the rim, directions inside',
+  MOUSE_AREA: 'Stick movement controls mouse displacement', MOUSE_RING: 'Cursor follows a circle around the screen centre', SCROLL_WHEEL: 'Rotate to pulse the left and right bindings', HYBRID_AIM: 'Mouse movement with optional continuous edge turning',
   INNER_RING: 'Directions, plus a light-tilt binding', OUTER_RING: 'Directions, plus a full-tilt binding',
   RADIAL_MENU: 'Point to pick a segment', LEFT_STICK: 'Passed through to the virtual pad’s left stick', RIGHT_STICK: 'Passed through to the virtual pad’s right stick',
 }
@@ -71,6 +75,7 @@ type Props = {
   /** The mode's own settings (flick and aim), and their rare half. */
   extras?: ReactNode
   extrasAdvanced?: ReactNode
+  menuConfig?: StickMenuConfig
   radial?: StickRadial
   /** The stick's modeshifts: full width under the stick. */
   modeshifts?: ReactNode
@@ -85,10 +90,17 @@ type Props = {
 export function StickSection({
   side, keyPrefix, title, action, live, mode, ring, inner, outer, defaultInner, defaultOuter,
   onModeChange, onRingChange, onInnerChange, onOuterChange, disabled,
-  directionButtons, directionSummary, clickButton, ringButton, touchButton, renderButton, extras, extrasAdvanced, radial, modeshifts,
+  directionButtons, directionSummary, clickButton, ringButton, touchButton, renderButton, extras, extrasAdvanced, radial, modeshifts, menuConfig,
 }: Props) {
   const { t } = useTranslation()
+  const [chooseMenu, setChooseMenu] = useState(false)
+  const reservedMenu = menuConfig && (stickMenuLinks(menuConfig.text, side).find(link => isDirectStickMenu(link.attachment, menuConfig.trigger)) ?? (menuConfig.trigger ? stickMenuLinks(menuConfig.text, side).find(link => link.attachment.activation === 'ALWAYS') : undefined))
   const upper = (mode || '').toUpperCase()
+  const tuningTitle = stickModeTuningLabel(upper, t)
+  const number = (raw: string | undefined, fallback: number) => {
+    const value = Number.parseFloat(raw ?? '')
+    return Number.isFinite(value) ? value : fallback
+  }
   const radialMode = upper === 'RADIAL_MENU' && radial
   const innerValue = Number.parseFloat(inner || defaultInner) || 0
   const outerValue = Number.parseFloat(outer || defaultOuter) || 0
@@ -105,17 +117,17 @@ export function StickSection({
     return () => window.clearTimeout(timer)
   }, [hot])
 
-  const segmentCount = Math.max(0, Math.floor(Number.parseFloat(radial?.segments ?? '') || 0))
-  const detail = radialMode
+  const segmentCount = Math.max(2, Math.min(25, Math.floor(number(radial?.segments, 8))))
+  const detail = reservedMenu ? `${reservedMenu.menu.name} · Reserved for menu` : radialMode
     ? `${formatStickModeLabel('RADIAL_MENU', t)} · ${segmentCount} ${segmentCount === 1 ? 'segment' : 'segments'}`
-    : upper && upper !== 'NO_MOUSE' ? formatStickModeLabel(upper, t) : undefined
+    : upper && upper !== 'NO_MOUSE' ? formatStickModeLabel(stickModePickerValue(upper), t) : undefined
 
   // Where the stick is pointing on the wheel, by the overlay's own hit test.
   // Telemetry reports up as positive; the wheel reads down as positive.
   const liveHot = useMemo(() => {
     if (!radialMode || !radial.menu || !live) return -1
     const magnitude = Math.hypot(live.x, live.y)
-    if (magnitude < (Number.parseFloat(radial.deadzone) || 0.35)) return -1
+    if (magnitude < number(radial.deadzone, 0.35)) return -1
     return hitTestRegion(radial.menu, live.x, -live.y)
   }, [radialMode, radial, live])
   const selectedSegment = radialMode ? radial.buttons.find(button => button.command.toUpperCase() === radial.selected?.toUpperCase()) ?? radial.buttons[0] : undefined
@@ -127,25 +139,28 @@ export function StickSection({
     ? [...segmentLabels, segmentCount > 2 ? `3–${segmentCount} slots` : ''].filter(Boolean).join(' · ')
     : t('keymap.stickRadialSegmentsHint', 'Numbered clockwise from up')
 
-  const modeOptions = STICK_MODE_VALUES.filter(value => value !== 'NO_MOUSE').map(value => ({ value, label: formatStickModeLabel(value, t) }))
+  const menuPickerValue = reservedMenu?.menu.type === 'RADIAL' ? 'RADIAL_MENU' : 'VIRTUAL_MENU'
+  const modeOptions: { value: string; label: string }[] = STICK_MODE_PICKER_VALUES.filter(value => value !== 'NO_MOUSE').map(value => ({ value, label: formatStickModeLabel(value, t), description: value === 'MOUSE_AREA' ? 'Move the mouse by moving the joystick; holding it still stops movement, and returning to centre moves the mouse back. Radius sets the travel scale. Example: make small cursor adjustments around a starting position. This does not lock the cursor to a screen rectangle.' : OPTION_HELP[value] }))
+
+  if (reservedMenu && menuPickerValue === 'VIRTUAL_MENU') modeOptions.push({ value: 'VIRTUAL_MENU', label: 'Virtual menu' })
 
   return (
     <div className={keymapStyles.stickSection}>
       <div className={keymapStyles.stickEyebrow}>
         <span className={keymapStyles.eyebrowHeading}>{title}</span>
         {detail && <span className={keymapStyles.stickEyebrowDetail}>{detail}</span>}
-        {action && <span className={keymapStyles.stickEyebrowAction}>{action}</span>}
+        {action && !reservedMenu && <span className={keymapStyles.stickEyebrowAction}>{action}</span>}
       </div>
       <div className={`${keymapStyles.stickLayout} ${keymapStyles.padLayout}`}>
-        {radialMode ? (
-          <div className={keymapStyles.stickWheel} id={`stick-extras-${side}`}>
+        {reservedMenu ? <div className={keymapStyles.stickWheel}><MenuPreview menu={namedMenuOverlay(reservedMenu.menu)} aspect={1} fill onSelect={() => window.dispatchEvent(new CustomEvent('jsm:virtual-menu', { detail: reservedMenu.menu.id }))} /></div> : radialMode ? (
+          <div className={keymapStyles.stickWheel}>
             {radial.menu
               ? <MenuPreview menu={radial.menu} aspect={1} fill selectedCommand={selectedSegment?.command ?? null} hotCommand={hot} onSelect={radial.onSelect}
                   livePoint={live && Math.hypot(live.x, live.y) > 0.02 ? { x: live.x, y: -live.y } : null} />
               : <div className={keymapStyles.stickWheelEmpty}>{t('keymap.stickRadialNeedsSegments', 'Set at least two segments to draw the wheel.')}</div>}
             <div className={keymapStyles.stickReadout}>
               {t('keymap.stickRadialReadout', 'select past {{deadzone}} · {{hot}} · editing {{editing}}', {
-                deadzone: (Number.parseFloat(radial.deadzone) || 0.35).toFixed(2),
+                deadzone: number(radial.deadzone, 0.35).toFixed(2),
                 hot: liveHot >= 0 ? `segment ${liveHot + 1} hot` : 'centred',
                 editing: selectedIndex || '—',
               })}
@@ -160,25 +175,26 @@ export function StickSection({
           <div className={`setting-row setting-row--compact ${keymapStyles.stickRow}`} data-capture-ignore="true" data-hints="A:Choose mode;B:Back">
             <div className={keymapStyles.stickRowText}>
               <span className={keymapStyles.stickRowTitle}>{t('keymap.mode', 'Mode')}</span>
-              <span className={keymapStyles.stickRowHint}>{STICK_MODE_DESCRIPTIONS[upper] ?? formatStickModeLabel(upper, t)}</span>
+              <span className={keymapStyles.stickRowHint}>{reservedMenu ? 'Reserved for menu · movement and camera unavailable' : STICK_MODE_DESCRIPTIONS[upper] ?? formatStickModeLabel(upper, t)}</span>
             </div>
             <SettingOrigin setting={`${keyPrefix}STICK_MODE`} />
             <IconSelect
-              icon={STICK_MODE_ICONS[upper] ?? 'stDirections'}
+              icon={reservedMenu ? 'stRadial' : STICK_MODE_ICONS[stickModePickerValue(upper)] ?? 'stDirections'}
               className={keymapStyles.stickModeSelect}
               ariaLabel={`${title} mode`}
-              value={upper === 'NO_MOUSE' ? '' : upper}
-              disabled={disabled}
-              onValueChange={onModeChange}
+              value={reservedMenu ? menuPickerValue : upper === 'NO_MOUSE' ? '' : stickModePickerValue(upper)}
+              disabled={disabled || !!(menuConfig?.trigger && reservedMenu?.attachment.activation === 'ALWAYS')}
+              onValueChange={value => { if (value === 'VIRTUAL_MENU' && reservedMenu) window.dispatchEvent(new CustomEvent('jsm:virtual-menu', { detail: reservedMenu.menu.id })); else if (value === 'RADIAL_MENU' && menuConfig) setChooseMenu(true); else onModeChange(value) }}
               placeholder={formatStickModeLabel('NO_MOUSE', t)}
               groups={[
-                { options: [{ value: '', label: `${formatStickModeLabel('NO_MOUSE', t)} (default)` }] },
+                { options: [{ value: '', label: `${formatStickModeLabel('NO_MOUSE', t)} (default)`, description: OPTION_HELP.NO_MOUSE }] },
                 { options: modeOptions },
               ]}
             />
           </div>
 
-          {radialMode ? (
+          {menuConfig && <StickMenuCard side={side} config={menuConfig} choosing={chooseMenu} onClose={() => setChooseMenu(false)} legacy={!!radialMode && !reservedMenu} />}
+          {!reservedMenu && (radialMode ? (
             <>
               {selectedSegment && (() => {
                 const info = radial.describe(selectedSegment.command)
@@ -194,8 +210,8 @@ export function StickSection({
                 value={String(segmentCount || 8)}
                 adjust={{ kind: 'number', value: segmentCount || 8, min: 2, max: 25, step: 1, onChange: value => radial.onSegmentsChange(String(value)) }} />
               <SummaryRow label={t('keymap.stickRadialDeadzone', 'Select past')} hint={t('keymap.stickRadialDeadzoneHint', 'Deadzone before a segment is chosen')} setting={`${keyPrefix}STICK_MENU_DEADZONE`} mono disabled={disabled}
-                value={(Number.parseFloat(radial.deadzone) || 0.35).toFixed(2)}
-                adjust={{ kind: 'number', value: Number.parseFloat(radial.deadzone) || 0.35, min: 0, max: 1, step: 0.05, onChange: value => radial.onDeadzoneChange(String(value)) }} />
+                value={number(radial.deadzone, 0.35).toFixed(2)}
+                adjust={{ kind: 'number', value: number(radial.deadzone, 0.35), min: 0, max: 1, step: 0.05, onChange: value => radial.onDeadzoneChange(String(value)) }} />
               {/* The wheel's look and place on screen: the On-screen menus view (2d). */}
               {radial.menu && radial.appearance && (
                 <SummaryRow label="On-screen menu" hint={describeMenuPlacement(radial.menu)} value="Arrange" hints="A:Arrange;B:Back"
@@ -205,20 +221,20 @@ export function StickSection({
           ) : directionButtons.length > 0 && (
             <SummaryRow label={t('keymap.stickDirections', 'Directions')} hint={directionSummary} onActivate={() => setSheet('directions')}
               data={{ 'data-input-command': directionButtons[0]?.command }} />
-          )}
+          ))}
 
           {clickButton && renderButton(clickButton, { label: `${t('keymap.stickClick', 'Click')} (${short})` })}
 
-          <SummaryRow label={t('keymap.stickDeadzone', 'Deadzone')} setting={`${keyPrefix}STICK_DEADZONE_INNER`}
+          {!reservedMenu && <SummaryRow label={t('keymap.stickDeadzone', 'Deadzone')} setting={`${keyPrefix}STICK_DEADZONE_INNER`}
             hint={t('keymap.stickDeadzoneSummary', 'Inner {{inner}} · outer {{outer}}', { inner: innerValue.toFixed(2), outer: outerValue.toFixed(2) })}
-            value={innerValue.toFixed(2)} mono onActivate={() => setSheet('zones')} />
+            value={innerValue.toFixed(2)} mono onActivate={() => setSheet('zones')} />}
 
           {touchButton && renderButton(touchButton)}
         </div>
       </div>
-      {(extras || extrasAdvanced) && (
-        <div className={keymapStyles.stickExtras} id={`stick-extras-${side}`}>
-          <SummaryRow label={t('keymap.flickAndAim', 'Flick and aim')} hint={`Tuning for ${formatStickModeLabel(upper, t)}`} onActivate={() => setSheet('extras')} />
+      {!reservedMenu && (isFlickStickMode(upper) || extras || extrasAdvanced) && (
+        <div className={keymapStyles.stickExtras}>
+          <SummaryRow label={tuningTitle} onActivate={() => setSheet('extras')} />
         </div>
       )}
       {modeshifts}
@@ -237,8 +253,16 @@ export function StickSection({
           adjust={{ kind: 'choice', value: ring || '', options: [{ value: '', label: t('common.defaultValue', { value: t('stickModes.outer') }) }, { value: 'INNER', label: t('stickModes.inner') }, { value: 'OUTER', label: t('stickModes.outer') }], onChange: onRingChange }} />
         {ringButton && renderButton(ringButton, { label: t('keymap.stickRingBinding', 'Ring binding') })}
       </Sheet>
-      <Sheet open={sheet === 'extras'} onClose={() => setSheet(null)} eyebrow={eyebrow} title={`${title} · ${t('keymap.flickAndAim', 'Flick and aim')}`}
+      <Sheet open={sheet === 'extras'} onClose={() => setSheet(null)} eyebrow={eyebrow} title={`${title} · ${tuningTitle}`}
         description={STICK_MODE_DESCRIPTIONS[upper] ?? formatStickModeLabel(upper, t)} hints={[{ button: 'A', label: 'Select' }, { button: 'B', label: 'Close' }]}>
+        {isFlickStickMode(upper) && (
+          <SummaryRow size="sheet" label={t('keymap.flickBehaviour', 'Behaviour')} setting={`${keyPrefix}STICK_MODE`} disabled={disabled}
+            adjust={{ kind: 'choice', value: upper.toUpperCase(), options: [
+              { value: 'FLICK', label: t('keymap.flickAndRotate', 'Flick and rotate') },
+              { value: 'FLICK_ONLY', label: formatStickModeLabel('FLICK_ONLY', t) },
+              { value: 'ROTATE_ONLY', label: formatStickModeLabel('ROTATE_ONLY', t) },
+            ], onChange: onModeChange }} />
+        )}
         <div className="sheet-embed">{extras}{extrasAdvanced}</div>
       </Sheet>
     </div>

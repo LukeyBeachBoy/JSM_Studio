@@ -118,7 +118,7 @@
   --art-line: #e3eaf1; --art-detail: #aebbc8; --art-body: #1c242d; --art-well: #0e1419; --art-cap: #212a34; --art-rim: rgba(255, 255, 255, .10);
 
   /* Z */
-  --z-sticky: 10; --z-focus: 20; --z-drawer: 40; --z-menu: 50; --z-dialog: 60; --z-toast: 70;
+  --z-sticky: 10; --z-focus: 20; --z-drawer: 40; --z-menu: 50; --z-dialog: 60; --z-popover: 65; --z-toast: 70;
 }
 
 :root[data-theme="light"] {

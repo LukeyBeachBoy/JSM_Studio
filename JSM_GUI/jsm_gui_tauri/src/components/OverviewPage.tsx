@@ -1,3 +1,4 @@
+import { stickMenuLinks } from '../utils/stickMenus'
 import { LayerUsageContext, LayerIcon, LayerValueBadge } from './LayerBar'
 import { layerSlot } from './keymap/ConceptTiles'
 import { inputUses, inputUsage, configuredInputs, readableSetting, layerEntries, layerHue, layerSlotOf } from '../utils/layers'
@@ -23,6 +24,8 @@ import { getButtonBindingRows, getKeymapValue, isTrackballBindingPresent } from 
 import { parseBindingLabels } from '../utils/bindingLabels'
 import { shiftedInputName, shiftedInputs } from '../utils/shiftedInputs'
 import styles from './OverviewPage.module.css'
+import { ControllerLightSettings } from './ControllerLightSettings'
+import type { Dispatch, SetStateAction } from 'react'
 
 export type OverviewNavTarget = 'buttons' | 'dpad' | 'triggers' | 'joysticks' | 'touchpad' | 'gyro'
 
@@ -30,6 +33,7 @@ type OverviewPageProps = {
   devices?: TelemetryDevice[]
   onNavigate: (target: OverviewNavTarget) => void
   /** The active configuration, for the bound-input marks and action names. */
+  onConfigTextChange?: Dispatch<SetStateAction<string>>
   configText?: string
   onSelectCommand?: (command: string) => void
   onSelectLayer?: (id: string) => void
@@ -90,7 +94,7 @@ const titleCase = (value: string) => value.toLowerCase().replace(/_/g, ' ').repl
 const STICK_MODES: Record<string, string> = { NO_MOUSE: 'Directions', AIM: 'Aim', HYBRID_AIM: 'Hybrid aim', FLICK: 'Flick stick', FLICK_ONLY: 'Flick only', ROTATE_ONLY: 'Rotate only', MOUSE_RING: 'Mouse ring', MOUSE_AREA: 'Mouse area', SCROLL_WHEEL: 'Scroll wheel', RADIAL_MENU: 'Radial menu', LEFT_STICK: 'Left stick', RIGHT_STICK: 'Right stick' }
 const PAD_MODES: Record<string, string> = { MOUSE: 'Mouse', GRID_AND_STICK: 'Button pad', MOUSE_RING: 'Mouse ring', MOUSE_JOYSTICK: 'Mouse joystick', NO_MOUSE: 'Directions', SCROLL_WHEEL: 'Scroll wheel', RADIAL_MENU: 'Radial menu' }
 
-export function OverviewPage({ devices, onNavigate, configText, onSelectCommand, onSelectLayer, disabled, onRecalibrate, recalibrating, configName, virtualOutput }: OverviewPageProps) {
+export function OverviewPage({ onConfigTextChange, devices, onNavigate, configText, onSelectCommand, onSelectLayer, disabled, onRecalibrate, recalibrating, configName, virtualOutput }: OverviewPageProps) {
   const { t } = useTranslation()
   const device = devices?.[0]
   // A controller that appears while the page is open gets about a second of
@@ -135,11 +139,11 @@ export function OverviewPage({ devices, onNavigate, configText, onSelectCommand,
   const [filter, setFilter] = useState('all')
   const [modifier, setModifier] = useState('')
   const [showDiagram, setShowDiagram] = useState(true)
-  // Inputs a global chord holds: they read "Reserved by global chord".
+  // Inputs a global chord holds: they read "Global chord trigger".
   const [reserved, setReserved] = useState<Set<string>>(() => new Set())
   useEffect(() => {
     let live = true
-    desktopBridge.listGlobalChords().then(chords => { if (live) setReserved(new Set(chords.flatMap(chord => chord.buttons.map(button => button.toUpperCase())))) }).catch(() => {})
+    desktopBridge.listGlobalChords().then(chords => { if (live) setReserved(new Set(chords.flatMap(chord => (chord.triggerGroups?.flat() ?? chord.buttons).map(button => button.toUpperCase())))) }).catch(() => {})
     return () => { live = false }
   }, [])
 
@@ -361,7 +365,7 @@ export function OverviewPage({ devices, onNavigate, configText, onSelectCommand,
       : chips.length
         ? <span className={styles.chips}>{chips.slice(0, 2)}{chips.length > 2 && <span className={styles.chip} data-concept="more">+{chips.length - 2}</span>}</span>
         : unbound && named
-          ? <span className={styles.detailLine}>{reserved.has(command) ? t('overview.reservedByChord', 'Reserved by global chord') : t('overview.unbound', 'Unbound')}</span>
+          ? <span className={styles.detailLine}>{reserved.has(command) ? t('overview.reservedByChord', 'Global chord trigger') : t('overview.unbound', 'Unbound')}</span>
           : detail ? <span className={styles.detailLine}>{detail}</span> : null
     return <div key={command} className={styles.inputRow}><button type="button" className={`${styles.callout} ${compact ? styles.calloutCompact : ''} ${unbound ? styles.calloutAvailable : ''}`} data-overview-input={command}
       data-has-uses={entry.hasUses ? '' : undefined}
@@ -431,6 +435,10 @@ export function OverviewPage({ devices, onNavigate, configText, onSelectCommand,
     const overrides = items.filter(command => Object.keys(selected?.overrides ?? {}).some(key => key === command || key.endsWith(',' + command))).length
     const bound = items.filter(command => bindings[command]?.used).length
     if (!modeKey) return `${bound} bound${overrides ? ` · ${overrides} override${overrides === 1 ? '' : 's'}` : ''}`
+    if (modeKey === 'LEFT_STICK_MODE' || modeKey === 'RIGHT_STICK_MODE') {
+      const owner = stickMenuLinks(configText ?? '', modeKey === 'LEFT_STICK_MODE' ? 'left' : 'right').find(link => link.attachment.activation === 'ALWAYS')
+      if (owner) return `Reserved for menu · ${owner.menu.name}`
+    }
     const raw = mode(modeKey)
     if (!raw) return ''
     // Regions that do something, not every cell a shift happens to name.
@@ -445,7 +453,10 @@ export function OverviewPage({ devices, onNavigate, configText, onSelectCommand,
   }
 
   const group = (id: string, title: string, commands: string[], modeKey?: string, modeCommand?: string, variant: 'column' | 'card' = 'column') => {
+    const menuLinks = id === 'left-stick' || id === 'right-stick' ? stickMenuLinks(configText ?? '', id === 'left-stick' ? 'left' : 'right') : []
+    const menuReserved = menuLinks.some(link => link.attachment.activation === 'ALWAYS')
     const items = commands.filter(command => {
+      if (menuReserved && /^[LR](UP|DOWN|LEFT|RIGHT|RING|M\d+)$/.test(command)) return false
       const entry = bindings[command]
       if (!entry || (!showUnbound && filter !== 'available' && !entry.used)) return false
       if (id !== 'other-hardware' && !controllerSupportsInput(device, command)) return false
@@ -467,6 +478,9 @@ export function OverviewPage({ devices, onNavigate, configText, onSelectCommand,
               : <span className={styles.mode}>{line}</span>)}
           </header>
         : <h3>{title}</h3>}
+      {menuLinks.length > 0 && <p className={styles.menuReservation}>
+        {menuReserved ? 'Movement and camera unavailable: this stick is reserved for menu navigation.' : `Menu navigation (${[...new Set(menuLinks.map(link => link.menu.name))].join(', ')}) temporarily replaces movement and camera while active.`}
+      </p>}
       <div className={styles.callouts}>
         {items.map(command => callout(command, variant === 'card'))}
       </div>
@@ -568,6 +582,7 @@ export function OverviewPage({ devices, onNavigate, configText, onSelectCommand,
         {group('shared-pad', 'Trackpad', [...TOUCH_BUTTONS.map(b => b.command), ...TOUCH_STICK_BUTTONS.map(b => b.command), ...numbered(/^T\d+$/)], 'TOUCHPAD_MODE', 'LEFT_PAD', 'card')}
       </section>
 
+      {onConfigTextChange && <ControllerLightSettings text={configText ?? ''} onChange={onConfigTextChange} />}
       <section className={styles.quickSettings} aria-label="Quick settings">
         <button type="button" className={`${styles.quickTile} ${styles.quickTileGyro}`} aria-label="Gyro summary" onClick={() => onNavigate('gyro')}>
           <span className={styles.quickMain}>

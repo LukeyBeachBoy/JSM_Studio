@@ -33,6 +33,8 @@
   box-shadow: inset 0 0 0 1px var(--line-1);
 }
 .commandLine:focus-within { box-shadow: inset 0 0 0 1px var(--focus-keyboard); }
+/* The pad's focus glide rings the input itself (TODO-48): no second ring on the field. */
+:global(body[data-focus-glide]) .commandLine:focus-within { box-shadow: inset 0 0 0 1px var(--line-1); }
 .prompt { color: var(--text-3); font-family: var(--font-mono); }
 .commandLine input {
   flex: 1;

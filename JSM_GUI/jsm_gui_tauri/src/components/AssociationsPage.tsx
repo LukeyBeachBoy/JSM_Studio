@@ -5,6 +5,7 @@ import { AppSelect } from './ui/AppSelect'
 import { Icon } from './icons/Icon'
 import { showToast } from '../utils/toast'
 import { relativeTime, useClock } from '../hooks/useLastSeenController'
+import { AppIconImage } from './AppIconImage'
 import styles from './AssociationsPage.module.css'
 
 type AssociationsPageProps = {
@@ -97,8 +98,10 @@ export function AssociationsPage({ libraryProfiles, autoloadEnabled, runtimeBusy
     return () => host.removeEventListener(PAD_EVENT, onPad)
   })
 
+  // A paused rule made from an executable is an association that only lends
+  // its icon (TODO-46): a state the user chose, not something to fix.
   const describe = (rule: AutoloadRule) =>
-    rule.paused ? 'Paused'
+    rule.paused ? (rule.exePath ? 'Associated · not applied automatically' : 'Paused')
       : rule.missingProfile ? 'Its configuration is missing'
         : rule.kind === 'advanced' ? 'Runs its own commands'
           : rule.lastMatchedAtMs ? `Last matched ${relativeTime(rule.lastMatchedAtMs, now)}` : 'Last matched never'
@@ -113,7 +116,7 @@ export function AssociationsPage({ libraryProfiles, autoloadEnabled, runtimeBusy
         <ul className={styles.rows} ref={listRef}>
           {rules.map(rule => (
             <li key={rule.fileName} className={styles.row} data-paused={rule.paused || undefined} data-process={rule.processName} data-hints="A:Change configuration;X:Enable / disable;B:Back">
-              <span className={styles.appIcon} aria-hidden="true"><Icon name="associations" size={20} /></span>
+              <span className={styles.appIcon} aria-hidden="true"><AppIconImage exePath={rule.exePath} size={28} fallback={<Icon name="associations" size={20} />} /></span>
               <span className={styles.text}>
                 <span className={styles.name}>{exeName(rule.processName)}</span>
                 <span className={styles.sub}>{describe(rule)}</span>

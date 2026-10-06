@@ -8,6 +8,7 @@ import {
 import { DEFAULT_STICK_DEADZONE_INNER, DEFAULT_STICK_DEADZONE_OUTER } from '../constants/defaults'
 import { formatVidPid } from '../utils/controllers'
 import { keyName } from '../constants/configKeys'
+import { osMouseSpeedCompensated, writeOsMouseSpeedCompensation } from '../utils/config'
 
 type StickArgs = {
   configText: string
@@ -15,23 +16,6 @@ type StickArgs = {
   // profile imports nothing.
   readText?: string
   setConfigText: React.Dispatch<React.SetStateAction<string>>
-}
-
-const upsertFlagCommand = (text: string, key: string, enabled: boolean) => {
-  const lines = text.split(/\r?\n/).filter(line => {
-    const trimmed = line.trim().toUpperCase()
-    if (!trimmed) return true
-    return !(trimmed === key.toUpperCase() || trimmed.startsWith(`${key.toUpperCase()} `) || trimmed.startsWith(`${key.toUpperCase()}=`))
-  })
-  if (enabled) {
-    lines.push(key)
-  }
-  return lines.join('\n')
-}
-
-const hasFlagCommand = (text: string, key: string) => {
-  const pattern = new RegExp(`^\\s*${key}\\b`, 'im')
-  return pattern.test(text)
 }
 
 export function useStickConfig({ configText, readText, setConfigText }: StickArgs) {
@@ -254,10 +238,10 @@ export function useStickConfig({ configText, readText, setConfigText }: StickArg
     })
   }, [setConfigText])
 
-  const counterOsMouseSpeedEnabled = useMemo(() => hasFlagCommand(readSource, keyName.COUNTER_OS_MOUSE_SPEED), [readSource])
+  const counterOsMouseSpeedEnabled = useMemo(() => osMouseSpeedCompensated(readSource), [readSource])
 
   const handleCounterOsMouseSpeedChange = useCallback((enabled: boolean) => {
-    setConfigText(prev => upsertFlagCommand(prev, keyName.COUNTER_OS_MOUSE_SPEED, enabled))
+    setConfigText(prev => writeOsMouseSpeedCompensation(prev, enabled))
   }, [setConfigText])
 
   const stickDeadzoneDefaults = useMemo(() => {

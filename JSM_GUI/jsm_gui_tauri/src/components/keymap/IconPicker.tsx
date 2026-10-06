@@ -92,6 +92,7 @@ function IconModal({ value, label, family, onChange, onClose }: { value: string;
   // when there are more, rather than stopping at 160 in silence.
   const [limit, setLimit] = useState(PAGE)
   const [more, setMore] = useState(false)
+  const tabsRef = useRef<HTMLElement>(null)
   const gridRef = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
   const opening = useRef(true)
@@ -129,7 +130,15 @@ function IconModal({ value, label, family, onChange, onClose }: { value: string;
     })
   }, [loading, names])
 
-  const step = (by: number) => { setQuery(''); setTab(current => TABS[(TABS.findIndex(item => item.id === current) + by + TABS.length) % TABS.length].id) }
+  const focusTab = (next: Tab) => tabsRef.current?.querySelector<HTMLButtonElement>(`[data-icon-tab="${next}"]`)?.focus({ preventScroll: true })
+  const step = (by: number) => {
+    const next = TABS[(TABS.findIndex(item => item.id === tab) + by + TABS.length) % TABS.length].id
+    // The focused icon tile is removed when the new category loads. Keep the
+    // pad's event target inside the dialog by landing on its persistent tab.
+    focusTab(next)
+    setQuery('')
+    setTab(next)
+  }
   const clear = () => onChange('')
   const onPad = (button: string) => {
     if (button === 'LB' || button === 'RB') { step(button === 'RB' ? 1 : -1); return true }
@@ -166,10 +175,10 @@ function IconModal({ value, label, family, onChange, onClose }: { value: string;
         </>
       }
       toolbar={
-        <nav className={styles.tabs} aria-label={t('keymap.iconCategories', 'Icon categories')}>
+        <nav ref={tabsRef} className={styles.tabs} aria-label={t('keymap.iconCategories', 'Icon categories')}>
           <ButtonGlyph button="LB" size={22} family={glyphFamily} />
           {TABS.map(item => (
-            <button key={item.id} type="button" className={styles.tab} aria-pressed={tab === item.id} onClick={() => { setQuery(''); setTab(item.id) }}>
+            <button key={item.id} type="button" className={styles.tab} data-icon-tab={item.id} aria-pressed={tab === item.id} onClick={() => { focusTab(item.id); setQuery(''); setTab(item.id) }}>
               {t(item.labelKey, item.label)}
             </button>
           ))}

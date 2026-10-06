@@ -8,7 +8,7 @@
 const assert = require('node:assert/strict');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
 (async () => {
- const browser = await chromium.launch({channel:'msedge',headless:true});
+ const browser = await chromium.launch({channel:'msedge',headless:true,args:['--disable-background-timer-throttling','--disable-renderer-backgrounding','--disable-backgrounding-occluded-windows']});
  try {
  const page = await browser.newPage({viewport:{width:1440,height:900}});
  const errors=[]; page.on('pageerror',e=>errors.push(e.message));
@@ -92,14 +92,16 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  await page.waitForFunction(() => document.activeElement?.closest('.main-pane'));
  assert.equal(await page.evaluate(() => document.body.dataset.inputSource), 'controller');
  // The ring is the shared focus-glide highlight, sitting on the focused row.
- await page.waitForTimeout(350);
+ await page.waitForFunction(() => document.querySelector('.focus-glide')?.dataset.visible === 'true');
  const glide = await page.evaluate(() => {
   const highlight = document.querySelector('.focus-glide');
   const target = document.activeElement.closest('.setting-row') ?? document.activeElement;
   const a = highlight.getBoundingClientRect(), b = target.getBoundingClientRect();
-  return { ring: getComputedStyle(highlight).boxShadow, visible: highlight.dataset.visible, off: Math.max(Math.abs(a.left - b.left), Math.abs(a.top - b.top), Math.abs(a.width - b.width)) };
+  const probe = document.createElement('i'); probe.style.color = 'var(--focus-controller)'; document.body.append(probe);
+  const focusColor = getComputedStyle(probe).color; probe.remove();
+  return { focusColor, ring: getComputedStyle(highlight).boxShadow, visible: highlight.dataset.visible, off: Math.max(Math.abs(a.left - b.left), Math.abs(a.top - b.top), Math.abs(a.width - b.width)) };
  });
- assert.match(glide.ring, /rgb\(154, 216, 255\)/, `controller focus should draw the focus-controller ring: ${glide.ring}`);
+ assert.ok(glide.ring.includes(glide.focusColor), `controller focus should draw the configured focus-controller ring: ${glide.ring}`);
  assert.equal(glide.visible, 'true');
  assert.ok(glide.off <= 2, `the focus highlight should sit on the focused control (off by ${glide.off}px)`);
 

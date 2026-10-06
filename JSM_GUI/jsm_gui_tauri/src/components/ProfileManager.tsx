@@ -13,6 +13,9 @@ import { layerColor } from '../shell/TitleBar'
 import { Icon } from './icons/Icon'
 import { Menu } from './ui/Menu'
 import { relativeTime, useClock, useLastSeenController } from '../hooks/useLastSeenController'
+import { associationFor, exeFileName } from '../hooks/useAppIcon'
+import { AppIconImage } from './AppIconImage'
+import { ConfigurationDialog, type NewConfigurationDraft } from './ConfigurationDialog'
 import styles from './ProfileManager.module.css'
 
 type ProfileManagerProps = {
@@ -29,6 +32,9 @@ type ProfileManagerProps = {
   onRenameProfile: (originalName: string) => void
   onDeleteProfile: (name: string) => void
   onAddProfile: () => void
+  /** The New configuration dialog's Create (TODO-46): name, optional game, auto-apply.
+      The header's "+ New configuration" opens it through the jsm:new-configuration event. */
+  onCreateProfile?: (draft: NewConfigurationDraft) => Promise<void> | void
   onLoadLibraryProfile: (name: string) => void
   lockMessage?: string
   onCopyActiveProfile?: () => void
@@ -94,6 +100,7 @@ export function ProfileManager({
   onRenameProfile,
   onDeleteProfile,
   onAddProfile,
+  onCreateProfile,
   onImportProfile,
   onLoadLibraryProfile,
   lockMessage,
@@ -115,6 +122,8 @@ export function ProfileManager({
   const [texts, setTexts] = useState<Record<string, TextFacts>>({})
   const [meta, setMeta] = useState<Record<string, LibraryProfileMeta>>({})
   const [rules, setRules] = useState<AutoloadRule[]>([])
+  // TODO-46: the New configuration dialog, or the game picker for one row.
+  const [dialog, setDialog] = useState<{ mode: 'create' } | { mode: 'associate'; name: string } | null>(null)
   const importRef = useRef<HTMLInputElement | null>(null)
   const listRef = useRef<HTMLDivElement | null>(null)
   const pageRef = useRef<HTMLDivElement | null>(null)
@@ -161,6 +170,12 @@ export function ProfileManager({
     window.addEventListener('jsm:associations-changed', read)
     return () => { disposed = true; window.removeEventListener('jsm:associations-changed', read) }
   }, [])
+  // The header's "+ New configuration" opens the dialog here, beside the list.
+  useEffect(() => {
+    const open = () => { if (onCreateProfile) setDialog({ mode: 'create' }); else onAddProfile() }
+    window.addEventListener('jsm:new-configuration', open)
+    return () => window.removeEventListener('jsm:new-configuration', open)
+  })
 
   const isTemplate = (name: string) => !!templateNames?.has(name) && name !== currentProfileName
   const profiles = libraryProfiles.filter(name => !isTemplate(name))
@@ -191,6 +206,22 @@ export function ProfileManager({
     return map
   }, [texts])
   const autoloadFor = (name: string) => rules.filter(rule => rule.kind === 'profile' && !rule.builtIn && !rule.paused && rule.profileName === name).map(rule => exeName(rule.processName))
+  // The game a configuration is associated with (TODO-46), applied or not.
+  const gameFor = (name: string) => associationFor(rules, name)
+  const rowIcon = (name: string) => (
+    <span className={styles.rowIcon} aria-hidden="true">
+      <AppIconImage exePath={gameFor(name)?.exePath} size={28} fallback={<Icon name="library" size={20} />} />
+    </span>
+  )
+  const dialogNode = dialog && (
+    <ConfigurationDialog
+      mode={dialog.mode}
+      profileName={dialog.mode === 'associate' ? dialog.name : undefined}
+      rule={dialog.mode === 'associate' ? gameFor(dialog.name) : undefined}
+      onCreate={onCreateProfile}
+      onClose={() => setDialog(null)}
+    />
+  )
 
   const factsFor = (name: string): TextFacts | undefined => {
     if (name === currentProfileName && editingDetails) {
@@ -271,9 +302,9 @@ export function ProfileManager({
           onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); edit(name) } }}
           data-hints="A:Edit;X:Options;Y:Apply;B:Back"
         >
-          <span className={styles.rowIcon} aria-hidden="true"><Icon name="library" size={24} /></span>
+          {rowIcon(name)}
           <span className={styles.rowText}>
-            <span className={styles.rowName}>{name}</span>
+            <span className={styles.rowName}>{name}{name === 'Default Global Chords' && <small style={{ marginLeft: 8, color: 'var(--text-2)' }}>Built-in</small>}</span>
             <span className={styles.rowSub}>{subtitle(name)}</span>
           </span>
           <span className={styles.tags}>
@@ -309,7 +340,7 @@ export function ProfileManager({
           align="end"
           ariaLabel={`Options for ${name}`}
           trigger={<button type="button" className={`icon-button ${styles.options}`} aria-label={`Options for ${name}`} tabIndex={-1} data-nav-skip onClick={() => setSelected(name)}><Icon name="cog" size={18} /></button>}
-          items={[
+          items={name === 'Default Global Chords' ? [{ label: 'Clone as Personal', onSelect: () => edit(name) }] : [
             { label: 'Duplicate', description: name === currentProfileName ? 'A copy beside it, opened for editing' : 'Open it for editing to duplicate it', disabled: name !== currentProfileName || !onCopyActiveProfile || isCalibrating, onSelect: () => onCopyActiveProfile?.() },
             { label: 'Rename', disabled: isCalibrating, onSelect: () => startRename(name) },
             { kind: 'separator' },
@@ -342,6 +373,7 @@ export function ProfileManager({
           <b>Empty</b><span>Every input unbound</span>
         </button>
       </div>
+      {dialogNode}
     </div>
   )
 
@@ -349,6 +381,7 @@ export function ProfileManager({
   const currentMeta = current ? meta[current] : undefined
   const loaders = current ? loadedBy.get(current) ?? [] : []
   const currentAutoload = current ? autoloadFor(current) : []
+  const currentGame = current ? gameFor(current) : null
 
   return (
     <div className={styles.library} ref={pageRef} aria-busy={libraryLoading || undefined}>
@@ -389,6 +422,20 @@ export function ProfileManager({
             {!!facts?.loads.length && <div><dt>Loads</dt><dd>{facts.loads.map(link => `${link.target} (${keyLabel(link.keys)})`).join(', ')}</dd></div>}
             {loaders.length > 0 && <div><dt>Loaded by</dt><dd>{loaders.map(link => `${link.by} (${keyLabel(link.keys)})`).join(', ')}</dd></div>}
             {isTemplate(current) && <div><dt>Imported by</dt><dd>{(importedBy.get(current) ?? [currentProfileName]).join(', ')}</dd></div>}
+            <div><dt>Game</dt><dd className={styles.gameFact}>
+              {currentGame ? (
+                <span className={styles.gameLine}>
+                  <AppIconImage exePath={currentGame.exePath} size={18} fallback={null} />
+                  <span className={styles.gameName}>{exeFileName(currentGame.processName)}</span>
+                </span>
+              ) : 'none'}
+              <span className={styles.gameMeta}>
+                {currentGame && <span>{currentGame.paused ? 'Icon only' : 'Applies automatically'}</span>}
+                <button type="button" className="button button--tertiary button--sm" disabled={isCalibrating} onClick={() => setDialog({ mode: 'associate', name: current })} data-hints="A:Choose game;B:Back">
+                  {currentGame ? 'Change…' : 'Associate…'}
+                </button>
+              </span>
+            </dd></div>
             <div><dt>Autoload</dt><dd>{currentAutoload.length ? currentAutoload.join(', ') : 'none'}</dd></div>
             <div><dt>File</dt><dd className={styles.mono}>{current}.txt{currentMeta ? ` · saved ${relativeTime(currentMeta.modifiedAtMs, now)}` : ''}</dd></div>
             {(editingSelected && hasPendingChanges) || (current === appliedProfileName && !profileApplied) ? <div><dt>Status</dt><dd>{[editingSelected && hasPendingChanges ? 'Unsaved changes' : null, current === appliedProfileName && !profileApplied ? 'Applied (older version)' : null].filter(Boolean).join(' · ')}</dd></div> : null}
@@ -404,14 +451,14 @@ export function ProfileManager({
             </button>
             <button type="button" className="button button--secondary" disabled={!editingSelected || !onCopyActiveProfile || isCalibrating}
               title={editingSelected ? undefined : 'Open it for editing to duplicate it'} onClick={() => onCopyActiveProfile?.()}>Duplicate</button>
-            <button type="button" className="button button--secondary" disabled={isCalibrating || renaming} onClick={() => startRename(current)}>Rename</button>
+            {current !== 'Default Global Chords' && <button type="button" className="button button--secondary" disabled={isCalibrating || renaming} onClick={() => startRename(current)}>Rename</button>}
           </div>
 
           <div className={styles.quiet}>
             {onShowInFolder && <button type="button" className="button button--tertiary" onClick={onShowInFolder}>Show in folder</button>}
             {onEditSource && <button type="button" className="button button--tertiary" disabled={!editingSelected}
               title={editingSelected ? undefined : 'Open it for editing to see its source'} onClick={onEditSource}>{t('app.profileSummary.openSourceConfig', 'Edit source')}</button>}
-            <button type="button" className="button button--danger" disabled={isCalibrating} onClick={() => setConfirming(current)}>Delete</button>
+            {current !== 'Default Global Chords' && <button type="button" className="button button--danger" disabled={isCalibrating} onClick={() => setConfirming(current)}>Delete</button>}
           </div>
           {isCalibrating && lockMessage && <p className={styles.lock}>{lockMessage}</p>}
         </aside>
@@ -440,6 +487,7 @@ export function ProfileManager({
           </div>
         )
       })()}
+      {dialogNode}
     </div>
   )
 }

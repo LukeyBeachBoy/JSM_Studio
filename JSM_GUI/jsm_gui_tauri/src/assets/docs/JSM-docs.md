@@ -1581,3 +1581,59 @@ GyroWiki - 关于游戏中优秀陀螺仪控制的一切：
 - GyroGaming subreddit  陀螺仪游戏子版块
 - GyroGaming discord server.
 GyroGaming Discord 服务器 。
+
+### GYRO_STEADYING_FLOOR — Steadying Floor (RWS)
+
+`GYRO_STEADYING_FLOOR = X [Y]` sets the minimum effective sensitivity during
+low-speed Steadying (`GYRO_CUTOFF_RECOVERY`). One value applies to both axes;
+two values set independent horizontal and vertical floors. Default: `0 0`.
+Negative and non-finite values are rejected. Each floor is capped at the current
+curve sensitivity, so it cannot amplify movement above the normal curve.
+
+A deadzone produces no output for small movement. A positive Steadying Floor
+preserves tiny intentional movement with reduced sensitivity. It is useful for
+high dynamic-range setups, including Quadratic acceleration, and composes with
+LINEAR, NATURAL, POWER, QUADRATIC, SIGMOID, JUMP and static sensitivity.
+Zero on both axes retains the original velocity attenuation, including its effect
+on the speed entering acceleration. When either axis has a positive floor, the
+normal curve is evaluated at the unattenuated speed, then both axes use
+`floor + factor * (curveSensitivity - floor)` with the existing linear recovery
+factor `clamp((speed - cutoff) / (recovery - cutoff), 0, 1)`.
+No extra filtering, latency or sample history is added.
+
+A positive `GYRO_CUTOFF_SPEED` still suppresses output at/below the cutoff when
+recovery is above it (below it for a hard threshold). The floor does not bypass
+that cutoff. Recovery at/below cutoff disables gradual Steadying. For a
+continuous low-speed floor without a deadzone, leave cutoff at zero. The floor
+is inactive above recovery. At exactly zero movement sensitivity may be nonzero,
+but the cursor stays still. Existing brake, click damping and gyro suppression
+can further reduce output; the floor is not a guarantee against those controls.
+Deflection output uses angular position rather than RWS and is unaffected.
+
+```text
+MIN_GYRO_SENS = 5
+MAX_GYRO_SENS = 21
+MIN_GYRO_THRESHOLD = 0
+MAX_GYRO_THRESHOLD = 80
+ACCEL_CURVE = QUADRATIC
+GYRO_CUTOFF_SPEED = 0
+GYRO_CUTOFF_RECOVERY = 5
+GYRO_STEADYING_FLOOR = 2
+```
+
+Very slow movement approaches 2 RWS, tracking blends toward the normal curve
+near 5 RWS at the recovery boundary, and fast movement follows the unchanged
+quadratic ramp up to 21 RWS. Floors support the same button mode shifts and
+profile layers as Steadying, for example `ZL,GYRO_STEADYING_FLOOR = 1 0.75`.
+GUI profile copying, import/export and saving retain this assignment; omitted
+values use zero after reset. The controls preserve their values while Steadying
+is disabled. The preview shows effective Steadying sensitivity, including the
+legacy zero-floor path. Telemetry reports effective sensitivity before braking
+and click damping; synthetic trackball coasting can differ from an IMU-only
+static preview.
+
+Quadratic threshold semantics: the native engine evaluates
+`(max(0, speed - MIN_GYRO_THRESHOLD) / MAX_GYRO_THRESHOLD)^2`, capped at one.
+Thus with a nonzero minimum threshold it reaches its maximum at **MIN + MAX**,
+not MAX alone. JUMP uses the same adjusted-speed cap. LINEAR uses MAX - MIN.
+The graph intentionally mirrors this existing engine behavior for compatibility.

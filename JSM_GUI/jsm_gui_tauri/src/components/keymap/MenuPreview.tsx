@@ -22,6 +22,9 @@ type Props = {
   hotCommand?: string | null
   /** Fill the host's width rather than capping at the overlay's own size. */
   fill?: boolean
+  /** Fit the complete menu inside a pinned appearance preview. */
+  maxHeight?: number
+  managedFocus?: boolean
 }
 
 /**
@@ -29,12 +32,12 @@ type Props = {
  * preview is a picture of the menu the player will see rather than a
  * different drawing of the same settings.
  */
-export function MenuPreview({ menu, aspect = 1, selectedCommand, onSelect, livePoint, hotCommand, fill }: Props) {
+export function MenuPreview({ menu, aspect = 1, selectedCommand, onSelect, livePoint, hotCommand, fill, maxHeight, managedFocus }: Props) {
   const host = useRef<HTMLDivElement>(null)
   const dot = useRef<HTMLDivElement | null>(null)
   const [width, setWidth] = useState(360)
   const [icons, setIcons] = useState<Record<string, IconData>>({})
-  const names = menu.regions.map(region => region.icon).filter((name): name is string => !!name).join(',')
+  const names = [...menu.regions, ...(menu.centerRegion ? [menu.centerRegion] : [])].map(region => region.icon).filter((name): name is string => !!name).join(',')
   useEffect(() => { let cancelled = false; resolveIcons(names ? names.split(',') : []).then(value => { if (!cancelled) setIcons(value) }).catch(() => {}); return () => { cancelled = true } }, [names])
   useEffect(() => { const node = host.current; if (!node) return; const observer = new ResizeObserver(() => setWidth(node.clientWidth)); observer.observe(node); setWidth(node.clientWidth); return () => observer.disconnect() }, [])
   // The dot is moved by transform alone, the same way the overlay moves it,
@@ -45,11 +48,11 @@ export function MenuPreview({ menu, aspect = 1, selectedCommand, onSelect, liveP
     dot.current.style.transform = transform
     dot.current.parentElement?.querySelectorAll<HTMLElement>('[data-trail]').forEach(trail => { trail.style.transform = transform })
   })
-  const scale = fill ? width / menu.placement.size : Math.min(1, width / menu.placement.size)
   const height = menu.placement.size / (menu.shape === 'RADIAL' || menu.shape === 'EIGHT_WAY' ? 1 : aspect)
-  return <div ref={host} style={{ width: '100%', maxWidth: fill ? undefined : 520, margin: fill ? 0 : '16px auto', height: height * scale, position: 'relative' }}>
+  const scale = Math.min(fill ? width / menu.placement.size : Math.min(1, width / menu.placement.size), maxHeight === undefined ? Infinity : Math.max(1, maxHeight) / height)
+  return <div ref={host} style={{ width: '100%', maxWidth: fill || maxHeight !== undefined ? undefined : 520, margin: fill ? 0 : '16px auto', height: height * scale, position: 'relative' }}>
     <div style={{ position: 'absolute', width: menu.placement.size, height, left: '50%', marginLeft: -menu.placement.size / 2, transform: `scale(${scale})`, transformOrigin: 'top center' }}>
-      <MenuDrawing menu={menu} icons={icons} selectedCommand={hotCommand ?? selectedCommand} onSelect={onSelect} onDotRef={livePoint ? element => { dot.current = element } : undefined} />
+      <MenuDrawing menu={menu} icons={icons} managedFocus={managedFocus} selectedCommand={hotCommand ?? selectedCommand} onSelect={onSelect} onDotRef={livePoint ? element => { dot.current = element } : undefined} />
     </div>
   </div>
 }

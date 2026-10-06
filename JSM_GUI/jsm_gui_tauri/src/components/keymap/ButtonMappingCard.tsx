@@ -225,7 +225,7 @@ export function ButtonMappingCard({
       if (!event.currentTarget.open) return
       const current = event.currentTarget
       current.parentElement?.querySelectorAll<HTMLDetailsElement>(':scope > details[data-input-command][open]').forEach(other => { if (other !== current) other.open = false })
-    }} data-input-command={command} data-toggled={toggled ? 'true' : undefined} data-card={open ? 'true' : undefined} tabIndex={-1} className={`${keymapStyles.keymapRow} ${isCapturing ? keymapStyles.keymapRowCapturing : ''}`}>
+    }} data-input-command={command} data-no-extras={!shift && !layerAction && !extraCount ? 'true' : undefined} data-toggled={toggled ? 'true' : undefined} data-card={open ? 'true' : undefined} tabIndex={-1} className={`${keymapStyles.keymapRow} ${isCapturing ? keymapStyles.keymapRowCapturing : ''}`}>
       <summary ref={summaryRef} className={`binding-summary ${open ? keymapStyles.cardHead : keymapStyles.bindingRow}`} data-hints={hints} data-pad-keys="XY" onKeyDown={onSummaryKey}>
         {open && iconWell
           ? <span className={keymapStyles.iconWell} aria-hidden="true">{iconWell}</span>

@@ -13,6 +13,11 @@ pub struct RunningProcess {
     pub process_name: String,
     pub pid: u32,
     pub window_title: Option<String>,
+    /// Full path of the executable, so an association made from a running
+    /// game can show its icon (TODO-46). Missing for elevated or protected
+    /// processes, which refuse the query; the name is still there.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub exe_path: Option<String>,
 }
 
 /// Studio itself, the mapper and its console injector are never candidates:
@@ -43,6 +48,7 @@ fn collapse(windows: Vec<(u32, String)>, exe_names: &std::collections::HashMap<u
                 process_name: exe.clone(),
                 pid,
                 window_title: Some(title.clone()),
+                exe_path: None,
             });
     }
     let mut rows: Vec<RunningProcess> = by_exe.into_values().collect();
@@ -57,7 +63,13 @@ fn collapse(windows: Vec<(u32, String)>, exe_names: &std::collections::HashMap<u
 
 #[cfg(target_os = "windows")]
 pub fn list() -> Result<Vec<RunningProcess>, String> {
-    Ok(collapse(windows::visible_titled_windows(), &windows::exe_names_by_pid()?))
+    let mut rows = collapse(windows::visible_titled_windows(), &windows::exe_names_by_pid()?);
+    // Only the listed processes are opened for their path, after collapsing:
+    // one query per row rather than one per window.
+    for row in &mut rows {
+        row.exe_path = windows::exe_path_for_pid(row.pid);
+    }
+    Ok(rows)
 }
 
 #[cfg(not(target_os = "windows"))]
@@ -71,13 +83,34 @@ mod windows {
 
     use windows_sys::Win32::{
         Foundation::{CloseHandle, HWND, INVALID_HANDLE_VALUE, LPARAM},
-        System::Diagnostics::ToolHelp::{
-            CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W, TH32CS_SNAPPROCESS,
+        System::{
+            Diagnostics::ToolHelp::{
+                CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W, TH32CS_SNAPPROCESS,
+            },
+            Threading::{OpenProcess, QueryFullProcessImageNameW, PROCESS_QUERY_LIMITED_INFORMATION},
         },
         UI::WindowsAndMessaging::{
             EnumWindows, GetWindowTextLengthW, GetWindowTextW, GetWindowThreadProcessId, IsWindowVisible,
         },
     };
+
+    /// The executable's full path, or None when the process refuses the
+    /// query (elevated, protected) or has already gone.
+    pub fn exe_path_for_pid(pid: u32) -> Option<String> {
+        // SAFETY: a limited-information handle, closed below.
+        let process = unsafe { OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid) };
+        if process.is_null() {
+            return None;
+        }
+        let mut buffer = vec![0u16; 32 * 1024];
+        let mut length = buffer.len() as u32;
+        // SAFETY: buffer holds `length` u16s; the call writes at most that many.
+        let ok = unsafe { QueryFullProcessImageNameW(process, 0, buffer.as_mut_ptr(), &mut length) } != 0;
+        unsafe {
+            let _ = CloseHandle(process);
+        }
+        (ok && length > 0).then(|| String::from_utf16_lossy(&buffer[..length as usize]))
+    }
 
     /// (pid, title) for every visible top-level window with a title.
     pub fn visible_titled_windows() -> Vec<(u32, String)> {

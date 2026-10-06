@@ -7,7 +7,6 @@ import { BrandMark } from '../components/BrandMark'
 import type { ShellWidth } from './useShellWidth'
 import { windowControls } from './windowControls'
 import { layerHue, layerSlotOf } from '../utils/layers'
-import type { HeldShiftStatus } from './HintCapsule'
 
 export type MappingPlateState = 'studio' | 'testing' | 'on' | 'off' | 'disconnected'
 export type VirtualOutput = 'NONE' | 'XBOX' | 'DS4'
@@ -33,10 +32,6 @@ export type TitleBarVariant = 'home' | 'editing' | 'studio'
 
 type TitleBarProps = {
   width: ShellWidth
-  /** A modeshift held now: "L4 held · 3 inputs shifted" in a fixed slot. */
-  heldShift?: HeldShiftStatus | null
-  /** Keep that slot, empty, while the configuration has any modeshift. */
-  reserveShiftSlot?: boolean
   frameless: boolean
   variant: TitleBarVariant
   /** The Home chip: View from anywhere, or a click. */
@@ -72,6 +67,8 @@ type TitleBarProps = {
 
   state: StateButton
   onStatePress: () => void
+  onReviewChanges: () => void
+  pendingChangeCount: number
 }
 
 export const OUTPUT_LABELS: Record<VirtualOutput, string> = { NONE: 'Disabled', XBOX: 'Virtual Xbox', DS4: 'Virtual DualShock 4' }
@@ -312,18 +309,6 @@ export function TitleBar(props: TitleBarProps) {
             </button>
           }
         />
-        {(props.reserveShiftSlot || props.heldShift) && (
-          <span className="shift-status" data-held={props.heldShift ? 'true' : undefined} role="status" aria-live="off">
-            {props.heldShift && (
-              <span key={props.heldShift.name} className="shift-status__fill">
-                <span className="shift-status__held"><Icon name="modeshift" size={14} /><span className="shift-status__text">{t('keymap.shiftHeld', '{{name}} held', { name: props.heldShift.name })}</span></span>
-                <span className="shift-status__count">{props.heldShift.kind === 'chord'
-                  ? props.heldShift.only ? t('keymap.chordedNamed', 'with {{name}}', { name: props.heldShift.only }) : t('keymap.chordedInputs', { count: props.heldShift.count, defaultValue: '{{count}} inputs chorded' })
-                  : props.heldShift.only ? t('keymap.shiftedNamed', '→ {{name}}', { name: props.heldShift.only }) : t('keymap.shiftedInputs', { count: props.heldShift.count, defaultValue: '{{count}} inputs shifted' })}</span>
-              </span>
-            )}
-          </span>
-        )}
       </>}
 
       <div className="titlebar__drag" data-tauri-drag-region />
@@ -336,7 +321,10 @@ export function TitleBar(props: TitleBarProps) {
 
       {mappingPlate}
 
-      {props.variant === 'editing' && stateButton}
+      {props.variant === 'editing' && <>
+        <button type="button" className="ghost-btn change-review-button" onClick={props.onReviewChanges} disabled={props.editingDisabled} title="Review changes and revert individual settings" aria-label={`Review ${props.pendingChangeCount} changes`}><Icon name="undo" size={18} /><span>Changes{props.pendingChangeCount > 0 ? ` · ${props.pendingChangeCount}` : ''}</span></button>
+        {stateButton}
+      </>}
 
       {props.frameless && <WindowControls />}
     </header>

@@ -22,6 +22,8 @@
   color: var(--text-3);
 }
 .search:focus-within { box-shadow: inset 0 0 0 1px var(--focus-keyboard); }
+/* The pad's focus glide rings the input itself (TODO-48): no second ring on the field. */
+:global(body[data-focus-glide]) .search:focus-within { box-shadow: inset 0 0 0 1px var(--line-1); }
 .search input {
   flex: 1;
   min-width: 0;
@@ -483,3 +485,5 @@ button.mode:hover { color: var(--accent); }
 .swap { animation: callout-swap var(--dur-1) var(--ease-standard); }
 @keyframes callout-swap { from { opacity: 0; } }
 .callout .triggerMeter { position: absolute; left: 52px; right: 12px; bottom: 5px; height: 3px; margin: 0; }
+
+.menuReservation { margin: 0; padding: 10px 14px; color: var(--text-2); font-size: 12px; line-height: 1.5; border-left: 3px solid var(--accent); }

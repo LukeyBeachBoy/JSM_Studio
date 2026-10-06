@@ -1,0 +1,17 @@
+{
+  "state": "stopped",
+  "listenerStartedUtc": "2026-10-04T09:35:03.665+00:00",
+  "firstPacketUtc": "2026-10-04T09:35:03.864+00:00",
+  "lastPacketUtc": "2026-10-04T09:37:12.727+00:00",
+  "packets": 57762,
+  "devicesSeen": [
+    1
+  ],
+  "activeProfile": "profiles-library/.layers/virtual-keyboard.txt",
+  "privatePort": 18974,
+  "forwardPort": 8974,
+  "maxMinutes": 15,
+  "mapperPid": 29496,
+  "normalPortRestored": true,
+  "stoppedUtc": "2026-10-04T09:37:12.744+00:00"
+}

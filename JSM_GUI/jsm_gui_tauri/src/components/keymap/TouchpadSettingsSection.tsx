@@ -7,6 +7,9 @@ import { NumberField } from '../NumberField'
 import { ShapePicker } from './ShapePicker'
 import { AppSelect } from '../ui/AppSelect'
 import { SummaryRow } from '../ui/SummaryRow'
+import { ScreenAreaPreview } from './ScreenAreaPreview'
+import { TOUCHPAD_DUAL_STAGE_OPTIONS, touchpadDualStageHelpKey } from '../../utils/touchpadConfig'
+import { MOUSE_AREA_FIT_OPTIONS, describeMouseArea, type MouseArea, type MouseAreaFit } from '../../utils/mouseArea'
 
 export type TouchpadModeCardConfig = {
   keyPrefix?: string
@@ -31,9 +34,22 @@ export type TouchpadModeCardConfig = {
   onGridRequiresClickChange?: (checked: boolean) => void
   /** Takes the user to the Trackpad tuning page. Omitted, the pointer to it is hidden. */
   onOpenTuning?: () => void
+  /** MOUSE_AREA: the rectangle of the screen the pad maps to; null is the whole screen. */
+  mouseArea?: MouseArea | null
+  mouseAreaFit?: MouseAreaFit
+  onMouseAreaFitChange?: (v: string) => void
+  /** Opens the on-screen picker to draw the area over the game. */
+  onPickMouseArea?: () => void
+  /** The pad's width over its height, for the area preview's UNIFORM ghost. */
+  padAspect?: number
 }
 
 type Props = {
+  touchpadMouseArea?: MouseArea | null
+  touchpadMouseAreaFit?: MouseAreaFit
+  onTouchpadMouseAreaFitChange?: (v: string) => void
+  onPickTouchpadMouseArea?: () => void
+  padAspect?: number
   left?: TouchpadModeCardConfig
   right?: TouchpadModeCardConfig
   touchpadMode: string
@@ -62,28 +78,12 @@ type Props = {
   applyDisabled?: boolean
 }
 
-const DUAL_STAGE_MODES = ['NO_FULL', 'NO_SKIP', 'NO_SKIP_EXCLUSIVE', 'MUST_SKIP', 'MAY_SKIP', 'MUST_SKIP_R', 'MAY_SKIP_R']
-
-// Reuses the same canonical explanations the trigger help modal shows for
-// these modes -- TOUCHPAD_DUAL_STAGE_MODE is the same TriggerMode enum,
-// TOUCH standing in for the soft pull and CAPTURE (the click) for the full
-// pull. Keeping one accurate source of truth for what NO_SKIP/MAY_SKIP/etc
-// actually do rather than re-describing them from scratch here.
-const DUAL_STAGE_MODE_DESC_KEYS: Record<string, string> = {
-  NO_FULL: 'keymap.touchpadDualStageMode_NO_FULL_desc',
-  NO_SKIP: 'keymap.touchpadDualStageMode_NO_SKIP_desc',
-  NO_SKIP_EXCLUSIVE: 'keymap.touchpadDualStageMode_NO_SKIP_EXCLUSIVE_desc',
-  MUST_SKIP: 'keymap.touchpadDualStageMode_MUST_SKIP_desc',
-  MAY_SKIP: 'keymap.touchpadDualStageMode_MAY_SKIP_desc',
-  MUST_SKIP_R: 'keymap.touchpadDualStageMode_MUST_SKIP_R_desc',
-  MAY_SKIP_R: 'keymap.touchpadDualStageMode_MAY_SKIP_R_desc',
-}
-
 // One pad's mode and the settings that only mean anything for that mode. Exported
 // so the per-side Trackpads layout can place it inside a Left / Right column.
 const MODE_DESCRIPTIONS: Record<string, string> = {
   GRID_AND_STICK: 'Regions you bind, and a touch stick',
   MOUSE: 'Touch moves the mouse',
+  MOUSE_AREA: 'The pad is a map of one part of the screen: the cursor goes where your finger is, and stays inside',
   PS_TOUCHPAD: 'Forwards touches to the virtual PlayStation pad',
 }
 
@@ -99,6 +99,7 @@ export function TouchpadModeCard({ config, title }: { config: TouchpadModeCardCo
           <option value="">{t('common.noneSelected')}</option>
           <option value="GRID_AND_STICK">{t('keymap.gridAndStick')}</option>
           <option value="MOUSE">{t('keymap.mouse')}</option>
+          <option value="MOUSE_AREA">{t('keymap.mouseArea', 'Mouse area')}</option>
           <option value="PS_TOUCHPAD">{t('keymap.psTouchpad')}</option>
         </AppSelect>
         {MODE_DESCRIPTIONS[config.mode] && <small>{MODE_DESCRIPTIONS[config.mode]}</small>}
@@ -206,32 +207,36 @@ export function TouchpadModeCard({ config, title }: { config: TouchpadModeCardCo
           {/* How a mouse pad feels is one set of dials shared by every pad
               set to Mouse: a row that opens its sheet (console refinement 2c). */}
           {config.onOpenTuning && (
-            <SummaryRow label="Mouse feel" hint="Smoothing, lift-off, glide and haptics" onActivate={config.onOpenTuning} />
+            <SummaryRow label="Trackpad feel" hint="Mouse output tuning and shared feedback" onActivate={config.onOpenTuning} />
           )}
+        </>
+      )}
+      {config.mode === 'MOUSE_AREA' && (
+        <>
+          {/* The area is drawn, not typed: the row opens the picker over the
+              game, and the thumbnail shows where the last one landed. */}
+          <ScreenAreaPreview area={config.mouseArea ?? null} fit={config.mouseAreaFit ?? 'STRETCH'} padAspect={config.padAspect ?? 1} width={220} />
+          <SummaryRow label={t('keymap.mouseAreaScreenArea', 'Screen area')} hint={t('keymap.mouseAreaScreenAreaHint', 'Draw it on the screen, over the game')}
+            setting={key('TOUCHPAD_AREA')} mono value={describeMouseArea(config.mouseArea)} onActivate={config.onPickMouseArea} />
+          <SummaryRow label={t('keymap.mouseAreaFit', 'Pad fit')} hint={t('keymap.mouseAreaFitHint', 'How a pad of a different shape lies over the area')}
+            setting={key('TOUCHPAD_AREA_FIT')}
+            adjust={{ kind: 'choice', value: config.mouseAreaFit ?? 'STRETCH', options: MOUSE_AREA_FIT_OPTIONS, onChange: value => config.onMouseAreaFitChange?.(value) }} />
         </>
       )}
       {config.mode === 'GRID_AND_STICK' && (
         <>
-          {/* A switch row: caption and its description on the left, the
-              switch at the end (Configuration Pages 15c, "Click required"). */}
-          <label className={styles.touchpadCheckbox}>
-            <input
-              type="checkbox"
-              aria-label={t('keymap.gridRequiresClick')}
-              checked={config.gridRequiresClick ?? false}
-              onChange={e => config.onGridRequiresClickChange?.(e.target.checked)}
-            />
-            <span className={styles.switchText}>
-              <span>{t('keymap.gridRequiresClick')}</span>
-              <small>{t('keymap.gridRequiresClickHint')}</small>
-            </span>
-          </label>
-        <SummaryRow label={t('keymap.touchpadDualStageMode')} setting={key('TOUCHPAD_DUAL_STAGE_MODE')}
-          help={t(DUAL_STAGE_MODE_DESC_KEYS[config.dualStageMode || 'NO_SKIP'] ?? DUAL_STAGE_MODE_DESC_KEYS.NO_SKIP)}
-          adjust={{ kind: 'choice', value: config.dualStageMode || 'NO_SKIP', options: DUAL_STAGE_MODES.map(value => ({ value, label: value })), onChange: value => config.onDualStageModeChange?.(value) }} />
+          <SummaryRow label={t('keymap.gridRequiresClick')} hint={t('keymap.gridRequiresClickHint')}
+            setting={key('GRID_REQUIRES_CLICK')}
+            toggle={{ on: config.gridRequiresClick ?? false, onChange: next => config.onGridRequiresClickChange?.(next) }} />
+
 
         </>
       )}
+      {config.onDualStageModeChange && <SummaryRow label={t('keymap.touchpadDualStageMode')}
+        hint="Combine this pad’s touch and click bindings" setting={key('TOUCHPAD_DUAL_STAGE_MODE')}
+        help={t(touchpadDualStageHelpKey(config.dualStageMode || 'NO_SKIP'))}
+        adjust={{ kind: 'choice', value: config.dualStageMode || 'NO_SKIP', options: TOUCHPAD_DUAL_STAGE_OPTIONS.map(option => ({ ...option, help: t(option.helpKey) })), onChange: value => config.onDualStageModeChange?.(value) }} />}
+
     </div>
   )
 }
@@ -272,6 +277,11 @@ export function TouchpadSettingsSection(props: Props) {
                 gridRequiresClick: props.touchpadGridRequiresClick,
                 onGridRequiresClickChange: props.onTouchpadGridRequiresClickChange,
                 onOpenTuning: props.onOpenTuning,
+                mouseArea: props.touchpadMouseArea,
+                mouseAreaFit: props.touchpadMouseAreaFit,
+                onMouseAreaFitChange: props.onTouchpadMouseAreaFitChange,
+                onPickMouseArea: props.onPickTouchpadMouseArea,
+                padAspect: props.padAspect,
               }}
               title={t('keymap.touchpad', 'Touchpad')}
             />

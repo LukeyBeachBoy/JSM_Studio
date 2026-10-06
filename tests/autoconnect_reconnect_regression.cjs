@@ -210,13 +210,14 @@ check('the census refreshes without holding the controller lock', () => {
     'the census holds controller_lock across RefreshDeviceList()');
 });
 
-check('the poll takes only one census per tick', () => {
-  // RefreshDeviceList carries a 20ms settle, and AutoConnect runs every second
-  // for the whole session.
-  const count = pollBody().split('TakeDeviceCensus()').length - 1;
-  assert.equal(count, 1,
-    'AutoConnectPoll asks for more than one census per tick, paying the 20ms ' +
-    'device-list settle twice a second forever');
+check('ordinary ticks take one census; a bounded idle rescan can read its result immediately', () => {
+  const body = pollBody();
+  const idle = methodBody(body, /if \(settleTicks == 0 && realSize <= 0 && census.opened == 0\)\s*/);
+  const rescan = methodBody(idle, /if \(\+\+idleTicks >= IDLE_RESCAN_TICKS\)\s*/);
+  assert.equal(rescan.split('TakeDeviceCensus()').length - 1, 1);
+  assert.ok(rescan.indexOf('RescanDevices()') < rescan.indexOf('TakeDeviceCensus()'));
+  assert.equal(body.replace(idle, '').split('TakeDeviceCensus()').length - 1, 1,
+    'ordinary connected-device polls must not pay for a second census');
 });
 
 check('the legacy backend reports a usable census', () => {

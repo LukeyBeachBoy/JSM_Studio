@@ -19,7 +19,7 @@ GUI = ROOT / 'JSM_GUI/jsm_gui_tauri/src'
 SVG = (GUI / 'components/ControllerStatusSvg.tsx').read_text(encoding='utf-8')
 CSS = (GUI / 'components/ControllerStatusSvg.module.css').read_text(encoding='utf-8')
 TELEMETRY = (GUI / 'hooks/useTelemetry.ts').read_text(encoding='utf-8')
-steam = SVG.split('viewBox="0 0 1117 750"', 1)[1].split('// --- Legacy layout', 1)[0]
+steam = SVG.split('if (isSteam) {', 1)[1].split('// Offset-stick controllers', 1)[0]
 
 
 def check(cond, msg):
@@ -31,10 +31,13 @@ def test_all_three_capacitive_inputs_share_one_style():
     check('.capSenseActive {' in CSS, 'no shared capacitive-contact style')
     # The pads light up inside the Steam layout; the grip zone and the stick are
     # shared components defined above it, so count across the whole file.
-    check(SVG.count('styles.capSenseActive') >= 4,
-          'pad touch, grip sense and stick touch must all use the capacitive style')
+    check(SVG.count('styles.capSenseActive') >= 3,
+          'both pad contacts and stick touch must use the capacitive style')
     check('touched && styles.capSenseActive' in SVG, 'stick touch must use the capacitive style')
-    check('pressed && styles.capSenseActive' in SVG, 'grip sense must use the capacitive style')
+    check('isPressed(spot.command) && styles.backSpotPressed' in SVG, 'grip contact must reach the mirrored back rendering')
+    for selector in ('.steamLive .capSenseActive', '.backSpotPressed'):
+        rule = re.search(re.escape(selector) + r'\s*\{([^}]+)\}', CSS)
+        check(rule and 'stroke: var(--telemetry)' in rule[1], 'front touch and rear contact must share the telemetry colour')
     for pad in ('leftPad', 'rightPad'):
         check(f'{pad}?.touched && styles.capSenseActive' in steam,
               f'{pad} touch must use the capacitive style')
@@ -54,8 +57,9 @@ def test_back_buttons_use_the_names_on_the_device():
     check(block is not None, 'no Steam paddle label table')
     for name in ('L4', 'L5', 'R4', 'R5'):
         check(f"'{name}'" in block.group(0), f'{name} missing from the Steam paddle labels')
-    check('getPaddleLabel(backInputMode, entry.command, true)' in steam,
-          'the Steam layout must ask for the Steam labels')
+    hotspots = re.search(r'const BACK_HOTSPOTS[^=]*= \[(.*?)\n\]', SVG, re.S)
+    check(hotspots is not None and all(f"label: '{name}'" in hotspots[1] for name in ('L4', 'L5', 'R4', 'R5')),
+          'the mirrored Steam back view must use the hardware names')
     # Other controllers keep the generic naming: a DualSense Edge paddle is not L4.
     check("LSL: 'L B1'" in SVG, 'the generic paddle labels must survive for other controllers')
 

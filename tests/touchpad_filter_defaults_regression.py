@@ -17,7 +17,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
 HOOK = (ROOT / 'JSM_GUI/jsm_gui_tauri/src/hooks/useTouchpadConfig.ts').read_text(encoding='utf-8')
-SECTION = (ROOT / 'JSM_GUI/jsm_gui_tauri/src/components/keymap/TouchpadSensorSection.tsx').read_text(encoding='utf-8')
+SECTION = (ROOT / 'JSM_GUI/jsm_gui_tauri/src/components/keymap/MouseFeelSheet.tsx').read_text(encoding='utf-8')
+PRESETS = (ROOT / 'JSM_GUI/jsm_gui_tauri/src/utils/mouseFeel.ts').read_text(encoding='utf-8')
 
 EXPECTED_MIN_CUTOFF = 6.0
 EXPECTED_SPEED_COEFF = 0.6
@@ -41,12 +42,12 @@ def test_hook_fallback_matches_shipped_backend_default():
 
 
 def test_displayed_placeholder_matches_shipped_backend_default():
-    m = re.search(r"touchpadMinCutoff\s*\?\?\s*([\d.]+)", SECTION)
+    m = re.search(r"props.minCutoff\s*\?\?\s*([\d.]+)", SECTION)
     check(m is not None, 'touchpadMinCutoff display fallback not found')
     check(float(m.group(1)) == EXPECTED_MIN_CUTOFF,
           f'displayed fallback is {m.group(1)}, backend default is {EXPECTED_MIN_CUTOFF}')
 
-    m = re.search(r"touchpadSpeedCoeff\s*\?\?\s*([\d.]+)", SECTION)
+    m = re.search(r"props.speedCoeff\s*\?\?\s*([\d.]+)", SECTION)
     check(m is not None, 'touchpadSpeedCoeff display fallback not found')
     check(float(m.group(1)) == EXPECTED_SPEED_COEFF,
           f'displayed fallback is {m.group(1)}, backend default is {EXPECTED_SPEED_COEFF}')
@@ -56,7 +57,7 @@ def test_balanced_preset_is_the_shipped_default():
     """The named smoothing presets are a third place the same two numbers live.
     Balanced is presented as "default", so it has to actually be the default, or
     picking it would silently change behaviour."""
-    block = re.search(r"\{ id: 'balanced', cutoff: ([\d.]+), speed: ([\d.]+) \}", SECTION)
+    block = re.search(r"\{ id: 'balanced', label: 'Balanced', cutoff: ([\d.]+), speed: ([\d.]+) \}", PRESETS)
     check(block is not None, "no 'balanced' entry in SMOOTHING_PRESETS")
     check(float(block.group(1)) == EXPECTED_MIN_CUTOFF,
           f'balanced cutoff is {block.group(1)}, backend default is {EXPECTED_MIN_CUTOFF}')
@@ -70,13 +71,13 @@ def test_preset_values_are_visible_and_applied():
     for preset, cutoff, speed in (('light', '10', '0.8'),
                                   ('balanced', '6', '0.6'),
                                   ('heavy', '2.5', '3.0')):
-        check(f"{{ id: '{preset}', cutoff: {cutoff}, speed: {speed} }}" in SECTION,
+        check(f"{{ id: '{preset}', label: '{preset.title()}', cutoff: {cutoff}, speed: {speed} }}" in PRESETS,
               f'{preset} values changed')
-        check(f'<option value="{preset}">' in SECTION, f'{preset} option missing')
-    check('summary={`${cutoff} Hz · ${speed}`}' in SECTION, 'current filter values are hidden')
-    check('onTouchpadMinCutoffChange?.(String(next.cutoff))' in SECTION,
+    check('SMOOTHING_PRESETS.map(p => ({ value: p.id, label: p.label }))' in SECTION, 'all shared presets must be offered')
+    check('value={`${cutoff} Hz`}' in SECTION and 'value={String(speed)}' in SECTION, 'custom filter values must remain readable')
+    check('props.onMinCutoffChange(String(next.cutoff))' in SECTION,
           'preset does not apply its cutoff')
-    check('onTouchpadSpeedCoeffChange?.(String(next.speed))' in SECTION,
+    check('props.onSpeedCoeffChange(String(next.speed))' in SECTION,
           'preset does not apply its speed coefficient')
 
 

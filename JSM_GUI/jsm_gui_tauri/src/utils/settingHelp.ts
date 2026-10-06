@@ -1,4 +1,25 @@
-export function settingHelp(label: string): string | undefined {
+const HELP_BY_SETTING: Record<string, string> = {
+ FLICK_TIME: 'How long a flick takes. Lower values turn faster; higher values spread the turn out over more time.',
+ FLICK_TIME_EXPONENT: 'Makes flick duration depend on the turn angle. 0 gives every flick the same duration; 1 makes smaller turns finish proportionally sooner.',
+ FLICK_SNAP_STRENGTH: 'How strongly flicks align with the directions chosen in Snap mode. 0 keeps the original angle; 1 fully snaps to the nearest direction.',
+ FLICK_DEADZONE_ANGLE: 'Ignores small flick angles around straight forward, so pushing forward does not accidentally turn the camera. 0 disables this protection.',
+ STICK_SENS: 'Camera turn speed at full stick tilt. Horizontal and vertical sensitivity can be set separately.',
+ STICK_POWER: 'Shapes mouse aim across stick travel. Higher values make small movements slower while keeping the full-tilt speed.',
+ STICK_ACCELERATION_RATE: 'How quickly aim speed increases while the stick stays at full tilt. 0 disables acceleration.',
+ STICK_ACCELERATION_CAP: 'Limits the speed multiplier from full-tilt acceleration.',
+ MOUSE_RING_RADIUS: 'Radius of the cursor area, in pixels. Full stick tilt reaches its edge.',
+ TOUCHPAD_AREA: 'The part of the screen a Mouse area pad maps to: left, top, width and height as fractions of the screen the game is on, so the same area lands on any monitor. Draw it on the screen rather than typing it.',
+ TOUCHPAD_AREA_FIT: 'How the pad is laid over its area when their shapes differ. Stretch makes the whole pad the whole area; Keep pad shape moves the cursor the same distance per millimetre both ways, with the pad’s spare travel stopping at the area’s edge.',
+ LEFT_TOUCHPAD_AREA: 'The part of the screen the left pad maps to in Mouse area mode, as fractions of the screen. Draw it on the screen rather than typing it.',
+ RIGHT_TOUCHPAD_AREA: 'The part of the screen the right pad maps to in Mouse area mode, as fractions of the screen. Draw it on the screen rather than typing it.',
+ LEFT_TOUCHPAD_AREA_FIT: 'How the left pad is laid over its area when their shapes differ: Stretch, or Keep pad shape for the same travel per millimetre both ways.',
+ RIGHT_TOUCHPAD_AREA_FIT: 'How the right pad is laid over its area when their shapes differ: Stretch, or Keep pad shape for the same travel per millimetre both ways.',
+ SCROLL_SENS: 'Stick rotation needed for each scroll step. Lower angles produce more steps per turn; bind the stick’s left and right directions to choose what each step sends.',
+}
+
+export function settingHelp(label: string, setting?: string): string | undefined {
+ const key = setting?.split(',').pop()?.toUpperCase()
+ if (key && HELP_BY_SETTING[key]) return HELP_BY_SETTING[key]
  const name = label.toLowerCase()
  if (/real.world.*calibration/.test(name)) return 'Matches physical controller rotation to in-game camera rotation. Calibrate it for the game first so a sensitivity of 1 represents matching turns; use the calibration guide to measure it.'
  if (/in.game.*sens/.test(name)) return 'Enter the mouse sensitivity used inside the game. Together with Real World Calibration, this keeps gyro sensitivity expressed in meaningful rotation ratios.'

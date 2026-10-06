@@ -29,6 +29,8 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
       } };
     });
     await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
+    // A Steam Controller's first connection asks about its power-on sound.
+    await page.getByRole('button', { name: 'Keep them', exact: true }).click({ timeout: 5000 }).catch(() => {});
     await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {});
     await page.getByRole('button', { name: 'Buttons', exact: true }).click();
     const save = async () => { await page.keyboard.press('Control+s'); await page.waitForTimeout(400); return page.evaluate(() => window.__lastSaved); };
@@ -67,24 +69,34 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
     await sheet.locator('[data-modal-close]').click();
     await sheet.waitFor({ state: 'detached' });
 
-    // A layer held while a grip is released, from the input that drives it:
-    // added, then set to happen on release in its cog's sheet.
+    // A layer held while a grip is released, from the input that drives it: a
+    // layer action is a command (TODO-55), added from the Add command picker's
+    // Layers tab; its sheet opens on the new row, where Release is chosen.
     const grip = page.locator(`details[data-input-command="${trigger.slice(1)}"]`).first();
     await grip.scrollIntoViewIfNeeded();
     if (await grip.getAttribute('open') === null) await grip.locator('summary').first().click();
-    const actions = grip.locator('section[aria-label="Layer actions"]').first();
-    await actions.getByRole('button', { name: 'Add layer action' }).click();
-    const which = page.getByRole('dialog', { name: 'Which layer?' });
-    await which.getByRole('radio', { name: /^Aim/ }).click();
-    await which.getByRole('button', { name: 'Add', exact: true }).click();
-    await which.waitFor({ state: 'detached' });
-    await actions.locator('[data-layer-action="aim"]').getByRole('button', { name: 'Layer action settings' }).click();
-    const actionSheet = page.getByRole('dialog').last();
+    await grip.getByRole('button', { name: 'Add command' }).click();
+    const picker = page.getByRole('dialog', { name: 'Choose an action' });
+    await picker.locator('.action-picker__tabs .action-tab').filter({ hasText: 'Layers' }).click();
+    await picker.getByRole('button', { name: /^Aim/ }).click();
+    await picker.waitFor({ state: 'detached' });
+    const actionRow = grip.locator('[data-command-row][data-layer-action="aim"]');
+    await actionRow.waitFor();
+    const actionSheet = page.getByRole('dialog', { name: /Hold Aim/ });
+    await actionSheet.waitFor();
     await actionSheet.getByRole('radio', { name: 'Release' }).click();
     await actionSheet.locator('[data-modal-close]').click();
     saved = await save();
     assert.ok(saved.includes(`# @layer-action ${trigger} = hold aim`), `the layer action is written on the released input:\n${saved}`);
-    assert.match(await actions.innerText(), /Hold Aim[\s\S]*On while .* is released/i, 'and reads as held while released');
+    // The row's chip says Release; its tile keeps the layer's words.
+    assert.match((await actionRow.locator('[data-static="true"]').first().innerText()).trim(), /^Release$/i, 'the row says release');
+    assert.match(await actionRow.innerText(), /Hold Aim/, 'and reads as holding the layer');
+    // The row's own cog reopens the same sheet, which explains the action.
+    await actionRow.getByRole('button', { name: 'Command settings' }).click();
+    await page.getByRole('dialog', { name: /Hold Aim/ }).waitFor();
+    assert.equal(await page.getByRole('dialog', { name: /Hold Aim/ }).getByRole('radio', { name: 'Release' }).getAttribute('aria-checked'), 'true');
+    await page.keyboard.press('Escape');
+    await page.getByRole('dialog', { name: /Hold Aim/ }).waitFor({ state: 'detached' });
 
     assert.deepEqual(errors, []);
     console.log('PASS: released modeshifts ("!X,KEY") and layer actions ("!X = hold") are added, flipped and written');

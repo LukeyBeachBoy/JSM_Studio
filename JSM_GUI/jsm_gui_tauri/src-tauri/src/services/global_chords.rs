@@ -9,6 +9,8 @@ use crate::{runtime, services::{app_state::AppState, jsm_process, telemetry, con
 /// now" card: the live stack, not the one being edited.
 static LAYER_STACK: std::sync::Mutex<Option<Value>> = std::sync::Mutex::new(None);
 
+static CANCEL_GLOBAL:std::sync::atomic::AtomicBool=std::sync::atomic::AtomicBool::new(false);
+pub fn consume_until_release() {CANCEL_GLOBAL.store(true,std::sync::atomic::Ordering::Relaxed);}
 pub fn layer_stack() -> Value {
     LAYER_STACK.lock().ok().and_then(|stack| stack.clone()).unwrap_or_else(|| serde_json::json!({ "profile": "", "layers": [] }))
 }
@@ -25,170 +27,95 @@ fn publish_layer_stack(app: &AppHandle, profile: &str, layers: &[config_layers::
     if changed { let _ = app.emit("layer-stack", stack); }
 }
 
+#[derive(Default)]
+struct DeviceRuntime {
+    active: Option<String>, source: String, loaded_base: String, model: String,
+    layers: Vec<config_layers::PreparedLayer>, activation: LayerActivation,
+    composed_ids: Vec<String>, composed_path: Option<String>,
+    cancelled: bool, begun: Option<Instant>, acknowledged: bool,
+}
 pub fn start(app: AppHandle, state: AppState) {
     thread::spawn(move || {
-        let mut active: Option<String> = None;
-        // If a binding inside a held global chord deliberately loads a normal
-        // profile, do not immediately put the held chord back on top of it.
-        // The chord is consumed until its trigger is released once.
-        let mut global_cancelled_until_release = false;
-        // When STUDIO_CHORD_BEGIN went out, and whether telemetry has shown
-        // its path since. Until it has, a packet still naming the previous
-        // configuration is late, not a new load: the injector returns once
-        // the line is typed, not once the mapper has read it.
-        let mut begun_at = Instant::now();
-        let mut begin_acknowledged = true;
-        let mut chords = Vec::new();
-        let mut layers = Vec::new();
-        let mut activation = LayerActivation::default();
-        let mut composed_ids = Vec::new();
-        let mut composed_path = None;
-        let mut source = String::new();
-        let mut revision = config_layers::revision();
-        let mut settling_until = Instant::now();
-        let mut enabled = false;
-        let mut reserved = false;
-        let mut reserved_down: Vec<&'static str> = Vec::new();
-        let mut next_reload = Instant::now();
+        let mut controllers = std::collections::BTreeMap::<i64, DeviceRuntime>::new();
+        let mut chords=Vec::new();let mut enabled=false;
+        let mut revision=config_layers::revision();let mut next_reload=Instant::now();
         loop {
-            let next_revision = config_layers::revision();
-            if revision != next_revision {
-                revision = next_revision;
-                active = None;
-                source.clear();
-                layers.clear();
-                activation.reset();
-                composed_ids.clear();
-                composed_path = None;
-                settling_until = Instant::now() + Duration::from_millis(100);
+            let cancel=CANCEL_GLOBAL.swap(false,std::sync::atomic::Ordering::Relaxed);
+            if crate::services::virtual_keyboard::take_toggle() {
+                let open=!crate::services::virtual_keyboard::requested();
+                if let Err(error)=crate::services::virtual_keyboard::set_open(&app,open) {eprintln!("Keyboard: {error}");}
             }
-            if Instant::now() < settling_until {
-                thread::sleep(Duration::from_millis(16));
-                continue;
+            crate::services::virtual_keyboard::health(&app);
+            let next_revision=config_layers::revision();
+            if revision!=next_revision {
+                for (id, controller) in &controllers {if controller.active.is_some() {let _=jsm_process::inject_console_command(&app,&state,&format!("STUDIO_DEVICE_CHORD_END {id}"));}}
+                controllers.clear();revision=next_revision;
             }
-            if Instant::now() >= next_reload {
-                if let Ok(next) = runtime::read_global_chords(&app) { chords = next; }
-                if let Ok(runtime_state) = runtime::read_runtime_mapping_state(&app) {
-                    enabled = runtime_state.mapping_enabled;
-                    reserved = runtime_state.reserved_chords;
-                } else {
-                    enabled = false;
+            if Instant::now()>=next_reload {
+                if let Ok(next)=runtime::read_global_chords(&app) {chords=next;}
+                enabled=runtime::read_runtime_mapping_state(&app).map(|s|s.mapping_enabled).unwrap_or(false);
+                next_reload=Instant::now()+Duration::from_millis(480);
+            }
+            let packet=telemetry::latest_packet(&state).ok().flatten();
+            let devices=packet.as_ref().and_then(|p|p["devices"].as_array()).cloned().unwrap_or_default();
+            let base=packet.as_ref().and_then(|p|p["activeProfile"].as_str()).unwrap_or("").replace('\\',"/");
+            let mut any_global=false;let mut visible_layers=Vec::new();let mut visible_ids=Vec::new();
+            for device in &devices {
+                let Some(id)=device["handle"].as_i64() else {continue;};
+                let model=super::controller_layouts::model(device);
+                let controller=controllers.entry(id).or_default();
+                let held=global_profile(&chords,Some(&vec![device.clone()]),true);
+                if cancel {controller.cancelled=true;}
+                let live=device["activeProfile"].as_str().unwrap_or(&base).replace('\\',"/");
+                if controller.active.as_deref()==Some(live.as_str()) {controller.acknowledged=true;}
+                let late=controller.active.is_some() && !controller.acknowledged && controller.begun.is_some_and(|begun|begun.elapsed()<BEGIN_ACK_WAIT);
+                if !base.is_empty() && (controller.loaded_base!=base || controller.model!=model) {
+                    controller.loaded_base=base.clone();controller.source=base.clone();controller.model=model.clone();controller.activation.reset();controller.composed_ids.clear();controller.composed_path=None;
+                    controller.layers=config_layers::prepare_for_model(&app,&base,&model).unwrap_or_else(|error|{eprintln!("Layers: {error}");Vec::new()});
                 }
-                next_reload = Instant::now() + Duration::from_millis(480);
-            }
-            let packet = telemetry::latest_packet(&state).ok().flatten();
-            let devices = packet.as_ref().and_then(|p| p.get("devices")).and_then(Value::as_array);
-            let held_global = global_profile(&chords, devices, enabled);
-            let live = packet.as_ref().and_then(|p| p.get("activeProfile")).and_then(Value::as_str).unwrap_or("").replace('\\', "/");
-            if active.as_deref() == Some(live.as_str()) { begin_acknowledged = true; }
-            let late_packet = active.is_some() && !begin_acknowledged && begun_at.elapsed() < BEGIN_ACK_WAIT;
-            // A normal profile load cancels a held config in the mapper. Do not
-            // restore over that new profile, or carry its predecessor's layers.
-            if !live.is_empty() && !live.starts_with("profiles-library/.layers/") && !late_packet &&
-                active.as_deref() != Some(live.as_str()) && (live != source || active.is_some()) {
-                // A config-load binding inside the active global chord clears
-                // the mapper's chord restore state. If its trigger is still
-                // physically held, re-running STUDIO_CHORD_BEGIN here would
-                // instantly overwrite the profile that binding just selected;
-                // and it was chosen, so it becomes the applied configuration.
-                if binding_chose_profile(active.as_deref(), held_global.as_deref(), &live, &source) {
-                    global_cancelled_until_release = true;
-                    crate::commands::adopt_profile_loaded_by_binding(&app, &state, &live);
+                if !late && binding_chose_profile(controller.active.as_deref(),held.as_deref(),&live,&controller.source) {
+                    controller.cancelled=true;
+                    // A binding selected a normal profile for this controller.
+                    controller.active=None;controller.source=live.clone();controller.activation.reset();
+                    controller.layers=config_layers::prepare_for_model(&app,&live,&model).unwrap_or_default();
                 }
-                active = None;
-                source = live;
-                activation.reset();
-                composed_ids.clear();
-                composed_path = None;
-                layers = config_layers::prepare(&app, &source).unwrap_or_else(|error| {
-                    eprintln!("Could not prepare configuration layers for {source}: {error}");
-                    Vec::new()
-                });
-            }
-            if reserved {
-                let now_down: Vec<&'static str> = RESERVED_CHORDS.iter()
-                    .filter(|(_, buttons)| devices.is_some_and(|devices| devices.iter().any(|device| buttons.iter().all(|button| pressed(device, button)))))
-                    .map(|(name, _)| *name).collect();
-                for name in now_down.iter().filter(|name| !reserved_down.contains(name)) {
-                    run_reserved_chord(&app, &state, name);
-                    // The mapping state just changed under this loop; read it again.
-                    next_reload = Instant::now();
+                let global=eligible_global_profile(held,&mut controller.cancelled);any_global|=global.is_some();
+                let keyboard=crate::services::virtual_keyboard::requested();
+                let ids=if keyboard {controller.composed_ids.clone()} else {controller.activation.update(&controller.layers,std::slice::from_ref(device),enabled,global.is_some())};
+                visible_layers.extend(controller.layers.clone());visible_ids.extend(ids.clone());
+                if ids!=controller.composed_ids {
+                    match config_layers::compose(&app,&controller.layers,&ids) {Ok(path)=>{controller.composed_ids=ids;controller.composed_path=path;},Err(error)=>eprintln!("Layers: {error}")}
                 }
-                reserved_down = now_down;
-            } else {
-                reserved_down.clear();
-            }
-            if !enabled { activation.reset(); }
-            // No active chord to release and none to detect: avoid cloning a
-            // full controller/console packet and waking 60 times per second.
-            if active.is_none() && (!enabled || (chords.is_empty() && layers.is_empty())) {
-                publish_layer_stack(&app, &source, &layers, &[]);
-                // Reserved chords have to be heard with mapping off -- that is
-                // how it gets turned back on.
-                thread::sleep(Duration::from_millis(if reserved { 16 } else { 480 }));
-                continue;
-            }
-            let global = eligible_global_profile(held_global, &mut global_cancelled_until_release);
-            let ids = activation.update(&layers, devices.map(Vec::as_slice).unwrap_or(&[]), enabled, global.is_some());
-            publish_layer_stack(&app, &source, &layers, &ids);
-            if ids != composed_ids {
-                match config_layers::compose(&app, &layers, &ids) {
-                    Ok(path) => { composed_ids = ids; composed_path = path; }
-                    Err(error) => { eprintln!("Could not compose configuration layers: {error}"); }
-                }
-            }
-            let desired = global.or_else(|| composed_path.clone());
-            if desired != active {
-                let mut released = true;
-                if active.is_some() {
-                    released = jsm_process::inject_console_command(&app, &state, "STUDIO_CHORD_END").unwrap_or(false);
-                    if released { active = None; }
-                }
-                if released {
-                    if let Some(path) = desired {
-                        let command = format!("STUDIO_CHORD_BEGIN {path}");
-                        if jsm_process::inject_console_command(&app, &state, &command).unwrap_or(false) {
-                            active = Some(path);
-                            begun_at = Instant::now();
-                            begin_acknowledged = false;
-                        }
+                let desired=global.or_else(||keyboard.then(||crate::services::virtual_keyboard::CAPTURE.to_string())).or_else(||controller.composed_path.clone());
+                if desired!=controller.active {
+                    let released=controller.active.is_none() || jsm_process::inject_console_command(&app,&state,&format!("STUDIO_DEVICE_CHORD_END {id}")).unwrap_or(false);
+                    if released {
+                        controller.active=None;
+                        if let Some(path)=desired {if jsm_process::inject_console_command(&app,&state,&format!("STUDIO_DEVICE_CHORD_BEGIN {id} {path}")).unwrap_or(false) {controller.active=Some(path);controller.begun=Some(Instant::now());controller.acknowledged=false;}}
                     }
                 }
-                // Console injection completes before telemetry acknowledges the
-                // new path. Do not mistake that old packet for a profile switch.
-                settling_until = Instant::now() + Duration::from_millis(32);
             }
+            let disconnected:Vec<_>=controllers.keys().filter(|id|!devices.iter().any(|d|d["handle"].as_i64()==Some(**id))).copied().collect();
+            for id in disconnected {let _=jsm_process::inject_console_command(&app,&state,&format!("STUDIO_DEVICE_CHORD_END {id}"));controllers.remove(&id);}
+            crate::services::virtual_keyboard::set_global(any_global);
+            publish_layer_stack(&app,&base,&visible_layers,&visible_ids);
             thread::sleep(Duration::from_millis(16));
         }
     });
 }
 
-/// Studio's reserved chords: Quick Access (MISC1) with R5 (RSL) or R4 (RSR).
-const RESERVED_CHORDS: [(&str, [&str; 2]); 2] = [("pause", ["MISC1", "RSL"]), ("calibrate", ["MISC1", "RSR"])];
-
-fn run_reserved_chord(app: &AppHandle, state: &AppState, name: &str) {
-    match name {
-        "pause" => {
-            let Ok(current) = runtime::read_runtime_mapping_state(app) else { return };
-            if let Ok(next) = runtime::set_mapping_enabled(app, !current.mapping_enabled) {
-                let _ = crate::commands::apply_runtime_mapping_state(app, state, &next);
-                let _ = app.emit("runtime-mapping-state", &next);
-            }
-        }
-        "calibrate" => {
-            let _ = jsm_process::inject_console_command(app, state, runtime::CALIBRATION_COMMAND);
-        }
-        _ => {}
-    }
-}
-
 fn global_profile(chords: &[runtime::GlobalChord], devices: Option<&Vec<Value>>, enabled: bool) -> Option<String> {
     if !enabled { return None; }
-    chords.iter().find(|chord| !chord.buttons.is_empty() && devices.map(|devices|
-        devices.iter().any(|device| chord.buttons.iter().all(|button| pressed(device, button)))
+    chords.iter().filter(|c|!c.id.starts_with("builtin-")).chain(chords.iter().filter(|c|c.id.starts_with("builtin-"))).find(|chord| devices.map(|devices|
+        devices.iter().any(|device| chord_matches(chord,device))
     ).unwrap_or(false)).map(|chord| chord.profile_path.clone())
 }
 
+fn chord_matches(chord:&runtime::GlobalChord,device:&Value)->bool {
+    if chord.controller_model.as_deref().is_some_and(|model| model != super::controller_layouts::model(device)) {return false;}
+    if chord.trigger_groups.is_empty() {return !chord.buttons.is_empty() && chord.buttons.iter().all(|b|pressed(device,b));}
+    chord.trigger_groups.iter().any(|group|!group.is_empty() && group.iter().all(|b|pressed(device,b)))
+}
 /// How long a packet naming the previous configuration counts as late after
 /// STUDIO_CHORD_BEGIN. Past it, a mapper that refused the chord is believed.
 const BEGIN_ACK_WAIT: Duration = Duration::from_millis(400);
@@ -299,6 +226,15 @@ mod tests {
     use super::*;
     use serde_json::json;
     #[test]
+    fn model_chords_route_to_one_physical_controller() {
+        let ds = json!({"handle":1,"type":5,"status":{"buttons":1u64<<5}});
+        let xbox = json!({"handle":2,"type":6,"status":{"buttons":1u64<<5}});
+        let chord = runtime::GlobalChord {id:"create".into(),controller_model:Some("type-5".into()),buttons:vec!["-".into()],trigger_groups:vec![],profile_path:"dual.txt".into()};
+        assert!(chord_matches(&chord,&ds)); assert!(!chord_matches(&chord,&xbox));
+        assert_eq!(global_profile(&[chord.clone()],Some(&vec![ds]),true).as_deref(),Some("dual.txt"));
+        assert!(global_profile(&[chord],Some(&vec![xbox]),true).is_none());
+    }
+    #[test]
     fn layer_regions_match_default_grid_geometry_and_release() {
         let mut device = json!({"status":{"leftPad":{"x":0.8,"y":-0.8,"touched":true},"rightStick":{"x":0.0,"y":1.0}}});
         let grid = "LEFT_TOUCHPAD_MODE = GRID_AND_STICK\nLEFT_GRID_SHAPE = FOUR_WAY";
@@ -315,11 +251,32 @@ mod tests {
     }
     #[test]
     fn global_chords_keep_priority_and_release_on_disconnect_or_disable() {
-        let chord = runtime::GlobalChord { id: "quick".into(), buttons: vec!["MISC1".into()], profile_path: "quick.txt".into() };
+        let chord = runtime::GlobalChord { controller_model:None, id: "quick".into(), trigger_groups:vec![], buttons: vec!["MISC1".into()], profile_path: "quick.txt".into() };
         let devices = vec![json!({"status": {"buttons": 1u64 << 27}})];
         assert_eq!(global_profile(&[chord.clone()], Some(&devices), true).as_deref(), Some("quick.txt"));
         assert_eq!(global_profile(&[chord.clone()], Some(&devices), false), None);
         assert_eq!(global_profile(&[chord], None, true), None);
+    }
+    #[test] fn alternatives_contain_and_groups_without_combining_controllers() {
+        let chord=runtime::GlobalChord {trigger_groups:vec![vec!["HOME".into()],vec!["L".into(),"R".into()]],..runtime::default_global_chord()};
+        for (buttons,expected) in [(1u64<<16,true),(1<<8,false),(1<<9,false),((1<<8)|(1<<9),true),(0,false)] {
+            assert_eq!(chord_matches(&chord,&json!({"status":{"buttons":buttons}})),expected);
+        }
+        let devices=vec![json!({"status":{"buttons":1<<8}}),json!({"status":{"buttons":1<<9}})];
+        assert!(global_profile(&[chord],Some(&devices),true).is_none());
+    }
+    #[test]
+    fn builtin_triggers_are_alternatives_and_personal_chords_take_priority() {
+        let path="profiles-library/Default Global Chords.txt";
+        let guide=runtime::GlobalChord {controller_model:None,id:"builtin-guide".into(),trigger_groups:vec![],buttons:vec!["HOME".into()],profile_path:path.into()};
+        let quick=runtime::GlobalChord {controller_model:None,id:"builtin-quick-access".into(),trigger_groups:vec![],buttons:vec!["MISC1".into()],profile_path:path.into()};
+        for bit in [16,27] {
+            let devices=vec![json!({"status":{"buttons":1u64<<bit}})];
+            assert_eq!(global_profile(&[guide.clone(),quick.clone()],Some(&devices),true).as_deref(),Some(path));
+        }
+        let personal=runtime::GlobalChord {controller_model:None,id:"personal".into(),trigger_groups:vec![],buttons:vec!["HOME".into()],profile_path:"personal.txt".into()};
+        let devices=vec![json!({"status":{"buttons":1u64<<16}})];
+        assert_eq!(global_profile(&[guide,quick,personal],Some(&devices),true).as_deref(),Some("personal.txt"));
     }
     #[test]
     fn profile_switch_inside_global_chord_waits_for_release_before_rearming() {

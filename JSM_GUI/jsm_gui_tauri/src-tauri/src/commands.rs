@@ -1,10 +1,10 @@
 use serde::Serialize;
 use serde_json::Value;
-use tauri::{AppHandle, State, Window};
+use tauri::{AppHandle, Emitter, State, Window};
 
 use crate::{
     runtime,
-    services::{ai, app_state::AppState, autostart, hidhide, input_debug, jsm_process, overlay, telemetry},
+    services::{ai, app_state::AppState, area_picker, autostart, hidhide, input_debug, jsm_process, overlay, sound_library, telemetry},
 };
 
 type CommandResult<T> = Result<T, String>;
@@ -129,10 +129,12 @@ pub fn set_calibration_hud_enabled(app: AppHandle, enabled: bool) -> CommandResu
     runtime::set_calibration_hud_enabled(&app, enabled)
 }
 
-/// Turns Studio's reserved chords (pause mapping, calibrate gyro) on or off.
-#[tauri::command]
-pub fn set_reserved_chords(app: AppHandle, enabled: bool) -> CommandResult<runtime::RuntimeMappingState> {
-    runtime::set_reserved_chords(&app, enabled)
+#[tauri::command(async)]
+pub fn reset_default_settings(app:AppHandle,state:State<'_,AppState>)->CommandResult<()> {
+    let next=runtime::reset_default_settings(&app)?;
+    apply_runtime_mapping_state(&app,state.inner(),&next)?;
+    let _=app.emit("runtime-mapping-state",&next);
+    Ok(())
 }
 
 /// Pauses or resumes one association without losing it.
@@ -310,13 +312,33 @@ pub fn set_autoload_fallback(
     runtime::set_autoload_fallback(&app, fallback)
 }
 
+/// `exe_path` is the executable the association was made from (its icon);
+/// `auto_apply` false saves the rule paused, so it associates without
+/// switching configurations (TODO-46). Both optional: the Associations page
+/// still changes what an app loads without touching either.
 #[tauri::command]
 pub fn save_autoload_rule(
     app: AppHandle,
     process_name: String,
     profile_name: String,
+    exe_path: Option<String>,
+    auto_apply: Option<bool>,
 ) -> CommandResult<runtime::AutoloadRule> {
-    runtime::save_autoload_rule(&app, &process_name, &profile_name)
+    runtime::save_autoload_rule(&app, &process_name, &profile_name, exe_path.as_deref(), auto_apply)
+}
+
+/// The icon inside an executable, for a configuration associated with it.
+/// Reads the file through GDI, so off the main thread; cached per path.
+#[tauri::command(async)]
+pub fn app_icon(exe_path: String) -> Option<crate::services::app_icon::AppIcon> {
+    crate::services::app_icon::icon_for(&exe_path)
+}
+
+/// The standard Open dialog filtered to .exe, for "Browse…" in the
+/// configuration dialog. Runs on its own thread; None when cancelled.
+#[tauri::command(async)]
+pub fn pick_executable() -> Option<String> {
+    crate::services::app_icon::pick_executable()
 }
 
 #[tauri::command]
@@ -411,6 +433,7 @@ pub(crate) fn adopt_profile_loaded_by_binding(app: &AppHandle, state: &AppState,
 /// not left with the navigation profile, which maps nothing. Apps with a rule
 /// are left to AutoLoad, which loads theirs; Studio only notes the time.
 pub(crate) fn studio_focus_changed(app: &AppHandle, focused: bool) {
+    if crate::services::virtual_keyboard::requested() { return; }
     use std::sync::atomic::Ordering::Relaxed;
     let state = tauri::Manager::state::<AppState>(app);
     if focused {
@@ -585,28 +608,124 @@ pub fn set_controller_preferences(
     state: State<'_, AppState>,
     preferences: runtime::ControllerPreferences,
 ) -> CommandResult<runtime::RuntimeMappingState> {
+    let previous = runtime::get_runtime_mapping_state(&app)?;
     let saved = runtime::set_controller_preferences(&app, preferences)?;
     let _ = jsm_process::inject_console_command(&app, state.inner(), "StudioDefaults.txt");
+    // StudioDefaults is loaded first when a profile starts. Reapply an active
+    // manual profile after changing the LED defaults so its own values still
+    // take precedence without waiting for the next profile switch. AutoLoad
+    // chooses the foreground application's profile on its next focus update.
+    if !saved.autoload_enabled && saved.mapping_enabled
+        && (previous.led_color != saved.led_color || previous.led_brightness != saved.led_brightness)
+    {
+        let profile = runtime::effective_profile_for_state(&saved);
+        let _ = inject_profile_with_retry(&app, state.inner(), &profile)?;
+    }
     Ok(saved)
 }
 
+/// Plays a built-in tune (`sound` 0-13) or, when `sound_id` names a library
+/// sound, that sound's tone sequence, on every connected controller.
 #[tauri::command(async)]
 pub fn play_controller_sound(
     app: AppHandle,
     state: State<'_, AppState>,
     sound: i32,
     gain: Option<i32>,
+    sound_id: Option<String>,
 ) -> CommandResult<SimpleSuccessResult> {
-    if !(0..=13).contains(&sound) {
-        return Err("Sound must be 0-13.".into());
-    }
+    let target = match sound_id.as_deref().map(str::trim).filter(|id| !id.is_empty()) {
+        Some(id) => {
+            // The id becomes part of a path handed to the mapper, so it is
+            // checked here as well as by the library.
+            sound_library::validate_sound_id(id)?;
+            if !sound_library::is_ready(&app, id) {
+                return Err("This sound has not been converted yet.".into());
+            }
+            sound_library::tones_relative_path(id)
+        }
+        None => {
+            if !(0..=13).contains(&sound) {
+                return Err("Sound must be 0-13.".into());
+            }
+            sound.to_string()
+        }
+    };
     // The gain the preview names, so it plays at the level just picked.
     let command = match gain {
-        Some(gain) => format!("PLAY_SOUND {sound} {}", gain.clamp(-30, 0)),
-        None => format!("PLAY_SOUND {sound}"),
+        Some(gain) => format!("PLAY_SOUND {target} {}", gain.clamp(-30, 6)),
+        None => format!("PLAY_SOUND {target}"),
     };
     let success = jsm_process::inject_console_command(&app, state.inner(), &command)?;
     Ok(SimpleSuccessResult { success })
+}
+
+/// Hear the current trim before it is saved to the sound library.
+#[tauri::command(async)]
+pub fn preview_controller_tones(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    tones: Vec<sound_library::Tone>,
+    gain: Option<i32>,
+) -> CommandResult<SimpleSuccessResult> {
+    let path = sound_library::preview_tones(&app, &tones)?;
+    let command = format!("PLAY_SOUND {path} {}", gain.unwrap_or(0).clamp(-30, 6));
+    let success = jsm_process::inject_console_command(&app, state.inner(), &command)?;
+    Ok(SimpleSuccessResult { success })
+}
+
+// --- Sound library --------------------------------------------------------------
+// MP3s the user added and converted to tone sequences (services/sound_library.rs).
+// All async: each touches files, and import/read move tens of megabytes of
+// base64 that have no business on the main thread.
+
+#[tauri::command(async)]
+pub fn sound_library_list(app: AppHandle) -> CommandResult<Vec<sound_library::SoundEntry>> {
+    sound_library::list(&app)
+}
+
+#[tauri::command(async)]
+pub fn sound_library_import(app: AppHandle, name: String, mp3_base64: String) -> CommandResult<sound_library::SoundEntry> {
+    sound_library::import(&app, &name, &mp3_base64)
+}
+
+#[tauri::command(async)]
+pub fn sound_library_read_audio(app: AppHandle, id: String) -> CommandResult<String> {
+    sound_library::read_audio(&app, &id)
+}
+
+#[tauri::command(async)]
+pub fn sound_library_save(
+    app: AppHandle,
+    id: String,
+    name: String,
+    duration_ms: u32,
+    trim_start_ms: u32,
+    trim_end_ms: u32,
+    tones: Vec<sound_library::Tone>,
+    midi_track: Option<String>,
+) -> CommandResult<sound_library::SoundEntry> {
+    sound_library::save(&app, &id, &name, duration_ms, trim_start_ms, trim_end_ms, &tones, midi_track.as_deref())
+}
+
+#[tauri::command(async)]
+pub fn sound_library_rename(app: AppHandle, id: String, name: String) -> CommandResult<sound_library::SoundEntry> {
+    sound_library::rename(&app, &id, &name)
+}
+
+/// Deletes a sound. If it was the Connect or Shutdown sound the choice is
+/// cleared and the running mapper is handed the rewritten defaults, the way
+/// `set_controller_preferences` does, so it stops looking for the file.
+#[tauri::command(async)]
+pub fn sound_library_delete(app: AppHandle, state: State<'_, AppState>, id: String) -> CommandResult<()> {
+    let was_selected = runtime::get_runtime_mapping_state(&app)
+        .map(|s| s.connect_sound_file.as_deref() == Some(id.as_str()) || s.shutdown_sound_file.as_deref() == Some(id.as_str()))
+        .unwrap_or(false);
+    sound_library::delete(&app, &id)?;
+    if was_selected {
+        let _ = jsm_process::inject_console_command(&app, state.inner(), "StudioDefaults.txt");
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -1177,6 +1296,33 @@ pub struct OverlayWorkarea {
 pub fn overlay_workarea(app: AppHandle) -> CommandResult<OverlayWorkarea> {
     let (x, y, width, height) = overlay::workarea(&app)?;
     Ok(OverlayWorkarea { x, y, width, height })
+}
+
+// --- Mouse area picker -------------------------------------------------------
+// Drawing a MOUSE_AREA trackpad's rectangle on the screen itself, over the
+// game. See services/area_picker.rs.
+
+#[tauri::command]
+pub fn area_picker_open(app: AppHandle, request: area_picker::AreaRequest) -> CommandResult<area_picker::PickerState> {
+    area_picker::open(&app, request)
+}
+
+/// The picker window asks for this once it has loaded, since the open event
+/// may have fired before it was listening.
+#[tauri::command]
+pub fn area_picker_state(app: AppHandle) -> CommandResult<Option<area_picker::PickerState>> {
+    Ok(area_picker::state(&app))
+}
+
+#[tauri::command]
+pub fn area_picker_next_monitor(app: AppHandle) -> CommandResult<Option<area_picker::PickerState>> {
+    area_picker::next_monitor(&app)
+}
+
+/// `area` kept, or None to cancel. Either way Studio comes back.
+#[tauri::command]
+pub fn area_picker_close(app: AppHandle, area: Option<area_picker::AreaRect>) -> CommandResult<()> {
+    area_picker::close(&app, area)
 }
 #[cfg(test)]
 mod tests {

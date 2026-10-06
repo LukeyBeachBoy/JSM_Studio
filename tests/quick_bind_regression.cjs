@@ -69,6 +69,17 @@ assert.equal(getKeymapValue(ds4, 'ZL_MODE'), 'PS_L2')
 assert.equal(getKeymapValue(ds4, 'ZR_MODE'), 'PS_R2')
 assert.equal(analyzeVirtualControllerConfig(ds4).warnings.length, 0)
 
+// Switching the whole controller from DS4 must clear its unsupported pad click.
+const ds4ToXbox = applyGamepadPassthrough(ds4, 'XBOX')
+assert.equal(getKeymapValue(ds4ToXbox, 'CAPTURE'), 'NONE')
+assert.equal(analyzeVirtualControllerConfig(ds4ToXbox).warnings.length, 0)
+assert.equal(getKeymapValue(applyGamepadPassthrough(ds4ToXbox, 'DS4'), 'CAPTURE'), 'PS_PAD_CLICK')
+const inheritedClick = applyGamepadPassthrough('template.txt\n', 'XBOX', ds4)
+assert.equal(getKeymapValue(inheritedClick, 'CAPTURE'), 'NONE')
+assert.match(inheritedClick, /^template.txt/m)
+assert.equal(getKeymapValue(applyGamepadPassthrough('CAPTURE = LMOUSE', 'XBOX'), 'CAPTURE'), 'LMOUSE')
+assert.equal(getKeymapValue(applyGamepadPassthrough('CAPTURE = PS_PAD_CLICK! # click', 'XBOX'), 'CAPTURE'), 'NONE')
+
 // --- Applied over an existing config ----------------------------------------
 const existing = [
   'S = SPACE',

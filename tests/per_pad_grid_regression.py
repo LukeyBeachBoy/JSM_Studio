@@ -105,20 +105,19 @@ def test_only_a_two_pad_controller_is_offered_two_pads():
           'the pad settings no longer ask whether the controller has two pads, so a '
           'DualSense is shown a "Left touchpad" and a "Right touchpad" it does not have')
     check('showPerPadTouchpads' in CONTROLS, 'the per-pad visibility rule is gone')
-    gate = re.search(r'const showPerPadTouchpads = useMemo\(.*?\n  \}, \[', CONTROLS, re.S)
+    gate = re.search(r'const showPerPadTouchpads = ([^\n]+)', CONTROLS)
     check(gate is not None, 'showPerPadTouchpads is no longer derived')
     body = gate.group(0)
-    check('if (hasPerPadSettings) return true' in body,
+    check('hasPerPadSettings ||' in body,
           'a config that already sets per-pad values would lose its per-pad UI')
-    check('if (!devices || devices.length === 0) return true' in body,
+    check('!devices || devices.length === 0' in body,
           'with nothing connected the per-pad settings must still be offered, or a '
           'Steam Controller owner cannot set them up offline')
 
     per_pad = re.search(r'const hasPerPadSettings = useMemo\(.*?\n  \)', CONTROLS, re.S)
     check(per_pad is not None, 'hasPerPadSettings is no longer derived')
-    check('configText' in per_pad.group(0),
-          'hasPerPadSettings reads resolved values again; the per-pad grid size falls '
-          'back to 2x1 whether or not the config sets it, so it always looked set')
+    check('readText' in per_pad.group(0) and 'TOUCHPAD_MODE|GRID_SIZE|TOUCHPAD_SENS|TOUCH_STICK_MODE' in per_pad.group(0),
+          'per-pad configuration must be detected from literal assignments, including imported profiles, rather than computed fallback numbers')
 
 
 def test_the_shared_touch_bindings_say_they_are_shared():

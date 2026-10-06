@@ -147,15 +147,20 @@ const fs = require('node:fs');
  await sheet.waitFor({state:'detached'});
  await page.keyboard.press('Control+s');
  await page.waitForFunction(()=>/L\s*,\s*RIGHT_TOUCHPAD_MODE = GRID_AND_STICK/.test(window.__lastSaved));
- // Trackpad tuning is the Mouse feel sheet now (2c), opened from the row
+ // Trackpad tuning is the Trackpad feel sheet now (2c), opened from the row
  // under a pad set to Mouse; its scope strip says which pads it touches.
- await row(right,'Mouse feel').click();
- await sheet.getByRole('heading',{name:'Mouse feel'}).waitFor();
+ await row(right,'Trackpad feel').click();
+ await sheet.getByRole('heading',{name:'Trackpad feel'}).waitFor();
  await sheet.locator('.scope-tile[data-state="uses"]').filter({hasText:'Right pad · Mouse · uses this'}).waitFor();
  await sheet.locator('.scope-tile[data-state="not"]').filter({hasText:'Left pad · Menu · not affected'}).waitFor();
- // The live finger-speed readout sits with the acceleration curve.
+ // The acceleration curve opens its own editor over the sheet (TODO-40), with
+ // the live finger speed on it; closing it returns to the sheet.
  await row(sheet,'Acceleration curve').click();
- await sheet.getByText('420.00 px/s',{exact:true}).waitFor();
+ const curveView=page.locator('.curve-view');
+ await curveView.locator('.curve-view__readout').getByText('420 px/s',{exact:true}).first().waitFor();
+ await page.keyboard.press('Escape');
+ await curveView.waitFor({state:'detached'});
+ await sheet.getByRole('heading',{name:'Trackpad feel'}).waitFor();
  // A setting's description is X (What's this?) on its row; there is no help dialog to open.
  const lift=row(sheet,'Lift-off protection');
  await lift.focus(); await page.keyboard.press('x');
@@ -171,8 +176,11 @@ const fs = require('node:fs');
  await page.keyboard.press('Tab');
  await page.keyboard.press('Control+s');
  await page.waitForFunction(()=>window.__lastSaved.includes('TRIGGER_THRESHOLD = 0.1'));
- await page.getByRole('textbox',{name:'Flicker guard',exact:true}).first().fill('0.03');
- await page.keyboard.press('Tab');
+ const guardRow=page.locator('button.summary-row').filter({has:page.locator('.summary-row__label').getByText('Flicker guard',{exact:true})}).first();
+ await guardRow.click();
+ await page.keyboard.press('ArrowRight');
+ await page.keyboard.press('ArrowRight');
+ await page.keyboard.press('Enter');
  await page.keyboard.press('Control+s');
  await page.waitForFunction(()=>window.__lastSaved.includes('TRIGGER_HYSTERESIS = 0.03'));
  // Debug Console now lives under the app-level Studio context, not the

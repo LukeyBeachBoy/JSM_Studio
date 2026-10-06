@@ -2,6 +2,7 @@ import { keyName } from '../constants/configKeys'
 import { isDirectionalStickMode } from '../constants/sticks'
 import { getKeymapValue, removeKeymapEntry, setBindingLine, updateKeymapEntry } from './keymap'
 import {
+  findVirtualControllerOutputs,
   toVirtualControllerToken,
   type VirtualControllerLogicalOutput,
   type VirtualControllerType,
@@ -31,7 +32,7 @@ const GAMEPAD_PASSTHROUGH_INPUTS: { input: string; logical: VirtualControllerLog
   { input: 'DOWN', logical: 'dpadDown' },
   { input: 'LEFT', logical: 'dpadLeft' },
   { input: 'RIGHT', logical: 'dpadRight' },
-  // Xbox has no pad click, so toVirtualControllerToken drops this one there.
+  // Xbox has no pad click; an existing PS click is cleared below instead.
   { input: 'CAPTURE', logical: 'padClick' },
 ]
 
@@ -55,11 +56,16 @@ export const buildGamepadPassthroughBindings = (scheme: VirtualControllerScheme)
  * sticks to the virtual sticks. Anything a virtual pad has no equivalent for
  * (paddles, trackpad regions, gyro) is left exactly as it was.
  */
-export const applyGamepadPassthrough = (text: string, scheme: VirtualControllerScheme) => {
+export const applyGamepadPassthrough = (text: string, scheme: VirtualControllerScheme, effectiveText = text) => {
   let next = updateKeymapEntry(text, keyName.VIRTUAL_CONTROLLER, [scheme])
   buildGamepadPassthroughBindings(scheme).forEach(({ input, token }) => {
     next = setBindingLine(next, input, token)
   })
+  if (scheme === 'XBOX' && findVirtualControllerOutputs(effectiveText)
+    .some(output => output.command === 'CAPTURE' && output.token === 'PS_PAD_CLICK')) {
+    // Explicit NONE also overrides a PS click inherited from a template/layer.
+    next = setBindingLine(next, 'CAPTURE', 'NONE')
+  }
   DIGITAL_TRIGGER_INPUTS.forEach(input => {
     next = removeKeymapEntry(next, input)
   })

@@ -1,8 +1,9 @@
 // The binding card review's behaviour fixes, in the browser: "Capture a key"
 // adds a command rather than overwriting the first; the Add command picker
-// offers no Layers tab; a card with no layers says how to make one; a
-// modeshift can be named from its sheet; the card's header keeps the card
-// layout until the body has folded; a chord's second input is its own chip.
+// offers a Layers tab (a layer action is a command, TODO-55); a card with no
+// layers says how to make one there; a modeshift can be named from its
+// sheet; the card's header keeps the card layout until the body has folded;
+// a chord's second input is its own chip.
 // Isolated renderer check; mocks never invoke a physical controller or runtime.
 const assert = require('node:assert/strict');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
@@ -32,6 +33,8 @@ const PROFILE = ['RESET_MAPPINGS', 'N = SPACE', 'RSR,N = C', 'E = A', 'R+E = TAB
       } };
     }, PROFILE);
     await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
+    // A Steam Controller's first connection asks about its power-on sound.
+    await page.getByRole('button', { name: 'Keep them', exact: true }).click({ timeout: 5000 }).catch(() => {});
     await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {});
     await page.locator('.profile-chip').waitFor();
     await page.getByRole('button', { name: 'Buttons', exact: true }).click();
@@ -64,27 +67,35 @@ const PROFILE = ['RESET_MAPPINGS', 'N = SPACE', 'RSR,N = C', 'E = A', 'R+E = TAB
     const chips = await rows.getByRole('combobox', { name: 'Trigger' }).allInnerTexts();
     assert.deepEqual(chips.map(text => text.trim().toLowerCase()), ['press', 'press'], `both rows should read Press: ${chips.join(', ')}`);
 
-    // --- X in the Add command picker adds too, and the picker has no Layers tab (23)
+    // --- X in the Add command picker adds too, and the picker offers Layers (23, TODO-55)
     await open.getByRole('button', { name: 'Add command' }).click();
     const picker = page.getByRole('dialog', { name: 'Choose an action' });
     await picker.waitFor();
     const tabs = (await picker.locator('.action-picker__tabs .action-tab').allInnerTexts()).map(text => text.trim());
-    assert.ok(!tabs.includes('Layers'), `the Add command picker offers Layers: ${tabs.join(', ')}`);
+    assert.ok(tabs.includes('Layers'), `the Add command picker offers no Layers tab: ${tabs.join(', ')}`);
+    // --- No layers: the Layers category says so, with the way to the Layers page (29)
+    await picker.locator('.action-picker__tabs .action-tab').filter({ hasText: 'Layers' }).click();
+    await picker.getByRole('button', { name: 'Go to Layers' }).waitFor();
+    assert.match(await picker.locator('.action-picker__content').innerText(), /Create a layer/);
     await picker.locator('.action-picker__tabs .action-tab').filter({ hasText: 'Capture' }).click();
     await page.waitForFunction(() => document.body.dataset.bindingCapture === 'true');
     await page.keyboard.press('KeyK');
     await page.waitForFunction(() => document.querySelectorAll('details[data-input-command="N"][open] [data-command-row]').length === 3);
     assert.deepEqual(await rows.getByRole('button', { name: /^Choose action/ }).allInnerTexts(), ['Space', 'J', 'K']);
 
-    // Rows after the first carry no name column; the first still does (13).
+    // Every command now owns a label: secondary commands keep their own name
+    // when copied, reordered or assigned another activator.
     assert.equal(await rows.first().getAttribute('data-unnamed'), null);
-    assert.equal(await rows.nth(1).getAttribute('data-unnamed'), 'true');
+    assert.equal(await rows.nth(1).getAttribute('data-unnamed'), null);
+    await rows.nth(1).getByRole('button', { name: 'Command settings', exact: true }).click();
+    const commandName = page.getByRole('dialog').getByRole('textbox', { name: 'Action name', exact: true });
+    await commandName.fill('Second command'); await commandName.press('Tab');
+    await page.keyboard.press('Escape');
+    assert.match(await rows.nth(1).innerText(), /Second command/, 'the second command displays its own editable label');
 
-    // --- No layers: the lane says so, with the way to the Layers page (29) ----
-    const layerLane = open.locator('section[data-concept="layer"]');
-    assert.equal(await layerLane.getByRole('button', { name: 'Add layer action' }).count(), 0, 'a disabled Add button is all a pad user gets');
-    await layerLane.getByRole('button', { name: 'Go to Layers' }).waitFor();
-    assert.match(await layerLane.innerText(), /Create a layer/);
+    // --- The card is Commands and Modeshifts only (TODO-54, TODO-55) ---------
+    assert.equal(await open.locator('section[data-concept="layer"]').count(), 0, 'the Layer actions lane is still on the card');
+    assert.equal(await open.locator('details').filter({ hasText: 'LED while held' }).count(), 0, 'the LED while held accordion is still on the card');
 
     // --- A modeshift can be named from its sheet (10) -------------------------
     await open.locator('[data-modeshift-row="RSR"]').getByRole('button', { name: 'Modeshift settings' }).click();

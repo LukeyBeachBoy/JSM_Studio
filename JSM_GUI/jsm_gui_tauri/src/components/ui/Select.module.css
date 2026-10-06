@@ -63,13 +63,14 @@
 }
 
 .content {
-  z-index: var(--z-menu);
+  /* Above a dialog too: a select inside one otherwise opens behind it. */
+  z-index: var(--z-popover);
   /* Match the trigger so a normal control's list lines up under it -- but only
      up to a point. These triggers stretch to their settings column, and a list
      of words like NO_SKIP has no reason to be 850px wide; it also left no room
      beside it for the help panel, which then hung off the edge of the window. */
   min-width: min(var(--radix-select-trigger-width), 22rem);
-  max-width: min(92vw, 30rem);
+  max-width: min(92vw, 22rem);
   max-height: var(--radix-select-content-available-height);
   border-radius: var(--r-card);
   border: 0;
@@ -209,4 +210,22 @@
 
 @media (prefers-reduced-motion: reduce) {
   .content { animation: none; }
+}
+
+/* Complex behaviours need a readable explanation for every choice. */
+.descriptiveContent {
+  width: min(42rem, calc(100vw - 32px));
+  min-width: 0;
+  max-width: calc(100vw - 32px);
+}
+.descriptiveItem { padding-top: 12px; padding-bottom: 12px; align-items: flex-start; }
+.descriptiveItem .itemIndicator { top: 15px; }
+.optionBody { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.optionDescription {
+  display: block;
+  color: var(--text-2);
+  font-size: var(--fs-hint);
+  font-weight: var(--fw-normal, 400);
+  line-height: 1.5;
+  white-space: normal;
 }

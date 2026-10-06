@@ -58,6 +58,7 @@ const PROFILE = [
       } };
     }, [PROFILE, TEMPLATE]);
     await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
+    await page.getByRole('button', { name: 'Keep them', exact: true }).click({ timeout: 5000 }).catch(() => {});
     // The app opens on Home (console refinement 2a); these checks start in the editing shell.
     await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
     await page.locator('.profile-chip').waitFor();
@@ -86,7 +87,11 @@ const PROFILE = [
     assert.equal(await keycap.innerText(), 'Tab', 'the edit snapped back: the card read a different line than it wrote');
 
     // --- capture --------------------------------------------------------------
-    await shifted.getByRole('button', { name: 'Capture a key' }).click();
+    // X on an existing command captures into it. The lane's Capture button
+    // adds a new command, so it cannot verify editing this command's output.
+    await keycap.focus();
+    await page.keyboard.press('x');
+    await shifted.locator('[data-command-row][data-capturing="true"]').waitFor();
     await page.keyboard.press('KeyJ');
     await page.waitForTimeout(400);
     assert.equal(await keycap.innerText(), 'J', 'capture did not reach the shifted binding');

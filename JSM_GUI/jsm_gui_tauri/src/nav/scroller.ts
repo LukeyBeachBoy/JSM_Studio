@@ -9,6 +9,8 @@
 // latest target, and anything measuring "where will this be" can ask for the
 // destination instead of the in-flight position.
 
+import { ringTarget } from './navBox'
+
 type Flight = {
   from: number
   to: number
@@ -34,6 +36,30 @@ const easeOut = (t: number) => 1 - (1 - t) ** 3
 const maxScroll = (host: HTMLElement) => Math.max(0, host.scrollHeight - host.clientHeight)
 
 export const pageScrollHost = () => document.querySelector<HTMLElement>('.shell-scroll')
+
+/** Use the element that really scrolls, including nested editor columns. */
+const isScrollHost = (element: HTMLElement) =>
+  element.clientHeight > 0 && element.scrollHeight > element.clientHeight + 1 && /(auto|scroll)/.test(getComputedStyle(element).overflowY)
+
+function nearestScrollHost(element: HTMLElement | null, boundary?: HTMLElement) {
+  for (let node = element; node; node = node.parentElement) {
+    if (isScrollHost(node)) return node
+    if (node === boundary) break
+  }
+  return null
+}
+
+/** An open overlay owns scrolling even while focus is on its header/footer. */
+export function activeScrollHost() {
+  const overlays = document.querySelectorAll<HTMLElement>('.modal-overlay, [data-focus-trap="true"]')
+  const overlay = overlays[overlays.length - 1]
+  const active = document.activeElement as HTMLElement | null
+  if (overlay) {
+    const focused = overlay.contains(active) ? nearestScrollHost(active, overlay) : null
+    return focused ?? Array.from(overlay.querySelectorAll<HTMLElement>('*')).find(isScrollHost) ?? null
+  }
+  return nearestScrollHost(active) ?? pageScrollHost()
+}
 
 /** Where the host is headed: the flight's target, else where it is. */
 export const scrollDestination = (host: HTMLElement) => flights.get(host)?.to ?? host.scrollTop
@@ -115,24 +141,31 @@ export const CLEAR_TOP = 96
 export const CLEAR_BOTTOM = 44 + 16 + 16
 
 /**
- * Bring `element` into view in its page, measured against where the page is
- * going rather than where it is mid-flight. Does nothing for elements outside
- * the page's scroller (dialogs, the title bar).
+ * Bring the full focus ring into view in its actual scrolling container,
+ * measured against the destination rather than the in-flight position.
  */
 export function ensureVisible(element: HTMLElement, options: { smooth?: boolean } = { smooth: true }) {
-  const host = element.closest<HTMLElement>('.shell-scroll')
+  const host = nearestScrollHost(element)
   if (!host) return false
   const view = host.getBoundingClientRect()
-  const box = element.getBoundingClientRect()
-  const pending = scrollDestination(host) - host.scrollTop
+  // Dialog entrance animations can scale the frame. DOM rectangles use
+  // screen pixels; scrollTop uses the unscaled layout's pixels.
+  const scale = host.offsetHeight > 0 ? view.height / host.offsetHeight : 1
+  if (scale <= 0) return false
+  const viewTop = view.top + host.clientTop * scale
+  const viewBottom = viewTop + host.clientHeight * scale
+  const box = ringTarget(element).getBoundingClientRect()
+  const inPage = host.matches('.shell-scroll')
+  const clearTop = inPage ? CLEAR_TOP : 8
+  const clearBottom = inPage ? CLEAR_BOTTOM : 8
+  const pending = (scrollDestination(host) - host.scrollTop) * scale
   const top = box.top - pending, bottom = box.bottom - pending
-  const room = view.height - CLEAR_TOP - CLEAR_BOTTOM
+  const room = viewBottom - viewTop - clearTop - clearBottom
   let delta = 0
-  if (box.height > room) delta = top - (view.top + CLEAR_TOP)
-  else if (top < view.top + CLEAR_TOP) delta = top - (view.top + CLEAR_TOP)
-  else if (bottom > view.bottom - CLEAR_BOTTOM) delta = bottom - (view.bottom - CLEAR_BOTTOM)
-  if (Math.abs(delta) < 1) return false
-  scrollHostBy(host, delta, options)
+  if (box.height > room) delta = top - (viewTop + clearTop)
+  else if (top < viewTop + clearTop) delta = top - (viewTop + clearTop)
+  else if (bottom > viewBottom - clearBottom) delta = bottom - (viewBottom - clearBottom)
+  if (Math.abs(delta) >= 1) scrollHostBy(host, delta / scale, options)
   return true
 }
 

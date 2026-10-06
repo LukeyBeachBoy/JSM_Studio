@@ -1,7 +1,9 @@
 import { commandLabel } from './commandLabels'
+import { parseCycleBinding, cycleBinding } from './cycleBinding'
+import { readVirtualMenus, writeVirtualMenus } from './virtualMenus'
 import type { TFunction } from 'i18next'
 import { keyName } from '../constants/configKeys'
-import { getKeymapValue } from './keymap'
+import { getKeymapValue, updateKeymapEntry } from './keymap'
 import { loadConfigBindingName } from './loadConfigBinding'
 import { keyDisplayName } from './keyNames'
 
@@ -188,26 +190,46 @@ export const getVirtualControllerOptions = (
     token: type === 'XBOX' ? binding.xbox! : binding.ds4!,
   }))
 
-const extractVirtualControllerTypes = (text: string) => {
-  const found = new Set<Exclude<VirtualControllerType, 'NONE'>>()
+export type VirtualControllerOutputReference = {
+  command: string
+  token: string
+  type: Exclude<VirtualControllerType, 'NONE'>
+}
+
+/** Locate outputs, including event suffixes and menu/cycle actions, without
+ * mistaking comments, command strings or analog trigger mode enums for bindings. */
+export const findVirtualControllerOutputs = (text: string): VirtualControllerOutputReference[] => {
+  const found: VirtualControllerOutputReference[] = []
+  const scan = (command: string, value: string) => {
+    for (const match of value.matchAll(/"[^"\n]*"|#.*|\b(?:X_[A-Z0-9_]+|PS_[A-Z0-9_]+)\b/g)) {
+      const cycle = parseCycleBinding(match[0])
+      if (cycle) {
+        cycle.forEach(step => scan(command, step))
+        continue
+      }
+      const type = getVirtualControllerTokenType(match[0])
+      if (type && !found.some(item => item.command === command && item.token === match[0])) {
+        found.push({ command, token: match[0], type })
+      }
+    }
+  }
+  const catalog = readVirtualMenus(text)
+  if (!catalog.problem) for (const menu of catalog.menus) for (const action of [...menu.actions, ...(menu.centerAction ? [menu.centerAction] : [])])
+    scan(`Menu: ${menu.name} / ${action.label || (action === menu.centerAction ? 'Centre action' : `Action ${menu.actions.indexOf(action) + 1}`)}`, action.binding)
   text.split(/\r?\n/).forEach(line => {
+    if (line.trimStart().startsWith('#')) return
     const separatorIndex = line.indexOf('=')
     if (separatorIndex === -1) return
-    const value = stripInlineComment(line.slice(separatorIndex + 1))
-    if (!value) return
-    value.split(/\s+/).forEach(token => {
-      const tokenType = getVirtualControllerTokenType(token)
-      if (tokenType) {
-        found.add(tokenType)
-      }
-    })
+    const command = line.slice(0, separatorIndex).trim()
+    if (['ZL_MODE', 'ZR_MODE'].includes(command.split(',').pop()!.trim())) return
+    scan(command, stripInlineComment(line.slice(separatorIndex + 1)))
   })
-  return [...found]
+  return found
 }
 
 export const analyzeVirtualControllerConfig = (text: string) => {
   const type = getVirtualControllerType(text)
-  const detectedTypes = extractVirtualControllerTypes(text)
+  const detectedTypes = [...new Set(findVirtualControllerOutputs(text).map(output => output.type))]
   const warnings: VirtualControllerWarning[] = []
   if (type === 'NONE' && detectedTypes.length > 0) {
     warnings.push({ kind: 'modeRequired' })
@@ -229,6 +251,10 @@ export const analyzeVirtualControllerConfig = (text: string) => {
 /** Translate output tokens only: preserve commands, quoted text and comments. */
 export function migrateVirtualBindings(text: string, type: VirtualControllerType): string {
   if (type === 'NONE') return text
+  const catalog = readVirtualMenus(text)
+  if (!catalog.problem && catalog.menus.length) text = writeVirtualMenus(text, catalog.menus.map(menu => ({ ...menu,
+    actions: menu.actions.map(action => ({ ...action, binding: migrateVirtualBindings('N = ' + action.binding, type).slice(4) })),
+    ...(menu.centerAction ? { centerAction: { ...menu.centerAction, binding: migrateVirtualBindings('N = ' + menu.centerAction.binding, type).slice(4) } } : {}) })))
   return text.split('\n').map(line => {
     const eq = line.indexOf('=')
     if (eq < 0 || line.trimStart().startsWith('#')) return line
@@ -236,10 +262,38 @@ export function migrateVirtualBindings(text: string, type: VirtualControllerType
     // Trigger passthrough modes are backend enum names, always X_LT / X_RT.
     if (key === 'ZL_MODE' || key === 'ZR_MODE') return line
     return line.slice(0, eq + 1) + line.slice(eq + 1).replace(/"[^"\n]*"|#.*|\b(?:X_[A-Z0-9_]+|PS_[A-Z0-9_]+)\b/g, token => {
+      const cycle = parseCycleBinding(token)
+      if (cycle) return `"${cycleBinding(cycle.map(step => { const logical = getVirtualControllerLogicalOutput(step); return logical ? toVirtualControllerToken(logical, type) ?? step : step }))}"`
       const logical = getVirtualControllerLogicalOutput(token)
       return logical ? toVirtualControllerToken(logical, type) ?? token : token
     })
   }).join('\n')
+}
+
+/** Fix the active layer, writing local overrides for outputs inherited from imports. */
+export function fixVirtualControllerOutputs(text: string, effectiveText: string, type: VirtualControllerType): string {
+  if (type === 'NONE') return text
+  let fixed = migrateVirtualBindings(text, type)
+  const commands = new Set(findVirtualControllerOutputs(effectiveText)
+    .filter(output => output.type !== type)
+    .map(output => output.command))
+  for (const command of commands) {
+    if (command.startsWith('Menu: ')) continue
+    const value = getKeymapValue(effectiveText, command)
+    if (!value) continue
+    const migrated = migrateVirtualBindings(`N = ${value}`, type).slice(4)
+    if (migrated !== value && getKeymapValue(fixed, command) !== migrated) fixed = updateKeymapEntry(fixed, command, [migrated])
+  }
+  if ([...commands].some(command => command.startsWith('Menu: '))) {
+    const catalog = readVirtualMenus(effectiveText)
+    if (!catalog.problem) {
+      const migrated = readVirtualMenus(migrateVirtualBindings(effectiveText, type))
+      if (!migrated.problem && JSON.stringify(migrated.menus) !== JSON.stringify(catalog.menus)) {
+        fixed = writeVirtualMenus(fixed, migrated.menus)
+      }
+    }
+  }
+  return fixed
 }
 
 /**

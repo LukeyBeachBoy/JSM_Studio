@@ -127,28 +127,33 @@ fn safe_relative(path: &str) -> bool {
     !path.contains(':') && !path.contains('\\') && Path::new(path).components().all(|c| matches!(c, Component::Normal(_)))
 }
 
-fn snapshot(root: &Path, text: &str, stack: &mut Vec<String>) -> Result<String, String> {
+fn snapshot(root: &Path, text: &str, stack: &mut Vec<String>) -> Result<String, String> { snapshot_inner(root, text, stack, false) }
+fn snapshot_inner(root: &Path, text: &str, stack: &mut Vec<String>, retain_layers: bool) -> Result<String, String> {
     let mut lines = Vec::new();
     for line in text.lines() {
-        if line.trim().starts_with("# @layer ") { continue; }
+        if !retain_layers && line.trim().starts_with("# @layer ") { continue; }
         let candidate = line.split('#').next().unwrap_or("").trim().replace('\\', "/");
         if !candidate.contains('=') && candidate.to_lowercase().ends_with(".txt") {
             if !safe_relative(&candidate) { return Err("Invalid layer import path".into()); }
             if stack.contains(&candidate) || stack.len() >= 32 { return Err("Circular layer import".into()); }
             let imported = fs::read_to_string(root.join(&candidate)).map_err(|e| e.to_string())?;
             stack.push(candidate);
-            lines.push(snapshot(root, &imported, stack)?);
+            lines.push(snapshot_inner(root, &imported, stack, retain_layers)?);
             stack.pop();
         } else { lines.push(line.to_string()); }
     }
     Ok(lines.join("\n"))
 }
 
-pub fn prepare(app: &AppHandle, source: &str) -> Result<Vec<PreparedLayer>, String> {
+pub fn prepare(app: &AppHandle, source: &str) -> Result<Vec<PreparedLayer>, String> { prepare_for_model(app, source, "") }
+
+pub fn prepare_for_model(app: &AppHandle, source: &str, model: &str) -> Result<Vec<PreparedLayer>, String> {
     let source = source.replace('\\', "/");
     if !safe_relative(&source) || !source.starts_with("profiles-library/") { return Ok(Vec::new()); }
     let root = runtime::runtime_dir(app)?;
     let text = fs::read_to_string(root.join(&source)).map_err(|e| e.to_string())?;
+    let expanded = snapshot_inner(&root, &text, &mut vec![source.clone()], true)?;
+    let text = super::controller_layouts::project(&expanded, model);
     let layers = parse(&text);
     if layers.is_empty() { return Ok(Vec::new()); }
     let base = snapshot(&root, &text, &mut vec![source.clone()])?;

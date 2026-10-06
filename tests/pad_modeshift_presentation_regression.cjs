@@ -54,6 +54,7 @@ const WARDOGS = [
       } };
     }, WARDOGS);
     await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
+    await page.getByRole('button', { name: 'Keep them', exact: true }).click({ timeout: 5000 }).catch(() => {});
     // The app opens on Home (console refinement 2a); these checks start in the editing shell.
     await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
     page.setDefaultTimeout(10000);

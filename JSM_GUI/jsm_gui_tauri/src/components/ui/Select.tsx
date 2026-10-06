@@ -1,5 +1,5 @@
 import { OPTION_HELP } from '../../utils/optionHelp'
-import { Fragment, useCallback, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { Fragment, useCallback, useLayoutEffect, useId, useRef, useState, type ReactNode } from 'react'
 import * as RadixSelect from '@radix-ui/react-select'
 import styles from './Select.module.css'
 
@@ -31,10 +31,13 @@ type SelectProps = {
   /** Flat list, or groups when the options need separating (common kinds first, rare ones after). */
   options?: SelectOption[]
   groups?: SelectGroup[]
+  /** Wide list with descriptions beneath every option. */
+  inlineDescriptions?: boolean
   placeholder?: string
   disabled?: boolean
   className?: string
   ariaLabel?: string
+  ariaDescribedBy?: string
   /** Hover tooltip on the trigger, matching the native select's `title`. */
   title?: string
   id?: string
@@ -62,13 +65,21 @@ export function Select({
   options,
   groups,
   placeholder,
+  inlineDescriptions = false,
   disabled,
   className = '',
   ariaLabel,
+  ariaDescribedBy,
   title,
   id,
 }: SelectProps) {
-  const resolved: SelectGroup[] = groups ?? [{ options: options ?? [] }]
+  const descriptionId = useId()
+  let resolved: SelectGroup[] = groups ?? [{ options: options ?? [] }]
+  // A hand-written or newer mapper value must remain visible and selectable.
+  // Showing a blank trigger hides configuration that the app did not create.
+  if (value && !resolved.some(group => group.options.some(option => option.value === value))) {
+    resolved = [...resolved, { options: [{ value, label: value }] }]
+  }
   const flat = resolved.flatMap(group => group.options)
   const active = flat.find(option => option.value === value)
   const [helpValue, setHelpValue] = useState(value)
@@ -88,13 +99,16 @@ export function Select({
   const placeHelpPanel = useCallback(() => {
     const node = contentRef.current
     if (!node) return
-    // Beside the list only when the panel fits there with the margin to
-    // spare; otherwise it docks below, inside the same surface.
+    // Prefer the right, then the left; dock below only when neither side
+    // has enough room for a readable panel inside the viewport margin.
     const { left, right, width } = node.getBoundingClientRect()
-    const beside = window.innerWidth - right >= HELP_PANEL_WIDTH + HELP_PANEL_GAP + VIEWPORT_MARGIN
-    setHelpSide(beside ? 'right' : 'bottom')
+    const requiredSpace = HELP_PANEL_WIDTH + HELP_PANEL_GAP + VIEWPORT_MARGIN
+    const side = window.innerWidth - right >= requiredSpace
+      ? 'right'
+      : left >= requiredSpace ? 'left' : 'bottom'
+    setHelpSide(side)
     const panelWidth = Math.max(HELP_PANEL_WIDTH, width)
-    setHelpShift(beside ? 0 : Math.min(0, window.innerWidth - VIEWPORT_MARGIN - (left + panelWidth)))
+    setHelpShift(side !== 'bottom' ? 0 : Math.min(0, window.innerWidth - VIEWPORT_MARGIN - (left + panelWidth)))
   }, [])
   // Measured a frame after opening, not in the Content's ref. Radix positions a
   // popper with Floating UI *after* it mounts, so a ref callback measures the
@@ -109,7 +123,7 @@ export function Select({
 
   return (
     <RadixSelect.Root value={value} onValueChange={onValueChange} disabled={disabled} onOpenChange={next => { setOpen(next); if (next) setHelpValue(value) }}>
-      <RadixSelect.Trigger className={`${styles.trigger} ${className}`.trim()} aria-label={ariaLabel} title={title} id={id}
+      <RadixSelect.Trigger className={`${styles.trigger} ${className}`.trim()} aria-label={ariaLabel} aria-describedby={ariaDescribedBy} title={title} id={id}
         // Radix opens a closed trigger on Up/Down. Here Up/Down walk to the
         // neighbouring control instead, so the pad can pass a row of selects
         // without opening each one; A / Enter / Space open the list.
@@ -128,7 +142,7 @@ export function Select({
       </RadixSelect.Trigger>
 
       <RadixSelect.Portal>
-        <RadixSelect.Content ref={contentRef} className={styles.content} position="popper" sideOffset={4}>
+        <RadixSelect.Content ref={contentRef} className={`${styles.content} ${inlineDescriptions ? styles.descriptiveContent : ''}`} position="popper" sideOffset={4}>
           <RadixSelect.ScrollUpButton className={styles.scrollButton}>▲</RadixSelect.ScrollUpButton>
           <RadixSelect.Viewport className={styles.viewport}>
             {resolved.map((group, index) => (
@@ -139,8 +153,10 @@ export function Select({
                   <RadixSelect.Item
                     key={option.value}
                     value={option.value}
+                    aria-label={inlineDescriptions ? option.label : undefined}
+                    aria-describedby={inlineDescriptions && option.description ? descriptionId + option.value : undefined}
                     disabled={option.disabled}
-                    className={styles.item}
+                    className={`${styles.item} ${inlineDescriptions ? styles.descriptiveItem : ''}`}
                     onFocus={() => setHelpValue(option.value)}
                     onPointerMove={() => setHelpValue(option.value)}
                   >
@@ -150,14 +166,17 @@ export function Select({
                       </RadixSelect.ItemIndicator>
                     </span>
                     {option.icon && <span className={styles.icon}>{option.icon}</span>}
-                    <RadixSelect.ItemText>{option.label}</RadixSelect.ItemText>
+                    <span className={inlineDescriptions ? styles.optionBody : undefined}>
+                      <RadixSelect.ItemText>{option.label}</RadixSelect.ItemText>
+                      {inlineDescriptions && (option.description ?? OPTION_HELP[option.value]) && <span id={descriptionId + option.value} className={styles.optionDescription}>{option.description ?? OPTION_HELP[option.value]}</span>}
+                    </span>
                     {option.hint && <span className={styles.itemHint}>{option.hint}</span>}
                   </RadixSelect.Item>
                 ))}
               </Fragment>
             ))}
           </RadixSelect.Viewport>
-          {description && (
+          {description && !inlineDescriptions && (
             <div className={`${styles.description} ${styles[helpSide]}`} style={helpSide === 'bottom' && helpShift ? { left: helpShift } : undefined} aria-live="polite">
               <strong>{helpOption?.label}</strong>
               <p>{description}</p>

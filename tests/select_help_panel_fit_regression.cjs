@@ -16,12 +16,13 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
 const WIDTH_CAP = 22 * 16;
 
 const stub = () => {
-  const profiles = { Desktop: 'RESET_MAPPINGS\nN = SPACE\nZL_MODE = NO_SKIP\nZR_MODE = MUST_SKIP\n' };
+  const profiles = { Desktop: 'RESET_MAPPINGS\nGYRO_SPACE = LOCAL\nN = SPACE\nZL_MODE = NO_SKIP\nZR_MODE = MUST_SKIP\n' };
   window.electronAPI = {
     getActiveProfile: async () => ({ name: 'Desktop', path: 'profiles-library/Desktop.txt', content: profiles.Desktop }),
     listLibraryProfiles: async () => Object.keys(profiles),
     loadLibraryProfile: async n => ({ name: n, content: profiles[n] }),
     readConfigFile: async () => null,
+    getRuntimeMappingState: async () => ({ mappingEnabled: true, firmwareSoundPromptDone: true }),
     saveLibraryProfile: async (n, c) => { profiles[n] = c; return { name: n } },
     applyProfile: async p => ({ path: p, mappingEnabled: true }),
   };
@@ -34,7 +35,7 @@ const stub = () => {
 (async () => {
   const browser = await chromium.launch({ channel: 'msedge', headless: true });
   try {
-    const measureAt = async width => {
+    const measureAt = async (width, anchor = null) => {
       const page = await browser.newPage({ viewport: { width, height: 900 } });
       try {
         const errors = []; page.on('pageerror', e => errors.push(e.message));
@@ -42,15 +43,18 @@ const stub = () => {
         await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
         // The app opens on Home (console refinement 2a); these checks start in the editing shell.
         await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
-        await page.locator('.profile-chip').filter({ hasText: 'Desktop' }).waitFor();
         // Narrow windows fold the page tabs into the navigation drawer, so the
         // page buttons only exist once it is open.
-        const triggersTab = page.getByRole('button', { name: 'Triggers', exact: true });
+        const triggersTab = page.getByRole('button', { name: 'Gyro', exact: true });
         const drawer = page.locator('.page-tabs__drawer-button');
         if (await drawer.isVisible()) await drawer.click();
         await triggersTab.first().click();
-        const trigger = page.getByRole('combobox', { name: /trigger behavior/i }).first();
+        await page.locator('button.summary-row').filter({ hasText: 'Orientation' }).first().click();
+        const trigger = page.getByRole('combobox', { name: /gyro space/i }).first();
         await trigger.waitFor();
+        // Force a genuine room-on-the-right case independently of the shell's
+        // current column alignment. Natural layouts are still checked below.
+        if (anchor) await trigger.evaluate((el, side) => { Object.assign(el.style, { position: 'fixed', left: side === 'left' ? '32px' : 'auto', right: side === 'right' ? '32px' : 'auto', top: '350px', width: '200px' }); }, anchor);
         const tbox = await trigger.boundingBox();
         await trigger.click();
         const list = page.getByRole('listbox').first();
@@ -105,6 +109,9 @@ const stub = () => {
     // surrounding shell's chrome changes how much room a row has to give.
     const GAP_TOLERANCE = 2;
     for (const r of results) {
+      if (r.width - r.listRight < 344 && r.listLeft >= 344) {
+        assert.equal(r.side, 'left', `at ${r.width}px the available left side must be used before docking below`);
+      }
       if (r.side === 'right') {
         assert.ok(r.help.x >= r.listRight - GAP_TOLERANCE,
           `at ${r.width}px side=right but the panel (x=${Math.round(r.help.x)}) overlaps the list (ends ${Math.round(r.listRight)})`);
@@ -120,9 +127,14 @@ const stub = () => {
 
     // With plenty of room on both sides the panel prefers the right, same as
     // the reported bug's fix relied on.
-    const roomiest = results.find(r => r.width === Math.max(...results.map(x => x.width)));
+    const roomiest = await measureAt(1920, 'left');
     assert.equal(roomiest.side, 'right',
       `expected the widest window (${roomiest.width}px) to have room on the right, got ${roomiest.side}`);
+    // A dropdown at the right edge must use the available space on the left.
+    const rightEdge = await measureAt(900, 'right');
+    assert.equal(rightEdge.side, 'left', 'a right-edge dropdown must put its help beside it on the left');
+    assert.ok(rightEdge.help.x >= 16 && rightEdge.help.x + rightEdge.help.width <= rightEdge.listLeft + 2,
+      'left-side help must stay inside the viewport and clear of the list');
     // ...and where neither side fits it drops below rather than off the edge.
     // This is what the ref-callback measurement could never do: it reported the
     // unpositioned rect and answered "right" at every size.

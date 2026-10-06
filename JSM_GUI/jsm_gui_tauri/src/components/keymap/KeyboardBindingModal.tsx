@@ -1,4 +1,4 @@
-import { useEffect, useId } from 'react'
+import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
 import styles from './KeyboardBindingModal.module.css'
 
@@ -69,6 +69,8 @@ export const MAIN_ROWS: KeyDef[][] = [
   ),
 ]
 
+export const EXTENDED_FUNCTION_ROWS: KeyDef[][] = [row(...Array.from({ length: 12 }, (_, index) => ({ token: `F${index + 13}` })))]
+
 export const NAV_ROWS: KeyDef[][] = [
   row({ token: 'INSERT', label: 'Ins' }, { token: 'HOME', label: 'Home' }, { token: 'PAGEUP', label: 'PgUp' }),
   row({ token: 'DELETE', label: 'Del' }, { token: 'END', label: 'End' }, { token: 'PAGEDOWN', label: 'PgDn' }),
@@ -104,15 +106,6 @@ export function KeyboardBindingModal({ isOpen, value, onSelect, onClose }: Keybo
   const { t } = useTranslation()
   const titleId = useId()
   const selected = value.trim().toUpperCase()
-
-  useEffect(() => {
-    if (!isOpen) return
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, onClose])
 
   if (!isOpen) return null
 
@@ -172,6 +165,8 @@ export function KeyboardBindingModal({ isOpen, value, onSelect, onClose }: Keybo
             <div className={styles.numpadBlock}>{renderRows(NUMPAD_ROWS, 'num')}</div>
           </div>
         </div>
+
+        <details className={styles.mediaSection}><summary>Extended function keys</summary><p>F13–F24 are extra keyboard outputs, useful for shortcuts without occupying common gameplay keys.</p>{renderRows(EXTENDED_FUNCTION_ROWS, 'extended')}</details>
 
         <div className={styles.mediaSection}>
           <span className={styles.sectionLabel}>{t('keymap.keyboardPickerMedia')}</span>

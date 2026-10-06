@@ -21,4 +21,4 @@ export const systemKeyChoices: Array<{ token: string; labelKey: string; label: s
 // One list: the picker's choices are the source, the tokens derive from it.
 export const systemKeyOptions = systemKeyChoices.map(choice => choice.token)
 // Calibrate gyro first: the full run with the overlay (utils/commandLabels).
-export const builtInCommandOptions = ['CALIBRATE_GYRO', 'TURN_OFF_CONTROLLER', 'CALIBRATE_TRIGGERS', 'RESTART_GYRO_CALIBRATION', 'FINISH_GYRO_CALIBRATION']
+export const builtInCommandOptions = ['OPEN_KEYBOARD', 'TOGGLE_MAPPING', 'CALIBRATE_GYRO', 'SET_MOTION_STICK_NEUTRAL', 'RECENTER_GYRO_DEFLECTION', 'TURN_OFF_CONTROLLER', 'CALIBRATE_TRIGGERS', 'RESTART_GYRO_CALIBRATION', 'FINISH_GYRO_CALIBRATION']

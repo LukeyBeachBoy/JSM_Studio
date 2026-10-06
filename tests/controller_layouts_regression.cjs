@@ -1,0 +1,57 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const Module = require('node:module');
+const ts = require('../JSM_GUI/jsm_gui_tauri/node_modules/typescript');
+const cache = new Map();
+function load(file) {
+  file = path.resolve(file);
+  if (cache.has(file)) return cache.get(file).exports;
+  const mod = new Module(file); cache.set(file, mod);
+  mod.filename = file; mod.paths = Module._nodeModulePaths(path.dirname(file));
+  mod.require = name => name.startsWith('.') ? load(path.resolve(path.dirname(file), name + '.ts')) : require(name);
+  mod._compile(ts.transpileModule(fs.readFileSync(file, 'utf8'), {compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020}}).outputText, file);
+  return mod.exports;
+}
+
+
+const layouts=load('JSM_GUI/jsm_gui_tauri/src/utils/controllerLayouts.ts');
+const {layerEntries,readLayers,writeLayers,readLayerActions}=load('JSM_GUI/jsm_gui_tauri/src/utils/layers.ts');
+const {serializeConfig,parseConfigText}=load('JSM_GUI/jsm_gui_tauri/src/utils/configSerializer.ts');
+const source='RESET_MAPPINGS\nS = SPACE\nLEFT_TOUCHPAD_MODE = GRID_AND_STICK\nLEFT_GRID_REQUIRES_CLICK = ON\nRIGHT_TOUCHPAD_MODE = MOUSE\nRT1 = J\nLT1 = K\nMISC3,S = L\nMISC5 = U\n# @layer {"id":"map","name":"Map","overrides":{"RT1":"M"}}\n# @layer-action MISC2 = hold map\n';
+const ds=layouts.projectController(source,'type-5');
+assert.equal(layerEntries(ds).TOUCHPAD_MODE,'MOUSE');
+assert.equal(layerEntries(ds).T1,'J');
+assert.equal(readLayers(ds)[0].overrides.T1,'M');
+assert.equal(readLayerActions(ds)[0].input,'CAPTURE');
+let saved=layouts.foldController(source,'type-5',ds,ds+'\nS = ENTER\nTOUCHPAD_SENS = 2.5\n');
+assert.equal(layouts.controllerBase(saved),source.trimEnd()+'\n');
+assert.equal(layerEntries(layouts.projectController(saved,'type-5')).S,'ENTER');
+assert.equal(layerEntries(layouts.projectController(saved,'type-24')).S,'SPACE');
+saved=serializeConfig(parseConfigText(saved));
+assert.equal(layerEntries(layouts.projectController(saved,'type-5')).S,'ENTER','save/reload retains model override');
+let left=layouts.setControllerPadSource(saved,'type-5','left');
+assert.equal(layerEntries(layouts.projectController(left,'type-5')).T1,'K');
+assert.equal(layerEntries(layouts.projectController(left,'type-5')).TOUCHPAD_GRID_REQUIRES_CLICK,'ON');
+assert.equal(layerEntries(layouts.projectController(left,'type-24')).RT1,'J');
+const before=layouts.projectController(saved,'type-5');
+const changed=layouts.foldController(saved,'type-5',before,writeLayers(before,[]));
+assert.equal(readLayers(layouts.projectController(changed,'type-5')).length,0,'deleted inherited layer is masked on this controller');
+assert.equal(readLayers(layouts.projectController(changed,'type-24')).length,1);
+const xbox={type:6,supportedButtons:131071,handle:3};
+assert(layouts.unavailableControllerInputs(saved,xbox).some(item=>item.input==='RT1'));
+assert(layouts.unavailableControllerInputs(saved,{type:5,supportedButtons:524287,handle:2}).some(item=>item.input==='MISC5'));
+assert.equal(layerEntries(layouts.projectController(layouts.resetControllerVariant(saved,'type-5'),'type-5')).S,'SPACE');
+const explicit=source+'\nTOUCHPAD_MODE = GRID_AND_STICK\n';
+assert.equal(layerEntries(layouts.projectController(explicit,'type-5')).TOUCHPAD_MODE,'GRID_AND_STICK','explicit shared pad mode wins over fallback');
+const cleared=layouts.foldController(source,'type-5',ds,ds.split('\n').filter(line=>!/^S\s*=/.test(line)).join('\n'));
+assert.equal(layerEntries(layouts.projectController(cleared,'type-5')).S,'NONE');
+assert.equal(layerEntries(layouts.projectController(cleared,'type-24')).S,'SPACE');
+assert.equal(layerEntries(layouts.projectController(layouts.resetControllerAssignment(cleared,'type-5','S'),'type-5')).S,'SPACE');
+const regular=layouts.regularControllerGamepad(source,source,'type-5');
+const pad=layerEntries(layouts.projectController(regular,'type-5'));
+assert.equal(pad.S,'X_A');assert.equal(pad.MISC5,'NONE');assert.equal(pad.GYRO_SENS,'0');assert.equal(pad.LEFT_STICK_MODE,'LEFT_STICK');
+assert.equal(readLayers(layouts.projectController(regular,'type-5')).length,0);
+assert.equal(layerEntries(layouts.projectController(regular,'type-24')).S,'SPACE');
+assert.equal(layerEntries(layouts.projectController(layouts.setControllerPadSource(explicit,'type-5','right'),'type-5')).TOUCHPAD_MODE,'MOUSE','explicit pad source selection overrides an old shared mode');
+console.log('PASS: controller fallback, scoped edits, save/reload, layer deletion, unsupported inputs, reset, and original Steam layout preservation');

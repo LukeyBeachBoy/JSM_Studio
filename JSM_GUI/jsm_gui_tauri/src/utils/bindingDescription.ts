@@ -1,7 +1,13 @@
+import { menuCommandLabel } from './menuCommands'
 import type { TFunction } from 'i18next'
 import { parseBindingExpression, type BindingToken } from './keymap'
 import { loadConfigBindingName } from './loadConfigBinding'
 import { describeOutputValue } from './virtualController'
+import { playSoundLabel } from './controllerSounds'
+import type { BindingCommand, HeldLed } from './bindingCommands'
+import { layerActionDescriptionKeys, layerVerbKeys, type ConfigLayer, type LayerAction } from './layers'
+import { isReleasedInput } from './released'
+import { parseRumbleBinding } from './bindingParameters'
 
 /**
  * A binding as a sentence, rather than as JoyShockMapper spells it.
@@ -36,6 +42,10 @@ const SPECIAL_OUTPUT_LABEL_KEYS: Record<string, string> = {
 
 /** What one output token is called, before any modifier is applied to it. */
 const outputName = (value: string, t: TFunction): string => {
+  const rumble = parseRumbleBinding(value)
+  if (rumble) return t('bindingText.output.rumbleStrength', { defaultValue: 'Rumble · small {{small}}%, big {{big}}%', small: Math.round(rumble.small * 100 / 255), big: Math.round(rumble.big * 100 / 255) })
+  const menu = menuCommandLabel(value); if (menu) return menu
+  if (/^LIGHT_BAR\s*=/i.test(value.trim().replace(/^"|"$/g, ''))) return 'Change LED Color'
   const special = SPECIAL_OUTPUT_LABEL_KEYS[value.trim().toUpperCase()]
   // describeOutputValue already covers virtual-controller buttons, the
   // load-a-configuration binding, and every key whose legend differs from the
@@ -127,6 +137,7 @@ const settingPhrase = (value: string): string | null => {
   if (!match) return null
   const [, name, setting] = match
   if (name.toUpperCase() === 'LED_BRIGHTNESS') return Number(setting) < 0 ? 'LED as the controller has it' : `LED ${setting}%`
+  if (name.toUpperCase() === 'LIGHT_BAR') return `LED color ${setting.replace(/^x/i, '#')}`
   return `${name.toUpperCase()} = ${setting}`
 }
 
@@ -143,6 +154,9 @@ const parseTokens = (value: string): BindingToken[] => {
  * token this does not model is still shown rather than swallowed.
  */
 export const describeBinding = (value: string, t: TFunction): string => {
+  const menu = menuCommandLabel(value); if (menu) return menu
+  const sound = playSoundLabel(value)
+  if (sound) return sound
   const loadConfig = loadConfigPhrase(value, t)
   if (loadConfig) return loadConfig
   const setting = settingPhrase(value)
@@ -169,4 +183,44 @@ export const explainBinding = (value: string, t: TFunction): string => {
   const clauses = tokens.map(token => explainToken(token, t)).filter(Boolean)
   if (clauses.length === 0) return raw
   return [...clauses, t('bindingText.long.syntax', { raw })].join('\n')
+}
+
+/**
+ * The two command rows that are not tokens (TODO-54, TODO-55) read in the
+ * words their lanes used: "LED while held · #ff8800 · 40%" and "Hold Aim".
+ * The layer's name comes from the configuration's layers, so the caller
+ * passes them; an unknown layer shows its id rather than nothing.
+ */
+export const describeHeldLed = (led: HeldLed, t: TFunction): string =>
+  [t('keymap.ledWhileHeld', 'LED while held'), led.color, led.brightness !== null ? `${led.brightness}%` : null].filter(Boolean).join(' · ')
+
+export const explainHeldLed = (led: HeldLed, t: TFunction): string =>
+  t('bindingText.long.ledWhileHeld', {
+    color: led.color ? 'the chosen color' : t('bindingText.long.ledProfileColor', 'the profile colour'),
+    brightness: led.brightness !== null ? `${led.brightness}%` : t('bindingText.long.ledProfileBrightness', 'the profile brightness'),
+  })
+
+export const layerNameOf = (layers: readonly Pick<ConfigLayer, 'id' | 'name'>[], layerId: string) =>
+  layers.find(layer => layer.id === layerId)?.name ?? layerId
+
+/** "Hold Aim", "Turn on Comms": the tile's words. */
+export const describeLayerAction = (action: LayerAction, layers: readonly Pick<ConfigLayer, 'id' | 'name'>[], t: TFunction): string =>
+  t('keymap.layerTile', { verb: t(layerVerbKeys[action.verb]), layer: layerNameOf(layers, action.layerId) })
+
+/** "On while A is held", "Releasing A turns it on": what the lane's row said. */
+export const explainLayerAction = (action: LayerAction, inputName: string, t: TFunction): string =>
+  t(layerActionDescriptionKeys[action.verb][isReleasedInput(action.input) ? 1 : 0], { input: inputName })
+
+/** A command's output in words, whatever its source: the row, the summary
+ *  and the sheet title all read from here so they cannot disagree. */
+export const describeCommandOutput = (command: BindingCommand, layers: readonly Pick<ConfigLayer, 'id' | 'name'>[], t: TFunction): string => {
+  if (command.source.kind === 'heldLed' || /^LIGHT_BAR\s*=/i.test(command.outputValue)) return 'Change LED Color'
+  if (command.source.kind === 'layerAction') return describeLayerAction(command.source.action, layers, t)
+  return describeBinding(command.outputValue, t)
+}
+
+export const explainCommandOutput = (command: BindingCommand, inputName: string, t: TFunction): string => {
+  if (command.source.kind === 'heldLed') return explainHeldLed(command.source, t)
+  if (command.source.kind === 'layerAction') return explainLayerAction(command.source.action, inputName, t)
+  return explainBinding(command.outputValue, t)
 }

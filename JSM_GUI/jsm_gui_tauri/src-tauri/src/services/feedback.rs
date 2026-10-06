@@ -23,6 +23,16 @@ pub(crate) fn datagram(effect: u8, intensity: f32, side: u8, rumble_ms: u32, rum
 /// listening (no mapper, an older one) costs one dropped datagram.
 pub fn send(effect: u8, intensity: f32, side: u8, rumble_ms: u32, rumble: f32, grips: bool) {
     let Some(message) = datagram(effect, intensity, side, rumble_ms, rumble, grips) else { return };
+    send_message(&message);
+}
+
+pub fn send_keyboard(effect:u8, intensity:f32, side:u8, gain_db:i32, rumble:f32) {
+    let Some(base)=datagram(effect,intensity,side,12,rumble,false) else {return};
+    if ![1,8].contains(&effect) || !(-128..=127).contains(&gain_db) {return;}
+    send_message(&format!("{base} 2 {gain_db}"));
+}
+
+fn send_message(message:&str) {
     let Ok(mut socket) = SOCKET.lock() else { return };
     if socket.is_none() {
         *socket = UdpSocket::bind(("127.0.0.1", 0)).ok();

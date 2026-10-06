@@ -132,6 +132,7 @@
 /* The keyboard gets the same row highlight, on the row rather than the
    browser's outline on whichever button inside it has focus. */
 .row:has(:focus-visible) { background: var(--surface-selected); box-shadow: 0 0 0 2px var(--focus-keyboard); }
+:global(body[data-focus-glide]) .row:focus-within { box-shadow: none; }
 .row :focus-visible { outline: none; }
 .row > * { min-width: 0; }
 /* The second input of a chord or simultaneous press, beside the activation. */
@@ -209,6 +210,8 @@
 }
 .keycap:hover { background: var(--surface-control-hover); }
 .keycapText { overflow: hidden; text-overflow: ellipsis; }
+/* The LED-while-held row's colour, on its keycap (TODO-54). */
+.swatch { flex: none; width: 14px; height: 14px; border-radius: 50%; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-1) 25%, transparent); }
 .keycapEmpty { color: var(--text-3); font-weight: var(--fw-medium); }
 .keycapMore { color: var(--command); font-size: 12px; font-weight: var(--fw-bold); }
 .badge {

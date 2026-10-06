@@ -70,21 +70,33 @@ const CHORDS_FILE_NAME: &str = "chords.json";
 /// Name of the configuration a fresh install ships bound to the default
 /// chord, and the chord's own default trigger button (Quick Access on Steam
 /// Controller; "extra button 1" generically -- see MISC1 in schema.ts).
-const DEFAULT_CHORD_PROFILE_NAME: &str = "Quick Access Chord";
-const DEFAULT_CHORD_BUTTON: &str = "MISC1";
-const DEFAULT_CHORD_PROFILE_LINES: [&str; 12] = [
+pub const DEFAULT_CHORD_PROFILE_NAME: &str = "Default Global Chords";
+const DEFAULT_CHORD_PROFILE_LINES: [&str; 25] = [
     "RESET_MAPPINGS",
     "AUTOCONNECT = ON",
     "TELEMETRY_ENABLED = ON",
     "TELEMETRY_PORT = 8974",
+    "TOUCHPAD_MODE = MOUSE",
     "RIGHT_TOUCHPAD_MODE = MOUSE",
+    "LEFT_TOUCHPAD_MODE = SCROLL_WHEEL",
+    "LLEFT = SCROLLUP",
+    "LRIGHT = SCROLLDOWN",
+    "ZR = LMOUSE",
+    "ZL = RMOUSE",
+    "W = \"OPEN_KEYBOARD\"",
+    "S = ENTER",
+    "E = ESC",
+    "LEFT = LEFT",
+    "RIGHT = RIGHT",
     "MISC2 = LMOUSE",
     "MISC3 = RMOUSE",
-    "N = \"TURN_OFF_CONTROLLER\"",
+    "N = SCREENSHOT",
     "L = LALT\\ !TAB\\",
     "R = TAB",
     "UP = VOLUME_UP",
     "DOWN = VOLUME_DOWN",
+    "RSL = \"TOGGLE_MAPPING\"",
+    "RSR = \"CALIBRATE_GYRO\"",
 ];
 
 fn default_polling_ms() -> f64 { 3.0 }
@@ -98,13 +110,39 @@ fn default_calibration_seconds() -> f64 { DEFAULT_CALIBRATION_SECONDS as f64 }
 
 fn no_sound() -> i32 { -1 }
 
+/// The mapper's SOUND_ACTUATORS values, as Studio stores them (lower case).
+pub const SOUND_ACTUATOR_CHOICES: [&str; 3] = ["grips", "pads", "both"];
+
+fn default_sound_actuators() -> String { SOUND_ACTUATOR_CHOICES[0].to_string() }
+
+/// A stored or submitted actuator choice, or the default for anything else.
+fn validated_sound_actuators(value: &str) -> String {
+    let lower = value.trim().to_ascii_lowercase();
+    if SOUND_ACTUATOR_CHOICES.contains(&lower.as_str()) { lower } else { default_sound_actuators() }
+}
+
 fn default_true() -> bool {
     true
+}
+
+fn default_led_color() -> String { "#ffffff".to_string() }
+fn default_led_brightness() -> i32 { 100 }
+
+fn validated_led_color(value: &str) -> Result<String, String> {
+    let hex = value.trim().trim_start_matches('#');
+    if hex.len() != 6 || !hex.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        return Err("LED color must be a six-digit hex color".to_string());
+    }
+    Ok(format!("#{}", hex.to_ascii_lowercase()))
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeMappingState {
+    #[serde(default = "default_led_color")]
+    pub led_color: String,
+    #[serde(default = "default_led_brightness")]
+    pub led_brightness: i32,
     #[serde(default = "default_polling_ms")]
     pub default_polling_ms: f64,
     pub active_profile_path: String,
@@ -142,11 +180,6 @@ pub struct RuntimeMappingState {
     /// eats slow deliberate movements. On by default.
     #[serde(default = "default_true")]
     pub disable_hardware_gyro_calibration: bool,
-    /// Studio's reserved chords: Quick Access + R5 pauses or resumes mapping,
-    /// Quick Access + R4 calibrates the gyro, from any configuration. Off by
-    /// default so they cannot fight a configuration that binds those inputs.
-    #[serde(default)]
-    pub reserved_chords: bool,
     /// Whether the calibration HUD window appears over games. The run itself
     /// is the same either way; Studio's own countdown still shows.
     #[serde(default = "default_true")]
@@ -177,6 +210,35 @@ pub struct RuntimeMappingState {
     pub sim_press_ms: f64,
     #[serde(default = "default_turbo_period_ms")]
     pub turbo_period_ms: f64,
+    /// Trackpad orientation (TODO-41): degrees each pad's reading is turned,
+    /// positive clockwise as the user sees it. Global, through
+    /// StudioDefaults.txt: the pads' mounting angle is not per configuration.
+    /// The 2026's pads are canted about 10.7 / -10.5 degrees.
+    #[serde(default)]
+    pub left_pad_rotation: f64,
+    #[serde(default)]
+    pub right_pad_rotation: f64,
+    /// The Steam Controller's own power-on / power-off jingle volume, which the
+    /// controller stores itself: 2 normal, 1 quiet, 0 off, -1 leave it alone.
+    #[serde(default = "no_sound")]
+    pub boot_sound_level: i32,
+    /// The first time a Steam Controller shows up, Studio asks whether to
+    /// silence that jingle so its own connect sound plays alone. Either answer
+    /// sets this and the question is never asked again.
+    #[serde(default)]
+    pub firmware_sound_prompt_done: bool,
+    /// A library sound (services/sound_library.rs id) to play instead of the
+    /// built-in tune above. Takes precedence over `connect_sound` /
+    /// `shutdown_sound` when set; None means the built-in choice stands.
+    #[serde(default)]
+    pub connect_sound_file: Option<String>,
+    #[serde(default)]
+    pub shutdown_sound_file: Option<String>,
+    /// Which of the controller's actuators play those sequences: "grips" (the
+    /// two motors behind the grips, where the firmware's own tunes play),
+    /// "pads" (the trackpads' actuators) or "both".
+    #[serde(default = "default_sound_actuators")]
+    pub sound_actuators: String,
 }
 
 /// Any of the global timing values, as the Timing page changes them one at a time.
@@ -217,6 +279,12 @@ pub struct AutoloadRule {
     /// rule was live, from `autoload-matches.json`. Left out when never seen.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub last_matched_at_ms: Option<u64>,
+    /// The executable the association was made from (TODO-46), remembered in
+    /// the rule file as a `# exe: <path>` comment the mapper ignores. It is
+    /// what the game's icon is read from. Left out for rules written by hand
+    /// or before the comment existed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub exe_path: Option<String>,
 }
 
 /// A library profile's file facts, for the Configurations page.
@@ -248,7 +316,9 @@ pub struct HidHideState {
 #[serde(rename_all = "camelCase")]
 pub struct GlobalChord {
     pub id: String,
-    pub buttons: Vec<String>,
+    #[serde(default)] pub buttons: Vec<String>,
+    #[serde(default)] pub trigger_groups: Vec<Vec<String>>,
+    #[serde(default)] pub controller_model: Option<String>,
     pub profile_path: String,
 }
 
@@ -460,6 +530,7 @@ fn list_library_profile_entries(app: &AppHandle) -> Result<Vec<(String, PathBuf)
 pub fn save_library_profile(app: &AppHandle, name: &str, content: &str) -> Result<String, String> {
     ensure_library_dir(app)?;
     let safe_name = sanitize_profile_name(name);
+    protect_builtin_profile(&safe_name)?;
     let path = library_profile_path(app, &safe_name)?;
     write_file_atomically(path, content).map_err(|error| format!("Failed to save profile: {error}"))?;
     Ok(safe_name)
@@ -492,6 +563,7 @@ pub fn rename_library_profile(
 ) -> Result<(String, String), String> {
     ensure_required_files(app)?;
     let safe_old = sanitize_profile_name(old_name);
+    protect_builtin_profile(&safe_old)?;
     let mut safe_new = sanitize_profile_name(new_name);
 
     if safe_new.is_empty() {
@@ -575,6 +647,7 @@ pub fn delete_library_profile(
 ) -> Result<DeletedProfile, String> {
     ensure_required_files(app)?;
     let safe_name = sanitize_profile_name(name);
+    protect_builtin_profile(&safe_name)?;
     let relative = relative_profile_path_from_name(&safe_name);
     let absolute = absolute_profile_path(app, &relative)?;
     let active = read_runtime_mapping_state(app)?.active_profile_path;
@@ -663,13 +736,6 @@ pub fn set_calibration_hud_enabled(app: &AppHandle, enabled: bool) -> Result<Run
     Ok(state)
 }
 
-pub fn set_reserved_chords(app: &AppHandle, enabled: bool) -> Result<RuntimeMappingState, String> {
-    ensure_required_files(app)?;
-    let mut state = read_runtime_mapping_state(app)?;
-    state.reserved_chords = enabled;
-    persist_runtime_mapping_state(app, &state)?;
-    Ok(state)
-}
 
 pub fn set_autoload_enabled(app: &AppHandle, enabled: bool) -> Result<RuntimeMappingState, String> {
     ensure_required_files(app)?;
@@ -729,10 +795,16 @@ pub fn list_autoload_rules(app: &AppHandle) -> Result<Vec<AutoloadRule>, String>
     Ok(rules)
 }
 
+/// Writes or rewrites the rule for `process_name`. `exe_path` given replaces
+/// the executable the rule remembers; none keeps what it had. `auto_apply`
+/// Some(true) makes the rule live, Some(false) parks it as an association that
+/// only lends its icon (TODO-46), None leaves the paused state as it was.
 pub fn save_autoload_rule(
     app: &AppHandle,
     process_name: &str,
     profile_name: &str,
+    exe_path: Option<&str>,
+    auto_apply: Option<bool>,
 ) -> Result<AutoloadRule, String> {
     ensure_required_files(app)?;
     let process = sanitize_process_name(process_name)?;
@@ -743,13 +815,67 @@ pub fn save_autoload_rule(
         return Err(format!("Profile does not exist: {safe_profile}"));
     }
 
-    // A paused rule stays paused when its configuration is changed.
-    let paused_path = paused_autoload_rule_path(app, &process)?;
-    let path = if paused_path.exists() { paused_path } else { autoload_rule_path(app, &process)? };
-    ensure_parent_dir(&path)?;
-    write_file_atomically(&path, format!("{profile_relative}\n"))
-        .map_err(|error| format!("Failed to save AutoLoad rule: {error}"))?;
+    let path = write_autoload_rule_file(&autoload_dir(app)?, &process, &profile_relative, exe_path, auto_apply)?;
     autoload_rule_from_path(app, &path)
+}
+
+/// The file behind `save_autoload_rule`, on a directory so it can be tested
+/// without an app handle. A paused rule stays paused when only its
+/// configuration changes; asking for auto-apply moves it between
+/// `<process>.txt` and `<process>.txt.paused`, and the other twin is removed
+/// so the mapper never sees two rules for one app.
+fn write_autoload_rule_file(
+    dir: &Path,
+    process: &str,
+    profile_relative: &str,
+    exe_path: Option<&str>,
+    auto_apply: Option<bool>,
+) -> Result<PathBuf, String> {
+    let active = dir.join(format!("{process}.txt"));
+    let parked = dir.join(format!("{process}.txt.paused"));
+    let existing = [&parked, &active].into_iter().find(|path| path.exists());
+    let remembered = existing
+        .and_then(|path| fs::read_to_string(path).ok())
+        .and_then(|content| parse_autoload_exe_path(&content));
+    let exe = exe_path
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
+        .or(remembered);
+
+    let paused = match auto_apply {
+        Some(live) => !live,
+        None => parked.exists(),
+    };
+    let (target, stale) = if paused { (parked, active) } else { (active, parked) };
+    ensure_parent_dir(&target)?;
+    write_file_atomically(&target, autoload_rule_text(profile_relative, exe.as_deref()))
+        .map_err(|error| format!("Failed to save AutoLoad rule: {error}"))?;
+    if stale.exists() {
+        fs::remove_file(&stale).map_err(|error| format!("Failed to replace AutoLoad rule: {error}"))?;
+    }
+    Ok(target)
+}
+
+/// A rule file's text: the configuration it loads, then the executable the
+/// association remembers as a comment, which JoyShockMapper skips.
+fn autoload_rule_text(profile_relative: &str, exe_path: Option<&str>) -> String {
+    match exe_path {
+        Some(exe) => format!("{profile_relative}\n# exe: {exe}\n"),
+        None => format!("{profile_relative}\n"),
+    }
+}
+
+/// The `# exe: <path>` line of a rule file, if it has one.
+fn parse_autoload_exe_path(content: &str) -> Option<String> {
+    content
+        .lines()
+        .map(str::trim)
+        .filter_map(|line| line.strip_prefix('#'))
+        .map(str::trim_start)
+        .filter_map(|line| line.strip_prefix("exe:"))
+        .map(|value| value.trim().trim_matches('"').to_string())
+        .find(|value| !value.is_empty())
 }
 
 pub fn delete_autoload_rule(app: &AppHandle, process_name: &str) -> Result<bool, String> {
@@ -1438,9 +1564,39 @@ pub(crate) fn read_global_chords(app: &AppHandle) -> Result<Vec<GlobalChord>, St
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
         Err(error) => return Err(format!("Failed to read {}: {error}", path.display())),
     };
-    serde_json::from_str(&raw).map_err(|error| format!("Failed to parse {}: {error}", path.display()))
+    let chords=serde_json::from_str(&raw).map_err(|error| format!("Failed to parse {}: {error}", path.display()))?;
+    Ok(merge_global_chords(chords))
 }
 
+pub fn reset_default_settings(app:&AppHandle)->Result<RuntimeMappingState,String> {
+    let previous=read_runtime_mapping_state(app)?;
+    let mut defaults=default_runtime_mapping_state(app)?;
+    defaults.active_profile_path=previous.active_profile_path;
+    defaults.applied_preview_path=previous.applied_preview_path;
+    defaults.mapping_enabled=true;defaults.autoload_enabled=true;
+    persist_runtime_mapping_state(app,&defaults)?;
+    ensure_runtime_support_files(app,&read_backend_choice(app)?)?;
+    let mut chords=read_global_chords(app)?;
+    chords.retain(|c|c.profile_path!=default_global_chord().profile_path);
+    chords.push(default_global_chord());
+    write_global_chords_list(app,&chords)?;
+    crate::services::virtual_keyboard::save_preferences(app,Default::default())?;
+    Ok(defaults)
+}
+pub fn default_global_chord()->GlobalChord {
+    GlobalChord { controller_model:None, id:"builtin-default".into(), buttons:vec![], trigger_groups:vec![vec!["HOME".into()],vec!["MISC1".into()]], profile_path:relative_profile_path_from_name(DEFAULT_CHORD_PROFILE_NAME) }
+}
+fn merge_global_chords(chords:Vec<GlobalChord>)->Vec<GlobalChord> {
+    let mut merged:Vec<GlobalChord>=Vec::new();
+    for mut chord in chords {
+        if chord.trigger_groups.is_empty() && !chord.buttons.is_empty() {chord.trigger_groups.push(chord.buttons.clone());}
+        chord.buttons.clear();
+        if let Some(existing)=merged.iter_mut().find(|c|c.profile_path==chord.profile_path && c.controller_model==chord.controller_model) {
+            for group in chord.trigger_groups {if !existing.trigger_groups.contains(&group) {existing.trigger_groups.push(group);}}
+        } else {merged.push(chord);}
+    }
+    merged
+}
 fn write_global_chords_list(app: &AppHandle, chords: &[GlobalChord]) -> Result<(), String> {
     let path = chords_file(app)?;
     ensure_parent_dir(&path)?;
@@ -1461,6 +1617,7 @@ pub fn save_global_chord(app: &AppHandle, chord: GlobalChord) -> Result<Vec<Glob
         Some(existing) => *existing = chord,
         None => chords.push(chord),
     }
+    let chords=merge_global_chords(chords);
     write_global_chords_list(app, &chords)?;
     Ok(chords)
 }
@@ -1468,6 +1625,7 @@ pub fn save_global_chord(app: &AppHandle, chord: GlobalChord) -> Result<Vec<Glob
 pub fn delete_global_chord(app: &AppHandle, id: &str) -> Result<Vec<GlobalChord>, String> {
     let mut chords = list_global_chords(app)?;
     chords.retain(|existing| existing.id != id);
+    let chords=merge_global_chords(chords);
     write_global_chords_list(app, &chords)?;
     Ok(chords)
 }
@@ -1479,22 +1637,52 @@ pub fn delete_global_chord(app: &AppHandle, id: &str) -> Result<Vec<GlobalChord>
 /// itself (after it has already created the profile library directory), so
 /// this deliberately avoids `generate_unique_profile_name` / `create_library_profile`
 /// -- both re-enter `ensure_required_files` and would recurse forever here.
-fn seed_default_chord_if_missing(app: &AppHandle) -> Result<(), String> {
-    if chords_file(app)?.exists() {
-        return Ok(());
+fn protect_builtin_profile(name:&str)->Result<(),String> {
+    if name.eq_ignore_ascii_case(DEFAULT_CHORD_PROFILE_NAME) { Err("Built-in configurations cannot be edited, renamed or deleted. Clone as Personal first.".into()) } else {Ok(())}
+}
+/// Upgrade the former Studio comment into an ordinary quoted command while
+/// preserving any real binding the user has since assigned to that input.
+fn migrate_keyboard_command(text:&str)->Option<String> {
+    let command=text.lines().find_map(|line|line.trim().strip_prefix("# @keyboard-open "))?.trim();
+    if !["W","N","S","E"].contains(&command) {return None;}
+    let mut found=false;
+    let mut lines=Vec::new();
+    for line in text.lines() {
+        if line.trim().starts_with("# @keyboard-open ") {continue;}
+        if let Some((input,value))=line.split_once('=') {
+            if input.trim()==command {
+                found=true;
+                if value.split('#').next().unwrap_or("").trim()=="NONE" {lines.push(format!("{command} = \"OPEN_KEYBOARD\""));continue;}
+            }
+        }
+        lines.push(line.into());
     }
-    let name = sanitize_profile_name(DEFAULT_CHORD_PROFILE_NAME);
-    let relative = relative_profile_path_from_name(&name);
-    let absolute = absolute_profile_path(app, &relative)?;
-    ensure_file(&absolute, &(DEFAULT_CHORD_PROFILE_LINES.join("\n") + "\n"))?;
-    write_global_chords_list(
-        app,
-        &[GlobalChord {
-            id: "default".to_string(),
-            buttons: vec![DEFAULT_CHORD_BUTTON.to_string()],
-            profile_path: relative,
-        }],
-    )
+    if !found {lines.push(format!("{command} = \"OPEN_KEYBOARD\""));}
+    Some(lines.join("\n")+"\n")
+}
+fn seed_default_chord_if_missing(app: &AppHandle) -> Result<(), String> {
+    let relative=relative_profile_path_from_name(DEFAULT_CHORD_PROFILE_NAME);
+    let absolute=absolute_profile_path(app,&relative)?;
+    let text=DEFAULT_CHORD_PROFILE_LINES.join("\n")+"\n";
+    if fs::read_to_string(&absolute).ok().as_deref()!=Some(text.as_str()) {write_file_atomically(&absolute,text)?;}
+    let marker=runtime_dir(app)?.join("default-chords-v2.seeded");
+    if !marker.exists() {
+        for entry in fs::read_dir(profile_library_dir(app)?).map_err(|e|e.to_string())? {
+            let path=entry.map_err(|e|e.to_string())?.path();
+            if path.is_file() && path.extension().is_some_and(|e|e=="txt") {
+                let text=fs::read_to_string(&path).map_err(|e|e.to_string())?;
+                if let Some(updated)=migrate_keyboard_command(&text) {write_file_atomically(&path,updated)?;}
+            }
+        }
+        let mut chords=read_global_chords(app)?;
+        // Seed once on first installation/upgrade; this marker survives removal
+        // of the activation row, so listing profiles never adds it back.
+        chords.retain(|c|!c.id.starts_with("builtin-"));
+        if !chords.iter().any(|c|c.profile_path==relative) {chords.push(default_global_chord());}
+        write_global_chords_list(app,&merge_global_chords(chords))?;
+        write_file_atomically(marker,"2")?;
+    }
+    Ok(())
 }
 
 fn profile_template_text() -> String {
@@ -1529,7 +1717,7 @@ fn studio_defaults_text(state: &RuntimeMappingState) -> String {
     // The simultaneous-press window goes before the hold time: the mapper
     // rejects a hold time that is not longer than it.
     format!(
-        "# JSM Evolved global defaults\nTICK_TIME = {}\nSIM_PRESS_WINDOW = {}\nHOLD_PRESS_TIME = {}\nDBL_PRESS_WINDOW = {}\nTURBO_PERIOD = {}\nGYRO_CALIBRATION_DELAY = {}\nGYRO_CALIBRATION_TIME = {}\nCONNECT_SOUND = {}\nSHUTDOWN_SOUND = {}\nSOUND_GAIN = {}\nDISABLE_HARDWARE_GYRO_CALIBRATION = {}\n",
+        "# JSM Evolved global defaults\nTICK_TIME = {}\nSIM_PRESS_WINDOW = {}\nHOLD_PRESS_TIME = {}\nDBL_PRESS_WINDOW = {}\nTURBO_PERIOD = {}\nGYRO_CALIBRATION_DELAY = {}\nGYRO_CALIBRATION_TIME = {}\nCONNECT_SOUND = {}\nSHUTDOWN_SOUND = {}\nSOUND_GAIN = {}\nDISABLE_HARDWARE_GYRO_CALIBRATION = {}\nLEFT_TOUCHPAD_ROTATION = {}\nRIGHT_TOUCHPAD_ROTATION = {}\nBOOT_SOUND_LEVEL = {}\nCONNECT_SOUND_FILE = {}\nSHUTDOWN_SOUND_FILE = {}\nSOUND_ACTUATORS = {}\nLIGHT_BAR = x{}\nLED_BRIGHTNESS = {}\n",
         state.default_polling_ms,
         state.sim_press_ms,
         state.hold_press_ms,
@@ -1541,7 +1729,27 @@ fn studio_defaults_text(state: &RuntimeMappingState) -> String {
         state.shutdown_sound,
         state.sound_gain,
         if state.disable_hardware_gyro_calibration { "ON" } else { "OFF" },
+        state.left_pad_rotation,
+        state.right_pad_rotation,
+        state.boot_sound_level,
+        sound_file_setting(state.connect_sound_file.as_deref()),
+        sound_file_setting(state.shutdown_sound_file.as_deref()),
+        validated_sound_actuators(&state.sound_actuators).to_ascii_uppercase(),
+        state.led_color.trim_start_matches('#'),
+        state.led_brightness,
     )
+}
+
+/// The value of a `*_SOUND_FILE` line. NONE is written, not omitted, when no
+/// sound is chosen: the file is injected into a running mapper without a
+/// reset, so a cleared choice has to be said out loud to reach it.
+fn sound_file_setting(id: Option<&str>) -> String {
+    match id {
+        Some(id) if crate::services::sound_library::is_valid_sound_id(id) => {
+            crate::services::sound_library::tones_relative_path(id)
+        }
+        _ => "NONE".to_string(),
+    }
 }
 
 /// The timing lives in StudioDefaults.txt; this file only starts the run, so a
@@ -1553,6 +1761,10 @@ fn calibration_command_text() -> String {
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ControllerPreferences {
+    #[serde(default = "default_led_color")]
+    pub led_color: String,
+    #[serde(default = "default_led_brightness")]
+    pub led_brightness: i32,
     pub gyro_calibration_seconds: f64,
     pub gyro_calibration_delay: f64,
     pub connect_sound: i32,
@@ -1561,6 +1773,20 @@ pub struct ControllerPreferences {
     pub sound_gain: i32,
     #[serde(default = "default_true")]
     pub disable_hardware_gyro_calibration: bool,
+    #[serde(default)]
+    pub left_pad_rotation: f64,
+    #[serde(default)]
+    pub right_pad_rotation: f64,
+    #[serde(default = "no_sound")]
+    pub boot_sound_level: i32,
+    #[serde(default)]
+    pub firmware_sound_prompt_done: bool,
+    #[serde(default)]
+    pub connect_sound_file: Option<String>,
+    #[serde(default)]
+    pub shutdown_sound_file: Option<String>,
+    #[serde(default = "default_sound_actuators")]
+    pub sound_actuators: String,
 }
 
 pub fn set_controller_preferences(
@@ -1570,16 +1796,69 @@ pub fn set_controller_preferences(
     let finite = |value: f64, name: &str| {
         if value.is_finite() { Ok(value) } else { Err(format!("{name} must be a number")) }
     };
+    let connect_sound_file = validated_sound_file(app, preferences.connect_sound_file, "Connect sound")?;
+    let shutdown_sound_file = validated_sound_file(app, preferences.shutdown_sound_file, "Shutdown sound")?;
     let mut state = read_runtime_mapping_state(app)?;
+    state.led_color = validated_led_color(&preferences.led_color)?;
+    state.led_brightness = preferences.led_brightness.clamp(0, 100);
     state.gyro_calibration_seconds = finite(preferences.gyro_calibration_seconds, "Calibration time")?.clamp(0.5, 60.0);
     state.gyro_calibration_delay = finite(preferences.gyro_calibration_delay, "Calibration delay")?.clamp(0.0, 30.0);
     state.connect_sound = preferences.connect_sound.clamp(-1, 13);
     state.shutdown_sound = preferences.shutdown_sound.clamp(-1, 13);
     state.sound_gain = preferences.sound_gain.clamp(-30, 0);
     state.disable_hardware_gyro_calibration = preferences.disable_hardware_gyro_calibration;
+    state.left_pad_rotation = finite(preferences.left_pad_rotation, "Left pad rotation")?.clamp(-180.0, 180.0);
+    state.right_pad_rotation = finite(preferences.right_pad_rotation, "Right pad rotation")?.clamp(-180.0, 180.0);
+    state.boot_sound_level = preferences.boot_sound_level.clamp(-1, 2);
+    // A latch: once the first-connect question has been answered it stays
+    // answered, so a save from a page that does not carry the flag (or an
+    // older payload) cannot bring the prompt back.
+    state.firmware_sound_prompt_done |= preferences.firmware_sound_prompt_done;
+    state.connect_sound_file = connect_sound_file;
+    state.shutdown_sound_file = shutdown_sound_file;
+    state.sound_actuators = validated_sound_actuators(&preferences.sound_actuators);
     persist_runtime_mapping_state(app, &state)?;
+    crate::services::virtual_keyboard::set_pad_orientation(state.left_pad_rotation,state.right_pad_rotation);
     ensure_runtime_support_files(app, &read_backend_choice(app)?)?;
     Ok(state)
+}
+
+/// A sound choice as the Preferences page sends it. A malformed id is refused
+/// outright (nothing else should ever produce one); a well-formed id whose
+/// sound is no longer converted or was removed behind Studio's back is
+/// dropped to None with a note, so one missing folder does not block every
+/// other preference on the page from saving.
+fn validated_sound_file(app: &AppHandle, id: Option<String>, what: &str) -> Result<Option<String>, String> {
+    let Some(id) = id.map(|id| id.trim().to_string()).filter(|id| !id.is_empty()) else {
+        return Ok(None);
+    };
+    if !crate::services::sound_library::is_valid_sound_id(&id) {
+        return Err(format!("{what}: invalid sound id {id}"));
+    }
+    if !crate::services::sound_library::is_ready(app, &id) {
+        eprintln!("{what}: library sound {id} is not converted or is missing; using the built-in tune");
+        return Ok(None);
+    }
+    Ok(Some(id))
+}
+
+/// A library sound is being deleted: a Connect or Shutdown choice pointing at
+/// it goes back to None and StudioDefaults.txt is rewritten, so the mapper is
+/// told NONE rather than left with a path to a file that is about to vanish.
+pub(crate) fn clear_sound_file_selection(app: &AppHandle, id: &str) -> Result<(), String> {
+    let mut state = read_runtime_mapping_state(app)?;
+    let mut changed = false;
+    for slot in [&mut state.connect_sound_file, &mut state.shutdown_sound_file] {
+        if slot.as_deref() == Some(id) {
+            *slot = None;
+            changed = true;
+        }
+    }
+    if !changed {
+        return Ok(());
+    }
+    persist_runtime_mapping_state(app, &state)?;
+    ensure_runtime_support_files(app, &read_backend_choice(app)?)
 }
 
 fn parse_sleep_seconds(content: &str) -> Option<u32> {
@@ -1702,6 +1981,8 @@ fn default_runtime_mapping_state(app: &AppHandle) -> Result<RuntimeMappingState,
         .unwrap_or_else(|| DEFAULT_PROFILE_RELATIVE.to_string());
 
     Ok(RuntimeMappingState {
+        led_color: default_led_color(),
+        led_brightness: default_led_brightness(),
         default_polling_ms: 3.0,
         active_profile_path,
         applied_preview_path: None,
@@ -1715,7 +1996,6 @@ fn default_runtime_mapping_state(app: &AppHandle) -> Result<RuntimeMappingState,
         shutdown_sound: -1,
         sound_gain: 0,
         disable_hardware_gyro_calibration: true,
-        reserved_chords: false,
         calibration_hud_enabled: true,
         studio_navigation_migrated: true,
         autoload_fallback_profile: None,
@@ -1724,6 +2004,13 @@ fn default_runtime_mapping_state(app: &AppHandle) -> Result<RuntimeMappingState,
         dbl_press_ms: default_dbl_press_ms(),
         sim_press_ms: default_sim_press_ms(),
         turbo_period_ms: default_turbo_period_ms(),
+        left_pad_rotation: 0.0,
+        right_pad_rotation: 0.0,
+        boot_sound_level: -1,
+        firmware_sound_prompt_done: false,
+        connect_sound_file: None,
+        shutdown_sound_file: None,
+        sound_actuators: default_sound_actuators(),
     })
 }
 
@@ -1736,6 +2023,8 @@ pub(crate) fn read_runtime_mapping_state(app: &AppHandle) -> Result<RuntimeMappi
 
     let mut state = serde_json::from_str::<RuntimeMappingState>(&raw)
         .map_err(|error| format!("Failed to parse GUI runtime state: {error}"))?;
+    state.led_color = validated_led_color(&state.led_color).unwrap_or_else(|_| default_led_color());
+    state.led_brightness = state.led_brightness.clamp(0, 100);
     state.active_profile_path = normalize_relative_profile_path(Some(&state.active_profile_path))
         .unwrap_or_else(|| DEFAULT_PROFILE_RELATIVE.to_string());
     Ok(state)
@@ -1808,6 +2097,7 @@ fn autoload_rule_from_path(app: &AppHandle, path: &Path) -> Result<AutoloadRule,
         .unwrap_or_default();
     let content = fs::read_to_string(path).unwrap_or_default();
     let built_in = app_process_stem().is_some_and(|stem| stem.eq_ignore_ascii_case(&process_name));
+    let exe_path = parse_autoload_exe_path(&content);
 
     if let Some(profile_path) = parse_linked_autoload_profile(&content) {
         let missing_profile = !absolute_profile_path(app, &profile_path)?.exists();
@@ -1821,6 +2111,7 @@ fn autoload_rule_from_path(app: &AppHandle, path: &Path) -> Result<AutoloadRule,
             built_in,
             paused,
             last_matched_at_ms: None,
+            exe_path,
         });
     }
 
@@ -1834,6 +2125,7 @@ fn autoload_rule_from_path(app: &AppHandle, path: &Path) -> Result<AutoloadRule,
         built_in,
         paused,
         last_matched_at_ms: None,
+        exe_path,
     })
 }
 
@@ -1872,16 +2164,22 @@ fn update_autoload_profile_references(
             continue;
         }
         let content = fs::read_to_string(&path).unwrap_or_default();
-        if parse_linked_autoload_profile(&content)
-            .as_deref()
-            .is_some_and(|relative| relative.eq_ignore_ascii_case(old_relative))
-        {
-            write_file_atomically(&path, format!("{new_relative}\n"))
+        if let Some(retargeted) = retarget_autoload_rule_text(&content, old_relative, new_relative) {
+            write_file_atomically(&path, retargeted)
                 .map_err(|error| format!("Failed to update AutoLoad profile reference: {error}"))?;
         }
     }
 
     Ok(())
+}
+
+/// A rule file's text pointed at a renamed configuration, keeping the
+/// executable it remembers; None when the rule loads something else.
+fn retarget_autoload_rule_text(content: &str, old_relative: &str, new_relative: &str) -> Option<String> {
+    let points_at_old = parse_linked_autoload_profile(content)
+        .as_deref()
+        .is_some_and(|relative| relative.eq_ignore_ascii_case(old_relative));
+    points_at_old.then(|| autoload_rule_text(new_relative, parse_autoload_exe_path(content).as_deref()))
 }
 
 /// `<app>.txt` or its paused form `<app>.txt.paused`.
@@ -1940,7 +2238,7 @@ fn normalize_relative_profile_path(input: Option<&str>) -> Option<String> {
     Some(format!("{PROFILE_LIBRARY_RELATIVE}/{stripped}"))
 }
 
-fn absolute_profile_path(app: &AppHandle, relative_path: &str) -> Result<PathBuf, String> {
+pub(crate) fn absolute_profile_path(app: &AppHandle, relative_path: &str) -> Result<PathBuf, String> {
     let normalized = normalize_relative_profile_path(Some(relative_path))
         .ok_or_else(|| format!("Invalid profile path: {relative_path}"))?;
     let stripped = normalized
@@ -2062,6 +2360,45 @@ fn normalize_backend_choice(choice: &str) -> &'static str {
 mod tests {
     use super::*;
 
+    #[test] fn legacy_keyboard_comment_becomes_regular_binding_without_overwriting_custom_actions() {
+        let migrated=migrate_keyboard_command("# @keyboard-open W\nW = NONE # Open controller keyboard (Studio)\nS = ENTER\n").unwrap();
+        assert_eq!(migrated,"W = \"OPEN_KEYBOARD\"\nS = ENTER\n");
+        assert_eq!(migrate_keyboard_command("# @keyboard-open N\nN = SPACE\n").unwrap(),"N = SPACE\n");
+        assert!(migrate_keyboard_command("W = SPACE\n").is_none());
+    }
+    #[test] fn legacy_chord_rows_merge_and_empty_list_stays_empty() {
+        let a=GlobalChord{controller_model:None,id:"a".into(),buttons:vec!["HOME".into()],trigger_groups:vec![],profile_path:"profile.txt".into()};
+        let b=GlobalChord{id:"b".into(),buttons:vec!["MISC1".into()],..a.clone()};
+        let merged=merge_global_chords(vec![a,b]);
+        assert_eq!(merged.len(),1);
+        assert_eq!(merged[0].trigger_groups,vec![vec!["HOME"],vec!["MISC1"]]);
+        assert!(merged[0].buttons.is_empty());
+        assert!(merge_global_chords(vec![]).is_empty());
+    }
+    #[test]
+    fn builtin_configuration_is_protected_and_ships_keyboard_command() {
+        assert!(protect_builtin_profile(DEFAULT_CHORD_PROFILE_NAME).is_err());
+        assert!(protect_builtin_profile("default global chords").is_err());
+        assert!(protect_builtin_profile("Personal Default Global Chords").is_ok());
+        assert!(DEFAULT_CHORD_PROFILE_LINES.contains(&"W = \"OPEN_KEYBOARD\""));
+        assert!(DEFAULT_CHORD_PROFILE_LINES.contains(&"RSL = \"TOGGLE_MAPPING\""));
+        assert!(DEFAULT_CHORD_PROFILE_LINES.contains(&"RSR = \"CALIBRATE_GYRO\""));
+        assert!(DEFAULT_CHORD_PROFILE_LINES.contains(&"RIGHT_TOUCHPAD_MODE = MOUSE"));
+    }
+
+    #[test]
+    fn older_states_get_white_led_defaults_and_color_is_validated() {
+        let state: RuntimeMappingState = serde_json::from_str(
+            r#"{"activeProfilePath":"profiles-library/Game.txt","mappingEnabled":true,"autoloadEnabled":false}"#,
+        ).unwrap();
+        assert_eq!(state.led_color, "#ffffff");
+        assert_eq!(state.led_brightness, 100);
+        let defaults = studio_defaults_text(&state);
+        assert!(defaults.contains("LIGHT_BAR = xffffff\nLED_BRIGHTNESS = 100\n"));
+        assert_eq!(validated_led_color("#A1b2C3").unwrap(), "#a1b2c3");
+        assert!(validated_led_color("#fffffZ").is_err());
+    }
+
     /// The global timing store (console refinement D8) reaches every profile
     /// through StudioDefaults.txt. A state saved before it existed reads as
     /// JoyShockMapper's own defaults, and the simultaneous-press window is
@@ -2075,12 +2412,81 @@ mod tests {
         .expect("an older state file still parses");
         assert_eq!((state.hold_press_ms, state.dbl_press_ms, state.sim_press_ms, state.turbo_period_ms), (150.0, 150.0, 50.0, 80.0));
         let text = studio_defaults_text(&state);
-        for line in ["TICK_TIME = 3", "SIM_PRESS_WINDOW = 50", "HOLD_PRESS_TIME = 150", "DBL_PRESS_WINDOW = 150", "TURBO_PERIOD = 80"] {
+        for line in ["TICK_TIME = 3", "SIM_PRESS_WINDOW = 50", "HOLD_PRESS_TIME = 150", "DBL_PRESS_WINDOW = 150", "TURBO_PERIOD = 80", "LEFT_TOUCHPAD_ROTATION = 0", "RIGHT_TOUCHPAD_ROTATION = 0", "BOOT_SOUND_LEVEL = -1"] {
             assert!(text.lines().any(|candidate| candidate == line), "missing {line} in {text}");
         }
         let sim = text.find("SIM_PRESS_WINDOW").unwrap();
         let hold = text.find("HOLD_PRESS_TIME").unwrap();
         assert!(sim < hold, "the simultaneous-press window must be set before the hold time");
+    }
+
+    /// Trackpad orientation and the controller's jingle volume are global too:
+    /// they reach the mapper as LEFT_/RIGHT_TOUCHPAD_ROTATION (degrees, as
+    /// typed) and BOOT_SOUND_LEVEL.
+    #[test]
+    fn studio_defaults_carry_pad_orientation_and_jingle_level() {
+        let state: RuntimeMappingState = serde_json::from_str(
+            r#"{"activeProfilePath":"profiles-library/Wardogs.txt","mappingEnabled":true,"autoloadEnabled":true,"leftPadRotation":10.7,"rightPadRotation":-10.5,"bootSoundLevel":0}"#,
+        )
+        .expect("state with orientation parses");
+        let text = studio_defaults_text(&state);
+        for line in ["LEFT_TOUCHPAD_ROTATION = 10.7", "RIGHT_TOUCHPAD_ROTATION = -10.5", "BOOT_SOUND_LEVEL = 0"] {
+            assert!(text.lines().any(|candidate| candidate == line), "missing {line} in {text}");
+        }
+        // No library sound chosen: NONE is still written, so a cleared choice
+        // reaches a mapper the file is injected into without a reset.
+        assert!(!state.firmware_sound_prompt_done, "an older state has not answered the prompt");
+        assert_eq!((state.connect_sound_file.as_deref(), state.shutdown_sound_file.as_deref()), (None, None));
+        for line in ["CONNECT_SOUND_FILE = NONE", "SHUTDOWN_SOUND_FILE = NONE", "SOUND_ACTUATORS = GRIPS"] {
+            assert!(text.lines().any(|candidate| candidate == line), "missing {line} in {text}");
+        }
+    }
+
+    /// The actuator choice reaches the mapper as SOUND_ACTUATORS, upper case,
+    /// after the sound files; anything unrecognised falls back to the grips,
+    /// where the controller's own tunes play.
+    #[test]
+    fn studio_defaults_carry_the_sound_actuators() {
+        let state: RuntimeMappingState = serde_json::from_str(
+            r#"{"activeProfilePath":"profiles-library/Wardogs.txt","mappingEnabled":true,"autoloadEnabled":true,"soundActuators":"pads"}"#,
+        )
+        .expect("state with an actuator choice parses");
+        let text = studio_defaults_text(&state);
+        assert!(text.lines().any(|line| line == "SOUND_ACTUATORS = PADS"), "{text}");
+        let files = text.find("SHUTDOWN_SOUND_FILE").unwrap();
+        let actuators = text.find("SOUND_ACTUATORS").unwrap();
+        assert!(files < actuators, "SOUND_ACTUATORS follows the sound files");
+        for (stored, written) in [("both", "BOTH"), ("GRIPS", "GRIPS"), ("speaker", "GRIPS"), ("", "GRIPS")] {
+            let mut state = state.clone();
+            state.sound_actuators = stored.to_string();
+            assert!(studio_defaults_text(&state).lines().any(|line| line == format!("SOUND_ACTUATORS = {written}")), "{stored}");
+        }
+        assert_eq!(validated_sound_actuators(" Pads "), "pads");
+        assert_eq!(validated_sound_actuators("nowhere"), "grips");
+    }
+
+    /// A library sound chosen for connect or shutdown reaches the mapper as the
+    /// path it resolves against JSM_DIRECTORY, after BOOT_SOUND_LEVEL; an id
+    /// that somehow is not well formed is written as NONE rather than as a path.
+    #[test]
+    fn studio_defaults_carry_library_sound_files() {
+        let state: RuntimeMappingState = serde_json::from_str(
+            r#"{"activeProfilePath":"profiles-library/Wardogs.txt","mappingEnabled":true,"autoloadEnabled":true,"firmwareSoundPromptDone":true,"connectSoundFile":"snd-1727640000000-1a2b","shutdownSoundFile":"../oops"}"#,
+        )
+        .expect("state with sound files parses");
+        assert!(state.firmware_sound_prompt_done);
+        let text = studio_defaults_text(&state);
+        for line in ["CONNECT_SOUND_FILE = sounds/snd-1727640000000-1a2b/tones.txt", "SHUTDOWN_SOUND_FILE = NONE"] {
+            assert!(text.lines().any(|candidate| candidate == line), "missing {line} in {text}");
+        }
+        let level = text.find("BOOT_SOUND_LEVEL").unwrap();
+        let connect = text.find("CONNECT_SOUND_FILE").unwrap();
+        let shutdown = text.find("SHUTDOWN_SOUND_FILE").unwrap();
+        assert!(level < connect && connect < shutdown, "the sound file lines follow BOOT_SOUND_LEVEL");
+        // Round trip: the fields survive a save of the state file.
+        let saved: RuntimeMappingState = serde_json::from_str(&serde_json::to_string(&state).unwrap()).unwrap();
+        assert_eq!(saved.connect_sound_file.as_deref(), Some("snd-1727640000000-1a2b"));
+        assert!(saved.firmware_sound_prompt_done);
     }
 
     /// A reader racing the writer must see the whole old file or the whole new
@@ -2196,6 +2602,73 @@ mod tests {
         assert_eq!(normalize_relative_profile_path(Some("applied-preview.txt")), None);
         assert_eq!(normalize_relative_profile_path(Some("../secrets.txt")), None);
         assert_eq!(normalize_relative_profile_path(Some("profiles-library/../x.txt")), None);
+    }
+
+    /// TODO-46: the executable an association was made from rides in the rule
+    /// file as a comment. The mapper skips `#` lines, so the rule still reads
+    /// as a one-line profile rule, and a file without the comment is unchanged.
+    #[test]
+    fn the_exe_comment_round_trips_without_changing_what_the_rule_loads() {
+        let text = autoload_rule_text("profiles-library/Doom.txt", Some(r"C:\Games\DOOM\DOOMx64.exe"));
+        assert_eq!(text, "profiles-library/Doom.txt\n# exe: C:\\Games\\DOOM\\DOOMx64.exe\n");
+        assert_eq!(parse_linked_autoload_profile(&text).as_deref(), Some("profiles-library/Doom.txt"));
+        assert_eq!(parse_autoload_exe_path(&text).as_deref(), Some(r"C:\Games\DOOM\DOOMx64.exe"));
+
+        assert_eq!(autoload_rule_text("profiles-library/Doom.txt", None), "profiles-library/Doom.txt\n");
+        assert_eq!(parse_autoload_exe_path("profiles-library/Doom.txt\n"), None);
+        // Spacing and quotes are forgiven; other comments are not paths.
+        assert_eq!(parse_autoload_exe_path("#exe:\"D:\\x.exe\"\n# note\nprofiles-library/A.txt\n").as_deref(), Some(r"D:\x.exe"));
+        assert_eq!(parse_autoload_exe_path("# exe:\nprofiles-library/A.txt\n"), None);
+    }
+
+    /// Renaming a configuration keeps the association's executable, so the
+    /// icon does not vanish with the rename.
+    #[test]
+    fn a_renamed_configuration_keeps_its_associated_executable() {
+        let content = "profiles-library/Old.txt\n# exe: C:\\Games\\g.exe\n";
+        assert_eq!(
+            retarget_autoload_rule_text(content, "profiles-library/Old.txt", "profiles-library/New.txt").as_deref(),
+            Some("profiles-library/New.txt\n# exe: C:\\Games\\g.exe\n"),
+        );
+        assert_eq!(retarget_autoload_rule_text(content, "profiles-library/Other.txt", "profiles-library/New.txt"), None);
+    }
+
+    /// "Associated, not applied" is a paused rule: `<app>.txt.paused`, which
+    /// AutoLoad never matches. Saving again without an exe keeps the one it
+    /// had; asking for auto-apply moves the file, never duplicates it.
+    #[test]
+    fn an_association_without_auto_apply_is_a_paused_rule_that_keeps_its_exe() {
+        let dir = std::env::temp_dir().join(format!("jsm-assoc-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        let active = dir.join("Doom.txt");
+        let parked = dir.join("Doom.txt.paused");
+
+        let written = write_autoload_rule_file(&dir, "Doom", "profiles-library/Doom.txt", Some(r"C:\Games\DOOM.exe"), Some(false)).expect("park");
+        assert_eq!(written, parked);
+        assert!(parked.exists() && !active.exists(), "an icon-only association must be the paused twin");
+        assert_eq!(parse_autoload_exe_path(&fs::read_to_string(&parked).unwrap()).as_deref(), Some(r"C:\Games\DOOM.exe"));
+
+        // Changing what it loads, without saying anything about the exe or
+        // auto-apply, keeps both.
+        write_autoload_rule_file(&dir, "Doom", "profiles-library/FPS.txt", None, None).expect("retarget");
+        assert!(parked.exists() && !active.exists());
+        let text = fs::read_to_string(&parked).unwrap();
+        assert_eq!(parse_linked_autoload_profile(&text).as_deref(), Some("profiles-library/FPS.txt"));
+        assert_eq!(parse_autoload_exe_path(&text).as_deref(), Some(r"C:\Games\DOOM.exe"));
+
+        // Turning auto-apply on makes it live; off parks it again.
+        let written = write_autoload_rule_file(&dir, "Doom", "profiles-library/FPS.txt", None, Some(true)).expect("resume");
+        assert_eq!(written, active);
+        assert!(active.exists() && !parked.exists());
+        assert_eq!(parse_autoload_exe_path(&fs::read_to_string(&active).unwrap()).as_deref(), Some(r"C:\Games\DOOM.exe"));
+        write_autoload_rule_file(&dir, "Doom", "profiles-library/FPS.txt", Some("  "), Some(false)).expect("pause");
+        assert!(parked.exists() && !active.exists());
+        assert_eq!(parse_autoload_exe_path(&fs::read_to_string(&parked).unwrap()).as_deref(), Some(r"C:\Games\DOOM.exe"));
+
+        // A rule that never had an exe stays a plain one-line rule.
+        write_autoload_rule_file(&dir, "Quake", "profiles-library/FPS.txt", None, None).expect("plain");
+        assert_eq!(fs::read_to_string(dir.join("Quake.txt")).unwrap(), "profiles-library/FPS.txt\n");
+        let _ = fs::remove_dir_all(&dir);
     }
 }
 

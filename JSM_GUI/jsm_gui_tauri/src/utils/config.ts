@@ -77,3 +77,16 @@ export const upsertFlagCommand = (text: string, key: string, enabled: boolean) =
   }
   return lines.join('\n')
 }
+
+export function osMouseSpeedCompensated(text: string) {
+  let enabled = false
+  for (const line of text.split(/\r?\n/)) {
+    if (/^\s*COUNTER_OS_MOUSE_SPEED\b/i.test(line)) enabled = true
+    if (/^\s*IGNORE_OS_MOUSE_SPEED\b/i.test(line)) enabled = false
+  }
+  return enabled
+}
+
+export function writeOsMouseSpeedCompensation(text: string, enabled: boolean) {
+  return upsertFlagCommand(upsertFlagCommand(text, 'COUNTER_OS_MOUSE_SPEED', false), 'IGNORE_OS_MOUSE_SPEED', false) + '\n' + (enabled ? 'COUNTER_OS_MOUSE_SPEED' : 'IGNORE_OS_MOUSE_SPEED')
+}

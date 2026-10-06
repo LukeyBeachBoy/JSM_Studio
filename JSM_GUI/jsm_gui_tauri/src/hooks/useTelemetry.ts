@@ -29,9 +29,13 @@ export type TelemetryDeviceStatus = {
   // a grip, so the preview shows all three the same way.
   leftStickTouch?: boolean
   rightStickTouch?: boolean
+  /** Last native stick report submitted successfully to the virtual device. */
+  virtualSticks?: { left: { x: number; y: number }; right: { x: number; y: number } }
+  virtualMenus?: { id: string; source: number; open: boolean; selected: number; navigating?: boolean; cursor?: { x: number; y: number } }[]
 }
 
 export type TelemetryDevice = {
+  activeProfile?: string
   handle: number
   type: number
   supportedButtons?: number

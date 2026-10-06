@@ -3,6 +3,8 @@ import { getKeymapValue, parseSensitivityValues, removeKeymapEntry, updateKeymap
 import { upsertFlagCommand } from '../utils/config'
 import { DEFAULT_HOLD_PRESS_TIME, DEFAULT_WINDOW_SECONDS } from '../constants/defaults'
 import { keyName } from '../constants/configKeys'
+import { moveGyroSettingChord } from '../utils/gyroSettingsScope'
+import { writeVirtualSetting } from '../utils/virtualStickSettings'
 
 const SENS_MODE_KEYS = [
   keyName.MIN_GYRO_THRESHOLD,
@@ -18,6 +20,16 @@ const SENS_MODE_KEYS = [
   keyName.ACCEL_SIGMOID_MID,
   keyName.ACCEL_SIGMOID_WIDTH,
   keyName.ACCEL_JUMP_TAU,
+  'GYRO_OUTPUT', 'GYRO_SPACE', 'GYRO_AXIS_X', 'GYRO_AXIS_Y',
+  'GYRO_STICK_DEFLECTION', 'GYRO_DEFLECTION_RANGE', 'GYRO_DEFLECTION_LOCK_EXTENTS',
+  'GYRO_HAPTIC_INTENSITY', 'GYRO_HAPTIC_INTERVAL', 'GYRO_HAPTIC_EFFECT', 'GYRO_HAPTIC_SIDE',
+  'MOUSE_X_FROM_GYRO_AXIS', 'MOUSE_Y_FROM_GYRO_AXIS', 'TRACKBALL_DECAY',
+  'GYRO_CUTOFF_SPEED', 'GYRO_CUTOFF_RECOVERY', 'GYRO_STEADYING_FLOOR', 'GYRO_SMOOTH_TIME', 'GYRO_SMOOTH_THRESHOLD',
+  'GYRO_SMOOTHING_DECAY', 'GYRO_CLICK_DAMPEN', 'GYRO_ANGLE_SNAP', 'GYRO_ANGLE_SNAP_EASE',
+  'ONE_EURO_MIN_CUTOFF', 'ONE_EURO_SPEED_COEFF', 'DECEL_BRAKE_STRENGTH', 'DECEL_BRAKE_THRESHOLD',
+  'VIRTUAL_STICK_CALIBRATION',
+  'MOTION_STICK_MODE', 'MOTION_STICK_AXIS', 'MOTION_DEADZONE_INNER', 'MOTION_DEADZONE_OUTER', 'MOTION_RING_MODE', 'LEAN_THRESHOLD', 'JOYCON_GYRO_MASK', 'JOYCON_MOTION_MASK',
+  ...['LEFT', 'RIGHT'].flatMap(side => ['UNDEADZONE_INNER', 'UNDEADZONE_OUTER', 'UNPOWER', 'VIRTUAL_SCALE', 'DEADZONE_PROBE'].map(field => `${side}_STICK_${field}`)),
 ] as const
 
 const prefixedKey = (key: string, prefix?: string) => (prefix ? `${prefix}${key}` : key)
@@ -59,12 +71,7 @@ export function useSensitivityConfig({ configText, readText, setConfigText }: Se
     () =>
       new RegExp(
         `^\\s*([A-Z0-9+\\-_]+)\\s*,\\s*(${[
-          keyName.GYRO_SENS,
-          keyName.MIN_GYRO_SENS,
-          keyName.MAX_GYRO_SENS,
-          keyName.MIN_GYRO_THRESHOLD,
-          keyName.MAX_GYRO_THRESHOLD,
-          keyName.ROLL_CONTRIBUTION,
+          ...SENS_MODE_KEYS,
         ].join('|')})\\s*=`,
         'im'
       ),
@@ -121,7 +128,8 @@ export function useSensitivityConfig({ configText, readText, setConfigText }: Se
     (value: string) => {
       const nextButton = value || null
       setConfigText(prev => {
-        let next = prev
+        if (sensitivityModeshiftButton && nextButton) return moveGyroSettingChord(prev, sensitivityModeshiftButton, nextButton)
+        let next = sensitivityModeshiftButton && !nextButton ? moveGyroSettingChord(prev, sensitivityModeshiftButton, '') : prev
         if (sensitivityModeshiftButton) {
           SENS_MODE_KEYS.forEach(key => {
             next = removeKeymapEntry(next, `${sensitivityModeshiftButton},${key}`)
@@ -202,34 +210,46 @@ export function useSensitivityConfig({ configText, readText, setConfigText }: Se
   }
 
   const makeScalarHandler = (key: string) => (value: string) => {
+    const scopedKey = /^(GYRO_|ONE_EURO_|DECEL_)/.test(key) ? resolveSensitivityKey(key) : key
     if (value === '') {
-      setConfigText(prev => removeKeymapEntry(prev, key))
+      setConfigText(prev => removeKeymapEntry(prev, scopedKey))
       return
     }
     const next = parseFloat(value)
     if (Number.isNaN(next)) return
-    setConfigText(prev => updateKeymapEntry(prev, key, [next]))
+    setConfigText(prev => writeVirtualSetting(prev, scopedKey, next))
   }
 
   const makeStringHandler = (key: string) => (value: string) => {
+    const scopedKey = key.startsWith('GYRO_') ? resolveSensitivityKey(key) : key
     if (!value) {
-      setConfigText(prev => removeKeymapEntry(prev, key))
+      setConfigText(prev => removeKeymapEntry(prev, scopedKey))
       return
     }
-    setConfigText(prev => updateKeymapEntry(prev, key, [value]))
+    setConfigText(prev => updateKeymapEntry(prev, scopedKey, [value]))
   }
 
   const handleCutoffSpeedChange = makeScalarHandler(keyName.GYRO_CUTOFF_SPEED)
+  const handleSteadyingFloorChange = (axis: 'X' | 'Y', value: string) => {
+    const prefix = activeSensitivityPrefix
+    const parsed = parseSensitivityValues(readSource, { prefix })
+    const base = parseSensitivityValues(readSource)
+    const number = value.trim() === '' ? 0 : Number(value)
+    if (!Number.isFinite(number) || number < 0) return
+    const x = axis === 'X' ? number : parsed.steadyingFloorX ?? base.steadyingFloorX ?? 0
+    const y = axis === 'Y' ? number : parsed.steadyingFloorY ?? base.steadyingFloorY ?? base.steadyingFloorX ?? 0
+    setConfigText(previous => updateKeymapEntry(previous, prefixedKey(keyName.GYRO_STEADYING_FLOOR, prefix), [x, y]))
+  }
   const handleCutoffRecoveryChange = makeScalarHandler(keyName.GYRO_CUTOFF_RECOVERY)
   const handleSmoothTimeChange = makeScalarHandler(keyName.GYRO_SMOOTH_TIME)
   const handleSmoothThresholdChange = makeScalarHandler(keyName.GYRO_SMOOTH_THRESHOLD)
   const handleSmoothingDecayChange = (value: string) => {
     const upper = value.trim().toUpperCase()
     if (!upper || upper === 'OFF') {
-      setConfigText(prev => removeKeymapEntry(prev, keyName.GYRO_SMOOTHING_DECAY))
+      setConfigText(prev => sensitivityView === 'modeshift' ? updateKeymapEntry(prev, resolveSensitivityKey(keyName.GYRO_SMOOTHING_DECAY), ['OFF']) : removeKeymapEntry(prev, keyName.GYRO_SMOOTHING_DECAY))
       return
     }
-    setConfigText(prev => updateKeymapEntry(prev, keyName.GYRO_SMOOTHING_DECAY, [upper]))
+    setConfigText(prev => updateKeymapEntry(prev, resolveSensitivityKey(keyName.GYRO_SMOOTHING_DECAY), [upper]))
   }
   const handleOneEuroFilterChange = (value: string) => {
     const enabled = value.trim().toUpperCase() === 'ON'
@@ -241,10 +261,10 @@ export function useSensitivityConfig({ configText, readText, setConfigText }: Se
   const handleAngleSnapSmoothChange = (value: string) => {
     const upper = value.trim().toUpperCase()
     if (!upper || upper === 'OFF') {
-      setConfigText(prev => removeKeymapEntry(prev, keyName.GYRO_ANGLE_SNAP_EASE))
+      setConfigText(prev => sensitivityView === 'modeshift' ? updateKeymapEntry(prev, resolveSensitivityKey(keyName.GYRO_ANGLE_SNAP_EASE), ['OFF']) : removeKeymapEntry(prev, keyName.GYRO_ANGLE_SNAP_EASE))
       return
     }
-    setConfigText(prev => updateKeymapEntry(prev, keyName.GYRO_ANGLE_SNAP_EASE, [upper]))
+    setConfigText(prev => updateKeymapEntry(prev, resolveSensitivityKey(keyName.GYRO_ANGLE_SNAP_EASE), [upper]))
   }
   const handleDecelBrakeStrengthChange = makeScalarHandler(keyName.DECEL_BRAKE_STRENGTH)
   const handleDecelBrakeThresholdChange = makeScalarHandler(keyName.DECEL_BRAKE_THRESHOLD)
@@ -270,25 +290,25 @@ export function useSensitivityConfig({ configText, readText, setConfigText }: Se
       return
     }
     const next = parseFloat(value)
-    if (Number.isNaN(next)) return
-    const clamped = Math.min(1, Math.max(0, next))
-    setConfigText(prev => updateKeymapEntry(prev, keyName.TRIGGER_THRESHOLD, [clamped]))
+    if (!Number.isFinite(next)) return
+    const clamped = Math.min(1, Math.max(-1, next))
+    setConfigText(prev => writeVirtualSetting(prev, keyName.TRIGGER_THRESHOLD, clamped))
   }, [setConfigText])
 
   const handleGyroSpaceChange = makeStringHandler(keyName.GYRO_SPACE)
   const handleGyroAxisXChange = (value: string) => {
     if (!value) {
-      setConfigText(prev => removeKeymapEntry(prev, keyName.GYRO_AXIS_X))
+      setConfigText(prev => sensitivityView === 'modeshift' ? updateKeymapEntry(prev, resolveSensitivityKey(keyName.GYRO_AXIS_X), ['STANDARD']) : removeKeymapEntry(prev, keyName.GYRO_AXIS_X))
       return
     }
-    setConfigText(prev => updateKeymapEntry(prev, keyName.GYRO_AXIS_X, [value]))
+    setConfigText(prev => updateKeymapEntry(prev, resolveSensitivityKey(keyName.GYRO_AXIS_X), [value]))
   }
   const handleGyroAxisYChange = (value: string) => {
     if (!value) {
-      setConfigText(prev => removeKeymapEntry(prev, keyName.GYRO_AXIS_Y))
+      setConfigText(prev => sensitivityView === 'modeshift' ? updateKeymapEntry(prev, resolveSensitivityKey(keyName.GYRO_AXIS_Y), ['STANDARD']) : removeKeymapEntry(prev, keyName.GYRO_AXIS_Y))
       return
     }
-    setConfigText(prev => updateKeymapEntry(prev, keyName.GYRO_AXIS_Y, [value]))
+    setConfigText(prev => updateKeymapEntry(prev, resolveSensitivityKey(keyName.GYRO_AXIS_Y), [value]))
   }
   const handleGyroOutputChange = (value: string) => {
     if (!value) {
@@ -363,6 +383,18 @@ export function useSensitivityConfig({ configText, readText, setConfigText }: Se
       current[index] = parsedValue
       return updateKeymapEntry(prev, resolveSensitivityKey(key), current)
     })
+  }
+
+  // Both axes of MIN_GYRO_SENS or MAX_GYRO_SENS in one write. The curve
+  // editor's handles move X and Y together, and two handleDualSensChange calls
+  // in one tick would each build on the same stale pending drafts, so the
+  // second would put the first axis back.
+  const handleDualSensPairChange = (key: typeof keyName.MIN_GYRO_SENS | typeof keyName.MAX_GYRO_SENS, x: number, y: number) => {
+    if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || y < 0) return
+    const keyPrefix = prefixKey(activeSensitivityPrefix)
+    const which = key === keyName.MIN_GYRO_SENS ? 'min' : 'max'
+    setPendingDual(previous => ({ ...previous, [keyPrefix]: { ...(previous[keyPrefix] ?? {}), [which]: { x: String(x), y: String(y) } } }))
+    setConfigText(prev => updateKeymapEntry(prev, resolveSensitivityKey(key), [x, y]))
   }
 
   const handleStaticSensChange = (index: 0 | 1) => (value: string) => {
@@ -748,7 +780,7 @@ export function useSensitivityConfig({ configText, readText, setConfigText }: Se
     if (raw) {
       const parsed = parseFloat(raw)
       if (Number.isFinite(parsed)) {
-        return Math.min(1, Math.max(0, parsed))
+        return Math.min(1, Math.max(-1, parsed))
       }
     }
     return 0
@@ -975,6 +1007,7 @@ export function useSensitivityConfig({ configText, readText, setConfigText }: Se
     handleThresholdChange,
     handleCutoffSpeedChange,
     handleCutoffRecoveryChange,
+    handleSteadyingFloorChange,
     handleSmoothTimeChange,
     handleSmoothThresholdChange,
     handleSmoothingDecayChange,
@@ -996,6 +1029,7 @@ export function useSensitivityConfig({ configText, readText, setConfigText }: Se
     handleGyroAxisYChange,
     handleGyroOutputChange,
     handleDualSensChange,
+    handleDualSensPairChange,
     handleStaticSensChange,
     handleRollContributionChange,
     handleModeSelection,

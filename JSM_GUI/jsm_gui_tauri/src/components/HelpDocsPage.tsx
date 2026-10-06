@@ -160,6 +160,8 @@ The grips are touch sensors, not buttons: they report contact, and \`GRIP_SENSOR
 
 Each pad is either a mouse (\`MOUSE\`) or a grid of regions (\`GRID_AND_STICK\`), never both at once. The mode can be modeshifted, so \`MISC2,RIGHT_TOUCHPAD_MODE = GRID_AND_STICK\` turns the right pad into a menu while its click is held. \`GRID_SHAPE\` picks a grid, four-way or eight-way wedges, or a radial menu.
 
+The pads are mounted at an angle (about 10.7 degrees, the right pad the other way). **Trackpad orientation** in Preferences turns each pad's reading so a swipe straight up the controller reads as straight up, for every configuration, for menus, the touch stick and the mouse alike, and for the touch Studio shows. The values are \`LEFT_TOUCHPAD_ROTATION\` and \`RIGHT_TOUCHPAD_ROTATION\`, in degrees, positive clockwise as you look at the controller; \`0\` keeps the pad as mounted.
+
 ### Gyro
 
 The controller's firmware re-centres its gyro whenever it thinks it is lying still, and a slow, deliberate tilt can pass for still. Studio turns that off when the controller connects, so slow aim is not eaten; drift is then corrected by **Recalibrate gyro**, which cancels itself if the controller moves during the run. **Disable hardware calibration** in Preferences (\`DISABLE_HARDWARE_GYRO_CALIBRATION\`, on by default) switches the firmware's calibration back on if you would rather have it.
@@ -168,11 +170,19 @@ Each controller's last calibration is saved, so a controller that switches off, 
 
 ### Light
 
-\`LED_BRIGHTNESS\` sets the light from 0 to 100, and -1 leaves it as the controller has it. A binding can change it for a layer, for example \`LSL = "LED_BRIGHTNESS = 10"\`.
+The light is a colour LED. App settings provide a white default colour at 100% brightness. Each profile can override either value with \`LIGHT_BAR\` and \`LED_BRIGHTNESS\`; leaving one unset uses the app default. A button action can set either value on press, hold, or release. The button editor's command picker also offers **LED while held**: a command that lights the LED in its own colour and brightness while the input is down and returns to the profile value on release; its colour and brightness are set in the command's settings panel.
+
+### Controller sounds
+
+**Silence the controller's own sounds** in Preferences sets the controller's firmware jingle level to zero; switching it off restores the factory volume. This also silences the controller's lost-connection and low-battery cues.
+
+The **Manage sounds** library accepts MIDI and MP3 files. The controller has no speaker: its haptic actuators play tones, so a sound is a single-voice melody. A MIDI file gives clean notes (pick the melody track; Studio recommends one); for an MP3, trim a clip and Studio follows its strongest pitch. Either way the voice is moved by whole octaves into the range where the actuators sing rather than buzz, and repeated notes are separated so they stay distinct. Jingles and simple melodies work best; speech, chords and dense mixes become approximations. Preview the converted result on the controller before choosing it for Connect, Shutdown or a **Play sound** binding. The original file stays in the library so you can trim it again.
+
+**Play Sounds On** chooses the actuators: the controller's own tunes play on the two motors behind the grips, so that pair is the default and gives your sounds the same voice. The trackpads' actuators are thinner and quieter for the same notes.
 
 ### Quick access
 
-Studio's global chords start on the quick access button, so leave \`MISC1\` unbound in configurations. With **Use Studio's reserved chords** on, quick access with R5 pauses mapping and quick access with R4 recalibrates the gyro.
+The default global chord activates from Guide or Quick Access. Its regular command bindings open the keyboard, pause/resume mapping and calibrate gyro. Edit or remove its activation row in Global Chords, or clone its built-in configuration to create your own bindings. Reset default settings restores the default activation.
 `
 
 export const DOCS_TOPICS: DocsTopic[] = [

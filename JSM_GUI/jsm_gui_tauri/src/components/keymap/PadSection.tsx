@@ -12,13 +12,18 @@ import { SettingOrigins } from '../SettingOrigin'
 import { bindingSummary, describeMenuPlacement, type PadRegionInfo } from '../../utils/menuDescriptions'
 import type { TouchpadModeCardConfig } from './TouchpadSettingsSection'
 import type { LivePadTouch } from './TouchpadGridSection'
+import { ScreenAreaPreview } from './ScreenAreaPreview'
+import { MOUSE_AREA_FIT_OPTIONS, describeMouseArea, mapTouchToArea } from '../../utils/mouseArea'
+import { toUnit } from '../../utils/overlayLayout'
+import { TOUCHPAD_DUAL_STAGE_OPTIONS, touchpadDualStageHelpKey } from '../../utils/touchpadConfig'
 import keymapStyles from '../Keymap.module.css'
 
-const MODE_ICONS: Record<string, IconName> = { '': 'padNone', GRID_AND_STICK: 'padGrid', MOUSE: 'padMouse', PS_TOUCHPAD: 'catGamepad' }
+const MODE_ICONS: Record<string, IconName> = { '': 'padNone', GRID_AND_STICK: 'padGrid', MOUSE: 'padMouse', MOUSE_AREA: 'padMouse', PS_TOUCHPAD: 'catGamepad' }
 const MODE_OPTIONS = [
   { value: '', label: 'Not set' },
   { value: 'GRID_AND_STICK', label: 'Menu' },
   { value: 'MOUSE', label: 'Mouse' },
+  { value: 'MOUSE_AREA', label: 'Mouse area' },
   { value: 'PS_TOUCHPAD', label: 'PlayStation touchpad' },
 ]
 const SHAPE_OPTIONS = [
@@ -28,11 +33,11 @@ const SHAPE_OPTIONS = [
   { value: 'RADIAL', label: 'Radial' },
 ]
 const SHAPE_LABELS: Record<string, string> = Object.fromEntries(SHAPE_OPTIONS.map(option => [option.value, option.label]))
-const DUAL_STAGE_MODES = ['NO_FULL', 'NO_SKIP', 'NO_SKIP_EXCLUSIVE', 'MUST_SKIP', 'MAY_SKIP', 'MUST_SKIP_R', 'MAY_SKIP_R']
+
 
 
 type Props = {
-  keyPrefix: 'LEFT_' | 'RIGHT_'
+  keyPrefix: 'LEFT_' | 'RIGHT_' | ''
   /** "Left pad". */
   title: string
   /** The connected pad's DOM identity: LEFT_PAD / RIGHT_PAD. */
@@ -59,6 +64,9 @@ type Props = {
   mouseFeel?: string
   /** The pad click: its binding's short name and its editor, for the Click row's sheet. */
   click?: { value: string; editor: ReactNode }
+  /** Raw pad contact, independently bindable from click and regions. */
+  touch?: { value: string; editor: ReactNode }
+  feedback?: { value: string; editor: ReactNode }
   /** Bindings for inputs this pad does not have (a single-pad controller's). */
   otherControllers?: { count: number; id: string; children: ReactNode }
   /** The pad's touch stick, under the rows. */
@@ -82,14 +90,14 @@ const WHERE_FOUR_WAY = ['Top', 'Right', 'Bottom', 'Left']
  */
 export function PadSection({
   keyPrefix, title, command, config, menu, appearance, settingPrefix = '', livePad, padAspect, regions, selected, onSelect, describeRegion, renderButton,
-  mouseFeel, click, otherControllers, children, modeshifts,
+  mouseFeel, click, touch, feedback, otherControllers, children, modeshifts,
 }: Props) {
   const { t } = useTranslation()
   const configName = useContext(SettingOrigins).config
   const mode = (config.mode || '').toUpperCase()
   const grid = mode === 'GRID_AND_STICK'
   const shape = (config.gridShape || 'RECTANGLE').toUpperCase()
-  const [sheet, setSheet] = useState<null | 'mode' | 'region' | 'click' | 'sensitivity'>(null)
+  const [sheet, setSheet] = useState<null | 'mode' | 'region' | 'click' | 'touch' | 'feedback' | 'sensitivity'>(null)
   const [othersOpen, setOthersOpen] = useState(false)
   const key = (name: string) => settingPrefix + keyPrefix + name
   const eyebrow = `Trackpads · ${configName ?? 'Configuration'}`
@@ -122,6 +130,13 @@ export function PadSection({
   const regionLabel = selected ? `${t('keymap.region', 'Region')} ${selectedIndex} · ${where(selectedIndex)}` : ''
   const sensitivity = config.sensitivity ?? 1
   const nextRegion = regions.length > 1 ? { label: t('keymap.nextRegion', 'Next region'), run: stepRegion } : undefined
+  const mouseArea = mode === 'MOUSE_AREA'
+  const areaFit = config.mouseAreaFit ?? 'STRETCH'
+  // The live finger, put where the mapper would put the cursor: the preview
+  // is a picture of the screen, not of the pad.
+  const areaCursor = mouseArea && livePoint
+    ? mapTouchToArea(toUnit(livePoint.x), toUnit(livePoint.y), config.mouseArea ?? { x: 0, y: 0, w: 1, h: 1 }, areaFit, padAspect, 16 / 9)
+    : null
 
   return (
     <div className="pad-column" data-pad-keys={grid ? 'X' : undefined} onKeyDown={onPadKey}>
@@ -134,10 +149,14 @@ export function PadSection({
           ? <div className="pad-column__art" style={{ width: 176 * previewAspect }}>
               <MenuPreview menu={previewMenu} aspect={padAspect} fill selectedCommand={selected?.command ?? null} onSelect={onSelect} livePoint={livePoint} />
             </div>
+          : mouseArea
+          ? <div className="pad-column__art" style={{ width: 196 }}>
+              <ScreenAreaPreview area={config.mouseArea ?? null} fit={areaFit} padAspect={padAspect} width={196} cursor={areaCursor} />
+            </div>
           : <div className="pad-column__empty">
               <span className="pad-column__ring" aria-hidden="true">
                 {mode !== 'MOUSE' && <Icon name={MODE_ICONS[mode] ?? 'padNone'} size={32} />}
-                <span>{mode === 'MOUSE' ? t('keymap.padArtMouse', 'Moves the mouse') : mode === 'PS_TOUCHPAD' ? t('keymap.padArtPs', 'PlayStation touchpad') : grid ? t('keymap.padArtEmpty', 'Bind a region to draw the menu') : t('keymap.padArtNone', 'No mode set')}</span>
+                <span>{mode === 'MOUSE' ? t('keymap.padArtMouse', 'Moves the mouse') : mode === 'MOUSE_AREA' ? t('keymap.padArtMouseArea', 'Moves the mouse inside an area') : mode === 'PS_TOUCHPAD' ? t('keymap.padArtPs', 'PlayStation touchpad') : grid ? t('keymap.padArtEmpty', 'Bind a region to draw the menu') : t('keymap.padArtNone', 'No mode set')}</span>
               </span>
               {livePoint && <span className={keymapStyles.padStageDot} style={{ left: `calc(50% + ${livePoint.x * 88}px)`, top: `calc(50% + ${livePoint.y * 88}px)` }} aria-hidden="true" />}
             </div>}
@@ -166,11 +185,23 @@ export function PadSection({
             value={`${sensitivity.toFixed(2)}×${config.sensitivityY !== undefined && config.sensitivityY !== sensitivity ? ` · ${config.sensitivityY.toFixed(2)}× up/down` : ''}`}
             onActivate={() => setSheet('sensitivity')} />
         )}
-        {click && (
-          <SummaryRow label="Click" hint="Pressing the pad in" value={click.value} onActivate={() => setSheet('click')} onX={grid ? nextRegion : undefined} />
+        {mouseArea && (
+          <SummaryRow label={t('keymap.mouseAreaScreenArea', 'Screen area')} hint={t('keymap.mouseAreaScreenAreaHint', 'Draw it on the screen, over the game')}
+            setting={key('TOUCHPAD_AREA')} mono value={describeMouseArea(config.mouseArea)} hints="A:Draw;B:Back"
+            onActivate={config.onPickMouseArea} />
         )}
+        {mouseArea && (
+          <SummaryRow label={t('keymap.mouseAreaFit', 'Pad fit')} hint={t('keymap.mouseAreaFitHint', 'How a pad of a different shape lies over the area')}
+            setting={key('TOUCHPAD_AREA_FIT')}
+            adjust={{ kind: 'choice', value: areaFit, options: MOUSE_AREA_FIT_OPTIONS, onChange: value => config.onMouseAreaFitChange?.(value) }} />
+        )}
+        {touch && <SummaryRow label="Touch" hint="Finger contact on this pad" value={touch.value} onActivate={() => setSheet('touch')} />}
+        {(click || config.onDualStageModeChange) && (
+          <SummaryRow label="Click" hint="Pressing the pad in" value={click?.value ?? TOUCHPAD_DUAL_STAGE_OPTIONS.find(option => option.value === (config.dualStageMode || 'NO_SKIP'))?.label} onActivate={() => setSheet('click')} onX={grid ? nextRegion : undefined} />
+        )}
+        {feedback && <SummaryRow label="Feedback" hint="Movement ticks, click and release pulses" value={feedback.value} onActivate={() => setSheet('feedback')} />}
         {mode === 'MOUSE' && config.onOpenTuning && (
-          <SummaryRow label="Mouse feel" hint={mouseFeel ?? 'Smoothing, glide and haptics'} onActivate={config.onOpenTuning} />
+          <SummaryRow label="Trackpad feel" hint={mouseFeel ?? 'Mouse output tuning and shared feedback'} onActivate={config.onOpenTuning} />
         )}
 
         {otherControllers && (
@@ -228,14 +259,28 @@ export function PadSection({
         })}
       </Sheet>
 
-      <Sheet open={sheet === 'click' && Boolean(click)} onClose={() => setSheet(null)} eyebrow={eyebrow} title={`${title} · Click`}
-        description="What pressing the pad in does, and how a click combines with touching a region."
+      <Sheet open={sheet === 'feedback' && Boolean(feedback)} onClose={() => setSheet(null)} eyebrow={eyebrow} title={`${title} · Feedback`}
+        description="Feedback on this pad’s actuator. Movement ticks apply to Mouse mode; click and release work in every mode.">
+        {feedback?.editor}
+        {feedback?.value === 'Shared' && config.onOpenTuning && <SummaryRow size="sheet"
+          label="Edit shared feedback" hint="Open the shared feedback defaults in Trackpad feel"
+          onActivate={() => { setSheet(null); config.onOpenTuning?.() }} />}
+      </Sheet>
+
+      <Sheet open={sheet === 'touch' && Boolean(touch)} onClose={() => setSheet(null)} eyebrow={eyebrow} title={`${title} · Touch`}
+        description="Bind finger contact independently of pad movement, menu regions and click. The touch/click policy controls how this binding combines with clicking.">
+        {touch?.editor}
+      </Sheet>
+
+      <Sheet open={sheet === 'click' && Boolean(click || config.onDualStageModeChange)} onClose={() => setSheet(null)} eyebrow={eyebrow} title={`${title} · Click`}
+        description="What pressing the pad does, and how its touch and click bindings combine."
         hints={[{ button: 'A', label: 'Select' }, { button: 'B', label: 'Close' }]}>
         {click?.editor}
-        {grid && (
+        {config.onDualStageModeChange && (
           <RowGroup title="Click and touch">
-            <SummaryRow size="sheet" label={t('keymap.touchpadDualStageMode')} hint="When a click counts as a region's full press" setting={key('TOUCHPAD_DUAL_STAGE_MODE')}
-              adjust={{ kind: 'choice', value: config.dualStageMode || 'NO_SKIP', options: DUAL_STAGE_MODES.map(value => ({ value, label: value })), onChange: value => config.onDualStageModeChange?.(value) }} />
+            <SummaryRow size="sheet" label={t('keymap.touchpadDualStageMode')} hint="Combine this pad’s touch and click bindings"
+              help={t(touchpadDualStageHelpKey(config.dualStageMode || 'NO_SKIP'))} setting={key('TOUCHPAD_DUAL_STAGE_MODE')}
+              adjust={{ kind: 'choice', value: config.dualStageMode || 'NO_SKIP', options: TOUCHPAD_DUAL_STAGE_OPTIONS.map(option => ({ ...option, help: t(option.helpKey) })), onChange: value => config.onDualStageModeChange?.(value) }} />
           </RowGroup>
         )}
       </Sheet>

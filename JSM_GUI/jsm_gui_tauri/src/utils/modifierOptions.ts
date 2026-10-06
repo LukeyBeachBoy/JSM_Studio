@@ -1,4 +1,5 @@
 import type { TFunction } from 'i18next'
+import { TOUCH_BUTTONS } from '../keymap/schema'
 import { controllerButtonLabel, controllerButtonOrder, type ControllerVisualFamily } from './controllerStatus'
 
 export type ModifierSelectOption = {
@@ -43,6 +44,16 @@ const BASE_MODIFIER_OPTIONS: ModifierSelectOption[] = [
   { value: 'RLEFT', labelKey: 'modifiers.rleft' },
   { value: 'RRIGHT', labelKey: 'modifiers.rright' },
   { value: 'RRING', labelKey: 'modifiers.rring' },
+  { value: 'MUP', labelKey: 'modifiers.motionUp' },
+  { value: 'MDOWN', labelKey: 'modifiers.motionDown' },
+  { value: 'MLEFT', labelKey: 'modifiers.motionLeft' },
+  { value: 'MRIGHT', labelKey: 'modifiers.motionRight' },
+  { value: 'MRING', labelKey: 'modifiers.motionRing' },
+  { value: 'TUP', labelKey: 'modifiers.touchUp' },
+  { value: 'TDOWN', labelKey: 'modifiers.touchDown' },
+  { value: 'TLEFT', labelKey: 'modifiers.touchLeft' },
+  { value: 'TRIGHT', labelKey: 'modifiers.touchRight' },
+  { value: 'TRING', labelKey: 'modifiers.touchRing' },
   { value: 'LEAN_LEFT', labelKey: 'modifiers.leanLeft' },
   { value: 'LEAN_RIGHT', labelKey: 'modifiers.leanRight' },
   { value: 'MIC', labelKey: 'modifiers.mic' },
@@ -83,13 +94,15 @@ export const resolveModifierOptionLabel = (
 ) => {
   const label = t(option.labelKey, option.labelParams)
   if (family === 'generic') return label
-  const definition = controllerButtonOrder().find(
+  const definition = [...controllerButtonOrder(), ...TOUCH_BUTTONS].find(
     button => button.command.toUpperCase() === option.value.toUpperCase()
   )
   if (!definition) return label
   // "L — top-left bumper (L1 / LB)" -> "top-left bumper"
   const description = label.replace(/^[^—]*—\s*/, '').replace(/\s*\([^()]*\)\s*$/, '')
   const name = controllerButtonLabel(definition, family)
+  // Legacy "extra button" descriptions obscure the hardware's actual sensors.
+  if (family === 'steam' && /^(MISC[2-6]|TOUCH|LTOUCH|RTOUCH)$/.test(option.value.toUpperCase())) return name
   return description && description !== label ? `${name} — ${description}` : name
 }
 

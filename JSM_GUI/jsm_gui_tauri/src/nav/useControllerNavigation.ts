@@ -6,7 +6,7 @@ import { PadNavigator, type NavAction, type PadButton } from './padNavigator'
 import { NAV_SKIP_SELECTOR, pageEntryTarget } from '../hooks/useKeyboardNav'
 import { isStudioNavigationProfile } from '../utils/appliedProfile'
 import { restingAnchor } from './navAnchor'
-import { cancelScroll, ensureVisible, watchManualScroll } from './scroller'
+import { activeScrollHost, cancelScroll, ensureVisible, watchManualScroll } from './scroller'
 import { padFeedback } from './feedback'
 
 // Studio reads the pad itself while its window has focus: the navigation
@@ -97,12 +97,15 @@ const padOwnedElsewhere = (activeProfile: unknown) => {
 export function useControllerNavigation(options: Options) {
   const latest = useRef(options)
   latest.current = options
+  // Windows SendInput output is trusted too. Keep physical controller activity
+  // independent of navigation ownership, including while a chord runs mappings.
+  const controllerOutputUntil = useRef(0)
 
   // Which input moved focus last decides which ring shows (HANDOFF.md,
   // "Focus model": hover fill, keyboard outline, controller fill + ring).
   useEffect(() => {
-    const keyboard = (event: KeyboardEvent) => { if (event.isTrusted) setInputSource('keyboard') }
-    const mouse = (event: PointerEvent) => { if (event.isTrusted && (event.type === 'pointerdown' || event.movementX || event.movementY)) setInputSource('mouse') }
+    const keyboard = (event: KeyboardEvent) => { if (event.isTrusted && performance.now() > controllerOutputUntil.current) setInputSource('keyboard') }
+    const mouse = (event: PointerEvent) => { if (event.isTrusted && performance.now() > controllerOutputUntil.current && (event.type === 'pointerdown' || event.movementX || event.movementY)) setInputSource('mouse') }
     const follow = (event: FocusEvent) => {
       if (document.body.dataset.inputSource === 'controller' && event.target instanceof HTMLElement) ensureVisible(event.target)
     }
@@ -165,9 +168,9 @@ export function useControllerNavigation(options: Options) {
       const moving = (document.activeElement as HTMLElement | null)?.closest<HTMLElement>('[data-adjusting="true"][data-stick-adjust="true"]')
       if (moving) { moving.dispatchEvent(new CustomEvent('jsm:stick-adjust', { detail: { dx, dy }, cancelable: true })); return }
       const popover = document.querySelector<HTMLElement>('[data-radix-popper-content-wrapper] [role="menu"], [data-radix-popper-content-wrapper] [role="listbox"]')
-      const host = popover ?? (document.activeElement as HTMLElement | null)?.closest<HTMLElement>('.shell-scroll, .modal-card, .drawer') ?? document.querySelector<HTMLElement>('.shell-scroll')
+      const host = popover ?? activeScrollHost()
       // The stick is the person steering: any jump in flight gives way.
-      if (host?.matches('.shell-scroll')) cancelScroll(host)
+      cancelScroll(host)
       host?.scrollBy({ left: dx, top: dy })
     }
 
@@ -188,7 +191,7 @@ export function useControllerNavigation(options: Options) {
     const perform = (action: NavAction) => {
       const { onPageStep, onSectionStep, onExitTest, testing } = latest.current
       if (action.kind === 'exitTest') { if (testing) onExitTest(); return }
-      if (action.kind === 'scroll') { scroll(action.dx, action.dy); return }
+      if (action.kind === 'scroll') { setInputSource('controller'); scroll(action.dx, action.dy); return }
       // A capture is waiting for a key: nothing but the hold-B escape may
       // reach it, or A would be captured as Enter.
       if (document.body.dataset.bindingCapture === 'true' && action.kind !== 'hold') return
@@ -313,21 +316,38 @@ export function useControllerNavigation(options: Options) {
 
     const dispose = desktopBridge.onTelemetrySample(payload => {
       const { enabled, testing } = latest.current
+      const sample = payload as TelemetrySample | null
+      const physicalActivity = sample?.devices?.some(device => {
+        const status = device.status
+        return status && ((status.buttons ?? 0) !== 0 || status.leftPad?.touched || status.rightPad?.touched ||
+          Math.hypot(status.leftStick.x, status.leftStick.y) > 0.25 || Math.hypot(status.rightStick.x, status.rightStick.y) > 0.25 ||
+          status.triggers.left > 0.15 || status.triggers.right > 0.15)
+      })
+      if (physicalActivity && !document.hidden && document.hasFocus()) {
+        setInputSource('controller')
+        // A short release tail covers the telemetry/OS event ordering gap.
+        // Idle controllers do not stop real keyboard/mouse use taking over.
+        controllerOutputUntil.current = performance.now() + 120
+      }
       // Only while Studio is in front, and only while the navigation profile
       // (or a test of the configuration) owns the pad; otherwise the profile
       // is live and reading it here would act twice.
       if ((!enabled && !testing) || document.hidden || !document.hasFocus()) { navigator.reset(true); return }
-      const sample = payload as TelemetrySample | null
-      if (!testing && padOwnedElsewhere(sample?.activeProfile)) { navigator.reset(true); return }
       const device = sample?.devices?.find(candidate => candidate.status)
+      if (!testing && !overlayOpen() && padOwnedElsewhere(device?.activeProfile ?? sample?.activeProfile)) { navigator.reset(true); return }
       if (!device?.status) { navigator.reset(true); return }
       const status = device.status
+      // An entered radial preview reads the full stick angle before page
+      // navigation reduces it to a direction or scroll command.
+      const preview = testing ? null : (document.activeElement as HTMLElement | null)?.closest('[data-preview-navigation]')
+      const previewStick = new CustomEvent('jsm:preview-stick', { detail: { leftStick: status.leftStick, rightStick: status.rightStick }, cancelable: true })
+      preview?.dispatchEvent(previewStick)
       const pressedSince = (status as { pressedSince?: unknown }).pressedSince
       const actions = navigator.update({
         buttons: getPressedControllerCommandSet(device),
         pressedSince: typeof pressedSince === 'number' ? getPressedControllerCommandSet({ ...device, status: { ...status, buttons: pressedSince } }) : undefined,
-        leftStick: status.leftStick,
-        rightStick: status.rightStick,
+        leftStick: previewStick.defaultPrevented ? { x: 0, y: 0 } : status.leftStick,
+        rightStick: previewStick.defaultPrevented ? { x: 0, y: 0 } : status.rightStick,
         triggers: status.triggers,
       }, performance.now(), testing)
       for (const action of actions) perform(action)

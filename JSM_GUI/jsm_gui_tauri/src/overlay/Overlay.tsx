@@ -1,9 +1,11 @@
 import { MenuDrawing } from './MenuDrawing'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { RAW_BUTTONS } from '../utils/controllerStatus'
 import { resolveIncludes } from '../utils/configIncludes'
+import { readVirtualMenus } from '../utils/virtualMenus'
+import { namedMenuOverlay, namedMenuVisible } from '../utils/namedMenuOverlay'
 import {
   hitTestRegion,
   isStickSurface,
@@ -51,6 +53,7 @@ const CHORD_BITS: Record<string, number> = {
 
 type PadSample = { x: number; y: number; touched: boolean } | null
 type OverlayPacket = {
+  virtualMenus?: { id: string; source: number; open: boolean; selected: number; navigating?: boolean; cursor?: { x: number; y: number } }[] | null
   buttons: number
   leftPad: PadSample
   rightPad: PadSample
@@ -87,6 +90,13 @@ export function Overlay() {
   const aspectRef = useRef(FALLBACK_PAD_ASPECT)
   menusRef.current = menus
   activeKeyRef.current = activeKey
+  const registerDot = useCallback((element: HTMLDivElement | null) => {
+    dotRef.current = element
+    if (element && activeKeyRef.current?.startsWith('NAMED:')) {
+      element.style.display = 'none'
+      element.parentElement?.querySelectorAll<HTMLElement>('[data-trail]').forEach(trail => { trail.style.display = 'none' })
+    }
+  }, [])
 
   // --- Tell the backend how fast this display actually is -------------------
   // The main UI is deliberately capped at 60 Hz; the overlay is not, so the
@@ -160,10 +170,11 @@ export function Overlay() {
         const resolved = resolveIncludes(root, files)
         if (cancelled) return
         const next = resolveOverlayMenus(resolved.effectiveText ?? rootText)
+        for (const menu of readVirtualMenus(resolved.effectiveText ?? rootText).menus) next[`NAMED:${menu.id}`] = namedMenuOverlay(menu)
         setMenus(next)
         // Resolved here rather than at draw time: loading a set is a disk read
         // of up to a few megabytes, and the overlay has to appear instantly.
-        const names = Object.values(next).flatMap(menu => menu.regions.map(r => r.icon))
+        const names = Object.values(next).flatMap(menu => [...menu.regions, ...(menu.centerRegion ? [menu.centerRegion] : [])].map(r => r.icon))
         if (names.some(Boolean)) {
           const art = await resolveIcons(names)
           if (!cancelled) setIcons(previous => ({ ...previous, ...art }))
@@ -213,6 +224,33 @@ export function Overlay() {
         const bit = CHORD_BITS[name as keyof typeof CHORD_BITS]
         return bit === undefined ? false : (BigInt(buttons) >> BigInt(bit)) & 1n ? true : false
       }
+      // Named menus use the native selected-item latch. No renderer hit test
+      // can apply actions or override a release/click decision.
+      const native = event.payload.virtualMenus?.find(state => {
+        const menu = menusRef.current[`NAMED:${state.id}`]
+        return menu && namedMenuVisible(menu.placement.reveal, state)
+      })
+      if (native) {
+        const key = `NAMED:${native.id}`, menu = menusRef.current[key]
+        const visible = namedMenuVisible(menu.placement.reveal, native)
+        if (key !== activeKeyRef.current) setActiveKey(key)
+        if (rootRef.current) rootRef.current.dataset.visible = visible ? 'true' : 'false'
+        if (dotRef.current) {
+          dotRef.current.style.display = native.cursor ? '' : 'none'
+          dotRef.current.parentElement?.querySelectorAll<HTMLElement>('[data-trail]').forEach(trail => { trail.style.display = native.cursor ? '' : 'none' })
+          if (native.cursor) {
+            const transform = `translate(${native.cursor.x * 100}cqw, ${native.cursor.y * 100}cqh) translate(-50%, -50%)`
+            dotRef.current.style.transform = transform
+            dotRef.current.parentElement?.querySelectorAll<HTMLElement>('[data-trail]').forEach(trail => { trail.style.transform = transform })
+          }
+        }
+        if (native.selected !== selectedRef.current) {
+          const previous = regionRefs.current[selectedRef.current]; if (previous) previous.dataset.selected = 'false'
+          const selected = regionRefs.current[native.selected]; if (selected) selected.dataset.selected = 'true'
+          selectedRef.current = native.selected
+        }
+        return
+      }
 
       // Which surface is live, which each menu's `show` option decides:
       //
@@ -233,7 +271,7 @@ export function Overlay() {
       const padLive = (surface: 'LEFT' | 'RIGHT', sample: PadSample) => {
         if (!sample?.touched) return false
         const menu = menuFor(surface)
-        if (!menu) return false
+        if (!menu || menu.placement.reveal === 'never') return false
         if (menu.placement.reveal === 'touch') return true
         // Deliberately the hit test rather than a distance: on a rectangular
         // grid every touch selects something, so 'ring' is simply "a region is
@@ -244,7 +282,7 @@ export function Overlay() {
       const stickLive = (surface: 'LSTICK' | 'RSTICK', value?: { x: number; y: number } | null) => {
         if (!value) return false
         const menu = menuFor(surface)
-        if (!menu) return false
+        if (!menu || menu.placement.reveal === 'never') return false
         const magnitude = Math.hypot(value.x, value.y)
         // 'touch' still needs a floor. A stick reports a little noise at rest,
         // and without one the wheel would flicker on an untouched controller;
@@ -295,9 +333,10 @@ export function Overlay() {
 
       // Imperative from here: no React work per packet.
       if (dotRef.current) {
+        dotRef.current.style.display = ''
         const transform = `translate(${toUnit(sample.x) * 100}cqw, ${toUnit(sample.y) * 100}cqh) translate(-50%, -50%)`
         dotRef.current.style.transform = transform
-        dotRef.current.parentElement?.querySelectorAll<HTMLElement>('[data-trail]').forEach(trail => { trail.style.transform = transform })
+        dotRef.current.parentElement?.querySelectorAll<HTMLElement>('[data-trail]').forEach(trail => { trail.style.display = ''; trail.style.transform = transform })
       }
       const selected = hitTestRegion(menu, sample.x, sample.y)
       if (selected !== selectedRef.current) {
@@ -339,7 +378,7 @@ export function Overlay() {
         const surface = (activeKey ?? '').split(':')[0] as OverlaySurfaceKey
         const box = placeMenu(
           menu.placement,
-          isStickSurface(surface) ? 1 : aspect,
+          menu.displayAspect ?? (isStickSurface(surface) ? 1 : aspect),
           area,
           window.devicePixelRatio || 1
         )
@@ -354,7 +393,7 @@ export function Overlay() {
   return (
     <div className={styles.root} ref={rootRef} data-visible="false">
       {menu && (
-        <MenuDrawing menu={menu} icons={icons} onRegionRef={(index, el) => { regionRefs.current[index] = el }} onDotRef={el => { dotRef.current = el }} />
+        <MenuDrawing menu={menu} icons={icons} onRegionRef={(index, el) => { regionRefs.current[index] = el }} onDotRef={registerDot} />
       )}
     </div>
   )

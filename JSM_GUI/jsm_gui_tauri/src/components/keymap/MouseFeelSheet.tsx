@@ -1,15 +1,15 @@
 import { useContext } from 'react'
 import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { Sheet } from '../ui/Sheet'
 import { ExpandRow, RowGroup, SummaryRow } from '../ui/SummaryRow'
 import { Icon } from '../icons/Icon'
 import { SettingOrigins } from '../SettingOrigin'
-import { TouchpadAccelSection } from './TouchpadAccelSection'
 import { HAPTIC_EFFECT_CHOICES } from '../../utils/hapticBindings'
 import { previewHaptic, type HapticPreviewSide } from '../../utils/hapticPreview'
 import { SMOOTHING_PRESETS, smoothingPreset, strengthWord } from '../../utils/mouseFeel'
-import type { TouchpadAccelParamKey, TouchpadAccelValues } from '../../hooks/useTouchpadConfig'
-import type { AccelCurveLink, AccelCurveShape } from '../../utils/accelCurve'
+import type { TouchpadAccelValues } from '../../hooks/useTouchpadConfig'
+import { TOUCHPAD_ACCEL_DEFAULTS, normalizeAccelCurveLink, normalizeAccelCurveType } from '../../utils/accelCurve'
 
 // Mouse feel (console refinement 2c, D3): how a pad feels when it moves the
 // mouse. Every TOUCHPAD_* smoothing, lift, click-damping, trackball and
@@ -19,7 +19,7 @@ import type { AccelCurveLink, AccelCurveShape } from '../../utils/accelCurve'
 
 export type PadScope = { key: string; name: string; mode: string }
 
-const MODE_NAMES: Record<string, string> = { MOUSE: 'Mouse', GRID_AND_STICK: 'Menu', PS_TOUCHPAD: 'PlayStation touchpad', '': 'Not set' }
+const MODE_NAMES: Record<string, string> = { MOUSE: 'Mouse', MOUSE_AREA: 'Mouse area', GRID_AND_STICK: 'Menu', PS_TOUCHPAD: 'PlayStation touchpad', '': 'Not set' }
 
 type MouseFeelSheetProps = {
   open: boolean
@@ -28,6 +28,7 @@ type MouseFeelSheetProps = {
   pads: PadScope[]
   minCutoff?: number
   speedCoeff?: number
+  derivativeCutoff?: number
   movementThreshold?: number
   liftSpeed?: number
   clickDampen?: number
@@ -45,6 +46,7 @@ type MouseFeelSheetProps = {
   livePressure?: { left?: number; right?: number }
   onMinCutoffChange: (value: string) => void
   onSpeedCoeffChange: (value: string) => void
+  onDerivativeCutoffChange?: (value: string) => void
   onMovementThresholdChange: (value: string) => void
   onLiftSpeedChange: (value: string) => void
   onClickDampenChange: (value: string) => void
@@ -60,13 +62,20 @@ type MouseFeelSheetProps = {
   onReleaseHapticEffectChange: (value: string) => void
   accel?: {
     values: TouchpadAccelValues
-    gyroShape?: AccelCurveShape
     link?: string
-    liveSpeed: number
-    onCurveChange: (curve: string) => void
-    onParamChange: (key: TouchpadAccelParamKey, value: string) => void
-    onLinkChange: (link: AccelCurveLink) => void
+    /** Opens the curve editor on the trackpad's curve. */
+    onOpen: () => void
   }
+}
+
+// The row's value: off while both gains are 1 (the mapper skips the curve),
+// "Same as gyro" while it borrows the gyro's shape, else the curve's name.
+function accelSummary(values: TouchpadAccelValues, link: string | undefined, t: TFunction) {
+  const minGain = values.minGain ?? TOUCHPAD_ACCEL_DEFAULTS.minGain
+  const maxGain = values.maxGain ?? TOUCHPAD_ACCEL_DEFAULTS.maxGain
+  if (minGain === maxGain && minGain === 1) return 'Off'
+  if (normalizeAccelCurveLink(link) === 'TOUCHPAD_USES_GYRO') return 'Same as gyro'
+  return t(`sensitivity.curves.${normalizeAccelCurveType(values.curve).toLowerCase()}`)
 }
 
 export function MouseFeelSheet(props: MouseFeelSheetProps) {
@@ -89,27 +98,28 @@ export function MouseFeelSheet(props: MouseFeelSheetProps) {
   const preview = (effect: string, strength: number) => previewHaptic(effect, strength, previewSide)
 
   return (
-    <Sheet open={props.open} onClose={props.onClose} eyebrow={`Trackpads · ${config ?? 'Configuration'}`} title="Mouse feel"
-      description="How a pad feels when it moves the mouse. Shared by every pad set to Mouse in this configuration.">
-      <div className="scope-strip" role="list" aria-label="Pads this affects">
+    <Sheet open={props.open} onClose={props.onClose} eyebrow={`Trackpads · ${config ?? 'Configuration'}`} title="Trackpad feel"
+      description="Shared trackpad settings for this configuration. Mouse output controls apply to pads set to Mouse; click and release feedback work in every mode.">
+      <div className="trackpad-feel">
+      <div className="scope-strip" role="list" aria-label="Pads using mouse output settings">
         {[...props.pads].sort((a, b) => Number(b.mode === 'MOUSE') - Number(a.mode === 'MOUSE')).map(pad => {
           const uses = pad.mode === 'MOUSE'
           return (
             <div key={pad.key} role="listitem" className="scope-tile" data-state={uses ? 'uses' : 'not'}>
               <span className="scope-tile__mark" aria-hidden="true">{uses ? <Icon name="success" size={14} /> : '–'}</span>
-              <span><b>{pad.name}</b> · {MODE_NAMES[pad.mode] ?? pad.mode} · {uses ? 'uses this' : 'not affected'}</span>
+              <span className="trackpad-feel__pad"><span><b>{pad.name}</b> · {MODE_NAMES[pad.mode] ?? pad.mode}</span><span>{uses ? 'Mouse settings active' : 'Mouse settings inactive'}</span></span>
             </div>
           )
         })}
       </div>
 
-      <RowGroup title="Motion">
+      <RowGroup title="Mouse output · Motion">
         <SummaryRow size="sheet" label="Smoothing" hint="Steadies a resting thumb; flicks escape it" setting="TOUCHPAD_MIN_CUTOFF"
           help={t('keymap.touchSmoothingHint')}
           adjust={{
             kind: 'choice',
             value: preset,
-            options: [...SMOOTHING_PRESETS.map(p => ({ value: p.id, label: p.label })), { value: 'custom', label: 'Custom' }],
+            options: [...SMOOTHING_PRESETS.map(p => ({ value: p.id, label: p.label, description: ({ off: 'Disable mouse-motion smoothing.', light: 'Apply light smoothing with a quick response to small movements.', balanced: 'Balance small-movement stability with responsiveness.', heavy: 'Apply stronger smoothing to slow movements, easing it as movement speeds up.' })[p.id] })), { value: 'custom', label: 'Custom', description: 'Keep individually tuned smoothing values instead of applying a preset.' }],
             onChange: value => {
               const next = SMOOTHING_PRESETS.find(p => p.id === value)
               // Custom keeps the numbers as they are and shows them as rows.
@@ -128,9 +138,14 @@ export function MouseFeelSheet(props: MouseFeelSheetProps) {
         <SummaryRow size="sheet" label="Minimum movement" hint="Ignore motion slower than this" setting="TOUCHPAD_MOVEMENT_THRESHOLD" mono
           value={`${props.movementThreshold ?? 0} px/s`} help={t('keymap.touchpadMovementThresholdHint')}
           adjust={{ kind: 'number', value: props.movementThreshold ?? 0, min: 0, max: 500, step: 5, onChange: v => props.onMovementThresholdChange(String(v)) }} />
+      {props.onDerivativeCutoffChange && <ExpandRow size="sheet" label="Advanced smoothing" hint="Speed estimation inside the pad filter" value="Velocity filter">
+        <SummaryRow size="sheet" setting="TOUCHPAD_D_CUTOFF" label="Velocity estimate cutoff" value={`${props.derivativeCutoff ?? 15} Hz`}
+          help="One Euro filtering smooths its speed estimate as well as the cursor. Lower values steady that estimate; higher values react faster when a swipe begins. Shared by pads using mouse mode."
+          adjust={{ kind: 'number', value: props.derivativeCutoff ?? 15, min: 0.01, max: 120, step: 1, fineStep: 0.1, onChange: value => props.onDerivativeCutoffChange?.(String(value)) }} />
+      </ExpandRow>}
       </RowGroup>
 
-      <RowGroup title="Press & release">
+      <RowGroup title="Mouse output · Press & release">
         <SummaryRow size="sheet" label="Lift-off protection" hint="Holds the cursor as your thumb lifts" setting="TOUCHPAD_LIFT_SPEED" mono
           value={(props.liftSpeed ?? 150) === 0 ? 'Off' : `${props.liftSpeed ?? 150} px/s`}
           help="Below this finger speed, falling pressure reduces mouse output to suppress thumb lift motion. Small pressure fluctuations are ignored; releasing 35% of the resting pressure stops output. Faster swipes remain responsive. 0 turns it off. Needs a controller that reports analog pad pressure."
@@ -148,7 +163,7 @@ export function MouseFeelSheet(props: MouseFeelSheetProps) {
         )}
       </RowGroup>
 
-      <RowGroup title="Glide">
+      <RowGroup title="Mouse output · Glide">
         <SummaryRow size="sheet" label="Trackball glide" hint="Keep moving after a flick" setting="TOUCHPAD_TRACKBALL_DECAY" mono
           value={decay > 0 ? `On · ${decay}` : 'Off'}
           help="0 stops when your finger leaves. Higher values coast after a flick and slow the coast down sooner."
@@ -161,8 +176,16 @@ export function MouseFeelSheet(props: MouseFeelSheetProps) {
         )}
       </RowGroup>
 
-      <RowGroup title="Haptics">
-        <ExpandRow size="sheet" label="Movement ticks" hint="A tick as your finger travels" setting="TOUCHPAD_HAPTIC_INTENSITY"
+      {props.accel && (
+        <RowGroup title="Mouse output · Acceleration">
+          {/* The curve is edited in its own full-window view, over this sheet (TODO-40). */}
+          <SummaryRow size="sheet" label="Acceleration curve" hint="Faster swipes move further" setting="TOUCHPAD_ACCEL_CURVE"
+            value={accelSummary(props.accel.values, props.accel.link, t)} onActivate={props.accel.onOpen} />
+        </RowGroup>
+      )}
+      <RowGroup title="Shared feedback defaults">
+        <p className="sheet-note">Movement ticks apply only in Mouse mode. Click and release apply in every mode. Pads with Separate feedback use their own Feedback controls instead of these defaults.</p>
+        <ExpandRow size="sheet" label="Movement ticks" hint="Mouse output only · A tick as your finger travels" setting="TOUCHPAD_HAPTIC_INTENSITY"
           value={haptic > 0 ? strengthWord(haptic) : 'Off'} help={t('keymap.touchpadHapticHint')}>
           <SummaryRow size="sheet" label="Strength" setting="TOUCHPAD_HAPTIC_INTENSITY" mono value={haptic > 0 ? `${haptic}%` : 'Off'}
             onX={{ label: 'Preview', run: () => preview(props.hapticEffect ?? 'TICK', haptic) }}
@@ -175,7 +198,7 @@ export function MouseFeelSheet(props: MouseFeelSheetProps) {
               adjust={{ kind: 'number', value: props.hapticInterval ?? 250, min: 5, max: 2000, step: 5, onChange: v => props.onHapticIntervalChange(String(v)) }} />
           </>}
         </ExpandRow>
-        <ExpandRow size="sheet" label="Click and release" hint="Feedback when the pad clicks" setting="TOUCHPAD_CLICK_HAPTIC_INTENSITY"
+        <ExpandRow size="sheet" label="Click and release" hint="Every mode · Feedback when the pad clicks" setting="TOUCHPAD_CLICK_HAPTIC_INTENSITY"
           value={clickHaptic > 0 ? `${effectName(props.clickHapticEffect, 'CLICK')} · ${clickHaptic}%` : releaseHaptic > 0 ? `Release · ${releaseHaptic}%` : 'Off'}
           help={t('keymap.touchpadClickHapticHint')}>
           <SummaryRow size="sheet" label="On click" setting="TOUCHPAD_CLICK_HAPTIC_INTENSITY" mono value={clickHaptic > 0 ? `${clickHaptic}%` : 'Off'}
@@ -193,18 +216,7 @@ export function MouseFeelSheet(props: MouseFeelSheetProps) {
         </ExpandRow>
       </RowGroup>
 
-      {props.accel && (
-        <RowGroup title="Acceleration">
-          <ExpandRow size="sheet" label="Acceleration curve" hint="Faster swipes move further" setting="TOUCHPAD_ACCEL_CURVE"
-            value={props.accel.link === 'TOUCHPAD_USES_GYRO' ? 'Same as gyro' : ((props.accel.values.minGain ?? 1) === (props.accel.values.maxGain ?? 1) ? 'Off' : String(props.accel.values.curve ?? 'On'))}>
-            <div className="sheet-embed">
-              <TouchpadAccelSection liveSpeed={props.accel.liveSpeed} values={props.accel.values} gyroShape={props.accel.gyroShape}
-                accelCurveLink={props.accel.link} onCurveChange={props.accel.onCurveChange} onParamChange={props.accel.onParamChange}
-                onLinkChange={props.accel.onLinkChange} hasPendingChanges={false} onApply={() => {}} onCancel={() => {}} embedded />
-            </div>
-          </ExpandRow>
-        </RowGroup>
-      )}
+      </div>
     </Sheet>
   )
 }

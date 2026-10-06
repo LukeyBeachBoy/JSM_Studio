@@ -30,7 +30,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  const group = name => page.locator(`.app-shell[data-page-group="${name}"]`).waitFor();
  const homeChip = page.locator('.titlebar .home-chip');
  const studioColumn = page.locator('section[aria-labelledby="home-studio-title"]');
- const studioPages = ['Configurations','Associations','Global chords','Press timing & polling','AI assistant','Device visibility','Appearance','Preferences','Documentation','Debug console'];
+ const studioPages = ['Configurations','Associations','Global chords','Press timing & polling','AI assistant','Device visibility','Appearance','Preferences','Documentation','Credits','Debug console'];
 
  // Home (2a): the mark is a name, not a button, and there are no page tabs.
  // Studio is its own labelled column, nine tiles in Studio tab order.
@@ -96,7 +96,8 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  assert.match(await page.locator('.page-header__eyebrow').innerText(), /DESKTOP · CONTROLS/i);
  assert.match(await page.locator('.page-header__purpose').innerText(), /Face buttons, bumpers/);
  const sections = page.locator('.section-list .section-item');
- assert.equal(await sections.count(), 5);
+ assert.equal(await sections.count(), 6);
+ assert.ok((await sections.allInnerTexts()).some(label => /Motion/.test(label)), 'the native motion inputs have a section');
  await page.waitForFunction(() => document.querySelector('.section-item[aria-current="true"]'));
  assert.equal(await sections.first().getAttribute('aria-current'), 'true');
  // Choosing a section scrolls to it and the list follows.

@@ -152,6 +152,8 @@
 .prefs-eyebrow { margin: var(--sp-4) 0 var(--sp-1); font-size: var(--fs-eyebrow); line-height: var(--lh-eyebrow); letter-spacing: var(--tracking-eyebrow); font-weight: var(--fw-semibold); color: var(--text-3); text-transform: uppercase; }
 .prefs-column > .prefs-eyebrow:first-child { margin-top: 0; }
 .prefs-note { margin: 0; color: var(--text-3); font-size: var(--fs-hint); line-height: var(--lh-hint); }
+.prefs-section > :is(.prefs-eyebrow, .prefs-note) { padding-inline: var(--sp-4); }
+.prefs-light-picker { padding: 12px var(--sp-4) 16px; }
 .prefs-link-row { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); border-radius: var(--r-row); background: var(--surface-row); }
 .prefs-link-row > span { display: flex; flex-direction: column; gap: 2px; }
 .prefs-link-row b { color: var(--text-1); font-size: var(--fs-label); font-weight: var(--fw-medium); }

@@ -1,12 +1,18 @@
+import { detachStickMenu, stickMenuLinks, isDirectStickMenu } from '../utils/stickMenus'
+import { readVirtualMenus, writeVirtualMenus } from '../utils/virtualMenus'
+import { PadFeedbackRows } from './keymap/PadFeedbackRows'
+import { ProfileTiming } from './ProfileTiming'
+import { hasSeparatePadFeedback } from '../utils/padFeedback'
+import { writeVirtualSetting } from '../utils/virtualStickSettings'
 import { resolveOverlayMenus } from '../utils/overlayLayout'
 import { InputModeshifts } from './keymap/InputModeshifts'
-import { modeshiftsOn, padModeshiftSettings, type ModeshiftSummary, type ModeshiftTarget } from '../utils/modeshift'
+import { modeshiftsOn, padModeshiftSettings, stickModeshiftSettings, type ModeshiftSummary, type ModeshiftTarget } from '../utils/modeshift'
 import { getButtonDescription } from '../keymap/schema'
 import { ConfigScope } from './ConfigScope'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DEFAULT_STICK_DEADZONE_INNER, DEFAULT_STICK_DEADZONE_OUTER } from '../constants/defaults'
-import { stickModeDirectionUse } from '../constants/sticks'
+import { formatStickModeLabel, STICK_MODE_VALUES, stickModeDirectionUse } from '../constants/sticks'
 import {
   wasdBindingChangesStickMode,
   type DirectionalSetId,
@@ -35,11 +41,11 @@ import {
   LEFT_STICK_BUTTONS,
   MINI_BUTTONS,
   MISC_BUTTONS,
+  MOTION_BUTTONS,
   PADDLE_BUTTONS,
   PAD_CLICK_BUTTONS,
   RIGHT_STICK_BUTTONS,
   TOUCH_STICK_BUTTONS,
-  STICK_AIM_DEFAULTS,
   TOUCH_BUTTONS,
   TRIGGER_BUTTONS,
   buildTouchpadGridButton,
@@ -56,15 +62,15 @@ import { Card } from './Card'
 import keymapStyles from './Keymap.module.css'
 import { KeymapSection } from './KeymapSection'
 import { MappingRulesHelpModal } from './keymap/MappingRulesHelpModal'
-import stickStyles from './Sticks.module.css'
+import { useStickModeExtras } from '../hooks/useStickModeExtras'
+import { AdaptiveTriggerEditor } from './AdaptiveTriggerEditor'
 import { TouchpadGridSection } from './keymap/TouchpadGridSection'
 import { PadSection } from './keymap/PadSection'
 import { bindingSummary } from '../utils/menuDescriptions'
 import { mouseFeelSummary } from '../utils/mouseFeel'
 import { gripSensorsSummary } from '../utils/gripCalibration'
 import { SummaryRow } from './ui/SummaryRow'
-import { Sheet } from './ui/Sheet'
-import { LightBarPicker } from './keymap/LightBarPicker'
+import { usePreferences } from '../platform/preferenceStore'
 
 import { TouchpadSettingsSection, type TouchpadModeCardConfig } from './keymap/TouchpadSettingsSection'
 import { SideBlock, SideSplit } from './keymap/SideBlock'
@@ -81,6 +87,7 @@ import type { BindingCommandPreset } from '../utils/bindingCommands'
 import { TouchpadStickSection } from './keymap/TouchpadStickSection'
 import { controllerHasTwoTrackpads, controllerSupportsInput, controllerVisualFamily } from '../utils/controllerStatus'
 import { padAspectFromDevices } from '../utils/padGeometry'
+import { useMouseAreaConfig } from '../hooks/useMouseAreaConfig'
 import {
   BumperIcon,
   ButtonsIcon,
@@ -94,8 +101,9 @@ import {
 import { resolveTouchpadGrids } from '../utils/touchpadGrids'
 import { NumberField } from './NumberField'
 import type { VirtualControllerType, VirtualControllerWarning } from '../utils/virtualController'
+import { describeVirtualControllerToken, findVirtualControllerOutputs, fixVirtualControllerOutputs, getVirtualControllerLogicalOutput, toVirtualControllerToken } from '../utils/virtualController'
+import { inputDisplayName } from '../keymap/inputNames'
 import { normalizeTouchpadMode, type TouchpadWarning } from '../utils/touchpadConfig'
-import { AppSelect } from './ui/AppSelect'
 import { IconSelect } from './keymap/IconSelect'
 import { Icon } from './icons/Icon'
 import type { IconName } from './icons/iconData'
@@ -119,12 +127,19 @@ function sectionScope(section: string): RegExp {
     rightStick: /^(R[LRUDSR]|RIGHT_(STICK|RING)|STICK_|FLICK_|MOUSE_RING|SCROLL_)/,
     paddles: /^(LPAD|RPAD|P[1-4]|[LR][1-4])$/,
     extra: /^(MISC|EXTRA)/,
-    global: /^(HOLD_PRESS|DOUBLE_PRESS|SIM_PRESS|TRIGGER_|ADAPTIVE_TRIGGER|LIGHT_BAR)/,
+    motion: /^(MUP|MDOWN|MLEFT|MRIGHT|MRING|LEAN_|TILT_|MOTION_|CONTROLLER_ORIENTATION)/,
+    global: /^(HOLD_PRESS|DOUBLE_PRESS|SIM_PRESS|TRIGGER_|ADAPTIVE_TRIGGER|LIGHT_BAR|LED_BRIGHTNESS)/,
   }
   return patterns[section] ?? /^(TOUCH|LEFT_TOUCH|RIGHT_TOUCH|GRID|LEFT_GRID|RIGHT_GRID|LT\d|RT\d|T\d)/
 }
 
-type KeymapControlsProps = {
+const ledBrightnessValue = (raw?: string): number | null => {
+  if (!raw || !/^\d{1,3}$/.test(raw.trim())) return null
+  const value = Number(raw)
+  return value <= 100 ? value : null
+}
+
+export type KeymapControlsProps = {
   onConfigTextChange?: React.Dispatch<React.SetStateAction<string>>
   configText: string
   // This profile with its imports resolved in place -- what the runtime would
@@ -386,184 +401,6 @@ type KeymapControlsProps = {
 // body; the advanced half is handed back to the card so it can go inside the
 // card's own Advanced disclosure. Rendering a second disclosure here is what
 // produced two "Advanced" toggles in a single stick card.
-type StickSettingsPart = 'primary' | 'advanced'
-
-type StickAimSettingsProps = {
-  values: NonNullable<KeymapControlsProps['stickAimSettings']>
-  handlers: NonNullable<KeymapControlsProps['stickAimHandlers']>
-  disabled?: boolean
-  part: StickSettingsPart
-}
-
-const StickAimSettings = ({ values, handlers, disabled, part }: StickAimSettingsProps) => {
-  const { t } = useTranslation()
-  const sensXValue = values.displaySensX
-  const sensYValue = values.displaySensY
-  const powerValue = values.power ?? ''
-  const accelRateValue = values.accelerationRate ?? ''
-  const accelCapValue = values.accelerationCap ?? ''
-  const formatDefault = (value: string) => t('common.defaultValue', { value })
-
-  if (part === 'primary') {
-    return (
-      <div className={stickStyles.stickAimSettings} data-capture-ignore="true">
-        <small>{t('keymap.stickAimNote')}</small>
-        <div className={stickStyles.stickAimGrid}>
-          <NumberField
-            label={t('keymap.stickSensitivityHorizontal')}
-            value={sensXValue}
-            onChange={handlers.onSensXChange}
-            min={0}
-            max={1200}
-            step={1}
-            coarseStep={30}
-            unit="°/s"
-            placeholder={formatDefault(STICK_AIM_DEFAULTS.sens)}
-            disabled={disabled}
-          />
-          <NumberField
-            label={t('keymap.stickSensitivityVertical')}
-            value={sensYValue}
-            onChange={handlers.onSensYChange}
-            min={0}
-            max={1200}
-            step={1}
-            coarseStep={30}
-            unit="°/s"
-            placeholder={formatDefault(STICK_AIM_DEFAULTS.sens)}
-            disabled={disabled}
-          />
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className={stickStyles.stickAimSettings} data-capture-ignore="true">
-        <div className={stickStyles.stickAimGrid}>
-          <NumberField
-            label={t('keymap.stickPower')}
-            value={powerValue}
-            onChange={handlers.onPowerChange}
-            min={0.1}
-            max={6}
-            step={0.1}
-            coarseStep={0.5}
-            placeholder={formatDefault(STICK_AIM_DEFAULTS.power)}
-            disabled={disabled}
-          />
-          <NumberField
-            label={t('keymap.accelerationRate')}
-            value={accelRateValue}
-            onChange={handlers.onAccelerationRateChange}
-            min={0}
-            max={50}
-            step={0.1}
-            coarseStep={1}
-            placeholder={formatDefault(STICK_AIM_DEFAULTS.accelerationRate)}
-            disabled={disabled}
-          />
-          <NumberField
-            label={t('keymap.accelerationCap')}
-            value={accelCapValue}
-            onChange={handlers.onAccelerationCapChange}
-            min={0}
-            max={10000}
-            step={1}
-            coarseStep={100}
-            placeholder={formatDefault(STICK_AIM_DEFAULTS.accelerationCap)}
-            disabled={disabled}
-          />
-        </div>
-    </div>
-  )
-}
-
-type StickFlickSettingsProps = {
-  values: NonNullable<KeymapControlsProps['stickFlickSettings']>
-  handlers: NonNullable<KeymapControlsProps['stickFlickHandlers']>
-  disabled?: boolean
-  part: StickSettingsPart
-}
-
-const StickFlickSettings = ({ values, handlers, disabled, part }: StickFlickSettingsProps) => {
-  const { t } = useTranslation()
-  const snapMode = values.snapMode || ''
-  const formatDefault = (value: string) => t('common.defaultValue', { value })
-
-  if (part === 'primary') {
-    return (
-      <div className="stick-flick-settings" data-capture-ignore="true">
-        <small>{t('keymap.stickFlickNote')}</small>
-        <div className={stickStyles.stickAimGrid}>
-          <NumberField setting="FLICK_TIME"
-            label={t('keymap.flickTime')}
-            value={values.flickTime}
-            onChange={handlers.onFlickTimeChange}
-            min={0}
-            max={1}
-            step={0.01}
-            unit="s"
-            placeholder={formatDefault('0.1')}
-            disabled={disabled}
-          />
-          <label>
-            {t('keymap.snapMode')}
-            <AppSelect className="app-select" value={snapMode} onChange={(event) => handlers.onSnapModeChange(event.target.value)} disabled={disabled}>
-              <option value="">{t('common.defaultValue', { value: 'NONE' })}</option>
-              <option value="4">{t('keymap.snapToFour')}</option>
-              <option value="8">{t('keymap.snapToEight')}</option>
-            </AppSelect>
-          </label>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="stick-flick-settings" data-capture-ignore="true">
-        <div className={stickStyles.stickAimGrid}>
-          <NumberField setting="FLICK_TIME_EXPONENT"
-            label={t('keymap.flickTimeExponent')}
-            value={values.flickTimeExponent}
-            onChange={handlers.onFlickTimeExponentChange}
-            min={0}
-            max={2}
-            step={0.1}
-            placeholder={formatDefault('0.0')}
-            disabled={disabled}
-          />
-          <NumberField
-            label={t('keymap.snapStrength')}
-            value={values.snapStrength}
-            onChange={handlers.onSnapStrengthChange}
-            min={0}
-            max={1}
-            step={0.01}
-            coarseStep={0.05}
-            placeholder={formatDefault('1.0')}
-            disabled={disabled || !snapMode}
-          />
-          <NumberField
-            label={t('keymap.forwardDeadzoneAngle')}
-            value={values.deadzoneAngle}
-            onChange={handlers.onDeadzoneAngleChange}
-            min={0}
-            max={180}
-            step={1}
-            coarseStep={5}
-            unit="°"
-            placeholder={formatDefault('0')}
-            disabled={disabled}
-          />
-        </div>
-    </div>
-  )
-}
-
-// Most stick modes have a handful of settings and nothing worth hiding.
-const withoutAdvanced = (primary: JSX.Element) => ({ primary, advanced: null })
-
 const MAPPING_BUTTON_GROUPS: Record<string, { titleKey: string; descriptionKey?: string; buttons: ButtonDefinition[]; icon: JSX.Element }> = {
   face: { titleKey: 'keymap.faceButtonsTitle', descriptionKey: 'keymap.faceButtonsDescription', buttons: FACE_BUTTONS, icon: <ButtonsIcon /> },
   dpad: { titleKey: 'keymap.dpadTitle', descriptionKey: 'keymap.dpadDescription', buttons: DPAD_BUTTONS, icon: <DPadIcon /> },
@@ -594,6 +431,7 @@ const MAPPING_BUTTON_GROUPS: Record<string, { titleKey: string; descriptionKey?:
     icon: <JoystickIcon />,
   },
   extra: { titleKey: 'keymap.extraButtonsTitle', descriptionKey: 'keymap.extraButtonsDescription', buttons: MISC_BUTTONS, icon: <ExtraButtonsIcon /> },
+  motion: { titleKey: 'Tilt inputs', descriptionKey: 'Tilt and lean actions · tune thresholds on the Gyro page', buttons: MOTION_BUTTONS, icon: <JoystickIcon /> },
 }
 
 // Directions a stick in a whole-stick mode never sends are just noise in the
@@ -714,7 +552,6 @@ export function KeymapControls({
   onTrackballDecayChange,
   onModifierChange,
   lightBarColor,
-  onLightBarChange,
   triggerThreshold,
   onTriggerThresholdChange,
   view = 'full',
@@ -826,6 +663,10 @@ export function KeymapControls({
   // Identical to configText for a profile that imports nothing, so the common
   // case is untouched.
   const readText = effectiveConfigText ?? configText
+  const { runtime: appDefaults } = usePreferences()
+  const profileBrightness = ledBrightnessValue(getKeymapValue(readText, 'LED_BRIGHTNESS'))
+  const appLedColor = appDefaults?.ledColor ?? '#ffffff'
+  const appLedBrightness = appDefaults?.ledBrightness ?? 100
   const { t } = useTranslation()
   const [mappingHelpOpen, setMappingHelpOpen] = useState(false)
   // Bindings copied from one button, waiting to be pasted onto another. It
@@ -889,7 +730,7 @@ export function KeymapControls({
     () => primaryDevice ? { handle: primaryDevice.handle, type: primaryDevice.type, supportedButtons: primaryDevice.supportedButtons } : undefined,
     [primaryDevice?.handle, primaryDevice?.type, primaryDevice?.supportedButtons] // eslint-disable-line react-hooks/exhaustive-deps
   )
-  const deviceTypes = devices?.map(device => device.type).join(',') ?? ''
+  const deviceTypes = devices?.[0]?.type?.toString() ?? ''
 
   const isVisible = (section: string) => {
     const device = devices?.[0]
@@ -1019,6 +860,7 @@ export function KeymapControls({
       ...TOUCH_BUTTONS,
       ...TOUCH_STICK_BUTTONS,
       ...MISC_BUTTONS,
+      ...MOTION_BUTTONS,
       ...touchpadGridButtons,
     ].forEach(({ command }) => {
       record[command] = getButtonBindingRows(readText, command, manualRows[command] ?? {})
@@ -1105,7 +947,7 @@ export function KeymapControls({
     [readText]
   )
   const confirmedTwoPadTouchpads = useMemo(
-    () => deviceTypes.split(',').some(type => type !== '' && controllerHasTwoTrackpads(Number(type))),
+    () => deviceTypes !== '' && controllerHasTwoTrackpads(Number(deviceTypes)),
     [deviceTypes]
   )
   const showPerPadTouchpads = hasPerPadSettings || !devices || devices.length === 0 || confirmedTwoPadTouchpads
@@ -1125,6 +967,10 @@ export function KeymapControls({
   // shape. Reported by the driver through telemetry rather than keyed on a
   // controller model, so any pad -- Steam, DualShock, DualSense -- is right.
   const livePadAspect = padAspectFromDevices(devices)
+  // TOUCHPAD_AREA / _FIT for each pad, and the on-screen picker that draws
+  // them. Read and written here rather than threaded down from App: nothing
+  // above this component needs them.
+  const mouseAreas = useMouseAreaConfig({ readText: readText ?? '', setConfigText: onConfigTextChange })
 
   useEffect(() => {
     if (view !== 'full') return
@@ -1240,6 +1086,12 @@ export function KeymapControls({
     return (
       <ButtonBindingsCard
         button={button}
+        heldLedColor={(() => { const value = getKeymapValue(readText, `${button.command},LIGHT_BAR`); return /^x[0-9a-f]{6}$/i.test(value ?? '') ? `#${value!.slice(1)}` : null })()}
+        heldLedBrightness={ledBrightnessValue(getKeymapValue(readText, `${button.command},LED_BRIGHTNESS`))}
+        baseLedBrightness={profileBrightness ?? appLedBrightness}
+        defaultLedColor={lightBarColor ?? appLedColor}
+        onHeldLedColorChange={onConfigTextChange ? value => onConfigTextChange(previous => value ? updateKeymapEntry(previous, `${button.command},LIGHT_BAR`, [`x${value.slice(1)}`]) : removeKeymapEntry(previous, `${button.command},LIGHT_BAR`)) : undefined}
+        onHeldLedBrightnessChange={onConfigTextChange ? value => onConfigTextChange(previous => value === null ? removeKeymapEntry(previous, `${button.command},LED_BRIGHTNESS`) : updateKeymapEntry(previous, `${button.command},LED_BRIGHTNESS`, [value])) : undefined}
         inheritedFrom={inheritedFrom(configIncludes ?? null, INCLUDE_ROOT, button.command)}
         onOpenConfigEditor={onOpenConfigEditor ? stableOpenConfigEditor : undefined}
         subtitle={options?.subtitle}
@@ -1276,6 +1128,7 @@ export function KeymapControls({
         currentProfileName={currentProfileName}
         controllerFamily={controllerFamily}
         onEnableVirtualController={onEnableVirtualController}
+        commandLabels={bindingLabels}
         bindingLabel={bindingLabels?.[button.command.toUpperCase()]}
         bindingIcon={bindingIcons?.[button.command.toUpperCase()]}
         onBindingIconChange={onBindingIconChange && /^(?:[LR]?T|[LR]M)\d+$/.test(button.command) ? stableBindingIconChange : undefined}
@@ -1410,19 +1263,8 @@ export function KeymapControls({
   // still shows, so an existing config never hides bindings you cannot then find.
   const showTouchStickButtons =
     gridActive || TOUCH_STICK_BUTTONS.some(button => isTouchpadButtonBound(button.command))
-  // TOUCH and CAPTURE are legacy single-pad signals: JoyShockMapper never feeds
-  // them for a two-pad controller (see touchCallback's isSteam branch and the
-  // JS_TYPE_STEAM_CONTROLLER_2026 button switch in main.cpp -- neither ever
-  // calls handleButtonChange for ButtonID::TOUCH or ButtonID::CAPTURE there),
-  // so binding either one on a Steam Controller does nothing. Its equivalents
-  // are per-pad -- MISC3/MISC2, labelled Left/Right pad click -- so those stand
-  // in for them here instead of living only on the Extra buttons page, which is
-  // what left this page with no way to bind a trackpad click at all.
-  // Only hide once a two-pad controller is actually confirmed connected --
-  // unlike showPerPadTouchpads, we deliberately do NOT default this true while
-  // disconnected, since that would hide a working control for anyone whose
-  // single-pad controller just isn't plugged in yet. Anything already bound
-  // still shows, so an existing config never hides a binding you cannot then find.
+  // On Steam Controller, MISC4 is left-pad contact and TOUCH is right-pad
+  // contact. CAPTURE remains the single-pad controller's click signal.
   const legacyTouchButtons = confirmedTwoPadTouchpads
     ? []
     : TOUCH_BUTTONS.filter(button => controllerSupportsInput(inputDevice, button.command))
@@ -1457,6 +1299,11 @@ export function KeymapControls({
         gridRequiresClick: leftGridRequiresClick,
         onGridRequiresClickChange: onLeftGridRequiresClickChange,
         onOpenTuning,
+        mouseArea: mouseAreas.LEFT.area,
+        mouseAreaFit: mouseAreas.LEFT.fit,
+        onMouseAreaFitChange: mouseAreas.LEFT.setFit,
+        onPickMouseArea: () => mouseAreas.LEFT.pick(livePadAspect),
+        padAspect: livePadAspect,
       }
     : undefined
   const rightPadCard: TouchpadModeCardConfig | undefined = showPerPadTouchpads
@@ -1479,6 +1326,11 @@ export function KeymapControls({
         gridRequiresClick: rightGridRequiresClick,
         onGridRequiresClickChange: onRightGridRequiresClickChange,
         onOpenTuning,
+        mouseArea: mouseAreas.RIGHT.area,
+        mouseAreaFit: mouseAreas.RIGHT.fit,
+        onMouseAreaFitChange: mouseAreas.RIGHT.setFit,
+        onPickMouseArea: () => mouseAreas.RIGHT.pick(livePadAspect),
+        padAspect: livePadAspect,
       }
     : undefined
   // The controller the live meters read from.
@@ -1503,19 +1355,19 @@ export function KeymapControls({
     NO_SKIP_EXCLUSIVE: 'Soft pull fires first, then lets go while the full pull is held.',
     MUST_SKIP: 'A quick full pull skips the soft binding; a slow pull fires only the soft one.',
     MAY_SKIP: 'A fast full pull skips the soft binding.',
-    MUST_SKIP_R: 'Must skip, and the full pull releases the moment you ease off.',
-    MAY_SKIP_R: 'May skip, and the full pull releases the moment you ease off.',
+    MUST_SKIP_R: OPTION_HELP.MUST_SKIP_R,
+    MAY_SKIP_R: OPTION_HELP.MAY_SKIP_R,
   }
   const flickerGuard = getKeymapValue(readText, 'TRIGGER_HYSTERESIS') ?? '0.02'
   const triggerModeFor = (side: 'left' | 'right') => (side === 'left' ? zlModeValue : zrModeValue) || 'NO_FULL'
-  const passthroughToken = (side: 'left' | 'right') => side === 'left' ? 'X_LT' : 'X_RT'
   const isPassthrough = (side: 'left' | 'right') => /^(X_LT|X_RT|PS_L2|PS_R2)$/.test(triggerModeFor(side))
   // With a virtual pad on, a passthrough trigger's rows read what the pad
   // receives instead of Unbound (15a, the Cyberpunk note).
   const passthroughLabel = (side: 'left' | 'right') => {
     if (!isPassthrough(side)) return undefined
     const scheme = virtualControllerType === 'DS4' ? 'DualShock' : 'Xbox'
-    const trigger = virtualControllerType === 'DS4' ? (side === 'left' ? 'L2' : 'R2') : (side === 'left' ? 'LT' : 'RT')
+    const targetLeft = /^(X_LT|PS_L2)$/.test(triggerModeFor(side))
+    const trigger = virtualControllerType === 'DS4' ? (targetLeft ? 'L2' : 'R2') : (targetLeft ? 'LT' : 'RT')
     return `Analog passthrough · ${scheme} ${trigger}`
   }
   const anyPassthrough = isPassthrough('left') || isPassthrough('right')
@@ -1537,14 +1389,17 @@ export function KeymapControls({
           icon={TRIGGER_MODE_ICONS[mode] ?? 'trNoFull'}
           className={keymapStyles.triggerBehaviourSelect}
           ariaLabel={side === 'left' ? t('keymap.l2FullPullMode') : t('keymap.r2FullPullMode')}
-          value={mode}
+          value={mode === 'PS_L2' ? 'X_LT' : mode === 'PS_R2' ? 'X_RT' : mode}
           disabled={isCalibrating}
           onValueChange={value => (side === 'left' ? onZlModeChange : onZrModeChange)(value)}
           groups={[
             { options: ['NO_FULL', 'NO_SKIP', 'NO_SKIP_EXCLUSIVE', 'MUST_SKIP', 'MAY_SKIP', 'MUST_SKIP_R', 'MAY_SKIP_R'].map(value => ({
               value, label: value === 'NO_FULL' ? `${TRIGGER_MODE_LABELS[value]} (default)` : TRIGGER_MODE_LABELS[value],
             })) },
-            { options: [{ value: passthroughToken(side), label: t('keymap.triggerVirtualPassthrough') }] },
+            { options: [
+              { value: 'X_LT', label: `${t('keymap.triggerVirtualPassthrough')} · Left` },
+              { value: 'X_RT', label: `${t('keymap.triggerVirtualPassthrough')} · Right` },
+            ] },
           ]}
         />
         <SettingOrigin setting={side === 'left' ? 'ZL_MODE' : 'ZR_MODE'} />
@@ -1557,11 +1412,23 @@ export function KeymapControls({
   // the bar it is read against sit above it. Analog passthrough has no soft
   // point to tune.
   const renderTriggerThreshold = (side: 'left' | 'right') =>
-    (side === 'left' ? zlModeValue : zrModeValue) === (side === 'left' ? 'X_LT' : 'X_RT') ? null : (
+    isPassthrough(side) ? null : (
       <div className={keymapStyles.triggerModeInline} data-capture-ignore="true">
-        <AdvancedDisclosure label="Threshold & release" summary={`Soft press ${triggerThreshold > 0 ? triggerThreshold.toFixed(2) : 'default'} · flicker guard ${flickerGuard}`}>
-          <NumberField setting="TRIGGER_THRESHOLD" label="Soft press point" value={triggerThreshold} onChange={onTriggerThresholdChange} min={0} max={1} step={0.01} hint="Digital bindings press when trigger travel crosses this point. 0 is fully released and 1 is fully pulled. Raise it slightly if resting your finger activates ADS. Applies to both digital triggers; analog passthrough is unchanged." />
-          {onConfigTextChange && <NumberField label="Flicker guard" value={getKeymapValue(readText, 'TRIGGER_HYSTERESIS') ?? 0.02} onChange={v => onConfigTextChange(prev => updateKeymapEntry(prev, 'TRIGGER_HYSTERESIS', [v]))} min={0} max={0.25} step={0.005} hint="Release margin below the soft press point. For example, a 0.10 press point and 0.02 guard release at 0.08. Prevents rapid on/off toggling without adding a timer. 0 disables; analog and hair triggers are unaffected." />}
+        <AdvancedDisclosure label="Threshold & release" summary={triggerThreshold < 0 ? 'Hair trigger · travel direction' : `Soft press ${Number((triggerThreshold * 100).toFixed(2))}% · release margin ${Number((Number(flickerGuard) * 100).toFixed(2))}%`}>
+          <SummaryRow setting="TRIGGER_THRESHOLD" label="Soft pull detection" hint="Shared by both digital triggers" value={triggerThreshold < 0 ? 'Hair trigger' : 'Travel threshold'}
+            help="Hair trigger fires when travel increases and releases when it decreases, rather than waiting for a fixed point. Analog passthrough is unchanged."
+            adjust={{ kind: 'choice', value: triggerThreshold < 0 ? 'hair' : 'threshold', options: [{ value: 'threshold', label: 'Travel threshold' }, { value: 'hair', label: 'Hair trigger' }], onChange: value => onTriggerThresholdChange(value === 'hair' ? '-1' : '0') }} />
+          {triggerThreshold < 0 && liveDevice?.type === 5 && (adaptiveTriggerValue || 'ON').toUpperCase() !== 'OFF' && <>
+            <p role="status">Hair trigger requires adaptive resistance to be off on DualSense. Until then, JSM uses a travel threshold of zero.</p>
+            {onAdaptiveTriggerChange && <SummaryRow label="Use hair trigger without resistance" hint="Turns off adaptive resistance for both triggers in this configuration." disabled={isCalibrating} onActivate={() => onAdaptiveTriggerChange('OFF')} />}
+          </>}
+          {triggerThreshold >= 0 && <NumberField setting="TRIGGER_THRESHOLD" label="Soft press point" value={triggerThreshold} onChange={onTriggerThresholdChange} min={0} max={1} step={0.01} hint="Digital bindings press when trigger travel crosses this point. 0 is fully released and 1 is fully pulled. Raise it slightly if resting your finger activates ADS. Applies to both digital triggers; analog passthrough is unchanged." />}
+          {onConfigTextChange && triggerThreshold >= 0 && <SummaryRow setting="TRIGGER_HYSTERESIS" label="Flicker guard" value={`${Number((Number(flickerGuard) * 100).toFixed(2))}%`} disabled={isCalibrating}
+            hint="Release margin below the soft press point, shared by both digital triggers."
+            help="A 10% press point and 2% guard release at 8%. This prevents rapid on/off toggling without a timer. 0 disables it. The native range is 0–100%; a margin larger than the press point keeps the binding held until full release. Analog passthrough and hair triggers are unaffected."
+            adjust={{ kind: 'number', value: Number(flickerGuard) * 100, min: 0, max: 100, step: 0.5, fineStep: 0.1, onChange: next => onConfigTextChange(previous => writeVirtualSetting(previous, 'TRIGGER_HYSTERESIS', Number((next / 100).toFixed(6)))) }} />}
+          {onConfigTextChange && /SKIP/.test(side === 'left' ? zlModeValue : zrModeValue) && <SummaryRow setting="TRIGGER_SKIP_DELAY" label="Full pull decision window" value={`${getKeymapValue(readText, 'TRIGGER_SKIP_DELAY') ?? 150} ms`} help="How long skip-capable trigger modes wait to distinguish a soft pull from a quick full pull. Shared by both triggers."
+            adjust={{ kind: 'number', value: Number(getKeymapValue(readText, 'TRIGGER_SKIP_DELAY') ?? 150), min: 0, max: 2000, step: 10, fineStep: 1, onChange: value => onConfigTextChange(previous => writeVirtualSetting(previous, 'TRIGGER_SKIP_DELAY', value)) }} />}
         </AdvancedDisclosure>
       </div>
     )
@@ -1602,6 +1469,7 @@ export function KeymapControls({
         <SummaryRow label={t('keymap.adaptiveTriggers')} hint="DualSense trigger resistance" setting="ADAPTIVE_TRIGGER"
           toggle={{ on: (adaptiveTriggerValue || 'ON').toUpperCase() !== 'OFF', onChange: on => onAdaptiveTriggerChange(on ? '' : 'OFF') }} />
       )}
+      {onConfigTextChange && (['LEFT', 'RIGHT'] as const).map(side => <AdaptiveTriggerEditor key={side} side={side} text={readText} setText={onConfigTextChange} disabled={isCalibrating} />)}
       {adaptiveTriggers ? <>
         <p className={keymapStyles.calibrationNote}>Finds where each adaptive trigger starts to resist, so the soft press lines up with the feel. Press the right trigger softly until you feel resistance, then D-pad down; then the left trigger, then Cross. Home abandons.</p>
         <button type="button" className="button button--secondary" disabled={isCalibrating || triggerCalibrating} onClick={() => { void runTriggerCalibration() }}>{triggerCalibrating ? 'Calibrating…' : 'Calibrate triggers'}</button>
@@ -1614,7 +1482,6 @@ export function KeymapControls({
   )
 
   const gripCapable = Boolean(liveDevice) && controllerSupportsInput(liveDevice, 'MISC5')
-  const [lightBarOpen, setLightBarOpen] = useState(false)
   const groupFor = <G extends { titleKey: string; descriptionKey?: string; buttons: ButtonDefinition[] }>(key: string, group: G): G => {
     if (key !== 'extra') return group
     const buttons = confirmedTwoPadTouchpads ? group.buttons.filter(button => button.command !== 'MISC2' && button.command !== 'MISC3') : group.buttons
@@ -1626,6 +1493,7 @@ export function KeymapControls({
     const card = side === 'left' ? leftPadCard : rightPadCard
     if (!card) return null
     const pad = touchpadGridPads.find(candidate => candidate.side === side)
+    const padTouch = side === 'left' ? MISC_BUTTONS.find(button => button.command === 'MISC4') : TOUCH_BUTTONS.find(button => button.command === 'TOUCH')
     const padClick = PAD_CLICK_BUTTONS.find(button => button.command === (side === 'left' ? 'MISC3' : 'MISC2'))
     const gridMode = padModeFor(side) === 'GRID_AND_STICK'
     const stickProps =
@@ -1654,7 +1522,7 @@ export function KeymapControls({
             onTouchStickRadiusChange: onRightTouchStickRadiusChange ?? onTouchStickRadiusChange,
             onTouchStickAxisChange: onRightTouchStickAxisChange ?? onTouchStickAxisChange,
           }
-    const otherBound = side === 'right' && confirmedTwoPadTouchpads ? TOUCH_BUTTONS.filter(button => isTouchpadButtonBound(button.command)) : []
+    const otherBound = side === 'right' && confirmedTwoPadTouchpads ? TOUCH_BUTTONS.filter(button => button.command === 'CAPTURE' && isTouchpadButtonBound(button.command)) : []
     return (
       <ConfigScope match={side === 'left' ? /^(LEFT_(TOUCH|GRID)|LT\d+)/ : /^(RIGHT_(TOUCH|GRID)|RT\d+)/}><SideBlock
         key={side}
@@ -1678,6 +1546,16 @@ export function KeymapControls({
           describeRegion={describeTouchpadRegion}
           renderButton={renderButtonCard}
           mouseFeel={mouseFeelSummary({ cutoff: touchpadMinCutoff, speed: touchpadSpeedCoeff, trackballDecay: touchpadTrackballDecay, hapticIntensity: touchpadHapticIntensity })}
+          feedback={confirmedTwoPadTouchpads && onConfigTextChange ? {
+            value: hasSeparatePadFeedback(key => getKeymapValue(readText, key) ?? undefined, side === 'left' ? 'LEFT' : 'RIGHT') ? 'Separate' : 'Shared',
+            editor: <PadFeedbackRows side={side === 'left' ? 'LEFT' : 'RIGHT'} mode={card.mode}
+              read={key => getKeymapValue(readText, key) ?? undefined}
+              onChange={values => onConfigTextChange(previous => Object.entries(values).reduce((next, [key, value]) => updateKeymapEntry(next, key, [value]), previous))} />,
+          } : undefined}
+          touch={confirmedTwoPadTouchpads && padTouch ? {
+            value: bindingSummary(describeTouchpadRegion(padTouch.command)),
+            editor: renderButtonCard(padTouch, { modeshifts: true, defaultOpen: true }),
+          } : undefined}
           click={confirmedTwoPadTouchpads && padClick ? {
             value: bindingSummary(describeTouchpadRegion(padClick.command)),
             editor: renderButtonCard(padClick, { modeshifts: true, defaultOpen: true }),
@@ -1686,7 +1564,7 @@ export function KeymapControls({
             id: TRACKPAD_ANCHORS.other,
             count: otherBound.length,
             children: <>
-              <p className={keymapStyles.calibrationNote}>{t('keymap.otherControllerTypesNote', 'Shared Touch and Click signals belong to single-pad controllers. They are kept in this configuration but do not fire on the connected Steam Controller.')}</p>
+              <p className={keymapStyles.calibrationNote}>{t('keymap.otherControllerTypesNote', 'This click belongs to single-pad controllers. It is kept in this configuration but does not fire on the connected Steam Controller.')}</p>
               {otherBound.map(button => <div key={button.command}>{renderButtonCard(button, { modeshifts: true })}</div>)}
             </>,
           } : undefined}
@@ -1695,6 +1573,8 @@ export function KeymapControls({
             <TouchpadStickSection
               title={side === 'left' ? t('keymap.touchStickTitleLeft', 'Left touch stick') : t('keymap.touchStickTitleRight', 'Right touch stick')}
               {...stickProps}
+              keyPrefix={side === 'left' ? 'LEFT_' : 'RIGHT_'}
+              tuning={side === 'left' ? (leftTouchExtras.primary || leftTouchExtras.advanced ? <>{leftTouchExtras.primary}{leftTouchExtras.advanced}</> : undefined) : (rightTouchExtras.primary || rightTouchExtras.advanced ? <>{rightTouchExtras.primary}{rightTouchExtras.advanced}</> : undefined)}
               {...actionsProps}
             />
           )}
@@ -1709,79 +1589,12 @@ export function KeymapControls({
 
   // Returns the mode's settings split in two: what belongs in the card body,
   // and what the card should tuck inside its own single Advanced disclosure.
-  const stickModeExtras = (side: 'LEFT' | 'RIGHT'): { primary: JSX.Element | null; advanced: JSX.Element | null } => {
-    const mode = side === 'LEFT' ? stickModeSettings?.left.mode ?? '' : stickModeSettings?.right.mode ?? ''
-    if ((mode === 'AIM' || (side === 'LEFT' && mode === 'HYBRID_AIM')) && stickAimSettings && stickAimHandlers) {
-      return {
-        primary: <StickAimSettings values={stickAimSettings} handlers={stickAimHandlers} disabled={isCalibrating} part="primary" />,
-        advanced: <StickAimSettings values={stickAimSettings} handlers={stickAimHandlers} disabled={isCalibrating} part="advanced" />,
-      }
-    }
-    if ((mode === 'FLICK' || mode === 'FLICK_ONLY' || mode === 'ROTATE_ONLY') && stickFlickSettings && stickFlickHandlers) {
-      return {
-        primary: <StickFlickSettings values={stickFlickSettings} handlers={stickFlickHandlers} disabled={isCalibrating} part="primary" />,
-        advanced: <StickFlickSettings values={stickFlickSettings} handlers={stickFlickHandlers} disabled={isCalibrating} part="advanced" />,
-      }
-    }
-    // A radial menu's wheel, segments and select-past deadzone are the
-    // stick's own rows (StickSection, 15b), not mode extras.
-    if (mode === 'MOUSE_AREA' && mouseRingRadius !== undefined && onMouseRingRadiusChange) {
-      return withoutAdvanced(
-        <div className={stickStyles.stickFlickSettings} data-capture-ignore="true">
-          <small>{t('keymap.mouseAreaRadiusNote')}</small>
-          <div className={stickStyles.stickAimGrid}>
-            <NumberField setting="MOUSE_RING_RADIUS"
-              label={t('keymap.mouseAreaRadius')}
-              value={mouseRingRadius}
-              onChange={onMouseRingRadiusChange}
-              min={0}
-              max={2000}
-              step={10}
-              coarseStep={100}
-              unit="px"
-              placeholder={t('common.enterRadius')}
-              disabled={isCalibrating}
-            />
-          </div>
-        </div>
-      )
-    }
-    if (mode === 'SCROLL_WHEEL' && scrollSens !== undefined && onScrollSensChange) {
-      return withoutAdvanced(
-        <div className={stickStyles.stickFlickSettings} data-capture-ignore="true">
-          <small>{t('keymap.scrollBindingsNote')}</small>
-          <small>{t('keymap.scrollSensitivityNote')}</small>
-          <div className={stickStyles.stickAimGrid}>
-            <NumberField setting="SCROLL_SENS"
-              label={t('keymap.scrollSensitivity')}
-              value={scrollSens}
-              onChange={onScrollSensChange}
-              min={0}
-              max={180}
-              step={1}
-              coarseStep={10}
-              unit="°"
-              placeholder={t('common.enterDegrees')}
-              disabled={isCalibrating}
-            />
-          </div>
-        </div>
-      )
-    }
-    if (mode === 'LEFT_STICK' || mode === 'RIGHT_STICK') {
-      return withoutAdvanced(
-        <div className={stickStyles.stickFlickSettings} data-capture-ignore="true">
-          <small>{t('stickModes.virtualStickHint')}</small>
-          {virtualControllerType === 'NONE' && (
-            <div className={keymapStyles.virtualControllerWarning}>
-              {t('stickModes.virtualStickDisabledWarning')}
-            </div>
-          )}
-        </div>
-      )
-    }
-    return { primary: null, advanced: null }
-  }
+  const modeExtrasSettings = { configText: readText, onConfigTextChange, stickAimSettings, stickAimHandlers, stickFlickSettings, stickFlickHandlers, mouseRingRadius, onMouseRingRadiusChange, scrollSens, onScrollSensChange, virtualControllerType }
+  const leftExtras = useStickModeExtras(stickModeSettings?.left.mode ?? '', { ...modeExtrasSettings, sourceAxisKey: 'LEFT_STICK_AXIS' }, isCalibrating)
+  const rightExtras = useStickModeExtras(stickModeSettings?.right.mode ?? '', { ...modeExtrasSettings, sourceAxisKey: 'RIGHT_STICK_AXIS' }, isCalibrating)
+  const leftTouchExtras = useStickModeExtras(leftTouchStickMode ?? touchStickMode, modeExtrasSettings, isCalibrating)
+  const rightTouchExtras = useStickModeExtras(rightTouchStickMode ?? touchStickMode, modeExtrasSettings, isCalibrating)
+  const touchExtras = useStickModeExtras(touchStickMode, modeExtrasSettings, isCalibrating)
 
   const renderSections = (sections: { key: string; shouldRender: boolean; node: JSX.Element }[]) =>
     sections.filter(section => section.shouldRender).map(section => <ConfigScope key={section.key} match={sectionScope(section.key)}><div id={section.key} className="tuning-anchor">{section.node}</div></ConfigScope>)
@@ -1827,8 +1640,31 @@ export function KeymapControls({
         </div>
       )}
 
-      {virtualControllerWarnings?.length ? <details><summary className="binding-summary">Output Needs Attention</summary>
+      {virtualControllerWarnings?.length ? <details open className={keymapStyles.outputAttention}><summary className="binding-summary">Output Needs Attention</summary>
         {virtualControllerWarnings.map((warning, index) => <p key={index}>{renderVirtualControllerWarning(warning)}</p>)}
+        <ul className={keymapStyles.outputAttentionList}>
+          {findVirtualControllerOutputs(readText).filter(output => virtualControllerType === 'NONE' || output.type !== virtualControllerType).map(output => {
+            const logical = getVirtualControllerLogicalOutput(output.token)
+            const replacement = logical ? toVirtualControllerToken(logical, virtualControllerType) : null
+            return <li key={`${output.command}:${output.token}`}>
+              <strong>{output.command.startsWith('Menu: ') ? output.command : inputDisplayName(output.command, controllerFamily)}</strong>
+              {' → '}{output.type === 'DS4' ? 'PS4' : 'Xbox 360'} {describeVirtualControllerToken(output.token)} <code>({output.token})</code>
+              {virtualControllerType !== 'NONE' && <span className={keymapStyles.outputAttentionResolution}>
+                {replacement ? `Converts to ${describeVirtualControllerToken(replacement)}` : 'No equivalent output — choose another binding manually.'}
+              </span>}
+            </li>
+          })}
+        </ul>
+        {onConfigTextChange && virtualControllerType !== 'NONE' && findVirtualControllerOutputs(readText).some(output => {
+          const logical = getVirtualControllerLogicalOutput(output.token)
+          return output.type !== virtualControllerType && logical && toVirtualControllerToken(logical, virtualControllerType)
+        }) && <button type="button" className="button button--secondary" onClick={() => onConfigTextChange(previous => fixVirtualControllerOutputs(previous, readText, virtualControllerType))}>
+          Convert outputs to {virtualControllerType === 'DS4' ? 'PlayStation 4' : 'Xbox 360'}
+        </button>}
+        {virtualControllerType === 'NONE' && onVirtualControllerTypeChange && <div className={keymapStyles.outputAttentionActions}>
+          <button type="button" className="button button--secondary" onClick={() => onVirtualControllerTypeChange('XBOX')}>Enable Xbox 360 output</button>
+          <button type="button" className="button button--secondary" onClick={() => onVirtualControllerTypeChange('DS4')}>Enable PlayStation 4 output</button>
+        </div>}
       </details> : null}
       {showMappedLayout && (
         <>
@@ -1868,7 +1704,7 @@ export function KeymapControls({
                         // "W · A · S · D"; a gap for a missing direction, and plain "Unbound"
                         // rather than four dashes when the stick sends nothing yet.
                         const directionSummary = directionBindings.some(Boolean) ? directionBindings.map(binding => binding || '—').join(' · ') : t('keymap.unbound', 'Unbound')
-                        const extras = stickModeExtras(SIDE)
+                        const extras = side === 'left' ? leftExtras : rightExtras
                         const prefix = side === 'left' ? 'LM' : 'RM'
                         const writeStick = (key: string, value: string) =>
                           onConfigTextChange?.(previous => value === '' ? removeKeymapEntry(previous, key) : updateKeymapEntry(previous, key, [value]))
@@ -1897,7 +1733,12 @@ export function KeymapControls({
                             outer={zones.outer}
                             defaultInner={deadzoneDefaults.inner}
                             defaultOuter={deadzoneDefaults.outer}
-                            onModeChange={value => onStickModeChange(SIDE, value)}
+                            menuConfig={onConfigTextChange ? { text: readText, onChange: onConfigTextChange } : undefined}
+                            onModeChange={value => {
+                              if (onConfigTextChange && stickMenuLinks(readText, side).some(link => isDirectStickMenu(link.attachment))) {
+                                onConfigTextChange(previous => updateKeymapEntry(writeVirtualMenus(previous, readVirtualMenus(detachStickMenu(readText, side)).menus), `${SIDE}_STICK_MODE`, [value || 'NO_MOUSE']))
+                              } else onStickModeChange(SIDE, value)
+                            }}
                             onRingChange={value => onRingModeChange(SIDE, value)}
                             onInnerChange={value => onStickDeadzoneChange(SIDE, 'INNER', value)}
                             onOuterChange={value => onStickDeadzoneChange(SIDE, 'OUTER', value)}
@@ -1913,10 +1754,13 @@ export function KeymapControls({
                             radial={radial}
                             modeshifts={renderModeshifts({
                               id: groupKey, title: t(group.titleKey),
-                              buttons: group.buttons.map(button => ({ command: button.command, label: getButtonDescription(button, t), definition: button })),
+                              settings: stickModeshiftSettings(SIDE),
+                              buttons: MAPPING_BUTTON_GROUPS[groupKey].buttons
+                                .filter(button => controllerSupportsInput(inputDevice, button.command) || isCommandBound(button.command))
+                                .map(button => ({ command: button.command, label: getButtonDescription(button, t), definition: button })),
                               mode: {
                                 key: `${SIDE}_STICK_MODE`, defaultValue: 'NO_MOUSE',
-                                options: ['NO_MOUSE', 'AIM', 'FLICK', 'FLICK_ONLY', 'ROTATE_ONLY', 'MOUSE_AREA', 'SCROLL_WHEEL', 'LEFT_STICK', 'RIGHT_STICK'].map(value => ({ value, label: value === 'NO_MOUSE' ? 'Directional buttons' : value.replace(/_/g, ' ').toLowerCase() })),
+                                options: STICK_MODE_VALUES.map(value => ({ value, label: formatStickModeLabel(value, t) })),
                               },
                             })}
                           />
@@ -1936,7 +1780,7 @@ export function KeymapControls({
                         }
                         return (
                           <>
-                            <SideSplit>
+                            <SideSplit stack>
                             {(['left', 'right'] as const).map(side => (
                               <SideBlock key={side} side={side} id={groupKey === 'triggers' ? `trigger-${side}` : undefined} title={groupKey === 'triggers' ? (side === 'left' ? t('keymap.leftTriggerTitle', 'Left trigger') : t('keymap.rightTriggerTitle', 'Right trigger')) : undefined}>
                                 {groupKey === 'triggers' && renderTriggerMode(side)}
@@ -1949,6 +1793,14 @@ export function KeymapControls({
                                   <TriggerMeter pull={side === 'left' ? liveDevice.status.triggers.left : liveDevice.status.triggers.right} threshold={triggerThreshold ?? 0} />
                                 )}
                                 {groupKey === 'triggers' && renderTriggerThreshold(side)}
+                                {groupKey === 'triggers' && renderModeshifts({
+                                  id: `trigger-${side}`, title: side === 'left' ? 'Left trigger' : 'Right trigger',
+                                  buttons: (side === 'left' ? split.left : split.right).map(button => ({ command: button.command, label: TRIGGER_ROW_LABELS[button.command], definition: button })),
+                                  mode: { key: side === 'left' ? 'ZL_MODE' : 'ZR_MODE', defaultValue: 'NO_FULL', options: [
+                                    ...Object.entries(TRIGGER_MODE_LABELS).map(([value, label]) => ({ value, label })),
+                                    { value: 'X_LT', label: 'Analog passthrough · Left' }, { value: 'X_RT', label: 'Analog passthrough · Right' },
+                                  ] },
+                                })}
                               </SideBlock>
                             ))}
                             </SideSplit>
@@ -1980,6 +1832,9 @@ export function KeymapControls({
                     </KeymapSection>
                   </div></ConfigScope>
                 )})}
+                {onConfigTextChange && isVisible('face') && <ConfigScope match={/^(HOLD_PRESS_TIME|DBL_PRESS_WINDOW|SIM_PRESS_WINDOW|TURBO_PERIOD|TICK_TIME)$/}>
+                  <ProfileTiming text={readText} setText={onConfigTextChange} modifiers={modifierOptions} disabled={isCalibrating} />
+                </ConfigScope>}
               </div>
             </section>
           )}
@@ -2006,7 +1861,7 @@ export function KeymapControls({
                     </div>
                   )}
                   {/* The two pads side by side, a column each (2b). */}
-                  <SideSplit>
+                  <SideSplit stack>
                     {renderPadSide('left')}
                     {renderPadSide('right')}
                   </SideSplit>
@@ -2038,6 +1893,11 @@ export function KeymapControls({
                     onTouchpadSensitivityYChange={onTouchpadSensitivityYChange}
                     onTouchpadSensitivityChange={onTouchpadSensitivityChange}
                     onOpenTuning={onOpenTuning}
+                    touchpadMouseArea={mouseAreas[''].area}
+                    touchpadMouseAreaFit={mouseAreas[''].fit}
+                    onTouchpadMouseAreaFitChange={mouseAreas[''].setFit}
+                    onPickTouchpadMouseArea={() => mouseAreas[''].pick(livePadAspect)}
+                    padAspect={livePadAspect}
                     warnings={touchpadWarnings?.map(renderTouchpadWarning)}
                     {...actionsProps}
                   />
@@ -2073,6 +1933,16 @@ export function KeymapControls({
                       />
                     )
                   })}
+                  {renderModeshifts({
+                    id: 'touchpad', title: 'Trackpad', pad: { side: 'shared', keyPrefix: '' },
+                    buttons: Array.from({ length: 25 }, (_, i) => ({ command: `T${i + 1}`, label: `Region ${i + 1}` })),
+                    settings: padModeshiftSettings(''),
+                    mode: { key: 'TOUCHPAD_MODE', defaultValue: 'GRID_AND_STICK', options: [
+                      { value: 'GRID_AND_STICK', label: 'Menu and stick' }, { value: 'MOUSE', label: 'Mouse' },
+                      { value: 'MOUSE_AREA', label: 'Mouse area' }, { value: 'PS_TOUCHPAD', label: 'PlayStation touchpad' },
+                    ] },
+                    grid: { sizeKey: 'GRID_SIZE', clickKey: 'GRID_REQUIRES_CLICK', stickKey: 'TOUCH_STICK_MODE', clickButton: 'MISC2', prefix: 'T' },
+                  })}
                 </>
               ),
             },
@@ -2082,6 +1952,7 @@ export function KeymapControls({
               node: (
                 <TouchpadStickSection
                   touchStickMode={touchStickMode}
+                  tuning={touchExtras.primary || touchExtras.advanced ? <>{touchExtras.primary}{touchExtras.advanced}</> : undefined}
                   touchDeadzoneInner={touchDeadzoneInner}
                   touchRingMode={touchRingMode}
                   touchStickRadius={touchStickRadius}
@@ -2096,30 +1967,15 @@ export function KeymapControls({
               ),
             },
             {
-              key: 'light-bar',
-              shouldRender: Boolean(onLightBarChange) && isVisible('touch-bind'),
-              node: (
-                <>
-                  <SummaryRow label={t('keymap.lightBarColor')} hint="The LED colour on controllers that have one" setting="LIGHT_BAR"
-                    value={lightBarColor ? <span className="light-bar-value"><span style={{ background: lightBarColor }} aria-hidden="true" />{lightBarColor.toLowerCase()}</span> : 'Controller default'}
-                    onActivate={() => setLightBarOpen(true)} />
-                  <Sheet open={lightBarOpen} onClose={() => setLightBarOpen(false)} eyebrow={`Trackpads · ${currentProfileName ?? 'Configuration'}`} title={t('keymap.lightBarColor')}
-                    description="The colour the controller's LED shows while this configuration is applied." hints={[{ button: 'A', label: 'Select' }, { button: 'B', label: 'Close' }]}>
-                    <div className="sheet-embed"><LightBarPicker value={lightBarColor ?? null} onChange={value => onLightBarChange?.(value)} /></div>
-                  </Sheet>
-                </>
-              ),
-            },
-            {
               key: 'touch-bind',
               shouldRender: isVisible('touch-bind') && touchpadButtonSectionButtons.length > 0,
               node: (
                 <div id={TRACKPAD_ANCHORS.buttons}>
                 <ButtonGridSection
-                  title={confirmedTwoPadTouchpads ? 'Shared Touch-Stick Directions' : t('keymap.touchButtonsTitle')}
+                  title={confirmedTwoPadTouchpads ? t('keymap.touchStickSharedTitle', 'Shared Touch-Stick Directions') : t('keymap.touchButtonsTitle')}
                   description={
                     confirmedTwoPadTouchpads
-                      ? 'These legacy touch-stick directions are shared by both pads in JoyShockMapper. A direction binding here can be activated by either pad when configured as a touch stick.'
+                      ? t('keymap.touchStickSharedHelp', 'A touch stick is a virtual joystick on a trackpad: where your finger lands is the centre, and dragging from there moves the stick. The mapper names its directions TUP, TDOWN, TLEFT, TRIGHT and TRING, and it has only one set of them, not one per pad. Any pad in a touch-stick mode reports into these same bindings, so two pads acting as touch sticks share the same directions.')
                       : hasConnectedController
                         ? t('keymap.touchButtonsDescriptionShared')
                         : t('keymap.touchButtonsDescription')
@@ -2127,6 +1983,14 @@ export function KeymapControls({
                   buttons={touchpadButtonSectionButtons}
                   renderButton={renderButtonCard}
                   action={showTouchStickButtons ? renderWasdAction('touchStick') : undefined}
+                  // TODO-53: say what a touch stick is and why both pads share these
+                  // five bindings under the title, not only behind "?". The mapper
+                  // has one TUP/TDOWN/TLEFT/TRIGHT/TRING set (JoyShockMapper.h
+                  // ButtonID), with no left or right version, so whichever pad is
+                  // in a touch-stick mode fires the same bindings.
+                  extraContent={confirmedTwoPadTouchpads
+                    ? <p className="touch-stick-shared__intro">{t('keymap.touchStickSharedIntro', 'A touch stick turns a drag on a pad into a joystick; these are its up, down, left, right and ring bindings. JoyShockMapper has one set of them with no left or right version, so whichever pad is in a touch-stick mode fires these same bindings.')}</p>
+                    : undefined}
                   {...actionsProps}
                 />
                 </div>

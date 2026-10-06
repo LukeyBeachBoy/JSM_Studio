@@ -1,7 +1,7 @@
 import { keyName } from '../constants/configKeys'
 import { getKeymapValue } from './keymap'
 
-export type TouchpadMode = '' | 'GRID_AND_STICK' | 'MOUSE' | 'PS_TOUCHPAD'
+export type TouchpadMode = '' | 'GRID_AND_STICK' | 'MOUSE' | 'PS_TOUCHPAD' | 'MOUSE_AREA'
 export type TouchStickAxisMode = 'STANDARD' | 'INVERTED' | 'X_INVERTED' | 'Y_INVERTED' | string
 export type TouchpadWarningCode = 'psTouchpadNeedsDs4' | 'touchStickRequiresGrid' | 'gridSizeInvalid'
 
@@ -20,10 +20,25 @@ export const TOUCHPAD_DUAL_STAGE_MODE_VALUES = [
   'MAY_SKIP_R',
 ] as const
 
+// Shared by ordinary and held-input editors. Serialized identifiers stay
+// secondary to the touch/click behavior the user is choosing.
+export const TOUCHPAD_DUAL_STAGE_OPTIONS = [
+  { value: 'NO_FULL', label: 'Touch only' },
+  { value: 'NO_SKIP', label: 'Touch and click' },
+  { value: 'NO_SKIP_EXCLUSIVE', label: 'Click replaces touch' },
+  { value: 'MUST_SKIP', label: 'Quick click or delayed touch' },
+  { value: 'MAY_SKIP', label: 'Quick click skips delayed touch' },
+  { value: 'MUST_SKIP_R', label: 'Quick click or immediate touch' },
+  { value: 'MAY_SKIP_R', label: 'Quick click skips immediate touch' },
+].map(option => ({ ...option, helpKey: `keymap.touchpadDualStageMode_${option.value}_desc` }))
+
+export const touchpadDualStageHelpKey = (value: string) =>
+  TOUCHPAD_DUAL_STAGE_OPTIONS.find(option => option.value === value)?.helpKey ?? 'keymap.touchpadDualStageMode_NO_SKIP_desc'
+
 export const TOUCH_STICK_AXIS_VALUES = ['STANDARD', 'INVERTED', 'X_INVERTED', 'Y_INVERTED'] as const
 export const TOUCH_STICK_DIRECTION_COMMANDS = ['TUP', 'TDOWN', 'TLEFT', 'TRIGHT', 'TRING'] as const
 
-const TOUCHPAD_MODE_VALUES = new Set<TouchpadMode>(['', 'GRID_AND_STICK', 'MOUSE', 'PS_TOUCHPAD'])
+const TOUCHPAD_MODE_VALUES = new Set<TouchpadMode>(['', 'GRID_AND_STICK', 'MOUSE', 'PS_TOUCHPAD', 'MOUSE_AREA'])
 const TOUCH_STICK_SETTING_KEYS = [
   keyName.TOUCH_STICK_MODE,
   keyName.TOUCH_DEADZONE_INNER,

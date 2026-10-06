@@ -76,6 +76,8 @@
 .valueWrap:focus-within {
   box-shadow: 0 0 0 2px var(--focus-keyboard);
 }
+/* The pad's focus glide carries the ring (TODO-48): the pill does not add its own. */
+:global(body[data-focus-glide]) .valueWrap:focus-within { box-shadow: none; }
 
 .valueInput:focus-visible {
   outline: none;
@@ -148,6 +150,12 @@
 
 /* The frame's help dot: a row whose setting has no description yet. */
 .helpDot {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--text-3);
+  font: inherit;
+  cursor: pointer;
   width: 18px;
   height: 18px;
   display: grid;

@@ -43,6 +43,11 @@ publish a release, or run the installer. Update source separately when wanted;
 see [the JoyShockMapper workflow](joyshockmapper-upstream.md).
 
 1. Checks Git/Rust availability and version consistency.
+   Automatically stops this checkout's development servers, their child
+   processes, and executables running from its Tauri/mapper/console build outputs
+   or bundled binaries. Prints each stopped process and checks that cleanup
+   succeeded before editing versions or building. The launcher and its parent
+   terminal are protected; unrelated applications are left running.
 2. Runs `npm ci` using `package-lock.json`. This replaces `node_modules` so frontend
    dependencies match the lockfile; it does not upgrade dependency versions.
 3. Runs the existing Tauri release build, whose `beforeBuildCommand` verifies the
@@ -87,6 +92,8 @@ For a quicker repeat build **only if dependencies have not changed**:
 ```
 
 This skips only `npm ci`; frontend, native code, Rust, and packaging still run.
+Processes using `node_modules` are left running with this option; processes
+using the build outputs are still stopped automatically.
 Run without the option after changes to either npm package file.
 
 ## Troubleshooting
@@ -103,8 +110,9 @@ Run without the option after changes to either npm package file.
 - **TypeScript, C++, or Rust compile error:** the build stops with a nonzero exit
   code. Fix the reported source error and rerun; an older installer is not a
   successful result of that attempt.
-- **Locked output file:** close any locally running development executable or
-  installer using the build output, then rerun.
+- **Cannot stop an installer blocker:** the script reports its name and PID and
+  stops before version edits. Close that process manually (an elevated process
+  may require an administrator terminal), then rerun.
 
 The wrapper normalizes Windows environment variable casing to avoid MSBuild's
 duplicate `Path`/`PATH` error and includes the standard Windows PowerShell modules

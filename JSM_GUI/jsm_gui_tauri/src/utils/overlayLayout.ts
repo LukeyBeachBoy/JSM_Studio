@@ -59,6 +59,10 @@ export type OverlayPlacement = {
   showIcons: boolean
   /** Label font size in logical pixels; keys are drawn slightly smaller. */
   fontSize: number
+  /** Named-menu action label size. Older placements fall back to fontSize. */
+  labelFontSize?: number
+  /** Named-menu output value size. Older placements fall back to fontSize. */
+  outputFontSize?: number
   /**
    * When the menu appears.
    *
@@ -72,7 +76,7 @@ export type OverlayPlacement = {
    * Defaults per surface to whatever that surface already did: pads have always
    * shown their menu on contact, stick wheels only past the dead zone.
    */
-  reveal: 'ring' | 'touch'
+  reveal: 'ring' | 'touch' | 'navigate' | 'never'
 }
 
 export type OverlayRegion = {
@@ -87,6 +91,8 @@ export type OverlayRegion = {
 }
 
 export type OverlayMenu = {
+  /** A named hotbar uses a horizontal strip regardless of the physical pad. */
+  displayAspect?: number
   pad: OverlayPad
   /** '' for the base layer, else the chord prefix, e.g. 'MISC2'. */
   layer: string
@@ -106,6 +112,8 @@ export type OverlayMenu = {
   /** Whether a region fires on touch or only once the pad is clicked. */
   requiresClick: boolean
   regions: OverlayRegion[]
+  /** Optional named radial-menu centre, separate from its segment count. */
+  centerRegion?: OverlayRegion
   placement: OverlayPlacement
 }
 
@@ -141,9 +149,10 @@ const clamp01 = (v: number) => Math.min(1, Math.max(0, v))
 // Anything unrecognised falls back to the surface's default rather than being
 // treated as one of the two, so a typo does not silently change when the menu
 // appears.
-const reveal = (raw: string | undefined, surface: OverlaySurface): 'ring' | 'touch' =>
+const reveal = (raw: string | undefined, surface: OverlaySurface): OverlayPlacement['reveal'] =>
   /^touch$/i.test(raw ?? '') ? 'touch'
     : /^ring$/i.test(raw ?? '') ? 'ring'
+      : /^never$/i.test(raw ?? '') ? 'never'
       : DEFAULT_PLACEMENT[surface].reveal
 const bool = (raw: string | undefined, fallback: boolean) =>
   raw === undefined ? fallback : !/^(0|off|false|no|hide|hidden)$/i.test(raw)

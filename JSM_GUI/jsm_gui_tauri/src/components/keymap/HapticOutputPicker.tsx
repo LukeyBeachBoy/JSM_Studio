@@ -2,15 +2,14 @@ import { useTranslation } from 'react-i18next'
 import keymapStyles from '../Keymap.module.css'
 import { NumberField } from '../NumberField'
 import { AppSelect } from '../ui/AppSelect'
+import { HapticEffectSelect } from '../ui/HapticEffectSelect'
 import {
   DEFAULT_HAPTIC_BINDING,
-  HAPTIC_EFFECT_CHOICES,
   HAPTIC_GAIN_MAX,
   HAPTIC_GAIN_MIN,
   HAPTIC_SIDES,
   formatHapticBinding,
   parseHapticBinding,
-  type HapticEffect,
   type HapticSide,
 } from '../../utils/hapticBindings'
 
@@ -48,16 +47,12 @@ export function HapticOutputPicker({ value, disabled, onChange }: HapticOutputPi
 
       <label className={keymapStyles.hapticField}>
         <span>{t('keymap.hapticEffect')}</span>
-        <AppSelect
-          className="app-select"
+        <HapticEffectSelect
+          ariaLabel={t('keymap.hapticEffect')}
           value={binding.effect}
           disabled={disabled}
-          onChange={(event) => update({ effect: event.target.value as HapticEffect })}
-        >
-          {HAPTIC_EFFECT_CHOICES.map(effect => (
-            <option key={effect} value={effect}>{t(`keymap.hapticEffect_${effect}`)}</option>
-          ))}
-        </AppSelect>
+          onChange={effect => { if (effect !== 'AUTOMATIC') update({ effect }) }}
+        />
       </label>
 
       <NumberField

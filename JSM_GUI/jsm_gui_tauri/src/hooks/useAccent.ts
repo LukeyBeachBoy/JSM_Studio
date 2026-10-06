@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { DEFAULT_ACCENT, isAccent, type Accent } from '../brand/brand'
 import { syncBrandIcons } from '../brand/brandIcons'
+import { persistAppearance, readAppearance } from '../appearanceStorage'
 
 /**
  * The accent (Appearance page): which of the four JSM Evolved marks the app
  * wears. Mirrors useTheme: painted on <html> as data-accent before the first
- * render, kept in localStorage, and broadcast so every window (the tray menu,
+ * render, kept in native settings with a localStorage cache, and broadcast so every window (the tray menu,
  * the overlay) follows the same pick.
  */
 const STORAGE_KEY = 'jsm-accent'
@@ -13,7 +14,7 @@ const EVENT = 'jsm-accent-changed'
 
 const readStored = (): Accent => {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY)
+    const stored = readAppearance(STORAGE_KEY)
     return isAccent(stored) ? stored : DEFAULT_ACCENT
   } catch { return DEFAULT_ACCENT }
 }
@@ -50,7 +51,7 @@ export function useAccent() {
   const setAccent = useCallback((next: Accent) => {
     setAccentState(next)
     paint(next)
-    try { localStorage.setItem(STORAGE_KEY, next) } catch { /* private mode */ }
+    void persistAppearance(STORAGE_KEY, next)
     if (ownsIcons) syncBrandIcons(next)
     window.dispatchEvent(new CustomEvent<Accent>(EVENT, { detail: next }))
   }, [])

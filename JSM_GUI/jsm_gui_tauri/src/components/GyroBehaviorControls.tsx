@@ -1,3 +1,4 @@
+import { SummaryRow } from './ui/SummaryRow'
 import { HelpButton } from './HelpButton'
 import { useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -119,7 +120,9 @@ const GYRO_SPACE_OPTIONS = [
   { value: 'LOCAL', labelKey: 'gyro.spaces.local' },
   { value: 'YAW_PLUS_ROLL', labelKey: 'gyro.spaces.yawPlusRoll' },
   { value: 'PLAYER_TURN', labelKey: 'gyro.spaces.playerTurn' },
+  { value: 'PLAYER_LEAN', labelKey: 'Player lean' },
   { value: 'WORLD_TURN', labelKey: 'gyro.spaces.worldTurn' },
+  { value: 'WORLD_LEAN', labelKey: 'World lean' },
 ]
 
 const GRIP_INPUTS = new Set(['MISC5', 'MISC6', 'GRIP_L', 'GRIP_R'])
@@ -133,6 +136,9 @@ export type GyroDevice = {
 }
 
 export type GyroGeneralSectionProps = {
+  hideGlobalSettings?: boolean
+  activationDetails?: ReactNode
+  motionFeedbackEnabled?: boolean
   sensitivity: SensitivityValues
   gyroActivationMode: GyroActivationMode
   gyroActivationButton: string
@@ -149,6 +155,9 @@ export type GyroGeneralSectionProps = {
 }
 
 export function GyroGeneralSection({
+  hideGlobalSettings,
+  activationDetails,
+  motionFeedbackEnabled = false,
   sensitivity,
   gyroActivationMode,
   gyroActivationButton,
@@ -198,12 +207,13 @@ export function GyroGeneralSection({
     hold_off: t('gyroPage.activationDescHoldOff'),
     always_off: t('gyroPage.activationDescAlwaysOff'),
   }[gyroActivationMode]
-  const output = sensitivity.gyroOutput ?? ''
+  const output = sensitivity.gyroOutput === 'MOUSE' ? '' : sensitivity.gyroOutput ?? ''
   const stickName = output === 'LEFT_STICK' ? t('gyroPage.outputLeftStick') : t('gyroPage.outputRightStick')
 
   return (
     <>
-      <GyroSettingRow setting={activationSetting} label={t('gyroPage.activation')} description={activationDescription}
+      {(output !== 'PS_MOTION' || motionFeedbackEnabled) && <>
+      <GyroSettingRow setting={activationSetting} label={output === 'PS_MOTION' ? 'Feedback activation' : t('gyroPage.activation')} description={output === 'PS_MOTION' ? 'Controls rotation feedback. Physical motion is always forwarded for the game to interpret.' : activationDescription}
         hints="A:Choose;Y:Help;B:Back"
         control={
           <Segmented<GyroActivationMode> ariaLabel={t('gyroPage.activation')} value={gyroActivationMode} disabled={disabled}
@@ -215,22 +225,25 @@ export function GyroGeneralSection({
               { value: 'always_off', label: t('gyroPage.activationAlwaysOff') },
             ]} />
         } />
-      <GyroSettingRow setting={activationSetting} label={t('gyroPage.activationInput')}
+      {!/^(ANY|ALL)\s/.test(gyroActivationButton) && <GyroSettingRow setting={activationSetting} label={t('gyroPage.activationInput')}
         description={!usesActivationButton ? t('gyroPage.activationInputIdle') : GRIP_INPUTS.has(selectedActivationButton) ? t('gyroPage.activationInputGripDesc') : t('gyroPage.activationInputDesc')}
         hints="A:Open;Y:Help;B:Back"
         value={<SelectPill ariaLabel={t('gyroPage.activationInput')} value={selectedActivationButton} options={activationButtonOptions}
-          onChange={onGyroActivationButtonChange} disabled={disabled || !usesActivationButton} />} />
+          onChange={onGyroActivationButtonChange} disabled={disabled || !usesActivationButton} />} />}
+      {activationDetails}
+      </>}
       <GyroSettingRow setting="GYRO_OUTPUT" label={t('gyroPage.output')}
-        description={output ? t('gyroPage.outputStickDesc', { stick: stickName.toLowerCase() }) : t('gyroPage.outputDesc')}
+        description={output === 'PS_MOTION' ? 'Forward this controller’s gyro and accelerometer to a virtual PlayStation 4. Requires PS4 virtual output and a game that reads motion sensors; the physical controller can be Steam, Nintendo or PlayStation.' : output ? `Send gyro to the ${stickName.toLowerCase()}. The game assigns its role. For driving, use Tilt → Steering → left stick to hold steering with controller tilt.` : 'Rotation speed moves the mouse; stopping rotation stops movement. Tilt to mouse below instead keeps moving while you hold a tilt.'}
         hints="A:Open;Y:Help;B:Back"
         value={<SelectPill ariaLabel={t('gyroPage.output')} value={output || 'MOUSE'} disabled={disabled}
           options={[
-            { value: 'MOUSE', label: t('gyroPage.outputMouse') },
-            { value: 'LEFT_STICK', label: t('gyroPage.outputLeftStick') },
-            { value: 'RIGHT_STICK', label: t('gyroPage.outputRightStick') },
+            { value: 'MOUSE', label: t('gyroPage.outputMouse'), hint: 'Rotation speed moves the mouse; stopping rotation stops movement.' },
+            { value: 'LEFT_STICK', label: t('gyroPage.outputLeftStick'), hint: 'Virtual joystick output. For driving, configure wheel-style tilt steering below.' },
+            { value: 'RIGHT_STICK', label: t('gyroPage.outputRightStick'), hint: 'Virtual joystick output. Choose camera velocity or angular deflection below.' },
+            { value: 'PS_MOTION', label: 'PlayStation motion passthrough', hint: 'Forward physical motion sensors to a virtual PS4 for the game to interpret.' },
           ]}
           onChange={next => onGyroOutputChange(next === 'MOUSE' ? '' : next)} />} />
-      {!output && (
+      {!output && !hideGlobalSettings && (
         <GyroSettingRow setting="COUNTER_OS_MOUSE_SPEED" label={t('gyroPage.counterOsMouseSpeed')} description={t('gyroPage.counterOsMouseSpeedDesc')}
           hints="A:Choose;Y:Help;B:Back"
           control={<OnOff ariaLabel={t('gyroPage.counterOsMouseSpeed')} value={counterOsMouseSpeed} onChange={onCounterOsMouseSpeedChange} disabled={disabled} />} />
@@ -253,7 +266,7 @@ export function GyroCalibrationSection({ sensitivity, disabled, onInGameSensChan
   // Real world calibration and in-game sensitivity scale the *mouse* the gyro
   // produces. When the gyro drives a virtual stick they do nothing, so the
   // section says so instead of inviting a pointless edit.
-  if (sensitivity.gyroOutput) return <p className={styles.note}>{t('gyroPage.stickOutputNote')}</p>
+  if (sensitivity.gyroOutput && sensitivity.gyroOutput !== 'MOUSE') return <p className={styles.note}>{t('gyroPage.stickOutputNote')}</p>
   return (
     <>
       <NumberField setting="REAL_WORLD_CALIBRATION"
@@ -362,12 +375,8 @@ export function GyroDevicesSection({ devices, ignoredDevices, disabled, onToggle
                 </span>
                 {/* A real button, so the pad's spatial navigation can land on
                     it; a hidden checkbox is skipped as invisible. */}
-                <button type="button" role="switch" aria-checked={Boolean(isIgnored)} className={styles.toggleSwitch}
-                  disabled={disabled || unaddressable}
-                  onClick={() => { if (dev.vid && dev.pid) onToggleIgnoreDevice?.(dev.vid, dev.pid, !isIgnored) }}>
-                  <span className={styles.toggleLabel}>{t('gyroPage.ignoreGyroOutput')}</span>
-                  <span className={styles.toggleSlider} aria-hidden="true" />
-                </button>
+                <SummaryRow label={t('gyroPage.ignoreGyroOutput')} disabled={disabled || unaddressable}
+                  toggle={{ on: Boolean(isIgnored), onChange: next => { if (dev.vid && dev.pid) onToggleIgnoreDevice?.(dev.vid, dev.pid, next) } }} />
               </div>
             )
           })}

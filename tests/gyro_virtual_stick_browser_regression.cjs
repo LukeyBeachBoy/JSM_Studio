@@ -1,0 +1,142 @@
+// Renderer-only interaction and focus tests. No controller or runtime is started.
+const assert = require('node:assert/strict')
+const fs = require('node:fs')
+const path = require('node:path')
+const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright')
+;(async () => {
+  const browser = await chromium.launch({ channel: 'msedge', headless: true })
+  try {
+    const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
+    const errors = []; page.on('pageerror', error => errors.push(error.message))
+    await page.addInitScript(() => {
+      let content = 'RESET_MAPPINGS\nGYRO_OUTPUT = RIGHT_STICK\nRIGHT_STICK_UNDEADZONE_INNER = 0.2\nRIGHT_STICK_UNPOWER = 2\nLEFT_STICK_UNDEADZONE_INNER = 0.1\nLEFT_TOUCHPAD_MODE = GRID_AND_STICK\nRIGHT_TOUCHPAD_MODE = MOUSE\nUNKNOWN_PARITY_SETTING = preserve_me\n'
+      content += 'ONE_EURO_FILTER\nONE_EURO_MIN_CUTOFF = 6 # base smoothing\nONE_EURO_SPEED_COEFF = 0.3\nL,ONE_EURO_MIN_CUTOFF = 0.5 # ADS smoothing\nL,ONE_EURO_SPEED_COEFF = 0.1 # ADS response\n'
+      content += 'GYRO_HAPTIC_INTENSITY = 0\nL,GYRO_HAPTIC_INTENSITY = 20 # ADS feedback\nL,GYRO_HAPTIC_INTERVAL = 10\n'
+      window.electronAPI = {
+        getActiveProfile: async () => ({ name: 'Parity', path: 'profiles-library/Parity.txt', content }),
+        listLibraryProfiles: async () => ['Parity'], loadLibraryProfile: async () => ({ name: 'Parity', content }),
+        readConfigFile: async () => '', getRuntimeMappingState: async () => ({ mappingEnabled: true, firmwareSoundPromptDone: true }),
+        saveLibraryProfile: async (name, next) => { content = next; window.__paritySaved = next; return { name } },
+        applyProfile: async path => ({ path, mappingEnabled: true }),
+      }
+      window.telemetry = { onSample: callback => {
+        const emit = () => callback({ omega: 12, activeProfile: 'profiles-library/Parity.txt', devices: [{ handle: 1, type: 24, supportedButtons: 8589934591,
+          status: { buttons: 0, leftStick: { x: 0, y: 0 }, rightStick: { x: 0, y: 0 }, triggers: { left: 0, right: 0 }, gyro: { x: 0, y: 0, z: 0 },
+            virtualSticks: { left: { x: 0.1, y: 0 }, right: { x: 0.3, y: -0.2 } } } }] })
+        emit(); const timer = setInterval(emit, 100); return () => clearInterval(timer)
+      } }
+    })
+    await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1421')
+    await page.locator('[data-home-continue]').click()
+    await page.getByRole('button', { name: 'Gyro', exact: true }).click()
+    const panel = page.locator('[data-virtual-stick="RIGHT_STICK"]')
+    await panel.waitFor()
+    assert.equal(await page.getByRole('heading', { name: 'Calibration', exact: true }).count(), 0)
+    assert.equal(await page.getByRole('textbox', { name: 'Real world calibration', exact: true }).count(), 0)
+    await page.getByText('This mode requires a virtual controller. Enable Xbox or DS4 output.', { exact: true }).waitFor()
+    await page.getByRole('img', { name: 'Device 1 processed virtual stick output', exact: true }).waitFor()
+    const row = (label, scope = panel) => scope.locator('button.summary-row').filter({ has: page.locator('.summary-row__label').getByText(label, { exact: true }) })
+    const inner = row('Inner anti-deadzone')
+    await inner.click(); await page.keyboard.press('ArrowRight'); await page.keyboard.press('Escape')
+    assert.match(await inner.innerText(), /20%/, 'cancel restores the original assignment')
+    await inner.click(); await page.keyboard.press('ArrowRight'); await page.keyboard.press('Enter')
+    assert.match(await inner.innerText(), /21%/)
+    await row('Virtual controller').click(); await page.keyboard.press('ArrowRight'); await page.keyboard.press('Enter')
+    assert.match(await row('Virtual controller').innerText(), /Xbox 360/)
+    await row('Tune for this game').click()
+    const guide = page.getByRole('dialog', { name: 'Choose controller output' })
+    await guide.waitFor(); await guide.getByRole('button', { name: 'Next', exact: true }).click()
+    await page.getByRole('dialog', { name: 'Set the game’s camera sensitivity' }).waitFor()
+    await page.keyboard.press('Escape'); await inner.focus()
+    assert.equal(await inner.evaluate(element => element === document.activeElement), true)
+    const probe = row('Deadzone test signal')
+    assert.match(await probe.innerText(), /On/)
+    await probe.click(); await page.keyboard.press('ArrowLeft'); await page.keyboard.press('Enter')
+    assert.match(await probe.innerText(), /Off/)
+    await probe.click(); await page.keyboard.press('ArrowRight'); await page.keyboard.press('Enter')
+    assert.match(await probe.innerText(), /On/)
+    // The complete guide writes ordinary settings and disables its test signal.
+    await row('Tune for this game').click()
+    for (let step = 0; step < 5; step++) await page.getByRole('dialog').getByRole('button', { name: 'Next', exact: true }).click()
+    await page.getByRole('dialog').getByRole('button', { name: 'Finish', exact: true }).click()
+    assert.match(await probe.innerText(), /Off/)
+    // Save ordinary JSM settings, and confirm controller dependencies precede them.
+    for (const viewport of [{ width: 1024, height: 720 }, { width: 1440, height: 1000 }]) {
+      await page.setViewportSize(viewport)
+      const clippedValues = await panel.evaluate(host => {
+        const bounds = host.getBoundingClientRect()
+        return [...host.querySelectorAll('.summary-row__value')].filter(value => {
+          const rect = value.getBoundingClientRect()
+          return rect.width && (rect.right > Math.min(bounds.right, document.documentElement.clientWidth) + 1 || rect.left < bounds.left - 1)
+        }).map(value => value.textContent)
+      })
+      assert.deepEqual(clippedValues, [], `every tuning value must remain inside the visible panel at ${viewport.width}px`)
+    }
+    await panel.screenshot({ path: path.resolve(__dirname, '../tmp/parity-verification/gyro-stick-idle-controls.png') })
+    await page.getByRole('button', { name: /^Apply \d+ changes?$/ }).click()
+    await page.waitForFunction(() => !!window.__paritySaved)
+    const saved = await page.evaluate(() => window.__paritySaved)
+    assert.match(saved, /RIGHT_STICK_UNDEADZONE_INNER = 0.21/)
+    assert.match(saved, /RIGHT_STICK_DEADZONE_PROBE = OFF/)
+    assert.doesNotMatch(saved, /LEFT_STICK_DEADZONE_PROBE/)
+    assert.match(saved, /LEFT_STICK_UNDEADZONE_INNER = 0.1/)
+    assert.match(saved, /UNKNOWN_PARITY_SETTING = preserve_me/)
+    assert.ok(saved.indexOf('VIRTUAL_CONTROLLER = XBOX') < saved.indexOf('GYRO_OUTPUT = RIGHT_STICK'))
+    await page.getByRole('combobox', { name: 'Output', exact: true }).click()
+    await page.getByRole('option', { name: 'Mouse', exact: true }).click()
+    await page.getByRole('heading', { name: 'Calibration', exact: true }).waitFor()
+    assert.equal(await panel.count(), 0)
+    // Held filter controls must serialize the scoped values used by the native
+    // filter, retain calibration notes and leave the base configuration intact.
+    await page.getByRole('button', { name: 'While shifted', exact: true }).click()
+    await row('Noise & Steadying', page).click()
+    const cutoff = page.getByRole('textbox', { name: 'Minimum cutoff', exact: true })
+    const coefficient = page.getByRole('textbox', { name: 'Speed coefficient', exact: true })
+    assert.equal(await cutoff.inputValue(), '0.5')
+    await cutoff.fill('0.8'); await cutoff.press('Enter')
+    await coefficient.fill('0.2'); await coefficient.press('Enter')
+    await page.keyboard.press('Escape')
+    await row('Rotation feedback', page).click()
+    const feedback = page.locator('[data-gyro-rotation-feedback]')
+    assert.match(await row('Feedback strength', feedback).innerText(), /20%/)
+    await row('Feedback strength', feedback).click(); await page.keyboard.press('ArrowRight'); await page.keyboard.press('Enter')
+    await row('Rotation between pulses', feedback).click(); await page.keyboard.press('ArrowRight'); await page.keyboard.press('Enter')
+    await row('Feedback actuator', feedback).click(); await page.keyboard.press('ArrowLeft'); await page.keyboard.press('Enter')
+    assert.match(await row('Feedback actuator', feedback).innerText(), /Right pad/)
+    await feedback.screenshot({ path: path.resolve(__dirname, '../tmp/parity-verification/gyro-rotation-feedback.png') })
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: 'Base values', exact: true }).click()
+    await row('Noise & Steadying', page).click()
+    assert.equal(await cutoff.inputValue(), '6')
+    assert.equal(await coefficient.inputValue(), '0.3')
+    await page.keyboard.press('Escape')
+    await page.keyboard.press('Control+s')
+    await page.waitForFunction(() => /L,ONE_EURO_MIN_CUTOFF = 0.8/.test(window.__paritySaved ?? ''))
+    const filtered = await page.evaluate(() => window.__paritySaved)
+    assert.match(filtered, /L,ONE_EURO_MIN_CUTOFF = 0.8 # ADS smoothing/)
+    assert.match(filtered, /L,ONE_EURO_SPEED_COEFF = 0.2 # ADS response/)
+    assert.match(filtered, /^ONE_EURO_MIN_CUTOFF = 6 # base smoothing$/m)
+    assert.match(filtered, /^ONE_EURO_SPEED_COEFF = 0.3$/m)
+    assert.match(filtered, /^GYRO_HAPTIC_INTENSITY = 0$/m)
+    assert.match(filtered, /L,GYRO_HAPTIC_INTENSITY = 25 # ADS feedback/)
+    assert.match(filtered, /L,GYRO_HAPTIC_INTERVAL = 11/)
+    assert.match(filtered, /L,GYRO_HAPTIC_SIDE = 2/)
+    await page.getByRole('combobox', { name: 'Output', exact: true }).click()
+    await page.getByRole('option', { name: 'PlayStation motion passthrough', exact: true }).click()
+    await page.getByRole('heading', { name: 'PlayStation motion passthrough', exact: true }).waitFor()
+    assert.equal(await page.getByRole('heading', { name: 'Sensitivity', exact: true }).count(), 0)
+    assert.equal(await page.getByRole('group', { name: 'Activation', exact: true }).count(), 0, 'raw passthrough does not show aim activation as though it gates sensor packets')
+    await page.getByText('Motion passthrough always forwards the physical sensors. Aiming activation and filters do not suppress or alter those samples.', { exact: true }).waitFor()
+    await page.getByText('Motion passthrough requires PlayStation 4 virtual output.', { exact: true }).waitFor()
+    await page.getByRole('button', { name: 'Buttons', exact: true }).click()
+    await page.locator('#mapping-section-motion').waitFor()
+    assert.equal(await page.locator('details[data-input-command="LEAN_LEFT"]').count(), 1)
+    assert.equal(await page.locator('details[data-input-command="MRING"]').count(), 1)
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 2)
+    assert.equal(overflow, false)
+    assert.deepEqual(errors, [])
+    fs.mkdirSync(path.resolve(__dirname, '../tmp/parity-verification'), { recursive: true })
+    await page.screenshot({ path: path.resolve(__dirname, '../tmp/parity-verification/motion-input-bindings.png') })
+    console.log('PASS: contextual modes, native telemetry fixture, dependency warnings, guide focus, cancel, save order and motion bindings')
+  } finally { await browser.close() }
+})().catch(error => { console.error(error); process.exit(1) })

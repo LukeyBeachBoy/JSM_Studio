@@ -1,0 +1,58 @@
+// The real menu/config/layer modules; no native controller or installed profile.
+const assert = require('node:assert/strict')
+const fs = require('node:fs')
+const path = require('node:path')
+const root = path.resolve(__dirname, '../JSM_GUI/jsm_gui_tauri')
+const ts = require(path.join(root, 'node_modules/typescript'))
+const cache = new Map()
+function load(file) {
+  file = path.resolve(root, file)
+  if (cache.has(file)) return cache.get(file)
+  const module = { exports: {} }; cache.set(file, module.exports)
+  const code = ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText
+  new Function('module', 'exports', 'require', code)(module, module.exports, name => name.startsWith('.') ? load(path.resolve(path.dirname(file), name) + '.ts') : require(name))
+  cache.set(file, module.exports); return module.exports
+}
+
+const { connectStickMenu, detachStickMenu, stickMenuLinks } = load('src/utils/stickMenus.ts')
+const { readVirtualMenus, writeVirtualMenus, createVirtualMenu } = load('src/utils/virtualMenus.ts')
+const { getKeymapValue } = load('src/utils/keymap.ts')
+const { renameModeshift, removeModeshift } = load('src/utils/modeshift.ts')
+const original = 'LEFT_STICK_MODE = RADIAL_MENU\nLEFT_STICK_MENU_SIZE = 3\nLEFT_STICK_MENU_DEADZONE = 0.35\nLM1 = SPACE\nLM2 = A\nLM3 = "CYCLE 1 | 2"\n# @label LM1 = Jump\n# @icon LM1 = game-icons:jump\nRIGHT_STICK_MODE = AIM\n'
+const result = connectStickMenu(original, 'left')
+assert.equal(result.problem, undefined)
+const wheel = readVirtualMenus(result.text).menus[0]
+assert.equal(wheel.actions.length, 3)
+assert.equal(wheel.actions[0].binding, 'SPACE')
+assert.equal(wheel.actions[0].label, 'Jump')
+assert.equal(wheel.actions[0].icon, 'game-icons:jump')
+assert.equal(wheel.actions[2].binding, '"CYCLE 1 | 2"')
+assert.equal(wheel.deadzone, .35)
+assert.equal(wheel.attachments[0].activation, 'ALWAYS')
+assert.equal(wheel.attachments[0].selection, 'CONTINUOUS')
+assert.equal(getKeymapValue(result.text, 'LEFT_STICK_MODE'), 'NO_MOUSE')
+assert.equal(getKeymapValue(result.text, 'RIGHT_STICK_MODE'), 'AIM')
+assert.equal(getKeymapValue(result.text, 'LM1'), 'SPACE', 'original bindings retained')
+const detached = detachStickMenu(result.text, 'left')
+assert.equal(stickMenuLinks(detached, 'left').length, 0)
+assert.deepEqual(readVirtualMenus(detached).menus[0].actions, wheel.actions)
+const again = connectStickMenu(detached, 'left', wheel.id)
+assert.equal(readVirtualMenus(again.text).menus.length, 1, 'reuse preserves identity')
+const conditional = connectStickMenu(original + 'L,LM1 = X\n', 'left')
+assert.ok(conditional.problem)
+assert.equal(conditional.text, original + 'L,LM1 = X\n', 'unsupported bindings are never dropped')
+const bad = connectStickMenu('VIRTUAL_MENUS = HEX:00\n', 'left')
+assert.ok(bad.problem)
+assert.equal(bad.text, 'VIRTUAL_MENUS = HEX:00\n')
+const shifted = connectStickMenu('RIGHT_STICK_MODE = AIM\nL,RIGHT_STICK_MODE = NO_MOUSE\n', 'right', undefined, 'L')
+assert.equal(shifted.problem, undefined)
+assert.equal(getKeymapValue(shifted.text, 'RIGHT_STICK_MODE'), 'AIM')
+assert.equal(readVirtualMenus(shifted.text).menus[0].attachments[0].activation, 'HOLD')
+const target = { id: 'rightStick', title: 'Right stick', buttons: [], settings: [], mode: { key: 'RIGHT_STICK_MODE', options: [], defaultValue: 'NO_MOUSE' } }
+const renamed = renameModeshift(shifted.text, target, 'L', 'R')
+assert.equal(readVirtualMenus(renamed).menus[0].attachments[0].input, 'R')
+assert.equal(readVirtualMenus(removeModeshift(renamed, target, 'R')).menus[0].attachments.length, 0)
+const other = createVirtualMenu('other'); other.attachments = [{source:'RIGHT',activation:'COMMAND',input:'NONE',selection:'ACTIVATION_RELEASE',confirm:'NONE',cancel:'NONE'}]
+const shared = connectStickMenu(writeVirtualMenus('', [other]), 'left', other.id)
+assert.equal(readVirtualMenus(shared.text).menus[0].attachments.length, 2)
+console.log('PASS: stick menu conversion, raw actions, labels/icons, reservation, reuse, detach, unsupported preservation and modeshift lifecycle')

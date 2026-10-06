@@ -5,6 +5,7 @@
 .app-shell {
   height: 100vh;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: var(--titlebar-h) auto var(--page-tabs-h) minmax(0, 1fr);
   background: var(--surface-canvas);
   overflow: hidden;
@@ -302,6 +303,7 @@ body[data-input-source='controller'] .titlebar :is(button, [role='button']):focu
 
 /* ============ Body: section list + content ============ */
 .shell-body {
+  min-width: 0;
   min-height: 0;
   display: grid;
   grid-template-columns: var(--shell-section-w) minmax(0, 1fr);
@@ -377,11 +379,12 @@ body[data-input-source='controller'] .titlebar :is(button, [role='button']):focu
 
 .page-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
   gap: var(--sp-6);
   margin-bottom: var(--sp-7);
 }
-.page-header__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-2); }
+.page-header__text { flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-2); }
 .page-header__eyebrow {
   font-size: var(--fs-eyebrow);
   line-height: var(--lh-eyebrow);
@@ -399,7 +402,7 @@ body[data-input-source='controller'] .titlebar :is(button, [role='button']):focu
   color: var(--text-1);
 }
 .page-header__purpose { margin: 0; font-size: var(--fs-body); line-height: var(--lh-body); color: var(--text-2); }
-.page-header__actions { display: flex; align-items: center; gap: var(--sp-2); flex: none; }
+.page-header__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); max-width: 100%; }
 
 .page-body > * + * { margin-top: var(--sp-6); }
 
@@ -590,3 +593,11 @@ body[data-input-source='controller'] .titlebar :is(button, [role='button']):focu
    sides (JSM Shell 8a), so every tab uses that. */
 .page-tab { padding: 0 10px; }
 .page-tabs__list { gap: 2px; }
+
+.change-review-button { display:inline-flex; align-items:center; gap:7px; white-space:nowrap; flex-shrink:0; }
+@media (max-width:1050px) { .change-review-button span { display:none; } }
+
+/* Studio pages can exceed the strip at intermediate widths. Keep every tab
+   reachable and scroll the selected one into view on page changes. */
+.page-tabs--studio .page-tabs__list { overflow-x: auto; scrollbar-width: none; }
+.page-tabs--studio .page-tab { flex-shrink: 0; }

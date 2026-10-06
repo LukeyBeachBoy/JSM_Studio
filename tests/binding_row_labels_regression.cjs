@@ -78,22 +78,24 @@ const STEAM = 24;
     assert.match(await rowText('S'), /Space/);
 
     // --- the value sits in its own right-hand column ------------------------
-    // Not "roughly right of centre": every row's value must start at the same
-    // x, which is what makes the outputs readable as a column.
+    // Outputs occupy the right-hand column. Rows without extras now use its
+    // remaining space and align right; rows with shift badges reserve a lane.
     // Measure the settled layout, not a frame of the page sliding in.
     await page.waitForFunction(() => document.getAnimations().every(animation => animation.playState !== 'running'));
     // Top-level rows only: a shifted card ("RSR,N") is nested inside its input's editor now.
     const rowSummaries = page.locator('details[data-input-command]:not([data-input-command*=","]) > summary');
     const rows = rowSummaries.locator('[class*=rowOutput]');
-    const lefts = [];
+    const compactRights = [];
     for (let i = 0; i < 3; i++) {
       const row = await rowSummaries.nth(i).boundingBox();
       const hint = await rows.nth(i).boundingBox();
       assert.ok(hint.x > row.x + row.width * 0.5, `the value is adrift in the middle of the row (${hint.x} of ${row.x}..${row.x + row.width})`);
-      // The Output column is left-aligned (3b): every first keycap starts at one x.
-      lefts.push(Math.round(hint.x));
+      assert.ok(hint.x + hint.width <= row.x + row.width + 1, 'the output stays inside its row');
+      const compact = await rowSummaries.nth(i).evaluate(el => el.parentElement.dataset.noExtras === 'true');
+      if (compact) compactRights.push(Math.round(hint.x + hint.width));
     }
-    assert.equal(new Set(lefts).size, 1, `the values do not line up as a column: ${lefts.join(', ')}`);
+    assert.ok(compactRights.length >= 2, 'the fixture covers independent compact output rows');
+    assert.equal(new Set(compactRights).size, 1, `compact outputs share a right edge: ${compactRights.join(', ')}`);
 
     // --- a modeshift names its trigger the same way --------------------------
     // The shift lives in the input's own editor (Binding Editor 7a).

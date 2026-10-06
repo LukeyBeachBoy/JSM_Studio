@@ -3,8 +3,8 @@ import type { IconName } from '../components/icons/Icon'
 // One page per physical control, the way Steam Input splits them up, instead of
 // one page carrying every binding on the controller.
 export type ControlTab = 'buttons' | 'dpad' | 'triggers' | 'joysticks'
-export type StudioTab = 'configurations' | 'associations' | 'globalChords' | 'timing' | 'ai' | 'deviceVisibility' | 'appearance' | 'settings' | 'help' | 'debugConsole'
-export type PrimaryTab = 'home' | 'overview' | ControlTab | 'touchpad' | 'gyro' | 'layers' | StudioTab
+export type StudioTab = 'configurations' | 'associations' | 'globalChords' | 'timing' | 'ai' | 'deviceVisibility' | 'appearance' | 'settings' | 'help' | 'credits' | 'debugConsole'
+export type PrimaryTab = 'home' | 'overview' | ControlTab | 'touchpad' | 'virtualMenus' | 'gyro' | 'layers' | StudioTab
 
 /**
  * Which strip of tabs a page lives in, and the eyebrow over its title. There
@@ -37,6 +37,7 @@ export const CONTROL_PAGES: PageMeta[] = [
   page('triggers', 'app.nav.triggers', 'Triggers', 'triggers', 'controls', 'Soft and full pull for each trigger, and how the two combine.'),
   page('joysticks', 'app.nav.joysticks', 'Joysticks', 'joysticks', 'controls', 'Stick mode, deadzones and the bindings each mode sends.'),
   page('touchpad', 'app.nav.trackpads', 'Trackpads', 'trackpads', 'controls', 'Each pad has its own mode. Select a region on the preview to bind it.'),
+  page('virtualMenus', 'app.nav.virtualMenus', 'Virtual menus', 'library', 'controls', 'Create wheels, grids and hotbars. Open them from any regular binding card.'),
   page('gyro', 'app.nav.gyro', 'Gyro', 'gyro', 'controls', 'How tilting the controller moves your aim, and when.'),
   page('layers', 'app.nav.layers', 'Layers', 'layers', 'controls', 'Layers stack in order; the last applied wins a conflict. Editing a layer never activates it.'),
 ]
@@ -51,6 +52,7 @@ export const STUDIO_PAGES: PageMeta[] = [
   page('appearance', 'app.nav.appearance', 'Appearance', 'appearance', 'studio', 'Theme, language and the accent the app wears. The window and tray icons follow it.'),
   page('settings', 'app.nav.preferences', 'Preferences', 'preferences', 'studio', 'Startup and controller settings. Configuration settings live on each page.'),
   page('help', 'app.nav.documentation', 'Documentation', 'docs', 'studio', 'JoyShockMapper reference and JSM Evolved guides, offline.'),
+  page('credits', 'app.nav.credits', 'Credits', 'source', 'studio', 'The people, projects and community that made JSM Evolved possible.'),
   page('debugConsole', 'app.nav.debugConsole', 'Debug console', 'debug', 'studio', 'The mapper’s live log, and a line to send it commands.'),
 ]
 

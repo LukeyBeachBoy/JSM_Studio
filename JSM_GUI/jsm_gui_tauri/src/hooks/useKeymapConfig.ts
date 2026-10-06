@@ -11,19 +11,30 @@ import { useBindingsConfig } from './useBindingsConfig'
 import { useConfigIncludes } from './useConfigIncludes'
 import { INCLUDE_ROOT } from '../utils/configIncludes'
 import { dropRedundantOverrides } from '../utils/inheritedOverrides'
+import { controllerBase, projectController, foldController } from '../utils/controllerLayouts'
 
-export function useKeymapConfig() {
+export function useKeymapConfig(controllerModel = '') {
   const history = useConfigHistory()
   const { text: documentText, setText: setDocumentText } = history
   const [selectedLayer, selectLayer] = useState('')
-  const layers = useMemo(() => readLayers(documentText), [documentText])
-  const layerId = layers.some(layer => layer.id === selectedLayer) ? selectedLayer : ''
   // Memoized because this hook re-renders with every telemetry frame, and each
   // of these is a full pass over the profile (split, a regex per line, a
   // JSON.parse per layer). The text only changes when the profile is edited.
-  const baseText = useMemo(() => defaultLayer(documentText), [documentText])
+  const baseText = useMemo(() => controllerBase(defaultLayer(documentText)), [documentText])
   const includes = useConfigIncludes(baseText, INCLUDE_ROOT)
-  const projection = useCallback((text: string) => projectLayer(layerId ? writeLayers(includes.resolveText(defaultLayer(text)), readLayers(text)) : text, layerId), [layerId, includes.resolveText])
+  const controllerProjection = useCallback((text: string) => controllerModel ? projectController(text, controllerModel, includes.resolveText(controllerBase(text))) : text, [controllerModel, includes.resolveText])
+  const projectedDocument = useMemo(() => controllerProjection(documentText), [controllerProjection, documentText])
+  const layers = useMemo(() => readLayers(projectedDocument), [projectedDocument])
+  const layerId = layers.some(layer => layer.id === selectedLayer) ? selectedLayer : ''
+  const projection = useCallback((text: string) => {
+    const projected = controllerProjection(text)
+    return projectLayer(layerId ? writeLayers(includes.resolveText(defaultLayer(projected)), readLayers(projected)) : projected, layerId)
+  }, [layerId, includes.resolveText, controllerProjection])
+  const fold = useCallback((document: string, id: string, next: string, before: string) => {
+    const projected = controllerProjection(document)
+    const edited = foldLayer(projected, id, next, before)
+    return controllerModel ? foldController(document, controllerModel, projected, edited) : edited
+  }, [controllerModel, controllerProjection])
   const configText = useMemo(() => projection(documentText), [projection, documentText])
   // Every edit made through the controls lands here, so this is where a value
   // set back to what the imports already say stops being an override (see
@@ -36,27 +47,30 @@ export function useKeymapConfig() {
   const setConfigText: Dispatch<SetStateAction<string>> = useCallback(update => {
     setDocumentText(previous => {
       const before = projection(previous)
-      return foldLayer(previous, layerId, settle(layerId, before, typeof update === 'function' ? update(before) : update), before)
+      return fold(previous, layerId, settle(layerId, before, typeof update === 'function' ? update(before) : update), before)
     })
-  }, [layerId, setDocumentText, projection, settle])
+  }, [layerId, setDocumentText, projection, settle, fold])
   const resetConfigHistory = useCallback((text: string) => { selectLayer(''); history.reset(text) }, [history.reset])
   // The same projection and write, for a layer other than the one being
   // edited: On-screen menus (2d) draws and moves every layer's menus at once.
   // eslint-disable-next-line react-hooks/exhaustive-deps -- resolveText is the only part of includes it reads, as with projection above
-  const projectionFor = useCallback((id: string, text: string) => projectLayer(id ? writeLayers(includes.resolveText(defaultLayer(text)), readLayers(text)) : text, id), [includes.resolveText])
+  const projectionFor = useCallback((id: string, text: string) => {
+    const projected = controllerProjection(text)
+    return projectLayer(id ? writeLayers(includes.resolveText(defaultLayer(projected)), readLayers(projected)) : projected, id)
+  }, [includes.resolveText, controllerProjection])
   const setConfigTextFor = useCallback((id: string, update: (previous: string) => string) => {
     setDocumentText(previous => {
       const before = projectionFor(id, previous)
-      return foldLayer(previous, id, settle(id, before, update(before)), before)
+      return fold(previous, id, settle(id, before, update(before)), before)
     })
-  }, [setDocumentText, projectionFor, settle])
+  }, [setDocumentText, projectionFor, settle, fold])
   const [appliedConfig, setAppliedConfig] = useState('')
 
   // A profile that imports a template is not the same thing as the text in its
   // file. Every read below goes through the resolved text so inherited settings
   // show up; writes still go to configText, so changing an inherited value
   // writes an override into this profile rather than editing the template.
-  const readText = useMemo(() => projectLayer(writeLayers(includes.effectiveText, layers), layerId), [includes.effectiveText, layers, layerId])
+  const readText = useMemo(() => projectLayer(writeLayers(controllerModel ? projectedDocument : includes.effectiveText, layers), layerId), [includes.effectiveText, layers, layerId, controllerModel, projectedDocument])
 
   const sensitivityConfig = useSensitivityConfig({ configText, readText, setConfigText })
   const touchpadConfig = useTouchpadConfig({ configText, readText, setConfigText })
@@ -88,9 +102,9 @@ export function useKeymapConfig() {
   const { hasPendingSensitivityChanges, pendingSensitivity, previewPendingValues } = sensitivityConfig
   const draftChanged = useMemo(() => {
     if (!hasPendingSensitivityChanges) return false
-    const finalized = foldLayer(documentText, layerId, settle(layerId, configText, previewPendingValues(pendingSensitivity)), configText)
+    const finalized = fold(documentText, layerId, settle(layerId, configText, previewPendingValues(pendingSensitivity)), configText)
     return finalized !== appliedConfig && canonical(finalized) !== canonical(appliedConfig)
-  }, [hasPendingSensitivityChanges, pendingSensitivity, previewPendingValues, documentText, layerId, configText, appliedConfig, settle, canonical])
+  }, [hasPendingSensitivityChanges, pendingSensitivity, previewPendingValues, documentText, layerId, configText, appliedConfig, settle, canonical, fold])
   const hasPendingChanges = textChanged || draftChanged
   const handleCancel = () => {
     sensitivityConfig.resetPendingSensitivityChanges()
@@ -98,7 +112,8 @@ export function useKeymapConfig() {
   }
 
   return {
-    documentText, setDocumentText, layers, layerId,
+    documentText, setDocumentText, layers, layerId, projectedDocument,
+    setDocumentTextAsAction: history.setTextAsAction,
     selectCreatedLayer: selectLayer,
     selectLayer: (id: string) => {
       setConfigText(sensitivityConfig.finalizePendingValues())
@@ -106,14 +121,14 @@ export function useKeymapConfig() {
       selectLayer(id)
     },
     savedLayerText: projection(appliedConfig),
-    foldConfigText: (text: string) => foldLayer(documentText, layerId, text, configText),
+    foldConfigText: (text: string) => fold(documentText, layerId, text, configText),
     configText,
     // The text the runtime would execute: this profile with its imports
     // resolved in place. Read-only -- never save it over a profile.
     effectiveConfigText: readText,
     configIncludes: { ...includes, effectiveText: readText },
     /** Import-resolved text as the given layer reads it (every layer, not just the edited one). */
-    readTextFor: (id: string) => projectLayer(writeLayers(includes.effectiveText, layers), id),
+    readTextFor: (id: string) => projectionFor(id, documentText),
     setConfigTextFor,
     setConfigText,
     resetConfigHistory,
@@ -130,7 +145,7 @@ export function useKeymapConfig() {
     ignoredGyroDevices,
     // Pending sensitivity drafts are written back here on save, so they go
     // through the same check: a draft equal to the import writes no line.
-    finalizePendingValues: () => foldLayer(documentText, layerId, settle(layerId, configText, sensitivityConfig.finalizePendingValues()), configText),
+    finalizePendingValues: () => fold(documentText, layerId, settle(layerId, configText, sensitivityConfig.finalizePendingValues()), configText),
     // Sensitivity slice
     sensitivityView: sensitivityConfig.sensitivityView,
     setSensitivityView: sensitivityConfig.setSensitivityView,
@@ -155,6 +170,7 @@ export function useKeymapConfig() {
     handleThresholdChange: sensitivityConfig.handleThresholdChange,
     handleCutoffSpeedChange: sensitivityConfig.handleCutoffSpeedChange,
     handleCutoffRecoveryChange: sensitivityConfig.handleCutoffRecoveryChange,
+    handleSteadyingFloorChange: sensitivityConfig.handleSteadyingFloorChange,
     handleSmoothTimeChange: sensitivityConfig.handleSmoothTimeChange,
     handleSmoothThresholdChange: sensitivityConfig.handleSmoothThresholdChange,
     handleSmoothingDecayChange: sensitivityConfig.handleSmoothingDecayChange,
@@ -176,6 +192,7 @@ export function useKeymapConfig() {
     handleGyroAxisYChange: sensitivityConfig.handleGyroAxisYChange,
     handleGyroOutputChange: sensitivityConfig.handleGyroOutputChange,
     handleDualSensChange: sensitivityConfig.handleDualSensChange,
+    handleDualSensPairChange: sensitivityConfig.handleDualSensPairChange,
     handleStaticSensChange: sensitivityConfig.handleStaticSensChange,
     handleRollContributionChange: sensitivityConfig.handleRollContributionChange,
     handleModeSelection: sensitivityConfig.handleModeSelection,

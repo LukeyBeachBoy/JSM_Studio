@@ -5,7 +5,7 @@ import { Icon } from './icons/Icon'
 import { desktopBridge, type GlobalTiming } from '../platform/desktopBridge'
 import { patchRuntimePreferences, usePreferences } from '../platform/preferenceStore'
 import { showToast } from '../utils/toast'
-import { timingLines, type TimingKey } from '../utils/timing'
+import { timingLines, timingMilliseconds, type TimingKey } from '../utils/timing'
 
 // Press timing & polling (console refinement 2f, D8): one global store shared
 // by every configuration. Changes save as they are made -- there is no Apply
@@ -22,19 +22,13 @@ type Values = typeof JSM_DEFAULTS
 const seconds = (ms: number) => `${(ms / 1000).toFixed(2)} s`
 const perSecond = (periodMs: number) => Math.max(1, Math.round(1000 / Math.max(1, periodMs)))
 
-/** A timing line's value in milliseconds. Older Studio builds wrote seconds. */
-const lineMs = (key: TimingKey, raw: string) => {
-  const value = Number.parseFloat(raw)
-  if (!Number.isFinite(value)) return null
-  return key !== 'TICK_TIME' && key !== 'TURBO_PERIOD' && value < 10 ? value * 1000 : value
-}
-
 /** How a file's line reads, in the page's own units: "HOLD_PRESS_TIME = 0.20 s". */
 const describeLine = (key: TimingKey, raw: string) => {
-  const ms = lineMs(key, raw)
+  const ms = timingMilliseconds(raw)
   if (ms === null) return `${key} = ${raw}`
   if (key === 'TICK_TIME') return `${key} = ${ms} ms`
   if (key === 'TURBO_PERIOD') return `${key} = ${perSecond(ms)} /s`
+  if (ms < 10) return `${key} = ${ms} ms`
   return `${key} = ${seconds(ms)}`
 }
 
@@ -112,7 +106,7 @@ export function TimingPage({ onRemoveLines, libraryKey }: TimingPageProps) {
 
   const removeLine = async (item: TimingOverride, moveToShared: boolean) => {
     if (moveToShared) {
-      const ms = lineMs(item.key, item.raw)
+      const ms = timingMilliseconds(item.raw)
       if (ms === null || !await save({ [FIELD[item.key]]: ms }, true)) return
     }
     if (await onRemoveLines(item.profile, [item.key])) {

@@ -6,7 +6,7 @@ import os, subprocess, tempfile
 ROOT=Path(__file__).resolve().parents[1]
 src=(ROOT/'JoyShockMapper/JoyShockMapper/src/CmdRegistry.cpp').read_text(encoding='utf-8')
 load=src[src.index('bool CmdRegistry::loadConfigFile'):src.index('string_view CmdRegistry::strtrim')]
-process=src[src.index('void CmdRegistry::processLine'):src.index('\t\tsmatch results;',src.index('void CmdRegistry::processLine'))]
+process=src[src.index('void CmdRegistry::processLine'):src.index('\t\tConfigLine parts;',src.index('void CmdRegistry::processLine'))]
 pre=r"""
 #include <string>
 #include <vector>
@@ -22,9 +22,15 @@ using namespace std;
 #define COUT_INFO cout
 #define CERR cerr
 namespace { mutex profileMutex; string liveProfile; }
+namespace ConfigErrors {
+ struct Location { string profile,file; int line; string text; bool active; };
+ Location current;
+ void clearProfile(const string&) {}
+}
 class CmdRegistry {
  string _chordRestore;
  vector<string> _profileLines, _restoreLines, _loadingFiles;
+ vector<int> _loadingLines;
  bool _chordLoading=false;
  public:
  map<string,string> assignments;
@@ -52,7 +58,7 @@ int main() {
  assert(registry.assignments.at("R")=="SPACE");
  assert(CmdRegistry::activeProfile()=="chord.txt");
  ofstream("base.txt") << "RESET_MAPPINGS\nN=EDITED_WITHOUT_APPLYING\n";
- registry.loadConfigFile("other.txt");
+ registry.processLine("STUDIO_AUTOLOAD other.txt");
  assert(registry.assignments.at("R")=="SPACE");
  registry.processLine("STUDIO_CHORD_END");
  assert(registry.assignments.at("N")=="A");
@@ -67,6 +73,13 @@ int main() {
  registry.processLine("RESET_MAPPINGS");
  registry.processLine("STUDIO_CHORD_END");
  assert(registry.assignments.empty());
+ // An explicit player-requested configuration load must replace a held chord.
+ registry.loadConfigFile("base.txt");
+ registry.processLine("STUDIO_CHORD_BEGIN chord.txt");
+ registry.loadConfigFile("other.txt");
+ assert(registry.assignments.at("N")=="C");
+ registry.processLine("STUDIO_CHORD_END");
+ assert(registry.assignments.at("N")=="C");
  cout << "PASS: full reset, nested settings snapshot, autoload suppression, save-without-apply, missing target, repeated release and pause.\n";
 }
 """

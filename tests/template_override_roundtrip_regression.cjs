@@ -262,7 +262,7 @@ const ownLines = text => text.split(/\r?\n/).map(l => l.trim()).filter(l => l &&
     }
     assert.equal(await originNear(group('Activation')), 'inherited:FPS Template');
     assert.match(await page.locator(combo('Activation input')).innerText(), /RS/);
-    await page.locator('.main-pane button.summary-row').filter({ has: page.locator('.summary-row__label').getByText('Dampening', { exact: true }) }).click();
+    await page.locator('.main-pane button.summary-row').filter({ has: page.locator('.summary-row__label').getByText('Noise & Steadying', { exact: true }) }).click();
     assert.deepEqual(await page.evaluate(() => [...document.querySelectorAll('.sheet .origin-marker')].map(m => `${m.getAttribute('data-setting-origin')}:${m.getAttribute('data-origin')}`).sort()),
       ['GYRO_CUTOFF_SPEED:inherited', 'GYRO_SMOOTH_THRESHOLD:inherited', 'GYRO_SMOOTH_TIME:inherited']);
     await page.keyboard.press('Escape');

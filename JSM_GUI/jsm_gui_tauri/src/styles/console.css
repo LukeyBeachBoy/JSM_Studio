@@ -234,7 +234,12 @@ body[data-input-source='controller'] .summary-row:focus { background: var(--surf
   cursor: pointer;
 }
 .sheet__close:hover { background: var(--surface-row-hover); color: var(--text-1); }
-.sheet__body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin: 0 calc(-1 * var(--sp-2)); padding: 2px var(--sp-2) var(--sp-4); }
+.sheet__body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 6px; margin: 0 calc(-1 * var(--sp-2)); padding: 8px var(--sp-2) var(--sp-4); }
+.sheet__body > * { flex-shrink: 0; }
+.midi-track-field, .midi-position-field { display: grid; gap: 8px; }
+.midi-position-field input { width: 100%; accent-color: var(--accent); }
+.midi-note-timeline { width: 100%; height: 150px; border-radius: var(--r-md); }
+.midi-status { min-height: 1.5em; margin: 6px 0; color: var(--text-2); font-size: var(--fs-label); }
 .sheet__footer { display: flex; align-items: center; gap: var(--sp-5); font-size: var(--fs-hint); color: var(--text-2); }
 .sheet__hint { display: flex; align-items: center; gap: var(--sp-2); }
 .sheet__hint .button-glyph { color: var(--text-1); }
@@ -245,6 +250,10 @@ body:has(.config-menu-overlay) .hint-capsule { visibility: hidden; }
 
 /* Scope strip (2c) and contact tiles (2e): one 48px tile per pad or grip. */
 .scope-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: var(--sp-2); }
+.trackpad-feel { display: flex; flex-direction: column; gap: var(--sp-5); }
+.trackpad-feel > .row-group { margin-top: 0; }
+.trackpad-feel__pad { display: flex; flex-direction: column; gap: 2px; padding: 10px 0; }
+.trackpad-feel .sheet-note { margin: 0 0 var(--sp-2); }
 .scope-tile {
   min-height: 48px;
   display: flex;
@@ -265,6 +274,10 @@ body:has(.config-menu-overlay) .hint-capsule { visibility: hidden; }
 .scope-tile[data-state='touching'] .scope-tile__dot { background: var(--telemetry); box-shadow: none; }
 
 /* ============ Configuration menu (1e): centred, 520, 52px rows ============ */
+.modal-overlay.config-menu-overlay {
+  inset: var(--titlebar-h) 0 0 0;
+  margin: 0;
+}
 .config-menu {
   width: min(520px, calc(100vw - 32px));
   display: flex;
@@ -424,13 +437,126 @@ body[data-input-source='controller'] .config-menu__item:focus { background: var(
   background: var(--focus-controller);
   cursor: nwse-resize;
 }
-.menus-view__panel { display: flex; flex-direction: column; gap: 6px; min-height: 0; overflow-y: auto; }
+.menus-view__panel { display: flex; flex-direction: column; gap: 6px; min-height: 0; overflow-y: auto; padding: 8px 6px 16px; }
+.menus-view__panel > * { flex-shrink: 0; }
 .menus-view__menu-name { display: flex; flex-direction: column; gap: 2px; padding: 0 4px 8px; }
 .menus-view__menu-name b { font-size: var(--fs-section); font-weight: var(--fw-semibold); }
 .menus-view__menu-name span { font-size: var(--fs-hint); color: var(--text-2); }
 .menus-view__spacer { flex: 1; min-height: var(--sp-3); }
 body:has(.menus-overlay) .hint-capsule { visibility: hidden; }
-@media (max-width: 1279px) { .menus-view__body { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 1279px) {
+  .menus-view__body { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 35%) minmax(0, 1fr); }
+}
+
+/* ============ Acceleration curve editor (TODO-40) ============
+   The On-screen menus frame: the curve fills the middle, the rows sit in a
+   400px panel on the right, and the page's capsule steps aside for the
+   view's own footer. */
+.curve-view-overlay { padding: 0; }
+.curve-view {
+  position: absolute;
+  inset: 40px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--sp-5);
+  padding: var(--sp-6);
+  border-radius: 18px;
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-menu);
+  color: var(--text-1);
+  animation: sheet-in var(--dur-3) var(--ease-emphasis);
+}
+.curve-view > .sheet__close { top: 12px; right: 12px; }
+.curve-view__header { display: flex; align-items: flex-end; gap: var(--sp-4); padding-right: var(--sp-7); }
+.curve-view__title { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.curve-view__title b { font-size: 24px; line-height: 30px; font-weight: var(--fw-semibold); }
+.curve-view__chips { display: flex; align-items: center; gap: var(--sp-2); }
+.curve-view__chips .menus-chip span { color: var(--text-3); }
+.curve-view__chips .menus-chip[data-state='selected'] span { color: var(--text-2); }
+.curve-view__body { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: var(--sp-6); min-height: 0; }
+.curve-view__plot-col { display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; min-height: 0; }
+.curve-view__legend { display: flex; flex-wrap: wrap; gap: var(--sp-5); font-size: var(--fs-hint); line-height: var(--lh-hint); color: var(--text-2); }
+.curve-view__legend span { display: inline-flex; align-items: center; gap: 6px; }
+.curve-view__key { display: inline-block; width: 16px; height: 0; border-top: 3px solid var(--accent); border-radius: 2px; }
+.curve-view__key[data-key='secondary'] { border-top-width: 2px; opacity: .55; }
+.curve-view__key[data-key='output'] { border-top: 2px dashed var(--telemetry); opacity: .7; }
+.curve-view__key[data-key='live'] { width: 10px; height: 10px; border: 0; border-radius: 50%; background: var(--telemetry); }
+.curve-view__readout { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-5); font-size: var(--fs-hint); line-height: var(--lh-hint); color: var(--text-3); }
+.curve-view__readout strong {
+  display: inline-block;
+  min-width: 8ch;
+  margin-left: 4px;
+  color: var(--telemetry);
+  font-family: var(--font-mono);
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+}
+.curve-view__hint { margin: 0; font-size: var(--fs-hint); line-height: var(--lh-hint); color: var(--text-3); }
+.curve-view__note { margin: 0; padding: var(--sp-3) 4px; font-size: var(--fs-hint); line-height: var(--lh-hint); color: var(--text-2); }
+.curve-view__panel { display: flex; flex-direction: column; gap: 6px; min-height: 0; overflow-y: auto; padding: 8px 6px 16px; }
+.curve-view__panel > * { flex-shrink: 0; }
+.curve-view__panel > .sheet__footer { flex-wrap: wrap; row-gap: var(--sp-2); padding-top: var(--sp-2); }
+.curve-view__panel .sheet__hint { white-space: nowrap; }
+body:has(.curve-view-overlay) .hint-capsule { visibility: hidden; }
+/* Narrow: the curve pinned on top at a fixed height, the rows scrolling
+   under it, so it stays in view while a row is adjusted. */
+@media (max-width: 1279px) {
+  .curve-view { inset: 16px; }
+  .curve-view__body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto; overflow-y: auto; }
+  .curve-view__body .curve-plot { flex: none; height: clamp(200px, 36vh, 400px); }
+  .curve-view__plot-col, .curve-view__panel { min-height: auto; overflow: visible; }
+  .curve-view__plot-col { position: sticky; top: 0; z-index: 1; padding-bottom: var(--sp-3); background: var(--surface-raised); }
+  .curve-view__hint { display: none; }
+}
+
+/* The plot: an SVG measured to its box, so text stays 11px at any size. */
+.curve-plot {
+  position: relative;
+  flex: 1;
+  min-height: 260px;
+  border-radius: 12px;
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--line-2);
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+}
+.curve-plot > svg { position: absolute; inset: 0; display: block; }
+.curve-plot__frame { fill: none; stroke: var(--line-2); }
+.curve-plot__grid line { stroke: var(--line-1); stroke-width: 1; }
+.curve-plot__ticks text { fill: var(--text-3); font-family: var(--font-mono); font-size: 11px; font-variant-numeric: tabular-nums; }
+.curve-plot__axis-name { fill: var(--text-3); font-family: inherit; }
+.curve-plot__marker line { stroke: var(--text-3); stroke-width: 1; stroke-dasharray: 4 4; opacity: .7; }
+.curve-plot__marker text { fill: var(--text-2); font-size: 11px; font-weight: var(--fw-semibold); letter-spacing: .02em; }
+.curve-plot__area { fill: var(--accent); opacity: .08; }
+.curve-plot__level line { stroke: var(--accent); stroke-width: 1; stroke-dasharray: 2 5; opacity: .6; }
+.curve-plot__level text { fill: var(--text-3); font-family: var(--font-mono); font-size: 11px; }
+.curve-plot__curve { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.curve-plot__secondary { fill: none; stroke: var(--accent); stroke-width: 1.5; opacity: .55; }
+.curve-plot__output { fill: none; stroke: var(--telemetry); stroke-width: 1.5; stroke-dasharray: 6 5; opacity: .6; }
+.curve-plot__rug { stroke: var(--telemetry); stroke-width: 2; }
+.curve-plot__live line { stroke: var(--telemetry); stroke-width: 1; opacity: .55; }
+.curve-plot__live circle { fill: var(--telemetry); stroke: var(--surface-sunken); stroke-width: 2; }
+.curve-plot__live[data-off-scale='true'] circle { opacity: .5; }
+.curve-plot__hover line { stroke: var(--text-2); stroke-width: 1; stroke-dasharray: 3 4; opacity: .5; }
+.curve-plot__hover circle { fill: var(--text-1); }
+.curve-plot__handle { cursor: move; }
+.curve-plot__handle[data-axis='x'] { cursor: ew-resize; }
+.curve-plot__handle[data-axis='y'] { cursor: ns-resize; }
+.curve-plot__handle-hit { fill: transparent; }
+.curve-plot__handle-dot { fill: var(--surface-raised); stroke: var(--accent); stroke-width: 2.5; transition: r var(--dur-1) var(--ease-standard); }
+.curve-plot__handle:hover .curve-plot__handle-dot,
+.curve-plot__handle[data-state='held'] .curve-plot__handle-dot { r: 9; fill: var(--accent); stroke: var(--surface-raised); }
+.curve-plot[data-dragging='true'] { cursor: grabbing; }
+.curve-plot__bubble rect { fill: var(--surface-raised); stroke: var(--line-2); }
+.curve-plot__bubble text { fill: var(--text-1); font-family: var(--font-mono); font-size: 11px; font-variant-numeric: tabular-nums; }
+.curve-plot__bubble[data-tone='live'] rect { stroke: var(--telemetry); }
+.curve-plot__bubble[data-tone='handle'] rect { stroke: var(--accent); }
+
+/* The Gyro page's way in: the curve's shape in miniature beside the button. */
+.curve-entry { display: inline-flex; align-items: center; gap: var(--sp-3); }
+.curve-entry__spark { display: block; border-radius: 6px; background: var(--surface-sunken); box-shadow: inset 0 0 0 1px var(--line-1); }
+.curve-entry__spark path { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; }
 .light-bar-value { display: inline-flex; align-items: center; gap: var(--sp-2); font-family: var(--font-mono); }
 .light-bar-value > span { width: 14px; height: 14px; border-radius: 4px; box-shadow: inset 0 0 0 1px var(--line-2); }
 
@@ -503,12 +629,43 @@ body:has(.menus-overlay) .hint-capsule { visibility: hidden; }
   gap: var(--sp-5);
   height: 56px;
   padding: 0 24px;
-  background: var(--surface-nav);
+  background: var(--surface-raised);
   box-shadow: inset 0 1px 0 var(--line-1);
   color: var(--text-2);
   font-size: var(--fs-hint);
 }
-:root[data-theme='dark'] .dialog__footer, :root:not([data-theme]) .dialog__footer { background: #1b232b; }
+.sound-dialog .dialog__body { padding: 0 24px 20px; }
+.sound-dialog .dialog__body > :first-child { margin-top: 0; }
+.sound-dialog .dialog__body > :last-child { margin-bottom: 0; }
+.sound-dialog .dialog__footer {
+  height: auto;
+  min-height: 64px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  padding: 12px 24px;
+  border-top: 1px solid var(--line-1);
+  box-shadow: none;
+}
+.sound-dialog .dialog__footer .dialog__hints { flex: 1 1 auto; }
+.sound-dialog .dialog__footer .button { white-space: nowrap; }
+.sound-dialog .controller-sound-row { flex-wrap: wrap; }
+.sound-octave-nudge { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin: 14px 0; color: var(--text-2); font-size: var(--fs-label); }
+.sound-octave-nudge > span { color: var(--text-1); }
+.sound-octave-nudge small { color: var(--text-2); }
+
+.sound-preview-volume { display: flex; align-items: center; gap: 12px; margin: 14px 0; color: var(--text-2); font-size: var(--fs-label); }
+.sound-preview-volume input { flex: 1; min-width: 80px; accent-color: var(--accent); }
+.sound-preview-volume output { min-width: 48px; text-align: right; color: var(--text-1); }
+.sound-library-entry { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 14px 0; border-top: 1px solid var(--line-1); }
+.sound-library-entry__name { display: flex; flex: 1 1 180px; min-width: 0; flex-direction: column; gap: 4px; overflow-wrap: anywhere; }
+.sound-library-entry__name small { color: var(--text-2); }
+.sound-library-entry__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.sound-rename-field { display: flex; flex-direction: column; gap: 8px; padding: 4px 0; }
+.sound-rename-field .text-field { width: 100%; }
+.sound-trim-dialog .dialog__body canvas { display: block; border-radius: 8px; }
+.sound-trim-fields { display: flex; flex-wrap: wrap; gap: 12px 20px; margin: 16px 0; }
+.sound-trim-fields label { display: flex; flex: 1 1 140px; flex-direction: column; gap: 6px; color: var(--text-2); font-size: var(--fs-label); }
+.sound-trim-fields input { width: 100%; max-width: 180px; min-height: 32px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--line-2); background: var(--surface-control); color: var(--text-1); font: inherit; }
 .dialog__note { color: var(--text-3); }
 .dialog__hints { display: flex; flex: 1; align-items: center; justify-content: flex-end; gap: var(--sp-5); }
 .dialog__hint { display: inline-flex; align-items: center; gap: 6px; font-weight: var(--fw-semibold); color: var(--text-2); }
@@ -527,24 +684,22 @@ body:has(.menus-overlay) .hint-capsule { visibility: hidden; }
 .titlebar .context-segment--layer[data-layer-slot='5'] { --segment-hue: var(--layer-5); background: var(--layer-5-soft); }
 .titlebar .context-segment--layer[data-layer-slot='6'] { --segment-hue: var(--layer-6); background: var(--layer-6-soft); }
 .titlebar .context-segment--layer[data-layer-slot] :is(.context-segment__key, b, svg[data-icon]) { color: var(--segment-hue); }
-.shift-status, .hint-capsule__status {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  height: 28px;
-  border-radius: var(--r-pill);
+/* ---- TODO-53: the shared touch-stick section explains itself under its
+   title. The intro arrives as ButtonGridSection's extraContent, after the
+   list; the section is a flex column (Keymap.module.css .keymapSection), so
+   order moves the header first and the intro under it. ---- */
+#trackpad-buttons > section > :first-child { order: -2; }
+#trackpad-buttons > section > .touch-stick-shared__intro {
+  order: -1;
+  margin: 0 0 var(--sp-1);
+  max-width: 72ch;
+  color: var(--text-2);
   font-size: var(--fs-hint);
-  font-weight: var(--fw-semibold);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+  line-height: var(--lh-hint);
 }
-.shift-status { width: 220px; }
-.hint-capsule__status { width: 180px; }
-.shift-status[data-held='true'], .hint-capsule__status[data-held='true'] { background: var(--shift-soft); box-shadow: var(--shift-glow); }
-.shift-status__fill { display: flex; flex: 1; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; padding: 0 12px; animation: fade-in var(--dur-1) var(--ease-standard); }
-/* The slot is fixed; its two texts share it. The name gives way first (it
-   is the one the glow already identifies), the count keeps its digits. */
-.shift-status__held { display: inline-flex; flex: 1 1 auto; align-items: center; gap: 6px; min-width: 0; color: var(--shift); }
-.shift-status__held > svg[data-icon] { flex: none; }
-.shift-status__text { overflow: hidden; min-width: 0; text-overflow: ellipsis; white-space: nowrap; }
-.shift-status__count { flex: 0 1 auto; overflow: hidden; min-width: 3ch; color: var(--text-1); text-overflow: ellipsis; white-space: nowrap; }
+
+/* ============ Preferences columns (TODO-44) ============ */
+/* The right column opens with a section rather than a bare eyebrow, so its
+   first heading drops the eyebrow's top margin the way a column's own first
+   eyebrow does (App.css), keeping both columns' tops on one line. */
+.prefs-column > .prefs-section:first-child > .prefs-eyebrow:first-child { margin-top: 0; }

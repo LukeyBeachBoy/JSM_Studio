@@ -1,16 +1,19 @@
-import { useCallback, useMemo, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react'
+import { detachStickMenu, stickMenuLinks, isDirectStickMenu } from '../../utils/stickMenus'
+import { PadFeedbackRows } from './PadFeedbackRows'
+import { hasSeparatePadFeedback } from '../../utils/padFeedback'
+import { useCallback, useMemo, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AppSelect } from '../ui/AppSelect'
-import { HelpButton } from '../HelpButton'
+import { Lane, LaneAddButton } from './Lane'
 import { Icon } from '../icons/Icon'
-import { getBindingLabel, setBindingLabel } from '../../utils/bindingLabels'
+import { getBindingLabel, setBindingLabel, parseBindingLabels } from '../../utils/bindingLabels'
 import { parseBindingIcons, setBindingIcon } from '../../utils/bindingIcons'
 import { describeBinding } from '../../utils/bindingDescription'
 import type { ControllerVisualFamily } from '../../utils/controllerStatus'
 import { getButtonBindingRows, getKeymapValue } from '../../utils/keymap'
 import { resolveOverlayMenus } from '../../utils/overlayLayout'
 import { resolveTouchpadGrids } from '../../utils/touchpadGrids'
-import { addModeshift, foldModeshift, modeshiftTriggers, projectModeshift, readModeshift, readShifted, removeModeshift, renameModeshift, writeModeshift, type ModeshiftTarget } from '../../utils/modeshift'
+import { addModeshift, clearModeshift, foldModeshift, modeshiftTriggers, projectModeshift, readModeshift, readShifted, removeModeshift, renameModeshift, writeModeshift, type ModeshiftTarget } from '../../utils/modeshift'
 import type { VirtualControllerType } from '../../utils/virtualController'
 import type { LivePadTouch } from './TouchpadGridSection'
 import type { TouchpadModeCardConfig } from './TouchpadSettingsSection'
@@ -23,6 +26,11 @@ import { useButtonRowState } from '../../keymap/useButtonRowState'
 import { useBindingsConfig } from '../../hooks/useBindingsConfig'
 import styles from './InputModeshifts.module.css'
 import { ReleaseSwitch } from './ReleaseSwitch'
+import { StickSection } from './StickSection'
+import { useStickConfig } from '../../hooks/useStickConfig'
+import { useStickModeExtras } from '../../hooks/useStickModeExtras'
+import { SettingPrefix } from '../SettingOrigin'
+import { stickModeDirectionUse } from '../../constants/sticks'
 import { heldInput, isReleasedInput, withRelease } from '../../utils/released'
 
 type SectionActionProps = {
@@ -34,6 +42,7 @@ type SectionActionProps = {
 }
 
 export type InputModeshiftsProps = {
+  renderEditor?: (trigger: string) => ReactNode
   initiallyOpen?: boolean
   controllerFamily?: ControllerVisualFamily
   target: ModeshiftTarget
@@ -221,10 +230,11 @@ export function ShiftedBinding({ button, trigger, defaultOpen, rowLabel, subtitl
       // of that -- an empty label line for the shifted key -- or the next read
       // inherits the unshifted label straight back and the field refills itself.
       // With nothing to inherit there is nothing to suppress, so the line goes.
+      commandLabels={parseBindingLabels(props.text)}
       bindingLabel={annotations.label}
-      onBindingLabelChange={(_target, value) =>
+      onBindingLabelChange={(targetKey, value) =>
         onChange(previous =>
-          setBindingLabel(previous, key, value, { keepEmpty: Boolean(getBindingLabel(previous, button.command)) })
+          setBindingLabel(previous, targetKey, value, { keepEmpty: !targetKey.includes('::') && Boolean(getBindingLabel(previous, button.command)) })
         )
       }
       bindingIcon={annotations.icon}
@@ -239,12 +249,12 @@ export function ShiftedBinding({ button, trigger, defaultOpen, rowLabel, subtitl
 function useShiftedPad(text: string, trigger: string, target: ModeshiftTarget) {
   const pad = target.pad!
   return useMemo(() => {
-    const key = (name: string) => `${pad.keyPrefix}_${name}`
+    const key = (name: string) => `${pad.keyPrefix ? pad.keyPrefix + '_' : ''}${name}`
     const read = (name: string, fallback = '') => readShifted(text, trigger, key(name)) ?? fallback
     const mode = read('TOUCHPAD_MODE', 'GRID_AND_STICK').trim().toUpperCase()
     const [rawColumns, rawRows] = read('GRID_SIZE', '2 2').trim().split(/\s+/).map(Number)
     const shape = (read('GRID_SHAPE', 'RECTANGLE').trim().toUpperCase() || 'RECTANGLE')
-    const prefix = pad.side === 'left' ? 'LT' : 'RT'
+    const prefix = pad.side === 'left' ? 'LT' : pad.side === 'right' ? 'RT' : 'T'
     const side = { columns: clampGrid(rawColumns), rows: clampGrid(rawRows) }
     const grid = resolveTouchpadGrids(pad.side === 'left'
       ? { leftMode: mode, leftColumns: side.columns, leftRows: side.rows, leftShape: shape }
@@ -285,14 +295,26 @@ function PadModeshiftBody({ trigger, heldName, ...props }: InputModeshiftsProps 
   const pad = target.pad!
   const [selectedCommand, setSelectedCommand] = useState<string | null>(null)
   const shifted = useShiftedPad(text, trigger, target)
-  const menuKey = `${pad.keyPrefix}:${trigger}`
+  const menuKey = `${pad.keyPrefix || 'TOUCH'}:${trigger}`
   // The overlay's menus are resolved from the whole config; once per change,
   // not once per telemetry frame.
   const shiftedMenu = useMemo(() => resolveOverlayMenus(text)[menuKey], [text, menuKey])
 
-  const key = (name: string) => `${pad.keyPrefix}_${name}`
+  const key = (name: string) => `${pad.keyPrefix ? pad.keyPrefix + '_' : ''}${name}`
   const read = shifted.read
-  const write = (name: string, value: string) => onChange(previous => writeModeshift(previous, trigger, key(name), value))
+  const projected = useMemo(() => projectModeshift(text, trigger), [text, trigger])
+  const setProjected = useCallback<Dispatch<SetStateAction<string>>>(update => {
+    const next = typeof update === 'function' ? update(projected) : update
+    onChange(previous => foldModeshift(previous, trigger, next, {}, projected))
+  }, [onChange, projected, trigger])
+  const tuning = useStickConfig({ configText: projected, setConfigText: setProjected })
+  const extras = useStickModeExtras(read('TOUCH_STICK_MODE').toUpperCase(), {
+    configText: projected, onConfigTextChange: setProjected,
+    ...tuning, mouseRingRadius: tuning.mouseRingRadiusValue, onMouseRingRadiusChange: tuning.handleMouseRingRadiusChange,
+    scrollSens: tuning.scrollSensValue, onScrollSensChange: tuning.handleScrollSensChange,
+    virtualControllerType: props.virtualControllerType,
+  })
+  const write = (name: string, value: string) => onChange(previous => value.trim() ? writeModeshift(previous, trigger, key(name), value) : clearModeshift(previous, trigger, key(name)))
   const sens = read('TOUCHPAD_SENS').trim().split(/\s+/).map(Number.parseFloat)
   const sensitivity = finite(sens[0])
   const sensitivityY = finite(sens[1]) ?? sensitivity
@@ -301,8 +323,8 @@ function PadModeshiftBody({ trigger, heldName, ...props }: InputModeshiftsProps 
   // widen a setting the normal card would have written as a single value.
   const writeSens = (value: string, axis: 'x' | 'y') => {
     if (value === '') {
-      if (axis === 'x') return write('TOUCHPAD_SENS', 'NONE')
-      return write('TOUCHPAD_SENS', sensitivity === undefined ? 'NONE' : String(sensitivity))
+      if (axis === 'x') return write('TOUCHPAD_SENS', '')
+      return write('TOUCHPAD_SENS', sensitivity === undefined ? '' : String(sensitivity))
     }
     const next = Number.parseFloat(value)
     if (!Number.isFinite(next)) return
@@ -313,7 +335,7 @@ function PadModeshiftBody({ trigger, heldName, ...props }: InputModeshiftsProps 
   const deadzone = Number.parseFloat(read('GRID_DEADZONE'))
 
   const config: TouchpadModeCardConfig = {
-    keyPrefix: `${pad.keyPrefix}_`,
+    keyPrefix: `${pad.keyPrefix ? pad.keyPrefix + '_' : ''}`,
     mode: shifted.mode,
     dualStageMode: read('TOUCHPAD_DUAL_STAGE_MODE').trim().toUpperCase(),
     gridColumns: shifted.columns,
@@ -325,7 +347,7 @@ function PadModeshiftBody({ trigger, heldName, ...props }: InputModeshiftsProps 
     onModeChange: value => write('TOUCHPAD_MODE', value),
     onGridSizeChange: (nextColumns, nextRows) => write('GRID_SIZE', `${clampGrid(nextColumns)} ${clampGrid(nextRows)}`),
     onGridShapeChange: value => write('GRID_SHAPE', value),
-    onGridDeadzoneChange: value => write('GRID_DEADZONE', value === '' ? 'NONE' : value),
+    onGridDeadzoneChange: value => write('GRID_DEADZONE', value),
     onSensitivityChange: value => writeSens(value, 'x'),
     onSensitivityYChange: value => writeSens(value, 'y'),
     onDualStageModeChange: value => write('TOUCHPAD_DUAL_STAGE_MODE', value),
@@ -349,11 +371,17 @@ function PadModeshiftBody({ trigger, heldName, ...props }: InputModeshiftsProps 
   }
 
   return (
-    <PadSection
-      keyPrefix={`${pad.keyPrefix}_` as 'LEFT_' | 'RIGHT_'}
+    <SettingPrefix prefix={`${trigger},`}><PadSection
+      keyPrefix={`${pad.keyPrefix ? pad.keyPrefix + '_' : ''}` as 'LEFT_' | 'RIGHT_' | ''}
       settingPrefix={`${trigger},`}
-      title={pad.side === 'left' ? t('keymap.leftPad', 'Left pad') : t('keymap.rightPad', 'Right pad')}
+      title={target.title}
       command={`${trigger},${pad.keyPrefix}_PAD`}
+      feedback={pad.keyPrefix ? {
+        value: hasSeparatePadFeedback(key => getKeymapValue(projected, key) ?? undefined, pad.keyPrefix) ? 'Separate' : 'Shared',
+        editor: <PadFeedbackRows side={pad.keyPrefix} mode={config.mode}
+          read={key => getKeymapValue(projected, key) ?? undefined}
+          onChange={values => onChange(previous => Object.entries(values).reduce((next, [key, value]) => writeModeshift(next, trigger, key, value), previous))} />,
+      } : undefined}
       config={config}
       menu={grid ? shiftedMenu : undefined}
       appearance={{ menuKey, onChange }}
@@ -379,11 +407,13 @@ function PadModeshiftBody({ trigger, heldName, ...props }: InputModeshiftsProps 
       {grid && (
         <TouchpadStickSection
           title={t(pad.side === 'left' ? 'keymap.touchStickTitleLeft' : 'keymap.touchStickTitleRight')}
+          keyPrefix={`${pad.keyPrefix ? pad.keyPrefix + '_' : ''}`}
+          tuning={extras.primary || extras.advanced ? <>{extras.primary}{extras.advanced}</> : undefined}
           {...stick}
           {...actions}
         />
       )}
-    </PadSection>
+    </PadSection></SettingPrefix>
   )
 }
 
@@ -393,11 +423,11 @@ function useShiftSummary(props: InputModeshiftsProps, trigger: string) {
   const { target, text } = props
   return useMemo(() => {
     if (target.pad) {
-      const key = (name: string) => `${target.pad!.keyPrefix}_${name}`
+      const key = (name: string) => `${target.pad!.keyPrefix ? target.pad!.keyPrefix + '_' : ''}${name}`
       const mode = (readShifted(text, trigger, key('TOUCHPAD_MODE')) ?? 'GRID_AND_STICK').trim().toUpperCase()
-      if (mode !== 'GRID_AND_STICK') return mode === 'MOUSE' ? t('keymap.mouse', 'Mouse') : mode === 'PS_TOUCHPAD' ? t('keymap.psTouchpad', 'PS Touchpad') : mode
+      if (mode !== 'GRID_AND_STICK') return mode === 'MOUSE' ? t('keymap.mouse', 'Mouse') : mode === 'MOUSE_AREA' ? t('keymap.mouseArea', 'Mouse area') : mode === 'PS_TOUCHPAD' ? t('keymap.psTouchpad', 'PS Touchpad') : mode
       const shape = (readShifted(text, trigger, key('GRID_SHAPE')) ?? 'RECTANGLE').trim().toUpperCase()
-      const prefix = target.pad.side === 'left' ? 'LT' : 'RT'
+      const prefix = target.pad.side === 'left' ? 'LT' : target.pad.side === 'right' ? 'RT' : 'T'
       const names: string[] = []
       for (let index = 1; index <= 25 && names.length < 8; index++) {
         const command = `${prefix}${index}`
@@ -420,7 +450,71 @@ function useShiftSummary(props: InputModeshiftsProps, trigger: string) {
   }, [t, target, text, trigger])
 }
 
-function ModeshiftCard({ trigger, triggers, ...props }: InputModeshiftsProps & { trigger: string; triggers: string[] }) {
+/** Use the ordinary stick editor against a trigger-scoped projection. */
+function StickModeshiftBody({ trigger, ...props }: InputModeshiftsProps & { trigger: string }) {
+  const { t } = useTranslation()
+  const [selected, setSelected] = useState<string | null>(null)
+  const { onChange } = props
+  const side = props.target.mode!.key === 'LEFT_STICK_MODE' ? 'left' : 'right'
+  const SIDE = side === 'left' ? 'LEFT' : 'RIGHT'
+  const projected = useMemo(() => projectModeshift(props.text, trigger), [props.text, trigger])
+  const setProjected = useCallback<Dispatch<SetStateAction<string>>>(update => {
+    const next = typeof update === 'function' ? update(projected) : update
+    onChange(previous => foldModeshift(previous, trigger, next, {}, projected))
+  }, [onChange, projected, trigger])
+  const stick = useStickConfig({ configText: projected, setConfigText: setProjected })
+  const mode = stick.stickModes[side].mode.toUpperCase()
+  const extras = useStickModeExtras(mode, {
+    sourceAxisKey: side === 'left' ? 'LEFT_STICK_AXIS' : 'RIGHT_STICK_AXIS',
+    configText: projected, onConfigTextChange: setProjected,
+    ...stick, mouseRingRadius: stick.mouseRingRadiusValue, onMouseRingRadiusChange: stick.handleMouseRingRadiusChange,
+    scrollSens: stick.scrollSensValue, onScrollSensChange: stick.handleScrollSensChange,
+    virtualControllerType: props.virtualControllerType,
+  })
+  const read = (key: string) => getKeymapValue(projected, key) ?? ''
+  const write = (key: string, value: string) => props.onChange(previous => writeModeshift(previous, trigger, key, value))
+  const buttons = props.target.buttons.map(definitionFor)
+  const find = (command: string) => buttons.find(button => button.command === command)
+  const directionUse = stickModeDirectionUse(mode)
+  const directions = (directionUse === 'all' ? ['UP', 'LEFT', 'DOWN', 'RIGHT'] : directionUse === 'leftRight' ? ['LEFT', 'RIGHT'] : [])
+    .map(direction => find(`${SIDE[0]}${direction}`)).filter((button): button is ButtonDefinition => Boolean(button))
+  const describe = (command: string) => ({
+    label: getBindingLabel(props.text, `${trigger},${command}`) ?? getBindingLabel(props.text, command),
+    binding: read(command) && read(command) !== 'NONE' ? describeBinding(read(command), t) : '',
+    icon: parseBindingIcons(props.text)[`${trigger},${command}`] ?? parseBindingIcons(props.text)[command],
+  })
+  const prefix = `${SIDE[0]}M`
+  const count = Math.max(2, Math.min(25, Number.parseInt(read(`${SIDE}_STICK_MENU_SIZE`)) || 8))
+  const segments = Array.from({ length: count }, (_, i) => ({ command: `${prefix}${i + 1}`, descriptionKey: 'keymap.stickSegment', playstation: `Segment ${i + 1}`, xbox: `Segment ${i + 1}` }))
+  const menuKey = `${side === 'left' ? 'LSTICK' : 'RSTICK'}:${trigger}`
+  const zones = side === 'left' ? stick.leftStickDeadzone : stick.rightStickDeadzone
+  return <SettingPrefix prefix={`${trigger},`}>
+    <StickSection side={side} keyPrefix={`${SIDE}_`} title={props.target.title}
+      mode={mode} ring={stick.stickModes[side].ring} inner={zones.inner} outer={zones.outer}
+      defaultInner={stick.stickDeadzoneDefaults.inner} defaultOuter={stick.stickDeadzoneDefaults.outer}
+      menuConfig={{ text: props.text, onChange: props.onChange, trigger }}
+      onModeChange={value => {
+        if (stickMenuLinks(props.text, side).some(link => isDirectStickMenu(link.attachment, trigger))) props.onChange(previous => writeModeshift(detachStickMenu(previous, side, trigger), trigger, `${SIDE}_STICK_MODE`, value || 'NO_MOUSE'))
+        else stick.handleStickModeChange(SIDE, value || 'NO_MOUSE')
+      }}
+      onRingChange={value => stick.handleRingModeChange(SIDE, value)}
+      onInnerChange={value => stick.handleStickDeadzoneChange(SIDE, 'INNER', value)}
+      onOuterChange={value => stick.handleStickDeadzoneChange(SIDE, 'OUTER', value)}
+      directionButtons={directions} directionSummary={directions.map(button => describe(button.command).binding || '—').join(' · ') || t('keymap.unbound', 'Unbound')}
+      clickButton={find(`${SIDE[0]}3`)} ringButton={find(`${SIDE[0]}RING`)} touchButton={find(`${SIDE[0]}TOUCH`)}
+      renderButton={(button, options) => <ShiftedBinding {...props} trigger={trigger} button={button} defaultOpen={options?.defaultOpen} rowLabel={options?.label} subtitle={options?.subtitle} xAction={options?.xAction} />}
+      extras={extras.primary} extrasAdvanced={extras.advanced}
+      radial={mode === 'RADIAL_MENU' ? {
+        menu: resolveOverlayMenus(props.text)[menuKey], segments: read(`${SIDE}_STICK_MENU_SIZE`) || '8',
+        deadzone: read(`${SIDE}_STICK_MENU_DEADZONE`), buttons: segments, selected, onSelect: setSelected,
+        onSegmentsChange: value => write(`${SIDE}_STICK_MENU_SIZE`, value),
+        onDeadzoneChange: value => write(`${SIDE}_STICK_MENU_DEADZONE`, value), describe,
+        appearance: { menuKey, onChange: props.onChange },
+      } : undefined} />
+  </SettingPrefix>
+}
+
+function ModeshiftCard({ trigger, triggers, onRename, ...props }: InputModeshiftsProps & { trigger: string; triggers: string[]; onRename: (from: string, to: string) => void }) {
   const { t } = useTranslation()
   const { target, text, onChange } = props
   const read = (key: string, fallback: string) => readShifted(text, trigger, key) ?? fallback
@@ -450,17 +544,16 @@ function ModeshiftCard({ trigger, triggers, ...props }: InputModeshiftsProps & {
         <div className={styles.controls}>
           <label className={styles.heldField}>
             <span>{t('keymap.modeshiftHeldInput', 'Held input')}</span>
-            <AppSelect aria-label={t('keymap.modeshiftHeldInput', 'Held input')} value={heldInput(trigger)} onChange={event => onChange(previous => renameModeshift(previous, target, trigger, withRelease(event.target.value, released)))}>
+            <AppSelect aria-label={t('keymap.modeshiftHeldInput', 'Held input')} value={heldInput(trigger)} onChange={event => onRename(trigger, withRelease(event.target.value, released))}>
               {choices.map(option => <option key={option.value} value={option.value}>{heldInputName(target, props.modifiers, option.value, true)}</option>)}
             </AppSelect>
           </label>
-          <label className={styles.heldField}>
-            <span>{t('keymap.modeshiftWhen', 'Applies while it is')}</span>
+          <div className={styles.conditionField}>
             <ReleaseSwitch released={released} ariaLabel={`${heldName}: held or released`}
               disabled={triggers.includes(withRelease(trigger, !released))}
-              onChange={next => onChange(previous => renameModeshift(previous, target, trigger, withRelease(trigger, next)))} />
-          </label>
-          {target.mode && !target.pad && (
+              onChange={next => onRename(trigger, withRelease(trigger, next))} />
+          </div>
+          {target.mode && !props.renderEditor && !target.pad && !/^(LEFT|RIGHT)_STICK_MODE$/.test(target.mode.key) && (
             <label className={styles.heldField}>
               <span>{t('keymap.modeshiftShiftedMode', 'Mode while held')}</span>
               <AppSelect setting={trigger + ',' + target.mode.key} aria-label={t('keymap.modeshiftShiftedMode', 'Mode while held')} value={mode} onChange={event => write(target.mode!.key, event.target.value)}>
@@ -475,8 +568,10 @@ function ModeshiftCard({ trigger, triggers, ...props }: InputModeshiftsProps & {
         {ownBinding && ownBinding !== 'NONE' && (
           <p className={styles.hint}>{t('keymap.shiftTriggerOwnBinding', '{{held}} also sends {{binding}} of its own. Clear it on its row if you only want the shift.', { held: heldName, binding: describeBinding(ownBinding, t) })}</p>
         )}
-        {target.pad
+        {props.renderEditor ? props.renderEditor(trigger) : target.pad
           ? <PadModeshiftBody {...props} trigger={trigger} heldName={heldName} />
+          : target.mode && /^(LEFT|RIGHT)_STICK_MODE$/.test(target.mode.key)
+          ? <StickModeshiftBody {...props} trigger={trigger} />
           : (
             <div className={styles.bindings}>
               {target.buttons.map(button => <ShiftedBinding key={button.command} {...props} trigger={trigger} button={definitionFor(button)} />)}
@@ -498,6 +593,23 @@ export function InputModeshifts(props: InputModeshiftsProps & { heading?: ReactN
   const [adding, setAdding] = useState(false)
   const [newTrigger, setNewTrigger] = useState('')
   const [releasedNew, setReleasedNew] = useState(false)
+  // Conditions can be renamed without replacing the open details element or
+  // its focused control and editor state.
+  const cardIds = useRef(new Map<string, number>())
+  const nextCardId = useRef(0)
+  const cardKey = (trigger: string) => {
+    const key = `${props.target.id}:${trigger}`
+    if (!cardIds.current.has(key)) cardIds.current.set(key, nextCardId.current++)
+    return cardIds.current.get(key)!
+  }
+  const rename = (from: string, to: string) => {
+    if (from === to || modeshiftTriggers(props.text, props.target).includes(to)) return
+    const id = cardKey(from)
+    cardIds.current.delete(`${props.target.id}:${from}`)
+    cardIds.current.set(`${props.target.id}:${to}`, id)
+    setNewTrigger(current => current === from ? to : current)
+    props.onChange(previous => renameModeshift(previous, props.target, from, to))
+  }
 
   // A scan of the whole config; the target is rebuilt by the caller on every
   // render, so it is keyed on what the scan actually reads from it.
@@ -506,29 +618,11 @@ export function InputModeshifts(props: InputModeshiftsProps & { heading?: ReactN
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const triggers = useMemo(() => modeshiftTriggers(text, target), [text, targetKey])
   const available = props.modifiers.filter(option => !option.disabled && !triggers.includes(withRelease(option.value, releasedNew)) && !target.buttons.some(button => button.command === option.value))
-  const what = target.pad ? t('keymap.modeshiftWhatPad', 'this pad') : t('keymap.modeshiftWhatStick', 'this stick')
-
   return (
     <section className={styles.group} aria-label={`${target.title} modeshifts`}>
-      <header className={styles.groupHead}>
-        <span className={styles.groupTitle}>
-          {t('keymap.modeshiftsTitle', 'Modeshifts')}
-          <span className={styles.groupCount}>{triggers.length}</span>
-          <HelpButton title={t('keymap.modeshiftsTitle', 'Modeshifts')}>
-            {t('keymap.modeshiftsHelp', 'A modeshift switches {{what}} to another mode and set of bindings while another input is held, and back when it is released. Add as many as you like, one per held input.', { what })}
-          </HelpButton>
-        </span>
-        <span className={styles.groupNote}>
-          {triggers.length
-            ? t('keymap.modeshiftsNote', 'What {{what}} becomes while another input is held', { what })
-            : t('keymap.modeshiftsNoneNote', 'None yet. Hold another input to make {{what}} do something else.', { what })}
-        </span>
-        {!adding && (
-          <button type="button" className="button button--secondary button--lg" disabled={!available.length} data-hints="A:Add modeshift;B:Back" onClick={() => setAdding(true)}>
-            <Icon name="modeshift" size={16} />{t('keymap.addModeshiftShort', 'Add modeshift')}
-          </button>
-        )}
-      </header>
+      <Lane concept="shift" label={typeof props.heading === 'string' ? props.heading : t('keymap.modeshiftsTitle', 'Modeshifts')} count={triggers.length}
+        footer={!adding && <LaneAddButton concept="shift" label={t('keymap.addModeshiftShort', 'Add modeshift')}
+          disabled={!available.length} hints="A:Add modeshift;B:Back" onClick={() => setAdding(true)} />}>
       {adding && (
         <div className={styles.addRow}>
           <label className={styles.heldField}>
@@ -549,8 +643,9 @@ export function InputModeshifts(props: InputModeshiftsProps & { heading?: ReactN
         </div>
       )}
       {triggers.map(trigger => (
-        <ModeshiftCard key={`${target.id}:${trigger}`} {...props} initiallyOpen={trigger === newTrigger} trigger={trigger} triggers={triggers} />
+        <ModeshiftCard key={cardKey(trigger)} {...props} onRename={rename} initiallyOpen={trigger === newTrigger} trigger={trigger} triggers={triggers} />
       ))}
+      </Lane>
     </section>
   )
 }

@@ -5,6 +5,7 @@ import { ensureHeaderLines, sanitizeImportedConfig } from '../utils/config'
 import { parseConfigText, serializeConfig } from '../utils/configSerializer'
 import { showToast } from '../utils/toast'
 import { OperationCancelled, runLongOperation, throwIfCancelled } from '../components/LongOperation'
+import type { NewConfigurationDraft } from '../components/ConfigurationDialog'
 
 type Options = { textOverride?: string; profileNameOverride?: string; profilePathOverride?: string; normalize?: boolean }
 type Params = {
@@ -132,12 +133,22 @@ export function useProfileLibrary({ resetConfigHistory, configText, setConfigTex
       report(reason ? `${t('messages.applyKeymapFailed')} ${reason}` : t('messages.applyKeymapFailed'), true)
     }
   }
-  const handleCreateProfile = async () => {
+  // With a draft from the New configuration dialog (TODO-46): the name is the
+  // file's base name (numbered only if taken), and a chosen game becomes an
+  // AutoLoad rule -- saved paused unless auto-apply was switched on, so the
+  // association lends its icon without ever switching configurations.
+  const handleCreateProfile = async (draft?: NewConfigurationDraft) => {
     const request = ++selection.current
-    const profile = await desktopBridge.createLibraryProfile()
+    const profile = await desktopBridge.createLibraryProfile(draft?.name.trim() || undefined)
     if (!profile) { report(t('messages.createProfileFailed'), true); return }
+    if (draft?.processName) {
+      const rule = await desktopBridge.saveAutoloadRule(draft.processName, profile.name, { exePath: draft.exePath, autoApply: draft.autoApply })
+      if (!rule) report(t('messages.associateProfileFailed', { profileName: profile.name, game: `${draft.processName}.exe` }), true)
+      window.dispatchEvent(new Event('jsm:associations-changed'))
+    }
     if (selection.current === request) selectProfile(profile)
     await refreshLibraryProfiles()
+    if (draft) report(t('messages.profileCreated', { profileName: profile.name }))
   }
   const handleRenameProfile = async (name: string) => {
     let result: Awaited<ReturnType<typeof desktopBridge.renameLibraryProfile>>

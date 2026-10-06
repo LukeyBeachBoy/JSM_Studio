@@ -7,6 +7,8 @@ import { layerColor } from '../shell/TitleBar'
 import { layerHue, layerSlotOf } from '../utils/layers'
 import type { TelemetryDevice } from '../hooks/useTelemetry'
 import controllerFront from '../assets/steam-controller-front.svg'
+import { useProfileAssociation } from '../hooks/useAppIcon'
+import { AppIconImage } from './AppIconImage'
 import styles from './HomePage.module.css'
 
 // Home (console refinement 2a): where the app opens and where View returns
@@ -42,7 +44,7 @@ type HomePageProps = {
 
 const TUNE_TILES: { key: HomeTune; icon: IconName; label: string }[] = [
   { key: 'gyro', icon: 'gyro', label: 'Gyro' },
-  { key: 'mouseFeel', icon: 'padTuning', label: 'Mouse feel' },
+  { key: 'mouseFeel', icon: 'padTuning', label: 'Trackpad feel' },
   { key: 'grips', icon: 'grips', label: 'Grip sensors' },
 ]
 
@@ -57,12 +59,15 @@ const STUDIO_NOTES: Record<StudioTab, string> = {
   appearance: 'Theme and accent',
   settings: 'Startup and controller',
   help: 'Offline reference',
+  credits: 'People, projects and community',
   debugConsole: 'Mapper log and commands',
 }
 
 export function HomePage(props: HomePageProps) {
   const { t } = useTranslation()
   const name = props.configName ?? 'No configuration'
+  // The associated game's icon beside the title (TODO-46), when there is one.
+  const game = useProfileAssociation(props.configName)
   const unsaved = props.changeCount > 0
     ? `${props.changeCount} unsaved ${props.changeCount === 1 ? 'change' : 'changes'}`
     : 'Saved'
@@ -78,6 +83,7 @@ export function HomePage(props: HomePageProps) {
           <div className={styles.cardHeader}>
             <div className={styles.cardTitle}>
               <div className={styles.nameLine}>
+                {game?.exePath && <AppIconImage exePath={game.exePath} size={28} alt="" fallback={null} className={styles.gameIcon} />}
                 <h1 id="home-config-title" className={styles.name}>{name}</h1>
                 {props.applied && <span className={styles.appliedPill}>Applied</span>}
               </div>
@@ -143,7 +149,7 @@ export function HomePage(props: HomePageProps) {
                 <span className={styles.studioIcon} aria-hidden="true"><Icon name={page.icon} size={22} /></span>
                 <span className={styles.studioText}>
                   <b className={styles.tileLabel}>{t(page.labelKey, page.label)}</b>
-                  <span className={styles.tileNote}>{props.studio[tab] ?? STUDIO_NOTES[tab]}</span>
+                  <span className={styles.tileNote}>{tab === 'credits' ? t('credits.tileNote') : props.studio[tab] ?? STUDIO_NOTES[tab]}</span>
                 </span>
               </button>
             )

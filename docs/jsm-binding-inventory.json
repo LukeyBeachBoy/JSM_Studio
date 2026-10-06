@@ -1,0 +1,1194 @@
+{
+  "win32": {
+    "source": "JoyShockMapper/JoyShockMapper/src/win32/PlatformDefinitions.cpp",
+    "namedTokens": [
+      "ADD",
+      "ALT",
+      "BACKSPACE",
+      "BMOUSE",
+      "CALIBRATE",
+      "CAPS_LOCK",
+      "CONTEXT",
+      "CONTROL",
+      "DECIMAL",
+      "DELETE",
+      "DIVIDE",
+      "DOWN",
+      "END",
+      "ENTER",
+      "ESC",
+      "FMOUSE",
+      "GYRO_INVERT",
+      "GYRO_INV_X",
+      "GYRO_INV_Y",
+      "GYRO_OFF",
+      "GYRO_OFF_ALL",
+      "GYRO_ON",
+      "GYRO_ON_ALL",
+      "GYRO_TRACKBALL",
+      "GYRO_TRACK_X",
+      "GYRO_TRACK_Y",
+      "HOME",
+      "INSERT",
+      "LALT",
+      "LCONTROL",
+      "LEFT",
+      "LMOUSE",
+      "LSHIFT",
+      "LWINDOWS",
+      "MMOUSE",
+      "MULTIPLY",
+      "MUTE",
+      "NEXT_TRACK",
+      "NONE",
+      "NUM_LOCK",
+      "PAGEDOWN",
+      "PAGEUP",
+      "PLAY_PAUSE",
+      "PREV_TRACK",
+      "PS_CIRCLE",
+      "PS_CROSS",
+      "PS_DOWN",
+      "PS_HOME",
+      "PS_L1",
+      "PS_L2",
+      "PS_L3",
+      "PS_LEFT",
+      "PS_OPTIONS",
+      "PS_PAD_CLICK",
+      "PS_R1",
+      "PS_R2",
+      "PS_R3",
+      "PS_RIGHT",
+      "PS_SHARE",
+      "PS_SQUARE",
+      "PS_TRIANGLE",
+      "PS_UP",
+      "RALT",
+      "RCONTROL",
+      "RIGHT",
+      "RMOUSE",
+      "RSHIFT",
+      "RWINDOWS",
+      "SCREENSHOT",
+      "SCROLLDOWN",
+      "SCROLLUP",
+      "SCROLL_LOCK",
+      "SHIFT",
+      "SPACE",
+      "STOP_TRACK",
+      "SUBSTRACT",
+      "SUBTRACT",
+      "TAB",
+      "UP",
+      "VOLUME_DOWN",
+      "VOLUME_UP",
+      "X_A",
+      "X_B",
+      "X_BACK",
+      "X_DOWN",
+      "X_GUIDE",
+      "X_LB",
+      "X_LEFT",
+      "X_LS",
+      "X_LT",
+      "X_RB",
+      "X_RIGHT",
+      "X_RS",
+      "X_RT",
+      "X_START",
+      "X_UP",
+      "X_X",
+      "X_Y"
+    ],
+    "singleCharacters": [
+      "+",
+      ",",
+      "-",
+      ".",
+      "/",
+      ";",
+      "=",
+      "F",
+      "N",
+      "[",
+      "\\'",
+      "\\\\",
+      "]",
+      "`"
+    ],
+    "hasRumbleHexParser": true,
+    "specialFamilies": [
+      "quoted command",
+      "HAPTIC side/effect/gain",
+      "SMALL_RUMBLE",
+      "BIG_RUMBLE"
+    ]
+  },
+  "linux": {
+    "source": "JoyShockMapper/JoyShockMapper/src/linux/PlatformDefinitions.cpp",
+    "namedTokens": [
+      "ALT",
+      "BACKSPACE",
+      "BMOUSE",
+      "CALIBRATE",
+      "CONTEXT",
+      "CONTROL",
+      "DELETE",
+      "DOWN",
+      "END",
+      "ENTER",
+      "ESC",
+      "FMOUSE",
+      "GYRO_INVERT",
+      "GYRO_INV_X",
+      "GYRO_INV_Y",
+      "GYRO_OFF",
+      "GYRO_OFF_ALL",
+      "GYRO_ON",
+      "GYRO_ON_ALL",
+      "GYRO_TRACKBALL",
+      "GYRO_TRACK_X",
+      "GYRO_TRACK_Y",
+      "HOME",
+      "INSERT",
+      "LALT",
+      "LCONTROL",
+      "LEFT",
+      "LMOUSE",
+      "LSHIFT",
+      "LWINDOWS",
+      "MMOUSE",
+      "NONE",
+      "PAGEDOWN",
+      "PAGEUP",
+      "RALT",
+      "RCONTROL",
+      "RIGHT",
+      "RMOUSE",
+      "RSHIFT",
+      "RWINDOWS",
+      "SCREENSHOT",
+      "SCROLLDOWN",
+      "SCROLLUP",
+      "SHIFT",
+      "SPACE",
+      "TAB",
+      "UP"
+    ],
+    "singleCharacters": [
+      "+",
+      ",",
+      "-",
+      ".",
+      "/",
+      ";",
+      "=",
+      "F",
+      "N",
+      "[",
+      "\\'",
+      "\\\\",
+      "]",
+      "`"
+    ],
+    "hasRumbleHexParser": false,
+    "specialFamilies": [
+      "quoted command",
+      "HAPTIC side/effect/gain",
+      "SMALL_RUMBLE",
+      "BIG_RUMBLE"
+    ]
+  },
+  "ActionModifier": [
+    "None",
+    "Toggle",
+    "Instant",
+    "Release",
+    "INVALID"
+  ],
+  "EventModifier": [
+    "Auto",
+    "StartPress",
+    "ReleasePress",
+    "TurboPress",
+    "TapPress",
+    "HoldPress",
+    "INVALID"
+  ],
+  "verifiedWindowsOutputs": [
+    {
+      "token": "'",
+      "code": 222,
+      "guiCatalog": true
+    },
+    {
+      "token": "+",
+      "code": 187,
+      "guiCatalog": false
+    },
+    {
+      "token": ",",
+      "code": 188,
+      "guiCatalog": true
+    },
+    {
+      "token": "-",
+      "code": 189,
+      "guiCatalog": true
+    },
+    {
+      "token": ".",
+      "code": 190,
+      "guiCatalog": true
+    },
+    {
+      "token": "/",
+      "code": 191,
+      "guiCatalog": true
+    },
+    {
+      "token": "0",
+      "code": 48,
+      "guiCatalog": true
+    },
+    {
+      "token": "1",
+      "code": 49,
+      "guiCatalog": true
+    },
+    {
+      "token": "2",
+      "code": 50,
+      "guiCatalog": true
+    },
+    {
+      "token": "3",
+      "code": 51,
+      "guiCatalog": true
+    },
+    {
+      "token": "4",
+      "code": 52,
+      "guiCatalog": true
+    },
+    {
+      "token": "5",
+      "code": 53,
+      "guiCatalog": true
+    },
+    {
+      "token": "6",
+      "code": 54,
+      "guiCatalog": true
+    },
+    {
+      "token": "7",
+      "code": 55,
+      "guiCatalog": true
+    },
+    {
+      "token": "8",
+      "code": 56,
+      "guiCatalog": true
+    },
+    {
+      "token": "9",
+      "code": 57,
+      "guiCatalog": true
+    },
+    {
+      "token": ";",
+      "code": 186,
+      "guiCatalog": true
+    },
+    {
+      "token": "=",
+      "code": 187,
+      "guiCatalog": true
+    },
+    {
+      "token": "A",
+      "code": 65,
+      "guiCatalog": true
+    },
+    {
+      "token": "ADD",
+      "code": 107,
+      "guiCatalog": true
+    },
+    {
+      "token": "ALT",
+      "code": 18,
+      "guiCatalog": false
+    },
+    {
+      "token": "B",
+      "code": 66,
+      "guiCatalog": true
+    },
+    {
+      "token": "BACKSPACE",
+      "code": 8,
+      "guiCatalog": true
+    },
+    {
+      "token": "BIG_RUMBLE",
+      "code": 230,
+      "guiCatalog": false
+    },
+    {
+      "token": "BMOUSE",
+      "code": 5,
+      "guiCatalog": true
+    },
+    {
+      "token": "C",
+      "code": 67,
+      "guiCatalog": true
+    },
+    {
+      "token": "CALIBRATE",
+      "code": 11,
+      "guiCatalog": true
+    },
+    {
+      "token": "CAPS_LOCK",
+      "code": 20,
+      "guiCatalog": true
+    },
+    {
+      "token": "CONTEXT",
+      "code": 93,
+      "guiCatalog": true
+    },
+    {
+      "token": "CONTROL",
+      "code": 17,
+      "guiCatalog": false
+    },
+    {
+      "token": "D",
+      "code": 68,
+      "guiCatalog": true
+    },
+    {
+      "token": "DECIMAL",
+      "code": 110,
+      "guiCatalog": true
+    },
+    {
+      "token": "DELETE",
+      "code": 46,
+      "guiCatalog": true
+    },
+    {
+      "token": "DIVIDE",
+      "code": 111,
+      "guiCatalog": true
+    },
+    {
+      "token": "DOWN",
+      "code": 40,
+      "guiCatalog": true
+    },
+    {
+      "token": "E",
+      "code": 69,
+      "guiCatalog": true
+    },
+    {
+      "token": "END",
+      "code": 35,
+      "guiCatalog": true
+    },
+    {
+      "token": "ENTER",
+      "code": 13,
+      "guiCatalog": true
+    },
+    {
+      "token": "ESC",
+      "code": 27,
+      "guiCatalog": true
+    },
+    {
+      "token": "F",
+      "code": 70,
+      "guiCatalog": true
+    },
+    {
+      "token": "F1",
+      "code": 112,
+      "guiCatalog": true
+    },
+    {
+      "token": "F10",
+      "code": 121,
+      "guiCatalog": true
+    },
+    {
+      "token": "F11",
+      "code": 122,
+      "guiCatalog": true
+    },
+    {
+      "token": "F12",
+      "code": 123,
+      "guiCatalog": true
+    },
+    {
+      "token": "F13",
+      "code": 124,
+      "guiCatalog": true
+    },
+    {
+      "token": "F14",
+      "code": 125,
+      "guiCatalog": true
+    },
+    {
+      "token": "F15",
+      "code": 126,
+      "guiCatalog": true
+    },
+    {
+      "token": "F16",
+      "code": 127,
+      "guiCatalog": true
+    },
+    {
+      "token": "F17",
+      "code": 128,
+      "guiCatalog": true
+    },
+    {
+      "token": "F18",
+      "code": 129,
+      "guiCatalog": true
+    },
+    {
+      "token": "F19",
+      "code": 130,
+      "guiCatalog": true
+    },
+    {
+      "token": "F2",
+      "code": 113,
+      "guiCatalog": true
+    },
+    {
+      "token": "F20",
+      "code": 131,
+      "guiCatalog": true
+    },
+    {
+      "token": "F21",
+      "code": 132,
+      "guiCatalog": true
+    },
+    {
+      "token": "F22",
+      "code": 133,
+      "guiCatalog": true
+    },
+    {
+      "token": "F23",
+      "code": 134,
+      "guiCatalog": true
+    },
+    {
+      "token": "F24",
+      "code": 135,
+      "guiCatalog": true
+    },
+    {
+      "token": "F3",
+      "code": 114,
+      "guiCatalog": true
+    },
+    {
+      "token": "F4",
+      "code": 115,
+      "guiCatalog": true
+    },
+    {
+      "token": "F5",
+      "code": 116,
+      "guiCatalog": true
+    },
+    {
+      "token": "F6",
+      "code": 117,
+      "guiCatalog": true
+    },
+    {
+      "token": "F7",
+      "code": 118,
+      "guiCatalog": true
+    },
+    {
+      "token": "F8",
+      "code": 119,
+      "guiCatalog": true
+    },
+    {
+      "token": "F9",
+      "code": 120,
+      "guiCatalog": true
+    },
+    {
+      "token": "FMOUSE",
+      "code": 6,
+      "guiCatalog": true
+    },
+    {
+      "token": "G",
+      "code": 71,
+      "guiCatalog": true
+    },
+    {
+      "token": "GYRO_INVERT",
+      "code": 138,
+      "guiCatalog": true
+    },
+    {
+      "token": "GYRO_INV_X",
+      "code": 136,
+      "guiCatalog": true
+    },
+    {
+      "token": "GYRO_INV_Y",
+      "code": 137,
+      "guiCatalog": true
+    },
+    {
+      "token": "GYRO_OFF",
+      "code": 139,
+      "guiCatalog": true
+    },
+    {
+      "token": "GYRO_OFF_ALL",
+      "code": 144,
+      "guiCatalog": true
+    },
+    {
+      "token": "GYRO_ON",
+      "code": 140,
+      "guiCatalog": true
+    },
+    {
+      "token": "GYRO_ON_ALL",
+      "code": 145,
+      "guiCatalog": true
+    },
+    {
+      "token": "GYRO_TRACKBALL",
+      "code": 143,
+      "guiCatalog": true
+    },
+    {
+      "token": "GYRO_TRACK_X",
+      "code": 141,
+      "guiCatalog": true
+    },
+    {
+      "token": "GYRO_TRACK_Y",
+      "code": 142,
+      "guiCatalog": true
+    },
+    {
+      "token": "H",
+      "code": 72,
+      "guiCatalog": true
+    },
+    {
+      "token": "HAPTIC_BOTH_CLICK_0",
+      "code": 231,
+      "guiCatalog": false
+    },
+    {
+      "token": "HOME",
+      "code": 36,
+      "guiCatalog": true
+    },
+    {
+      "token": "I",
+      "code": 73,
+      "guiCatalog": true
+    },
+    {
+      "token": "INSERT",
+      "code": 45,
+      "guiCatalog": true
+    },
+    {
+      "token": "J",
+      "code": 74,
+      "guiCatalog": true
+    },
+    {
+      "token": "K",
+      "code": 75,
+      "guiCatalog": true
+    },
+    {
+      "token": "L",
+      "code": 76,
+      "guiCatalog": true
+    },
+    {
+      "token": "LALT",
+      "code": 164,
+      "guiCatalog": true
+    },
+    {
+      "token": "LCONTROL",
+      "code": 162,
+      "guiCatalog": true
+    },
+    {
+      "token": "LEFT",
+      "code": 37,
+      "guiCatalog": true
+    },
+    {
+      "token": "LMOUSE",
+      "code": 1,
+      "guiCatalog": true
+    },
+    {
+      "token": "LSHIFT",
+      "code": 160,
+      "guiCatalog": true
+    },
+    {
+      "token": "LWINDOWS",
+      "code": 91,
+      "guiCatalog": true
+    },
+    {
+      "token": "M",
+      "code": 77,
+      "guiCatalog": true
+    },
+    {
+      "token": "MMOUSE",
+      "code": 4,
+      "guiCatalog": true
+    },
+    {
+      "token": "MULTIPLY",
+      "code": 106,
+      "guiCatalog": true
+    },
+    {
+      "token": "MUTE",
+      "code": 173,
+      "guiCatalog": true
+    },
+    {
+      "token": "N",
+      "code": 78,
+      "guiCatalog": true
+    },
+    {
+      "token": "N0",
+      "code": 96,
+      "guiCatalog": true
+    },
+    {
+      "token": "N1",
+      "code": 97,
+      "guiCatalog": true
+    },
+    {
+      "token": "N2",
+      "code": 98,
+      "guiCatalog": true
+    },
+    {
+      "token": "N3",
+      "code": 99,
+      "guiCatalog": true
+    },
+    {
+      "token": "N4",
+      "code": 100,
+      "guiCatalog": true
+    },
+    {
+      "token": "N5",
+      "code": 101,
+      "guiCatalog": true
+    },
+    {
+      "token": "N6",
+      "code": 102,
+      "guiCatalog": true
+    },
+    {
+      "token": "N7",
+      "code": 103,
+      "guiCatalog": true
+    },
+    {
+      "token": "N8",
+      "code": 104,
+      "guiCatalog": true
+    },
+    {
+      "token": "N9",
+      "code": 105,
+      "guiCatalog": true
+    },
+    {
+      "token": "NEXT_TRACK",
+      "code": 176,
+      "guiCatalog": true
+    },
+    {
+      "token": "NONE",
+      "code": 10,
+      "guiCatalog": false
+    },
+    {
+      "token": "NUM_LOCK",
+      "code": 144,
+      "guiCatalog": true
+    },
+    {
+      "token": "O",
+      "code": 79,
+      "guiCatalog": true
+    },
+    {
+      "token": "P",
+      "code": 80,
+      "guiCatalog": true
+    },
+    {
+      "token": "PAGEDOWN",
+      "code": 34,
+      "guiCatalog": true
+    },
+    {
+      "token": "PAGEUP",
+      "code": 33,
+      "guiCatalog": true
+    },
+    {
+      "token": "PLAY_PAUSE",
+      "code": 179,
+      "guiCatalog": true
+    },
+    {
+      "token": "PREV_TRACK",
+      "code": 177,
+      "guiCatalog": true
+    },
+    {
+      "token": "PS_CIRCLE",
+      "code": 241,
+      "guiCatalog": true
+    },
+    {
+      "token": "PS_CROSS",
+      "code": 239,
+      "guiCatalog": true
+    },
+    {
+      "token": "PS_DOWN",
+      "code": 233,
+      "guiCatalog": true
+    },
+    {
+      "token": "PS_HOME",
+      "code": 184,
+      "guiCatalog": true
+    },
+    {
+      "token": "PS_L1",
+      "code": 236,
+      "guiCatalog": true
+    },
+    {
+      "token": "PS_L2",
+      "code": 216,
+      "guiCatalog": true
+    },
+    {
+      "token": "PS_L3",
+      "code": 242,
+      "guiCatalog": true
+    },
+    {
+      "token": "PS_LEFT",
+      "code": 234,
+      "guiCatalog": true
+    },
+    {
+      "token": "PS_OPTIONS",
+      "code": 245,
+      "guiCatalog": true
+    },
+    {
+      "token": "PS_PAD_CLICK",
+      "code": 185,
+      "guiCatalog": true
+    },
+    {
+      "token": "PS_R1",
+      "code": 237,
+      "guiCatalog": true
+    },
+    {
+      "token": "PS_R2",
+      "code": 217,
+      "guiCatalog": true
+    },
+    {
+      "token": "PS_R3",
+      "code": 243,
+      "guiCatalog": true
+    },
+    {
+      "token": "PS_RIGHT",
+      "code": 235,
+      "guiCatalog": true
+    },
+    {
+      "token": "PS_SHARE",
+      "code": 244,
+      "guiCatalog": true
+    },
+    {
+      "token": "PS_SQUARE",
+      "code": 238,
+      "guiCatalog": true
+    },
+    {
+      "token": "PS_TRIANGLE",
+      "code": 240,
+      "guiCatalog": true
+    },
+    {
+      "token": "PS_UP",
+      "code": 232,
+      "guiCatalog": true
+    },
+    {
+      "token": "Q",
+      "code": 81,
+      "guiCatalog": true
+    },
+    {
+      "token": "R",
+      "code": 82,
+      "guiCatalog": true
+    },
+    {
+      "token": "RALT",
+      "code": 165,
+      "guiCatalog": true
+    },
+    {
+      "token": "RCONTROL",
+      "code": 163,
+      "guiCatalog": true
+    },
+    {
+      "token": "RFF80",
+      "code": 230,
+      "guiCatalog": false
+    },
+    {
+      "token": "RIGHT",
+      "code": 39,
+      "guiCatalog": true
+    },
+    {
+      "token": "RMOUSE",
+      "code": 2,
+      "guiCatalog": true
+    },
+    {
+      "token": "RSHIFT",
+      "code": 161,
+      "guiCatalog": true
+    },
+    {
+      "token": "RWINDOWS",
+      "code": 92,
+      "guiCatalog": true
+    },
+    {
+      "token": "S",
+      "code": 83,
+      "guiCatalog": true
+    },
+    {
+      "token": "SCREENSHOT",
+      "code": 44,
+      "guiCatalog": true
+    },
+    {
+      "token": "SCROLLDOWN",
+      "code": 7,
+      "guiCatalog": true
+    },
+    {
+      "token": "SCROLLUP",
+      "code": 3,
+      "guiCatalog": true
+    },
+    {
+      "token": "SCROLL_LOCK",
+      "code": 145,
+      "guiCatalog": true
+    },
+    {
+      "token": "SHIFT",
+      "code": 16,
+      "guiCatalog": false
+    },
+    {
+      "token": "SMALL_RUMBLE",
+      "code": 230,
+      "guiCatalog": false
+    },
+    {
+      "token": "SPACE",
+      "code": 32,
+      "guiCatalog": true
+    },
+    {
+      "token": "STOP_TRACK",
+      "code": 178,
+      "guiCatalog": true
+    },
+    {
+      "token": "SUBSTRACT",
+      "code": 109,
+      "guiCatalog": false
+    },
+    {
+      "token": "SUBTRACT",
+      "code": 109,
+      "guiCatalog": true
+    },
+    {
+      "token": "T",
+      "code": 84,
+      "guiCatalog": true
+    },
+    {
+      "token": "TAB",
+      "code": 9,
+      "guiCatalog": true
+    },
+    {
+      "token": "U",
+      "code": 85,
+      "guiCatalog": true
+    },
+    {
+      "token": "UP",
+      "code": 38,
+      "guiCatalog": true
+    },
+    {
+      "token": "V",
+      "code": 86,
+      "guiCatalog": true
+    },
+    {
+      "token": "VOLUME_DOWN",
+      "code": 174,
+      "guiCatalog": true
+    },
+    {
+      "token": "VOLUME_UP",
+      "code": 175,
+      "guiCatalog": true
+    },
+    {
+      "token": "W",
+      "code": 87,
+      "guiCatalog": true
+    },
+    {
+      "token": "X",
+      "code": 88,
+      "guiCatalog": true
+    },
+    {
+      "token": "X_A",
+      "code": 239,
+      "guiCatalog": true
+    },
+    {
+      "token": "X_B",
+      "code": 241,
+      "guiCatalog": true
+    },
+    {
+      "token": "X_BACK",
+      "code": 244,
+      "guiCatalog": true
+    },
+    {
+      "token": "X_DOWN",
+      "code": 233,
+      "guiCatalog": true
+    },
+    {
+      "token": "X_GUIDE",
+      "code": 184,
+      "guiCatalog": true
+    },
+    {
+      "token": "X_LB",
+      "code": 236,
+      "guiCatalog": true
+    },
+    {
+      "token": "X_LEFT",
+      "code": 234,
+      "guiCatalog": true
+    },
+    {
+      "token": "X_LS",
+      "code": 242,
+      "guiCatalog": true
+    },
+    {
+      "token": "X_LT",
+      "code": 216,
+      "guiCatalog": true
+    },
+    {
+      "token": "X_RB",
+      "code": 237,
+      "guiCatalog": true
+    },
+    {
+      "token": "X_RIGHT",
+      "code": 235,
+      "guiCatalog": true
+    },
+    {
+      "token": "X_RS",
+      "code": 243,
+      "guiCatalog": true
+    },
+    {
+      "token": "X_RT",
+      "code": 217,
+      "guiCatalog": true
+    },
+    {
+      "token": "X_START",
+      "code": 245,
+      "guiCatalog": true
+    },
+    {
+      "token": "X_UP",
+      "code": 232,
+      "guiCatalog": true
+    },
+    {
+      "token": "X_X",
+      "code": 238,
+      "guiCatalog": true
+    },
+    {
+      "token": "X_Y",
+      "code": 240,
+      "guiCatalog": true
+    },
+    {
+      "token": "Y",
+      "code": 89,
+      "guiCatalog": true
+    },
+    {
+      "token": "Z",
+      "code": 90,
+      "guiCatalog": true
+    },
+    {
+      "token": "[",
+      "code": 219,
+      "guiCatalog": true
+    },
+    {
+      "token": "\\",
+      "code": 220,
+      "guiCatalog": true
+    },
+    {
+      "token": "]",
+      "code": 221,
+      "guiCatalog": true
+    },
+    {
+      "token": "`",
+      "code": 192,
+      "guiCatalog": true
+    }
+  ],
+  "graphicalIntent": {
+    "+": {
+      "classification": "ALIAS",
+      "reason": "The Equals key sends the same Windows key code; modifiers choose its shifted symbol.",
+      "editor": "components/keymap/KeyboardBindingModal.tsx"
+    },
+    "ALT": {
+      "classification": "ALIAS",
+      "reason": "Left/right Alt choices expose modifier output. Preserve the generic imported token rather than rewriting it.",
+      "editor": "components/keymap/KeyboardBindingModal.tsx"
+    },
+    "CONTROL": {
+      "classification": "ALIAS",
+      "reason": "Left/right Control choices expose modifier output; preserve generic imported spelling.",
+      "editor": "components/keymap/KeyboardBindingModal.tsx"
+    },
+    "SHIFT": {
+      "classification": "ALIAS",
+      "reason": "Left/right Shift choices expose modifier output; preserve generic imported spelling.",
+      "editor": "components/keymap/KeyboardBindingModal.tsx"
+    },
+    "SUBSTRACT": {
+      "classification": "LEGACY",
+      "reason": "Typo alias of the graphical numpad Subtract output; valid imported syntax remains accepted.",
+      "editor": "components/keymap/KeyboardBindingModal.tsx"
+    },
+    "NONE": {
+      "classification": "EMPTY",
+      "reason": "Remove command and empty-binding controls write NONE; empty menu items do not show a fake None command.",
+      "editor": "components/keymap/BindingEditor.tsx"
+    },
+    "SMALL_RUMBLE": {
+      "classification": "FAMILY",
+      "reason": "Graphical feedback controls encode strong/weak motor amplitudes instead of this raw shortcut.",
+      "editor": "components/keymap/BindingEditor.tsx"
+    },
+    "BIG_RUMBLE": {
+      "classification": "FAMILY",
+      "reason": "Graphical feedback controls encode strong/weak motor amplitudes instead of this raw shortcut.",
+      "editor": "components/keymap/BindingEditor.tsx"
+    },
+    "RFF80": {
+      "classification": "FAMILY",
+      "reason": "Representative parameterized rumble output; typed motor amplitude controls own this family.",
+      "editor": "components/keymap/BindingEditor.tsx"
+    },
+    "HAPTIC_BOTH_CLICK_0": {
+      "classification": "FAMILY",
+      "reason": "Representative parameterized haptic output; side, effect and gain use the graphical haptic editor.",
+      "editor": "components/keymap/HapticOutputPicker.tsx"
+    }
+  },
+  "note": "Native Windows KeyCode/Mapping parsing verified; no OS/gamepad output emitted. Linux is static inventory, not a Linux runtime claim. Alias coverage still needs semantic review."
+}

@@ -25,6 +25,8 @@ const fs = require('node:fs');
   }};
  });
  await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
+ // A Steam Controller's first connection asks about its power-on sound.
+ await page.getByRole('button',{name:'Keep them',exact:true}).click({timeout:5000}).catch(()=>{});
  // The app opens on Home (console refinement 2a); these checks start in the editing shell.
  await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
 
@@ -66,15 +68,19 @@ const fs = require('node:fs');
   const card=page.locator(`details[data-input-command="${command}"]`).first();
   await card.waitFor();
   if(await card.getAttribute('open')===null) await card.locator('summary').first().click();
-  // The Layer actions lane's add button opens "Which layer?" (3f): the
-  // layer, then "When it is pressed". The UI says Turn on / Turn off for
-  // apply / remove; the file keeps the JSM words.
-  const details=card.locator('section[aria-label="Layer actions"]').first();
-  await details.getByRole('button',{name:'Add layer action',exact:true}).click();
-  const sheet=page.getByRole('dialog',{name:'Which layer?'});
-  await sheet.getByRole('radio',{name:new RegExp('^'+layerName)}).click();
+  // A layer action is a command (TODO-55): the Add command picker's Layers
+  // tab adds a Hold on the layer and opens the row's sheet, where "When it is
+  // pressed" is changed. The UI says Turn on / Turn off for apply / remove;
+  // the file keeps the JSM words.
+  await card.getByRole('button',{name:'Add command'}).click();
+  const picker=page.getByRole('dialog',{name:'Choose an action'});
+  await picker.locator('.action-picker__tabs .action-tab').filter({hasText:'Layers'}).click();
+  await picker.getByRole('button',{name:new RegExp('^'+layerName)}).click();
+  await picker.waitFor({state:'detached'});
+  const sheet=page.getByRole('dialog',{name:new RegExp(layerName+'$')});
+  await sheet.waitFor();
   await sheet.getByRole('radio',{name:{'Hold layer':'Hold','Toggle layer':'Toggle','Apply layer':'Turn on','Remove layer':'Turn off'}[verb]??verb,exact:true}).click();
-  await sheet.getByRole('button',{name:'Add',exact:true}).click();
+  await sheet.locator('[data-modal-close]').click();
   await sheet.waitFor({state:'detached'});
  };
  const chooseLayer=async name=>{await closeManageLayers();await picker.click();await layerItem(name).click();};
@@ -84,6 +90,7 @@ const fs = require('node:fs');
  await page.getByRole('button',{name:'Create layer',exact:true}).click();
  // Creating a layer binds nothing: moving an input's modeshifts into it is a
  // separate, explicit act, and so is binding something to turn it on.
+ await page.getByText('Convert existing modeshifts to a layer', { exact: true }).click();
  await page.getByRole('combobox',{name:'Move modeshifts from',exact:true}).click();
  // RSR, named as players name the paddle.
  await page.getByRole('option',{name:'R4',exact:true}).click();
@@ -127,7 +134,8 @@ const fs = require('node:fs');
  const activation=(await page.evaluate(()=>window.__lastSaved)).split('\n').filter(l=>l.startsWith('# @layer-action '));
  assert.ok(activation.some(l=>/LSR = apply /.test(l)),`apply is bound to the input: ${activation}`);
  assert.ok(activation.some(l=>/RSL = remove /.test(l)),`remove is bound to the input: ${activation}`);
- assert.equal(activation.length,2,`a new layer starts with no activation of its own: ${activation}`);
+ assert.ok(activation.some(l=>/RSR = hold /.test(l)), `migration retains the original hold input: ${activation}`);
+ assert.equal(activation.length,3,`one migrated hold plus the explicitly added apply/remove inputs: ${activation}`);
  await chooseLayer('Default');
  assert.equal(await sensValue(),'1.00×');
  await chooseLayer('Comms');
@@ -211,15 +219,21 @@ const fs = require('node:fs');
  const northCard = page.locator('details[data-input-command="N"]').first();
  if (await northCard.getAttribute('open') === null) await northCard.locator('summary').first().click();
  // A command's settings hold no output list at all now (3c): outputs are
- // chosen in the picker, and layers in their own lane.
+ // chosen in the picker, and a layer from its Layers tab (TODO-55).
  await northCard.locator('[data-command-row]').first().getByRole('button',{name:'Command settings'}).click();
  const settings = page.getByRole('dialog').last();
  assert.equal(await settings.getByRole('combobox',{name:'Output'}).count(), 0, 'the output kind select survived');
  assert.equal(await settings.getByText(/^(Hold|Apply|Remove) layer$/).count(), 0, 'the settings offer layer verbs as outputs');
  await page.keyboard.press('Escape');
  await settings.waitFor({state:'detached'});
- // ...and the section that does the job is still there on the same card.
- await northCard.getByRole('button',{name:'Add layer action',exact:true}).waitFor();
+ // ...and the picker that does the job lists the layers on the same card.
+ await northCard.getByRole('button',{name:'Add command'}).click();
+ const addPicker=page.getByRole('dialog',{name:'Choose an action'});
+ await addPicker.locator('.action-picker__tabs .action-tab').filter({hasText:'Layers'}).click();
+ await addPicker.getByRole('button',{name:/^Comms/}).waitFor();
+ assert.equal(await northCard.locator('section[data-concept="layer"]').count(), 0, 'the Layer actions lane is still on the card');
+ await addPicker.locator('[data-modal-close]').click();
+ await addPicker.waitFor({state:'detached'});
 
  await page.getByRole('button',{name:'Overview',exact:true}).click();
  // Comms is already applied by L5 and removed by R5; a hold on R4 as well is

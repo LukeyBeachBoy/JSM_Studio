@@ -22,7 +22,7 @@ TSX = GUI / 'components/ControllerStatusSvg.tsx'
 art = ART.read_text(encoding='utf-8')
 tsx = TSX.read_text(encoding='utf-8')
 # The Steam Controller branch only; the file also holds a legacy DualSense layout.
-steam = tsx.split('viewBox="0 0 1117 750"', 1)[1].split('// --- Legacy layout', 1)[0]
+steam = tsx.split('if (isSteam) {', 1)[1].split('// Offset-stick controllers', 1)[0]
 
 NUM = r'-?\d+(?:\.\d+)?'
 
@@ -85,10 +85,21 @@ def test_overlay_and_artwork_share_a_coordinate_space():
     check(m is not None, 'artwork has no viewBox')
     check(m.group(1) == '1117' and m.group(2) == '750',
           f'artwork viewBox is {m.group(1)}x{m.group(2)}, overlay space is 1117x750')
-    img = re.search(r'<image[^>]*width="(%s)"[^>]*height="(%s)"' % (NUM, NUM), steam)
-    check(img is not None, 'no <image> in the Steam layout')
-    check(img.group(1) == '1117' and img.group(2) == '750',
-          'the artwork <image> must fill the overlay viewBox exactly')
+    check('viewBox="0 0 1117 750"' in steam, 'Steam overlays must retain the artwork coordinate space')
+    check('dangerouslySetInnerHTML={{ __html: STEAM_FRONT_ART }}' in steam,
+          'Steam overlays must use the shared tonal artwork in the same SVG')
+    # The current rendering inlines the themed art rather than stretching an image.
+    import json
+    generated = (GUI / 'components/controllerArt.ts').read_text(encoding='utf-8')
+    match = re.search(r'export const STEAM_FRONT_ART = ("[^\n]+")\s*;?', generated)
+    check(match is not None, 'generated Steam front art missing')
+    inline = json.loads(match[1])
+    placement = r'transform="translate\((%s)\s+(%s)\)\s*scale\((%s)\)"' % (NUM, NUM, NUM)
+    authored = re.search(placement, art)
+    rendered = re.search(placement, inline)
+    check(authored is not None and rendered is not None, 'artwork placement transform missing')
+    check(all(abs(float(a) - float(b)) < 0.000001 for a, b in zip(authored.groups(), rendered.groups())),
+          'tonal artwork transform must match the authored 1117x750 space')
 
 
 def test_every_overlay_anchor_sits_on_an_artwork_feature():

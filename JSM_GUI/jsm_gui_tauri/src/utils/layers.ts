@@ -43,6 +43,17 @@ export const layerVerbKeys: Record<LayerVerb, string> = {
 }
 /** The order the verbs are offered in (3f): Hold · Toggle · Turn on · Turn off. */
 export const layerVerbOrder: readonly LayerVerb[] = ['hold', 'toggle', 'apply', 'remove']
+/** One line on what an action does, pressed and released, with {{input}}:
+ *  "On while A is held", "Releasing A turns it on". The card's command row
+ *  and its sheet read it; the config keeps the JSM words. */
+export const layerActionDescriptionKeys: Record<LayerVerb, [pressed: string, released: string]> = {
+  hold: ['keymap.layerDescHold', 'keymap.layerDescHoldReleased'],
+  toggle: ['keymap.layerDescToggle', 'keymap.layerDescToggleReleased'],
+  apply: ['keymap.layerDescApply', 'keymap.layerDescApplyReleased'],
+  remove: ['keymap.layerDescRemove', 'keymap.layerDescRemoveReleased'],
+}
+/** Two actions that are the same line of the file. */
+export const sameLayerAction = (a: LayerAction, b: LayerAction) => a.input === b.input && a.verb === b.verb && a.layerId === b.layerId
 export const actionsForLayer = (actions: LayerAction[], layerId: string) => actions.filter(a => a.layerId === layerId)
 /** The actions an input drives, pressed ("X") or released ("!X"): both are
  *  that input's, and its editor lists and rewrites them together. */
@@ -70,7 +81,7 @@ export function describeLayerActivation(actions: LayerAction[], layerId: string,
 const inputs = new Set([...FACE_BUTTONS, ...DPAD_BUTTONS, ...BUMPER_BUTTONS, ...TRIGGER_BUTTONS, ...CENTER_BUTTONS, ...PADDLE_BUTTONS, ...MINI_BUTTONS, ...MISC_BUTTONS, ...LEFT_STICK_BUTTONS, ...RIGHT_STICK_BUTTONS, ...TOUCH_BUTTONS, ...TOUCH_STICK_BUTTONS].map(b => b.command))
 export const inputDefinitions = [...FACE_BUTTONS, ...DPAD_BUTTONS, ...BUMPER_BUTTONS, ...TRIGGER_BUTTONS, ...CENTER_BUTTONS, ...PADDLE_BUTTONS, ...MINI_BUTTONS, ...MISC_BUTTONS, ...LEFT_STICK_BUTTONS, ...RIGHT_STICK_BUTTONS, ...TOUCH_BUTTONS, ...TOUCH_STICK_BUTTONS]
 export function readableSetting(key: string) {
-  const names: Record<string, string> = { GYRO_ON: 'Enable gyro', GYRO_OFF: 'Disable gyro', ZL_MODE: 'Left trigger output', ZR_MODE: 'Right trigger output', RIGHT_TOUCHPAD_MODE: 'Right pad behavior', LEFT_TOUCHPAD_MODE: 'Left pad behavior', RIGHT_TOUCHPAD_SENS: 'Right pad sensitivity', LEFT_TOUCHPAD_SENS: 'Left pad sensitivity' }
+  const names: Record<string, string> = { GYRO_ON: 'Enable gyro', GYRO_OFF: 'Disable gyro', TILT_ON: 'Enable tilt', TILT_OFF: 'Disable tilt', ZL_MODE: 'Left trigger output', ZR_MODE: 'Right trigger output', RIGHT_TOUCHPAD_MODE: 'Right pad behavior', LEFT_TOUCHPAD_MODE: 'Left pad behavior', RIGHT_TOUCHPAD_SENS: 'Right pad sensitivity', LEFT_TOUCHPAD_SENS: 'Left pad sensitivity' }
   return names[key] ?? key.toLowerCase().replace(/_/g, ' ').replace(/^./, c => c.toUpperCase())
 }
 /** All configured positions, including positions without assignment lines. */
@@ -285,7 +296,9 @@ export function convertModeshifts(text: string, layer: ConfigLayer, trigger: str
       layer.overrides[`${match[1] ?? ''}${match[4].trim()}`] = match[5]
     } else retained.push(line)
   }
-  return writeLayers(retained.join('\n'), [...readLayers(text), layer])
+  const result = writeLayers(retained.join('\n'), [...readLayers(text), layer])
+  const actions = actionsOnInput(readLayerActions(result), trigger).filter(action => action.layerId !== layer.id)
+  return setLayerActions(result, trigger, [...actions, { input: trigger, verb: 'hold', layerId: layer.id }])
 }
 export function inputUses(text: string, command: string, layers = readLayers(text), name: InputNamer = rawName): string[] {
   const uses = actionsOnInput(readLayerActions(text, layers), command).map(action => describeAction(action, layers))
@@ -306,3 +319,6 @@ export function inputUses(text: string, command: string, layers = readLayers(tex
   inputUsage(text, command, [], name).filter(use => use.kind === 'setting' || use.kind === 'analog').forEach(use => uses.push(use.label))
   return uses
 }
+
+/** Names annotate behavior; they do not count as additional overrides. */
+export const visibleOverrideKeys = (overrides: Record<string, string>) => Object.keys(overrides).filter(key => !/^#\s*@label\s/i.test(key))

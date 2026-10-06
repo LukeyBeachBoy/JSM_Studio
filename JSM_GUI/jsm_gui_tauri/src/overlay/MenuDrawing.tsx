@@ -1,4 +1,6 @@
 import type { CSSProperties } from 'react'
+import { useTranslation } from 'react-i18next'
+import { describeBinding, explainBinding } from '../utils/bindingDescription'
 import { radialDividerStyle, radialHubStyle, radialLabelPosition, radialSegmentClip, type OverlayMenu } from '../utils/overlayLayout'
 import type { IconData } from '../utils/iconLibrary'
 import styles from './Overlay.module.css'
@@ -15,13 +17,15 @@ type Props = {
   onDotRef?: (element: HTMLDivElement | null) => void
   onSelect?: (command: string) => void
   selectedCommand?: string | null
+  managedFocus?: boolean
 }
-export function MenuDrawing({ menu, icons, onRegionRef, onDotRef, onSelect, selectedCommand }: Props) {
+export function MenuDrawing({ menu, icons, onRegionRef, onDotRef, onSelect, selectedCommand, managedFocus }: Props) {
+ const { t } = useTranslation()
  return (
         <div
-          className={`${styles.pad} ${menu.shape === 'FOUR_WAY' ? styles.wedges : ''} ${menu.shape === 'RADIAL' || menu.shape === 'EIGHT_WAY' ? styles.radial : ''}`}
-          // One variable so labels and keys scale together; the window is
-          // already sized to the pad's aspect, so the pad just fills it.
+          className={`${styles.pad} ${menu.displayAspect && menu.displayAspect > 1 ? styles.hotbar : ''} ${menu.shape === 'FOUR_WAY' ? styles.wedges : ''} ${menu.shape === 'RADIAL' || menu.shape === 'EIGHT_WAY' ? styles.radial : ''}`}
+          // Separate variables let menu names and output bindings scale
+          // independently; the window is already sized to the pad's aspect.
           style={{
             // Rows MUST be explicit equal fractions. Left to `auto` they size to
             // content, so one region with an icon grew taller and pushed the
@@ -39,16 +43,20 @@ export function MenuDrawing({ menu, icons, onRegionRef, onDotRef, onSelect, sele
                   gridTemplateRows: `repeat(${Math.max(1, Math.ceil(menu.regions.length / Math.max(1, menu.columns)))}, 1fr)`,
                 }),
             '--overlay-font': `${menu.placement.fontSize}px`,
+            '--overlay-label-font': `${menu.placement.labelFontSize ?? menu.placement.fontSize}px`,
+            '--overlay-output-font': `${menu.placement.outputFontSize ?? menu.placement.fontSize}px`,
           } as CSSProperties}
         >
-          {menu.regions.map((region, index) => {
+          {[...menu.regions, ...(menu.centerRegion ? [menu.centerRegion] : [])].map((region, index) => {
+            const center = index === menu.regions.length
             const wedge = menu.shape === 'FOUR_WAY' ? WEDGES[index] : null
-            const radial = menu.shape === 'RADIAL' || menu.shape === 'EIGHT_WAY'
+            const radial = !center && (menu.shape === 'RADIAL' || menu.shape === 'EIGHT_WAY')
             const segments = menu.regions.length
             // With labels hidden the key takes the headline rather than leaving
             // the region blank, and vice versa -- turning one off should never
             // produce an unreadable menu.
             const art = region.icon && menu.placement.showIcons !== false ? icons[region.icon] : undefined
+            const outputLabel = describeBinding(region.binding, t)
             const content = (
               <>
                 {art && (
@@ -62,11 +70,11 @@ export function MenuDrawing({ menu, icons, onRegionRef, onDotRef, onSelect, sele
                   />
                 )}
                 {menu.placement.showLabels && (region.label || !menu.placement.showKeys) && (
-                  <span className={styles.label}>{region.label || region.binding || '—'}</span>
+                  <span className={styles.label}>{region.label || outputLabel || '—'}</span>
                 )}
                 {menu.placement.showKeys && region.binding && (
-                  <span className={menu.placement.showLabels && region.label ? styles.binding : styles.label}>
-                    {region.binding}
+                  <span className={styles.binding}>
+                    {outputLabel}
                   </span>
                 )}
               </>
@@ -76,18 +84,22 @@ export function MenuDrawing({ menu, icons, onRegionRef, onDotRef, onSelect, sele
                 key={region.command}
                 ref={el => onRegionRef?.(index, el)}
                 role={onSelect ? "button" : undefined}
-                tabIndex={onSelect ? 0 : undefined}
+                tabIndex={onSelect ? managedFocus ? -1 : 0 : undefined}
+                data-nav-skip={managedFocus ? '' : undefined}
                 aria-label={onSelect ? `${region.command}: ${region.label || region.binding || 'Unbound'}` : undefined}
                 onClick={() => onSelect?.(region.command)}
                 onKeyDown={event => { if (onSelect && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); onSelect(region.command) } }}
-                className={`${styles.region} ${wedge ? styles.wedge : ''} ${radial ? styles.segment : ''}`}
+                className={`${styles.region} ${wedge ? styles.wedge : ''} ${radial ? styles.segment : ''} ${center ? styles.center : ''}`}
                 style={
-                  wedge
+                  center
+                    ? { width: `${menu.deadzone * 100}%`, height: `${menu.deadzone * 100}%` }
+                    : wedge
                     ? { clipPath: wedge.clip }
                     : radial
                       ? { clipPath: radialSegmentClip(index, segments, menu.deadzone) }
                       : undefined
                 }
+                title={region.binding ? explainBinding(region.binding, t) : undefined}
                 data-selected={selectedCommand === region.command ? "true" : "false"}
                 data-bound={region.label || region.binding ? 'true' : 'false'}
               >

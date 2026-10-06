@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import graphStyles from './Graph.module.css'
 import { useTheme } from '../hooks/useTheme'
+import { accelSensitivityAt } from '../utils/accelCurve'
 
 interface SensitivityGraphProps {
   minThreshold?: number
@@ -16,6 +17,7 @@ interface SensitivityGraphProps {
   sigmoidMid?: number
   sigmoidWidth?: number
   jumpTau?: number
+  steadying?: import('../utils/accelCurve').AccelCurveParams['steadying']
   normalized?: number
   currentSensX?: number
   omega?: number
@@ -41,54 +43,12 @@ interface CurveComputeParams {
   sigmoidMid: number
   sigmoidWidth: number
   jumpTau: number
+  steadying?: import('../utils/accelCurve').AccelCurveParams['steadying']
 }
 
+// The curve itself lives in utils/accelCurve, shared with the curve editor.
 function computeSensitivityAt(speed: number, p: CurveComputeParams): number {
-  if (p.curveType === 'NATURAL') {
-    const omegaAdjusted = Math.max(0, speed - p.minThreshold)
-    const delta = p.maxSensX - p.minSensX
-    const k = Math.log(2) / p.naturalVHalf
-    return p.maxSensX - delta * Math.exp(-k * omegaAdjusted)
-  }
-  if (p.curveType === 'POWER') {
-    const omegaAdjusted = Math.max(0, speed - p.minThreshold)
-    if (p.powerVRef <= 0 || p.powerExponent <= 0 || omegaAdjusted <= 0) return p.minSensX
-    const x = omegaAdjusted / p.powerVRef
-    const u = Math.pow(x, p.powerExponent)
-    return p.minSensX + (p.maxSensX - p.minSensX) * clamp(1 - Math.exp(-u), 0, 1)
-  }
-  if (p.curveType === 'QUADRATIC') {
-    const omegaAdjusted = Math.max(0, speed - p.minThreshold)
-    if (p.maxThreshold <= 0) return p.maxSensX
-    const t = clamp(omegaAdjusted / p.maxThreshold, 0, 1)
-    return p.minSensX + (p.maxSensX - p.minSensX) * t * t
-  }
-  if (p.curveType === 'SIGMOID') {
-    const omegaAdjusted = Math.max(0, speed - p.minThreshold)
-    const w = p.sigmoidWidth > 0 ? p.sigmoidWidth : 1e-6
-    const raw = (x: number) => 1 / (1 + Math.exp(-(x - p.sigmoidMid) / w))
-    const sigma = raw(omegaAdjusted)
-    const sigma0 = raw(0)
-    const denom = 1 - sigma0
-    const t = clamp(denom > 0 ? (sigma - sigma0) / denom : 0, 0, 1)
-    return p.minSensX + (p.maxSensX - p.minSensX) * t
-  }
-  if (p.curveType === 'JUMP') {
-    const omegaAdjusted = Math.max(0, speed - p.minThreshold)
-    const vJump = p.maxThreshold
-    const tau = p.jumpTau
-    if (tau <= 0) return omegaAdjusted < vJump ? p.minSensX : p.maxSensX
-    const raw = (x: number) => x >= vJump ? 1 : Math.exp((x - vJump) / tau)
-    const raw0 = raw(0)
-    const denom = 1 - raw0
-    const r = raw(omegaAdjusted)
-    const t = denom > 0 ? clamp((r - raw0) / denom, 0, 1) : 0
-    return p.minSensX + (p.maxSensX - p.minSensX) * t
-  }
-  // LINEAR
-  const denom = p.maxThreshold - p.minThreshold
-  if (denom <= 0) return speed > p.minThreshold ? p.maxSensX : p.minSensX
-  return p.minSensX + clamp((speed - p.minThreshold) / denom, 0, 1) * (p.maxSensX - p.minSensX)
+  return accelSensitivityAt(speed, { ...p, minSens: p.minSensX, maxSens: p.maxSensX })
 }
 
 interface AxisLayout {
@@ -122,6 +82,7 @@ export function SensitivityGraph(props: SensitivityGraphProps) {
     sigmoidMid,
     sigmoidWidth,
     jumpTau,
+    steadying,
     normalized,
     currentSensX,
     omega,
@@ -286,6 +247,7 @@ export function SensitivityGraph(props: SensitivityGraphProps) {
       sigmoidMid: safeSigmoidMid,
       sigmoidWidth: safeSigmoidWidth,
       jumpTau: safeJumpTau,
+      steadying,
     }
 
     const drawSensitivityCurve = () => {
@@ -357,7 +319,7 @@ export function SensitivityGraph(props: SensitivityGraphProps) {
     }
 
     ctx.textAlign = 'center'
-  }, [minThreshold, maxThreshold, minSensX, minSensY, maxSensX, maxSensY, normalized, currentSensX, omega, disableLiveDot, curveType, naturalVHalf, powerVRef, powerExponent, sigmoidMid, sigmoidWidth, jumpTau, theme, xAxisLabel, yAxisLabel])
+  }, [minThreshold, maxThreshold, minSensX, minSensY, maxSensX, maxSensY, normalized, currentSensX, omega, disableLiveDot, curveType, naturalVHalf, powerVRef, powerExponent, sigmoidMid, sigmoidWidth, jumpTau, steadying, theme, xAxisLabel, yAxisLabel])
 
   // Hover overlay
   useEffect(() => {
@@ -403,6 +365,7 @@ export function SensitivityGraph(props: SensitivityGraphProps) {
       sigmoidMid: sigmoidMid ?? 0,
       sigmoidWidth: sigmoidWidth ?? 0,
       jumpTau: jumpTau ?? 0,
+      steadying,
     }
 
     const sens = computeSensitivityAt(hoverSpeed, curveParams)
@@ -455,7 +418,7 @@ export function SensitivityGraph(props: SensitivityGraphProps) {
     ctx.textAlign = 'left'
     ctx.fillText(line1, tooltipX + pad, tooltipY + pad + 11)
     ctx.fillText(line2, tooltipX + pad, tooltipY + pad + 11 + lineHeight)
-  }, [hoverSpeed, theme, curveType, minSensX, maxSensX, minThreshold, maxThreshold, naturalVHalf, powerVRef, powerExponent, sigmoidMid, sigmoidWidth, jumpTau])
+  }, [hoverSpeed, theme, curveType, minSensX, maxSensX, minThreshold, maxThreshold, naturalVHalf, powerVRef, powerExponent, sigmoidMid, sigmoidWidth, jumpTau, steadying])
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const axis = axisRef.current

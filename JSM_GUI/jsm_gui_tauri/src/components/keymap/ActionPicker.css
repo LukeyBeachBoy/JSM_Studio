@@ -57,6 +57,7 @@
   color: var(--text-3);
 }
 .action-picker__search:focus-within { box-shadow: inset 0 0 0 1px var(--focus-keyboard); }
+body[data-focus-glide] .action-picker__search:focus-within { box-shadow: inset 0 0 0 1px var(--line-1); }
 .action-picker__search input {
   flex: 1;
   min-width: 0;
@@ -130,6 +131,19 @@
 .action-choice:hover:not(:disabled) { background: var(--surface-row-hover); }
 .action-choice[aria-pressed='true'] { box-shadow: inset 0 0 0 1px var(--accent); }
 .action-choice:disabled { opacity: var(--disabled-opacity); cursor: default; }
+.action-choice > svg { flex: none; color: var(--text-2); }
+.action-choice > span:not(.action-used) { min-width: 0; }
+.action-choice__chevron { margin-left: auto; color: var(--text-3); }
+.action-grid--jsm .action-choice { min-height: 60px; padding-block: var(--sp-3); }
+.action-jsm-variants { margin-top: var(--sp-4); padding: var(--sp-4); border-radius: var(--r-md); background: var(--surface-sunken); }
+.action-jsm-variants .action-picker-note { margin-top: 0; margin-bottom: var(--sp-3); }
+.action-jsm-advanced { margin-top: var(--sp-6); border-top: 1px solid var(--line-1); padding-top: var(--sp-4); }
+.action-jsm-advanced > summary { display: flex; align-items: center; gap: var(--sp-2); width: fit-content; padding: var(--sp-2) 0; color: var(--text-2); cursor: pointer; }
+.action-jsm-advanced > summary::after { content: '›'; margin-left: var(--sp-2); }
+.action-jsm-advanced[open] > summary::after { transform: rotate(90deg); }
+.action-jsm-advanced > .action-grid { margin-top: var(--sp-3); }
+.picker-detail__name > strong { display: flex; align-items: center; gap: var(--sp-3); }
+.picker-detail__name > strong > svg { flex: none; }
 
 /* The keyboard: real proportions, keycaps with an inset bottom edge. */
 .action-keyboard, .action-numpad { display: flex; flex-direction: column; gap: 6px; }
@@ -219,14 +233,13 @@ body[data-input-source='controller'] .action-choice:focus {
   .action-picker { animation: none; }
 }
 
-/* LED brightness: a console command with a value, so it carries its own stepper. */
-.action-led { display: flex; align-items: center; gap: var(--sp-2); margin: var(--sp-3) 0; padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-4); border-radius: var(--r-row); background: var(--surface-row); }
-.action-led__label { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.action-led__label b { color: var(--text-1); font-size: var(--fs-label); font-weight: var(--fw-medium); }
-.action-led__label small { color: var(--text-3); font-size: var(--fs-hint); }
-.action-led input { width: 64px; height: var(--control-h); border: 0; border-radius: var(--r-md); background: var(--surface-control); color: var(--text-1); font: inherit; text-align: center; font-variant-numeric: tabular-nums; }
-.action-led input:focus-visible { outline: 2px solid var(--focus-keyboard); outline-offset: 1px; }
-.action-led .action-choice.action-led__set { min-width: 72px; }
+/* Layers (TODO-55): one row per layer in its hue, the count of bindings after the name. */
+.action-grid--layers { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.action-layer { display: flex; align-items: center; gap: var(--sp-2); text-align: left; box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--layer-hue) 40%, transparent); }
+.action-layer__swatch { flex: none; width: 12px; height: 12px; border-radius: 50%; background: var(--layer-hue); }
+.action-layer__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.action-layer__count { flex: none; color: var(--text-3); font-size: var(--fs-hint); }
+.action-picker-empty { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-3); }
 
 /* Custom: a raw expression, a console command or a haptic pulse. */
 .action-custom { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-4); max-width: 560px; }
@@ -248,3 +261,11 @@ body[data-input-source='controller'] .action-choice:focus {
 
 /* The scrim fades in 160ms; the picker scales from .96 over 240ms (2f). */
 .action-picker-overlay { animation-duration: var(--dur-2); }
+
+/* Selected actions read as a title followed by an explanation. */
+.picker-detail__name { display: flex; flex-direction: column; align-items: stretch; min-width: 0; gap: 12px; }
+.picker-detail__name strong { font-size: var(--fs-section); overflow-wrap: anywhere; }
+.picker-detail__name p { margin: 0; line-height: var(--lh-body); font-weight: var(--fw-regular); overflow-wrap: anywhere; }
+.picker-detail__name[data-kind='layerAction'] strong { color: var(--layer-1); padding: 10px 12px; border-radius: var(--r-md); background: var(--layer-1-soft); }
+.picker-detail { min-width: 0; }
+.picker-detail__raw code { overflow-wrap: anywhere; }

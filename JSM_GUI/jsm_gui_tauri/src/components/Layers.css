@@ -26,7 +26,9 @@
 .layer-modal-section { display: flex; flex-direction: column; gap: var(--sp-2); }
 .layer-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-2); }
 .layer-list li { display: flex; flex-direction: column; gap: var(--sp-1); padding: var(--sp-3); border-radius: var(--r-row); background: var(--surface-row); }
-.layer-list li[aria-current=true] { box-shadow: inset 0 0 0 1px var(--accent); }
+/* TODO-52: the editing layer is marked by its chip and a quiet left bar, so the
+   accent ring belongs only to whichever field has focus. */
+.layer-list li[aria-current=true] { box-shadow: inset 3px 0 0 var(--accent); }
 .layer-list__row { display: flex; align-items: center; gap: var(--sp-2); }
 .layer-list__row .text-field { flex: 1 1 auto; min-width: 0; }
 .layer-list__row .layer-row__tag, .layer-list__row .button { flex: none; }
@@ -156,9 +158,30 @@ body[data-input-source='controller'] .layer-row:focus { background: var(--surfac
   font-weight: var(--fw-semibold);
 }
 
-.layer-new { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin-top: var(--sp-3); }
-.layer-new .text-field { flex: 1 1 260px; max-width: 420px; }
-.layer-new__error { width: 100%; color: var(--warn); font-size: var(--fs-hint); }
+/* TODO-50: creating a layer is the section's primary entry point: a labelled
+   card with a tall field and the primary button, not a bare row under the list. */
+.layer-new {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--sp-2) var(--sp-3);
+  margin-top: var(--sp-4);
+  padding: var(--sp-4);
+  border-radius: var(--r-card);
+  background: var(--surface-row);
+  box-shadow: inset 0 0 0 1px var(--line-1);
+}
+.layer-new__label { grid-column: 1 / -1; color: var(--text-2); font-size: var(--fs-hint); line-height: var(--lh-hint); font-weight: var(--fw-medium); }
+.layer-new .text-field { min-height: var(--control-h-lg); max-width: none; font-size: var(--fs-label); box-shadow: inset 0 0 0 1px var(--line-2); }
+.layer-new .text-field:focus { box-shadow: inset 0 0 0 1px var(--focus-keyboard); }
+.layer-new .button { height: var(--control-h-lg); padding: 0 var(--sp-5); }
+.layer-new__hint, .layer-new__error { grid-column: 1 / -1; margin: 0; font-size: var(--fs-hint); line-height: var(--lh-hint); }
+.layer-new__hint { color: var(--text-3); }
+.layer-new__error { color: var(--warn); }
+@media (max-width: 520px) {
+  .layer-new { grid-template-columns: minmax(0, 1fr); }
+  .layer-new .button { width: 100%; }
+}
 .layer-hint {
   margin: var(--sp-3) 0 0;
   padding: var(--sp-3) var(--sp-4);
@@ -170,16 +193,35 @@ body[data-input-source='controller'] .layer-row:focus { background: var(--surfac
 }
 .layer-hint strong { color: var(--text-1); font-weight: var(--fw-semibold); }
 
-.layer-rename { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--sp-3); margin: var(--sp-3) 0; }
-.layer-rename__field { display: flex; flex-direction: column; gap: var(--sp-1); color: var(--text-2); font-size: var(--fs-hint); font-weight: var(--fw-medium); }
-.layer-rename__field .text-field { min-width: 260px; }
+/* TODO-50: the rename row is a card like the switch under it, and its field a
+   proper well with a visible hairline. */
+.layer-rename { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--sp-3); margin: var(--sp-3) 0; padding: var(--sp-3) var(--sp-4); border-radius: var(--r-row); background: var(--surface-row); }
+.layer-rename__field { flex: 1 1 260px; display: flex; flex-direction: column; gap: var(--sp-1); color: var(--text-2); font-size: var(--fs-hint); line-height: var(--lh-hint); font-weight: var(--fw-medium); }
+.layer-rename__field .text-field { width: 100%; max-width: 420px; min-width: 0; box-shadow: inset 0 0 0 1px var(--line-2); }
+.layer-rename__field .text-field:focus { box-shadow: inset 0 0 0 1px var(--focus-keyboard); }
+.layer-rename .button { flex: none; }
 .layer-override-rows { display: flex; flex-direction: column; }
 .layer-page-content .layer-override { min-height: 52px; padding: 0 var(--sp-4); box-shadow: inset 0 -1px 0 var(--line-1); }
 .layer-override__name { color: var(--text-1); font-size: var(--fs-body); font-weight: var(--fw-medium); }
 .layer-override__value { color: var(--text-2); font-family: var(--font-mono); font-size: var(--fs-hint); }
 .layer-page-content .layer-empty { margin: var(--sp-3) 0 0; color: var(--text-3); font-size: var(--fs-body); }
-.layer-page-content .layer-from-modeshifts { margin-top: var(--sp-4); padding-top: 0; border-top: 0; align-items: flex-end; }
+.layer-page-content .layer-from-modeshifts { margin-top: var(--sp-4); padding-top: 0; border-top: 0; align-items: flex-start; }
 .layer-page-content .layer-from-modeshifts > label { flex: 1 1 360px; }
+/* TODO-51: "Move N assignments" wraps onto a second line when it is squeezed
+   instead of clipping. On the page it sits on the select's line (the label's
+   12px row padding), not down beside the hint. */
+.layer-from-modeshifts__move {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  height: auto;
+  min-height: var(--control-h);
+  padding: 6px var(--sp-4);
+  white-space: normal;
+  text-align: center;
+  line-height: var(--lh-hint);
+}
+.layer-page-content .layer-from-modeshifts > .layer-from-modeshifts__move { margin-top: 12px; }
 
 /* The Manage layers dialog and the inline controls, on the design tokens. */
 .layer-modal-note, .layer-empty { color: var(--text-3); }
@@ -242,3 +284,13 @@ body[data-input-source='controller'] .layer-row:focus { background: var(--surfac
 .input-layer-actions details[open] > summary::before { transform: rotate(45deg); }
 .input-layer-actions details > summary:hover { background: var(--surface-row-hover); color: var(--text-1); }
 .input-layer-actions details > small { display: block; margin: var(--sp-1) var(--sp-2) var(--sp-2); color: var(--text-3); font-size: var(--fs-hint); }
+
+.layer-list__overrides { margin-top: 12px; }
+.layer-list__overrides > summary { min-height: 40px; padding: 10px 8px; }
+.layer-list__overrides > .layer-list__none { margin: 8px 8px 4px; }
+.layer-migration { margin-top: 24px; }
+.layer-migration > summary { padding: 12px 0; color: var(--text-2); cursor: pointer; }
+.layer-override__value { font-family: var(--font-ui); white-space: normal; overflow-wrap: anywhere; }
+.layer-override__color { display: inline-block; width: 18px; height: 18px; border-radius: 50%; vertical-align: middle; margin: 0 6px; box-shadow: inset 0 0 0 1px var(--line-2); }
+
+.layer-page-content { padding-bottom: 80px; }

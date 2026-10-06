@@ -62,13 +62,13 @@
 .item:hover .options, .options:focus-visible, .options[data-state='open'] { opacity: 1; }
 
 .rowIcon {
-  width: 44px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   flex: none;
   display: grid;
   place-items: center;
-  border-radius: 10px;
-  box-shadow: inset 0 0 0 2px var(--line-2);
+  border-radius: var(--r-md);
+  background: var(--surface-control);
   color: var(--text-2);
 }
 
@@ -178,3 +178,10 @@
 }
 .choice b { font-size: var(--fs-label); font-weight: var(--fw-semibold); }
 .choice span { color: var(--text-3); font-size: var(--fs-hint); line-height: var(--lh-hint); }
+
+/* Game row in the Selected panel (TODO-46): icon + exe on one line, state and the picker under it. */
+.gameFact { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; }
+.gameLine { display: flex; align-items: center; gap: 6px; max-width: 100%; min-width: 0; }
+.gameLine > img { flex: none; }
+.gameName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gameMeta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-1) var(--sp-3); color: var(--text-3); }

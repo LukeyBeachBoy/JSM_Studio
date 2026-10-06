@@ -1,0 +1,1293 @@
+{
+  "note": "Locate native setting consumers for semantic/chord applicability review.\n\nRegistration alone does not prove that a runtime reads a chorded value. These\nare call-site candidates, not an automatic verdict: helpers with variable IDs,\naliases and driver boundaries still need code review and runtime tests.",
+  "settings": {
+    "ACCEL_CURVE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:224"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "ACCEL_CURVE_LINK": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:536",
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1995"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "ACCEL_JUMP_TAU": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:232"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "ACCEL_NATURAL_VHALF": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:227"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "ACCEL_POWER_EXPONENT": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:229"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "ACCEL_POWER_VREF": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:228"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "ACCEL_SIGMOID_MID": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:230"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "ACCEL_SIGMOID_WIDTH": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:231"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "ADAPTIVE_TRIGGER": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:203",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:658",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1243",
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:2355"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "ANGLE_TO_AXIS_DEADZONE_INNER": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1655"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "ANGLE_TO_AXIS_DEADZONE_OUTER": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1656"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "AUTO_CALIBRATE_GYRO": {
+      "directGlobal": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1340"
+      ],
+      "contextGetter": [],
+      "sameNameRegistrationChordable": false
+    },
+    "BOOT_SOUND_LEVEL": {
+      "directGlobal": [
+        "JoyShockMapper/JoyShockMapper/src/SDLWrapper.cpp:1073"
+      ],
+      "contextGetter": [],
+      "sameNameRegistrationChordable": true
+    },
+    "CONNECT_SOUND": {
+      "directGlobal": [
+        "JoyShockMapper/JoyShockMapper/src/SDLWrapper.cpp:1023"
+      ],
+      "contextGetter": [],
+      "sameNameRegistrationChordable": true
+    },
+    "CONTROLLER_ORIENTATION": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1456",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1945",
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:2222"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "DBL_PRESS_WINDOW": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:640",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:649",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1090",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1133",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1176"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "DECEL_BRAKE_STRENGTH": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1860"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "DECEL_BRAKE_THRESHOLD": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1861"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "DISABLE_HARDWARE_GYRO_CALIBRATION": {
+      "directGlobal": [
+        "JoyShockMapper/JoyShockMapper/src/SDLWrapper.cpp:1007"
+      ],
+      "contextGetter": [],
+      "sameNameRegistrationChordable": true
+    },
+    "EDGE_PUSH_IS_ACTIVE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1839"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "FLICK_DEADZONE_ANGLE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1331"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "FLICK_SNAP_MODE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1313"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "FLICK_SNAP_STRENGTH": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1328"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "FLICK_STICK_OUTPUT": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1288"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "FLICK_TIME": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1394"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "FLICK_TIME_EXPONENT": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1399"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "GRID_DEADZONE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:860"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "GRID_SHAPE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:845",
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:859"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "GRID_SIZE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:844",
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:853"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "GRIP_FLICKER_GUARD": {
+      "directGlobal": [
+        "JoyShockMapper/JoyShockMapper/src/SDLWrapper.cpp:1098"
+      ],
+      "contextGetter": [],
+      "sameNameRegistrationChordable": true
+    },
+    "GRIP_HAPTIC_EFFECT": {
+      "directGlobal": [
+        "JoyShockMapper/JoyShockMapper/src/SDLWrapper.cpp:940"
+      ],
+      "contextGetter": [],
+      "sameNameRegistrationChordable": true
+    },
+    "GRIP_HAPTIC_INTENSITY": {
+      "directGlobal": [
+        "JoyShockMapper/JoyShockMapper/src/SDLWrapper.cpp:939"
+      ],
+      "contextGetter": [],
+      "sameNameRegistrationChordable": true
+    },
+    "GRIP_RELEASE_HAPTIC_EFFECT": {
+      "directGlobal": [
+        "JoyShockMapper/JoyShockMapper/src/SDLWrapper.cpp:942"
+      ],
+      "contextGetter": [],
+      "sameNameRegistrationChordable": true
+    },
+    "GRIP_RELEASE_HAPTIC_INTENSITY": {
+      "directGlobal": [
+        "JoyShockMapper/JoyShockMapper/src/SDLWrapper.cpp:941"
+      ],
+      "contextGetter": [],
+      "sameNameRegistrationChordable": true
+    },
+    "GRIP_SENSOR_RANGE": {
+      "directGlobal": [
+        "JoyShockMapper/JoyShockMapper/src/SDLWrapper.cpp:1097"
+      ],
+      "contextGetter": [],
+      "sameNameRegistrationChordable": true
+    },
+    "GYRO_ANGLE_SNAP": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1926"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "GYRO_ANGLE_SNAP_EASE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1929"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "GYRO_AXIS_X": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1723",
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1741",
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1747"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "GYRO_AXIS_Y": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1724",
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1743",
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1748"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "GYRO_CALIBRATION_DELAY": {
+      "directGlobal": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:2970"
+      ],
+      "contextGetter": [],
+      "sameNameRegistrationChordable": true
+    },
+    "GYRO_CALIBRATION_TIME": {
+      "directGlobal": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:2971"
+      ],
+      "contextGetter": [],
+      "sameNameRegistrationChordable": true
+    },
+    "GYRO_CLICK_DAMPEN": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:2031"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "GYRO_CUTOFF_RECOVERY": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1610"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "GYRO_CUTOFF_SPEED": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1609"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "GYRO_DEFLECTION_LOCK_EXTENTS": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:126"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "GYRO_DEFLECTION_RANGE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:124"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "GYRO_HAPTIC_EFFECT": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:614"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "GYRO_HAPTIC_INTENSITY": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:608"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "GYRO_HAPTIC_INTERVAL": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:615"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "GYRO_HAPTIC_SIDE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:617"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "GYRO_ON": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1636"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "GYRO_OUTPUT": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1432",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1981",
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1778",
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:2380"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "GYRO_SMOOTHING_DECAY": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1578"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "GYRO_SMOOTH_THRESHOLD": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1582",
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1593"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "GYRO_SMOOTH_TIME": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1581",
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1590"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "GYRO_SPACE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1413"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "GYRO_STICK_DEFLECTION": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1779"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "HOLD_PRESS_TIME": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:639",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:648",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1090",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1133",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1176"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "IGNORE_GYRO_DEVICES": {
+      "directGlobal": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:83"
+      ],
+      "contextGetter": [],
+      "sameNameRegistrationChordable": true
+    },
+    "IN_GAME_SENS": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1357",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1413",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1529",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1530",
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:2407"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "JOYCON_GYRO_MASK": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:2404"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "JOYCON_MOTION_MASK": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:2251"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "LEAN_THRESHOLD": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:2296"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "LED_BRIGHTNESS": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:2416"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "LEFT_GRID_DEADZONE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:783"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "LEFT_GRID_REQUIRES_CLICK": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:781"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "LEFT_GRID_SHAPE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:765"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "LEFT_GRID_SIZE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:763",
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:776"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "LEFT_GRIP_HAPTICS": {
+      "directGlobal": [
+        "JoyShockMapper/JoyShockMapper/src/SDLWrapper.cpp:945"
+      ],
+      "contextGetter": [],
+      "sameNameRegistrationChordable": true
+    },
+    "LEFT_STICK_AXIS": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:2228"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "LEFT_STICK_DEADZONE_INNER": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1647"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "LEFT_STICK_DEADZONE_OUTER": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1648"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "LEFT_STICK_MODE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1650"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "LEFT_STICK_UNDEADZONE_INNER": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1665",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1759",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1988",
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:2320"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "LEFT_STICK_UNDEADZONE_OUTER": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1666",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1760",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1989",
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:2321"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "LEFT_STICK_UNPOWER": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1667",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1761",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1990",
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:2322"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "LEFT_STICK_VIRTUAL_SCALE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1991"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "LEFT_TOUCHPAD_DUAL_STAGE_MODE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1185"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "LEFT_TOUCHPAD_MODE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:746"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "LEFT_TOUCHPAD_ROTATION": {
+      "directGlobal": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:2180",
+        "JoyShockMapper/JoyShockMapper/src/SDLWrapper.cpp:1452"
+      ],
+      "contextGetter": [],
+      "sameNameRegistrationChordable": true
+    },
+    "LEFT_TOUCHPAD_SENS": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:797"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "LEFT_TRIGGER_EFFECT": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:2363"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "LIGHT_BAR": {
+      "directGlobal": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:42"
+      ],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:62",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:79",
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:2415"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "MAX_GYRO_SENS": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1852"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "MAX_GYRO_THRESHOLD": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:226",
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1979"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "MIN_GYRO_SENS": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1851"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "MIN_GYRO_THRESHOLD": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:225",
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1978"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "MOTION_DEADZONE_INNER": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:2312"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "MOTION_DEADZONE_OUTER": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:2313"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "MOTION_STICK_AXIS": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:2261"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "MOTION_STICK_MODE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:2301"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "MOUSELIKE_FACTOR": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1859"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "MOUSE_RING_RADIUS": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1546",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1557"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "MOUSE_X_FROM_GYRO_AXIS": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1416"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "MOUSE_Y_FROM_GYRO_AXIS": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1429"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "ONE_EURO_MIN_CUTOFF": {
+      "directGlobal": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:581"
+      ],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:589"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "ONE_EURO_SPEED_COEFF": {
+      "directGlobal": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:582"
+      ],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:590"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "REAL_WORLD_CALIBRATION": {
+      "directGlobal": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:2845"
+      ],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1357",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1413",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1529",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1530",
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:2407"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "RETURN_DEADZONE_ANGLE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1904"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "RETURN_DEADZONE_ANGLE_CUTOFF": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1905"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "RETURN_DEADZONE_IS_ACTIVE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1882"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "RIGHT_GRID_DEADZONE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:815"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "RIGHT_GRID_REQUIRES_CLICK": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:813"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "RIGHT_GRID_SHAPE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:766"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "RIGHT_GRID_SIZE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:764",
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:809"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "RIGHT_GRIP_HAPTICS": {
+      "directGlobal": [
+        "JoyShockMapper/JoyShockMapper/src/SDLWrapper.cpp:946"
+      ],
+      "contextGetter": [],
+      "sameNameRegistrationChordable": true
+    },
+    "RIGHT_STICK_AXIS": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:2240"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "RIGHT_STICK_DEADZONE_INNER": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1687"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "RIGHT_STICK_DEADZONE_OUTER": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1688"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "RIGHT_STICK_MODE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1690"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "RIGHT_STICK_UNDEADZONE_INNER": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1671",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1765",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1995",
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:2326"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "RIGHT_STICK_UNDEADZONE_OUTER": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1672",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1766",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1996",
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:2327"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "RIGHT_STICK_UNPOWER": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1673",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1767",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1997",
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:2328"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "RIGHT_STICK_VIRTUAL_SCALE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1998"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "RIGHT_TOUCHPAD_DUAL_STAGE_MODE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1186"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "RIGHT_TOUCHPAD_MODE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:747"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "RIGHT_TOUCHPAD_ROTATION": {
+      "directGlobal": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:2186",
+        "JoyShockMapper/JoyShockMapper/src/SDLWrapper.cpp:1454"
+      ],
+      "contextGetter": [],
+      "sameNameRegistrationChordable": true
+    },
+    "RIGHT_TOUCHPAD_SENS": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:827"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "RIGHT_TRIGGER_EFFECT": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:2364"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "ROLL_CONTRIBUTION": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1445"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "ROTATE_SMOOTH_OVERRIDE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1363"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "RUMBLE": {
+      "directGlobal": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:146"
+      ],
+      "contextGetter": [],
+      "sameNameRegistrationChordable": false
+    },
+    "SCREEN_RESOLUTION_X": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1562",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1565",
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:652"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "SCREEN_RESOLUTION_Y": {
+      "directGlobal": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:4348"
+      ],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1563",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1566",
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:653"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "SCROLL_SENS": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1589"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "SHUTDOWN_SOUND": {
+      "directGlobal": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:3079"
+      ],
+      "contextGetter": [],
+      "sameNameRegistrationChordable": true
+    },
+    "SIM_PRESS_WINDOW": {
+      "directGlobal": [
+        "JoyShockMapper/JoyShockMapper/src/DigitalButton.cpp:613",
+        "JoyShockMapper/JoyShockMapper/src/DigitalButton.cpp:800"
+      ],
+      "contextGetter": [],
+      "sameNameRegistrationChordable": false
+    },
+    "SOUND_ACTUATORS": {
+      "directGlobal": [
+        "JoyShockMapper/JoyShockMapper/src/SDLWrapper.cpp:834"
+      ],
+      "contextGetter": [],
+      "sameNameRegistrationChordable": true
+    },
+    "SOUND_GAIN": {
+      "directGlobal": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:3023",
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:3075",
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:3083",
+        "JoyShockMapper/JoyShockMapper/src/SDLWrapper.cpp:1018"
+      ],
+      "contextGetter": [],
+      "sameNameRegistrationChordable": true
+    },
+    "STICK_ACCELERATION_CAP": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1536"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "STICK_ACCELERATION_RATE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1535"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "STICK_POWER": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1527",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1659",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1860",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1861",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1862",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1863",
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:2314"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "STICK_SENS": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1529",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1530",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1858"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "TICK_TIME": {
+      "directGlobal": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:901",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1359",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1376",
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1589",
+        "JoyShockMapper/JoyShockMapper/src/SDLWrapper.cpp:1120"
+      ],
+      "contextGetter": [],
+      "sameNameRegistrationChordable": true
+    },
+    "TOUCHPAD_ACCELERATION": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:547"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "TOUCHPAD_ACCEL_CURVE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:239"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "TOUCHPAD_ACCEL_JUMP_TAU": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:247"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "TOUCHPAD_ACCEL_MAX_GAIN": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:529"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "TOUCHPAD_ACCEL_MAX_SPEED": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:241"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "TOUCHPAD_ACCEL_MIN_GAIN": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:528"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "TOUCHPAD_ACCEL_MIN_SPEED": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:240"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "TOUCHPAD_ACCEL_NATURAL_VHALF": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:242"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "TOUCHPAD_ACCEL_POWER_EXPONENT": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:244"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "TOUCHPAD_ACCEL_POWER_VREF": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:243"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "TOUCHPAD_ACCEL_SIGMOID_MID": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:245"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "TOUCHPAD_ACCEL_SIGMOID_WIDTH": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:246"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "TOUCHPAD_CLICK_DAMPEN": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:394"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "TOUCHPAD_CLICK_DAMPEN_THRESHOLD": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:378"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "TOUCHPAD_DUAL_STAGE_MODE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1128"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "TOUCHPAD_D_CUTOFF": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:432"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "TOUCHPAD_GRID_REQUIRES_CLICK": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:857"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "TOUCHPAD_LIFT_SPEED": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:437"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "TOUCHPAD_MIN_CUTOFF": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:430"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "TOUCHPAD_MODE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:698"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "TOUCHPAD_MOVEMENT_THRESHOLD": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:477"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "TOUCHPAD_SENS": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:888"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "TOUCHPAD_SPEED_COEFF": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:431"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "TOUCHPAD_TRACKBALL_DECAY": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:590"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "TOUCHPAD_TRACKBALL_MIN_VELOCITY": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:605"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "TRACKBALL_DECAY": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1786"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "TRIGGER_HYSTERESIS": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1247"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "TRIGGER_SKIP_DELAY": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:809",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:841"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "TRIGGER_THRESHOLD": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:657",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1242"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "TURBO_PERIOD": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:638",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:647",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1090",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1133",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1176"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "UNWIND_RATE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1731"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "VIRTUAL_STICK_CALIBRATION": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1421",
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:2002",
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:2213"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "WIND_STICK_POWER": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1747"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "WIND_STICK_RANGE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/JoyShock.cpp:1746"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "ZL_MODE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1104"
+      ],
+      "sameNameRegistrationChordable": true
+    },
+    "ZR_MODE": {
+      "directGlobal": [],
+      "contextGetter": [
+        "JoyShockMapper/JoyShockMapper/src/main.cpp:1285"
+      ],
+      "sameNameRegistrationChordable": true
+    }
+  }
+}

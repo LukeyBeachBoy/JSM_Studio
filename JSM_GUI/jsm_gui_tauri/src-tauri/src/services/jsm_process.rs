@@ -134,7 +134,7 @@ pub fn launch_jsm(app: &AppHandle, state: &AppState) -> Result<(), String> {
 
 pub fn terminate_jsm(app: &AppHandle, state: &AppState) -> Result<(), String> {
     // The lock is held through the kill and the sweep below, not just while
-    // taking the child out: launch_jsm also runs from the reserved-chord
+    // taking the child out: launch_jsm also runs from the command-binding
     // worker and from commands on the runtime's worker threads, and a launch
     // slipping in between would spawn a mapper that the sweep then kills while
     // the state still tracks it -- reported to the UI as the mapper having
@@ -145,13 +145,25 @@ pub fn terminate_jsm(app: &AppHandle, state: &AppState) -> Result<(), String> {
         #[cfg(target_os = "windows")]
         let _ = process_state.job.take();
         if let Some(mut child) = process_state.child.take() {
-            let _ = child.kill();
-            // Bounded: `wait` blocks for ever if TerminateProcess was refused
-            // (the mapper stuck in a driver call, or already gone with a
-            // stale handle), and this holds the process lock -- every
-            // command touching the mapper would hang behind it. After the
-            // budget the stray sweep below finishes the job.
-            wait_for_exit_bounded(&mut child, std::time::Duration::from_secs(5));
+            // Ask first. The mapper hands the controller back only in its
+            // destructors -- the light (setting 37 = 0), the tone player's
+            // thread -- and TerminateProcess runs none of them, which left the
+            // LED stuck on whatever colour a configuration had set. QUIT goes
+            // through the pid-level injector: the one that takes the process
+            // lock would deadlock here, since this function holds it.
+            let asked = inject_console_command_for_pid(app, child.id(), "QUIT").unwrap_or(false);
+            let exited = asked && wait_for_exit_bounded(&mut child, std::time::Duration::from_millis(1500));
+            if !exited {
+                let _ = child.kill();
+                // Bounded: `wait` blocks for ever if TerminateProcess was
+                // refused (the mapper stuck in a driver call, or already gone
+                // with a stale handle), and this holds the process lock --
+                // every command touching the mapper would hang behind it.
+                // After the budget the stray sweep below finishes the job.
+                if !wait_for_exit_bounded(&mut child, std::time::Duration::from_secs(5)) {
+                    eprintln!("JoyShockMapper (pid {}) did not exit within 5s of being terminated", child.id());
+                }
+            }
         }
 
         // Stopping has to mean stopping. A mapper we lost track of would
@@ -169,28 +181,30 @@ pub fn terminate_jsm(app: &AppHandle, state: &AppState) -> Result<(), String> {
     Ok(())
 }
 
-/// Polls `try_wait` until the child is gone or `budget` runs out.
+/// Polls `try_wait` until the child is gone or `budget` runs out. True when it
+/// is gone (or can no longer be inspected, which for this purpose is the same).
 #[cfg(target_os = "windows")]
-fn wait_for_exit_bounded(child: &mut ManagedProcess, budget: std::time::Duration) {
+fn wait_for_exit_bounded(child: &mut ManagedProcess, budget: std::time::Duration) -> bool {
     let started = std::time::Instant::now();
     while started.elapsed() < budget {
         match child.try_wait() {
-            Ok(Some(_)) | Err(_) => return,
+            Ok(Some(_)) | Err(_) => return true,
             Ok(None) => std::thread::sleep(std::time::Duration::from_millis(50)),
         }
     }
-    eprintln!("JoyShockMapper (pid {}) did not exit within {budget:?} of being terminated", child.id());
+    false
 }
 
 #[cfg(not(target_os = "windows"))]
-fn wait_for_exit_bounded(child: &mut std::process::Child, budget: std::time::Duration) {
+fn wait_for_exit_bounded(child: &mut std::process::Child, budget: std::time::Duration) -> bool {
     let started = std::time::Instant::now();
     while started.elapsed() < budget {
         match child.try_wait() {
-            Ok(Some(_)) | Err(_) => return,
+            Ok(Some(_)) | Err(_) => return true,
             Ok(None) => std::thread::sleep(std::time::Duration::from_millis(50)),
         }
     }
+    false
 }
 
 /// Whether the mapper is running, and if it stopped by itself, how.
@@ -246,6 +260,16 @@ pub fn inject_console_command(
     let Some(pid) = pid else {
         return Ok(false);
     };
+    inject_console_command_for_pid(app, pid, command)
+}
+
+/// `inject_console_command` for a mapper whose pid the caller already holds.
+/// Takes no lock, so it is the one to call while the process state is held
+/// (terminate_jsm sends QUIT through here).
+fn inject_console_command_for_pid(app: &AppHandle, pid: u32, command: &str) -> Result<bool, String> {
+    if !cfg!(target_os = "windows") {
+        return Ok(false);
+    }
 
     let backend = runtime::read_backend_choice(app)?;
     let injector_path = runtime::console_injector_path(app, &backend)?;

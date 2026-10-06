@@ -42,7 +42,7 @@ pub fn start_stacking_guard(app: AppHandle) {
 
 /// Every window of ours that must stay above a game. Hidden ones are skipped
 /// inside `repair`, so this is cheap while nothing is on screen.
-const TOPMOST_LABELS: [&str; 2] = [OVERLAY_LABEL, crate::services::hud::HUD_LABEL];
+const TOPMOST_LABELS: [&str; 3] = [OVERLAY_LABEL, crate::services::hud::HUD_LABEL, crate::services::virtual_keyboard::LABEL];
 
 /// Raise any of our topmost windows that another window has climbed above.
 /// Never shows a hidden window or moves keyboard focus; when nothing covers

@@ -14,6 +14,8 @@ const HELP = `Usage: node scripts/build-installer.mjs [--patch | --minor | --maj
 Builds the current local frontend, Rust backend, SDL JoyShockMapper and console
 helper into a Windows x64 NSIS installer. Includes uncommitted changes.
 Restores npm dependencies by default. Does not pull, commit, install or publish.
+Automatically stops this checkout's dev servers and running build outputs
+before building; --skip-install leaves node_modules processes alone.
 
 Version (all five version files are updated before building):
   (default)        bump the patch version: 0.7.76 -> 0.7.77
@@ -106,19 +108,13 @@ try {
   if (!existsSync(path.join(root, 'JoyShockMapper', '.git'))) {
     throw new Error('Initialize the source first: git submodule update --init --recursive');
   }
-  // npm ci deletes node_modules first, and Windows will not delete a running
-  // executable: a dev server's esbuild made it fail with EPERM halfway through.
-  // Name what is running from there and stop before anything is touched.
-  if (!skipInstall) {
-    const modules = path.join(app, 'node_modules');
-    const probe = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command',
-      `$m = '${modules.replace(/'/g, "''")}'; Get-CimInstance Win32_Process | Where-Object { $_.ProcessId -ne ${process.pid} -and $_.ProcessId -ne $PID -and (($_.ExecutablePath -and $_.ExecutablePath.StartsWith($m, 'OrdinalIgnoreCase')) -or ($_.CommandLine -and $_.CommandLine.IndexOf($m, [StringComparison]::OrdinalIgnoreCase) -ge 0)) } | ForEach-Object { '{0} {1}' -f $_.ProcessId, $_.Name }`,
-    ], { env, encoding: 'utf8' });
-    const holders = (probe.stdout ?? '').split(/\r?\n/).map(line => line.trim()).filter(Boolean);
-    if (holders.length) {
-      throw new Error(`These processes are running from node_modules, so npm cannot replace it:\n  ${holders.join('\n  ')}\nStop them first (usually a dev server: npm run dev, tauri dev or vite), then run this again.`);
-    }
-  }
+  // Stop workspace dev/build trees before npm replaces dependencies or the
+  // compilers overwrite running outputs. Cleanup failures precede version edits.
+  run('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+    '-File', path.join(root, 'scripts', 'stop-installer-blockers.ps1'),
+    '-AppRoot', app, '-BuilderProcessId', String(process.pid),
+    ...(skipInstall ? ['-SkipInstall'] : []),
+  ], root);
 
   // ---- The five version files.
   const packagePath = path.join(app, 'package.json');

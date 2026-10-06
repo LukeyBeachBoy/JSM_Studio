@@ -32,11 +32,10 @@ export const ringTarget = (element: HTMLElement) => {
   if (element.matches(PILL)) return element
   const row = element.closest<HTMLElement>('.setting-row')
   if (row) return onlyStop(row) ? row : element
-  // A switch or checkbox inside the label that names it is that whole label:
-  // the box is only its switch, so the walk measured a small square at the
-  // row's far end and passed the row by (AI assistant's "Use the current
-  // configuration", above the request field).
-  const label = element.matches('input[type="checkbox"], input[type="radio"]') ? element.closest<HTMLElement>('label') : null
+  // A field inside the label that contains it is that whole label: measuring
+  // only the input leaves the focus ring on the inner control instead of its
+  // full container (icon search, for example).
+  const label = element.matches('input, select, textarea') ? element.closest<HTMLElement>('label') : null
   return label && onlyStop(label) ? label : element
 }
 

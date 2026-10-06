@@ -202,3 +202,22 @@ What would work, in order of sanity:
    the image) may still verify the image, and a bad flash can brick the
    controller. Not attempted and not recommended without that bootloader being
    inspected first.
+
+## Addendum — 2026-09-29
+
+A further pass decoded every handler in the command table (see
+`docs/triton-firmware-customisation.md` §3). Two things sharpen the conclusion
+above:
+
+- The "per-device state" the attribute setter writes is **one struct shared by
+  both trackpad devices**: the `olympus-trackpad-left` (data 0x20003094) and
+  `-right` (data 0x20003064) device data both hold the pointer 0x200030c4 at
+  +0x2c (image words 0x66e68 and 0x66e38, the only two references to that
+  address). Grip range (+0x0e) and flicker guard (+0x10) therefore exist exactly
+  once; the per-side loop 0x1cfb0 copies the derived touch/de-touch thresholds
+  into each instance (`strd` at 0x1d068) and compares each side against its
+  copy. A patch that made 0x1cda8 call the setter once would change nothing; only
+  the per-instance copy or the compares could carry a per-side offset.
+- `ID_SET_SETTINGS_VALUES` routes ids 0x30/0x54/0x55 to the IMU settings handler (a runtime set; whether it writes flash was not traced); everything
+  else, grip range and flicker guard included, is RAM and must be re-sent after a
+  reconnect.

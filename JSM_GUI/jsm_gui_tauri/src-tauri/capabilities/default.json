@@ -6,7 +6,9 @@
     "main",
     "overlay",
     "hud",
-    "traymenu"
+    "traymenu",
+    "areapicker",
+    "keyboard"
   ],
   "permissions": [
     "core:default",

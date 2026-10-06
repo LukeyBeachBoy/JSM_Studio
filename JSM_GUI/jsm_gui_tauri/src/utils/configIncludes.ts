@@ -7,6 +7,8 @@
 // read, and gets back the flattened text the runtime would actually execute,
 // plus a record of which file each effective setting ended up coming from.
 
+import { physicalBindingTargets } from './bindingAliases'
+
 export type ConfigFiles = Record<string, string>
 
 // Stands in for "the profile currently open in the editor" as a key in the file
@@ -128,7 +130,10 @@ export function resolveIncludes(rootPath: string, files: ConfigFiles): IncludeRe
   const origins: Record<string, string> = {}
   for (const { line, source } of lines) {
     const key = commandKey(line)
-    if (key) origins[key] = source
+    if (key) {
+      origins[key] = source
+      for (const physical of physicalBindingTargets(key)) origins[physical] = source
+    }
   }
 
   return {

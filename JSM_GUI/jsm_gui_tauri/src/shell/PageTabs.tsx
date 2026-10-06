@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Icon } from '../components/icons/Icon'
 import { ButtonGlyph } from '../components/glyphs/ButtonGlyph'
@@ -37,6 +38,10 @@ function ControllerStatusLabel({ status }: { status: ControllerStatus }) {
 export function PageTabs({ width, current, onSelect, status, sectionLabel, onOpenDrawer, drawerOpen }: PageTabsProps) {
   const { t } = useTranslation()
   const studio = isStudioPage(current)
+  const tabList = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    if (studio) tabList.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+  }, [current, width, studio])
   const label = (tab: PrimaryTab) => t(pageMeta(tab).labelKey, pageMeta(tab).label)
 
   if (width === 'narrow') {
@@ -76,7 +81,7 @@ export function PageTabs({ width, current, onSelect, status, sectionLabel, onOpe
   return (
     <nav className={`page-tabs${studio ? ' page-tabs--studio' : ''}`} data-focus-scope="page-tabs" aria-label={studio ? 'Studio' : 'Pages'}>
       <TriggerMark side="LT" />
-      <div className="page-tabs__list">
+      <div className="page-tabs__list" ref={tabList}>
         {(studio ? STUDIO_PAGES : CONTROL_PAGES).map(item => tab(item.tab))}
       </div>
       <TriggerMark side="RT" />

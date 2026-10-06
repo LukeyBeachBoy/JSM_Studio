@@ -1,0 +1,51 @@
+.vk-document,.vk-document #root{margin:0;width:100vw;height:100vh;overflow:hidden;background:transparent;user-select:none}
+.vk-shell{--vk-bg:var(--surface-canvas);--vk-key:var(--surface-row);--vk-action:var(--surface-control);--vk-text:var(--text-1);--vk-muted:var(--text-2);--vk-line:var(--line-2);--vk-accent:var(--accent);--glyph-ink:var(--vk-bg);font-family:var(--font-ui,"Segoe UI",sans-serif);color:var(--vk-text);height:100%;padding:10px;box-sizing:border-box;border:1px solid var(--vk-line);border-radius:12px;background:var(--vk-bg);display:flex;flex-direction:column;gap:8px;user-select:none}
+.vk-shell *{box-sizing:border-box}.vk-shell[data-appearance=dark]{--vk-bg:#16181c;--vk-key:#24272d;--vk-action:#30343c;--vk-text:#f1f3f7;--vk-muted:#a9b0bc;--vk-line:#454b55;--vk-accent:#85c7ee;color-scheme:dark}.vk-shell[data-appearance=light]{--vk-bg:#eef0f3;--vk-key:#fff;--vk-action:#dde1e7;--vk-text:#20242b;--vk-muted:#535e6e;--vk-line:#bfc6d0;--vk-accent:#2376ae;color-scheme:light}
+.vk-content{flex:1;min-height:0;position:relative}.vk-grid{height:100%;display:flex;flex-direction:column;gap:4px}.vk-row{flex:1;display:flex;gap:4px;min-height:0}.vk-cell{display:flex;min-width:0}.vk-key{flex:1;position:relative;display:flex;justify-content:center;align-items:center;min-width:0;font-size:clamp(13px,2.3vw,21px);background:var(--vk-key);border:1px solid var(--vk-line);border-radius:4px;overflow:hidden}.vk-key[data-action]{background:var(--vk-action)}.vk-key[data-selected]{border-color:var(--vk-accent);box-shadow:inset 0 0 0 1px var(--vk-accent)}.vk-key[data-left],.vk-key[data-right]{border-color:var(--vk-accent);background:color-mix(in srgb,var(--vk-accent) 18%,var(--vk-key))}.vk-key-label{z-index:2;pointer-events:none}.vk-key-shortcut{position:absolute;right:4px;bottom:3px;color:var(--vk-muted)}.vk-key-shortcut svg{width:clamp(12px,1.7vw,18px);height:clamp(12px,1.7vw,18px)}.vk-thumb{position:absolute;bottom:3px;transform:translateX(-50%);width:16px;height:9px;border-radius:50%;background:var(--vk-accent);box-shadow:0 0 6px var(--vk-accent);opacity:.85;pointer-events:none}.vk-key[data-right] .vk-thumb{background:color-mix(in srgb,var(--vk-accent) 55%,#7bdbb9)}
+.vk-glyph,.vk-glyph>span{display:inline-flex;align-items:center;gap:2px;vertical-align:middle}.vk-glyph small{font-size:9px}.vk-footer{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:5px 16px;font-size:10px;color:var(--vk-muted);min-height:22px}.vk-footer>span{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}.vk-footer svg{width:16px;height:16px}.vk-state:empty{display:none}.vk-paused{position:absolute;inset:0;display:grid;place-items:center;background:color-mix(in srgb,var(--vk-bg) 92%,transparent);border-radius:8px;font-size:13px;text-align:center;z-index:3}
+.vk-shell[data-layout=daisywheel]{border:0;background:transparent;padding:8px;gap:2px;max-width:440px;margin:auto}.vk-shell[data-layout=daisywheel] .vk-content{aspect-ratio:1;flex:1;max-height:calc(100% - 27px)}.vk-wheel{position:relative;height:100%;aspect-ratio:1;max-width:100%;margin:auto;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--vk-bg) 78%,transparent) 0 24%,var(--vk-bg) 25% 100%);border:1px solid var(--vk-line)}.vk-petal{position:absolute;width:24%;height:24%;transform:translate(-50%,-50%);border-radius:50%;background:var(--vk-key);border:1px solid var(--vk-line)}.vk-petal[data-active]{background:color-mix(in srgb,var(--vk-accent) 22%,var(--vk-key));border-color:var(--vk-accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--vk-accent) 25%,transparent)}.vk-char{position:absolute;display:flex;justify-content:center;align-items:center;transform:translate(-50%,-50%);width:32%;height:32%;border-radius:50%;font-size:clamp(11px,4vw,16px);background:var(--vk-action);border:1px solid var(--vk-line)}.vk-char-0{left:22%;top:50%}.vk-char-1{left:50%;top:22%}.vk-char-2{left:78%;top:50%}.vk-char-3{left:50%;top:78%}.vk-petal[data-active] .vk-char-0{border-color:#6ea9ec}.vk-petal[data-active] .vk-char-1{border-color:#cdb14c}.vk-petal[data-active] .vk-char-2{border-color:#d17b77}.vk-petal[data-active] .vk-char-3{border-color:#80b873}
+.vk-wheel-center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:38%;height:38%;color:var(--vk-muted)}.vk-dpad{width:100%;height:100%;position:relative}.vk-dpad>span{position:absolute;display:flex;align-items:center;justify-content:center;gap:2px;font-size:15px}.vk-center-up{left:50%;top:4%;transform:translateX(-50%)}.vk-center-left{left:0;top:50%;transform:translateY(-50%)}.vk-center-right{right:0;top:50%;transform:translateY(-50%)}.vk-center-down{left:50%;bottom:4%;transform:translateX(-50%)}.vk-center-dot{left:50%;top:50%;transform:translate(-50%,-50%);opacity:.85}.vk-dpad svg{width:15px;height:15px}.vk-stick{width:100%;height:100%;border:1px solid var(--vk-line);border-radius:50%;position:relative;display:grid;place-items:center}.vk-stick i{width:19px;height:19px;border-radius:50%;background:var(--vk-accent)}.vk-stick span{position:absolute;bottom:14%;font-size:8px}.vk-wheel-bumper{position:absolute;top:0;font-size:10px;color:var(--vk-muted);display:flex;align-items:center;gap:4px;border:1px solid var(--vk-line);background:var(--vk-bg);border-radius:20px;padding:4px 7px}.vk-wheel-bumper-left{left:0}.vk-wheel-bumper-right{right:0}.vk-shell[data-layout=daisywheel] .vk-footer{padding:3px 8px;background:var(--vk-bg);border-radius:20px;gap:4px 8px;font-size:9px}.vk-error{position:absolute;bottom:35px;left:10px;right:10px;background:var(--error-soft);color:var(--error);padding:8px;border-radius:8px;font-size:12px}
+.vk-shell[data-preview]{height:210px;pointer-events:none}.vk-shell[data-preview][data-layout=daisywheel]{height:auto;width:min(100%,420px);aspect-ratio:420 / 440}.vk-shell[data-preview] .vk-key{font-size:12px}.vk-shell[data-preview] .vk-key-shortcut svg{width:12px;height:12px}.vk-shell[data-preview] .vk-footer{gap:4px 8px;font-size:9px}.vk-shell[data-preview] .vk-char{font-size:12px}
+
+.vk-thumb{bottom:auto;transform:translate(-50%,-50%);width:19px;height:19px;background:color-mix(in srgb,var(--vk-accent) 40%,transparent);border:2px solid var(--vk-accent);box-shadow:none;z-index:1}.vk-thumb-right{border-color:color-mix(in srgb,var(--vk-accent) 55%,#7bdbb9)}.vk-key-shortcut{z-index:2}
+.vk-grid{position:relative;--vk-left:#49b9ff;--vk-right:#ffb454}
+.vk-grid>.vk-thumb{background:color-mix(in srgb,var(--vk-left) 25%,transparent);border-color:var(--vk-left);z-index:3;transition:none}
+.vk-grid>.vk-thumb-right{background:color-mix(in srgb,var(--vk-right) 25%,transparent);border-color:var(--vk-right)}
+.vk-key[data-left]{border-color:var(--vk-left);background:color-mix(in srgb,var(--vk-left) 14%,var(--vk-key))}
+.vk-key[data-right]{border-color:var(--vk-right);background:color-mix(in srgb,var(--vk-right) 14%,var(--vk-key))}
+.vk-key[data-left][data-right]{border-color:var(--vk-left);box-shadow:inset -2px 0 var(--vk-right)}
+
+/* Scale one square canvas, including labels and glyphs, as a unit. A narrow or
+   tall host can never turn the circular wheel into an ellipse. */
+.vk-canvas{display:contents}
+.vk-shell[data-layout=daisywheel]{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr);place-items:center;max-width:none;padding:0;overflow:hidden}
+.vk-shell[data-layout=daisywheel] .vk-canvas{display:flex;flex-direction:column;gap:4px;width:420px;height:440px;padding:8px;transform-origin:center}
+.vk-shell[data-layout=daisywheel] .vk-content{width:404px;height:404px;flex:none;aspect-ratio:1;max-height:none}
+.vk-shell[data-layout=daisywheel] .vk-wheel{width:100%;height:100%;aspect-ratio:1;max-width:none}
+.vk-shell[data-layout=daisywheel] .vk-char{font-size:17px}
+
+.vk-shell[data-layout=daisywheel] .vk-footer{font-size:11px;gap:8px;flex:1;min-height:20px;white-space:nowrap;flex-wrap:nowrap}
+.vk-shell[data-layout=daisywheel] .vk-footer svg{width:18px;height:18px}
+.vk-shell[data-layout=daisywheel] .vk-wheel-bumper{font-size:12px}
+.vk-dpad>span{font-size:19px}.vk-dpad .vk-center-dot svg{display:block;width:38px;height:38px}
+
+/* Each native press remounts only its character, restarting a short, soft pulse. */
+.vk-char[data-pressed]{animation:vk-character-pulse 280ms ease-out}
+@keyframes vk-character-pulse{
+  0%{background:color-mix(in srgb,var(--vk-accent) 28%,var(--vk-action));box-shadow:0 0 0 3px color-mix(in srgb,var(--vk-accent) 24%,transparent);transform:translate(-50%,-50%) scale(1.07)}
+  100%{background:var(--vk-action);box-shadow:0 0 0 6px transparent;transform:translate(-50%,-50%) scale(1)}
+}
+@media(prefers-reduced-motion:reduce){
+  .vk-char[data-pressed]{animation-name:vk-character-flash}
+  @keyframes vk-character-flash{from{background:color-mix(in srgb,var(--vk-accent) 28%,var(--vk-action))}to{background:var(--vk-action)}}
+}
+
+/* Center the action and its shortcut together on one baseline. */
+.vk-key[data-action]{gap:5px;padding:3px}
+.vk-key[data-action] .vk-key-label{font-size:clamp(8px,1.35vw,14px);line-height:1.1}
+.vk-key-shortcut{position:static;display:inline-flex;flex:none;color:var(--vk-text)}
+.vk-key-shortcut svg{display:block;width:clamp(11px,2vw,18px);height:clamp(11px,2vw,18px)}
+.vk-key-label svg{display:block;width:clamp(16px,3vw,25px);height:clamp(16px,3vw,25px)}
+
+/* Holding Shift or Symbols lights its chip, so the bank in use is visible on the wheel. */
+.vk-wheel-bumper[data-active]{color:var(--vk-text);border-color:var(--vk-accent);background:color-mix(in srgb,var(--vk-accent) 18%,var(--vk-bg))}

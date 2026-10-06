@@ -24,6 +24,12 @@ body {
   font-size: var(--fs-body);
 }
 
+/* Native controls otherwise keep the browser's font and baseline metrics. */
+:where(button, input, select, textarea) {
+  font: inherit;
+  letter-spacing: inherit;
+}
+
 code, kbd, pre, samp, textarea.config-textarea {
   font-family: var(--font-mono);
 }

@@ -1,0 +1,2520 @@
+{
+  "ACCEL_CURVE": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/AccelCurveEditor.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/AccelCurveView.tsx"
+    ],
+    "verification": []
+  },
+  "ACCEL_CURVE_LINK": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/AccelCurveEditor.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/AccelCurveView.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/KeymapControls.tsx"
+    ],
+    "verification": []
+  },
+  "ACCEL_JUMP_TAU": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/AccelCurveEditor.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/AccelCurveView.tsx"
+    ],
+    "verification": []
+  },
+  "ACCEL_NATURAL_VHALF": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/AccelCurveEditor.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/AccelCurveView.tsx"
+    ],
+    "verification": []
+  },
+  "ACCEL_POWER_EXPONENT": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/AccelCurveEditor.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/AccelCurveView.tsx"
+    ],
+    "verification": []
+  },
+  "ACCEL_POWER_VREF": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/AccelCurveEditor.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/AccelCurveView.tsx"
+    ],
+    "verification": []
+  },
+  "ACCEL_SIGMOID_MID": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/AccelCurveEditor.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/AccelCurveView.tsx"
+    ],
+    "verification": []
+  },
+  "ACCEL_SIGMOID_WIDTH": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/AccelCurveEditor.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/AccelCurveView.tsx"
+    ],
+    "verification": []
+  },
+  "ADAPTIVE_TRIGGER": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/KeymapControls.tsx"
+    ],
+    "verification": []
+  },
+  "ANGLE_TO_AXIS_DEADZONE_INNER": {
+    "status": "PARTIAL",
+    "reason": "Curated controls appear for the relevant source modes, shared by ordinary sources and modeshifts. Coupled validation and independent FloatXY writes tested; complete source-mode browser/gameplay validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/SourceModeTuning.tsx"
+    ],
+    "verification": []
+  },
+  "ANGLE_TO_AXIS_DEADZONE_OUTER": {
+    "status": "PARTIAL",
+    "reason": "Curated controls appear for the relevant source modes, shared by ordinary sources and modeshifts. Coupled validation and independent FloatXY writes tested; complete source-mode browser/gameplay validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/SourceModeTuning.tsx"
+    ],
+    "verification": []
+  },
+  "AUTOCONNECT": {
+    "status": "INTERNAL",
+    "reason": "Runtime/service lifecycle or diagnostics command; native app services own it rather than gameplay configuration.",
+    "editors": [],
+    "verification": []
+  },
+  "AUTOLOAD": {
+    "status": "INTERNAL",
+    "reason": "Runtime/service lifecycle or diagnostics command; native app services own it rather than gameplay configuration.",
+    "editors": [],
+    "verification": []
+  },
+  "AUTO_CALIBRATE_GYRO": {
+    "status": "PARTIAL",
+    "reason": "Automatic native drift correction, paired Joy-Con source choices and native gyro trackball slowdown. Global versus chorded applicability is explicit; physical validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroPage.tsx"
+    ],
+    "verification": []
+  },
+  "BOOT_SOUND_LEVEL": {
+    "status": "PARTIAL",
+    "reason": "Native controller preferences/sound library own these settings with friendly controls. Per-profile command equivalence and hardware review remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/ControllerPreferences.tsx"
+    ],
+    "verification": []
+  },
+  "CALCULATE_REAL_WORLD_CALIBRATION": {
+    "status": "PARTIAL",
+    "reason": "Existing device exclusion and calibration workflow; the command aliases need full verification.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroBehaviorControls.tsx"
+    ],
+    "verification": []
+  },
+  "CALIBRATE_GYRO": {
+    "status": "PARTIAL",
+    "reason": "Readable action-picker choices distinguish timed calibration, calibrate while held and independent continuous start/finish. Start resets the drift estimate and runs immediately on all motion controllers; Finish pauses calibration and saves offsets. Ordinary native commands serialize through the existing action editor. No physical calibration run has been performed.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/ActionPicker.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/utils/commandLabels.ts"
+    ],
+    "verification": [
+      "tests/calibrate_gyro_action_regression.cjs"
+    ]
+  },
+  "CALIBRATE_TRIGGERS": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/actionCatalog.ts",
+      "JSM_GUI/jsm_gui_tauri/src/components/KeymapControls.tsx"
+    ],
+    "verification": []
+  },
+  "CLEAR": {
+    "status": "INTERNAL",
+    "reason": "Runtime/service lifecycle or diagnostics command; native app services own it rather than gameplay configuration.",
+    "editors": [],
+    "verification": []
+  },
+  "CONNECT_SOUND": {
+    "status": "PARTIAL",
+    "reason": "Native controller preferences/sound library own these settings with friendly controls. Per-profile command equivalence and hardware review remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/ControllerPreferences.tsx"
+    ],
+    "verification": []
+  },
+  "CONNECT_SOUND_FILE": {
+    "status": "PARTIAL",
+    "reason": "Native controller preferences/sound library own these settings with friendly controls. Per-profile command equivalence and hardware review remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/ControllerPreferences.tsx"
+    ],
+    "verification": []
+  },
+  "CONTROLLER_ORIENTATION": {
+    "status": "PARTIAL",
+    "reason": "Dedicated tilt/steering section with degree-based geometry and all native mounting directions, including sideways paired Joy-Cons; motion directions/lean/ring use the shared binding editor. Physical steering/neutral validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/MotionInputTuning.tsx"
+    ],
+    "verification": []
+  },
+  "COUNTER_OS_MOUSE_SPEED": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroBehaviorControls.tsx"
+    ],
+    "verification": []
+  },
+  "DBL_PRESS_WINDOW": {
+    "status": "PARTIAL",
+    "reason": "Shared defaults plus dedicated configuration timing rows in Buttons, using native milliseconds without magnitude guessing. Held-input overrides inherit base timing and serialize ordinary native setting chords. Reset uses inherited/shared values; comments and unknown lines survive edits. Hold timing validates against the simultaneous window. Physical activator timing remains pending.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/TimingPage.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/ProfileTiming.tsx"
+    ],
+    "verification": [
+      "tests/timing_native_units_regression.cjs",
+      "tests/profile_timing_browser_regression.cjs",
+      "tests/pad_axis_audit_regression.cjs"
+    ]
+  },
+  "DECEL_BRAKE_STRENGTH": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroPage.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/NoiseSteadyingControls.tsx"
+    ],
+    "verification": []
+  },
+  "DECEL_BRAKE_THRESHOLD": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroPage.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/NoiseSteadyingControls.tsx"
+    ],
+    "verification": []
+  },
+  "DISABLE_HARDWARE_GYRO_CALIBRATION": {
+    "status": "PARTIAL",
+    "reason": "Dedicated Steam Controller firmware drift-correction switch in controller preferences, persisted through native runtime preferences. This is a device-global firmware setting; profile precedence and physical slow-motion checks remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/ControllerPreferences.tsx"
+    ],
+    "verification": []
+  },
+  "EDGE_PUSH_IS_ACTIVE": {
+    "status": "PARTIAL",
+    "reason": "Curated controls appear for the relevant source modes, shared by ordinary sources and modeshifts. Coupled validation and independent FloatXY writes tested; complete source-mode browser/gameplay validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/SourceModeTuning.tsx"
+    ],
+    "verification": []
+  },
+  "FINISH_GYRO_CALIBRATION": {
+    "status": "PARTIAL",
+    "reason": "Readable action-picker choices distinguish timed calibration, calibrate while held and independent continuous start/finish. Start resets the drift estimate and runs immediately on all motion controllers; Finish pauses calibration and saves offsets. Ordinary native commands serialize through the existing action editor. No physical calibration run has been performed.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/ActionPicker.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/utils/commandLabels.ts"
+    ],
+    "verification": [
+      "tests/calibrate_gyro_action_regression.cjs"
+    ]
+  },
+  "FLICK_DEADZONE_ANGLE": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/StickModeExtras.tsx"
+    ],
+    "verification": []
+  },
+  "FLICK_SNAP_MODE": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/StickModeExtras.tsx"
+    ],
+    "verification": []
+  },
+  "FLICK_SNAP_STRENGTH": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/StickModeExtras.tsx"
+    ],
+    "verification": []
+  },
+  "FLICK_STICK_OUTPUT": {
+    "status": "PARTIAL",
+    "reason": "Curated controls appear for the relevant source modes, shared by ordinary sources and modeshifts. Coupled validation and independent FloatXY writes tested; complete source-mode browser/gameplay validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/SourceModeTuning.tsx"
+    ],
+    "verification": []
+  },
+  "FLICK_TIME": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/HelpDocsPage.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/StickModeExtras.tsx"
+    ],
+    "verification": []
+  },
+  "FLICK_TIME_EXPONENT": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/StickModeExtras.tsx"
+    ],
+    "verification": []
+  },
+  "GRID_DEADZONE": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/InputModeshifts.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadSection.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/TouchpadSettingsSection.tsx"
+    ],
+    "verification": []
+  },
+  "GRID_SHAPE": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/HelpDocsPage.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/InputModeshifts.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadSection.tsx"
+    ],
+    "verification": []
+  },
+  "GRID_SIZE": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/InputModeshifts.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadSection.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/TouchpadSettingsSection.tsx"
+    ],
+    "verification": []
+  },
+  "GRIP_FLICKER_GUARD": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/HelpDocsPage.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/GripSensorsSheet.tsx"
+    ],
+    "verification": []
+  },
+  "GRIP_HAPTIC_EFFECT": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/GripSensorsSheet.tsx"
+    ],
+    "verification": []
+  },
+  "GRIP_HAPTIC_INTENSITY": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/GripSensorsSheet.tsx"
+    ],
+    "verification": []
+  },
+  "GRIP_RELEASE_HAPTIC_EFFECT": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/GripSensorsSheet.tsx"
+    ],
+    "verification": []
+  },
+  "GRIP_RELEASE_HAPTIC_INTENSITY": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/GripSensorsSheet.tsx"
+    ],
+    "verification": []
+  },
+  "GRIP_SENSOR_RANGE": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/HelpDocsPage.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/GripSensorsSheet.tsx"
+    ],
+    "verification": []
+  },
+  "GYRO_ANGLE_SNAP": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroPage.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/NoiseSteadyingControls.tsx"
+    ],
+    "verification": []
+  },
+  "GYRO_ANGLE_SNAP_EASE": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroPage.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/NoiseSteadyingControls.tsx"
+    ],
+    "verification": []
+  },
+  "GYRO_AXIS_X": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroBehaviorControls.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroPage.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/OverviewPage.tsx"
+    ],
+    "verification": []
+  },
+  "GYRO_AXIS_Y": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroBehaviorControls.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroPage.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/OverviewPage.tsx"
+    ],
+    "verification": []
+  },
+  "GYRO_CALIBRATION_DELAY": {
+    "status": "PARTIAL",
+    "reason": "Studio defaults and dedicated configuration countdown/duration rows in Gyro diagnostics, with seconds and native 0-30 / 0.5-60 ranges. The timed macro reads global values for all connected motion controllers; held setting chords do not affect it. Comment-preserving saved-text and cancellation checks pass. Physical calibration/HUD and native profile/default precedence remain pending.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/ControllerPreferences.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroPage.tsx"
+    ],
+    "verification": [
+      "tests/profile_timing_browser_regression.cjs"
+    ]
+  },
+  "GYRO_CALIBRATION_TIME": {
+    "status": "PARTIAL",
+    "reason": "Studio defaults and dedicated configuration countdown/duration rows in Gyro diagnostics, with seconds and native 0-30 / 0.5-60 ranges. The timed macro reads global values for all connected motion controllers; held setting chords do not affect it. Comment-preserving saved-text and cancellation checks pass. Physical calibration/HUD and native profile/default precedence remain pending.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/ControllerPreferences.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroPage.tsx"
+    ],
+    "verification": [
+      "tests/profile_timing_browser_regression.cjs"
+    ]
+  },
+  "GYRO_CLICK_DAMPEN": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroPage.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/NoiseSteadyingControls.tsx"
+    ],
+    "verification": []
+  },
+  "GYRO_CUTOFF_RECOVERY": {
+    "status": "PARTIAL",
+    "reason": "Degree-per-second recovery row defaults to zero; graphical range extends to 360 and larger imports remain intact. Help states native dependency: recovery above cutoff produces a linear fade to full velocity, otherwise the cutoff is a hard threshold. Context-scoped mouse/camera/deflection control, bypassed by PS raw motion. Graphical serialization passes; production cutoff-boundary verification passes; physical verification remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroPage.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/NoiseSteadyingControls.tsx"
+    ],
+    "verification": [
+      "tests/gyro_deflection_browser_regression.cjs",
+      "JoyShockMapper/tests/run_gyro_smoothing_harness.py"
+    ]
+  },
+  "GYRO_CUTOFF_SPEED": {
+    "status": "PARTIAL",
+    "reason": "Degree-per-second deadzone row defaults to zero and now supports graphical tuning through 360 degrees per second instead of the former 5 degree cap, preserving larger imported values. Contextual mouse/camera/deflection control; PS raw motion bypasses it. Native post-filter cutoff precedes angular integration and sensitivity. Graphical ordinary-setting writes pass; production cutoff-boundary verification passes; physical feel remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroPage.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/NoiseSteadyingControls.tsx"
+    ],
+    "verification": [
+      "tests/gyro_deflection_browser_regression.cjs",
+      "JoyShockMapper/tests/run_gyro_smoothing_harness.py"
+    ]
+  },
+  "GYRO_HAPTIC_EFFECT": {
+    "status": "PARTIAL",
+    "reason": "Dedicated Steam Controller rotation feedback with angular spacing, strength, effect and left/right/both actuator selection. Native aim-axis travel is measured before sensitivity and trackball synthesis, with at most one pulse per poll. Held overrides use controller context; zero strength preserves legacy profiles. Physical pulse feel remains pending.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroRotationFeedback.tsx"
+    ],
+    "verification": [
+      "JoyShockMapper/tests/run_gyro_haptics_harness.py",
+      "tests/gyro_virtual_stick_browser_regression.cjs"
+    ]
+  },
+  "GYRO_HAPTIC_INTENSITY": {
+    "status": "PARTIAL",
+    "reason": "Dedicated Steam Controller rotation feedback with angular spacing, strength, effect and left/right/both actuator selection. Native aim-axis travel is measured before sensitivity and trackball synthesis, with at most one pulse per poll. Held overrides use controller context; zero strength preserves legacy profiles. Physical pulse feel remains pending.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroRotationFeedback.tsx"
+    ],
+    "verification": [
+      "JoyShockMapper/tests/run_gyro_haptics_harness.py",
+      "tests/gyro_virtual_stick_browser_regression.cjs"
+    ]
+  },
+  "GYRO_HAPTIC_INTERVAL": {
+    "status": "PARTIAL",
+    "reason": "Dedicated Steam Controller rotation feedback with angular spacing, strength, effect and left/right/both actuator selection. Native aim-axis travel is measured before sensitivity and trackball synthesis, with at most one pulse per poll. Held overrides use controller context; zero strength preserves legacy profiles. Physical pulse feel remains pending.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroRotationFeedback.tsx"
+    ],
+    "verification": [
+      "JoyShockMapper/tests/run_gyro_haptics_harness.py",
+      "tests/gyro_virtual_stick_browser_regression.cjs"
+    ]
+  },
+  "GYRO_HAPTIC_SIDE": {
+    "status": "PARTIAL",
+    "reason": "Dedicated Steam Controller rotation feedback with angular spacing, strength, effect and left/right/both actuator selection. Native aim-axis travel is measured before sensitivity and trackball synthesis, with at most one pulse per poll. Held overrides use controller context; zero strength preserves legacy profiles. Physical pulse feel remains pending.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroRotationFeedback.tsx"
+    ],
+    "verification": [
+      "JoyShockMapper/tests/run_gyro_haptics_harness.py",
+      "tests/gyro_virtual_stick_browser_regression.cjs"
+    ]
+  },
+  "GYRO_OFF": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroBehaviorControls.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/InputUsageInspector.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/OverviewPage.tsx"
+    ],
+    "verification": []
+  },
+  "GYRO_ON": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroBehaviorControls.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/InputUsageInspector.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/OverviewPage.tsx"
+    ],
+    "verification": []
+  },
+  "GYRO_OUTPUT": {
+    "status": "COMPLETE",
+    "reason": "Contextual gyro camera output, per-target correction, native output display and guided calibration. Controller-only gameplay and driver availability require physical verification.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroVirtualStick.tsx"
+    ],
+    "verification": [
+      "tests/gyro_virtual_stick_regression.cjs",
+      "tests/gyro_virtual_stick_browser_regression.cjs"
+    ]
+  },
+  "GYRO_SENS": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/OverviewPage.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/StaticSensForm.tsx"
+    ],
+    "verification": []
+  },
+  "GYRO_SMOOTHING_DECAY": {
+    "status": "PARTIAL",
+    "reason": "Readable off/on mode selects native moving-average versus speed-decay EMA smoothing using the same time/threshold settings. Default OFF preserves existing configs. Both modes are scoped through controller-context reads before camera or angular-deflection output; PS motion bypasses this shaping. Actual recurrence, reset, disabled-threshold and sample-rate harness passes; physical feel remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroPage.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/NoiseSteadyingControls.tsx"
+    ],
+    "verification": [
+      "tests/gyro_deflection_browser_regression.cjs",
+      "JoyShockMapper/tests/run_gyro_smoothing_harness.py"
+    ]
+  },
+  "GYRO_SMOOTH_THRESHOLD": {
+    "status": "PARTIAL",
+    "reason": "Dedicated degree-per-second threshold row defaults to zero, disabling this smoothing stage without disabling One Euro. Graphical tuning extends to 360 degrees per second and preserves larger imports. Native legacy blend runs from half threshold to full threshold; decay mode reduces its time constant as speed rises. Renderer serialization and production smoothing harness pass; physical tuning remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroPage.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/NoiseSteadyingControls.tsx"
+    ],
+    "verification": [
+      "tests/gyro_deflection_browser_regression.cjs",
+      "JoyShockMapper/tests/run_gyro_smoothing_harness.py"
+    ]
+  },
+  "GYRO_SMOOTH_TIME": {
+    "status": "PARTIAL",
+    "reason": "Native default 0.125 seconds now supplies the implicit slider position without writing a setting. Graphical 0\u20131 second tuning preserves larger imported values. Legacy averaging is bounded to its actual 256 poll-sample history before integer conversion; decay mode uses the time constant. Zero threshold disables either smoothing stage. Base and held serialization are verified separately from physical feel.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroPage.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/NoiseSteadyingControls.tsx"
+    ],
+    "verification": [
+      "tests/gyro_deflection_browser_regression.cjs",
+      "JoyShockMapper/tests/run_gyro_smoothing_harness.py"
+    ]
+  },
+  "GYRO_SPACE": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroBehaviorControls.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroPage.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/OverviewPage.tsx"
+    ],
+    "verification": []
+  },
+  "HELP": {
+    "status": "INTERNAL",
+    "reason": "Runtime/service lifecycle or diagnostics command; native app services own it rather than gameplay configuration.",
+    "editors": [],
+    "verification": []
+  },
+  "HIDE_MINIMIZED": {
+    "status": "INTERNAL",
+    "reason": "Runtime/service lifecycle or diagnostics command; native app services own it rather than gameplay configuration.",
+    "editors": [],
+    "verification": []
+  },
+  "HOLD_PRESS_TIME": {
+    "status": "PARTIAL",
+    "reason": "Shared defaults plus dedicated configuration timing rows in Buttons, using native milliseconds without magnitude guessing. Held-input overrides inherit base timing and serialize ordinary native setting chords. Reset uses inherited/shared values; comments and unknown lines survive edits. Hold timing validates against the simultaneous window. Physical activator timing remains pending.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/TimingPage.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/ProfileTiming.tsx"
+    ],
+    "verification": [
+      "tests/timing_native_units_regression.cjs",
+      "tests/profile_timing_browser_regression.cjs",
+      "tests/pad_axis_audit_regression.cjs"
+    ]
+  },
+  "IGNORE_GYRO_DEVICES": {
+    "status": "PARTIAL",
+    "reason": "Existing device exclusion and calibration workflow; the command aliases need full verification.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroBehaviorControls.tsx"
+    ],
+    "verification": []
+  },
+  "IGNORE_OS_MOUSE_SPEED": {
+    "status": "PARTIAL",
+    "reason": "Mouse speed compensation toggle now emits explicit native ignore/reset when turned off and reads last command precedence. Calibration-preset/import verification remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/hooks/useStickConfig.ts"
+    ],
+    "verification": []
+  },
+  "IN_GAME_SENS": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroBehaviorControls.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/TuningClipboard.tsx"
+    ],
+    "verification": []
+  },
+  "JOYCON_GYRO_MASK": {
+    "status": "PARTIAL",
+    "reason": "Automatic native drift correction, paired Joy-Con source choices and native gyro trackball slowdown. Global versus chorded applicability is explicit; physical validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroPage.tsx"
+    ],
+    "verification": []
+  },
+  "JOYCON_MOTION_MASK": {
+    "status": "PARTIAL",
+    "reason": "Automatic native drift correction, paired Joy-Con source choices and native gyro trackball slowdown. Global versus chorded applicability is explicit; physical validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroPage.tsx"
+    ],
+    "verification": []
+  },
+  "JSM_DIRECTORY": {
+    "status": "INTERNAL",
+    "reason": "Runtime/service lifecycle or diagnostics command; native app services own it rather than gameplay configuration.",
+    "editors": [],
+    "verification": []
+  },
+  "LEAN_THRESHOLD": {
+    "status": "PARTIAL",
+    "reason": "Dedicated tilt/steering section with degree-based geometry and all native mounting directions, including sideways paired Joy-Cons; motion directions/lean/ring use the shared binding editor. Physical steering/neutral validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/MotionInputTuning.tsx"
+    ],
+    "verification": []
+  },
+  "LED_BRIGHTNESS": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/ControllerLightSettings.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/HelpDocsPage.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/ActionPicker.tsx"
+    ],
+    "verification": []
+  },
+  "LEFT_GRID_DEADZONE": {
+    "status": "PARTIAL",
+    "reason": "Per-pad controls derive their keys from the physical source prefix; literal-key searches alone undercount these controls. Independent pad/shift runtime and physical review remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadSection.tsx"
+    ],
+    "verification": []
+  },
+  "LEFT_GRID_REQUIRES_CLICK": {
+    "status": "PARTIAL",
+    "reason": "Per-pad controls derive their keys from the physical source prefix; literal-key searches alone undercount these controls. Independent pad/shift runtime and physical review remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadSection.tsx"
+    ],
+    "verification": []
+  },
+  "LEFT_GRID_SHAPE": {
+    "status": "PARTIAL",
+    "reason": "Per-pad controls derive their keys from the physical source prefix; literal-key searches alone undercount these controls. Independent pad/shift runtime and physical review remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadSection.tsx"
+    ],
+    "verification": []
+  },
+  "LEFT_GRID_SIZE": {
+    "status": "PARTIAL",
+    "reason": "Per-pad controls derive their keys from the physical source prefix; literal-key searches alone undercount these controls. Independent pad/shift runtime and physical review remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadSection.tsx"
+    ],
+    "verification": []
+  },
+  "LEFT_GRIP_HAPTICS": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/GripSensorsSheet.tsx"
+    ],
+    "verification": []
+  },
+  "LEFT_GRIP_RELEASE_DELAY": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/HelpDocsPage.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/GripSensorsSheet.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/KeymapControls.tsx"
+    ],
+    "verification": []
+  },
+  "LEFT_RING_MODE": {
+    "status": "PARTIAL",
+    "reason": "Per-source stick controls and radial menu bindings. Derived keys are intentionally graphical, with menu/shift validation still under review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/StickSection.tsx"
+    ],
+    "verification": []
+  },
+  "LEFT_STICK_AXIS": {
+    "status": "PARTIAL",
+    "reason": "Independent horizontal/vertical source inversion in the shared source editor, including held shifts; source mode direction tests remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/SourceModeTuning.tsx"
+    ],
+    "verification": []
+  },
+  "LEFT_STICK_DEADZONE_INNER": {
+    "status": "PARTIAL",
+    "reason": "Per-source stick controls and radial menu bindings. Derived keys are intentionally graphical, with menu/shift validation still under review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/StickSection.tsx"
+    ],
+    "verification": []
+  },
+  "LEFT_STICK_DEADZONE_OUTER": {
+    "status": "PARTIAL",
+    "reason": "Per-source stick controls and radial menu bindings. Derived keys are intentionally graphical, with menu/shift validation still under review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/StickSection.tsx"
+    ],
+    "verification": []
+  },
+  "LEFT_STICK_DEADZONE_PROBE": {
+    "status": "PARTIAL",
+    "reason": "Explicit per-target idle calibration signal in gyro and virtual-stick source editors, including held shifts. ON preserves legacy imports; OFF gives zero idle output. The guide finishes with OFF. Native formula and graphical round-trip verification are separate from physical gameplay validation.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/VirtualStickProbe.tsx"
+    ],
+    "verification": [
+      "JoyShockMapper/tests/run_gyro_stick_harness.py",
+      "tests/gyro_virtual_stick_regression.cjs",
+      "tests/gyro_virtual_stick_browser_regression.cjs"
+    ]
+  },
+  "LEFT_STICK_MENU_DEADZONE": {
+    "status": "PARTIAL",
+    "reason": "Per-source stick controls and radial menu bindings. Derived keys are intentionally graphical, with menu/shift validation still under review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/StickSection.tsx"
+    ],
+    "verification": []
+  },
+  "LEFT_STICK_MENU_SIZE": {
+    "status": "PARTIAL",
+    "reason": "Per-source stick controls and radial menu bindings. Derived keys are intentionally graphical, with menu/shift validation still under review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/StickSection.tsx"
+    ],
+    "verification": []
+  },
+  "LEFT_STICK_MODE": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/InputModeshifts.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/OverviewPage.tsx"
+    ],
+    "verification": []
+  },
+  "LEFT_STICK_UNDEADZONE_INNER": {
+    "status": "COMPLETE",
+    "reason": "Contextual gyro camera output, per-target correction, native output display and guided calibration. Controller-only gameplay and driver availability require physical verification.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroVirtualStick.tsx"
+    ],
+    "verification": [
+      "tests/gyro_virtual_stick_regression.cjs",
+      "tests/gyro_virtual_stick_browser_regression.cjs"
+    ]
+  },
+  "LEFT_STICK_UNDEADZONE_OUTER": {
+    "status": "COMPLETE",
+    "reason": "Contextual gyro camera output, per-target correction, native output display and guided calibration. Controller-only gameplay and driver availability require physical verification.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroVirtualStick.tsx"
+    ],
+    "verification": [
+      "tests/gyro_virtual_stick_regression.cjs",
+      "tests/gyro_virtual_stick_browser_regression.cjs"
+    ]
+  },
+  "LEFT_STICK_UNPOWER": {
+    "status": "COMPLETE",
+    "reason": "Contextual gyro camera output, per-target correction, native output display and guided calibration. Controller-only gameplay and driver availability require physical verification.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroVirtualStick.tsx"
+    ],
+    "verification": [
+      "tests/gyro_virtual_stick_regression.cjs",
+      "tests/gyro_virtual_stick_browser_regression.cjs"
+    ]
+  },
+  "LEFT_STICK_VIRTUAL_SCALE": {
+    "status": "COMPLETE",
+    "reason": "Contextual gyro camera output, per-target correction, native output display and guided calibration. Controller-only gameplay and driver availability require physical verification.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroVirtualStick.tsx"
+    ],
+    "verification": [
+      "tests/gyro_virtual_stick_regression.cjs",
+      "tests/gyro_virtual_stick_browser_regression.cjs"
+    ]
+  },
+  "LEFT_TOUCHPAD_AREA": {
+    "status": "PARTIAL",
+    "reason": "Concurrent mouse-region implementation detected by registry drift check and preserved; screen rectangle/fit controls require independent parity review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadSection.tsx"
+    ],
+    "verification": []
+  },
+  "LEFT_TOUCHPAD_AREA_FIT": {
+    "status": "PARTIAL",
+    "reason": "Concurrent mouse-region implementation detected by registry drift check and preserved; screen rectangle/fit controls require independent parity review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadSection.tsx"
+    ],
+    "verification": []
+  },
+  "LEFT_TOUCHPAD_CLICK_HAPTIC_EFFECT": {
+    "status": "PARTIAL",
+    "reason": "Independent pad feedback is opt-in, preserving legacy shared settings. Movement controls appear in Mouse mode; click/release work in every mode. Ordinary and held-input editors share typed strength/effect/spacing controls and explicit shared/custom policy. Production native selector/click-routing harness, unit preservation/scope tests and browser independent save/reload/held controls pass; physical actuator validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadFeedbackRows.tsx"
+    ],
+    "verification": [
+      "tests/pad_feedback_regression.cjs",
+      "tests/pad_feedback_browser_regression.cjs",
+      "JoyShockMapper/tests/run_pad_haptics_harness.py"
+    ]
+  },
+  "LEFT_TOUCHPAD_CLICK_HAPTIC_INTENSITY": {
+    "status": "PARTIAL",
+    "reason": "Independent pad feedback is opt-in, preserving legacy shared settings. Movement controls appear in Mouse mode; click/release work in every mode. Ordinary and held-input editors share typed strength/effect/spacing controls and explicit shared/custom policy. Production native selector/click-routing harness, unit preservation/scope tests and browser independent save/reload/held controls pass; physical actuator validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadFeedbackRows.tsx"
+    ],
+    "verification": [
+      "tests/pad_feedback_regression.cjs",
+      "tests/pad_feedback_browser_regression.cjs",
+      "JoyShockMapper/tests/run_pad_haptics_harness.py"
+    ]
+  },
+  "LEFT_TOUCHPAD_DUAL_STAGE_MODE": {
+    "status": "PARTIAL",
+    "reason": "All seven native touch/click policies have friendly labels and contextual help for mouse, menu and other pad modes, including held-input overrides. Native routing now uses independent pad FSM slots and raw same-poll touch contacts; contact cannot count as click or inherit analog-trigger thresholds. Actual trigger FSM and simulated browser save/reload pass; physical pad validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadSection.tsx"
+    ],
+    "verification": [
+      "tests/pad_dual_stage_browser_regression.cjs",
+      "JoyShockMapper/tests/run_trigger_modes_harness.py",
+      "JoyShockMapper/tests/run_virtual_menu_runtime_harness.py"
+    ]
+  },
+  "LEFT_TOUCHPAD_HAPTICS": {
+    "status": "PARTIAL",
+    "reason": "Independent pad feedback is opt-in, preserving legacy shared settings. Movement controls appear in Mouse mode; click/release work in every mode. Ordinary and held-input editors share typed strength/effect/spacing controls and explicit shared/custom policy. Production native selector/click-routing harness, unit preservation/scope tests and browser independent save/reload/held controls pass; physical actuator validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadFeedbackRows.tsx"
+    ],
+    "verification": [
+      "tests/pad_feedback_regression.cjs",
+      "tests/pad_feedback_browser_regression.cjs",
+      "JoyShockMapper/tests/run_pad_haptics_harness.py"
+    ]
+  },
+  "LEFT_TOUCHPAD_HAPTIC_EFFECT": {
+    "status": "PARTIAL",
+    "reason": "Independent pad feedback is opt-in, preserving legacy shared settings. Movement controls appear in Mouse mode; click/release work in every mode. Ordinary and held-input editors share typed strength/effect/spacing controls and explicit shared/custom policy. Production native selector/click-routing harness, unit preservation/scope tests and browser independent save/reload/held controls pass; physical actuator validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadFeedbackRows.tsx"
+    ],
+    "verification": [
+      "tests/pad_feedback_regression.cjs",
+      "tests/pad_feedback_browser_regression.cjs",
+      "JoyShockMapper/tests/run_pad_haptics_harness.py"
+    ]
+  },
+  "LEFT_TOUCHPAD_HAPTIC_INTENSITY": {
+    "status": "PARTIAL",
+    "reason": "Independent pad feedback is opt-in, preserving legacy shared settings. Movement controls appear in Mouse mode; click/release work in every mode. Ordinary and held-input editors share typed strength/effect/spacing controls and explicit shared/custom policy. Production native selector/click-routing harness, unit preservation/scope tests and browser independent save/reload/held controls pass; physical actuator validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadFeedbackRows.tsx"
+    ],
+    "verification": [
+      "tests/pad_feedback_regression.cjs",
+      "tests/pad_feedback_browser_regression.cjs",
+      "JoyShockMapper/tests/run_pad_haptics_harness.py"
+    ]
+  },
+  "LEFT_TOUCHPAD_HAPTIC_INTERVAL": {
+    "status": "PARTIAL",
+    "reason": "Independent pad feedback is opt-in, preserving legacy shared settings. Movement controls appear in Mouse mode; click/release work in every mode. Ordinary and held-input editors share typed strength/effect/spacing controls and explicit shared/custom policy. Production native selector/click-routing harness, unit preservation/scope tests and browser independent save/reload/held controls pass; physical actuator validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadFeedbackRows.tsx"
+    ],
+    "verification": [
+      "tests/pad_feedback_regression.cjs",
+      "tests/pad_feedback_browser_regression.cjs",
+      "JoyShockMapper/tests/run_pad_haptics_harness.py"
+    ]
+  },
+  "LEFT_TOUCHPAD_MODE": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/OverviewPage.tsx"
+    ],
+    "verification": []
+  },
+  "LEFT_TOUCHPAD_RELEASE_HAPTIC_EFFECT": {
+    "status": "PARTIAL",
+    "reason": "Independent pad feedback is opt-in, preserving legacy shared settings. Movement controls appear in Mouse mode; click/release work in every mode. Ordinary and held-input editors share typed strength/effect/spacing controls and explicit shared/custom policy. Production native selector/click-routing harness, unit preservation/scope tests and browser independent save/reload/held controls pass; physical actuator validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadFeedbackRows.tsx"
+    ],
+    "verification": [
+      "tests/pad_feedback_regression.cjs",
+      "tests/pad_feedback_browser_regression.cjs",
+      "JoyShockMapper/tests/run_pad_haptics_harness.py"
+    ]
+  },
+  "LEFT_TOUCHPAD_RELEASE_HAPTIC_INTENSITY": {
+    "status": "PARTIAL",
+    "reason": "Independent pad feedback is opt-in, preserving legacy shared settings. Movement controls appear in Mouse mode; click/release work in every mode. Ordinary and held-input editors share typed strength/effect/spacing controls and explicit shared/custom policy. Production native selector/click-routing harness, unit preservation/scope tests and browser independent save/reload/held controls pass; physical actuator validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadFeedbackRows.tsx"
+    ],
+    "verification": [
+      "tests/pad_feedback_regression.cjs",
+      "tests/pad_feedback_browser_regression.cjs",
+      "JoyShockMapper/tests/run_pad_haptics_harness.py"
+    ]
+  },
+  "LEFT_TOUCHPAD_ROTATION": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/ControllerPreferences.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/HelpDocsPage.tsx"
+    ],
+    "verification": []
+  },
+  "LEFT_TOUCHPAD_SENS": {
+    "status": "PARTIAL",
+    "reason": "Per-pad controls derive their keys from the physical source prefix; literal-key searches alone undercount these controls. Independent pad/shift runtime and physical review remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadSection.tsx"
+    ],
+    "verification": []
+  },
+  "LEFT_TOUCH_DEADZONE_INNER": {
+    "status": "PARTIAL",
+    "reason": "Per-pad controls derive their keys from the physical source prefix; literal-key searches alone undercount these controls. Independent pad/shift runtime and physical review remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadSection.tsx"
+    ],
+    "verification": []
+  },
+  "LEFT_TOUCH_RING_MODE": {
+    "status": "PARTIAL",
+    "reason": "Per-pad controls derive their keys from the physical source prefix; literal-key searches alone undercount these controls. Independent pad/shift runtime and physical review remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadSection.tsx"
+    ],
+    "verification": []
+  },
+  "LEFT_TOUCH_STICK_AXIS": {
+    "status": "PARTIAL",
+    "reason": "Per-pad controls derive their keys from the physical source prefix; literal-key searches alone undercount these controls. Independent pad/shift runtime and physical review remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadSection.tsx"
+    ],
+    "verification": []
+  },
+  "LEFT_TOUCH_STICK_MODE": {
+    "status": "PARTIAL",
+    "reason": "Per-pad controls derive their keys from the physical source prefix; literal-key searches alone undercount these controls. Independent pad/shift runtime and physical review remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadSection.tsx"
+    ],
+    "verification": []
+  },
+  "LEFT_TOUCH_STICK_RADIUS": {
+    "status": "PARTIAL",
+    "reason": "Per-pad controls derive their keys from the physical source prefix; literal-key searches alone undercount these controls. Independent pad/shift runtime and physical review remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadSection.tsx"
+    ],
+    "verification": []
+  },
+  "LEFT_TRIGGER_EFFECT": {
+    "status": "PARTIAL",
+    "reason": "Independent DualSense effects have parameter-specific controls, packet-correct units, coupled range validation, imported-value preservation and calibration rows. Physical resistance/pulse validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/AdaptiveTriggerEditor.tsx"
+    ],
+    "verification": []
+  },
+  "LEFT_TRIGGER_OFFSET": {
+    "status": "PARTIAL",
+    "reason": "Independent DualSense effects have parameter-specific controls, packet-correct units, coupled range validation, imported-value preservation and calibration rows. Physical resistance/pulse validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/AdaptiveTriggerEditor.tsx"
+    ],
+    "verification": []
+  },
+  "LEFT_TRIGGER_RANGE": {
+    "status": "PARTIAL",
+    "reason": "Independent DualSense effects have parameter-specific controls, packet-correct units, coupled range validation, imported-value preservation and calibration rows. Physical resistance/pulse validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/AdaptiveTriggerEditor.tsx"
+    ],
+    "verification": []
+  },
+  "LIGHT_BAR": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/ControllerLightSettings.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/HelpDocsPage.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/ActionPicker.tsx"
+    ],
+    "verification": []
+  },
+  "LIST_CONTROLLERS": {
+    "status": "INTERNAL",
+    "reason": "Runtime device discovery/diagnostics, rather than a gameplay setting. Native app service list_jsm_controllers executes the macro and parses bounded device records; controller discovery and physical attachment remain distinct from configuration coverage.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src-tauri/src/commands.rs"
+    ],
+    "verification": [
+      "JSM_GUI/jsm_gui_tauri/src-tauri/src/commands.rs"
+    ]
+  },
+  "MAX_GYRO_SENS": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/AccelCurveView.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/AccelSensForm.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/OverviewPage.tsx"
+    ],
+    "verification": []
+  },
+  "MAX_GYRO_THRESHOLD": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/AccelCurveEditor.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/AccelCurveView.tsx"
+    ],
+    "verification": []
+  },
+  "MIN_GYRO_SENS": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/AccelCurveView.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/AccelSensForm.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/OverviewPage.tsx"
+    ],
+    "verification": []
+  },
+  "MIN_GYRO_THRESHOLD": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/AccelCurveEditor.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/AccelCurveView.tsx"
+    ],
+    "verification": []
+  },
+  "MOTION_DEADZONE_INNER": {
+    "status": "PARTIAL",
+    "reason": "Dedicated tilt/steering section with degree-based geometry and all native mounting directions, including sideways paired Joy-Cons; motion directions/lean/ring use the shared binding editor. Physical steering/neutral validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/MotionInputTuning.tsx"
+    ],
+    "verification": []
+  },
+  "MOTION_DEADZONE_OUTER": {
+    "status": "PARTIAL",
+    "reason": "Dedicated tilt/steering section with degree-based geometry and all native mounting directions, including sideways paired Joy-Cons; motion directions/lean/ring use the shared binding editor. Physical steering/neutral validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/MotionInputTuning.tsx"
+    ],
+    "verification": []
+  },
+  "MOTION_RING_MODE": {
+    "status": "PARTIAL",
+    "reason": "Dedicated tilt/steering section with degree-based geometry and all native mounting directions, including sideways paired Joy-Cons; motion directions/lean/ring use the shared binding editor. Physical steering/neutral validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/MotionInputTuning.tsx"
+    ],
+    "verification": []
+  },
+  "MOTION_STICK_AXIS": {
+    "status": "PARTIAL",
+    "reason": "Dedicated tilt/steering section with degree-based geometry and all native mounting directions, including sideways paired Joy-Cons; motion directions/lean/ring use the shared binding editor. Physical steering/neutral validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/MotionInputTuning.tsx"
+    ],
+    "verification": []
+  },
+  "MOTION_STICK_MODE": {
+    "status": "PARTIAL",
+    "reason": "Dedicated tilt/steering section with degree-based geometry and all native mounting directions, including sideways paired Joy-Cons; motion directions/lean/ring use the shared binding editor. Physical steering/neutral validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/MotionInputTuning.tsx"
+    ],
+    "verification": []
+  },
+  "MOUSELIKE_FACTOR": {
+    "status": "PARTIAL",
+    "reason": "Curated controls appear for the relevant source modes, shared by ordinary sources and modeshifts. Coupled validation and independent FloatXY writes tested; complete source-mode browser/gameplay validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/SourceModeTuning.tsx"
+    ],
+    "verification": []
+  },
+  "MOUSE_RING_RADIUS": {
+    "status": "PARTIAL",
+    "reason": "Existing source-specific cursor/scroll controls; mode dependency and import review remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/hooks/useStickModeExtras.tsx"
+    ],
+    "verification": []
+  },
+  "MOUSE_X_FROM_GYRO_AXIS": {
+    "status": "PARTIAL",
+    "reason": "Local-space axis selector including additive masks; native mask names now accept combinations. Scoped runtime checks remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroPage.tsx"
+    ],
+    "verification": []
+  },
+  "MOUSE_Y_FROM_GYRO_AXIS": {
+    "status": "PARTIAL",
+    "reason": "Local-space axis selector including additive masks; native mask names now accept combinations. Scoped runtime checks remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroPage.tsx"
+    ],
+    "verification": []
+  },
+  "NO_GYRO_BUTTON": {
+    "status": "LEGACY",
+    "reason": "Legacy gyro activation reset imported with native last-command precedence. Always on writes explicit GYRO_OFF = NONE, including layer/chord scopes, so inherited conditions are overridden.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroBehaviorControls.tsx"
+    ],
+    "verification": []
+  },
+  "ONE_EURO_FILTER": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroPage.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/NoiseSteadyingControls.tsx"
+    ],
+    "verification": []
+  },
+  "ONE_EURO_MIN_CUTOFF": {
+    "status": "PARTIAL",
+    "reason": "Readable adaptive gyro filter controls with held-input tuning, inherited base values and comment-preserving edits. Native gyro processing resolves both parameters through the active controller context and retains filter history across hold/release. The enable command remains configuration-global. Native recorded-boundary verification passes; physical slow-aim feel remains pending.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/NoiseSteadyingControls.tsx"
+    ],
+    "verification": [
+      "JoyShockMapper/tests/run_gyro_filter_harness.py",
+      "tests/gyro_virtual_stick_browser_regression.cjs"
+    ]
+  },
+  "ONE_EURO_SPEED_COEFF": {
+    "status": "PARTIAL",
+    "reason": "Readable adaptive gyro filter controls with held-input tuning, inherited base values and comment-preserving edits. Native gyro processing resolves both parameters through the active controller context and retains filter history across hold/release. The enable command remains configuration-global. Native recorded-boundary verification passes; physical slow-aim feel remains pending.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/NoiseSteadyingControls.tsx"
+    ],
+    "verification": [
+      "JoyShockMapper/tests/run_gyro_filter_harness.py",
+      "tests/gyro_virtual_stick_browser_regression.cjs"
+    ]
+  },
+  "PLAY_SOUND": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/BindingEditor.tsx"
+    ],
+    "verification": []
+  },
+  "QUIT": {
+    "status": "INTERNAL",
+    "reason": "Runtime/service lifecycle or diagnostics command; native app services own it rather than gameplay configuration.",
+    "editors": [],
+    "verification": []
+  },
+  "README": {
+    "status": "INTERNAL",
+    "reason": "Runtime/service lifecycle or diagnostics command; native app services own it rather than gameplay configuration.",
+    "editors": [],
+    "verification": []
+  },
+  "REAL_WORLD_CALIBRATION": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroBehaviorControls.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/OverviewPage.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/TuningClipboard.tsx"
+    ],
+    "verification": []
+  },
+  "RECONNECT_CONTROLLERS": {
+    "status": "INTERNAL",
+    "reason": "Runtime/service lifecycle or diagnostics command; native app services own it rather than gameplay configuration.",
+    "editors": [],
+    "verification": []
+  },
+  "RESET_MAPPINGS": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/AiMappingPage.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/MapperConsole.tsx"
+    ],
+    "verification": []
+  },
+  "RESTART_GYRO_CALIBRATION": {
+    "status": "PARTIAL",
+    "reason": "Readable action-picker choices distinguish timed calibration, calibrate while held and independent continuous start/finish. Start resets the drift estimate and runs immediately on all motion controllers; Finish pauses calibration and saves offsets. Ordinary native commands serialize through the existing action editor. No physical calibration run has been performed.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/ActionPicker.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/utils/commandLabels.ts"
+    ],
+    "verification": [
+      "tests/calibrate_gyro_action_regression.cjs"
+    ]
+  },
+  "RETURN_DEADZONE_ANGLE": {
+    "status": "PARTIAL",
+    "reason": "Curated controls appear for the relevant source modes, shared by ordinary sources and modeshifts. Coupled validation and independent FloatXY writes tested; complete source-mode browser/gameplay validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/SourceModeTuning.tsx"
+    ],
+    "verification": []
+  },
+  "RETURN_DEADZONE_ANGLE_CUTOFF": {
+    "status": "PARTIAL",
+    "reason": "Curated controls appear for the relevant source modes, shared by ordinary sources and modeshifts. Coupled validation and independent FloatXY writes tested; complete source-mode browser/gameplay validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/SourceModeTuning.tsx"
+    ],
+    "verification": []
+  },
+  "RETURN_DEADZONE_IS_ACTIVE": {
+    "status": "PARTIAL",
+    "reason": "Curated controls appear for the relevant source modes, shared by ordinary sources and modeshifts. Coupled validation and independent FloatXY writes tested; complete source-mode browser/gameplay validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/SourceModeTuning.tsx"
+    ],
+    "verification": []
+  },
+  "RIGHT_GRID_DEADZONE": {
+    "status": "PARTIAL",
+    "reason": "Per-pad controls derive their keys from the physical source prefix; literal-key searches alone undercount these controls. Independent pad/shift runtime and physical review remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadSection.tsx"
+    ],
+    "verification": []
+  },
+  "RIGHT_GRID_REQUIRES_CLICK": {
+    "status": "PARTIAL",
+    "reason": "Per-pad controls derive their keys from the physical source prefix; literal-key searches alone undercount these controls. Independent pad/shift runtime and physical review remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadSection.tsx"
+    ],
+    "verification": []
+  },
+  "RIGHT_GRID_SHAPE": {
+    "status": "PARTIAL",
+    "reason": "Per-pad controls derive their keys from the physical source prefix; literal-key searches alone undercount these controls. Independent pad/shift runtime and physical review remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadSection.tsx"
+    ],
+    "verification": []
+  },
+  "RIGHT_GRID_SIZE": {
+    "status": "PARTIAL",
+    "reason": "Per-pad controls derive their keys from the physical source prefix; literal-key searches alone undercount these controls. Independent pad/shift runtime and physical review remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadSection.tsx"
+    ],
+    "verification": []
+  },
+  "RIGHT_GRIP_HAPTICS": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/GripSensorsSheet.tsx"
+    ],
+    "verification": []
+  },
+  "RIGHT_GRIP_RELEASE_DELAY": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/HelpDocsPage.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/GripSensorsSheet.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/KeymapControls.tsx"
+    ],
+    "verification": []
+  },
+  "RIGHT_RING_MODE": {
+    "status": "PARTIAL",
+    "reason": "Per-source stick controls and radial menu bindings. Derived keys are intentionally graphical, with menu/shift validation still under review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/StickSection.tsx"
+    ],
+    "verification": []
+  },
+  "RIGHT_STICK_AXIS": {
+    "status": "PARTIAL",
+    "reason": "Independent horizontal/vertical source inversion in the shared source editor, including held shifts; source mode direction tests remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/SourceModeTuning.tsx"
+    ],
+    "verification": []
+  },
+  "RIGHT_STICK_DEADZONE_INNER": {
+    "status": "PARTIAL",
+    "reason": "Per-source stick controls and radial menu bindings. Derived keys are intentionally graphical, with menu/shift validation still under review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/StickSection.tsx"
+    ],
+    "verification": []
+  },
+  "RIGHT_STICK_DEADZONE_OUTER": {
+    "status": "PARTIAL",
+    "reason": "Per-source stick controls and radial menu bindings. Derived keys are intentionally graphical, with menu/shift validation still under review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/StickSection.tsx"
+    ],
+    "verification": []
+  },
+  "RIGHT_STICK_DEADZONE_PROBE": {
+    "status": "PARTIAL",
+    "reason": "Explicit per-target idle calibration signal in gyro and virtual-stick source editors, including held shifts. ON preserves legacy imports; OFF gives zero idle output. The guide finishes with OFF. Native formula and graphical round-trip verification are separate from physical gameplay validation.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/VirtualStickProbe.tsx"
+    ],
+    "verification": [
+      "JoyShockMapper/tests/run_gyro_stick_harness.py",
+      "tests/gyro_virtual_stick_regression.cjs",
+      "tests/gyro_virtual_stick_browser_regression.cjs"
+    ]
+  },
+  "RIGHT_STICK_MENU_DEADZONE": {
+    "status": "PARTIAL",
+    "reason": "Per-source stick controls and radial menu bindings. Derived keys are intentionally graphical, with menu/shift validation still under review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/StickSection.tsx"
+    ],
+    "verification": []
+  },
+  "RIGHT_STICK_MENU_SIZE": {
+    "status": "PARTIAL",
+    "reason": "Per-source stick controls and radial menu bindings. Derived keys are intentionally graphical, with menu/shift validation still under review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/StickSection.tsx"
+    ],
+    "verification": []
+  },
+  "RIGHT_STICK_MODE": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/OverviewPage.tsx"
+    ],
+    "verification": []
+  },
+  "RIGHT_STICK_UNDEADZONE_INNER": {
+    "status": "COMPLETE",
+    "reason": "Contextual gyro camera output, per-target correction, native output display and guided calibration. Controller-only gameplay and driver availability require physical verification.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroVirtualStick.tsx"
+    ],
+    "verification": [
+      "tests/gyro_virtual_stick_regression.cjs",
+      "tests/gyro_virtual_stick_browser_regression.cjs"
+    ]
+  },
+  "RIGHT_STICK_UNDEADZONE_OUTER": {
+    "status": "COMPLETE",
+    "reason": "Contextual gyro camera output, per-target correction, native output display and guided calibration. Controller-only gameplay and driver availability require physical verification.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroVirtualStick.tsx"
+    ],
+    "verification": [
+      "tests/gyro_virtual_stick_regression.cjs",
+      "tests/gyro_virtual_stick_browser_regression.cjs"
+    ]
+  },
+  "RIGHT_STICK_UNPOWER": {
+    "status": "COMPLETE",
+    "reason": "Contextual gyro camera output, per-target correction, native output display and guided calibration. Controller-only gameplay and driver availability require physical verification.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroVirtualStick.tsx"
+    ],
+    "verification": [
+      "tests/gyro_virtual_stick_regression.cjs",
+      "tests/gyro_virtual_stick_browser_regression.cjs"
+    ]
+  },
+  "RIGHT_STICK_VIRTUAL_SCALE": {
+    "status": "COMPLETE",
+    "reason": "Contextual gyro camera output, per-target correction, native output display and guided calibration. Controller-only gameplay and driver availability require physical verification.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroVirtualStick.tsx"
+    ],
+    "verification": [
+      "tests/gyro_virtual_stick_regression.cjs",
+      "tests/gyro_virtual_stick_browser_regression.cjs"
+    ]
+  },
+  "RIGHT_TOUCHPAD_AREA": {
+    "status": "PARTIAL",
+    "reason": "Concurrent mouse-region implementation detected by registry drift check and preserved; screen rectangle/fit controls require independent parity review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadSection.tsx"
+    ],
+    "verification": []
+  },
+  "RIGHT_TOUCHPAD_AREA_FIT": {
+    "status": "PARTIAL",
+    "reason": "Concurrent mouse-region implementation detected by registry drift check and preserved; screen rectangle/fit controls require independent parity review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadSection.tsx"
+    ],
+    "verification": []
+  },
+  "RIGHT_TOUCHPAD_CLICK_HAPTIC_EFFECT": {
+    "status": "PARTIAL",
+    "reason": "Independent pad feedback is opt-in, preserving legacy shared settings. Movement controls appear in Mouse mode; click/release work in every mode. Ordinary and held-input editors share typed strength/effect/spacing controls and explicit shared/custom policy. Production native selector/click-routing harness, unit preservation/scope tests and browser independent save/reload/held controls pass; physical actuator validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadFeedbackRows.tsx"
+    ],
+    "verification": [
+      "tests/pad_feedback_regression.cjs",
+      "tests/pad_feedback_browser_regression.cjs",
+      "JoyShockMapper/tests/run_pad_haptics_harness.py"
+    ]
+  },
+  "RIGHT_TOUCHPAD_CLICK_HAPTIC_INTENSITY": {
+    "status": "PARTIAL",
+    "reason": "Independent pad feedback is opt-in, preserving legacy shared settings. Movement controls appear in Mouse mode; click/release work in every mode. Ordinary and held-input editors share typed strength/effect/spacing controls and explicit shared/custom policy. Production native selector/click-routing harness, unit preservation/scope tests and browser independent save/reload/held controls pass; physical actuator validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadFeedbackRows.tsx"
+    ],
+    "verification": [
+      "tests/pad_feedback_regression.cjs",
+      "tests/pad_feedback_browser_regression.cjs",
+      "JoyShockMapper/tests/run_pad_haptics_harness.py"
+    ]
+  },
+  "RIGHT_TOUCHPAD_DUAL_STAGE_MODE": {
+    "status": "PARTIAL",
+    "reason": "All seven native touch/click policies have friendly labels and contextual help for mouse, menu and other pad modes, including held-input overrides. Native routing now uses independent pad FSM slots and raw same-poll touch contacts; contact cannot count as click or inherit analog-trigger thresholds. Actual trigger FSM and simulated browser save/reload pass; physical pad validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadSection.tsx"
+    ],
+    "verification": [
+      "tests/pad_dual_stage_browser_regression.cjs",
+      "JoyShockMapper/tests/run_trigger_modes_harness.py",
+      "JoyShockMapper/tests/run_virtual_menu_runtime_harness.py"
+    ]
+  },
+  "RIGHT_TOUCHPAD_HAPTICS": {
+    "status": "PARTIAL",
+    "reason": "Independent pad feedback is opt-in, preserving legacy shared settings. Movement controls appear in Mouse mode; click/release work in every mode. Ordinary and held-input editors share typed strength/effect/spacing controls and explicit shared/custom policy. Production native selector/click-routing harness, unit preservation/scope tests and browser independent save/reload/held controls pass; physical actuator validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadFeedbackRows.tsx"
+    ],
+    "verification": [
+      "tests/pad_feedback_regression.cjs",
+      "tests/pad_feedback_browser_regression.cjs",
+      "JoyShockMapper/tests/run_pad_haptics_harness.py"
+    ]
+  },
+  "RIGHT_TOUCHPAD_HAPTIC_EFFECT": {
+    "status": "PARTIAL",
+    "reason": "Independent pad feedback is opt-in, preserving legacy shared settings. Movement controls appear in Mouse mode; click/release work in every mode. Ordinary and held-input editors share typed strength/effect/spacing controls and explicit shared/custom policy. Production native selector/click-routing harness, unit preservation/scope tests and browser independent save/reload/held controls pass; physical actuator validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadFeedbackRows.tsx"
+    ],
+    "verification": [
+      "tests/pad_feedback_regression.cjs",
+      "tests/pad_feedback_browser_regression.cjs",
+      "JoyShockMapper/tests/run_pad_haptics_harness.py"
+    ]
+  },
+  "RIGHT_TOUCHPAD_HAPTIC_INTENSITY": {
+    "status": "PARTIAL",
+    "reason": "Independent pad feedback is opt-in, preserving legacy shared settings. Movement controls appear in Mouse mode; click/release work in every mode. Ordinary and held-input editors share typed strength/effect/spacing controls and explicit shared/custom policy. Production native selector/click-routing harness, unit preservation/scope tests and browser independent save/reload/held controls pass; physical actuator validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadFeedbackRows.tsx"
+    ],
+    "verification": [
+      "tests/pad_feedback_regression.cjs",
+      "tests/pad_feedback_browser_regression.cjs",
+      "JoyShockMapper/tests/run_pad_haptics_harness.py"
+    ]
+  },
+  "RIGHT_TOUCHPAD_HAPTIC_INTERVAL": {
+    "status": "PARTIAL",
+    "reason": "Independent pad feedback is opt-in, preserving legacy shared settings. Movement controls appear in Mouse mode; click/release work in every mode. Ordinary and held-input editors share typed strength/effect/spacing controls and explicit shared/custom policy. Production native selector/click-routing harness, unit preservation/scope tests and browser independent save/reload/held controls pass; physical actuator validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadFeedbackRows.tsx"
+    ],
+    "verification": [
+      "tests/pad_feedback_regression.cjs",
+      "tests/pad_feedback_browser_regression.cjs",
+      "JoyShockMapper/tests/run_pad_haptics_harness.py"
+    ]
+  },
+  "RIGHT_TOUCHPAD_MODE": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/HelpDocsPage.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/OverviewPage.tsx"
+    ],
+    "verification": []
+  },
+  "RIGHT_TOUCHPAD_RELEASE_HAPTIC_EFFECT": {
+    "status": "PARTIAL",
+    "reason": "Independent pad feedback is opt-in, preserving legacy shared settings. Movement controls appear in Mouse mode; click/release work in every mode. Ordinary and held-input editors share typed strength/effect/spacing controls and explicit shared/custom policy. Production native selector/click-routing harness, unit preservation/scope tests and browser independent save/reload/held controls pass; physical actuator validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadFeedbackRows.tsx"
+    ],
+    "verification": [
+      "tests/pad_feedback_regression.cjs",
+      "tests/pad_feedback_browser_regression.cjs",
+      "JoyShockMapper/tests/run_pad_haptics_harness.py"
+    ]
+  },
+  "RIGHT_TOUCHPAD_RELEASE_HAPTIC_INTENSITY": {
+    "status": "PARTIAL",
+    "reason": "Independent pad feedback is opt-in, preserving legacy shared settings. Movement controls appear in Mouse mode; click/release work in every mode. Ordinary and held-input editors share typed strength/effect/spacing controls and explicit shared/custom policy. Production native selector/click-routing harness, unit preservation/scope tests and browser independent save/reload/held controls pass; physical actuator validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadFeedbackRows.tsx"
+    ],
+    "verification": [
+      "tests/pad_feedback_regression.cjs",
+      "tests/pad_feedback_browser_regression.cjs",
+      "JoyShockMapper/tests/run_pad_haptics_harness.py"
+    ]
+  },
+  "RIGHT_TOUCHPAD_ROTATION": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/ControllerPreferences.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/HelpDocsPage.tsx"
+    ],
+    "verification": []
+  },
+  "RIGHT_TOUCHPAD_SENS": {
+    "status": "PARTIAL",
+    "reason": "Per-pad controls derive their keys from the physical source prefix; literal-key searches alone undercount these controls. Independent pad/shift runtime and physical review remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadSection.tsx"
+    ],
+    "verification": []
+  },
+  "RIGHT_TOUCH_DEADZONE_INNER": {
+    "status": "PARTIAL",
+    "reason": "Per-pad controls derive their keys from the physical source prefix; literal-key searches alone undercount these controls. Independent pad/shift runtime and physical review remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadSection.tsx"
+    ],
+    "verification": []
+  },
+  "RIGHT_TOUCH_RING_MODE": {
+    "status": "PARTIAL",
+    "reason": "Per-pad controls derive their keys from the physical source prefix; literal-key searches alone undercount these controls. Independent pad/shift runtime and physical review remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadSection.tsx"
+    ],
+    "verification": []
+  },
+  "RIGHT_TOUCH_STICK_AXIS": {
+    "status": "PARTIAL",
+    "reason": "Per-pad controls derive their keys from the physical source prefix; literal-key searches alone undercount these controls. Independent pad/shift runtime and physical review remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadSection.tsx"
+    ],
+    "verification": []
+  },
+  "RIGHT_TOUCH_STICK_MODE": {
+    "status": "PARTIAL",
+    "reason": "Per-pad controls derive their keys from the physical source prefix; literal-key searches alone undercount these controls. Independent pad/shift runtime and physical review remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadSection.tsx"
+    ],
+    "verification": []
+  },
+  "RIGHT_TOUCH_STICK_RADIUS": {
+    "status": "PARTIAL",
+    "reason": "Per-pad controls derive their keys from the physical source prefix; literal-key searches alone undercount these controls. Independent pad/shift runtime and physical review remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadSection.tsx"
+    ],
+    "verification": []
+  },
+  "RIGHT_TRIGGER_EFFECT": {
+    "status": "PARTIAL",
+    "reason": "Independent DualSense effects have parameter-specific controls, packet-correct units, coupled range validation, imported-value preservation and calibration rows. Physical resistance/pulse validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/AdaptiveTriggerEditor.tsx"
+    ],
+    "verification": []
+  },
+  "RIGHT_TRIGGER_OFFSET": {
+    "status": "PARTIAL",
+    "reason": "Independent DualSense effects have parameter-specific controls, packet-correct units, coupled range validation, imported-value preservation and calibration rows. Physical resistance/pulse validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/AdaptiveTriggerEditor.tsx"
+    ],
+    "verification": []
+  },
+  "RIGHT_TRIGGER_RANGE": {
+    "status": "PARTIAL",
+    "reason": "Independent DualSense effects have parameter-specific controls, packet-correct units, coupled range validation, imported-value preservation and calibration rows. Physical resistance/pulse validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/AdaptiveTriggerEditor.tsx"
+    ],
+    "verification": []
+  },
+  "ROLL_CONTRIBUTION": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroBehaviorControls.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroPage.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/TuningClipboard.tsx"
+    ],
+    "verification": []
+  },
+  "ROTATE_SMOOTH_OVERRIDE": {
+    "status": "PARTIAL",
+    "reason": "Curated controls appear for the relevant source modes, shared by ordinary sources and modeshifts. Coupled validation and independent FloatXY writes tested; complete source-mode browser/gameplay validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/SourceModeTuning.tsx"
+    ],
+    "verification": []
+  },
+  "RUMBLE": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/GripSensorsSheet.tsx"
+    ],
+    "verification": []
+  },
+  "SCREEN_RESOLUTION_X": {
+    "status": "PARTIAL",
+    "reason": "Curated controls appear for the relevant source modes, shared by ordinary sources and modeshifts. Coupled validation and independent FloatXY writes tested; complete source-mode browser/gameplay validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/SourceModeTuning.tsx"
+    ],
+    "verification": []
+  },
+  "SCREEN_RESOLUTION_Y": {
+    "status": "PARTIAL",
+    "reason": "Curated controls appear for the relevant source modes, shared by ordinary sources and modeshifts. Coupled validation and independent FloatXY writes tested; complete source-mode browser/gameplay validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/SourceModeTuning.tsx"
+    ],
+    "verification": []
+  },
+  "SCROLL_SENS": {
+    "status": "PARTIAL",
+    "reason": "Existing source-specific cursor/scroll controls; mode dependency and import review remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/hooks/useStickModeExtras.tsx"
+    ],
+    "verification": []
+  },
+  "SET_MOTION_STICK_NEUTRAL": {
+    "status": "PARTIAL",
+    "reason": "Named recenter action in the ordinary picker; native macro remains authoritative. Physical recenter verification remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/ActionPicker.tsx"
+    ],
+    "verification": []
+  },
+  "SHUTDOWN_SOUND": {
+    "status": "PARTIAL",
+    "reason": "Native controller preferences/sound library own these settings with friendly controls. Per-profile command equivalence and hardware review remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/ControllerPreferences.tsx"
+    ],
+    "verification": []
+  },
+  "SHUTDOWN_SOUND_FILE": {
+    "status": "PARTIAL",
+    "reason": "Native controller preferences/sound library own these settings with friendly controls. Per-profile command equivalence and hardware review remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/ControllerPreferences.tsx"
+    ],
+    "verification": []
+  },
+  "SIM_PRESS_WINDOW": {
+    "status": "PARTIAL",
+    "reason": "Shared defaults plus dedicated configuration timing rows in Buttons, using native milliseconds without magnitude guessing. Base configuration only: native consumer is global, so held controls are deliberately hidden. Reset uses inherited/shared values; comments and unknown lines survive edits. Hold timing validates against the simultaneous window. Physical activator timing remains pending.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/TimingPage.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/ProfileTiming.tsx"
+    ],
+    "verification": [
+      "tests/timing_native_units_regression.cjs",
+      "tests/profile_timing_browser_regression.cjs",
+      "tests/pad_axis_audit_regression.cjs"
+    ]
+  },
+  "SL": {
+    "status": "PARTIAL",
+    "reason": "Native shared target shortcuts are read on their two physical rear-input cards, with native last-assignment precedence. Individual base and alternate edits, clear, modeshift rename/remove and saved order preserve the sibling. Import-resolved edits retain tap/hold pairs without inlining templates. Aliases are not physical condition inputs. Unit and isolated browser checks pass; Shared labels, per-output names, empty name overrides and import-origin precedence are verified. Shared icons, layer-specific origin/reset visual review and physical activation remain pending.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/ButtonBindingsCard.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/InputModeshifts.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/utils/bindingAliases.ts",
+      "JSM_GUI/jsm_gui_tauri/src/utils/bindingLabels.ts",
+      "JSM_GUI/jsm_gui_tauri/src/components/SettingOrigin.tsx"
+    ],
+    "verification": [
+      "tests/binding_aliases_regression.cjs",
+      "tests/binding_aliases_browser_regression.cjs"
+    ]
+  },
+  "SLEEP": {
+    "status": "INTERNAL",
+    "reason": "Operational config-loading/console pause (up to ten seconds), also used by calibration scripts. It is not an input timing setting or per-activator delay. Do not expose a blocking runtime pause as a gameplay activator.",
+    "editors": [],
+    "verification": []
+  },
+  "SOUND_ACTUATORS": {
+    "status": "PARTIAL",
+    "reason": "Native controller preferences/sound library own these settings with friendly controls. Per-profile command equivalence and hardware review remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/ControllerPreferences.tsx"
+    ],
+    "verification": []
+  },
+  "SOUND_GAIN": {
+    "status": "PARTIAL",
+    "reason": "Native controller preferences/sound library own these settings with friendly controls. Per-profile command equivalence and hardware review remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/ControllerPreferences.tsx"
+    ],
+    "verification": []
+  },
+  "SR": {
+    "status": "PARTIAL",
+    "reason": "Native shared target shortcuts are read on their two physical rear-input cards, with native last-assignment precedence. Individual base and alternate edits, clear, modeshift rename/remove and saved order preserve the sibling. Import-resolved edits retain tap/hold pairs without inlining templates. Aliases are not physical condition inputs. Unit and isolated browser checks pass; Shared labels, per-output names, empty name overrides and import-origin precedence are verified. Shared icons, layer-specific origin/reset visual review and physical activation remain pending.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/ButtonBindingsCard.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/InputModeshifts.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/utils/bindingAliases.ts",
+      "JSM_GUI/jsm_gui_tauri/src/utils/bindingLabels.ts",
+      "JSM_GUI/jsm_gui_tauri/src/components/SettingOrigin.tsx"
+    ],
+    "verification": [
+      "tests/binding_aliases_regression.cjs",
+      "tests/binding_aliases_browser_regression.cjs"
+    ]
+  },
+  "STICK_ACCELERATION_CAP": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/StickModeExtras.tsx"
+    ],
+    "verification": []
+  },
+  "STICK_ACCELERATION_RATE": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/StickModeExtras.tsx"
+    ],
+    "verification": []
+  },
+  "STICK_AXIS_X": {
+    "status": "LEGACY",
+    "reason": "Legacy all-source axis alias. Independent left/right stick and motion-axis controls replace it without discarding imported aliases.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/SourceModeTuning.tsx"
+    ],
+    "verification": []
+  },
+  "STICK_AXIS_Y": {
+    "status": "LEGACY",
+    "reason": "Legacy all-source axis alias. Independent left/right stick and motion-axis controls replace it without discarding imported aliases.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/SourceModeTuning.tsx"
+    ],
+    "verification": []
+  },
+  "STICK_DEADZONE_INNER": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/StickSection.tsx"
+    ],
+    "verification": []
+  },
+  "STICK_DEADZONE_OUTER": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/StickSection.tsx"
+    ],
+    "verification": []
+  },
+  "STICK_POWER": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/StickModeExtras.tsx"
+    ],
+    "verification": []
+  },
+  "STICK_SENS": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/StickModeExtras.tsx"
+    ],
+    "verification": []
+  },
+  "TELEMETRY_ENABLED": {
+    "status": "INTERNAL",
+    "reason": "Runtime/service lifecycle or diagnostics command; native app services own it rather than gameplay configuration.",
+    "editors": [],
+    "verification": []
+  },
+  "TELEMETRY_PORT": {
+    "status": "INTERNAL",
+    "reason": "Runtime/service lifecycle or diagnostics command; native app services own it rather than gameplay configuration.",
+    "editors": [],
+    "verification": []
+  },
+  "TICK_TIME": {
+    "status": "PARTIAL",
+    "reason": "Shared defaults plus dedicated configuration timing rows in Buttons, using native milliseconds without magnitude guessing. Base configuration only: native consumer is global, so held controls are deliberately hidden. Reset uses inherited/shared values; comments and unknown lines survive edits. Hold timing validates against the simultaneous window. Physical activator timing remains pending.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/TimingPage.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/ProfileTiming.tsx"
+    ],
+    "verification": [
+      "tests/timing_native_units_regression.cjs",
+      "tests/profile_timing_browser_regression.cjs",
+      "tests/pad_axis_audit_regression.cjs"
+    ]
+  },
+  "TOUCHPAD_ACCELERATION": {
+    "status": "PARTIAL",
+    "reason": "Existing contextual mouse and grid controls; aliases and global-versus-source semantics require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/MouseFeelSheet.tsx"
+    ],
+    "verification": []
+  },
+  "TOUCHPAD_ACCEL_CURVE": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/AccelCurveView.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/MouseFeelSheet.tsx"
+    ],
+    "verification": []
+  },
+  "TOUCHPAD_ACCEL_JUMP_TAU": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/AccelCurveView.tsx"
+    ],
+    "verification": []
+  },
+  "TOUCHPAD_ACCEL_MAX_GAIN": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/AccelCurveView.tsx"
+    ],
+    "verification": []
+  },
+  "TOUCHPAD_ACCEL_MAX_SPEED": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/AccelCurveView.tsx"
+    ],
+    "verification": []
+  },
+  "TOUCHPAD_ACCEL_MIN_GAIN": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/AccelCurveView.tsx"
+    ],
+    "verification": []
+  },
+  "TOUCHPAD_ACCEL_MIN_SPEED": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/AccelCurveView.tsx"
+    ],
+    "verification": []
+  },
+  "TOUCHPAD_ACCEL_NATURAL_VHALF": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/AccelCurveView.tsx"
+    ],
+    "verification": []
+  },
+  "TOUCHPAD_ACCEL_POWER_EXPONENT": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/AccelCurveView.tsx"
+    ],
+    "verification": []
+  },
+  "TOUCHPAD_ACCEL_POWER_VREF": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/AccelCurveView.tsx"
+    ],
+    "verification": []
+  },
+  "TOUCHPAD_ACCEL_SIGMOID_MID": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/AccelCurveView.tsx"
+    ],
+    "verification": []
+  },
+  "TOUCHPAD_ACCEL_SIGMOID_WIDTH": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/AccelCurveView.tsx"
+    ],
+    "verification": []
+  },
+  "TOUCHPAD_AREA": {
+    "status": "PARTIAL",
+    "reason": "Concurrent single-pad mouse-region implementation preserved; complete end-to-end review remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/hooks/useMouseAreaConfig.ts"
+    ],
+    "verification": []
+  },
+  "TOUCHPAD_AREA_FIT": {
+    "status": "PARTIAL",
+    "reason": "Concurrent single-pad mouse-region implementation preserved; complete end-to-end review remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/hooks/useMouseAreaConfig.ts"
+    ],
+    "verification": []
+  },
+  "TOUCHPAD_CLICK_DAMPEN": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/MouseFeelSheet.tsx"
+    ],
+    "verification": []
+  },
+  "TOUCHPAD_CLICK_DAMPEN_THRESHOLD": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/MouseFeelSheet.tsx"
+    ],
+    "verification": []
+  },
+  "TOUCHPAD_CLICK_HAPTIC_EFFECT": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/MouseFeelSheet.tsx"
+    ],
+    "verification": []
+  },
+  "TOUCHPAD_CLICK_HAPTIC_INTENSITY": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/MouseFeelSheet.tsx"
+    ],
+    "verification": []
+  },
+  "TOUCHPAD_DUAL_STAGE_MODE": {
+    "status": "PARTIAL",
+    "reason": "All seven native touch/click policies have friendly labels and contextual help for mouse, menu and other pad modes, including held-input overrides. Native routing now uses independent pad FSM slots and raw same-poll touch contacts; contact cannot count as click or inherit analog-trigger thresholds. Actual trigger FSM and simulated browser save/reload pass; physical pad validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadSection.tsx"
+    ],
+    "verification": [
+      "tests/pad_dual_stage_browser_regression.cjs",
+      "JoyShockMapper/tests/run_trigger_modes_harness.py",
+      "JoyShockMapper/tests/run_virtual_menu_runtime_harness.py"
+    ]
+  },
+  "TOUCHPAD_D_CUTOFF": {
+    "status": "PARTIAL",
+    "reason": "Dedicated velocity estimate filter row under advanced smoothing; ordinary profile setting, shared by mouse pads. Slow-orbit hardware check remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/MouseFeelSheet.tsx"
+    ],
+    "verification": []
+  },
+  "TOUCHPAD_GRID_REQUIRES_CLICK": {
+    "status": "PARTIAL",
+    "reason": "Existing contextual mouse and grid controls; aliases and global-versus-source semantics require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/MouseFeelSheet.tsx"
+    ],
+    "verification": []
+  },
+  "TOUCHPAD_HAPTIC_EFFECT": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/MouseFeelSheet.tsx"
+    ],
+    "verification": []
+  },
+  "TOUCHPAD_HAPTIC_INTENSITY": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/MouseFeelSheet.tsx"
+    ],
+    "verification": []
+  },
+  "TOUCHPAD_HAPTIC_INTERVAL": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/MouseFeelSheet.tsx"
+    ],
+    "verification": []
+  },
+  "TOUCHPAD_LIFT_SPEED": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/MouseFeelSheet.tsx"
+    ],
+    "verification": []
+  },
+  "TOUCHPAD_MIN_CUTOFF": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/MouseFeelSheet.tsx"
+    ],
+    "verification": []
+  },
+  "TOUCHPAD_MODE": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/InputModeshifts.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadSection.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/TouchpadSettingsSection.tsx"
+    ],
+    "verification": []
+  },
+  "TOUCHPAD_MOVEMENT_THRESHOLD": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/MouseFeelSheet.tsx"
+    ],
+    "verification": []
+  },
+  "TOUCHPAD_RELEASE_HAPTIC_EFFECT": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/MouseFeelSheet.tsx"
+    ],
+    "verification": []
+  },
+  "TOUCHPAD_RELEASE_HAPTIC_INTENSITY": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/MouseFeelSheet.tsx"
+    ],
+    "verification": []
+  },
+  "TOUCHPAD_SENS": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/InputModeshifts.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadSection.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/TouchpadSettingsSection.tsx"
+    ],
+    "verification": []
+  },
+  "TOUCHPAD_SPEED_COEFF": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/MouseFeelSheet.tsx"
+    ],
+    "verification": []
+  },
+  "TOUCHPAD_TRACKBALL_DECAY": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/MouseFeelSheet.tsx"
+    ],
+    "verification": []
+  },
+  "TOUCHPAD_TRACKBALL_MIN_VELOCITY": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/MouseFeelSheet.tsx"
+    ],
+    "verification": []
+  },
+  "TOUCH_DEADZONE_INNER": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/InputModeshifts.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/TouchpadStickSection.tsx"
+    ],
+    "verification": []
+  },
+  "TOUCH_RING_MODE": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/InputModeshifts.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/TouchpadStickSection.tsx"
+    ],
+    "verification": []
+  },
+  "TOUCH_STICK_AXIS": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/InputModeshifts.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/TouchpadStickSection.tsx"
+    ],
+    "verification": []
+  },
+  "TOUCH_STICK_MODE": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/InputModeshifts.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/TouchpadStickSection.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/KeymapControls.tsx"
+    ],
+    "verification": []
+  },
+  "TOUCH_STICK_RADIUS": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/InputModeshifts.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/TouchpadStickSection.tsx"
+    ],
+    "verification": []
+  },
+  "TRACKBALL_DECAY": {
+    "status": "PARTIAL",
+    "reason": "Automatic native drift correction, paired Joy-Con source choices and native gyro trackball slowdown. Global versus chorded applicability is explicit; physical validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroPage.tsx"
+    ],
+    "verification": []
+  },
+  "TRIGGER_HYSTERESIS": {
+    "status": "PARTIAL",
+    "reason": "Digital/hair/passthrough-dependent controls with percentage hysteresis covering the native range, real negative-threshold serialization, accurate responsive-soft semantics, either analogue output target and PlayStation alias preservation. DualSense explains adaptive resistance disabling hair detection and offers an explicit OFF control. Native trigger FSM/routing/dependency and renderer serialization pass; physical travel and resistance remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/KeymapControls.tsx"
+    ],
+    "verification": [
+      "JoyShockMapper/tests/run_trigger_modes_harness.py",
+      "tests/parity_controls_browser_regression.cjs"
+    ]
+  },
+  "TRIGGER_SKIP_DELAY": {
+    "status": "PARTIAL",
+    "reason": "Digital/hair/passthrough-dependent controls with percentage hysteresis covering the native range, real negative-threshold serialization, accurate responsive-soft semantics, either analogue output target and PlayStation alias preservation. DualSense explains adaptive resistance disabling hair detection and offers an explicit OFF control. Native trigger FSM/routing/dependency and renderer serialization pass; physical travel and resistance remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/KeymapControls.tsx"
+    ],
+    "verification": [
+      "JoyShockMapper/tests/run_trigger_modes_harness.py",
+      "tests/parity_controls_browser_regression.cjs"
+    ]
+  },
+  "TRIGGER_THRESHOLD": {
+    "status": "PARTIAL",
+    "reason": "Digital/hair/passthrough-dependent controls with percentage hysteresis covering the native range, real negative-threshold serialization, accurate responsive-soft semantics, either analogue output target and PlayStation alias preservation. DualSense explains adaptive resistance disabling hair detection and offers an explicit OFF control. Native trigger FSM/routing/dependency and renderer serialization pass; physical travel and resistance remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/KeymapControls.tsx"
+    ],
+    "verification": [
+      "JoyShockMapper/tests/run_trigger_modes_harness.py",
+      "tests/parity_controls_browser_regression.cjs"
+    ]
+  },
+  "TURBO_PERIOD": {
+    "status": "PARTIAL",
+    "reason": "Shared defaults plus dedicated configuration timing rows in Buttons, using native milliseconds without magnitude guessing. Held-input overrides inherit base timing and serialize ordinary native setting chords. Reset uses inherited/shared values; comments and unknown lines survive edits. Hold timing validates against the simultaneous window. Physical activator timing remains pending.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/TimingPage.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/ProfileTiming.tsx"
+    ],
+    "verification": [
+      "tests/timing_native_units_regression.cjs",
+      "tests/profile_timing_browser_regression.cjs",
+      "tests/pad_axis_audit_regression.cjs"
+    ]
+  },
+  "TURN_OFF_CONTROLLER": {
+    "status": "PARTIAL",
+    "reason": "Existing graphical references; mode applicability, labels, defaults, validation and round-trip require review.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/actionCatalog.ts",
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/BindingEditor.tsx"
+    ],
+    "verification": []
+  },
+  "UNWIND_RATE": {
+    "status": "PARTIAL",
+    "reason": "Curated controls appear for the relevant source modes, shared by ordinary sources and modeshifts. Coupled validation and independent FloatXY writes tested; complete source-mode browser/gameplay validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/SourceModeTuning.tsx"
+    ],
+    "verification": []
+  },
+  "VIRTUAL_CONTROLLER": {
+    "status": "COMPLETE",
+    "reason": "Contextual gyro camera output, per-target correction, native output display and guided calibration. Controller-only gameplay and driver availability require physical verification.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroVirtualStick.tsx"
+    ],
+    "verification": [
+      "tests/gyro_virtual_stick_regression.cjs",
+      "tests/gyro_virtual_stick_browser_regression.cjs"
+    ]
+  },
+  "VIRTUAL_MENU": {
+    "status": "PARTIAL",
+    "reason": "Reusable radial wheels with optional centre actions, touch-grid and pad/stick/D-pad/face-button hotbar definitions with independent activation/navigation/selection, labels/icons, placement, shared advanced command editor, native selection telemetry and ordinary layer overrides. Actual native Mapping/DigitalButton output and catalog replacement, browser save/reload and simulated controller navigation pass. Overlay/game transitions and physical validation remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/VirtualMenuLibrary.tsx"
+    ],
+    "verification": [
+      "tests/virtual_menus_regression.cjs",
+      "tests/virtual_menus_browser_regression.cjs",
+      "JoyShockMapper/tests/run_virtual_menu_harness.py",
+      "JoyShockMapper/tests/run_virtual_menu_catalog_harness.py",
+      "JoyShockMapper/tests/run_virtual_menu_runtime_harness.py"
+    ]
+  },
+  "VIRTUAL_MENUS": {
+    "status": "PARTIAL",
+    "reason": "Reusable radial wheels with optional centre actions, touch-grid and pad/stick/D-pad/face-button hotbar definitions with independent activation/navigation/selection, labels/icons, placement, shared advanced command editor, native selection telemetry and ordinary layer overrides. Actual native Mapping/DigitalButton output and catalog replacement, browser save/reload and simulated controller navigation pass. Overlay/game transitions and physical validation remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/VirtualMenuLibrary.tsx"
+    ],
+    "verification": [
+      "tests/virtual_menus_regression.cjs",
+      "tests/virtual_menus_browser_regression.cjs",
+      "JoyShockMapper/tests/run_virtual_menu_harness.py",
+      "JoyShockMapper/tests/run_virtual_menu_catalog_harness.py",
+      "JoyShockMapper/tests/run_virtual_menu_runtime_harness.py"
+    ]
+  },
+  "VIRTUAL_MENU_ACTION": {
+    "status": "PARTIAL",
+    "reason": "Reusable radial wheels with optional centre actions, touch-grid and pad/stick/D-pad/face-button hotbar definitions with independent activation/navigation/selection, labels/icons, placement, shared advanced command editor, native selection telemetry and ordinary layer overrides. Actual native Mapping/DigitalButton output and catalog replacement, browser save/reload and simulated controller navigation pass. Overlay/game transitions and physical validation remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/VirtualMenuLibrary.tsx"
+    ],
+    "verification": [
+      "tests/virtual_menus_regression.cjs",
+      "tests/virtual_menus_browser_regression.cjs",
+      "JoyShockMapper/tests/run_virtual_menu_harness.py",
+      "JoyShockMapper/tests/run_virtual_menu_catalog_harness.py",
+      "JoyShockMapper/tests/run_virtual_menu_runtime_harness.py"
+    ]
+  },
+  "VIRTUAL_MENU_SOURCE": {
+    "status": "PARTIAL",
+    "reason": "Reusable radial wheels with optional centre actions, touch-grid and pad/stick/D-pad/face-button hotbar definitions with independent activation/navigation/selection, labels/icons, placement, shared advanced command editor, native selection telemetry and ordinary layer overrides. Actual native Mapping/DigitalButton output and catalog replacement, browser save/reload and simulated controller navigation pass. Overlay/game transitions and physical validation remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/VirtualMenuLibrary.tsx"
+    ],
+    "verification": [
+      "tests/virtual_menus_regression.cjs",
+      "tests/virtual_menus_browser_regression.cjs",
+      "JoyShockMapper/tests/run_virtual_menu_harness.py",
+      "JoyShockMapper/tests/run_virtual_menu_catalog_harness.py",
+      "JoyShockMapper/tests/run_virtual_menu_runtime_harness.py"
+    ]
+  },
+  "VIRTUAL_STICK_CALIBRATION": {
+    "status": "COMPLETE",
+    "reason": "Contextual gyro camera output, per-target correction, native output display and guided calibration. Controller-only gameplay and driver availability require physical verification.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroVirtualStick.tsx"
+    ],
+    "verification": [
+      "tests/gyro_virtual_stick_regression.cjs",
+      "tests/gyro_virtual_stick_browser_regression.cjs"
+    ]
+  },
+  "WHITELIST_ADD": {
+    "status": "INTERNAL",
+    "reason": "Runtime/service lifecycle or diagnostics command; native app services own it rather than gameplay configuration.",
+    "editors": [],
+    "verification": []
+  },
+  "WHITELIST_REMOVE": {
+    "status": "INTERNAL",
+    "reason": "Runtime/service lifecycle or diagnostics command; native app services own it rather than gameplay configuration.",
+    "editors": [],
+    "verification": []
+  },
+  "WHITELIST_SHOW": {
+    "status": "INTERNAL",
+    "reason": "Runtime/service lifecycle or diagnostics command; native app services own it rather than gameplay configuration.",
+    "editors": [],
+    "verification": []
+  },
+  "WIND_STICK_POWER": {
+    "status": "PARTIAL",
+    "reason": "Curated controls appear for the relevant source modes, shared by ordinary sources and modeshifts. Coupled validation and independent FloatXY writes tested; complete source-mode browser/gameplay validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/SourceModeTuning.tsx"
+    ],
+    "verification": []
+  },
+  "WIND_STICK_RANGE": {
+    "status": "PARTIAL",
+    "reason": "Curated controls appear for the relevant source modes, shared by ordinary sources and modeshifts. Coupled validation and independent FloatXY writes tested; complete source-mode browser/gameplay validation remains.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/SourceModeTuning.tsx"
+    ],
+    "verification": []
+  },
+  "ZL_MODE": {
+    "status": "PARTIAL",
+    "reason": "Digital/hair/passthrough-dependent controls with percentage hysteresis covering the native range, real negative-threshold serialization, accurate responsive-soft semantics, either analogue output target and PlayStation alias preservation. DualSense explains adaptive resistance disabling hair detection and offers an explicit OFF control. Native trigger FSM/routing/dependency and renderer serialization pass; physical travel and resistance remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/KeymapControls.tsx"
+    ],
+    "verification": [
+      "JoyShockMapper/tests/run_trigger_modes_harness.py",
+      "tests/parity_controls_browser_regression.cjs"
+    ]
+  },
+  "ZR_MODE": {
+    "status": "PARTIAL",
+    "reason": "Digital/hair/passthrough-dependent controls with percentage hysteresis covering the native range, real negative-threshold serialization, accurate responsive-soft semantics, either analogue output target and PlayStation alias preservation. DualSense explains adaptive resistance disabling hair detection and offers an explicit OFF control. Native trigger FSM/routing/dependency and renderer serialization pass; physical travel and resistance remain.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/KeymapControls.tsx"
+    ],
+    "verification": [
+      "JoyShockMapper/tests/run_trigger_modes_harness.py",
+      "tests/parity_controls_browser_regression.cjs"
+    ]
+  },
+  "GYRO_STICK_DEFLECTION": {
+    "status": "PARTIAL",
+    "reason": "Native selected-axis relative angular deflection, activation/target neutral capture, independent X/Y degree ranges and optional extent locking. Dedicated contextual chordable joystick rows hide irrelevant camera shaping. Actual accumulator/context/recenter and production inverse stick-correction integration, renderer mode switching/held edits/action save and ordinary-layer/unknown-source round-trip pass. Two-size controller-axis navigation passes after keeping the behavior selector in place when held controls appear. Physical feel, drift and absolute quaternion-relative orientation equivalence remain unverified; this integrates filtered angular travel.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroVirtualStick.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroPage.tsx"
+    ],
+    "verification": [
+      "JoyShockMapper/tests/run_gyro_deflection_harness.py",
+      "tests/gyro_deflection_regression.cjs",
+      "tests/gyro_deflection_browser_regression.cjs",
+      "JoyShockMapper/tests/run_gyro_stick_harness.py"
+    ]
+  },
+  "GYRO_DEFLECTION_RANGE": {
+    "status": "PARTIAL",
+    "reason": "Native selected-axis relative angular deflection, activation/target neutral capture, independent X/Y degree ranges and optional extent locking. Dedicated contextual chordable joystick rows hide irrelevant camera shaping. Actual accumulator/context/recenter and production inverse stick-correction integration, renderer mode switching/held edits/action save and ordinary-layer/unknown-source round-trip pass. Two-size controller-axis navigation passes after keeping the behavior selector in place when held controls appear. Physical feel, drift and absolute quaternion-relative orientation equivalence remain unverified; this integrates filtered angular travel.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroVirtualStick.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroPage.tsx"
+    ],
+    "verification": [
+      "JoyShockMapper/tests/run_gyro_deflection_harness.py",
+      "tests/gyro_deflection_regression.cjs",
+      "tests/gyro_deflection_browser_regression.cjs",
+      "JoyShockMapper/tests/run_gyro_stick_harness.py"
+    ]
+  },
+  "GYRO_DEFLECTION_LOCK_EXTENTS": {
+    "status": "PARTIAL",
+    "reason": "Native selected-axis relative angular deflection, activation/target neutral capture, independent X/Y degree ranges and optional extent locking. Dedicated contextual chordable joystick rows hide irrelevant camera shaping. Actual accumulator/context/recenter and production inverse stick-correction integration, renderer mode switching/held edits/action save and ordinary-layer/unknown-source round-trip pass. Two-size controller-axis navigation passes after keeping the behavior selector in place when held controls appear. Physical feel, drift and absolute quaternion-relative orientation equivalence remain unverified; this integrates filtered angular travel.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroVirtualStick.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/components/GyroPage.tsx"
+    ],
+    "verification": [
+      "JoyShockMapper/tests/run_gyro_deflection_harness.py",
+      "tests/gyro_deflection_regression.cjs",
+      "tests/gyro_deflection_browser_regression.cjs",
+      "JoyShockMapper/tests/run_gyro_stick_harness.py"
+    ]
+  },
+  "RECENTER_GYRO_DEFLECTION": {
+    "status": "PARTIAL",
+    "reason": "Readable action-picker command captures a new angular neutral on all connected controllers at their next poll. Actual production macro and independent atomic request consumption pass in the native harness; renderer action selection and ordinary command serialization pass. Raw motion and gravity-neutral settings are unchanged. Physical activation remains unverified.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/keymap/ActionPicker.tsx",
+      "JSM_GUI/jsm_gui_tauri/src/utils/commandLabels.ts"
+    ],
+    "verification": [
+      "JoyShockMapper/tests/run_gyro_deflection_harness.py",
+      "tests/gyro_deflection_browser_regression.cjs"
+    ]
+  },
+  "GYRO_STEADYING_FLOOR": {
+    "status": "COMPLETE",
+    "reason": "Independent X/Y RWS floors, zero-default legacy path, capped linear recovery, no additional smoothing. Inherited and held input controls, import/export, reset and curve previews share configuration semantics. Native transform and 504 frontend parity samples pass.",
+    "editors": [
+      "JSM_GUI/jsm_gui_tauri/src/components/NoiseSteadyingControls.tsx"
+    ],
+    "verification": [
+      "JoyShockMapper/tests/run_gyro_steadying_harness.py",
+      "tests/gyro_steadying_floor_regression.cjs",
+      "tests/gyro_steadying_floor_browser_regression.cjs"
+    ]
+  }
+}

@@ -36,6 +36,20 @@ body,
   border-radius: 6px;
 }
 
+/* Composite fields place the focus ring around the full control, not just the
+   nested input. Keep the inner outline off so the two rings do not compete. */
+label:has(> input:focus-visible),
+label:has(> select:focus-visible),
+label:has(> textarea:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+label:has(> input:focus-visible) > input,
+label:has(> select:focus-visible) > select,
+label:has(> textarea:focus-visible) > textarea {
+  outline: none;
+}
+
 .boot-shell {
   min-height: 100vh;
   display: grid;

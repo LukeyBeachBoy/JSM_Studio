@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import { persistAppearance, readAppearance } from '../appearanceStorage'
 
 /** The choice: Dark, Light, or follow the OS (Preferences 16j). */
 export type Theme = 'dark' | 'light' | 'system'
@@ -12,7 +13,7 @@ const systemTheme = (): ResolvedTheme => (query()?.matches ? 'light' : 'dark')
 const resolve = (theme: Theme): ResolvedTheme => (theme === 'system' ? systemTheme() : theme)
 const readStored = (): Theme => {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY)
+    const stored = readAppearance(STORAGE_KEY)
     return THEMES.includes(stored as Theme) ? (stored as Theme) : 'dark'
   } catch { return 'dark' }
 }
@@ -27,17 +28,20 @@ const paint = (theme: Theme) => { document.documentElement.dataset.theme = resol
  */
 export function initTheme() {
   paint(readStored())
+  window.addEventListener('storage', event => {
+    if (event.key === STORAGE_KEY) paint(readStored())
+  })
   query()?.addEventListener?.('change', () => { if (readStored() === 'system') paint('system') })
 }
 
 export function useTheme() {
-  const [theme, setTheme] = useState<Theme>('dark')
-  const [resolved, setResolved] = useState<ResolvedTheme>('dark')
+  const [theme, setTheme] = useState<Theme>(readStored)
+  const [resolved, setResolved] = useState<ResolvedTheme>(() => resolve(readStored()))
 
   const apply = useCallback((next: Theme, broadcast = true) => {
     setTheme(next)
     setResolved(resolve(next))
-    try { localStorage.setItem(STORAGE_KEY, next) } catch { /* private mode */ }
+    void persistAppearance(STORAGE_KEY, next)
     paint(next)
     if (broadcast && typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent<Theme>('jsm-theme-changed', { detail: next }))
@@ -45,7 +49,10 @@ export function useTheme() {
   }, [])
 
   useEffect(() => {
-    apply(readStored(), false)
+    const stored = readStored()
+    setTheme(stored)
+    setResolved(resolve(stored))
+    paint(stored)
 
     const onStorage = (event: StorageEvent) => {
       if (event.key === STORAGE_KEY && event.newValue && THEMES.includes(event.newValue as Theme)) {

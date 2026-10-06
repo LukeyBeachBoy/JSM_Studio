@@ -379,11 +379,21 @@ input[type='checkbox']:not([class*='SelectCheckbox']):focus-visible { outline: n
 .focus-glide[data-visible='false'] { transition: none; }
 .focus-glide[data-clipped='true'] { visibility: hidden; }
 body[data-focus-glide] [data-glide-target]:focus,
-body[data-focus-glide] [data-glide-target]:focus-within { box-shadow: none !important; }
+body[data-focus-glide] [data-glide-target]:focus-within,
+body[data-focus-glide] :focus,
+body[data-focus-glide] label:focus-within { box-shadow: none !important; }
+/* Programmatic pad focus can still match :focus-visible. The glide owns the
+   ring, including composite labels, so neither the input nor its ancestors
+   should also draw a keyboard outline. */
+body[data-focus-glide] :focus-within { outline: none !important; }
 /* A row of several choices (a segmented control) keeps its selected fill but
    not a ring of its own: the one ring sits on the choice the pad is on, so it
    reads as "A picks this", not as two competing outlines. */
 body[data-focus-glide] .setting-row:focus-within:not([data-glide-target]) { box-shadow: none; }
+body[data-focus-glide] label:has(> button[role='combobox']):focus-within:not([data-glide-target]),
+body[data-focus-glide] .flex-inputs > label:focus-within:not([data-glide-target]) {
+  box-shadow: inset 0 -1px 0 var(--line-1);
+}
 /* The choice the pad is on, before A picks it: lifted out of the track so
    it previews as a candidate, distinct from the selected one. */
 body[data-input-source='controller'] .segmented > :focus:not([aria-pressed='true']):not([data-selected='true']):not([aria-checked='true']) {

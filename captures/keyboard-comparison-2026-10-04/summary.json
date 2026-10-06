@@ -1,0 +1,29 @@
+{
+  "packets": 57762,
+  "firstPacketUtc": "2026-10-04T09:35:03.864+00:00",
+  "lastPacketUtc": "2026-10-04T09:37:12.727+00:00",
+  "touchSamples": {
+    "left": 10851,
+    "right": 11402
+  },
+  "touchSessions": {
+    "left": 4,
+    "right": 3
+  },
+  "rawCoordinateSamples": 57762,
+  "profiles": [
+    "profiles-library/.layers/virtual-keyboard.txt"
+  ],
+  "rotations": [
+    [
+      "left",
+      0.0
+    ],
+    [
+      "right",
+      0.0
+    ]
+  ],
+  "largestPacketGapMs": 5,
+  "validJsonLines": true
+}

@@ -1,0 +1,10 @@
+.views { display: flex; align-items: center; gap: 1rem; width: 100%; padding: .8rem 0; }
+.view { flex: 1; min-width: 0; text-align: center; }
+.view svg { display: block; width: 100%; height: auto; overflow: visible; }
+.art { pointer-events: none; }
+.input { cursor: pointer; outline: none; }
+.hit { fill: var(--accent); stroke: var(--accent); stroke-width: 3; vector-effect: non-scaling-stroke; pointer-events: all; }
+.input:hover .hit, .input:focus-visible .hit { stroke-opacity: 1 !important; }
+.stickDot { fill: var(--accent); stroke: var(--art-line); stroke-width: 2; pointer-events: none; }
+.caption { color: var(--text-muted); font-size: .7rem; }
+@media (max-width: 540px) { .views { flex-direction: column; } .view { width: 100%; } }

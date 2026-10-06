@@ -1,3 +1,5 @@
+import { persistAppearance, readAppearance } from '../appearanceStorage'
+
 export type AppLanguage = 'en' | 'zh-CN'
 
 export const LANGUAGE_STORAGE_KEY = 'jsm-language'
@@ -15,7 +17,7 @@ export function normalizeAppLanguage(value?: string | null): AppLanguage {
 export function detectInitialLanguage(): AppLanguage {
   if (typeof window !== 'undefined') {
     try {
-      const stored = window.localStorage.getItem(LANGUAGE_STORAGE_KEY)
+      const stored = readAppearance(LANGUAGE_STORAGE_KEY)
       if (stored) {
         return normalizeAppLanguage(stored)
       }
@@ -33,9 +35,5 @@ export function detectInitialLanguage(): AppLanguage {
 
 export function persistAppLanguage(language: AppLanguage) {
   if (typeof window === 'undefined') return
-  try {
-    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, language)
-  } catch {
-    // ignore storage access failures
-  }
+  void persistAppearance(LANGUAGE_STORAGE_KEY, language)
 }

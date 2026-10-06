@@ -1,0 +1,162 @@
+/* The mouse-area picker: a dimmed sheet over one monitor with a clear window
+   where the area is. Everything on it must read over a bright game scene. */
+
+.root {
+  position: fixed;
+  inset: 0;
+  cursor: crosshair;
+  font: 500 14px/1.35 var(--font-ui, "Segoe UI", system-ui, sans-serif);
+  color: #f2f6fa;
+  touch-action: none;
+}
+
+.root[data-dragging='true'] {
+  cursor: crosshair;
+}
+
+/* Nothing drawn yet: the whole screen is dimmed evenly. */
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(6, 10, 14, 0.42);
+}
+
+/* The area itself is clear glass; the dimming is its shadow, cast out to the
+   edges of the screen, so the game shows through exactly where the cursor
+   will be allowed to go. */
+.area {
+  position: absolute;
+  box-sizing: border-box;
+  border: 2px solid var(--accent, #6ec3f4);
+  box-shadow: 0 0 0 200vmax rgba(6, 10, 14, 0.42), 0 0 0 1px rgba(0, 0, 0, 0.55) inset;
+  cursor: move;
+  border-radius: 2px;
+}
+
+/* Under UNIFORM the pad's full travel can reach past the area on one axis;
+   that spare travel clamps at the edge. Dashed so it reads as a footprint
+   rather than a second area. */
+.footprint {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px dashed rgba(255, 255, 255, 0.55);
+  pointer-events: none;
+  border-radius: 2px;
+}
+
+.handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: var(--accent, #6ec3f4);
+  border: 2px solid rgba(6, 10, 14, 0.85);
+  border-radius: 3px;
+  box-sizing: border-box;
+  transform: translate(-50%, -50%);
+}
+.handle[data-handle='nw'] { left: 0; top: 0; cursor: nwse-resize; }
+.handle[data-handle='n'] { left: 50%; top: 0; cursor: ns-resize; }
+.handle[data-handle='ne'] { left: 100%; top: 0; cursor: nesw-resize; }
+.handle[data-handle='e'] { left: 100%; top: 50%; cursor: ew-resize; }
+.handle[data-handle='se'] { left: 100%; top: 100%; cursor: nwse-resize; }
+.handle[data-handle='s'] { left: 50%; top: 100%; cursor: ns-resize; }
+.handle[data-handle='sw'] { left: 0; top: 100%; cursor: nesw-resize; }
+.handle[data-handle='w'] { left: 0; top: 50%; cursor: ew-resize; }
+
+.size {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translate(-50%, 8px);
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(6, 10, 14, 0.82);
+  color: #f2f6fa;
+  font: 500 12px/1.4 var(--font-mono, Consolas, monospace);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* The instructions and buttons: a card at the top centre, moving to the
+   bottom when the rectangle is up there. */
+.card {
+  position: absolute;
+  left: 50%;
+  top: 28px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  max-width: min(920px, calc(100vw - 48px));
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: rgba(10, 14, 20, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  cursor: default;
+}
+
+.card[data-bottom='true'] {
+  top: auto;
+  bottom: 28px;
+}
+
+.cardText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(242, 246, 250, 0.62);
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.hint {
+  font-size: 12.5px;
+  color: rgba(242, 246, 250, 0.72);
+}
+
+.cardActions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.button {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: #f2f6fa;
+  font: 600 13px/1 var(--font-ui, "Segoe UI", system-ui, sans-serif);
+  padding: 9px 14px;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.primary {
+  background: var(--accent, #6ec3f4);
+  border-color: transparent;
+  color: var(--text-on-accent, #07131d);
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--accent-strong, #3d95d6);
+}

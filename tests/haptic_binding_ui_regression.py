@@ -22,7 +22,7 @@ ROOT = Path(__file__).parents[1]
 GUI = ROOT / 'JSM_GUI/jsm_gui_tauri/src'
 HAPTICS = (GUI / 'utils/hapticBindings.ts').read_text(encoding='utf-8')
 PICKER = (GUI / 'components/keymap/HapticOutputPicker.tsx').read_text(encoding='utf-8')
-COMPOSER = (GUI / 'components/keymap/BindingEditor.tsx').read_text(encoding='utf-8')
+ACTION_PICKER = (GUI / 'components/keymap/ActionPicker.tsx').read_text(encoding='utf-8')
 COMMANDS = (GUI / 'utils/bindingCommands.ts').read_text(encoding='utf-8')
 EN = (GUI / 'i18n/resources/en.ts').read_text(encoding='utf-8')
 ZH = (GUI / 'i18n/resources/zh-CN.ts').read_text(encoding='utf-8')
@@ -97,8 +97,8 @@ def test_the_grip_pulse_can_choose_its_effect():
 
     check("keyName.GRIP_HAPTIC_EFFECT" in (GUI / 'hooks/useGripConfig.ts').read_text(encoding='utf-8'),
           'the GUI cannot read or write GRIP_HAPTIC_EFFECT')
-    section = (GUI / 'components/keymap/GripSettingsSection.tsx').read_text(encoding='utf-8')
-    check('HAPTIC_EFFECTS' in section,
+    section = (GUI / 'components/keymap/GripSensorsSheet.tsx').read_text(encoding='utf-8')
+    check('HAPTIC_EFFECT_CHOICES' in section,
           'the grip page builds its own effect list instead of the shared one')
     check("effect !== 'OFF'" in section,
           'the grip effect picker offers OFF, which is what the intensity slider is for')
@@ -164,8 +164,8 @@ def test_every_effect_and_side_is_labelled():
 
 
 def test_haptics_are_offered_as_an_output_kind():
-    check("'haptic'" in COMPOSER and "<HapticOutputPicker" in COMPOSER,
-          'the composer does not offer haptics as an output kind')
+    check("['haptic'," in ACTION_PICKER and "<HapticOutputPicker" in ACTION_PICKER,
+          'the graphical action picker does not offer the typed haptic editor')
     check("'haptic'," in COMMANDS and "| 'haptic'" in COMMANDS,
           'BindingOutputKind does not include haptic')
     check('isHapticBindingValue' in COMMANDS,

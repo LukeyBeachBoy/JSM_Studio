@@ -1,5 +1,7 @@
+import { LayerOverrideRows } from './LayerOverrideRows'
+import { visibleOverrideKeys } from '../utils/layers'
 import { createContext, useContext, useState } from 'react'
-import { convertModeshifts, inputUses, inputUsage, inputDefinitions, readableSetting, writeLayers, actionsOnInput, describeAction, layerVerbOrder, layerVerbLabels, type ConfigLayer, type LayerAction, type LayerVerb } from '../utils/layers'
+import { convertModeshifts, inputUses, inputUsage, inputDefinitions, writeLayers, actionsOnInput, describeAction, layerVerbOrder, layerVerbLabels, type ConfigLayer, type LayerAction, type LayerVerb } from '../utils/layers'
 import { type ControllerVisualFamily } from '../utils/controllerStatus'
 import { inputDisplayName } from '../keymap/inputNames'
 import { AppSelect } from './ui/AppSelect'
@@ -158,7 +160,7 @@ export function LayerBar({ text, layers, selected, onChange, onSelect, disabled,
         <span className="layer-eyebrow">Layers in this configuration</span>
         {layers.length ? <ul className="layer-list">
           {layers.map(layer => {
-            const count = Object.keys(layer.overrides).length
+            const count = visibleOverrideKeys(layer.overrides).length
             return <li key={layer.id} aria-current={layer.id === selected ? 'true' : undefined}>
               <div className="layer-list__row">
                 {/* Selecting the editing layer is a click or Enter, never a focus:
@@ -176,33 +178,31 @@ export function LayerBar({ text, layers, selected, onChange, onSelect, disabled,
               </div>
               <details className="layer-list__overrides">
                 <summary>{count} override{count === 1 ? '' : 's'} · Restore inheritance</summary>
-                {count ? Object.entries(layer.overrides).map(([key, value]) => <div className="layer-override" key={key}>
-                  <span className="layer-override__name" title={key}>{readableSetting(key)}</span><span className="layer-override__value">{value}</span>
-                  <button type="button" className="button button--tertiary button--sm" disabled={disabled} onClick={() => {
-                    const overrides = { ...layer.overrides }; delete overrides[key]; update({ ...layer, overrides })
-                  }}>Use Default</button>
-                </div>) : <p className="layer-list__none">Nothing changed yet. Make it the editing layer and change a binding or setting.</p>}
+                {count ? <LayerOverrideRows overrides={layer.overrides} inputName={key => inputDisplayName(key, family)} disabled={disabled} onRestore={keys => {
+                  const overrides = { ...layer.overrides }; keys.forEach(key => delete overrides[key]); update({ ...layer, overrides })
+                }} /> : <p className="layer-list__none">Nothing changed yet. Make it the editing layer and change a binding or setting.</p>}
               </details>
             </li>
           })}
         </ul> : <p className="layer-empty">No layers yet. Create one, then bind it from an input.</p>}
       </div>
 
-      {current && <div className="layer-from-modeshifts">
+      {current && modeshiftSources.some(input => inputUsage(text, input.command, []).some(use => use.kind === 'shift')) && <details className="layer-migration"><summary>Convert existing modeshifts to a layer</summary><div className="layer-from-modeshifts">
         <label>Move modeshifts into {current.name} from
           <AppSelect className="app-select" aria-label="Move modeshifts from" value={source} disabled={disabled}
             onChange={event => setSource(event.target.value)}>
             {modeshiftSources.map(button => <option key={button.command} value={button.command}>{inputDisplayName(button.command, family)}</option>)}
           </AppSelect>
-          <small>Takes what this input already modeshifts and makes it this layer’s changes. Default keeps every other input.</small>
+          <small>For older profiles: moves the selected input’s alternate bindings and settings into this layer, then binds that input to hold it. Other inputs can then use the same layer. Save only after reviewing the result.</small>
         </label>
-        <button type="button" className="button button--secondary" disabled={disabled || !moving} onClick={() => {
+        {/* TODO-51: the label may wrap onto two lines when squeezed (Layers.css). */}
+        <button type="button" className="button button--secondary layer-from-modeshifts__move" disabled={disabled || !moving} onClick={() => {
           const layer = { ...current, overrides: { ...current.overrides } }
           const without = writeLayers(text, layers.filter(l => l.id !== layer.id))
           onChange(convertModeshifts(without, layer, source))
           onSelect?.(layer.id)
         }}>Move {moving} assignment{moving === 1 ? '' : 's'}</button>
-      </div>}
+      </div></details>}
     </section>
     {deleting && <DeleteLayerConfirm layer={deleting} onCancel={() => setDeleting(null)} onConfirm={() => { const layer = deleting; setDeleting(null); remove(layer) }} />}
   </div>
@@ -210,7 +210,7 @@ export function LayerBar({ text, layers, selected, onChange, onSelect, disabled,
 
 /** "Delete Comms?" (System States 17g): what goes with it, Cancel first. */
 export function DeleteLayerConfirm({ layer, onCancel, onConfirm }: { layer: ConfigLayer; onCancel: () => void; onConfirm: () => void }) {
-  const overrides = Object.keys(layer.overrides).length
+  const overrides = visibleOverrideKeys(layer.overrides).length
   return (
     // Escape must preventDefault, or the same press also reaches the page's
     // own handler once the overlay is gone.

@@ -104,6 +104,18 @@ export const glyphMarkup = (command: string, family: ControllerVisualFamily = 'g
   const key = COMMAND_KEYS[upper] ?? upper
   const small = size <= SMALL_CUT_MAX
 
+  // Stick clicks need their own label even in the small hint/chip cut.
+  if (key === 'L3' || key === 'R3') {
+    return `<circle cx="12" cy="12" r="${small ? 10.5 : 10}" fill="currentColor"/>` + label(12, 12, small ? 10.5 : 10, key, 'var(--glyph-ink)')
+  }
+
+  if (family === 'playstation' && key === 'MINUS') {
+    return `<path d="M12 6V3M7.5 7.5 5.5 5.5M16.5 7.5l2-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="5" y="11" width="14" height="10" rx="3" fill="currentColor"/>`
+  }
+  if (family === 'playstation' && key === 'HOME') {
+    return `<circle cx="12" cy="12" r="${small ? 11 : 10}" fill="currentColor"/>` + label(12, 12, small ? 10.5 : 10, 'PS', 'var(--glyph-ink)')
+  }
+
   // A Switch pad prints − and + where the others draw View and Menu.
   if (family === 'nintendo' && (key === 'MINUS' || key === 'PLUS')) {
     return `<circle cx="12" cy="12" r="${small ? 11 : 10}" fill="currentColor"/><path d="M7.5 12h9${key === 'PLUS' ? 'M12 7.5v9' : ''}" stroke="var(--glyph-ink)" stroke-width="${small ? 2.6 : 2.2}" stroke-linecap="round"/>`

@@ -1,87 +1,91 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import keymapStyles from '../Keymap.module.css'
+import styles from './LightBarPicker.module.css'
+import { LightBarPopover } from './LightBarPopover'
+import { LIGHT_BAR_PRESETS, normalizeHex } from './lightBarColor'
 
 type Props = {
   /** "#rrggbb" or null for JoyShockMapper's default. */
   value: string | null
   onChange: (color: string | null) => void
   disabled?: boolean
+  allowClear?: boolean
+  defaultColor?: string
 }
 
-// A row of presets the pad can walk with Left/Right and pick with A, plus a
-// hex field for anything else. The native colour picker was mouse-only.
-const PRESETS: { name: string; hex: string }[] = [
-  { name: 'White', hex: '#ffffff' },
-  { name: 'Red', hex: '#ff3b30' },
-  { name: 'Orange', hex: '#ff9500' },
-  { name: 'Yellow', hex: '#ffd60a' },
-  { name: 'Green', hex: '#34c759' },
-  { name: 'Cyan', hex: '#32ade6' },
-  { name: 'Blue', hex: '#0a84ff' },
-  { name: 'Purple', hex: '#af52de' },
-  { name: 'Pink', hex: '#ff2d55' },
-]
+const PencilGlyph = () => (
+  <svg className={styles.pencil} viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 13l.8-3.2L10.6 3l2.4 2.4-6.8 6.8L3 13z" />
+    <path d="M9.4 4.2l2.4 2.4" />
+  </svg>
+)
 
-const normalize = (text: string) => {
-  const hex = text.trim().replace(/^#/, '').toLowerCase()
-  if (/^[0-9a-f]{6}$/.test(hex)) return `#${hex}`
-  if (/^[0-9a-f]{3}$/.test(hex)) return `#${hex.split('').map(c => c + c).join('')}`
-  return null
-}
-
-export function LightBarPicker({ value, onChange, disabled }: Props) {
+/**
+ * A row of preset swatches plus one "custom" swatch (TODO-47). The presets
+ * are a radiogroup the pad walks with Left/Right and picks with A; nothing
+ * else shows until the custom swatch opens the popover with the wall, the
+ * sliders and the hex field. A custom colour then collapses back into that
+ * swatch, which shows the colour and a pencil, and reopens the editor.
+ */
+export function LightBarPicker({ value, onChange, disabled, allowClear = true, defaultColor = '#ffffff' }: Props) {
   const { t } = useTranslation()
   const current = value ? value.toLowerCase() : null
-  const [draft, setDraft] = useState(current ? current.slice(1) : '')
-  const [editing, setEditing] = useState(false)
-  useEffect(() => { if (!editing) setDraft(current ? current.slice(1) : '') }, [current, editing])
-  const commit = () => {
-    setEditing(false)
-    if (draft.trim() === '') { onChange(null); return }
-    const next = normalize(draft)
-    if (next) onChange(next)
-    else setDraft(current ? current.slice(1) : '')
+  const effective = normalizeHex(current ?? defaultColor) ?? '#ffffff'
+  const preset = LIGHT_BAR_PRESETS.find(entry => entry.hex === effective)
+  const [open, setOpen] = useState(false)
+  const rowRef = useRef<HTMLDivElement>(null)
+  const customRef = useRef<HTMLButtonElement>(null)
+  useEffect(() => { if (disabled) setOpen(false) }, [disabled])
+  const close = () => {
+    setOpen(false)
+    customRef.current?.focus({ preventScroll: true })
   }
+  const customLabel = t('keymap.lightBarCustom', 'Custom')
   return (
     <div className={keymapStyles.lightBarPicker} data-capture-ignore="true">
-      <div className={keymapStyles.lightBarSwatches} role="radiogroup" aria-label={t('keymap.lightBarColor')}>
-        {PRESETS.map(preset => (
+      <div ref={rowRef} className={keymapStyles.lightBarSwatches} role="radiogroup" aria-label={t('keymap.lightBarColor')}>
+        {LIGHT_BAR_PRESETS.map(entry => (
           <button
-            key={preset.hex}
+            key={entry.hex}
             type="button"
             role="radio"
-            aria-checked={current === preset.hex}
-            aria-label={preset.name}
-            title={preset.name}
+            aria-checked={effective === entry.hex}
+            aria-label={entry.name}
+            title={entry.name}
             className={keymapStyles.lightBarSwatch}
-            style={{ background: preset.hex }}
+            style={{ background: entry.hex }}
             disabled={disabled}
             data-hints="A:Choose colour;B:Back"
-            onClick={() => onChange(current === preset.hex ? null : preset.hex)}
+            onClick={() => onChange(entry.hex)}
           />
         ))}
-      </div>
-      <label className={keymapStyles.lightBarHex}>
-        <span aria-hidden="true">#</span>
-        <input
-          type="text"
-          inputMode="text"
-          maxLength={6}
-          value={draft}
-          placeholder="ffffff"
-          aria-label={t('keymap.lightBarHex', 'Light bar colour, hex')}
+        <button
+          ref={customRef}
+          type="button"
+          role="radio"
+          aria-checked={!preset}
+          aria-label={customLabel}
+          title={preset ? customLabel : `${customLabel} ${effective}`}
+          className={`${keymapStyles.lightBarSwatch} ${styles.custom}`}
+          style={preset ? undefined : { background: effective }}
           disabled={disabled}
-          onFocus={() => setEditing(true)}
-          onChange={event => setDraft(event.target.value)}
-          onBlur={commit}
-          onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') { setDraft(current ? current.slice(1) : ''); event.currentTarget.blur() } }}
-        />
-      </label>
-      {current && (
-        <button type="button" className={keymapStyles.lightBarClearBtn} disabled={disabled} onClick={() => onChange(null)} data-hints="A:Use default;B:Back">
-          {t('common.clear')}
+          data-color-custom
+          data-color={preset ? undefined : effective}
+          data-open={open ? 'true' : undefined}
+          data-hints={preset ? 'A:Custom colour;B:Back' : 'A:Edit colour;B:Back'}
+          onClick={() => setOpen(true)}
+        >
+          {preset ? <span className={styles.plus} aria-hidden="true">+</span> : <PencilGlyph />}
         </button>
+      </div>
+      {allowClear && current && (
+        <button type="button" className={keymapStyles.lightBarClearBtn} disabled={disabled} onClick={() => onChange(null)} data-hints="A:Use default;B:Back">
+          Use default color
+        </button>
+      )}
+      {open && !disabled && (
+        <LightBarPopover anchor={rowRef.current} color={effective} onChange={onChange} onClose={close} />
       )}
     </div>
   )

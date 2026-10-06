@@ -332,12 +332,17 @@ export const controllerButtonGlyph = (type: number | undefined, command: string)
 }
 
 export const getPressedControllerCommandSet = (device?: TelemetryDevice) => {
-  const buttons = device?.status?.buttons
-  if (typeof buttons !== 'number' || !Number.isFinite(buttons) || buttons <= 0) {
-    return new Set<string>()
-  }
-
+  const rawButtons = device?.status?.buttons
+  const buttons = typeof rawButtons === 'number' && Number.isFinite(rawButtons) ? Math.max(0, rawButtons) : 0
   const commands = new Set<string>()
+  // Preview raw contact from telemetry even when no digital button is down.
+  // The native stage policy remains authoritative for emitted bindings.
+  if (device?.type === CONTROLLER_TYPES.STEAM_CONTROLLER_2026) {
+    if (device.status?.leftPad?.touched) commands.add('MISC4')
+    if (device.status?.rightPad?.touched) commands.add('TOUCH')
+  } else if (device?.type === CONTROLLER_TYPES.DS4 || device?.type === CONTROLLER_TYPES.DS) {
+    if (device?.status?.leftPad?.touched || device?.status?.rightPad?.touched) commands.add('TOUCH')
+  }
   const controllerType = device?.type ?? 0
   const splitType = device?.split ?? 0
 
@@ -505,9 +510,9 @@ export const getPressedControllerButtons = (device?: TelemetryDevice) => {
 export const controllerSupportsInput = (device: TelemetryDevice | undefined, command: string): boolean => {
   if (!device || !device.type) return true
   if (/^[LR]M[0-9]+$/.test(command)) return true
+  if (['MUP', 'MDOWN', 'MLEFT', 'MRIGHT', 'MRING', 'LEAN_LEFT', 'LEAN_RIGHT'].includes(command)) return true
   if (/^(ZL|ZR|LUP|LDOWN|LLEFT|LRIGHT|LRING|RUP|RDOWN|RLEFT|RRIGHT|RRING)/.test(command)) return true
-  if (device.type === 24 && ['LTOUCH', 'RTOUCH'].includes(command)) return true
-  if (command === 'TOUCH' && device.type === 24) return false
+  if (device.type === 24 && ['LTOUCH', 'RTOUCH', 'MISC4', 'TOUCH'].includes(command)) return true
   if (/^(TOUCH|TUP|TDOWN|TLEFT|TRIGHT|TRING|LT[0-9]|RT[0-9]|T[0-9])/.test(command)) return [4, 5, 24].includes(device.type)
   return getPressedControllerCommandSet({ ...device, status: { ...device.status, buttons: device.supportedButtons ?? 2 ** 33 - 1 } as NonNullable<TelemetryDevice['status']> }).has(command)
 }

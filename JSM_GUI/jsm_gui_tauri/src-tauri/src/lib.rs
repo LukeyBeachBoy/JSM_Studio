@@ -38,6 +38,7 @@ pub fn run() {
             // Whether Studio is in front, from Windows rather than the
             // window's focus events (services/foreground.rs).
             services::foreground::start(app.handle().clone());
+            if let Err(error) = services::virtual_keyboard::initialize(app.handle()) { eprintln!("Keyboard initialization failed: {error}"); }
             services::global_chords::start(app.handle().clone(), state.clone());
             // Built hidden and click-through up front: creating a WebView window
             // costs around 100ms, which is not something to spend on the first
@@ -96,17 +97,27 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            services::appearance::load_appearance_preferences,
+            services::appearance::save_appearance_preference,
+            commands::reset_default_settings,
             commands::launch_jsm,
             commands::get_mapper_status,
             commands::get_layer_stack,
             commands::set_autoload_rule_paused,
-            commands::set_reserved_chords,
             commands::set_calibration_hud_enabled,
+            services::virtual_keyboard::keyboard_preferences,
+            services::virtual_keyboard::keyboard_save_preferences,
+            services::virtual_keyboard::keyboard_state,
+            services::virtual_keyboard::keyboard_set_open,
             commands::overlay_set_enabled,
             commands::ui_set_refresh_hz,
             commands::overlay_set_refresh_hz,
             commands::overlay_set_bounds,
             commands::overlay_workarea,
+            commands::area_picker_open,
+            commands::area_picker_state,
+            commands::area_picker_next_monitor,
+            commands::area_picker_close,
             commands::terminate_jsm,
             commands::minimize_temporarily,
             commands::resume_studio_navigation,
@@ -128,11 +139,20 @@ pub fn run() {
             commands::delete_global_chord,
             commands::save_autoload_rule,
             commands::delete_autoload_rule,
+            commands::app_icon,
+            commands::pick_executable,
             commands::recalibrate_gyro,
             commands::get_calibration_seconds,
             commands::set_calibration_seconds,
             commands::set_controller_preferences,
             commands::play_controller_sound,
+            commands::preview_controller_tones,
+            commands::sound_library_list,
+            commands::sound_library_import,
+            commands::sound_library_read_audio,
+            commands::sound_library_save,
+            commands::sound_library_rename,
+            commands::sound_library_delete,
             commands::library_list_profiles,
             commands::library_list_profile_meta,
             commands::library_save_profile,

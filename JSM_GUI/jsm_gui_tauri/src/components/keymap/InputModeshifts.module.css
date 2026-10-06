@@ -36,8 +36,8 @@
   border-radius: 10px;
   display: inline-grid;
   place-items: center;
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: color-mix(in srgb, var(--shift) 12%, transparent);
+  color: var(--shift);
   font-size: 11px;
   letter-spacing: 0;
 }
@@ -49,17 +49,15 @@
   color: var(--text-3);
 }
 .groupHead > :global(.button) { margin-left: auto; }
-.groupHead :global(.button) svg,
-.remove svg { margin-right: 6px; }
 
 .addRow {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: center;
   gap: var(--sp-3);
   padding: var(--sp-3) 14px;
   border-radius: var(--r-row);
-  background: var(--surface-row);
+  background: linear-gradient(color-mix(in srgb, var(--shift) 12%, transparent), color-mix(in srgb, var(--shift) 12%, transparent)), var(--surface-row);
 }
 
 /* One shift. The accent is what tells it apart from the pad's own rows. */
@@ -67,7 +65,7 @@
   min-width: 0;
   border-radius: var(--r-row);
   background: var(--surface-row);
-  box-shadow: inset 3px 0 0 var(--accent);
+  box-shadow: inset 3px 0 0 var(--shift);
   overflow: clip;
 }
 .cardHead {
@@ -76,12 +74,12 @@
   gap: 14px;
   min-height: 64px;
   padding: 10px 14px 10px 17px;
-  background: var(--accent-soft);
+  background: color-mix(in srgb, var(--shift) 12%, transparent);
   cursor: pointer;
   list-style: none;
 }
 .cardHead::-webkit-details-marker { display: none; }
-.cardHead:hover { background: color-mix(in srgb, var(--accent) 20%, transparent); }
+.cardHead:hover { background: color-mix(in srgb, var(--shift) 20%, transparent); }
 .cardGlyph {
   flex: 0 0 auto;
   width: 36px;
@@ -107,8 +105,8 @@
   margin-right: 4px;
   padding: 1px 7px;
   border-radius: 6px;
-  background: var(--accent);
-  color: var(--text-on-accent);
+  background: var(--shift);
+  color: var(--shift-on);
   font-size: 10px;
   line-height: 16px;
   font-weight: var(--fw-semibold);
@@ -141,23 +139,43 @@
   padding: var(--sp-4) 14px var(--sp-4) 17px;
 }
 
-/* Held input, the shifted mode where there is one, and Remove -- one line. */
+/* Wrap whole fields before their values or actions can be clipped. */
 .controls {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
   gap: var(--sp-3);
 }
-.heldField {
+.group label.heldField:has(> button[role='combobox']) {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  min-width: 220px;
+  flex: 1 1 260px;
+  align-items: stretch;
+  flex-wrap: nowrap;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  min-width: 0;
+  max-width: 100%;
   font-size: var(--fs-hint);
   color: var(--text-3);
 }
-.remove { margin-left: auto; color: var(--error); }
+.group label.heldField:has(> button[role='combobox']) > :global(button[role='combobox']) {
+  width: 100%; max-width: 100%; min-width: 0; margin: 0;
+}
+.cardHead:focus-visible { outline-offset: -3px; }
+.remove { margin-left: auto; max-width: 100%; color: var(--error); }
 .remove:hover:not(:disabled) { color: var(--error); background: var(--error-soft); }
 
 .hint { margin: 0; font-size: var(--fs-hint); line-height: var(--lh-hint); color: var(--text-3); }
 .bindings { display: flex; flex-direction: column; gap: 8px; }
+
+/* Keep the condition switch compact and centred beside the input selector. */
+.conditionField {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  min-height: var(--control-h);
+}
+.conditionField > :global(.segmented) { width: max-content; }

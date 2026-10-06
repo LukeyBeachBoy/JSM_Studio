@@ -65,22 +65,23 @@ const fs = require('node:fs');
  await page.keyboard.press('Control+s');
  await page.waitForFunction(()=>/^N = K$/m.test(window.__lastSaved));
  assert.deepEqual(await page.evaluate(()=>window.__calls),['save'],'selecting/saving an action must not apply it');
- // Capture is the lane's own button beside Add command now (3c).
- await north.getByRole('button',{name:'Capture a key',exact:true}).click();
+ // X on an existing command replaces its output. Footer capture adds one.
+ await north.getByRole('button',{name:/Choose action:/}).first().focus();
+ await page.keyboard.press('x');
  await page.waitForFunction(()=>document.body.dataset.bindingCapture==='true');
  await page.keyboard.press('ArrowRight');
  await page.waitForFunction(()=>!document.body.dataset.bindingCapture);
  assert.equal(await page.locator('.page-header__title').innerText(),'Buttons');
  await page.keyboard.press('Control+s');
- await page.waitForFunction(()=>/^N = RIGHT$/m.test(window.__lastSaved));
+ await page.waitForFunction(()=>/^N = RIGHT\\?$/m.test(window.__lastSaved));
  await shot('button-advanced');
  // Controller slider edit mode changes values; ordinary arrows navigate.
  await nav('Gyro');
- // Noise & steadying is the Steadying row under Fine tuning now, and opens a sheet (1d).
+ // Noise & Steadying groups the stabilization controls under Fine tuning now, and opens a sheet (1d).
  await page.getByRole('button',{name:'Fine tuning',exact:true}).click();
- await page.locator('.summary-row').filter({has:page.locator('.summary-row__label').getByText('Steadying',{exact:true})}).click();
+ await page.locator('.summary-row').filter({has:page.locator('.summary-row__label').getByText('Noise & Steadying',{exact:true})}).click();
  const sheet=page.locator('.sheet');
- await sheet.getByRole('heading',{name:'Steadying',exact:true}).waitFor();
+ await sheet.getByRole('heading',{name:'Noise & Steadying',exact:true}).waitFor();
  const slider=sheet.getByRole('slider').first();
  await slider.focus(); const original=await slider.getAttribute('aria-valuenow');
  await page.keyboard.press('Enter'); await page.keyboard.press('ArrowRight');

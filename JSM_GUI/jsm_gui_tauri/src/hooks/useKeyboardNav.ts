@@ -66,6 +66,31 @@ const navigationSuspended = () =>
  */
 export const escapeIsClaimed = () => Boolean(topmostOverlay()) || radixPopoverOpen()
 
+/** Fold the nearest disclosure in the current focus scope, then return to its opener. */
+const closeDisclosure = (target: HTMLElement | null, overlay: HTMLElement | null) => {
+  const origin = target && target !== document.body ? target : navOrigin()
+  for (let node = origin; node && node !== overlay; node = node.parentElement) {
+    // A portal can leave a resting page anchor behind the active sheet.
+    if (overlay && !overlay.contains(node)) return false
+    if (node instanceof HTMLDetailsElement && node.open) {
+      node.open = false
+      node.querySelector<HTMLElement>(':scope > summary')?.focus({ preventScroll: true })
+      return true
+    }
+    if (node.hasAttribute('data-nav-disclosure')) {
+      const trigger = Array.from(node.querySelectorAll<HTMLElement>('[data-nav-disclosure-trigger][aria-expanded="true"]'))
+        .find(element => element.closest('[data-nav-disclosure]') === node)
+      if (trigger) {
+        // Go through React's toggle so controlled disclosures stay in sync.
+        trigger.click()
+        trigger.focus({ preventScroll: true })
+        return true
+      }
+    }
+  }
+  return false
+}
+
 /**
  * Focusable, but not a stop on the arrow walk: the "?" help buttons beside
  * section headings and labels. They are the first control on most pages, so
@@ -127,6 +152,7 @@ export function useKeyboardNav({ onPageStep, onEscape, activePage, contentSelect
   // on launch.
   const focusedPage = useRef(activePage)
   const pageFocus = useRef(new Map<unknown, Remembered>())
+  const verticalPath = useRef<{ from: HTMLElement; to: HTMLElement; key: string; overlay: HTMLElement | null; page: unknown }[]>([])
   const activePageRef = useRef(activePage)
   activePageRef.current = activePage
 
@@ -291,6 +317,13 @@ export function useKeyboardNav({ onPageStep, onEscape, activePage, contentSelect
     const move = (key: string) => {
       const origin = navOrigin()
       const overlay = topmostOverlay()
+      const path = verticalPath.current
+      const last = path[path.length - 1]
+      const vertical = key === 'ArrowUp' || key === 'ArrowDown'
+      if (!vertical || (last && (last.to !== origin || last.overlay !== overlay || last.page !== activePageRef.current))) path.length = 0
+      // Rows with several controls have ambiguous geometry on the return trip.
+      // Retrace the actual vertical path instead of choosing another column.
+      const previous = path[path.length - 1]
       let next: HTMLElement | undefined
       if (overlay) {
         const items = focusablesIn(overlay)
@@ -299,6 +332,19 @@ export function useKeyboardNav({ onPageStep, onEscape, activePage, contentSelect
         next = shellTarget(origin, key, pageFocus.current.get(activePageRef.current)?.element)
       }
       if (!next) return false
+      if (vertical && previous && previous.key !== key && previous.from.isConnected && isVisible(previous.from) &&
+        directionalTarget(origin!, [previous.from], key) === previous.from &&
+        Math.abs(navBox(previous.from).top - navBox(next).top) <= 8) {
+        path.pop()
+        previous.from.focus({ preventScroll: true })
+        if (!ensureVisible(previous.from)) previous.from.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+        return true
+      }
+      if (previous && previous.key !== key) path.length = 0
+      if (vertical && origin && next !== origin) {
+        path.push({ from: origin, to: next, key, overlay, page: activePageRef.current })
+        if (path.length > 100) path.shift()
+      }
       next.focus({ preventScroll: true })
       if (!ensureVisible(next)) next.scrollIntoView({ block: 'nearest', inline: 'nearest' })
       return true
@@ -339,6 +385,7 @@ export function useKeyboardNav({ onPageStep, onEscape, activePage, contentSelect
         }
         case 'Escape': {
           const overlay = topmostOverlay()
+          if (closeDisclosure(target, overlay)) { event.preventDefault(); return }
           if (overlay) {
             const close = overlay.querySelector<HTMLElement>(
               '[data-modal-close], .modal-header .ghost-btn, .modal-actions .ghost-btn'
@@ -352,8 +399,6 @@ export function useKeyboardNav({ onPageStep, onEscape, activePage, contentSelect
           // Leaving a field keeps it as the anchor: the ring stays on it and
           // the next move continues from it (nav/navAnchor.ts).
           if (isTextEntry) { target?.blur(); return }
-          const details = target?.closest('details[open]') as HTMLDetailsElement | null
-          if (details) { event.preventDefault(); details.open = false; details.querySelector('summary')?.focus(); return }
           if (onEscape?.()) event.preventDefault()
           return
         }
@@ -381,6 +426,13 @@ export function useKeyboardNav({ onPageStep, onEscape, activePage, contentSelect
     // adjusted, a field the pad is in) hands the move over by event.
     const direction = (event: Event) => {
       if (navigationSuspended() || radixPopoverOpen()) return
+      // Composite previews own directions even when pointer hover caused the
+      // controller to use this route instead of dispatching a keyboard event.
+      const focused = document.activeElement as HTMLElement | null
+      if (focused?.matches('[data-nav-skip][role="button"]') && focused.closest('[data-preview-navigation]')) {
+        focused.dispatchEvent(new KeyboardEvent('keydown', { key: (event as CustomEvent<string>).detail, bubbles: true, cancelable: true }))
+        return
+      }
       move((event as CustomEvent<string>).detail)
     }
     window.addEventListener('jsm:navigate-direction', direction)

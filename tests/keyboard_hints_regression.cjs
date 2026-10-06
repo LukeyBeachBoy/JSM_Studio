@@ -6,7 +6,7 @@
 const assert = require('node:assert/strict');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
 (async () => {
- const browser = await chromium.launch({channel:'msedge',headless:true});
+ const browser = await chromium.launch({channel:'msedge',headless:true,args:['--disable-background-timer-throttling','--disable-renderer-backgrounding','--disable-backgrounding-occluded-windows']});
  try {
  const page = await browser.newPage({viewport:{width:1440,height:1000}});
  const errors=[]; page.on('pageerror',e=>errors.push(e.message));
@@ -57,7 +57,10 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
    await page.waitForTimeout(40);
  }
  await page.locator('#hint-probe').focus();
- await page.waitForTimeout(80);
+ assert.equal(await page.evaluate(() => document.activeElement?.id), 'hint-probe', 'the hint probe retains focus');
+ // Hints follow focus on an animation frame. Await that observable update
+ // instead of assuming an arbitrary 80 ms includes a rendered frame.
+ await page.waitForFunction(() => [...document.querySelectorAll('.hint-capsule__item')].some(item => /Close$/.test(item.textContent.trim())));
  const labels = await capsule.locator('.hint-capsule__item').allInnerTexts();
  assert.equal(labels.filter(text => /(Back|Close)$/.test(text)).length, 1, 'B is named once: ' + labels.join(' | '));
  // The last B declared wins, and the capsule reads in its fixed order (1h):

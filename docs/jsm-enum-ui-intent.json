@@ -1,0 +1,1426 @@
+{
+  "ButtonID": {
+    "scope": "DELEGATED",
+    "reason": "Generated nativeInputs registry/input-boundary test plus dynamic binding/source editors own this enum; do not treat SIZE or INVALID as bindable inputs.",
+    "values": [
+      "INVALID",
+      "NONE",
+      "UP",
+      "DOWN",
+      "LEFT",
+      "RIGHT",
+      "L",
+      "ZL",
+      "MINUS",
+      "E",
+      "S",
+      "N",
+      "W",
+      "R",
+      "ZR",
+      "PLUS",
+      "HOME",
+      "LSL",
+      "LSR",
+      "RSL",
+      "RSR",
+      "L3",
+      "R3",
+      "LEAN_LEFT",
+      "LEAN_RIGHT",
+      "MIC",
+      "LUP",
+      "LDOWN",
+      "LLEFT",
+      "LRIGHT",
+      "LRING",
+      "RUP",
+      "RDOWN",
+      "RLEFT",
+      "RRIGHT",
+      "RRING",
+      "MUP",
+      "MDOWN",
+      "MLEFT",
+      "MRIGHT",
+      "MRING",
+      "TOUCH",
+      "LTOUCH",
+      "RTOUCH",
+      "LMINI",
+      "RMINI",
+      "MISC1",
+      "MISC2",
+      "MISC3",
+      "MISC4",
+      "MISC5",
+      "MISC6",
+      "ZLF",
+      "CAPTURE",
+      "ZRF",
+      "TUP",
+      "TDOWN",
+      "TLEFT",
+      "TRIGHT",
+      "TRING",
+      "SIZE",
+      "T1",
+      "T2",
+      "T3",
+      "T4",
+      "T5",
+      "T6",
+      "T7",
+      "T8",
+      "T9",
+      "T10",
+      "T11",
+      "T12",
+      "T13",
+      "T14",
+      "T15",
+      "T16",
+      "T17",
+      "T18",
+      "T19",
+      "T20",
+      "T21",
+      "T22",
+      "T23",
+      "T24",
+      "T25",
+      "LT1",
+      "LT2",
+      "LT3",
+      "LT4",
+      "LT5",
+      "LT6",
+      "LT7",
+      "LT8",
+      "LT9",
+      "LT10",
+      "LT11",
+      "LT12",
+      "LT13",
+      "LT14",
+      "LT15",
+      "LT16",
+      "LT17",
+      "LT18",
+      "LT19",
+      "LT20",
+      "LT21",
+      "LT22",
+      "LT23",
+      "LT24",
+      "LT25",
+      "RT1",
+      "RT2",
+      "RT3",
+      "RT4",
+      "RT5",
+      "RT6",
+      "RT7",
+      "RT8",
+      "RT9",
+      "RT10",
+      "RT11",
+      "RT12",
+      "RT13",
+      "RT14",
+      "RT15",
+      "RT16",
+      "RT17",
+      "RT18",
+      "RT19",
+      "RT20",
+      "RT21",
+      "RT22",
+      "RT23",
+      "RT24",
+      "RT25",
+      "LM1",
+      "LM2",
+      "LM3",
+      "LM4",
+      "LM5",
+      "LM6",
+      "LM7",
+      "LM8",
+      "LM9",
+      "LM10",
+      "LM11",
+      "LM12",
+      "LM13",
+      "LM14",
+      "LM15",
+      "LM16",
+      "LM17",
+      "LM18",
+      "LM19",
+      "LM20",
+      "LM21",
+      "LM22",
+      "LM23",
+      "LM24",
+      "LM25",
+      "RM1",
+      "RM2",
+      "RM3",
+      "RM4",
+      "RM5",
+      "RM6",
+      "RM7",
+      "RM8",
+      "RM9",
+      "RM10",
+      "RM11",
+      "RM12",
+      "RM13",
+      "RM14",
+      "RM15",
+      "RM16",
+      "RM17",
+      "RM18",
+      "RM19",
+      "RM20",
+      "RM21",
+      "RM22",
+      "RM23",
+      "RM24",
+      "RM25"
+    ]
+  },
+  "SettingID": {
+    "scope": "DELEGATED",
+    "reason": "Authoritative command registration coverage owns setting IDs, including aliases. STICKLIKE_FACTOR has no registration and is not a user setting.",
+    "values": [
+      "INVALID",
+      "ZERO",
+      "MIN_GYRO_SENS",
+      "MAX_GYRO_SENS",
+      "MIN_GYRO_THRESHOLD",
+      "MAX_GYRO_THRESHOLD",
+      "ACCEL_CURVE",
+      "ACCEL_NATURAL_VHALF",
+      "ACCEL_POWER_VREF",
+      "ACCEL_POWER_EXPONENT",
+      "ACCEL_SIGMOID_MID",
+      "ACCEL_SIGMOID_WIDTH",
+      "ACCEL_JUMP_TAU",
+      "STICK_POWER",
+      "STICK_SENS",
+      "REAL_WORLD_CALIBRATION",
+      "VIRTUAL_STICK_CALIBRATION",
+      "IN_GAME_SENS",
+      "TRIGGER_THRESHOLD",
+      "TRIGGER_HYSTERESIS",
+      "RESET_MAPPINGS",
+      "IGNORE_GYRO_DEVICES",
+      "NO_GYRO_BUTTON",
+      "LEFT_STICK_MODE",
+      "RIGHT_STICK_MODE",
+      "MOTION_STICK_MODE",
+      "GYRO_OFF",
+      "GYRO_ON",
+      "LEFT_STICK_AXIS",
+      "RIGHT_STICK_AXIS",
+      "MOTION_STICK_AXIS",
+      "TOUCH_STICK_AXIS",
+      "STICK_AXIS_X",
+      "STICK_AXIS_Y",
+      "GYRO_AXIS_X",
+      "GYRO_AXIS_Y",
+      "RECONNECT_CONTROLLERS",
+      "COUNTER_OS_MOUSE_SPEED",
+      "IGNORE_OS_MOUSE_SPEED",
+      "JOYCON_GYRO_MASK",
+      "JOYCON_MOTION_MASK",
+      "GYRO_SENS",
+      "FLICK_TIME",
+      "GYRO_SMOOTH_THRESHOLD",
+      "GYRO_SMOOTH_TIME",
+      "GYRO_SMOOTHING_DECAY",
+      "GYRO_CUTOFF_SPEED",
+      "GYRO_CUTOFF_RECOVERY",
+      "ONE_EURO_MIN_CUTOFF",
+      "ONE_EURO_SPEED_COEFF",
+      "GYRO_ANGLE_SNAP",
+      "GYRO_ANGLE_SNAP_EASE",
+      "DECEL_BRAKE_STRENGTH",
+      "DECEL_BRAKE_THRESHOLD",
+      "STICK_ACCELERATION_RATE",
+      "STICK_ACCELERATION_CAP",
+      "LEFT_STICK_DEADZONE_INNER",
+      "LEFT_STICK_DEADZONE_OUTER",
+      "STICK_DEADZONE_INNER",
+      "STICK_DEADZONE_OUTER",
+      "CALCULATE_REAL_WORLD_CALIBRATION",
+      "FINISH_GYRO_CALIBRATION",
+      "RESTART_GYRO_CALIBRATION",
+      "MOUSE_X_FROM_GYRO_AXIS",
+      "MOUSE_Y_FROM_GYRO_AXIS",
+      "ZR_MODE",
+      "ZL_MODE",
+      "AUTOLOAD",
+      "AUTOCONNECT",
+      "HELP",
+      "WHITELIST_SHOW",
+      "WHITELIST_ADD",
+      "WHITELIST_REMOVE",
+      "LEFT_RING_MODE",
+      "RIGHT_RING_MODE",
+      "MOTION_RING_MODE",
+      "MOUSE_RING_RADIUS",
+      "SCREEN_RESOLUTION_X",
+      "SCREEN_RESOLUTION_Y",
+      "ROTATE_SMOOTH_OVERRIDE",
+      "FLICK_SNAP_MODE",
+      "FLICK_SNAP_STRENGTH",
+      "MOTION_DEADZONE_INNER",
+      "MOTION_DEADZONE_OUTER",
+      "ANGLE_TO_AXIS_DEADZONE_INNER",
+      "ANGLE_TO_AXIS_DEADZONE_OUTER",
+      "RIGHT_STICK_DEADZONE_INNER",
+      "RIGHT_STICK_DEADZONE_OUTER",
+      "LEAN_THRESHOLD",
+      "FLICK_DEADZONE_ANGLE",
+      "FLICK_TIME_EXPONENT",
+      "CONTROLLER_ORIENTATION",
+      "GYRO_SPACE",
+      "ROLL_CONTRIBUTION",
+      "TRACKBALL_DECAY",
+      "TRIGGER_SKIP_DELAY",
+      "TURBO_PERIOD",
+      "HOLD_PRESS_TIME",
+      "TICK_TIME",
+      "SIM_PRESS_WINDOW",
+      "DBL_PRESS_WINDOW",
+      "GRID_SIZE",
+      "GRID_SHAPE",
+      "GRID_DEADZONE",
+      "TOUCHPAD_MODE",
+      "TOUCH_STICK_MODE",
+      "TOUCH_STICK_RADIUS",
+      "TOUCH_DEADZONE_INNER",
+      "TOUCH_RING_MODE",
+      "TOUCHPAD_SENS",
+      "TOUCHPAD_ACCELERATION",
+      "TOUCHPAD_ACCEL_CURVE",
+      "TOUCHPAD_ACCEL_MIN_SPEED",
+      "TOUCHPAD_ACCEL_MAX_SPEED",
+      "TOUCHPAD_ACCEL_MIN_GAIN",
+      "TOUCHPAD_ACCEL_MAX_GAIN",
+      "TOUCHPAD_ACCEL_NATURAL_VHALF",
+      "TOUCHPAD_ACCEL_POWER_VREF",
+      "TOUCHPAD_ACCEL_POWER_EXPONENT",
+      "TOUCHPAD_ACCEL_SIGMOID_MID",
+      "TOUCHPAD_ACCEL_SIGMOID_WIDTH",
+      "TOUCHPAD_ACCEL_JUMP_TAU",
+      "ACCEL_CURVE_LINK",
+      "LIGHT_BAR",
+      "SCROLL_SENS",
+      "VIRTUAL_CONTROLLER",
+      "RUMBLE",
+      "TOUCHPAD_DUAL_STAGE_MODE",
+      "TOUCHPAD_GRID_REQUIRES_CLICK",
+      "CLEAR",
+      "ADAPTIVE_TRIGGER",
+      "LEFT_TRIGGER_EFFECT",
+      "RIGHT_TRIGGER_EFFECT",
+      "LEFT_TRIGGER_OFFSET",
+      "LEFT_TRIGGER_RANGE",
+      "RIGHT_TRIGGER_OFFSET",
+      "RIGHT_TRIGGER_RANGE",
+      "LEFT_STICK_UNDEADZONE_INNER",
+      "LEFT_STICK_UNDEADZONE_OUTER",
+      "LEFT_STICK_UNPOWER",
+      "RIGHT_STICK_UNDEADZONE_INNER",
+      "RIGHT_STICK_UNDEADZONE_OUTER",
+      "RIGHT_STICK_UNPOWER",
+      "LEFT_STICK_DEADZONE_PROBE",
+      "RIGHT_STICK_DEADZONE_PROBE",
+      "GYRO_HAPTIC_INTENSITY",
+      "GYRO_HAPTIC_INTERVAL",
+      "GYRO_HAPTIC_EFFECT",
+      "GYRO_HAPTIC_SIDE",
+      "LEFT_STICK_VIRTUAL_SCALE",
+      "RIGHT_STICK_VIRTUAL_SCALE",
+      "WIND_STICK_RANGE",
+      "WIND_STICK_POWER",
+      "UNWIND_RATE",
+      "GYRO_OUTPUT",
+      "GYRO_STICK_DEFLECTION",
+      "GYRO_DEFLECTION_RANGE",
+      "GYRO_DEFLECTION_LOCK_EXTENTS",
+      "FLICK_STICK_OUTPUT",
+      "HIDE_MINIMIZED",
+      "AUTO_CALIBRATE_GYRO",
+      "JSM_DIRECTORY",
+      "RETURN_DEADZONE_IS_ACTIVE",
+      "EDGE_PUSH_IS_ACTIVE",
+      "STICKLIKE_FACTOR",
+      "MOUSELIKE_FACTOR",
+      "RETURN_DEADZONE_ANGLE",
+      "RETURN_DEADZONE_ANGLE_CUTOFF",
+      "TELEMETRY_ENABLED",
+      "TELEMETRY_PORT",
+      "LEFT_TOUCHPAD_MODE",
+      "RIGHT_TOUCHPAD_MODE",
+      "LEFT_GRID_SIZE",
+      "RIGHT_GRID_SIZE",
+      "LEFT_GRID_SHAPE",
+      "RIGHT_GRID_SHAPE",
+      "LEFT_GRID_DEADZONE",
+      "RIGHT_GRID_DEADZONE",
+      "LEFT_STICK_MENU_SIZE",
+      "RIGHT_STICK_MENU_SIZE",
+      "LEFT_STICK_MENU_DEADZONE",
+      "RIGHT_STICK_MENU_DEADZONE",
+      "LEFT_TOUCHPAD_SENS",
+      "RIGHT_TOUCHPAD_SENS",
+      "LEFT_TOUCHPAD_DUAL_STAGE_MODE",
+      "RIGHT_TOUCHPAD_DUAL_STAGE_MODE",
+      "LEFT_GRID_REQUIRES_CLICK",
+      "RIGHT_GRID_REQUIRES_CLICK",
+      "LEFT_TOUCH_STICK_MODE",
+      "RIGHT_TOUCH_STICK_MODE",
+      "LEFT_TOUCH_STICK_RADIUS",
+      "RIGHT_TOUCH_STICK_RADIUS",
+      "LEFT_TOUCH_DEADZONE_INNER",
+      "RIGHT_TOUCH_DEADZONE_INNER",
+      "LEFT_TOUCH_RING_MODE",
+      "RIGHT_TOUCH_RING_MODE",
+      "LEFT_TOUCH_STICK_AXIS",
+      "RIGHT_TOUCH_STICK_AXIS",
+      "LEFT_TOUCHPAD_ROTATION",
+      "RIGHT_TOUCHPAD_ROTATION",
+      "TOUCHPAD_MIN_CUTOFF",
+      "TOUCHPAD_SPEED_COEFF",
+      "TOUCHPAD_D_CUTOFF",
+      "TOUCHPAD_TRACKBALL_DECAY",
+      "TOUCHPAD_TRACKBALL_MIN_VELOCITY",
+      "GRIP_SENSOR_RANGE",
+      "GRIP_FLICKER_GUARD",
+      "GRIP_HAPTIC_INTENSITY",
+      "LEFT_GRIP_HAPTICS",
+      "RIGHT_GRIP_HAPTICS",
+      "GRIP_HAPTIC_EFFECT",
+      "GRIP_RELEASE_HAPTIC_INTENSITY",
+      "GRIP_RELEASE_HAPTIC_EFFECT",
+      "GYRO_CALIBRATION_DELAY",
+      "GYRO_CALIBRATION_TIME",
+      "CONNECT_SOUND",
+      "SHUTDOWN_SOUND",
+      "SOUND_GAIN",
+      "CONNECT_SOUND_FILE",
+      "SHUTDOWN_SOUND_FILE",
+      "SOUND_ACTUATORS",
+      "LEFT_GRIP_RELEASE_DELAY",
+      "RIGHT_GRIP_RELEASE_DELAY",
+      "LED_BRIGHTNESS",
+      "BOOT_SOUND_LEVEL",
+      "TOUCHPAD_MOVEMENT_THRESHOLD",
+      "TOUCHPAD_HAPTIC_INTENSITY",
+      "TOUCHPAD_HAPTIC_EFFECT",
+      "TOUCHPAD_HAPTIC_INTERVAL",
+      "TOUCHPAD_CLICK_HAPTIC_INTENSITY",
+      "TOUCHPAD_CLICK_HAPTIC_EFFECT",
+      "TOUCHPAD_RELEASE_HAPTIC_INTENSITY",
+      "TOUCHPAD_RELEASE_HAPTIC_EFFECT",
+      "LEFT_TOUCHPAD_HAPTICS",
+      "LEFT_TOUCHPAD_HAPTIC_INTENSITY",
+      "LEFT_TOUCHPAD_HAPTIC_EFFECT",
+      "LEFT_TOUCHPAD_HAPTIC_INTERVAL",
+      "LEFT_TOUCHPAD_CLICK_HAPTIC_INTENSITY",
+      "LEFT_TOUCHPAD_CLICK_HAPTIC_EFFECT",
+      "LEFT_TOUCHPAD_RELEASE_HAPTIC_INTENSITY",
+      "LEFT_TOUCHPAD_RELEASE_HAPTIC_EFFECT",
+      "RIGHT_TOUCHPAD_HAPTICS",
+      "RIGHT_TOUCHPAD_HAPTIC_INTENSITY",
+      "RIGHT_TOUCHPAD_HAPTIC_EFFECT",
+      "RIGHT_TOUCHPAD_HAPTIC_INTERVAL",
+      "RIGHT_TOUCHPAD_CLICK_HAPTIC_INTENSITY",
+      "RIGHT_TOUCHPAD_CLICK_HAPTIC_EFFECT",
+      "RIGHT_TOUCHPAD_RELEASE_HAPTIC_INTENSITY",
+      "RIGHT_TOUCHPAD_RELEASE_HAPTIC_EFFECT",
+      "TOUCHPAD_CLICK_DAMPEN",
+      "TOUCHPAD_CLICK_DAMPEN_THRESHOLD",
+      "TOUCHPAD_LIFT_SPEED",
+      "GYRO_CLICK_DAMPEN",
+      "DISABLE_HARDWARE_GYRO_CALIBRATION",
+      "TOUCHPAD_AREA",
+      "TOUCHPAD_AREA_FIT",
+      "LEFT_TOUCHPAD_AREA",
+      "LEFT_TOUCHPAD_AREA_FIT",
+      "RIGHT_TOUCHPAD_AREA",
+      "RIGHT_TOUCHPAD_AREA_FIT"
+    ]
+  },
+  "GyroSpace": {
+    "scope": "USER",
+    "editor": "JSM_GUI/jsm_gui_tauri/src/components/GyroPage.tsx",
+    "values": {
+      "LOCAL": {
+        "status": "PARTIAL",
+        "reason": "All native local/player/world modes; coordinate-space help and physical orientation remain under review."
+      },
+      "YAW_PLUS_ROLL": {
+        "status": "PARTIAL",
+        "reason": "All native local/player/world modes; coordinate-space help and physical orientation remain under review."
+      },
+      "PLAYER_TURN": {
+        "status": "PARTIAL",
+        "reason": "All native local/player/world modes; coordinate-space help and physical orientation remain under review."
+      },
+      "PLAYER_LEAN": {
+        "status": "PARTIAL",
+        "reason": "All native local/player/world modes; coordinate-space help and physical orientation remain under review."
+      },
+      "WORLD_TURN": {
+        "status": "PARTIAL",
+        "reason": "All native local/player/world modes; coordinate-space help and physical orientation remain under review."
+      },
+      "WORLD_LEAN": {
+        "status": "PARTIAL",
+        "reason": "All native local/player/world modes; coordinate-space help and physical orientation remain under review."
+      },
+      "INVALID": {
+        "status": "INTERNAL",
+        "reason": "Parser/size sentinel; never a graphical option."
+      }
+    }
+  },
+  "AccelCurve": {
+    "scope": "USER",
+    "editor": "JSM_GUI/jsm_gui_tauri/src/components/AccelCurveEditor.tsx",
+    "values": {
+      "INVALID": {
+        "status": "INTERNAL",
+        "reason": "Parser/size sentinel; never a graphical option."
+      },
+      "LINEAR": {
+        "status": "PARTIAL",
+        "reason": "Dedicated curve selector and per-curve parameter editors; preset/applicability validation remains."
+      },
+      "NATURAL": {
+        "status": "PARTIAL",
+        "reason": "Dedicated curve selector and per-curve parameter editors; preset/applicability validation remains."
+      },
+      "POWER": {
+        "status": "PARTIAL",
+        "reason": "Dedicated curve selector and per-curve parameter editors; preset/applicability validation remains."
+      },
+      "QUADRATIC": {
+        "status": "PARTIAL",
+        "reason": "Dedicated curve selector and per-curve parameter editors; preset/applicability validation remains."
+      },
+      "SIGMOID": {
+        "status": "PARTIAL",
+        "reason": "Dedicated curve selector and per-curve parameter editors; preset/applicability validation remains."
+      },
+      "JUMP": {
+        "status": "PARTIAL",
+        "reason": "Dedicated curve selector and per-curve parameter editors; preset/applicability validation remains."
+      }
+    }
+  },
+  "AccelCurveLink": {
+    "scope": "USER",
+    "editor": "JSM_GUI/jsm_gui_tauri/src/components/AccelCurveEditor.tsx",
+    "values": {
+      "NONE": {
+        "status": "PARTIAL",
+        "reason": "Shared acceleration link chooses independent or gyro/touchpad borrowing; runtime dependency review remains."
+      },
+      "TOUCHPAD_USES_GYRO": {
+        "status": "PARTIAL",
+        "reason": "Shared acceleration link chooses independent or gyro/touchpad borrowing; runtime dependency review remains."
+      },
+      "GYRO_USES_TOUCHPAD": {
+        "status": "PARTIAL",
+        "reason": "Shared acceleration link chooses independent or gyro/touchpad borrowing; runtime dependency review remains."
+      },
+      "INVALID": {
+        "status": "INTERNAL",
+        "reason": "Parser/size sentinel; never a graphical option."
+      }
+    }
+  },
+  "ControllerOrientation": {
+    "scope": "USER",
+    "editor": "JSM_GUI/jsm_gui_tauri/src/components/MotionInputTuning.tsx",
+    "values": {
+      "FORWARD": {
+        "status": "PARTIAL",
+        "reason": "Human mounting directions including sideways Joy-Con pair; physical orientation pending."
+      },
+      "LEFT": {
+        "status": "PARTIAL",
+        "reason": "Human mounting directions including sideways Joy-Con pair; physical orientation pending."
+      },
+      "RIGHT": {
+        "status": "PARTIAL",
+        "reason": "Human mounting directions including sideways Joy-Con pair; physical orientation pending."
+      },
+      "BACKWARD": {
+        "status": "PARTIAL",
+        "reason": "Human mounting directions including sideways Joy-Con pair; physical orientation pending."
+      },
+      "JOYCON_SIDEWAYS": {
+        "status": "PARTIAL",
+        "reason": "Human mounting directions including sideways Joy-Con pair; physical orientation pending."
+      },
+      "INVALID": {
+        "status": "INTERNAL",
+        "reason": "Parser/size sentinel; never a graphical option."
+      }
+    }
+  },
+  "HapticEffect": {
+    "scope": "USER",
+    "editor": "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadFeedbackRows.tsx",
+    "values": {
+      "OFF": {
+        "status": "PARTIAL",
+        "reason": "Friendly actuator effects in feedback/action editors; firmware-specific effect validation remains."
+      },
+      "TICK": {
+        "status": "PARTIAL",
+        "reason": "Friendly actuator effects in feedback/action editors; firmware-specific effect validation remains."
+      },
+      "CLICK": {
+        "status": "PARTIAL",
+        "reason": "Friendly actuator effects in feedback/action editors; firmware-specific effect validation remains."
+      },
+      "TONE": {
+        "status": "PARTIAL",
+        "reason": "Friendly actuator effects in feedback/action editors; firmware-specific effect validation remains."
+      },
+      "RUMBLE": {
+        "status": "PARTIAL",
+        "reason": "Friendly actuator effects in feedback/action editors; firmware-specific effect validation remains."
+      },
+      "NOISE": {
+        "status": "PARTIAL",
+        "reason": "Native parser/firmware packet accepts this identifier; graphical import preserves it, but ordinary effect pickers omit it because actual device behavior has not been established. Requires firmware validation before offering it as a working effect."
+      },
+      "SCRIPT": {
+        "status": "PARTIAL",
+        "reason": "Native parser/firmware packet accepts this identifier; graphical import preserves it, but ordinary effect pickers omit it because actual device behavior has not been established. Requires firmware validation before offering it as a working effect."
+      },
+      "SWEEP": {
+        "status": "PARTIAL",
+        "reason": "Friendly actuator effects in feedback/action editors; firmware-specific effect validation remains."
+      },
+      "PULSE": {
+        "status": "PARTIAL",
+        "reason": "Friendly actuator effects in feedback/action editors; firmware-specific effect validation remains."
+      },
+      "TAP": {
+        "status": "PARTIAL",
+        "reason": "Friendly actuator effects in feedback/action editors; firmware-specific effect validation remains."
+      },
+      "INVALID": {
+        "status": "INTERNAL",
+        "reason": "Parser/size sentinel; never a graphical option."
+      }
+    }
+  },
+  "RingMode": {
+    "scope": "USER",
+    "editor": "JSM_GUI/jsm_gui_tauri/src/components/keymap/StickSection.tsx",
+    "values": {
+      "OUTER": {
+        "status": "PARTIAL",
+        "reason": "Inner/outer ring selectors shared with touch/motion editors; contextual bindings remain under review."
+      },
+      "INNER": {
+        "status": "PARTIAL",
+        "reason": "Inner/outer ring selectors shared with touch/motion editors; contextual bindings remain under review."
+      },
+      "INVALID": {
+        "status": "INTERNAL",
+        "reason": "Parser/size sentinel; never a graphical option."
+      }
+    }
+  },
+  "StickMode": {
+    "scope": "USER",
+    "editor": "JSM_GUI/jsm_gui_tauri/src/components/SourceModeTuning.tsx",
+    "values": {
+      "NO_MOUSE": {
+        "status": "PARTIAL",
+        "reason": "Readable source modes and mode-specific correction, wind, angle-axis, flick and hybrid controls; full processing/hardware review remains."
+      },
+      "AIM": {
+        "status": "PARTIAL",
+        "reason": "Readable source modes and mode-specific correction, wind, angle-axis, flick and hybrid controls; full processing/hardware review remains."
+      },
+      "FLICK": {
+        "status": "PARTIAL",
+        "reason": "Readable source modes and mode-specific correction, wind, angle-axis, flick and hybrid controls; full processing/hardware review remains."
+      },
+      "FLICK_ONLY": {
+        "status": "PARTIAL",
+        "reason": "Readable source modes and mode-specific correction, wind, angle-axis, flick and hybrid controls; full processing/hardware review remains."
+      },
+      "ROTATE_ONLY": {
+        "status": "PARTIAL",
+        "reason": "Readable source modes and mode-specific correction, wind, angle-axis, flick and hybrid controls; full processing/hardware review remains."
+      },
+      "MOUSE_RING": {
+        "status": "PARTIAL",
+        "reason": "Readable source modes and mode-specific correction, wind, angle-axis, flick and hybrid controls; full processing/hardware review remains."
+      },
+      "MOUSE_AREA": {
+        "status": "PARTIAL",
+        "reason": "Readable source modes and mode-specific correction, wind, angle-axis, flick and hybrid controls; full processing/hardware review remains."
+      },
+      "OUTER_RING": {
+        "status": "PARTIAL",
+        "reason": "Readable source modes and mode-specific correction, wind, angle-axis, flick and hybrid controls; full processing/hardware review remains."
+      },
+      "INNER_RING": {
+        "status": "PARTIAL",
+        "reason": "Readable source modes and mode-specific correction, wind, angle-axis, flick and hybrid controls; full processing/hardware review remains."
+      },
+      "SCROLL_WHEEL": {
+        "status": "PARTIAL",
+        "reason": "Readable source modes and mode-specific correction, wind, angle-axis, flick and hybrid controls; full processing/hardware review remains."
+      },
+      "HYBRID_AIM": {
+        "status": "PARTIAL",
+        "reason": "Readable source modes and mode-specific correction, wind, angle-axis, flick and hybrid controls; full processing/hardware review remains."
+      },
+      "RADIAL_MENU": {
+        "status": "PARTIAL",
+        "reason": "Readable source modes and mode-specific correction, wind, angle-axis, flick and hybrid controls; full processing/hardware review remains."
+      },
+      "LEFT_STICK": {
+        "status": "PARTIAL",
+        "reason": "Readable source modes and mode-specific correction, wind, angle-axis, flick and hybrid controls; full processing/hardware review remains."
+      },
+      "RIGHT_STICK": {
+        "status": "PARTIAL",
+        "reason": "Readable source modes and mode-specific correction, wind, angle-axis, flick and hybrid controls; full processing/hardware review remains."
+      },
+      "LEFT_ANGLE_TO_X": {
+        "status": "PARTIAL",
+        "reason": "Readable source modes and mode-specific correction, wind, angle-axis, flick and hybrid controls; full processing/hardware review remains."
+      },
+      "LEFT_ANGLE_TO_Y": {
+        "status": "PARTIAL",
+        "reason": "Readable source modes and mode-specific correction, wind, angle-axis, flick and hybrid controls; full processing/hardware review remains."
+      },
+      "RIGHT_ANGLE_TO_X": {
+        "status": "PARTIAL",
+        "reason": "Readable source modes and mode-specific correction, wind, angle-axis, flick and hybrid controls; full processing/hardware review remains."
+      },
+      "RIGHT_ANGLE_TO_Y": {
+        "status": "PARTIAL",
+        "reason": "Readable source modes and mode-specific correction, wind, angle-axis, flick and hybrid controls; full processing/hardware review remains."
+      },
+      "LEFT_STEER_X": {
+        "status": "PARTIAL",
+        "reason": "Readable source modes and mode-specific correction, wind, angle-axis, flick and hybrid controls; full processing/hardware review remains."
+      },
+      "RIGHT_STEER_X": {
+        "status": "PARTIAL",
+        "reason": "Readable source modes and mode-specific correction, wind, angle-axis, flick and hybrid controls; full processing/hardware review remains."
+      },
+      "LEFT_WIND_X": {
+        "status": "PARTIAL",
+        "reason": "Readable source modes and mode-specific correction, wind, angle-axis, flick and hybrid controls; full processing/hardware review remains."
+      },
+      "RIGHT_WIND_X": {
+        "status": "PARTIAL",
+        "reason": "Readable source modes and mode-specific correction, wind, angle-axis, flick and hybrid controls; full processing/hardware review remains."
+      },
+      "INVALID": {
+        "status": "INTERNAL",
+        "reason": "Parser/size sentinel; never a graphical option."
+      }
+    }
+  },
+  "FlickSnapMode": {
+    "scope": "USER",
+    "editor": "JSM_GUI/jsm_gui_tauri/src/components/StickModeExtras.tsx",
+    "values": {
+      "NONE": {
+        "status": "PARTIAL",
+        "reason": "No/4/8 direction snapping plus strength controls in flick modes; runtime validation remains."
+      },
+      "FOUR": {
+        "status": "PARTIAL",
+        "reason": "No/4/8 direction snapping plus strength controls in flick modes; runtime validation remains."
+      },
+      "EIGHT": {
+        "status": "PARTIAL",
+        "reason": "No/4/8 direction snapping plus strength controls in flick modes; runtime validation remains."
+      },
+      "INVALID": {
+        "status": "INTERNAL",
+        "reason": "Parser/size sentinel; never a graphical option."
+      }
+    }
+  },
+  "AxisMode": {
+    "scope": "USER",
+    "editor": "JSM_GUI/jsm_gui_tauri/src/components/SourceModeTuning.tsx",
+    "values": {
+      "STANDARD": {
+        "status": "PARTIAL",
+        "reason": "Independent X/Y inversion; AxisSignPair accepts two native AxisMode values. UI combined labels are serialization aliases, not extra native enums."
+      },
+      "INVERTED": {
+        "status": "PARTIAL",
+        "reason": "Independent X/Y inversion; AxisSignPair accepts two native AxisMode values. UI combined labels are serialization aliases, not extra native enums."
+      },
+      "INVALID": {
+        "status": "INTERNAL",
+        "reason": "Parser/size sentinel; never a graphical option."
+      }
+    }
+  },
+  "TriggerMode": {
+    "scope": "USER",
+    "editor": "JSM_GUI/jsm_gui_tauri/src/components/KeymapControls.tsx",
+    "values": {
+      "NO_FULL": {
+        "status": "PARTIAL",
+        "reason": "Seven stage policies plus Xbox/DS4 analog outputs; pad stage editor intentionally excludes analog outputs because native filter rejects them."
+      },
+      "NO_SKIP": {
+        "status": "PARTIAL",
+        "reason": "Seven stage policies plus Xbox/DS4 analog outputs; pad stage editor intentionally excludes analog outputs because native filter rejects them."
+      },
+      "MAY_SKIP": {
+        "status": "PARTIAL",
+        "reason": "Seven stage policies plus Xbox/DS4 analog outputs; pad stage editor intentionally excludes analog outputs because native filter rejects them."
+      },
+      "MUST_SKIP": {
+        "status": "PARTIAL",
+        "reason": "Seven stage policies plus Xbox/DS4 analog outputs; pad stage editor intentionally excludes analog outputs because native filter rejects them."
+      },
+      "MAY_SKIP_R": {
+        "status": "PARTIAL",
+        "reason": "Seven stage policies plus Xbox/DS4 analog outputs; pad stage editor intentionally excludes analog outputs because native filter rejects them."
+      },
+      "MUST_SKIP_R": {
+        "status": "PARTIAL",
+        "reason": "Seven stage policies plus Xbox/DS4 analog outputs; pad stage editor intentionally excludes analog outputs because native filter rejects them."
+      },
+      "NO_SKIP_EXCLUSIVE": {
+        "status": "PARTIAL",
+        "reason": "Seven stage policies plus Xbox/DS4 analog outputs; pad stage editor intentionally excludes analog outputs because native filter rejects them."
+      },
+      "X_LT": {
+        "status": "PARTIAL",
+        "reason": "Seven stage policies plus Xbox/DS4 analog outputs; pad stage editor intentionally excludes analog outputs because native filter rejects them."
+      },
+      "X_RT": {
+        "status": "PARTIAL",
+        "reason": "Seven stage policies plus Xbox/DS4 analog outputs; pad stage editor intentionally excludes analog outputs because native filter rejects them."
+      },
+      "PS_L2": {
+        "status": "PARTIAL",
+        "reason": "Seven stage policies plus Xbox/DS4 analog outputs; pad stage editor intentionally excludes analog outputs because native filter rejects them."
+      },
+      "PS_R2": {
+        "status": "PARTIAL",
+        "reason": "Seven stage policies plus Xbox/DS4 analog outputs; pad stage editor intentionally excludes analog outputs because native filter rejects them."
+      },
+      "INVALID": {
+        "status": "INTERNAL",
+        "reason": "Parser/size sentinel; never a graphical option."
+      }
+    }
+  },
+  "GyroAxisMask": {
+    "scope": "USER",
+    "editor": "JSM_GUI/jsm_gui_tauri/src/components/GyroPage.tsx",
+    "values": {
+      "NONE": {
+        "status": "PARTIAL",
+        "reason": "All native additive axis masks; human descriptions and local-space applicability."
+      },
+      "X": {
+        "status": "PARTIAL",
+        "reason": "All native additive axis masks; human descriptions and local-space applicability."
+      },
+      "Y": {
+        "status": "PARTIAL",
+        "reason": "All native additive axis masks; human descriptions and local-space applicability."
+      },
+      "XY": {
+        "status": "PARTIAL",
+        "reason": "All native additive axis masks; human descriptions and local-space applicability."
+      },
+      "Z": {
+        "status": "PARTIAL",
+        "reason": "All native additive axis masks; human descriptions and local-space applicability."
+      },
+      "XZ": {
+        "status": "PARTIAL",
+        "reason": "All native additive axis masks; human descriptions and local-space applicability."
+      },
+      "YZ": {
+        "status": "PARTIAL",
+        "reason": "All native additive axis masks; human descriptions and local-space applicability."
+      },
+      "XYZ": {
+        "status": "PARTIAL",
+        "reason": "All native additive axis masks; human descriptions and local-space applicability."
+      },
+      "INVALID": {
+        "status": "INTERNAL",
+        "reason": "Parser/size sentinel; never a graphical option."
+      }
+    }
+  },
+  "JoyconMask": {
+    "scope": "USER",
+    "editor": "JSM_GUI/jsm_gui_tauri/src/components/GyroPage.tsx",
+    "values": {
+      "IGNORE_BOTH": {
+        "status": "PARTIAL",
+        "reason": "Ignore either/both or use both paired devices; hardware validation pending."
+      },
+      "IGNORE_LEFT": {
+        "status": "PARTIAL",
+        "reason": "Ignore either/both or use both paired devices; hardware validation pending."
+      },
+      "IGNORE_RIGHT": {
+        "status": "PARTIAL",
+        "reason": "Ignore either/both or use both paired devices; hardware validation pending."
+      },
+      "USE_BOTH": {
+        "status": "PARTIAL",
+        "reason": "Ignore either/both or use both paired devices; hardware validation pending."
+      },
+      "INVALID": {
+        "status": "INTERNAL",
+        "reason": "Parser/size sentinel; never a graphical option."
+      }
+    }
+  },
+  "GyroIgnoreMode": {
+    "scope": "USER",
+    "editor": "JSM_GUI/jsm_gui_tauri/src/components/GyroBehaviorControls.tsx",
+    "values": {
+      "BUTTON": {
+        "status": "PARTIAL",
+        "reason": "Held/released input conditions versus left/right stick activity; native multi-condition extension is audited separately."
+      },
+      "LEFT_STICK": {
+        "status": "PARTIAL",
+        "reason": "Held/released input conditions versus left/right stick activity; native multi-condition extension is audited separately."
+      },
+      "RIGHT_STICK": {
+        "status": "PARTIAL",
+        "reason": "Held/released input conditions versus left/right stick activity; native multi-condition extension is audited separately."
+      },
+      "INVALID": {
+        "status": "INTERNAL",
+        "reason": "Parser/size sentinel; never a graphical option."
+      }
+    }
+  },
+  "DstState": {
+    "scope": "INTERNAL",
+    "reason": "Private dual-stage FSM states; users select TriggerMode policies, not transient processing states.",
+    "values": [
+      "NoPress",
+      "PressStart",
+      "QuickSoftTap",
+      "QuickFullPress",
+      "QuickFullRelease",
+      "SoftPress",
+      "DelayFullPress",
+      "PressStartResp",
+      "ExclFullPress",
+      "INVALID"
+    ]
+  },
+  "GyroOutput": {
+    "scope": "USER",
+    "editor": "JSM_GUI/jsm_gui_tauri/src/components/GyroVirtualStick.tsx",
+    "values": {
+      "MOUSE": {
+        "status": "PARTIAL",
+        "reason": "Mouse, left/right virtual stick and DS4 motion have contextual controls/dependencies."
+      },
+      "LEFT_STICK": {
+        "status": "PARTIAL",
+        "reason": "Mouse, left/right virtual stick and DS4 motion have contextual controls/dependencies."
+      },
+      "RIGHT_STICK": {
+        "status": "PARTIAL",
+        "reason": "Mouse, left/right virtual stick and DS4 motion have contextual controls/dependencies."
+      },
+      "PS_MOTION": {
+        "status": "PARTIAL",
+        "reason": "Mouse, left/right virtual stick and DS4 motion have contextual controls/dependencies."
+      },
+      "INVALID": {
+        "status": "INTERNAL",
+        "reason": "Parser/size sentinel; never a graphical option."
+      }
+    }
+  },
+  "BtnEvent": {
+    "scope": "INTERNAL",
+    "reason": "Native callback events produced by the button FSM. Action/EventModifier editors generate corresponding press/release callbacks; these are not independently assigned config enums.",
+    "values": [
+      "OnPress",
+      "OnTap",
+      "OnHold",
+      "OnTurbo",
+      "OnRelease",
+      "OnTapRelease",
+      "OnHoldRelease",
+      "INVALID"
+    ]
+  },
+  "Switch": {
+    "scope": "USER",
+    "editor": "JSM_GUI/jsm_gui_tauri/src/components/ui/SummaryRow.tsx",
+    "values": {
+      "OFF": {
+        "status": "PARTIAL",
+        "reason": "Shared toggle rows serialize ON/OFF; each setting has its own applicability/range/help review."
+      },
+      "ON": {
+        "status": "PARTIAL",
+        "reason": "Shared toggle rows serialize ON/OFF; each setting has its own applicability/range/help review."
+      },
+      "INVALID": {
+        "status": "INTERNAL",
+        "reason": "Parser/size sentinel; never a graphical option."
+      }
+    }
+  },
+  "ControllerScheme": {
+    "scope": "USER",
+    "editor": "JSM_GUI/jsm_gui_tauri/src/components/KeymapControls.tsx",
+    "values": {
+      "NONE": {
+        "status": "PARTIAL",
+        "reason": "No virtual output, Xbox or DS4; native creation/OS/gameplay checks pending."
+      },
+      "XBOX": {
+        "status": "PARTIAL",
+        "reason": "No virtual output, Xbox or DS4; native creation/OS/gameplay checks pending."
+      },
+      "DS4": {
+        "status": "PARTIAL",
+        "reason": "No virtual output, Xbox or DS4; native creation/OS/gameplay checks pending."
+      },
+      "INVALID": {
+        "status": "INTERNAL",
+        "reason": "Parser/size sentinel; never a graphical option."
+      }
+    }
+  },
+  "TouchpadMode": {
+    "scope": "USER",
+    "editor": "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadSection.tsx",
+    "values": {
+      "GRID_AND_STICK": {
+        "status": "PARTIAL",
+        "reason": "Independent mouse/menu/region/PlayStation pad modes; Mouse area remains separately under review."
+      },
+      "MOUSE": {
+        "status": "PARTIAL",
+        "reason": "Independent mouse/menu/region/PlayStation pad modes; Mouse area remains separately under review."
+      },
+      "PS_TOUCHPAD": {
+        "status": "PARTIAL",
+        "reason": "Independent mouse/menu/region/PlayStation pad modes; Mouse area remains separately under review."
+      },
+      "MOUSE_AREA": {
+        "status": "PARTIAL",
+        "reason": "Independent mouse/menu/region/PlayStation pad modes; Mouse area remains separately under review."
+      },
+      "INVALID": {
+        "status": "INTERNAL",
+        "reason": "Parser/size sentinel; never a graphical option."
+      }
+    }
+  },
+  "MouseAreaFit": {
+    "scope": "USER",
+    "editor": "JSM_GUI/jsm_gui_tauri/src/components/keymap/ScreenAreaPreview.tsx",
+    "values": {
+      "STRETCH": {
+        "status": "PARTIAL",
+        "reason": "Stretch/uniform fitting plus on-screen rectangle preview; physical validation pending."
+      },
+      "UNIFORM": {
+        "status": "PARTIAL",
+        "reason": "Stretch/uniform fitting plus on-screen rectangle preview; physical validation pending."
+      },
+      "INVALID": {
+        "status": "INTERNAL",
+        "reason": "Parser/size sentinel; never a graphical option."
+      }
+    }
+  },
+  "Level": {
+    "scope": "INTERNAL",
+    "reason": "Mapper console color/severity labels, not a controller gameplay setting.",
+    "values": [
+      "UT",
+      "BASE",
+      "BOLD",
+      "INFO",
+      "WARN",
+      "ERR"
+    ]
+  },
+  "BtnState": {
+    "scope": "INTERNAL",
+    "reason": "Private DigitalButton state machine; binding/modifier syntax defines its transitions.",
+    "values": [
+      "NoPress",
+      "BtnPress",
+      "TapPress",
+      "WaitSim",
+      "SimPressMaster",
+      "SimPressSlave",
+      "SimRelease",
+      "DiagPressMaster",
+      "DiagPressSlave",
+      "DblPressStart",
+      "DblPressNoPress",
+      "DblPressNoPressTap",
+      "DblPressNoPressHold",
+      "DblPressPress",
+      "InstRelease",
+      "INVALID"
+    ]
+  },
+  "CommandSource": {
+    "scope": "INTERNAL",
+    "reason": "Operational console/FIFO/internal origin, not user-configurable input behavior.",
+    "values": [
+      "CONSOLE",
+      "FIFO",
+      "INTERNAL"
+    ]
+  },
+  "AdaptiveTriggerMode": {
+    "scope": "USER",
+    "editor": "JSM_GUI/jsm_gui_tauri/src/components/AdaptiveTriggerEditor.tsx",
+    "values": {
+      "ON": {
+        "status": "PARTIAL",
+        "reason": "Nine user-facing effect modes with typed fields and packet units. Native automatic resistance synthesizes an additional internal raw envelope."
+      },
+      "OFF": {
+        "status": "PARTIAL",
+        "reason": "Nine user-facing effect modes with typed fields and packet units. Native automatic resistance synthesizes an additional internal raw envelope."
+      },
+      "RESISTANCE_RAW": {
+        "status": "INTERNAL",
+        "reason": "Automatic trigger processing synthesizes this raw-byte resistance envelope. The config operator accepts a bare enum but reads/serializes no raw parameters; it cannot express a useful static user effect. Automatic resistance exposes its threshold/calibration behavior; parameterized Resistance/Segment remain graphical."
+      },
+      "SEGMENT": {
+        "status": "PARTIAL",
+        "reason": "Nine user-facing effect modes with typed fields and packet units. Native automatic resistance synthesizes an additional internal raw envelope."
+      },
+      "RESISTANCE": {
+        "status": "PARTIAL",
+        "reason": "Nine user-facing effect modes with typed fields and packet units. Native automatic resistance synthesizes an additional internal raw envelope."
+      },
+      "BOW": {
+        "status": "PARTIAL",
+        "reason": "Nine user-facing effect modes with typed fields and packet units. Native automatic resistance synthesizes an additional internal raw envelope."
+      },
+      "GALLOPING": {
+        "status": "PARTIAL",
+        "reason": "Nine user-facing effect modes with typed fields and packet units. Native automatic resistance synthesizes an additional internal raw envelope."
+      },
+      "SEMI_AUTOMATIC": {
+        "status": "PARTIAL",
+        "reason": "Nine user-facing effect modes with typed fields and packet units. Native automatic resistance synthesizes an additional internal raw envelope."
+      },
+      "AUTOMATIC": {
+        "status": "PARTIAL",
+        "reason": "Nine user-facing effect modes with typed fields and packet units. Native automatic resistance synthesizes an additional internal raw envelope."
+      },
+      "MACHINE": {
+        "status": "PARTIAL",
+        "reason": "Nine user-facing effect modes with typed fields and packet units. Native automatic resistance synthesizes an additional internal raw envelope."
+      },
+      "INVALID": {
+        "status": "INTERNAL",
+        "reason": "Parser/size sentinel; never a graphical option."
+      }
+    }
+  },
+  "ActionModifier": {
+    "scope": "USER",
+    "editor": "JSM_GUI/jsm_gui_tauri/src/components/keymap/BindingCommandCard.tsx",
+    "values": {
+      "None": {
+        "status": "PARTIAL",
+        "reason": "Normal/toggle/instant/explicit release action controls serialize native modifiers."
+      },
+      "Toggle": {
+        "status": "PARTIAL",
+        "reason": "Normal/toggle/instant/explicit release action controls serialize native modifiers."
+      },
+      "Instant": {
+        "status": "PARTIAL",
+        "reason": "Normal/toggle/instant/explicit release action controls serialize native modifiers."
+      },
+      "Release": {
+        "status": "PARTIAL",
+        "reason": "Normal/toggle/instant/explicit release action controls serialize native modifiers."
+      },
+      "INVALID": {
+        "status": "INTERNAL",
+        "reason": "Parser/size sentinel; never a graphical option."
+      }
+    }
+  },
+  "EventModifier": {
+    "scope": "USER",
+    "editor": "JSM_GUI/jsm_gui_tauri/src/components/keymap/BindingCommandCard.tsx",
+    "values": {
+      "Auto": {
+        "status": "PARTIAL",
+        "reason": "Automatic/start/release/turbo/tap/hold activators; double, chord and simultaneous belong to separate mapping syntax."
+      },
+      "StartPress": {
+        "status": "PARTIAL",
+        "reason": "Automatic/start/release/turbo/tap/hold activators; double, chord and simultaneous belong to separate mapping syntax."
+      },
+      "ReleasePress": {
+        "status": "PARTIAL",
+        "reason": "Automatic/start/release/turbo/tap/hold activators; double, chord and simultaneous belong to separate mapping syntax."
+      },
+      "TurboPress": {
+        "status": "PARTIAL",
+        "reason": "Automatic/start/release/turbo/tap/hold activators; double, chord and simultaneous belong to separate mapping syntax."
+      },
+      "TapPress": {
+        "status": "PARTIAL",
+        "reason": "Automatic/start/release/turbo/tap/hold activators; double, chord and simultaneous belong to separate mapping syntax."
+      },
+      "HoldPress": {
+        "status": "PARTIAL",
+        "reason": "Automatic/start/release/turbo/tap/hold activators; double, chord and simultaneous belong to separate mapping syntax."
+      },
+      "INVALID": {
+        "status": "INTERNAL",
+        "reason": "Parser/size sentinel; never a graphical option."
+      }
+    }
+  },
+  "ConnectionKind": {
+    "scope": "INTERNAL",
+    "reason": "Hardware transport metadata reported by SDL/controller detection.",
+    "values": [
+      "Usb",
+      "Bluetooth",
+      "ProteusPuck",
+      "NereidReceiver",
+      "Unknown"
+    ]
+  },
+  "RawButton": {
+    "scope": "INTERNAL",
+    "reason": "Driver acquisition bit positions. Bindable command coverage uses the actual ButtonID registry and per-model hardware routing.",
+    "values": [
+      "Qam",
+      "RightPaddle1",
+      "LeftPaddle1",
+      "RightPaddle2",
+      "LeftPaddle2",
+      "RightPadClick",
+      "LeftPadClick"
+    ]
+  },
+  "CapSense": {
+    "scope": "INTERNAL",
+    "reason": "Driver capacitive channel identifiers. Pad/stick/grip contacts are exposed through ButtonID conditions; acquisition identifiers are not config settings.",
+    "values": [
+      "LeftStick",
+      "RightStick",
+      "LeftGrip",
+      "RightGrip"
+    ]
+  },
+  "SoundActuators": {
+    "scope": "USER",
+    "editor": "JSM_GUI/jsm_gui_tauri/src/components/ControllerPreferences.tsx",
+    "values": {
+      "GRIPS": {
+        "status": "PARTIAL",
+        "reason": "Grip/pad/both choices in controller sounds preferences; device firmware output pending."
+      },
+      "PADS": {
+        "status": "PARTIAL",
+        "reason": "Grip/pad/both choices in controller sounds preferences; device firmware output pending."
+      },
+      "BOTH": {
+        "status": "PARTIAL",
+        "reason": "Grip/pad/both choices in controller sounds preferences; device firmware output pending."
+      },
+      "INVALID": {
+        "status": "INTERNAL",
+        "reason": "Parser/size sentinel; never a graphical option."
+      }
+    }
+  },
+  "Fit": {
+    "scope": "INTERNAL",
+    "reason": "Internal mouse-region geometry mirror of the user-facing MouseAreaFit setting.",
+    "values": [
+      "STRETCH",
+      "UNIFORM"
+    ]
+  },
+  "GridShape": {
+    "scope": "USER",
+    "editor": "JSM_GUI/jsm_gui_tauri/src/components/keymap/PadSection.tsx",
+    "values": {
+      "RECTANGLE": {
+        "status": "PARTIAL",
+        "reason": "Rectangle/four-way/eight-way/radial geometry, context-specific controls and overlays."
+      },
+      "FOUR_WAY": {
+        "status": "PARTIAL",
+        "reason": "Rectangle/four-way/eight-way/radial geometry, context-specific controls and overlays."
+      },
+      "RADIAL": {
+        "status": "PARTIAL",
+        "reason": "Rectangle/four-way/eight-way/radial geometry, context-specific controls and overlays."
+      },
+      "EIGHT_WAY": {
+        "status": "PARTIAL",
+        "reason": "Rectangle/four-way/eight-way/radial geometry, context-specific controls and overlays."
+      },
+      "INVALID": {
+        "status": "INTERNAL",
+        "reason": "Parser/size sentinel; never a graphical option."
+      }
+    }
+  },
+  "TriggerEffectType": {
+    "scope": "INTERNAL",
+    "reason": "DualSense packet encoder opcodes, including debug opcodes; user effects are represented by AdaptiveTriggerMode fields.",
+    "values": [
+      "Off",
+      "Feedback",
+      "Weapon",
+      "Vibration",
+      "Bow",
+      "Galloping",
+      "Machine",
+      "Simple_Feedback",
+      "Simple_Weapon",
+      "Simple_Vibration",
+      "Limited_Feedback",
+      "Limited_Weapon",
+      "DebugFC",
+      "DebugFD",
+      "DebugFE"
+    ]
+  },
+  "VirtualMenuSource": {
+    "scope": "USER",
+    "editor": "JSM_GUI/jsm_gui_tauri/src/components/keymap/VirtualMenuLibrary.tsx",
+    "values": {
+      "LEFT": {
+        "status": "PARTIAL",
+        "reason": "Independent pad/stick sources and D-pad/face-button hotbars. Gyro navigation and non-hotbar digital navigation remain missing extensions."
+      },
+      "RIGHT": {
+        "status": "PARTIAL",
+        "reason": "Independent pad/stick sources and D-pad/face-button hotbars. Gyro navigation and non-hotbar digital navigation remain missing extensions."
+      },
+      "LSTICK": {
+        "status": "PARTIAL",
+        "reason": "Independent pad/stick sources and D-pad/face-button hotbars. Gyro navigation and non-hotbar digital navigation remain missing extensions."
+      },
+      "RSTICK": {
+        "status": "PARTIAL",
+        "reason": "Independent pad/stick sources and D-pad/face-button hotbars. Gyro navigation and non-hotbar digital navigation remain missing extensions."
+      },
+      "DPAD": {
+        "status": "PARTIAL",
+        "reason": "Independent pad/stick sources and D-pad/face-button hotbars. Gyro navigation and non-hotbar digital navigation remain missing extensions."
+      },
+      "ABXY": {
+        "status": "PARTIAL",
+        "reason": "Independent pad/stick sources and D-pad/face-button hotbars. Gyro navigation and non-hotbar digital navigation remain missing extensions."
+      },
+      "COUNT": {
+        "status": "INTERNAL",
+        "reason": "Parser/size sentinel; never a graphical option."
+      }
+    }
+  },
+  "VirtualMenuType": {
+    "scope": "USER",
+    "editor": "JSM_GUI/jsm_gui_tauri/src/components/keymap/VirtualMenuLibrary.tsx",
+    "values": {
+      "RADIAL": {
+        "status": "PARTIAL",
+        "reason": "Reusable radial/touch/hotbar definitions with ordinary layer overrides."
+      },
+      "TOUCH": {
+        "status": "PARTIAL",
+        "reason": "Reusable radial/touch/hotbar definitions with ordinary layer overrides."
+      },
+      "HOTBAR": {
+        "status": "PARTIAL",
+        "reason": "Reusable radial/touch/hotbar definitions with ordinary layer overrides."
+      }
+    }
+  },
+  "VirtualMenuActivation": {
+    "scope": "USER",
+    "editor": "JSM_GUI/jsm_gui_tauri/src/components/keymap/VirtualMenuLibrary.tsx",
+    "values": {
+      "HOLD": {
+        "status": "PARTIAL",
+        "reason": "Hold/toggle/always activation distinct from navigation; released-condition matching supported."
+      },
+      "TOGGLE": {
+        "status": "PARTIAL",
+        "reason": "Hold/toggle/always activation distinct from navigation; released-condition matching supported."
+      },
+      "ALWAYS": {
+        "status": "PARTIAL",
+        "reason": "Hold/toggle/always activation distinct from navigation; released-condition matching supported."
+      }
+    }
+  },
+  "VirtualMenuSelection": {
+    "scope": "USER",
+    "editor": "JSM_GUI/jsm_gui_tauri/src/components/keymap/VirtualMenuLibrary.tsx",
+    "values": {
+      "CLICK": {
+        "status": "PARTIAL",
+        "reason": "Click/contact-release/activation-end/continuous choices; selection closes according to native state transitions."
+      },
+      "TOUCH_RELEASE": {
+        "status": "PARTIAL",
+        "reason": "Click/contact-release/activation-end/continuous choices; selection closes according to native state transitions."
+      },
+      "ACTIVATION_RELEASE": {
+        "status": "PARTIAL",
+        "reason": "Click/contact-release/activation-end/continuous choices; selection closes according to native state transitions."
+      },
+      "CONTINUOUS": {
+        "status": "PARTIAL",
+        "reason": "Click/contact-release/activation-end/continuous choices; selection closes according to native state transitions."
+      }
+    }
+  }
+}

@@ -520,11 +520,30 @@ should preview. Capture of changing the sounds pending.
     sequences (SteamHapticsSinger-style, e.g. from `.mid`). The firmware's own
     jingle still plays at power-on / button power-off.
 
+- **2026-09-29 (firmware analysed, see `docs/triton-firmware-customisation.md` §2):**
+  the melody cannot be changed from the host on firmware 6AA43B55. Boot plays
+  haptic script 1 (or 2 on transport 1/3), shutdown script 5; the ids are
+  immediates and the scripts are compiled step lists in flash, and 0xB6/0xC1 are
+  not in the command table. What *is* persistent is the volume:
+  `user/haptic_boot_level` 2 = normal (-12 dB), 1 = quiet (-18 dB), 0 = off,
+  written with `01 DC 02 01 <level>`, read with `01 DB 00` (verified safe by two
+  reviewers; live value 2). Plan: a Studio "Firmware jingle volume" switch next to
+  the connect/shutdown sounds. Also: the 0x85 script id is 1..16 (0 is rejected),
+  so the earlier "0..13 all play" needs a retest.
+- **2026-09-29 (implemented, uncommitted):** Preferences → Controller sounds →
+  **Power jingle** (Controller's own / Normal / Quiet / Off) writes
+  `BOOT_SOUND_LEVEL` into `StudioDefaults.txt`; the mapper sends the firmware's
+  `ID_SET_USER_STORE` (`TritonBootSound.h`, `01 DC 02 01 <level>`) once per
+  connection when it changes, and the controller keeps it. -1 leaves the
+  controller alone. **Needs a hardware check** (power the controller off and on
+  after choosing Off).
+- **2026-09-29, later:** superseded in the UI by TODO-42's toggle (on = 0, off
+  = 2); the setting and the device write are unchanged.
 ---
 
 ### TODO-27 — LED colour as a binding
 
-**Status:** open · raised 2026-09-25
+**Status:** implemented 2026-09-29, awaiting hardware check · raised 2026-09-25 · uncommitted
 
 **Context** — Steam stores `led_red/green/blue`, `led_saturation`,
 `led_brightness` for the controller (its UI hides colour when
@@ -559,6 +578,27 @@ LED is RGB at all.
   its own value. The action picker's JSM tab has an LED brightness stepper that
   writes exactly that. Colour stays parked. **Needs a hardware check.**
 
+- **2026-09-29 (firmware analysed, see `docs/triton-firmware-customisation.md` §1):**
+  colour works. The LED is RGBW; 0xC5 takes [R,G,B,W] in percent, but the thread
+  only applies it while **setting 37 (0x25) = 1**, which was 0 on the device during
+  the 2026-09-25 test (so C5 did nothing and the "white" was the normal connected
+  pattern). Recipe: `01 87 03 25 01 00` then `01 C5 04 RR GG BB WW`; restore with
+  `01 87 03 25 00 00`. Brightness = setting 45 through a curve when 38 = 1 (50 ->
+  29 %). The 0xE9 readback truncates to whole units before scaling (live-confirmed:
+  50 % reads 0, 255 % reads 200). Colour and enable are RAM only: no key persists
+  them, so JSM must re-send on connect. Plan: give `LIGHT_BAR` a Triton path
+  (37 = 1 + C5 on connect/change, 37 = 0 when unset or on exit). Needs a hardware
+  look to confirm the channel order R,G,B,W.
+- **2026-09-29 (implemented, uncommitted):** `LIGHT_BAR` now drives the Steam
+  Controller's light. A colour a configuration (or layer, or a binding such as
+  `LSL = "LIGHT_BAR = RED"`) sets is marked explicit when parsed
+  (`Color.rgb.a = 0xFF`, `operators.cpp`); `applyTritonSettings` then writes the
+  RGBW percentages (`TritonLed.h`: the shared part of R, G, B goes to the white
+  LED) and turns setting 37 on. With no colour set, or on exit and device close,
+  it writes 37 = 0 so the firmware's own white / charging / low-battery patterns
+  return. Re-sent per connection because both are RAM in the controller.
+  Studio's existing Light bar colour row needs no change. **Needs a hardware
+  check** (channel order R, G, B, W is inferred from the firmware's patterns).
 ---
 
 ### TODO-28 — Gyro calibration through the overlay, with a start delay
@@ -629,6 +669,16 @@ lever is time, not distance: a separate release delay for the left grip.
   lever that exists is the electrode itself (TODO-17); a firmware patch is
   possible in principle but untested and risky.
 
+- **2026-09-29 (re-verified with the whole command surface decoded):** the answer
+  is stronger than "one setter writes both sides": both trackpad devices' data
+  structs point at the **same** struct 0x200030c4, so grip range and flicker guard
+  exist once in RAM; the per-side loop copies the derived thresholds into each
+  instance (0x1d068) and compares per side. Every other handler was decoded; none
+  reaches the aux compare, and cal/touch_l/r are read by nothing. A patch would
+  have to touch the per-instance copy or the compares. See
+  `docs/triton-firmware-customisation.md` §3 and §5. Corrections: 0x87 routes
+  ids 0x30/0x54/0x55 to the IMU settings handler, and grip settings are RAM-only
+  (re-sent per reconnect).
 ---
 
 ### TODO-30 — Controller-first redesign v3, through Claude Design
@@ -1347,7 +1397,654 @@ Six remarks from Luke on 2026-09-27:
 
 ---
 
+### TODO-40 — A dedicated screen for editing the acceleration curve
+
+**Status:** built 2026-09-29 · uncommitted · needs a look on hardware
+
+**Context**
+
+Luke on 2026-09-29: editing the acceleration curve meant tweaking the
+sliders on the Gyro page, then scrolling to Fine tuning › Diagnostics to open
+the side sheet that draws the curve. The trackpad's curve lives at the bottom
+of the Mouse feel sheet, with a small graph under its rows. He wants a
+dedicated screen with the live curve in the centre.
+
+**Why**
+
+A curve is tuned by looking at it. Every change was a round trip between the
+rows and a sheet that closes over them, so the shape and the numbers were
+never on screen together.
+
+**Done when**
+
+- One press from the Gyro page's Sensitivity section (Acceleration mode) and
+  from Mouse feel › Acceleration opens a full-window curve editor.
+- The curve fills the middle of that screen and redraws on every change,
+  before anything is saved; the live input speed shows on it.
+- Every curve setting for that side (curve source, type, outputs, speed
+  range, shape) is editable beside the curve, by pad and by mouse.
+- Gyro and trackpad are both reachable from it (LB/RB), and the gyro's
+  modeshift view edits the shifted curve.
+- A browser regression test opens it in `?mock`, edits a value and checks
+  the curve and the configuration text change.
+
+**What was done**
+
+- `components/AccelCurveView.tsx`: a full-window view in the On-screen
+  menus frame (portalled to body, so it stacks over the Mouse feel sheet and
+  B returns to it). Curve centre, rows right (sensitivity mode, the Editing
+  base/shifted row when a sensitivity shift exists, curve source, curve,
+  outputs, speed range, shape, graph range). LB/RB switch gyro/trackpad.
+  Opened by the `jsm:accel-curve` event (detail `gyro` | `touchpad`).
+- `components/CurvePlot.tsx`: SVG sized to its box. Draggable handles
+  (slow corner; fast corner for Linear/Quadratic/Jump; a Maximum level and
+  a Half-way/Midpoint handle for eased curves; a Fast-speed handle when the
+  shape is borrowed). Axes freeze while a handle is held, since they are
+  fitted to the curve. Live dot, last 3 s of speeds as ticks, peak readout.
+  Draws the configuration being edited, not the applied one.
+- Entry points: a "Curve editor" row with a sparkline at the top of the Gyro
+  page's acceleration rows; Mouse feel › Acceleration curve now opens the
+  view instead of unfolding the old inline editor
+  (`TouchpadAccelSection.tsx` deleted). The inline rows on the Gyro page
+  and the Diagnostics curve preview are unchanged.
+- `utils/accelCurve.ts` now holds the one evaluator (`accelSensitivityAt`),
+  shared with the canvas SensitivityGraph. It models ACCEL_CURVE_LINK
+  exactly (the speed transform of `rescaleAdjustedSpeed`, held flat past
+  the borrower's max). The old trackpad preview scaled parameters instead
+  and divided `powerVRef` where the mapper's maths multiplies.
+- `handleDualSensPairChange` writes both axes of MIN/MAX_GYRO_SENS in one
+  go. A drag calling the X and Y handlers in one tick put the X back after
+  a row edit of the same key (each built on the same stale pending draft);
+  the new test fails that way when wired to the two handlers.
+- Tests: `tests/accel_curve_editor_regression.cjs` (new);
+  `editor_feedback_regression` expects the view from Mouse feel;
+  `pad_axis_audit_regression` walks the view as a scenario.
+- Seen failing on 2026-09-29 outside this change: `steam_workspace` (Buttons
+  key capture, "N = RIGHT" never saved, line 75) and `pad_axis_audit`
+  (Preferences @1024, feedback strength radios Soft/Quiet do not retrace).
+  Not bisected; the tree also held another session's appearance work.
+
+---
+
+### TODO-41 — Rotate the touchpads' input orientation
+
+**Status:** implemented 2026-09-29, awaiting hardware check · uncommitted
+
+**Context** — the pads are canted about 10.6° outward. Some people want "up" on a
+pad to mean straight up on the controller body, or any angle they like. Steam
+Input rotates its trackpad mouse regions in software (templates carry
+`"rotation" "15"` for the original controller). Two routes exist, analysed in
+`docs/triton-firmware-customisation.md` §4: the firmware has a mirrored de-cant
+(setting 2, 0..360, only while setting 24 is non-zero; 5° steps above 4°,
+RAM-only, sign to be confirmed live), and JSM can rotate per pad in software.
+
+**Why** — the cant is a physical choice not everyone likes, and a menu or mouse
+pad whose axes do not match the thumb feels wrong all day.
+
+**Done when**
+
+- `LEFT_TOUCHPAD_ROTATION` / `RIGHT_TOUCHPAD_ROTATION` (degrees, default 0,
+  positive = clockwise as seen by the user) rotate grid, wedge, touch-stick and
+  mouse input for that pad, and telemetry carries the same rotated frame so the
+  overlay highlights the region that fires.
+- Studio exposes the value per pad in the Mode sheet (ungated by mode) with a
+  "match controller body" preset, and the controller diagram's live dot still
+  sits on the pad.
+- A C++ harness and a node test cover the maths, the key lists and overlay parity.
+
+**Notes**
+
+- Apply at the source (`GetTouchState` for the 2026 only), not inside
+  `touchCallback`: telemetry, the overlay's `hitTestRegion`, Studio's Rust
+  `global_chords.rs` and the previews all read the coordinates independently.
+- Rotate new and previous state identically so deltas rotate; project points
+  that leave the unit box back in (`TOUCH_POINT::isDown` treats outside as
+  lifted); keep the legacy single-pad path (1920x920) and PS_TOUCHPAD raw.
+- Measure the true cant once (swipe along a pad edge, read the raw telemetry
+  angle) before hard-coding the preset; the artwork says +10.7 / -10.5.
+
+**What was done (2026-09-29)**
+
+- Luke asked for the orientation to be a **global** setting, so it lives in
+  Preferences → Controller → Trackpad orientation ("As mounted" / "Level with the
+  controller" presets, plus a degrees field per pad), stored in Studio's runtime
+  state and written to `StudioDefaults.txt` as `LEFT_TOUCHPAD_ROTATION` /
+  `RIGHT_TOUCHPAD_ROTATION`, which the mapper reloads after every
+  `RESET_MAPPINGS`, so it holds for every configuration (a configuration that
+  sets the key itself still wins while applied).
+- The mapper rotates in `SDLWrapper::GetTouchState` (`TouchpadRotation.h`:
+  about the pad centre, positive clockwise, points that leave the unit square
+  pulled back along their ray), so grids, wedges, the touch stick, the mouse
+  pipeline, telemetry, the overlay's hit test and Studio's Rust chords all see
+  one frame. The controller artwork turns its dot back by the configured angle
+  (`ControllerStatusSvg.tsx`).
+- Tests: `JoyShockMapper/tests/touch_rotation_tests.cpp` (direction, centre,
+  corner projection, no-contact passthrough) run by
+  `tests/triton_customisation_regression.cjs`, and a Rust test for the
+  defaults file. **Needs a hardware check**: pick "Level with the controller"
+  and swipe straight up a pad; the cursor / menu dot should move straight up.
+
+---
+
+### TODO-42 — Silence the controller's jingle from a first-connect prompt, and a custom sound library
+
+**Status:** in progress · raised 2026-09-29 · uncommitted
+
+**Context** — Luke asked for two things on top of TODO-26/27/41:
+
+1. The first time a Steam Controller connects, a popup that offers to disable
+   the controller's own power-on / power-off sounds so JSM Evolved's connect
+   and disconnect sounds play alone, explaining that otherwise the firmware's
+   start-up jingle always plays first, followed by the connect sound, with a
+   link to Preferences where a toggle does the same; unchecking the toggle
+   restores the controller's default volume.
+2. The tone selector should accept uploaded MP3s, trimmed in an inbuilt editor,
+   kept in the user's storage so many can be mixed and matched, and offered by
+   a new **Play sound** binding action as well as for connect / shutdown.
+
+**Why** — the built-in 14 tunes are all a controller can play today, and
+hearing the firmware's jingle before JSM's own connect sound makes the feature
+feel bolted on.
+
+**Done when**
+
+- A Steam Controller's first appearance shows the prompt once; both choices
+  are honoured and it never returns (`firmwareSoundPromptDone`).
+- Preferences → Controller sounds has the silence toggle; on writes
+  `BOOT_SOUND_LEVEL = 0`, off writes 2, both reach the controller.
+- An MP3 can be added, trimmed with a waveform editor, saved to
+  `jsm-runtime/sounds/<id>/` (original, `sound.json`, `tones.txt`), renamed,
+  re-trimmed, deleted, previewed on the PC and on the controller, chosen as the
+  connect or shutdown sound, and bound with `PLAY_SOUND sounds/<id>/tones.txt`.
+- Tests cover the tone-sequence parser (C++), the tone extraction (node), the
+  Rust store, and the UI wiring.
+
+**Notes**
+
+- Contract for the three parts (mapper / Rust / TS) is
+  `docs/plans/controller-sounds-library.md`. The controller has no speaker: the
+  haptic actuators play tones, so Studio converts a trimmed clip into a
+  single-voice melody track by pitch analysis; jingles and riffs come through,
+  speech and chords become an approximation. The editor says so and offers a
+  controller preview.
+- `CONNECT_SOUND_FILE` / `SHUTDOWN_SOUND_FILE` (`NONE` = unset) take precedence
+  over the built-in `CONNECT_SOUND` / `SHUTDOWN_SOUND`; `PLAY_SOUND` accepts a
+  relative path as well as 0-13.
+- Review of 2026-09-29's first round found that Studio kills the mapper with
+  TerminateProcess, so the light was never handed back on Stop; the fix
+  (send `QUIT` first, then kill) rides along with this item.
+- **2026-09-30 — why custom sounds were muddy, and the fix.** Luke reported
+  MP3 conversions sounding horrible and MIDI muddy against the built-in tunes.
+  Reading the firmware's haptic scripts (`docs/triton-firmware-customisation.md`
+  §2, "How the jingles are voiced") showed the real cause: the scripts' steps
+  are the same tone request as our 0x83 report, but aimed at **channels 2+3,
+  the grip motors**, while the custom player sent every note to channels 0+1,
+  the trackpads' actuators, as two reports a few ms apart. Changes, all
+  uncommitted:
+  - Mapper: `SOUND_ACTUATORS = GRIPS | PADS | BOTH` (default GRIPS); the player
+    sends one full 10-byte LFO-tone report per note per route (side 5 = both
+    grips at the file's gain, side 2 = both pads at +6 dB), notes timed against
+    the sequence start (`wait_until`). `tone_sequence::toneRoutes` is unit
+    tested; exe rebuilt and bundled.
+  - Studio: `soundActuators` preference → `SOUND_ACTUATORS` line in
+    StudioDefaults.txt; Preferences → Controller sounds → **Play Sounds On**.
+  - Converters: shared `utils/toneArrangement.ts` — octave placement by the
+    duration-weighted 15th–85th percentile centre (nearest 650 Hz, band
+    400–1200), repeated notes re-articulated with a ≤30 ms rest; the MP3 path
+    now gets both, the MIDI path keeps note identity so two equal notes stay
+    two. Both editors have a Lower / Auto / Higher octave nudge. The A/B
+    reference now matches the firmware's gains (0 / −3 / −3 dB).
+  - Tests: `midi_tones_regression`, `tone_extraction_regression`,
+    `controller_sounds_regression` (C++), `triton_customisation_regression`
+    (wiring), the two browser tests, Rust `studio_defaults_carry_the_sound_actuators`.
+  - **Needs a hardware check**: the A/B reference should now be near
+    identical to firmware script 1; if custom sounds are too loud on the grips
+    turn Sound Intensity down (the old +6 dB offset no longer applies there).
+    The running Studio has to be restarted to pick up the new mapper exe.
+- **2026-09-30, later — Luke's verdict and round two.** "A million times
+  better, actually usable now"; the A/B reference sounded identical to him, so
+  the button is gone. Fixed from his recording: the track dropdown opened
+  *behind* the dialog (`--z-menu` 50 under `--z-dialog` 60 → new
+  `--z-popover` 65, Menu too), so it looked like only the recommended track
+  existed; dragging the selection slider to the end shrank the window to
+  0.04 s (the end was clamped, then the shrunken length reused) and the
+  "No notes" line toggling recentred the dialog — the editor now keeps a
+  selection *length* and reserves the status line. The 8 s limit is gone: the
+  file caps are 20000 notes / ten minutes in the mapper, Rust and TS, and
+  eight seconds is only the default selection. Tracks are labelled with their
+  General MIDI instrument. MP3: he finds the tone map "iffy"; SteamHapticsSinger
+  is MIDI-only, SteamHapticsPlayer streams PCM (TODO-43) — that, not better
+  pitch extraction, is the honest MP3 route.
+
+---
+
+### TODO-44 — Preferences page columns are uneven
+
+**Status:** implemented · raised 2026-09-30
+
+**Context** — the right column of Preferences runs far longer than the left
+(Controller light, Gyro calibration, Controller toggles vs Startup + sounds).
+
+**Done when** the two columns split the sections evenly, or the page flows so
+neither column trails.
+
+**Notes — 2026-09-30:** fixed. Cause: the left column held only Startup and
+Controller sounds (~840px in the mock) while the right stacked the Controller
+switches, Gyro calibration, Controller light and Trackpad orientation
+(~2000px). Change: `src/App.tsx` (Preferences block) moves the Controller
+switches under Startup on the left (Startup · Controller · Controller sounds ·
+version) and keeps the hardware sections on the right (Gyro calibration ·
+Controller light · Trackpad orientation · Virtual output): 1154px against
+1340px at both 1280 and 1600. `src/styles/console.css` drops the top margin of
+a section's first eyebrow when it opens a column, so both columns start level.
+Screenshots `tmp/todo44-prefs-{1280,1600}-after-full.png` (before:
+`tmp/todo44-prefs-1280-before.png`). Test:
+`tests/todo44_prefs_columns_browser_regression.cjs`.
+
+---
+
+### TODO-45 — The window icon does not follow the theme, the tray icon does
+
+**Status:** implemented · raised 2026-09-30; desktop visual check pending
+
+**Context** — changing the app theme/accent recolours the tray icon but not the
+main window/taskbar icon (the exe icon stays cyan by an earlier decision).
+
+**Done when** both follow the accent, at the same time or at least after a
+restart.
+
+**Notes** — 2026-09-30: the live window icon *was* being set (brand_icon.rs);
+what Luke sees on the taskbar is the *pinned shortcut's* icon, and both the
+pinned taskbar shortcut and the Start Menu shortcut had no IconLocation of
+their own, so Windows used the exe's cyan resource. Fix in `brand_icon.rs`:
+whenever the window icon is applied (accent change, and restore at launch)
+the same pixels are written as `jsm-runtime/brand-window-<hash>.ico` (32-bit
+DIB entries at 256/64/48/32/24/16), every shortcut named after the product
+(pinned taskbar, Start Menu per-user and all-users, desktops) is pointed at it
+through a hidden PowerShell/WScript.Shell call, older accent files are removed,
+and `SHChangeNotify(SHCNE_ASSOCCHANGED)` makes Explorer redraw. The hash in
+the file name defeats Explorer's per-path icon cache. Unit tests cover the
+downsampler, the ICO layout and the hash. Needs a look on the desktop: change
+the accent, check the taskbar and Start Menu (a pinned button may take a
+moment or a relaunch to redraw).
+
+**Audit — 2026-09-30:** a shortcut installed or pinned after the icon file
+already existed was skipped on the next launch. `refresh_shortcut_icons` now
+reuses the existing ICO but refreshes the current shortcuts every time.
+`cargo test --lib services::brand_icon::tests` passes (4 tests).
+
+**Launch fix — 2026-09-30:** the shortcut refresh passed the ICO path and
+shortcut paths after `powershell.exe -Command`. PowerShell treated the trailing
+ICO path as script text, opening the accent's logo in Photos at launch and on
+every accent change. The paths now travel in the child process's environment
+as an icon path and a JSON list; the script has no trailing path arguments.
+A Windows regression saves a temporary shortcut through the same function
+without opening the icon viewer.
+
+---
+
+### TODO-46 — Associate a configuration with a game (icon), without auto-apply
+
+**Status:** implemented · raised 2026-09-30; desktop Win32 check pending
+
+**Context** — the Configurations list shows a generic icon per profile. Luke
+wants configurations to carry the related game's icon: an "associate with a
+game / app" choice that does *not* imply auto-applying. New configuration
+should encourage picking the game's .exe up front, with an auto-apply toggle
+right there, off by default.
+
+**Done when** a configuration can be linked to an exe, its icon shows in the
+list and on the Home card, and auto-apply is a separate, default-off toggle.
+
+**Notes — 2026-09-30:** implemented, uncommitted; awaiting Luke's desktop
+check of the two Win32 pieces (icon extraction, Open dialog).
+
+*Design (reuses what exists).* An association **is** an AutoLoad rule. The
+mapper's `AutoLoad/<process>.txt` gains a `# exe: <full path>` comment line
+(the mapper skips `#` lines, so the rule still reads as a one-line profile
+rule); "associated but not auto-applied" is the rule saved as
+`<process>.txt.paused`, which AutoLoad never matches. `AutoloadRule` carries
+`exe_path` / `exePath`; `save_autoload_rule` takes optional `exe_path` and
+`auto_apply` (false → paused, none → paused state unchanged, exe kept if not
+given). Rules without the comment keep working. Renaming a configuration
+rewrites its rules through `retarget_autoload_rule_text`, which keeps the
+exe comment (it used to be dropped).
+
+*Backend* — `services/app_icon.rs`: `app_icon(exe_path)` command
+(PrivateExtractIconsW at 64 px, SHGetFileInfoW large icon as fallback →
+GetIconInfo → GetDIBits 32-bit top-down → RGBA, mask supplies alpha for icons
+without one; handles destroyed; results cached per lower-cased path, misses
+too), `pick_executable()` (GetOpenFileNameW filtered to `*.exe`, on its own
+thread). `processes.rs` rows gain `exe_path` via QueryFullProcessImageNameW
+(None for elevated/protected processes). Cargo features added:
+`Win32_Graphics_Gdi`, `Win32_UI_Controls_Dialogs`.
+
+*Front end* — `hooks/useAppIcon.ts` (RGBA → canvas → data URL, one decode
+per path; `useProfileAssociation`, `associationFor`), `AppIconImage`,
+`ConfigurationDialog` (New configuration: Name, "Game or app (optional)" with
+Browse… and a Running-now select, "Apply automatically when this game is
+running" OFF by default with a line saying off only lends the icon; also the
+"Associate… / Change…" edit mode from the Configurations Selected panel).
+"+ New configuration" now dispatches `jsm:new-configuration`, which the
+ProfileManager answers with the dialog; the welcome panel's "Empty" still
+creates at once. Rows show the game's icon in place of the glyph; the
+Selected panel has a Game row ("Icon only" / "Applies automatically"); the
+Home card shows the icon before the title; the Associations page shows the
+icon and reads a paused rule with an exe as "Associated · not applied
+automatically" (a plain paused rule still says "Paused"). Mock bridge: a
+coloured square per path, a fake DOOM path from Browse…, rules kept in
+memory.
+
+*Verified* — `cargo check`, `cargo test --lib` (77 pass: exe-comment
+round-trip, rename keeps the exe, paused/exe file semantics on a temp dir,
+base64, BGRA→RGBA + mask alpha, icon cache), `tsc --noEmit`, eslint on the
+touched files, and `tests/game_association_browser_regression.cjs` against
+`?mock` (dialog opens instead of creating; toggle starts off and disabled
+until a game is chosen; created row shows an `img`; Selected panel, Home
+card and Associations read as above; the mock rule is paused with the exe;
+Change… on Cyberpunk picks a running app and saves a live rule).
+Screenshots: `tmp/todo46-*.png`. *Not verified here:* the real icon
+extraction and the Open dialog run only inside the desktop app.
+
+---
+
+### TODO-47 — Colour pickers: swatch first, wall only for a custom colour
+
+**Status:** implemented · raised 2026-09-30
+
+**Context** — every colour picker (controller light default, LED while held,
+layer colour) shows the full hue wall inline. Luke wants: presets as circles;
+"custom" opens the wall dynamically (popup or side panel); once chosen, the
+custom colour is shown as one more circle with an edit affordance that
+reopens the picker. Applies to all pickers.
+
+**Done when** no colour wall is visible until "custom" is chosen, and a set
+custom colour collapses back to a swatch.
+
+**Notes — 2026-09-30:** implemented inside `LightBarPicker.tsx`, so every
+call site (Preferences controller light, LED while held, the LED colour
+action, the Controller light sheet) gets it. The row is now nine preset
+circles plus a "Custom" circle (a hue ring with a plus while a preset is
+chosen; the chosen colour with a pencil once a custom one is), all one
+radiogroup. Custom opens `LightBarPopover.tsx`: the wall, hue/saturation/
+value sliders and the hex field in a popover anchored under (or above) the
+row, portalled to the body at `--z-popover`, a `data-focus-trap` like the
+Dialog/Sheet so the pad lands inside and focus returns to the swatch; Done
+(`data-modal-close`), Escape / B and a click outside close it. Colour maths
+moved to `lightBarColor.ts`; new styles in `LightBarPicker.module.css`.
+Brightness fields beside the pickers are untouched. Regression:
+`tests/light_bar_picker_browser_regression.cjs` (Preferences + a button
+card); `tests/sheet_color_browser_regression.cjs` updated to open Custom
+first. Screenshots under `tmp/light-bar-picker-*.png`. Not verified: the
+real Tauri window (checked in the `?mock` preview only) and the popover
+inside the LED colour action's picker beyond a type check.
+
+---
+
+### TODO-48 — Double focus ring on some inputs under controller navigation
+
+**Status:** implemented · raised 2026-09-30
+
+**Context** — some inputs show two focus rings when navigated with the pad
+(seen on the Documentation search field: the field and its wrapper both
+ring).
+
+**Done when** exactly one ring per focused control.
+
+**Notes — 2026-09-30:** fixed. Cause: with the pad driving, the shared focus
+glide (`components/FocusGlide`) rings the focused `<input>` itself, while the
+field wrapping it kept its own `:focus-within` ring (`.searchField` in
+HelpDocsPage, `.search` in OverviewPage, `.commandLine` in MapperConsole,
+`.lightBarHex` in Keymap, `.composer` in AiMappingPage, and NumberField's
+`.valueWrap`, which added a 2px ring inside the glide's row ring). With the
+keyboard there was already one ring (the input's outline is off, the wrapper
+rings). Change: each of those CSS modules gets a
+`:global(body[data-focus-glide]) .wrapper:focus-within` rule that keeps the
+wrapper at its resting hairline (or no shadow, for the value pill) while the
+glide is on, so the glide is the one ring. Verified on the Documentation
+search (`tmp/todo48-docs-search-{keyboard,controller}-after.png`, before:
+`...-controller-before.png`) and the Preferences Start Delay value
+(`tmp/todo48-prefs-start-delay-after.png`). Test:
+`tests/todo48_focus_ring_browser_regression.cjs`. A nicer follow-up would be
+for `nav/navBox.ts` `ringTarget` to ring the field wrapper rather than the
+input, so the pad's ring hugs the whole field box; not done here (file out of
+scope).
+
+---
+
+### TODO-49 — The "Back · mirrored" controller view jumps when inputs are held
+
+**Status:** implemented · raised 2026-09-30; hardware check pending
+
+**Context** — on This configuration, holding grips/buttons adds rows to the
+list under the mirrored back view ("Left grip held", "L5"…) and the whole
+column re-centres, so the drawing moves up and down (visible in Luke's
+recording: the image shifts ~40 px when a third row appears).
+
+**Done when** the drawing stays put; the held list has reserved space or
+sits outside the centred block.
+
+**Notes — 2026-09-30:** fixed. Cause: `.steamLayout` centres the back view
+(`align-items: center`) and the view is art + legend in a column, so every
+legend row (26px: a 20px line and the 6px gap) grew the block and re-centred
+it, sliding the art up 13px per row (39px for three, as in the recording).
+Change: `ControllerStatusSvg.module.css` gives `.backLegend` a fixed
+`line-height: 20px` and `min-height` for the title plus the four rows the
+legend can list (124px), six rows with Details on (`.backLegendDetailed`,
+176px, set from `showRawTelemetry` in `ControllerStatusSvg.tsx`). The art now
+sits at the same place with no rows and with four. Verified by injecting rows
+into the legend in the mock (`tmp/todo49-back-{0,3}rows-after.png`, before:
+`...-before.png`, where the art top moves 304 → 265px). Test:
+`tests/todo49_back_view_browser_regression.cjs`. Not verified with real held
+grips (the mock does not hold inputs).
+
+---
+
+### TODO-50 — Layers page: input fields look rough, the new-layer field is lost
+
+**Status:** implemented · raised 2026-09-30
+
+**Context** — the "New layer, e.g. Comms or Vehicles" field and the layer name
+fields sit flat and unstyled; the create field does not stand out as the
+primary action.
+
+**Done when** the fields use the app's text-field styling and the new-layer
+field reads as the primary entry point.
+
+**Notes — 2026-09-30:** fixed. The create field is a labelled card under the
+stack ("New layer", a 44px `.text-field` well, the primary Create layer
+button, a hint line) and the rename field sits in a row card with a visible
+hairline (`LayersPage.tsx`, `Layers.css`). Regression:
+`tests/layers_ui_polish_regression.cjs` (needs the `?mock` dev server).
+
+---
+
+### TODO-51 — "Move N assignments" should wrap to a second line
+
+**Status:** implemented · raised 2026-09-30
+
+**Context** — the button beside "Move modeshifts into Test from" is squeezed
+into one line and overflows/clips at narrower widths.
+
+**Done when** the label wraps rather than clipping.
+
+**Notes — 2026-09-30:** fixed. The button carries `layer-from-modeshifts__move`
+(`LayersPage.tsx`, `LayerBar.tsx`): `white-space: normal`, auto height,
+`min-width: 0`, so a squeezed label takes a second line instead of clipping;
+on the page it now sits on the select's line rather than beside the hint
+(`Layers.css`). The clip itself did not reproduce at 560-1280px in the mock:
+the button never gets squeezed, but below ~1100px the shell (`.shell-body`,
+1112px wide inside an 820px `.app-shell` with `overflow: hidden`) is wider
+than the window, so the right-edge button is cut by the shell rather than by
+its own width. That is a shell-level overflow, outside this fix. The test
+squeezes the button to 110px and checks it wraps without overflow.
+
+---
+
+### TODO-52 — Manage layers dialog: too many highlighted borders
+
+**Status:** implemented · raised 2026-09-30
+
+**Context** — the dialog shows the new-layer field, the layer row and the
+"Editing" chip all with orange borders at once; only the focused element
+should carry the focus colour.
+
+**Done when** one element is highlighted at a time.
+
+**Notes — 2026-09-30:** fixed. The editing row's full accent ring
+(`.layer-list li[aria-current]`) is now a quiet 3px left bar plus the Editing
+chip; the accent ring is only the focused field's (`Layers.css`). Regression in
+`tests/layers_ui_polish_regression.cjs`.
+
+---
+
+### TODO-53 — The shared touch-stick directions concept is not understood
+
+**Status:** implemented · raised 2026-09-30
+
+**Context** — "Shared Touch-Stick Directions" on the Trackpads page: Luke
+still does not know what it is or why it is shared between pads.
+
+**Done when** the section either explains itself in one line (what a touch
+stick is, why the mapper has one set of directions for both pads) or is
+folded into each pad's own mode.
+
+**Notes — 2026-09-30:** fixed. The section now says under its title what a
+touch stick is (a drag on a pad acting as a joystick) and why the directions
+are shared: JoyShockMapper has one TUP/TDOWN/TLEFT/TRIGHT/TRING set with no
+left or right version, so whichever pad is in a touch-stick mode fires the
+same bindings. The "?" keeps a longer version. Strings are
+`keymap.touchStickShared*` in `en.ts`/`zh-CN.ts`; the intro is passed as
+`extraContent` and ordered under the header by a `#trackpad-buttons` rule in
+`console.css` (`KeymapControls.tsx`). Regression in
+`tests/layers_ui_polish_regression.cjs`.
+
+---
+
+### TODO-54 — "LED while held" is not a binding type; it is a command
+
+**Status:** implemented · raised 2026-09-30
+
+**Context** — the binding card shows an "LED while held" accordion at the same
+level as Commands / Modeshifts / Layer actions. Luke: it should be a command
+in the command selector, like playing a sound or setting the LED colour.
+
+**Done when** the accordion is gone and "LED while held" is offered in the
+command picker, edited in the right side panel with the colour picker.
+
+**Notes** — 2026-09-30: done, uncommitted. The accordion is gone from
+`ButtonBindingsCard.tsx`; the chorded `BUTTON,LIGHT_BAR` / `BUTTON,LED_BRIGHTNESS`
+settings of an input now read as one Commands-lane row (`BindingCommand` source
+`heldLed`, `utils/bindingCommands.ts`): chip "Hold", keycap "LED while held ·
+#rrggbb · 40%" with a swatch. The Add command picker's JSM tab offers "LED while
+held" (added with the profile/app colour, sheet opens at once), "LED color" and
+"LED brightness" (their inline widgets left the picker; each adds with the
+current or default value and opens the sheet). `CommandSettingsSheet`
+(`BindingEditor.tsx`) shows the colour picker + brightness for the held row and
+for one-shot `LIGHT_BAR` / `LED_BRIGHTNESS` commands, and a sound picker, a
+"Preview on controller" button and a −30..0 dB volume for `PLAY_SOUND`
+(`playSoundToken(sound, gain)` writes `PLAY_SOUND n -12`; `parsePlaySound`
+returns the gain). Behaviour/condition/duplicate/copy are hidden or disabled
+for the held row; Remove drops both settings. Storage formats unchanged.
+Fixed on the way: editing a parameter of the second token of `SPACE\ X\` no
+longer dropped its `\` (it read back as the hold of a tap/hold pair).
+Tests: `tests/command_parameters_browser_regression.cjs` (new; also covers
+TODO-55), `light_bar_picker_browser_regression.cjs` routed through the row's
+sheet. Screenshots under `tmp/command-parameters/`. Help text updated.
+
+---
+
+### TODO-55 — Layer actions are commands too; commands edit in the side panel
+
+**Status:** implemented · raised 2026-09-30
+
+**Context** — a binding card should have only Commands and, optionally,
+Modeshifts. Hold / toggle / apply / remove a layer is a command, like playing
+a sound or changing the LED. Editing such a command should open the right
+side panel with the matching editor: colour picker; sound picker with preview
+and volume; layer picker with the action type. The current "Which layer?"
+dialog also has an ugly footer colour (screenshot 12).
+
+**Done when** "Add layer action" is gone from the card, layer actions live in
+the command picker, and each of these commands edits in the side panel.
+
+**Notes** — 2026-09-30: done, uncommitted. A binding card is Commands and
+(optionally) Modeshifts. The Layer actions lane and the "Which layer?" dialog
+are deleted (`LayerActionsLane.tsx`, `AddLayerActionSheet.tsx`); each
+`# @layer-action <INPUT> = <verb> <layerId>` annotation on the input is a
+Commands-lane row (`BindingCommand` source `layerAction`): chip from the verb
+and release flag (hold → Hold; toggle/apply/remove → Press; `!INPUT` →
+Release), the layer's tile as the keycap. The Add command picker's Layers tab
+lists the layers (a swatch in the layer's hue, the binding count); choosing one
+adds a Hold and opens the row's sheet, which holds the layer select, the
+Hold / Toggle / Turn on / Turn off verb and the Press / Release switch. With no
+layers the tab says "Create a layer on the Layers page first" with Go to
+Layers. Rows are read and written through `LayerUsageContext` (`actions`,
+`onSetActions`); the annotation format and the Rust layer runtime are
+untouched. These rows cannot be retargeted, duplicated, copied or captured
+into; Remove drops the annotation. Descriptions: `describeCommandOutput` /
+`explainCommandOutput` in `utils/bindingDescription.ts` (the collapsed card
+summary reads "HOLD · Hold Aim"); `inputUsage` already used the same words.
+Tests updated: `binding_card_add_flows_regression.cjs` (the picker now has a
+Layers tab; the no-layers message lives there), `released_bindings_regression.cjs`
+and `layers_browser_regression.cjs` (add through the picker, verb and release
+in the sheet). Open: `AddSheets.module.css` still carries the dead "Which
+layer?" rules (shared with AddModeshiftSheet); `LayerBar.tsx`'s
+`InputLayerActions` is no longer imported anywhere (that file belongs to the
+layers work). Not verified on hardware; the sound preview button calls
+`desktopBridge.playControllerSound` and is a no-op in the browser.
+
+---
+
+### TODO-43 — Stream real audio to the actuators (PCM)
+
+**Status:** open · raised 2026-09-30 (from the sound-quality investigation)
+
+**Context** — the firmware accepts PCM output reports: `0x86` PCM mode,
+`0x87` mono, `0x88` stereo, `0x89` mono with length (31 samples per report;
+16-bit 8 kHz over USB, 8-bit µ-law over the puck). Pixel1011's
+SteamHapticsPlayer (github.com/Pixel1011/SteamHapticsPlayer, `TritonLib`) plays
+whole songs this way. That would let an MP3 play *as audio* through the grip
+motors instead of as a one-voice tone map.
+
+**Why** — the tone map is an approximation by design (one pitch at a time);
+PCM is the only route to speech, chords and the original timbre.
+
+**Done when** a library MP3 can be marked "play as audio", Studio stores an
+8 kHz mono/stereo PCM rendering (the mapper streams it at 130–260 reports/s
+from its own thread, with a hard length cap), and it plays on connect,
+shutdown or a binding without disturbing input polling.
+
+**Notes** — none of the 0x86–0x89 handlers have been disassembled here yet;
+TritonLib's `TritonController.cpp` (`_playStereoAudio`, `sendPCMMode`) is the
+reference. Wireless has packet loss (pops), per that project's README.
+
+---
+
 ## Done
+
+### Trackpad mouse area, drawn on the screen — 2026-10-01
+
+**Status:** DONE 2026-10-01 · uncommitted · **needs a hardware check**
+
+Luke asked for Steam Input's "mouse region" done better: a trackpad mode that
+puts the cursor where the finger is inside one rectangle of the screen, with
+the rectangle drawn over the running game using the overlay rather than typed.
+For sweeping a hotbar or an inventory with a thumb.
+
+`TOUCHPAD_MODE = MOUSE_AREA` with `TOUCHPAD_AREA = left top width height`
+(fractions of the screen the game is on, so a profile survives moving from a
+monitor to a 4K TV) and `TOUCHPAD_AREA_FIT = STRETCH | UNIFORM` for the pad's
+shape (square Steam pads vs the DualSense's 2:1), plus LEFT_/RIGHT_ variants.
+The picker is its own window (`services/area_picker.rs`): drag, move, resize,
+Enter/Esc, Tab for another monitor; Studio minimises while it is up so the
+game shows through. Design note: `docs/trackpad-mouse-area.md`. Test:
+`tests/mouse_area_regression.cjs` compiles the mapper's header and checks the
+editor's mirror against it.
+
+Not yet checked on hardware: the cursor placement over a real game, and the
+picker over a borderless game.
+
 
 ### QAM + Steam loading Gamepad lost navigation and did not stick — 2026-09-29
 

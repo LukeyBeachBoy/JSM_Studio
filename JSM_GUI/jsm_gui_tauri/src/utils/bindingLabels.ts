@@ -10,6 +10,8 @@
 // JoyShockMapper ignores the line entirely, so a labelled config still loads
 // anywhere.
 
+import { physicalBindingTargets } from './bindingAliases'
+
 const LABEL_LINE = /^\s*#\s*@label\s+([^=\s]+)\s*=\s*(.*)$/i
 
 export type BindingLabels = Record<string, string>
@@ -24,7 +26,10 @@ export function parseBindingLabels(text: string): BindingLabels {
     // An empty label line is kept rather than skipped: a shifted binding writes
     // one to say "no label here" and stop the unshifted label showing through.
     // Everywhere else an empty string reads the same as no line at all.
-    if (command) labels[command] = label
+    if (command) {
+      labels[command] = label
+      for (const physical of physicalBindingTargets(command)) labels[physical] = label
+    }
   })
   return labels
 }

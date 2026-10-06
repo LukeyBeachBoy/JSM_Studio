@@ -1,6 +1,8 @@
-import { forwardRef, useRef, useState, type ReactNode } from 'react'
+import { parseMenuCommand, menuCommandLabel } from '../../utils/menuCommands'
+import { readVirtualMenus } from '../../utils/virtualMenus'
+import { forwardRef, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { BindingCommand, BindingCommandPatch } from '../../utils/bindingCommands'
+import { BindingCommand, BindingCommandPatch, BindingTriggerKind, isFixedCommand } from '../../utils/bindingCommands'
 import { Icon } from '../icons/Icon'
 import { Select } from '../ui/Select'
 import { CommandSettingsSheet } from './BindingEditor'
@@ -14,13 +16,20 @@ import {
   getVirtualControllerTokenType,
   type VirtualControllerType,
 } from '../../utils/virtualController'
-import { describeBinding, explainBinding } from '../../utils/bindingDescription'
+import { describeCommandOutput, explainCommandOutput } from '../../utils/bindingDescription'
+import { LayerUsageContext } from '../LayerBar'
+import { LayerTile } from './ConceptTiles'
+import { hasBindingParameters } from '../../utils/bindingParameters'
 
 type Option = { value: string; label: string; disabled?: boolean }
 
 type BindingCommandCardProps = {
+  allowedTriggers?: BindingTriggerKind[]
+  allowCapture?: boolean
+  allowHeldLed?: boolean
   inputLabel: string
-  layerInput?: string
+  /** "A", for a layer action's "On while A is held". */
+  inputShortName?: string
   command: BindingCommand
   /** The input's glyph, first in the row. A menu item's row has none (3d). */
   glyph?: ReactNode
@@ -48,6 +57,12 @@ type BindingCommandCardProps = {
   chordsLiveInModeshifts?: boolean
   /** Just added: the row glows in its lane's colour for a moment (2f). */
   justAdded?: boolean
+  /** Just added from the picker with a parameter to set: its sheet opens at once (TODO-54). */
+  openSettingsOnMount?: boolean
+  onSettingsOpened?: () => void
+  /** The profile's (or the app's) LED colour and brightness, for the LED rows' sheets. */
+  defaultLedColor?: string
+  baseLedBrightness?: number
 }
 
 const BEHAVIOR_LABEL_KEYS: Record<BindingCommand['outputBehavior'], string> = {
@@ -73,10 +88,18 @@ const isTextEntry = (target: EventTarget | null) => {
  * 3c): the input's glyph, its activation as a coloured chip-select, an arrow,
  * the output as a keycap (A opens the action picker), the input's name, and a
  * cog for everything else.
+ *
+ * An LED-while-held row or a layer-action row (TODO-54, TODO-55) is the same
+ * row with a fixed activation: its keycap opens the settings sheet, where the
+ * colour, the sound or the layer is chosen, since the picker has no token to
+ * swap for it.
  */
 export const BindingCommandCard = forwardRef<HTMLDivElement, BindingCommandCardProps>(function BindingCommandCard({
+  allowedTriggers,
+  allowCapture = true,
+  allowHeldLed = true,
   inputLabel,
-  layerInput,
+  inputShortName,
   command,
   glyph,
   label,
@@ -96,8 +119,13 @@ export const BindingCommandCard = forwardRef<HTMLDivElement, BindingCommandCardP
   closeLabel = 'Back',
   chordsLiveInModeshifts,
   justAdded,
+  openSettingsOnMount,
+  onSettingsOpened,
+  defaultLedColor,
+  baseLedBrightness,
 }, ref) {
   const { t } = useTranslation()
+  const { layers, text: menuText } = useContext(LayerUsageContext)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const rowRef = useRef<HTMLDivElement | null>(null)
@@ -106,6 +134,15 @@ export const BindingCommandCard = forwardRef<HTMLDivElement, BindingCommandCardP
     if (typeof ref === 'function') ref(element)
     else if (ref) ref.current = element
   }
+  // Added from the picker with something still to choose: straight into the
+  // sheet, once the row is there to return focus to.
+  useEffect(() => {
+    if (!openSettingsOnMount) return
+    setSettingsOpen(true)
+    onSettingsOpened?.()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openSettingsOnMount])
+  const fixed = isFixedCommand(command)
   const triggerLabel = t(TRIGGER_LABEL_KEYS[command.triggerKind])
   const behaviorLabel = command.outputBehavior === 'normal' ? '' : t(BEHAVIOR_LABEL_KEYS[command.outputBehavior])
   // The second input of a chord or simultaneous press: its own chip before
@@ -124,8 +161,11 @@ export const BindingCommandCard = forwardRef<HTMLDivElement, BindingCommandCardP
   // A parsed token arrives stripped: its action modifier is `outputBehavior`
   // and its event modifier `triggerKind`, both shown on their own, so the
   // value is read alone with the behaviour word in front.
-  const outputLabel = virtualLabel ?? (describeBinding(command.outputValue, t) || '')
-  const summaryOutput = outputLabel ? (behaviorLabel ? `${behaviorLabel} ${outputLabel}` : outputLabel) : ''
+  const menuCommand = parseMenuCommand(command.outputValue)
+  const menuLabel = menuCommand ? menuCommandLabel(command.outputValue, readVirtualMenus(menuText ?? '').menus.find(menu => menu.id === menuCommand.id)?.name) : null
+  const outputLabel = menuLabel ?? virtualLabel ?? (describeCommandOutput(command, layers, t) || '')
+  const summaryOutput = outputLabel ? (behaviorLabel && !/^LIGHT_BAR\s*=/i.test(command.outputValue) ? `${behaviorLabel} ${outputLabel}` : outputLabel) : ''
+  const outputTitle = explainCommandOutput(command, inputShortName ?? inputLabel, t)
   const tokenType = command.outputKind === 'virtualController' ? getVirtualControllerTokenType(command.outputValue) : null
   const virtualWarning =
     command.outputKind !== 'virtualController'
@@ -144,19 +184,22 @@ export const BindingCommandCard = forwardRef<HTMLDivElement, BindingCommandCardP
   // input's modeshift panel owns chords, or there is nothing to chord with,
   // the kinds that need a second input are left out: made here, they would be
   // written to a line this card does not show.
-  const canRetarget = command.source.kind === 'row' && command.triggerKind !== 'stickShift'
+  const ledCommand = command.source.kind === 'heldLed' || /^LIGHT_BAR\s*=/i.test(command.outputValue)
+  const canRetarget = command.source.kind === 'row' && command.triggerKind !== 'stickShift' && !ledCommand
   const conditionsAllowed = !chordsLiveInModeshifts && modifierOptions.length > 0
   const triggerGroups = buildTriggerGroups(t)
-    .map(group => ({ ...group, options: group.options.filter(option => conditionsAllowed || !conditionTriggers.has(option.value as BindingCommand['triggerKind'])) }))
+    .map(group => ({ ...group, options: group.options.filter(option => (!allowedTriggers || allowedTriggers.includes(option.value as BindingTriggerKind)) && (conditionsAllowed || !conditionTriggers.has(option.value as BindingCommand['triggerKind'])) && (menuCommand?.verb !== 'HOLD' || !['release', 'turbo'].includes(option.value))) }))
     .filter(group => group.options.length > 0)
 
   // X captures a key for this command, as X does inside the picker. Only a
   // written or draft row can take one: a gyro special or a stick shift has no
   // key to capture into.
-  const canCaptureHere = command.source.kind === 'row' && command.triggerKind !== 'stickShift'
+  const canCaptureHere = allowCapture && command.source.kind === 'row' && command.triggerKind !== 'stickShift'
   const captureHint = canCaptureHere ? 'X:Capture;' : ''
-  const canChange = command.isRoundTripSafe && command.triggerKind !== 'stickShift'
+  const canChange = command.isRoundTripSafe && command.triggerKind !== 'stickShift' && !fixed
   const rowHints = `A:${canChange ? 'Change action' : 'Settings'};${captureHint}Y:Settings;B:${closeLabel}`
+  const heldLed = command.source.kind === 'heldLed' ? command.source : null
+  const layerAction = command.source.kind === 'layerAction' ? command.source.action : null
 
   return (
     <>
@@ -165,6 +208,8 @@ export const BindingCommandCard = forwardRef<HTMLDivElement, BindingCommandCardP
         data-unnamed={glyph && label === undefined ? 'true' : undefined}
         data-just-added={justAdded ? 'true' : undefined}
         data-capturing={isCapturing ? 'true' : undefined}
+        data-held-led={heldLed ? 'true' : undefined}
+        data-layer-action={layerAction?.layerId}
         data-pad-keys={`${canCaptureHere ? 'X' : ''}Y`}
         data-hints={rowHints}
         onKeyDown={event => {
@@ -174,7 +219,7 @@ export const BindingCommandCard = forwardRef<HTMLDivElement, BindingCommandCardP
         }}
         onContextMenu={event => { event.preventDefault(); setSettingsOpen(true) }}>
         {glyph && <span className={laneStyles.glyph} aria-hidden="true">{glyph}</span>}
-        {canRetarget ? (
+        {ledCommand ? <Select className={laneStyles.chip} value={heldLed ? 'hold' : 'press'} ariaLabel="LED activation" options={[{ value: 'press', label: 'Press' }, { value: 'hold', label: 'Hold' }]} onValueChange={value => onUpdate(command, { ledActivation: value as 'press' | 'hold' })} /> : canRetarget ? (
           <span data-hints={`A:Change activation;${captureHint}Y:Settings;B:${closeLabel}`}>
             <Select
               className={laneStyles.chip}
@@ -189,7 +234,7 @@ export const BindingCommandCard = forwardRef<HTMLDivElement, BindingCommandCardP
                   // seed the default partner, which the settings sheet changes.
                   conditionInput: conditionTriggers.has(next) ? command.conditionInput ?? modifierOptions[0]?.value : undefined,
                 })
-                if (conditionTriggers.has(next)) setSettingsOpen(true)
+                if (conditionTriggers.has(next) || next === 'turbo') setSettingsOpen(true)
               }}
             />
           </span>
@@ -203,13 +248,23 @@ export const BindingCommandCard = forwardRef<HTMLDivElement, BindingCommandCardP
           </span>
         )}
         <span className={laneStyles.arrow} aria-hidden="true">→</span>
-        <button type="button" className={laneStyles.keycap} aria-label={`${t('keymap.chooseAction', 'Choose action')}: ${summaryOutput || t('keymap.commandNoOutput')}`}
-          title={explainBinding(command.outputValue, t)} data-hints={rowHints}
-          onClick={() => canChange ? setPickerOpen(true) : setSettingsOpen(true)}>
-          <span className={`${laneStyles.keycapText} ${summaryOutput ? '' : laneStyles.keycapEmpty}`}>{summaryOutput || t('keymap.commandChooseOutput', 'Choose…')}</span>
-          {!command.isRoundTripSafe && <span className={laneStyles.badge}>{t('keymap.commandRawSyntax')}</span>}
-        </button>
-        {/* One name per input, on its first row; later rows give the keycap the room. */}
+        {layerAction ? (
+          // The layer's tile is the keycap: its colour is the layer's, and A
+          // opens the sheet where the layer and the verb are chosen.
+          <button type="button" className={laneStyles.tileButton} aria-label={`${t('keymap.chooseAction', 'Choose action')}: ${summaryOutput}`}
+            title={outputTitle} data-hints={rowHints} onClick={() => setSettingsOpen(true)}>
+            <LayerTile layerId={layerAction.layerId} verb={layerAction.verb} size="md" title={outputTitle} />
+          </button>
+        ) : (
+          <button type="button" className={laneStyles.keycap} aria-label={`${t('keymap.chooseAction', 'Choose action')}: ${summaryOutput || t('keymap.commandNoOutput')}`}
+            title={outputTitle} data-hints={rowHints}
+            onClick={() => canChange ? setPickerOpen(true) : setSettingsOpen(true)}>
+            {ledCommand && <span className={laneStyles.swatch} style={{ background: heldLed?.color ?? `#${/^LIGHT_BAR\s*=\s*x([0-9a-f]{6})/i.exec(command.outputValue)?.[1] ?? 'ffffff'}` }} aria-hidden="true" />}
+            <span className={`${laneStyles.keycapText} ${summaryOutput ? '' : laneStyles.keycapEmpty}`}>{summaryOutput || t('keymap.commandChooseOutput', 'Choose…')}</span>
+            {!command.isRoundTripSafe && <span className={laneStyles.badge}>{t('keymap.commandRawSyntax')}</span>}
+          </button>
+        )}
+        {/* Each command keeps its own name beside its output. */}
         {glyph && label !== undefined && (
           <span className={`${laneStyles.text} ${label ? '' : laneStyles.textEmpty}`}>
             {label || t('keymap.bindingLabelPlaceholder', 'Name this action')}
@@ -221,8 +276,14 @@ export const BindingCommandCard = forwardRef<HTMLDivElement, BindingCommandCardP
         </button>
       </div>
       {virtualWarning && <div className={laneStyles.warning}>{virtualWarning}</div>}
-      {pickerOpen && <ActionPicker layerInput={layerInput} inputLabel={inputLabel} command={command} virtualControllerType={virtualControllerType} specialOptions={specialOptions} libraryProfiles={libraryProfiles} currentProfileName={currentProfileName} onSelect={patch => onUpdate(command, patch)} onClose={() => setPickerOpen(false)} onEnableVirtualController={onEnableVirtualController} onCapture={canCaptureHere ? () => onCapture(command) : undefined} />}
+      {pickerOpen && <ActionPicker inputLabel={inputLabel} command={command} virtualControllerType={virtualControllerType} specialOptions={specialOptions} libraryProfiles={libraryProfiles} currentProfileName={currentProfileName} defaultLedColor={defaultLedColor} onSelect={patch => {
+        onUpdate(command, patch)
+        if (hasBindingParameters(patch.outputValue ?? '')) setSettingsOpen(true)
+      }} onClose={() => setPickerOpen(false)} onEnableVirtualController={onEnableVirtualController} onCapture={canCaptureHere ? () => onCapture(command) : undefined} />}
       <CommandSettingsSheet
+        allowHeldLed={allowHeldLed}
+        virtualControllerType={virtualControllerType}
+        onEnableVirtualController={onEnableVirtualController}
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         command={command}
@@ -233,7 +294,12 @@ export const BindingCommandCard = forwardRef<HTMLDivElement, BindingCommandCardP
         label={label}
         onLabelChange={onLabelChange}
         onDuplicate={() => onDuplicate(command)}
-        onCopy={onCopy ? () => onCopy(command) : undefined}
+        onCopy={onCopy && !fixed ? () => onCopy(command) : undefined}
+        defaultLedColor={defaultLedColor}
+        baseLedBrightness={baseLedBrightness}
+        inputShortName={inputShortName}
+        libraryProfiles={libraryProfiles}
+        onEditOutput={!fixed && command.source.kind === 'row' ? () => { setSettingsOpen(false); setPickerOpen(true) } : undefined}
         // The sheet closes first; the removal follows once focus is back on the row.
         onRemove={() => { const row = rowRef.current; setSettingsOpen(false); removeRow(row, () => onRemove(command), { afterClose: true }) }}
       />

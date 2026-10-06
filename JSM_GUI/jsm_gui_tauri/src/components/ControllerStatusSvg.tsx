@@ -1,6 +1,9 @@
 import { useEffect, useRef, type CSSProperties } from 'react'
+import { ModelControllerSvg } from './ModelControllerSvg'
+import { controllerArtworkModel } from '../utils/controllerArtwork'
 import { STEAM_BACK_ART, STEAM_FRONT_ART } from './controllerArt'
 import type { TelemetryDevice } from '../hooks/useTelemetry'
+import { usePreferences } from '../platform/preferenceStore'
 import { InputMark } from './glyphs/inputMarks'
 import {
   controllerBackInputMode,
@@ -632,7 +635,7 @@ function SteamBackView({ pressed, boundCommands, selectedCommand, onSelectComman
           </ellipse>
         ))}
       </svg>
-      <div className={styles.backLegend}>
+      <div className={join(styles.backLegend, showRawTelemetry && styles.backLegendDetailed)}>
         <span className={styles.backLegendTitle}>Back · mirrored</span>
         {legend.map(spot => (
           <span key={spot.command} className={styles.backLegendItem}>
@@ -692,6 +695,13 @@ export function ControllerStatusSvg({ bindingLabels,
   const hasLeftSide = device.split !== 2
   const leftPad = device.status?.leftPad
   const rightPad = device.status?.rightPad
+  // The mapper turns each pad's reading by the configured orientation before it
+  // reaches telemetry, and the artwork draws the pads as mounted, so the dot is
+  // turned back by the same amount: a swipe straight up the body moves it
+  // straight up the screen, as the finger did.
+  const runtimePrefs = usePreferences().runtime
+  const leftPadArt = { ...STEAM_PAD.left, rot: STEAM_PAD.left.rot - (runtimePrefs?.leftPadRotation ?? 0) }
+  const rightPadArt = { ...STEAM_PAD.right, rot: STEAM_PAD.right.rot - (runtimePrefs?.rightPadRotation ?? 0) }
   const hasRightSide = device.split !== 1
   const leftTrigger = clamp(device.status?.triggers.left ?? 0, 0, 1)
   const rightTrigger = clamp(device.status?.triggers.right ?? 0, 0, 1)
@@ -718,6 +728,10 @@ export function ControllerStatusSvg({ bindingLabels,
     ),
   ])
   const visiblePaddleCommandSet = new Set(visiblePaddleCommands)
+
+  if (controllerArtworkModel(device)) {
+    return <ModelControllerSvg device={device} bindingLabels={bindingLabels} boundCommands={boundCommands} selectedCommand={selectedCommand} onSelectCommand={onSelectCommand} showRawTelemetry={showRawTelemetry} />
+  }
 
   if (isSteam) {
       // --- Steam Controller 2026 layout ---
@@ -756,7 +770,7 @@ export function ControllerStatusSvg({ bindingLabels,
                 transform={`rotate(${STEAM_PAD.left.rot} ${STEAM_PAD.left.cx} ${STEAM_PAD.left.cy})`} />
               <text className={styles.controlText} x={STEAM_PAD.left.cx} y={STEAM_PAD.left.cy}>{bindingLabels?.LEFT_PAD || 'LPad'}</text>
               {showRawTelemetry && leftPad && <text className={styles.gripSenseText} x={STEAM_PAD.left.cx} y={STEAM_PAD.left.cy + 24}>{`p=${(leftPad.pressure ?? 0).toFixed(4)}`}</text>}
-              {leftPad?.touched && <PadTouch point={padPoint(STEAM_PAD.left, leftPad.x, leftPad.y)} />}
+              {leftPad?.touched && <PadTouch point={padPoint(leftPadArt, leftPad.x, leftPad.y)} />}
             </g>
 
             {/* Right pad (bottom-right) */}
@@ -767,7 +781,7 @@ export function ControllerStatusSvg({ bindingLabels,
                 transform={`rotate(${STEAM_PAD.right.rot} ${STEAM_PAD.right.cx} ${STEAM_PAD.right.cy})`} />
               <text className={styles.controlText} x={STEAM_PAD.right.cx} y={STEAM_PAD.right.cy}>{bindingLabels?.RIGHT_PAD || 'RPad'}</text>
               {showRawTelemetry && rightPad && <text className={styles.gripSenseText} x={STEAM_PAD.right.cx} y={STEAM_PAD.right.cy + 24}>{`p=${(rightPad.pressure ?? 0).toFixed(4)}`}</text>}
-              {rightPad?.touched && <PadTouch point={padPoint(STEAM_PAD.right, rightPad.x, rightPad.y)} />}
+              {rightPad?.touched && <PadTouch point={padPoint(rightPadArt, rightPad.x, rightPad.y)} />}
             </g>
 
             {/* Center buttons */}

@@ -5,19 +5,21 @@ import { useSettingOriginInfo } from '../keymap/settingOriginInfo'
 import { PAD_EVENT, type PadEventDetail } from '../../nav/useControllerNavigation'
 import { ConfigBaseline } from '../../hooks/configContext'
 import adjustStyles from './SummaryRowAdjust.module.css'
+import { Select, type SelectOption } from './Select'
+import { Dialog } from './Dialog'
 
 // The summary row (console refinement 1d, §5): label, one line under it, the
 // value on the right and a chevron when it opens something. One focusable
-// element per row -- no buttons, switches or selects inside it -- so the pad
-// stops once per setting. What A does depends on the row:
+// element for each value; optional help is a separate sibling button. The pad
+// can stop on the value or its info button. What A does depends on the row:
 //
 //   onActivate  opens something (a sheet, a view, another page)
-//   toggle      flips it
-//   adjust      enters adjust mode: Left/Right step the value (or cycle the
-//               choices), A keeps it, B puts back where it started
+//   toggle      uses the same Off/On choice adjustment as other settings
+//   adjust      opens a descriptive dropdown for choices; numeric/custom
+//               adjustments use Left/Right, A keeps and B restores
 //
 // Y is Use Default (the origin's reset, or onUseDefault) and X is What's
-// this? (the help text, shown under the row) -- the face buttons that
+// this? (the help text, shown under the row or in a dialog) -- the face buttons that
 // replace the inline Reset and "?" buttons rows used to carry.
 
 export type SummaryRowSize = 'sheet' | 'page' | 'settings' | 'tile'
@@ -42,7 +44,7 @@ export type RowAdjust =
   | {
       kind: 'choice'
       value: string
-      options: { value: string; label: string }[]
+      options: (SelectOption & { help?: string })[]
       onChange: (value: string) => void
       onRevert?: (start: string) => void
       onCommit?: (value: string) => void
@@ -72,12 +74,14 @@ type SummaryRowProps = {
   /** A row that unfolds rows under it: the chevron turns down while open. */
   expanded?: boolean
   onActivate?: () => void
-  toggle?: { on: boolean; onChange: (next: boolean) => void }
+  toggle?: { on: boolean; onChange: (next: boolean) => void; onRevert?: (start: boolean) => void }
   adjust?: RowAdjust
   /** A bar under the row showing where the value sits, 0..1 (1d). */
   progress?: number
   /** X: What's this? */
   help?: ReactNode
+  /** Visible info button and a controller-accessible help dialog. */
+  helpDialog?: boolean
   /** X: a row's own contextual action instead of help (Next region). */
   onX?: { label: string; run: () => void }
   /** Y: overrides the origin's own reset. */
@@ -125,11 +129,98 @@ function useOriginLine(setting?: string): { text: string; tone: 'changed' | 'inh
   return null
 }
 
+function RowHelp({ label, help, open, onOpen, onClose }: {
+  label: ReactNode; help: ReactNode; open: boolean; onOpen: () => void; onClose: () => void
+}) {
+  return <>
+    <button type="button" className={adjustStyles.infoButton} aria-label={typeof label === 'string' ? `About ${label}` : 'About this setting'}
+      aria-haspopup="dialog" aria-expanded={open} data-hints="A:Show help;B:Back" onClick={onOpen}>
+      <Icon name="info" size={18} />
+    </button>
+    {open && <Dialog title={label} eyebrow="Setting help" width={480} onClose={onClose} hints={[{ button: 'B', label: 'Back' }]}
+      actions={<button type="button" className="button button--primary" onClick={onClose}>Got it</button>}>
+      <div className={adjustStyles.helpText}>{help}</div>
+    </Dialog>}
+  </>
+}
+
 export function SummaryRow(props: SummaryRowProps) {
+  if (props.adjust?.kind === 'choice') return <ChoiceSummaryRow {...props} adjust={props.adjust} />
+  return <AdjustableSummaryRow {...props} />
+}
+
+/** Explicit choices use the same descriptive dropdown everywhere, including
+ * alternate-state editors. Numeric adjustments and simple toggles stay compact. */
+function ChoiceSummaryRow({ adjust, ...props }: SummaryRowProps & { adjust: Extract<RowAdjust, { kind: 'choice' }> }) {
+  const generatedId = useId()
+  const id = props.id ?? generatedId
+  const helpId = `${id}-help`
+  const origin = useOriginLine(props.setting)
+  const info = useSettingOriginInfo(props.setting)
+  const reset = props.onUseDefault ?? (info?.canReset ? info.reset : undefined)
+  const disabled = Boolean(props.disabled || props.reason)
+  const [helpOpen, setHelpOpen] = useState(false)
+  const host = useRef<HTMLDivElement>(null)
+  const secondary = (button: string) => {
+    if (disabled) return false
+    if (button === 'Y' && reset) { reset(); return true }
+    if (button === 'X' && props.onX) { props.onX.run(); return true }
+    if (button === 'X' && props.help) { setHelpOpen(open => !open); return true }
+    return false
+  }
+  const latest = useRef(secondary)
+  latest.current = secondary
+  useEffect(() => {
+    const node = host.current
+    const onPad = (event: Event) => {
+      if (latest.current((event as CustomEvent<PadEventDetail>).detail.button)) event.preventDefault()
+    }
+    node?.addEventListener(PAD_EVENT, onPad)
+    return () => node?.removeEventListener(PAD_EVENT, onPad)
+  }, [])
+  // Radix reserves the empty value; preserve selectable inherited/default values.
+  let empty = '__summary_default__'
+  while (adjust.options.some(option => option.value === empty)) empty += '_'
+  const options = adjust.options.map(option => ({ ...option, value: option.value || empty, description: option.description ?? option.help }))
+  if (!adjust.value && !adjust.options.some(option => option.value === '')) {
+    options.push({ value: empty, label: typeof props.value === 'string' ? props.value : 'Not set', description: undefined })
+  }
+  return <div ref={host} className={`summary-row-wrap ${adjustStyles.choice}${props.helpDialog && props.help ? ` ${adjustStyles.choiceWithHelp}` : ''}${props.className ? ` ${props.className}` : ''}`} data-size={props.size ?? 'page'} {...props.data}
+    data-hints={[props.hints, 'A:Choose;B:Back', reset && !disabled ? `Y:${props.defaultLabel ?? 'Use Default'}` : '', props.onX ? `X:${props.onX.label}` : props.help ? 'X:What’s this?' : ''].filter(Boolean).join(';')}
+    onKeyDown={event => {
+      // Popup options are portalled: leave their typeahead keys to Radix.
+      if (!host.current?.contains(event.target as Node) || event.ctrlKey || event.metaKey || event.altKey || event.target instanceof HTMLElement && event.target.getAttribute('aria-expanded') === 'true') return
+      if (secondary(event.key.toUpperCase())) { event.preventDefault(); event.stopPropagation() }
+    }}>
+    <div className={adjustStyles.choiceHeading}>
+      <label htmlFor={id} className="summary-row__label">{props.icon}{props.label}</label>
+      {props.hint && <span className="summary-row__hint" id={helpId}>{props.hint}</span>}
+      {origin && <span className="summary-row__hint" data-tone={origin.tone}>{origin.text}</span>}
+    </div>
+    <Select id={id} ariaDescribedBy={props.hint ? helpId : undefined} value={adjust.value || empty} options={options}
+      disabled={disabled} className={adjustStyles.choiceSelect} onValueChange={value => {
+        const next = value === empty ? '' : value
+        adjust.onChange(next)
+        adjust.onCommit?.(next)
+      }} />
+    {props.helpDialog && props.help && <RowHelp label={props.label} help={props.help} open={helpOpen} onOpen={() => setHelpOpen(true)} onClose={() => setHelpOpen(false)} />}
+    {reset && <button type="button" className={`button button--ghost button--sm ${adjustStyles.choiceReset}`} disabled={disabled} onClick={reset}>{props.defaultLabel ?? 'Use Default'}</button>}
+    {props.reason && <div className="summary-row__help">{props.reason}</div>}
+    {helpOpen && props.help && !props.helpDialog && <div className="summary-row__help" role="note">{props.help}</div>}
+  </div>
+}
+
+function AdjustableSummaryRow(props: SummaryRowProps) {
   const {
-    label, hint, setting, value, mono, size = 'page', onActivate, toggle, adjust, progress, help,
+    label, hint, setting, value, mono, size = 'page', onActivate, toggle, progress, help,
     onUseDefault, adjustDetail, icon, disabled, reason, className, id, data,
   } = props
+  const adjust: RowAdjust | undefined = props.adjust ?? (toggle ? {
+    kind: 'choice', value: toggle.on ? 'ON' : 'OFF',
+    options: [{ value: 'OFF', label: 'Off' }, { value: 'ON', label: 'On' }],
+    onChange: next => toggle.onChange(next === 'ON'),
+    onRevert: toggle.onRevert ? start => toggle.onRevert?.(start === 'ON') : undefined,
+  } : undefined)
   const ref = useRef<HTMLButtonElement>(null)
   const helpId = useId()
   const [adjusting, setAdjusting] = useState(false)
@@ -213,7 +304,6 @@ export function SummaryRow(props: SummaryRowProps) {
   const activate = () => {
     if (disabled || reason) return
     if (adjust) { if (adjusting) endAdjust(false); else beginAdjust(); return }
-    if (toggle) { toggle.onChange(!toggle.on); return }
     onActivate?.()
   }
   const secondary = (button: 'X' | 'Y') => {
@@ -250,7 +340,7 @@ export function SummaryRow(props: SummaryRowProps) {
   const choiceLabel = adjust?.kind === 'choice' ? adjust.options.find(option => option.value === adjust.value)?.label : undefined
   const shownValue = typed !== null
     ? <span className={adjustStyles.typed}>{typed}</span>
-    : value ?? (toggle ? (toggle.on ? 'On' : 'Off') : choiceLabel ?? (adjust?.kind === 'number' ? String(adjust.value) : undefined))
+    : value ?? (toggle ? (toggle.on ? 'On' : 'Off') : choiceLabel ?? (adjust?.kind === 'number' ? String(Number(adjust.value.toPrecision(12))) : undefined))
   // The bar is the 1d fine-tuning look; plain rows (2c, 2e) have none.
   const bar = progress === undefined ? undefined : progress
   // A row that names its own A (Arrange) keeps that name.
@@ -268,7 +358,7 @@ export function SummaryRow(props: SummaryRowProps) {
   ].filter(Boolean).join(';')
 
   return (
-    <div className={`summary-row-wrap${className ? ` ${className}` : ''}`} data-size={size}>
+    <div className={`summary-row-wrap${props.helpDialog && help ? ` ${adjustStyles.withHelp}` : ''}${className ? ` ${className}` : ''}`} data-size={size}>
       <button
         ref={ref}
         type="button"
@@ -281,8 +371,7 @@ export function SummaryRow(props: SummaryRowProps) {
         data-hints={hints}
         data-reason={reason}
         aria-disabled={disabled || reason ? true : undefined}
-        aria-pressed={toggle ? toggle.on : undefined}
-        aria-describedby={helpOpen ? helpId : undefined}
+        aria-describedby={helpOpen && !props.helpDialog ? helpId : undefined}
         {...data}
         onClick={activate}
         onBlur={() => { if (adjusting) endAdjust(false) }}
@@ -345,6 +434,7 @@ export function SummaryRow(props: SummaryRowProps) {
           <span className="summary-row__bar" aria-hidden="true"><span style={{ width: `${clamp(bar, 0, 1) * 100}%` }} /></span>
         )}
       </button>
+      {props.helpDialog && help && <RowHelp label={label} help={help} open={helpOpen} onOpen={() => setHelpOpen(true)} onClose={() => setHelpOpen(false)} />}
       {adjusting && adjustDetail && <div className="summary-row__detail">{adjustDetail}</div>}
       {adjusting && numberAdjust && (
         <div className={adjustStyles.caption} aria-live="polite">
@@ -352,7 +442,7 @@ export function SummaryRow(props: SummaryRowProps) {
           <span className={adjustStyles.typeHint}>{typed !== null ? `Enter keeps ${typed || '…'} · Esc clears` : 'Type a number to set it exactly'}{hasFine && typed === null ? ' · Shift+arrow for one fine step' : ''}</span>
         </div>
       )}
-      {helpOpen && help && <div id={helpId} className="summary-row__help" role="note">{help}</div>}
+      {helpOpen && help && !props.helpDialog && <div id={helpId} className="summary-row__help" role="note">{help}</div>}
     </div>
   )
 }
@@ -366,21 +456,11 @@ export function SummaryRow(props: SummaryRowProps) {
 export function ExpandRow(props: Omit<SummaryRowProps, 'onActivate' | 'expanded' | 'toggle' | 'adjust'> & { children: ReactNode; defaultOpen?: boolean }) {
   const { children, defaultOpen = false, ...row } = props
   const [open, setOpen] = useState(defaultOpen)
-  const wrap = useRef<HTMLDivElement>(null)
-  const fold = () => {
-    setOpen(false)
-    requestAnimationFrame(() => wrap.current?.querySelector<HTMLElement>(':scope > .summary-row-wrap > .summary-row')?.focus())
-  }
   return (
-    <div ref={wrap} className="expand-row">
-      <SummaryRow {...row} expanded={open} onActivate={() => setOpen(value => !value)} />
+    <div className="expand-row" data-nav-disclosure>
+      <SummaryRow {...row} data={{ ...row.data, 'data-nav-disclosure-trigger': '' }} expanded={open} onActivate={() => setOpen(value => !value)} />
       {open && (
-        <div className="expand-row__children" onKeyDown={event => {
-          if (event.key !== 'Escape' || event.defaultPrevented) return
-          event.preventDefault()
-          event.stopPropagation()
-          fold()
-        }}>{children}</div>
+        <div className="expand-row__children">{children}</div>
       )}
     </div>
   )

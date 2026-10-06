@@ -178,3 +178,6 @@
   .home { grid-template-columns: minmax(0, 1fr); height: auto; }
   .art { display: none; }
 }
+
+/* The associated game's icon before the title (TODO-46). */
+.gameIcon { flex: none; align-self: center; }

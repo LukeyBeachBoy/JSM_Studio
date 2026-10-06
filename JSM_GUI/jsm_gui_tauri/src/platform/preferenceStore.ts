@@ -46,7 +46,7 @@ export function refreshPreferences() {
 
 let primed: Promise<void> | null = null
 /** Read everything once, as early as possible, and follow the backend's
- *  runtime-state broadcasts (a reserved chord or the tray can change them). */
+ *  runtime-state broadcasts (a command binding or the tray can change them). */
 export function primePreferences() {
   if (primed) return primed
   desktopBridge.onRuntimeMappingState(state => { if (state) set({ runtime: { ...snapshot.runtime, ...state } }) })

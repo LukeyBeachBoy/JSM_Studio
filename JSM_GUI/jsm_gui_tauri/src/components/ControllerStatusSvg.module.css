@@ -388,7 +388,22 @@
 .backTriggerLive:hover { fill: var(--telemetry); fill-opacity: calc(.1 + var(--pull, 0) * .45); }
 .backPartSelected { stroke: var(--focus-controller); stroke-width: 3; }
 .backPartSelected:not(.backPartPressed):not(.backTriggerLive) { fill: color-mix(in srgb, var(--accent) 35%, transparent); }
-.backLegend { display: flex; flex-direction: column; gap: 6px; font-size: var(--fs-micro); color: var(--text-3); }
+/* The legend's rows come and go with what is held, and the whole back view is
+   centred beside the front art -- so the rows' space is reserved up front
+   (the title plus the four hotspot rows, two more with Details on), or the
+   drawing would slide up and down as rows appear (TODO-49). Each row is one
+   20px line and a 6px gap. */
+.backLegend {
+  --legend-rows: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: calc(20px + var(--legend-rows) * 26px);
+  font-size: var(--fs-micro);
+  line-height: 20px;
+  color: var(--text-3);
+}
+.backLegendDetailed { --legend-rows: 6; }
 .backLegendTitle { letter-spacing: var(--tracking-eyebrow); font-weight: var(--fw-semibold); text-transform: uppercase; }
 .backLegendItem { display: flex; align-items: center; gap: 6px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .backLegendMark { width: 8px; height: 8px; flex: none; border-radius: 2px; background: var(--text-3); }

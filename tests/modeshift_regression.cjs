@@ -103,4 +103,24 @@ assert.equal(readModeshift(addModeshift(needsClick, realPad, 'MISC2'),'MISC2','R
 assert.equal(readModeshift(addModeshift(needsClick, realPad, 'L'),'L','RIGHT_GRID_REQUIRES_CLICK'),'ON',
   'another trigger inherits the normal requires-click setting');
 
-console.log('PASS: mandatory triggers, independent normal/alternate layouts, legacy bindings, multiple shifts, scoped rename/remove, whitespace handling, same-mode shifts, inherited read-through, shifted touch stick and full shift cleanup');
+const { stickModeshiftSettings, projectModeshift, foldModeshift } = load('JSM_GUI/jsm_gui_tauri/src/utils/modeshift.ts');
+const rightStick = { id: 'rightStick', title: 'Right stick', buttons: ['RUP', 'RLEFT', 'RDOWN', 'RRIGHT', 'R3'].map(command => ({ command, label: command })), mode: { key: 'RIGHT_STICK_MODE', defaultValue: 'NO_MOUSE' }, settings: stickModeshiftSettings('RIGHT') };
+const leftStick = { ...rightStick, id: 'leftStick', mode: { key: 'LEFT_STICK_MODE', defaultValue: 'NO_MOUSE' }, settings: stickModeshiftSettings('LEFT'), buttons: [] };
+let flick = 'RIGHT_STICK_MODE = RIGHT_STICK\nFLICK_TIME = 0.1\nL,RIGHT_STICK_MODE = FLICK\nL,FLICK_TIME = 0.23\nL,RIGHT_STICK_DEADZONE_INNER = 0.2\nL,RM1 = SPACE\n';
+assert.deepEqual(modeshiftTriggers(flick, rightStick), ['L']);
+assert.deepEqual(modeshiftTriggers(flick, leftStick), [], 'shared flick tuning must not invent a left-stick shift');
+const projectedFlick = projectModeshift(flick, 'L');
+const changedFlick = foldModeshift(flick, 'L', projectedFlick.replace('FLICK_TIME = 0.23', 'FLICK_TIME = 0.34'));
+assert.equal(readModeshift(changedFlick, 'L', 'FLICK_TIME'), '0.34');
+assert.equal(getKeymapValue(changedFlick, 'FLICK_TIME'), '0.1', 'tuning does not alter the normal value');
+const renamedFlick = renameModeshift(flick, rightStick, 'L', 'R');
+assert.equal(readModeshift(renamedFlick, 'R', 'RM1'), 'SPACE', 'rename includes radial segments');
+assert.equal(readModeshift(renamedFlick, 'R', 'FLICK_TIME'), '0.23', 'rename includes tuning');
+assert.ok(!/^L,/m.test(renamedFlick));
+assert.ok(!/^L,/m.test(removeModeshift(flick, rightStick, 'L')), 'remove includes tuning, deadzone and radial segments');
+flick += 'L,LEFT_STICK_MODE = FLICK\n';
+assert.equal(readModeshift(removeModeshift(flick, rightStick, 'L'), 'L', 'FLICK_TIME'), '0.23', 'other stick keeps shared tuning');
+const splitFlick = renameModeshift(flick, rightStick, 'L', 'R');
+assert.equal(readModeshift(splitFlick, 'L', 'FLICK_TIME'), '0.23', 'other stick keeps tuning on old trigger');
+assert.equal(readModeshift(splitFlick, 'R', 'FLICK_TIME'), '0.23', 'renamed stick copies tuning to new trigger');
+console.log('PASS: mandatory triggers, inherited read-through, pad cleanup, full stick tuning/radial scope, no phantom shifts, shared-tuning preservation and scoped rename/remove');

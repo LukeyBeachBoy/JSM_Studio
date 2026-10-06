@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { keyName } from '../constants/configKeys'
 import { desktopBridge } from '../platform/desktopBridge'
-import { upsertFlagCommand } from '../utils/config'
+import { osMouseSpeedCompensated, writeOsMouseSpeedCompensation } from '../utils/config'
 import { getKeymapValue, removeKeymapEntry, updateKeymapEntry } from '../utils/keymap'
 
 type UseCalibrationParams = {
@@ -30,8 +30,7 @@ export function useCalibration({ configText, counterOsMouseSpeedEnabled, sensiti
 
   const resetCalibrationInputs = useCallback(() => {
     const sens = getKeymapValue(calibrationText, keyName.IN_GAME_SENS) ?? ''
-    const nonCommentText = calibrationText.split('\n').filter(l => !/^\s*#/.test(l)).join('\n')
-    const counter = Boolean(nonCommentText && new RegExp(`(^|\\s)${keyName.COUNTER_OS_MOUSE_SPEED}\\b`, 'i').test(nonCommentText))
+    const counter = osMouseSpeedCompensated(calibrationText)
     setCalibrationInGameSens(sens)
     setCalibrationCounterOs(counter)
     setCalibrationDirty(false)
@@ -52,8 +51,7 @@ export function useCalibration({ configText, counterOsMouseSpeedEnabled, sensiti
       if (preset?.success && preset.content !== undefined) {
         setCalibrationText(preset.content)
         const presetSens = getKeymapValue(preset.content, keyName.IN_GAME_SENS) ?? sensitivityInGame?.toString() ?? ''
-        const nonCommentPreset = preset.content.split('\n').filter(l => !/^\s*#/.test(l)).join('\n')
-        const presetCounter = new RegExp(`(^|\\s)${keyName.COUNTER_OS_MOUSE_SPEED}\\b`, 'i').test(nonCommentPreset)
+        const presetCounter = osMouseSpeedCompensated(preset.content)
         setCalibrationInGameSens(presetSens)
         setCalibrationCounterOs(presetCounter)
         setCalibrationDirty(false)
@@ -80,7 +78,7 @@ export function useCalibration({ configText, counterOsMouseSpeedEnabled, sensiti
 
   const buildCalibrationPreset = useCallback(() => {
     let next = calibrationText || ''
-    next = upsertFlagCommand(next, keyName.COUNTER_OS_MOUSE_SPEED, calibrationCounterOs)
+    next = writeOsMouseSpeedCompensation(next, calibrationCounterOs)
     const trimmed = calibrationInGameSens.trim()
     if (!trimmed) {
       next = removeKeymapEntry(next, keyName.IN_GAME_SENS)

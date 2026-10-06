@@ -1,0 +1,46 @@
+/* New configuration / Associate with a game (TODO-46). */
+.dialog :global(.dialog__body) { padding: 0 24px 20px; }
+.body { display: flex; flex-direction: column; gap: var(--sp-5); }
+
+.field { display: flex; flex-direction: column; gap: var(--sp-2); }
+.field > input { width: 100%; }
+.label { color: var(--text-2); font-size: var(--fs-label); font-weight: var(--fw-medium); }
+.optional { color: var(--text-3); font-weight: var(--fw-regular); }
+
+.game { display: flex; flex-direction: column; gap: var(--sp-2); }
+.chosen {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-height: 56px;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-card);
+  background: var(--surface-row);
+}
+.chosen[data-empty] { color: var(--text-3); }
+.chosenIcon {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-md);
+  background: var(--surface-control);
+  color: var(--text-2);
+}
+.chosenText { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.chosenName { color: var(--text-1); font-size: var(--fs-label); font-weight: var(--fw-medium); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chosenPath, .chosenNone { color: var(--text-3); font-size: var(--fs-hint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.clear { flex: none; color: var(--text-3); }
+.clear:hover { color: var(--error); }
+
+.pickers { display: flex; align-items: flex-end; gap: var(--sp-3); flex-wrap: wrap; }
+.runningField { flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: var(--sp-1); }
+.runningLabel { color: var(--text-3); font-size: var(--fs-hint); }
+.runningField > button[role='combobox'] { width: 100%; }
+
+.autoApplyRow { flex-direction: row; align-items: center; justify-content: space-between; gap: var(--sp-4); background: var(--surface-row); box-shadow: none; }
+.autoApplyRow[data-disabled] .autoApplyText { opacity: .55; }
+.autoApplyText { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.autoApplyText > span { color: var(--text-1); font-size: var(--fs-label); font-weight: var(--fw-medium); }
+.autoApplyText > small { color: var(--text-3); font-size: var(--fs-hint); line-height: var(--lh-hint); }

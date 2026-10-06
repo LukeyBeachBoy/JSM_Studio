@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JSM Evolved Mouse Area</title>
+    <style>
+      /* A sheet of glass the size of the monitor. The picker paints its own
+         scrim so the game stays visible underneath while the area is drawn. */
+      html, body, #areapicker-root {
+        margin: 0;
+        height: 100%;
+        background: transparent;
+        overflow: hidden;
+        user-select: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="areapicker-root"></div>
+    <script type="module" src="/src/areapicker/main.tsx"></script>
+  </body>
+</html>

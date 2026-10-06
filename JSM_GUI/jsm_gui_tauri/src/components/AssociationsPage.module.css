@@ -21,7 +21,8 @@
   transform: translateY(-1px);
 }
 :global(body[data-input-source='controller']) .row :focus { box-shadow: none; }
-.row[data-paused] .name, .row[data-paused] .appIcon { opacity: .55; }
+.row[data-paused] .name, .row[data-paused] .appIcon:not(:has(img)) { opacity: .55; }
+/* An icon-only association (TODO-46) keeps its game icon bright: paused is the state chosen for it. */
 
 .appIcon { width: 36px; height: 36px; flex: none; display: grid; place-items: center; border-radius: var(--r-md); background: var(--surface-control); color: var(--text-2); }
 .text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }

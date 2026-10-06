@@ -17,6 +17,7 @@ import {
 import { bindingSpecialKeys, keyName } from '../constants/configKeys'
 import type { GyroActivationMode } from '../utils/gyroActivation'
 import { parseGyroActivation, writeGyroActivation } from '../utils/gyroActivation'
+import { bindingTargetAlias } from '../utils/bindingAliases'
 import {
   analyzeVirtualControllerConfig,
   normalizeVirtualControllerType,
@@ -94,6 +95,18 @@ export function useBindingsConfig({ configText, readText, setConfigText }: Bindi
     setConfigText(prev => {
       let next = clearSpecialAssignmentsForButton(prev, button)
       next = clearToggleAssignments(next, button)
+      const assignmentKey = slot === 'double' ? `${button},${button}`
+        : options?.modifier ? `${options.modifier}${slot === 'chord' ? ',' : slot === 'simultaneous' ? '+' : '*'}${button}` : button
+      const inherited = getKeymapValue(readSource, assignmentKey)
+      const initiallyInherited = getKeymapValue(configText, assignmentKey) === undefined
+      const alias = bindingTargetAlias(assignmentKey)
+      const sharedFallback = alias && getKeymapValue(readSource, alias) !== undefined
+      // Writers operate on owned source. Seed just this inherited assignment
+      // so editing a tap retains its hold, and clearing creates an explicit
+      // unbound override rather than revealing the imported action again.
+      if (initiallyInherited && inherited !== undefined && getKeymapValue(next, assignmentKey) === undefined) {
+        next = updateKeymapEntry(next, assignmentKey, [inherited])
+      }
       switch (slot) {
         case 'tap':
           next = options?.writeMode === 'line' ? setBindingLine(next, button, binding) : setTapBinding(next, button, binding)
@@ -115,6 +128,9 @@ export function useBindingsConfig({ configText, readText, setConfigText }: Bindi
           break
         default:
           break
+      }
+      if ((initiallyInherited || sharedFallback) && inherited !== undefined && getKeymapValue(next, assignmentKey) === undefined) {
+        next = updateKeymapEntry(next, assignmentKey, ['NONE'])
       }
       return removeTrackballDecayIfUnused(next)
     })
@@ -199,7 +215,7 @@ export function useBindingsConfig({ configText, readText, setConfigText }: Bindi
   // the whole controller passed through to a virtual pad, and a four-way
   // directional pointed at WASD.
   const handleBindGamepadPassthrough = (scheme: VirtualControllerScheme) => {
-    setConfigText(prev => applyGamepadPassthrough(prev, scheme))
+    setConfigText(prev => applyGamepadPassthrough(prev, scheme, readSource))
   }
 
   const handleBindDirectionsToWasd = (setId: DirectionalSetId) => {

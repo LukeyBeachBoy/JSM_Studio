@@ -1,4 +1,5 @@
 import { bindingSpecialKeys } from '../constants/configKeys'
+import { BINDING_ALIASES, bindingTargetAlias, bindingTargetMatches } from './bindingAliases'
 
 export interface SensitivityValues {
   inGameSens?: number
@@ -20,6 +21,8 @@ export interface SensitivityValues {
   gyroSensY?: number
   rollContribution?: number
   cutoffSpeed?: number
+  steadyingFloorX?: number
+  steadyingFloorY?: number
   cutoffRecovery?: number
   smoothTime?: number
   smoothThreshold?: number
@@ -40,7 +43,11 @@ export interface SensitivityValues {
 }
 
 const escapeKey = (key: string) => key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-const LINE_REGEX = (key: string) => new RegExp(`^\\s*${escapeKey(key)}\\s*=\\s*(.+)$`, 'gim')
+const LINE_REGEX = (key: string) => {
+  const alias = bindingTargetAlias(key)
+  const names = alias ? `(?:${escapeKey(key)}|${escapeKey(alias)})` : escapeKey(key)
+  return new RegExp(`^\\s*${names}\\s*=\\s*(.+)$`, 'gim')
+}
 
 // JSM applies assignments top to bottom and the last one wins, so a key set
 // more than once must read as its LAST value, not its first. A GUI-written
@@ -130,6 +137,8 @@ export function parseSensitivityValues(text: string, options?: { prefix?: string
     rollContribution,
     cutoffSpeed: single('GYRO_CUTOFF_SPEED'),
     cutoffRecovery: single('GYRO_CUTOFF_RECOVERY'),
+    steadyingFloorX: get('GYRO_STEADYING_FLOOR', 2)[0],
+    steadyingFloorY: get('GYRO_STEADYING_FLOOR', 2)[1] ?? get('GYRO_STEADYING_FLOOR', 2)[0],
     smoothTime: single('GYRO_SMOOTH_TIME'),
     smoothThreshold: single('GYRO_SMOOTH_THRESHOLD'),
     smoothingDecay: smoothingDecayRaw ? smoothingDecayRaw.toUpperCase() : undefined,
@@ -192,8 +201,13 @@ export function updateKeymapEntry(text: string, key: string, values: Array<numbe
   // `KEY=value` too, which the old `startsWith('KEY =')` missed and so appended
   // a duplicate to.
   const pattern = new RegExp(`^\\s*${escapeKey(key)}\\s*=`, 'i')
+  const alias = bindingTargetAlias(key)
+  const aliasPattern = alias ? new RegExp(`^\\s*${escapeKey(alias)}\\s*=`, 'i') : null
   let index = -1
   for (let at = lines.length - 1; at >= 0; at -= 1) {
+    // A later shared alias also assigns this target. Append the individual
+    // override after it rather than editing a line it would overwrite.
+    if (aliasPattern?.test(lines[at])) break
     if (pattern.test(lines[at])) { index = at; break }
   }
   if (index >= 0) {
@@ -246,6 +260,7 @@ export type BindingToken = {
   raw: string
   actionModifier: BindingActionModifier
   eventModifier: BindingEventModifier
+  turboIntervalMs?: number | null
 }
 
 export type BindingExpression = {
@@ -417,7 +432,10 @@ const splitBindingToken = (text: string) => {
 }
 
 const parseBindingToken = (rawToken: string): BindingToken => {
-  const { actionModifier, eventModifier, key } = splitBindingToken(rawToken.trim())
+  const interval = /\+\{(\d+(?:\.\d+)?)\}$/.exec(rawToken.trim())
+  const turboIntervalMs = interval && Number(interval[1]) > 0 ? Number(interval[1]) : undefined
+  const text = turboIntervalMs !== undefined ? rawToken.trim().slice(0, -interval![1].length - 2) : rawToken.trim()
+  const { actionModifier, eventModifier, key } = splitBindingToken(text)
   const remaining = key
 
   const trimmedValue = remaining.trim()
@@ -429,6 +447,7 @@ const parseBindingToken = (rawToken: string): BindingToken => {
       raw: rawToken.trim(),
       actionModifier,
       eventModifier,
+      turboIntervalMs,
     }
   }
 
@@ -439,6 +458,7 @@ const parseBindingToken = (rawToken: string): BindingToken => {
     raw: rawToken.trim(),
     actionModifier,
     eventModifier,
+    turboIntervalMs,
   }
 }
 
@@ -459,7 +479,8 @@ export function serializeBindingToken(token: BindingToken) {
     token.kind === 'console_command'
       ? `"${sanitizeConsoleCommandValue(token.value)}"`
       : token.value.trim()
-  return `${token.actionModifier}${baseValue}${token.eventModifier}`.trim()
+  const interval = token.eventModifier === '+' && token.turboIntervalMs != null ? `{${token.turboIntervalMs}}` : ''
+  return `${token.actionModifier}${baseValue}${token.eventModifier}${interval}`.trim()
 }
 
 /**
@@ -492,6 +513,7 @@ const survivesReparse = (tokens: BindingToken[], text: string) => {
   return tokens.every((token, index) =>
     parsed[index].value === token.value.trim() &&
     parsed[index].actionModifier === token.actionModifier &&
+    (parsed[index].turboIntervalMs ?? null) === (token.turboIntervalMs ?? null) &&
     effectiveEventModifier(parsed[index], index, parsed.length) ===
       effectiveEventModifier(token, index, tokens.length)
   )
@@ -581,6 +603,7 @@ export function updateBindingExpressionToken(
       raw: token.raw,
       actionModifier: patch.actionModifier ?? token.actionModifier,
       eventModifier: patch.eventModifier ?? token.eventModifier,
+      turboIntervalMs: 'turboIntervalMs' in patch ? patch.turboIntervalMs : token.turboIntervalMs,
     }
     if (!updated.value) {
       updated.value = defaultTokenValueForKind(nextKind)
@@ -703,6 +726,8 @@ function writeBaseBinding(text: string, button: string, tap?: string, hold?: str
   }
   if (hold) values.push(hold)
   if (values.length === 0) {
+    const alias = bindingTargetAlias(button)
+    if (alias && getKeymapValue(text, alias)) return updateKeymapEntry(text, button, ['NONE'])
     return removeKeymapEntry(text, button)
   }
   return updateKeymapEntry(text, button, values)
@@ -711,6 +736,8 @@ function writeBaseBinding(text: string, button: string, tap?: string, hold?: str
 export function setBindingLine(text: string, key: string, expression?: string | null) {
   const trimmed = stripInlineComment(expression ?? undefined)
   if (!trimmed) {
+    const alias = bindingTargetAlias(key)
+    if (alias && getKeymapValue(text, alias)) return updateKeymapEntry(text, key, ['NONE'])
     return removeKeymapEntry(text, key)
   }
   return updateKeymapEntry(text, key, [trimmed])
@@ -742,6 +769,8 @@ export function setDoubleBinding(text: string, button: string, value?: string | 
   const target = `${button},${button}`
   const trimmed = value?.trim()
   if (!trimmed) {
+    const alias = bindingTargetAlias(target)
+    if (alias && getKeymapValue(text, alias)) return updateKeymapEntry(text, target, ['NONE'])
     return removeKeymapEntry(text, target)
   }
   return updateKeymapEntry(text, target, [trimmed])
@@ -780,19 +809,23 @@ function parseComboBindings(
     const parts = key.split(separator)
     if (parts.length !== 2) continue
     const [left, right] = parts.map(part => part.trim())
-    if (right !== target) continue
+    if (!bindingTargetMatches(right, target)) continue
+    if (left in BINDING_ALIASES) continue // aliases are not physical conditions
     if (left.toUpperCase() === target) continue
     const expression = parseBindingExpression(value)
     if (!expression) continue
-    results.push({
-      id: `combo-${slot}-${target}-${results.length}`,
+    const previous = results.findIndex(entry => entry.modifier === left)
+    const entry: ComboBinding = {
+      id: previous >= 0 ? results[previous].id : `combo-${slot}-${target}-${results.length}`,
       modifier: left,
       binding: expression.raw,
       expression,
       editorMode: canUseSimpleSingleBindingEditor(expression) ? 'simple' : 'advanced',
       canSwitchToSimple: canUseSimpleSingleBindingEditor(expression),
       lineIndex,
-    })
+    }
+    if (previous >= 0) results[previous] = entry
+    else results.push(entry)
   }
   return results
 }
@@ -812,15 +845,16 @@ export function setComboBindingLine(
   const trimmed = value?.trim()
   const existing = parsed.find(entry => entry.id === rowId)
 
-  if (!trimmed) {
-    if (existing) {
-      lines.splice(existing.lineIndex, 1)
-    }
-    return lines.join('\n')
-  }
+  if (!trimmed) return existing ? removeComboBindingLine(text, button, slot, rowId) : text
 
   const nextLine = `${modifier}${separator}${button} = ${trimmed}`
   if (existing) {
+    const actualKey = lines[existing.lineIndex].split('=')[0].trim()
+    if (actualKey !== `${modifier}${separator}${button}`) {
+      // Shared aliases also assign the other physical input. Leave them
+      // intact and write a later override for only the input being edited.
+      return updateKeymapEntry(text, `${modifier}${separator}${button}`, [trimmed])
+    }
     lines[existing.lineIndex] = nextLine
     return lines.join('\n')
   }
@@ -840,6 +874,9 @@ export function removeComboBindingLine(
   const parsed = parseComboBindings(text, button, separator, slot)
   const existing = parsed.find(entry => entry.id === rowId)
   if (!existing) return text
+  const key = `${existing.modifier}${separator}${button}`
+  const alias = bindingTargetAlias(key)
+  if (alias && getKeymapValue(text, alias)) return updateKeymapEntry(text, key, ['NONE'])
   lines.splice(existing.lineIndex, 1)
   return lines.join('\n')
 }

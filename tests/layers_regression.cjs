@@ -18,7 +18,8 @@ const {readLayers,writeLayers,projectLayer,foldLayer,convertModeshifts,inputUses
 const {parseConfigText,serializeConfig} = load('JSM_GUI/jsm_gui_tauri/src/utils/configSerializer.ts');
 const source = 'RESET_MAPPINGS\nN = SPACE\nRSR = NONE\nRSR,N = J\nRSR,W = U\nLSL,N = H\n# @label RSR,N = Squad talk\n# @overlay RIGHT:RSR at 0.5 0.5 size 300\n';
 let text=convertModeshifts(source,{id:'comms',name:'Comms',overrides:{}},'RSR');
-// Activation belongs to the input now, so binding it is a separate act.
+assert.ok(readLayerActions(text).some(action => action.input === 'RSR' && action.verb === 'hold' && action.layerId === 'comms'), 'migration preserves the original held activation');
+// Setting the same action is idempotent.
 text=setLayerActions(text,'RSR',[{input:'RSR',verb:'hold',layerId:'comms'}]);
 assert.equal(readLayers(text)[0].overrides.N,'J');
 assert.equal(layerEntries(text)['RSR,N'],undefined);

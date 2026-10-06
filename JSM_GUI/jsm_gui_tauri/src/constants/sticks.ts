@@ -7,6 +7,7 @@ export const STICK_MODE_VALUES = [
   'FLICK_ONLY',
   'ROTATE_ONLY',
   'MOUSE_AREA',
+  'MOUSE_RING',
   'SCROLL_WHEEL',
   'HYBRID_AIM',
   'INNER_RING',
@@ -23,7 +24,18 @@ export const STICK_MODE_VALUES = [
   // JSM. Requires VIRTUAL_CONTROLLER to be set; see stickModeExtras' hint.
   'LEFT_STICK',
   'RIGHT_STICK',
+  'LEFT_ANGLE_TO_X',
+  'LEFT_ANGLE_TO_Y',
+  'RIGHT_ANGLE_TO_X',
+  'RIGHT_ANGLE_TO_Y',
+  'LEFT_WIND_X',
+  'RIGHT_WIND_X',
 ] as const
+
+// The mode picker groups the three native flick behaviours under Flick Stick.
+export const STICK_MODE_PICKER_VALUES = STICK_MODE_VALUES.filter(mode => mode !== 'FLICK_ONLY' && mode !== 'ROTATE_ONLY')
+export const isFlickStickMode = (mode: string) => ['FLICK', 'FLICK_ONLY', 'ROTATE_ONLY'].includes(mode.toUpperCase())
+export const stickModePickerValue = (mode: string) => isFlickStickMode(mode) ? 'FLICK' : mode
 
 export type StickMode = (typeof STICK_MODE_VALUES)[number]
 
@@ -34,6 +46,7 @@ const STICK_MODE_LABEL_KEYS: Record<StickMode, string> = {
   FLICK_ONLY: 'stickModes.FLICK_ONLY',
   ROTATE_ONLY: 'stickModes.ROTATE_ONLY',
   MOUSE_AREA: 'stickModes.MOUSE_AREA',
+  MOUSE_RING: 'stickModes.MOUSE_RING',
   SCROLL_WHEEL: 'stickModes.SCROLL_WHEEL',
   HYBRID_AIM: 'stickModes.HYBRID_AIM',
   INNER_RING: 'stickModes.INNER_RING',
@@ -41,6 +54,12 @@ const STICK_MODE_LABEL_KEYS: Record<StickMode, string> = {
   RADIAL_MENU: 'stickModes.RADIAL_MENU',
   LEFT_STICK: 'stickModes.LEFT_STICK',
   RIGHT_STICK: 'stickModes.RIGHT_STICK',
+  LEFT_ANGLE_TO_X: 'stickModes.LEFT_ANGLE_TO_X',
+  LEFT_ANGLE_TO_Y: 'stickModes.LEFT_ANGLE_TO_Y',
+  RIGHT_ANGLE_TO_X: 'stickModes.RIGHT_ANGLE_TO_X',
+  RIGHT_ANGLE_TO_Y: 'stickModes.RIGHT_ANGLE_TO_Y',
+  LEFT_WIND_X: 'stickModes.LEFT_WIND_X',
+  RIGHT_WIND_X: 'stickModes.RIGHT_WIND_X',
 }
 
 export const getStickModeLabelKey = (mode: string) => {
@@ -50,9 +69,28 @@ export const getStickModeLabelKey = (mode: string) => {
 
 export const formatStickModeLabel = (mode: string, t: TFunction) => {
   const key = getStickModeLabelKey(mode)
-  if (key) return t(key)
+  if (key) return t(key, FRIENDLY_SPECIAL_MODES[mode.toUpperCase()] ?? mode.replace(/_/g, ' '))
   const upper = mode?.toUpperCase()
   return upper ? upper.replace(/_/g, ' ') : ''
+}
+
+const FRIENDLY_SPECIAL_MODES: Record<string, string> = {
+  MOUSE_RING: 'Cursor ring',
+  LEFT_ANGLE_TO_X: 'Direction → left stick horizontal',
+  LEFT_ANGLE_TO_Y: 'Direction → left stick vertical',
+  RIGHT_ANGLE_TO_X: 'Direction → right stick horizontal',
+  RIGHT_ANGLE_TO_Y: 'Direction → right stick vertical',
+  LEFT_WIND_X: 'Winding → left stick steering',
+  RIGHT_WIND_X: 'Winding → right stick steering',
+}
+
+export function stickModeTuningLabel(mode: string, t: TFunction) {
+  const upper = mode.toUpperCase()
+  if (['FLICK', 'FLICK_ONLY', 'ROTATE_ONLY'].includes(upper)) return t('keymap.flickTuning', 'Flick tuning')
+  if (['AIM', 'HYBRID_AIM'].includes(upper)) return t('keymap.aimTuning', 'Aim tuning')
+  if (upper === 'SCROLL_WHEEL') return t('keymap.scrollTuning', 'Scroll tuning')
+  if (upper === 'MOUSE_AREA') return t('keymap.cursorTuning', 'Cursor tuning')
+  return t('keymap.outputSettings', 'Output settings')
 }
 
 // Directional presses (Up/Down/Left/Right) only mean anything while the stick is

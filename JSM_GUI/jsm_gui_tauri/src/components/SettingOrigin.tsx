@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, type ReactNode } from 'react'
 import { layerEntries, readableSetting } from '../utils/layers'
 import { DirtyScope } from '../hooks/configContext'
+import { bindingTargetAlias } from '../utils/bindingAliases'
+import { getKeymapValue } from '../utils/keymap'
 
 export const SettingOrigins = createContext<{
   text: string; base: string; own: string; origins: Record<string, string>; layer?: string;
@@ -13,6 +15,10 @@ export const SettingOrigins = createContext<{
 
 const SettingKeyPrefix = createContext('')
 export function SettingPrefix({ prefix, children }: { prefix: string; children: ReactNode }) { return <SettingKeyPrefix.Provider value={prefix}>{children}</SettingKeyPrefix.Provider> }
+export function useSettingKey(setting?: string) {
+  const prefix = useContext(SettingKeyPrefix)
+  return setting && !setting.includes(',') ? prefix + setting : setting
+}
 
 /**
  * The origin marker (Components 13.8): a hollow dot and the source's name when
@@ -25,11 +31,14 @@ export function SettingOrigin({ setting }: { setting?: string }) {
   const prefix = useContext(SettingKeyPrefix)
   if (!setting) return null
   setting = setting.includes(',') ? setting : prefix + setting
-  const own = Object.prototype.hasOwnProperty.call(layerEntries(context.own), setting)
+  const literalOwn = Object.prototype.hasOwnProperty.call(layerEntries(context.own), setting)
+  const own = literalOwn || Boolean(bindingTargetAlias(setting) && getKeymapValue(context.own, setting) !== undefined)
   const source = context.origins[setting]
   const imported = source && source !== '<editor>' ? source.split('/').pop()?.replace(/.txt$/i, '') : null
-  const inBase = Object.prototype.hasOwnProperty.call(layerEntries(context.base), setting)
-  const resetAvailable = own && (context.layer || imported || inBase)
+  const inBase = Object.prototype.hasOwnProperty.call(layerEntries(context.base), setting) || Boolean(bindingTargetAlias(setting) && getKeymapValue(context.base, setting) !== undefined)
+  // Removing the shared source would also reset its sibling. Offer this
+  // per-input reset only when an individual assignment actually owns it.
+  const resetAvailable = literalOwn && (context.layer || imported || inBase)
   // What the marker says, and the fuller wording a screen reader hears.
   const [kind, shown, spoken] = context.layer
     ? own ? ['override', `Override · ${context.layer}`, ''] : ['inherited', 'From Default', 'Inherited · ']

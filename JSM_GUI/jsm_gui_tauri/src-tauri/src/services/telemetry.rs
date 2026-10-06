@@ -11,6 +11,30 @@ use tauri::{AppHandle, Emitter};
 
 use crate::services::app_state::AppState;
 
+/// Events are retransmitted by the mapper until they age out of its small
+/// ring buffer. Ignore a session's initial history, then consume each event
+/// once even when UDP duplicates, reorders or drops individual packets.
+#[derive(Default)]
+struct StudioCommands {session:Option<u64>,sequence:u64}
+impl StudioCommands {
+    fn take(&mut self,packet:&Value)->Vec<(String,i64)> {
+        let commands=&packet["studioActions"];
+        let Some(session)=commands["session"].as_u64() else {return vec![]};
+        let Some(events)=commands["events"].as_array() else {return vec![]};
+        if self.session!=Some(session) {
+            self.session=Some(session);self.sequence=events.iter().filter_map(|e|e["id"].as_u64()).max().unwrap_or(0);
+            return vec![];
+        }
+        let mut actions=Vec::new();
+        for event in events {
+            let id=event["id"].as_u64().unwrap_or(0);
+            if id<=self.sequence {continue;} self.sequence=id;
+            if let (Some(command),Some(handle))=(event["command"].as_str(),event["handle"].as_i64()) {actions.push((command.into(),handle));}
+        }
+        actions
+    }
+}
+
 const TELEMETRY_PORT: u16 = 8974;
 const TELEMETRY_STALE_MS: u64 = 1500;
 const TELEMETRY_HEALTH_CHECK_MS: u64 = 500;
@@ -108,11 +132,28 @@ pub fn start(app: AppHandle, state: AppState) {
         let mut last_came_up: Option<Instant> = None;
         let mut presses = PressLatch::default();
 
+        let mut studio_commands=StudioCommands::default();
         loop {
             match socket.recv_from(&mut buffer) {
                 Ok((size, _)) => match serde_json::from_slice::<Value>(&buffer[..size]) {
                     Ok(mut packet) => {
                         presses.observe(&packet);
+                        for (command,owner) in studio_commands.take(&packet) {
+                            if command=="OPEN_KEYBOARD" {crate::services::virtual_keyboard::request_toggle(owner);}
+                            if command=="TOGGLE_MAPPING" {
+                                crate::services::global_chords::consume_until_release();
+                                let app=app.clone();let state=state.clone();
+                                thread::spawn(move || {
+                                    if let Ok(current)=crate::runtime::read_runtime_mapping_state(&app) {
+                                        if let Ok(next)=crate::runtime::set_mapping_enabled(&app,!current.mapping_enabled) {
+                                            let _=crate::commands::apply_runtime_mapping_state(&app,&state,&next);
+                                            let _=app.emit("runtime-mapping-state",&next);
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                        crate::services::virtual_keyboard::on_packet(&app, &packet);
                         // Global chords and connection health still receive every
                         // packet. Only the expensive WebView IPC/rendering stops
                         // when another app (such as a game) has focus.
@@ -129,7 +170,7 @@ pub fn start(app: AppHandle, state: AppState) {
                         // The overlay runs on its own clock, at the refresh rate
                         // of the display showing it, and is NOT gated on the main
                         // UI being focused: it is read while a game is focused.
-                        if state.overlay_active.load(Ordering::Relaxed) {
+                        if state.overlay_active.load(Ordering::Relaxed) && !crate::services::virtual_keyboard::requested() {
                             let interval = Duration::from_micros(
                                 state.overlay_interval_us.load(Ordering::Relaxed).max(1_000),
                             );
@@ -173,6 +214,7 @@ pub fn start(app: AppHandle, state: AppState) {
             }
 
             let _ = handle_health(&app, &state);
+            crate::services::virtual_keyboard::health(&app);
             crate::services::jsm_process::report_unexpected_exit(&app, &state);
         }
     });
@@ -330,6 +372,7 @@ fn emit_overlay_packet(app: &AppHandle, packet: &Value) -> Result<(), String> {
             "rightPad": pad("rightPad"),
             "leftStick": stick("leftStick"),
             "rightStick": stick("rightStick"),
+            "virtualMenus": status.get("virtualMenus"),
             "touchpadWidth": dimension("touchpadWidth"),
             "touchpadHeight": dimension("touchpadHeight"),
             // Which configuration the mapper is actually running. A binding can
@@ -463,5 +506,20 @@ mod tests {
         assert_eq!(state.ui_interval_us.load(Ordering::Relaxed), 33_333);
         set_ui_refresh_hz(&state, 100_000);
         assert_eq!(state.ui_interval_us.load(Ordering::Relaxed), 1_000);
+    }
+}
+
+#[cfg(test)]
+mod studio_command_tests {
+    use super::*;
+    #[test] fn actions_are_owned_deduplicated_and_do_not_replay_on_restart() {
+        let mut cursor=StudioCommands::default();
+        let packet=|session,events|json!({"studioActions":{"session":session,"events":events}});
+        assert!(cursor.take(&packet(1,vec![json!({"id":1,"handle":7,"command":"OPEN_KEYBOARD"})])).is_empty());
+        let next=packet(1,vec![json!({"id":1,"handle":7,"command":"OPEN_KEYBOARD"}),json!({"id":2,"handle":9,"command":"OPEN_KEYBOARD"})]);
+        assert_eq!(cursor.take(&next),vec![("OPEN_KEYBOARD".into(),9)]);
+        assert!(cursor.take(&next).is_empty());
+        assert!(cursor.take(&packet(2,vec![json!({"id":1,"handle":7,"command":"TOGGLE_MAPPING"})])).is_empty());
+        assert_eq!(cursor.take(&packet(2,vec![json!({"id":2,"handle":7,"command":"TOGGLE_MAPPING"})])),vec![("TOGGLE_MAPPING".into(),7)]);
     }
 }

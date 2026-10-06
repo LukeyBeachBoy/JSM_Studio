@@ -2,7 +2,7 @@
    eyebrow group labels, 40px two-line rows. Hover lifts the fill one step;
    keyboard or controller focus is the selected fill with the 2px ring. */
 .content {
-  z-index: var(--z-menu);
+  z-index: var(--z-popover);
   min-width: 220px;
   max-width: calc(100vw - 32px);
   max-height: min(var(--radix-dropdown-menu-content-available-height, 80vh), 560px);
@@ -185,6 +185,7 @@
 .search:focus-within {
   box-shadow: 0 0 0 2px var(--focus-keyboard);
 }
+:global(body[data-focus-glide]) .search:focus-within { box-shadow: none; }
 
 .empty {
   padding: var(--sp-3);

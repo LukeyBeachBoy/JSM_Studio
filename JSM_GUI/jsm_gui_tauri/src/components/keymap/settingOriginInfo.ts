@@ -1,5 +1,5 @@
 import { useContext } from 'react'
-import { SettingOrigins } from '../SettingOrigin'
+import { SettingOrigins, useSettingKey } from '../SettingOrigin'
 import { layerEntries } from '../../utils/layers'
 
 export type OriginKind = 'inherited' | 'override' | 'own' | 'default'
@@ -32,6 +32,7 @@ const has = (entries: Readonly<Record<string, string>>, key: string) => Object.p
  */
 export function useSettingOriginInfo(setting?: string): OriginInfo | null {
   const context = useContext(SettingOrigins)
+  setting = useSettingKey(setting)
   if (!setting) return null
   const ownEntries = layerEntries(context.own)
   const own = has(ownEntries, setting)

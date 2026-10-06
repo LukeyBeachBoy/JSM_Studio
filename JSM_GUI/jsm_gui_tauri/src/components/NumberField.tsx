@@ -75,7 +75,7 @@ export function NumberField({
   id,
 }: NumberFieldProps) {
   const { t } = useTranslation()
-  const help = hint ?? (typeof label === 'string' ? settingHelp(label) : undefined)
+  const help = hint ?? (typeof label === 'string' ? settingHelp(label, setting) : undefined)
   const autoId = useId()
   const inputId = id ?? autoId
   const [coarse, setCoarse] = useState(false)
@@ -179,7 +179,9 @@ export function NumberField({
           {/* The description sits under the row (Gyro.dc.html), so a "?" beside the
               label would only repeat it; a row with no description yet wears
               the frame's help dot instead, and Y opens the documentation. */}
-          {!help && <span className={styles.helpDot} title="No description yet" aria-hidden="true">?</span>}
+          {!help && <button type="button" className={styles.helpDot} data-nav-skip
+            title="Open documentation" aria-label={`${typeof label === 'string' ? label : 'Setting'} documentation`}
+            onClick={() => window.dispatchEvent(new CustomEvent('jsm:open-docs', { detail: { setting } }))}>?</button>}
         </span>
         {/* Fine / coarse sits with the value, so showing it on hover moves
             nothing and the slider keeps the full width. */}
@@ -238,9 +240,7 @@ export function NumberField({
           onRevert={() => onChange(rawText(adjustStart.current))}
         />
       </div>
-      {help
-        ? <p className={styles.hint}>{help}</p>
-        : <p className={`${styles.hint} ${styles.hintMissing}`}>No description yet · {setting ?? (typeof label === 'string' ? label : 'this setting')} · Y opens documentation</p>}
+      {help && <p className={styles.hint}>{help}</p>}
 
     </div>
   )

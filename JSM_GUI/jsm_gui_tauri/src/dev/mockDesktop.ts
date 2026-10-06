@@ -68,9 +68,11 @@ export function installMockDesktop() {
   const mockFallback = { profileName: 'Gamepad', enabled: true }
   const mockAutostart = { enabled: true }
   // Association rules, mutable so pausing one under ?mock shows in the list.
-  const mockRules: { processName: string; fileName: string; kind: string; profileName: string; missingProfile: boolean; builtIn: boolean; paused?: boolean; lastMatchedAtMs?: number }[] = [
+  // exePath is the executable an association was made from (TODO-46); the
+  // bridge paints a coloured square for any path outside the desktop runtime.
+  const mockRules: { processName: string; fileName: string; kind: string; profileName: string; missingProfile: boolean; builtIn: boolean; paused?: boolean; lastMatchedAtMs?: number; exePath?: string }[] = [
     { processName: 'JSM Evolved', fileName: 'JSM Evolved.txt', kind: 'profile', profileName: 'AppNavigation', missingProfile: false, builtIn: true },
-    { processName: 'Wardogs', fileName: 'Wardogs.txt', kind: 'profile', profileName: 'Wardogs', missingProfile: false, builtIn: false, lastMatchedAtMs: Date.now() - 12 * 60_000 },
+    { processName: 'Wardogs', fileName: 'Wardogs.txt', kind: 'profile', profileName: 'Wardogs', missingProfile: false, builtIn: false, lastMatchedAtMs: Date.now() - 12 * 60_000, exePath: 'C:\\Games\\Wardogs\\Wardogs.exe' },
     { processName: 'Cyberpunk2077', fileName: 'Cyberpunk2077.txt', kind: 'profile', profileName: 'Cyberpunk', missingProfile: false, builtIn: false, lastMatchedAtMs: Date.now() - 26 * 3_600_000 },
     { processName: 'steamwebhelper', fileName: 'steamwebhelper.txt.paused', kind: 'profile', profileName: 'Gamepad', missingProfile: false, builtIn: false, paused: true },
   ]
@@ -85,7 +87,31 @@ export function installMockDesktop() {
     saveLibraryProfile: async (name: string, content: string) => { profiles[name] = content; return { name } },
     applyProfile: async (path: string) => ({ path, mappingEnabled: true }),
     listLibraryProfileMeta: async () => Object.keys(profiles).map((name, index) => ({ name, modifiedAtMs: Date.now() - (index + 1) * 11 * 60_000 })),
-    listRunningProcesses: async () => [{ processName: 'Wardogs.exe', pid: 4120, windowTitle: 'Wardogs' }, { processName: 'Cyberpunk2077.exe', pid: 5280, windowTitle: 'Cyberpunk 2077' }, { processName: 'explorer.exe', pid: 1932, windowTitle: 'File Explorer' }],
+    listRunningProcesses: async () => [{ processName: 'Wardogs.exe', pid: 4120, windowTitle: 'Wardogs', exePath: 'C:\\Games\\Wardogs\\Wardogs.exe' }, { processName: 'Cyberpunk2077.exe', pid: 5280, windowTitle: 'Cyberpunk 2077', exePath: 'C:\\Games\\Cyberpunk 2077\\bin\\x64\\Cyberpunk2077.exe' }, { processName: 'explorer.exe', pid: 1932, windowTitle: 'File Explorer' }],
+    // New configuration (TODO-46): the name given is the file name, numbered if taken.
+    createLibraryProfile: async (preferredBaseName?: string) => {
+      const base = (preferredBaseName ?? 'Configuration').trim() || 'Configuration'
+      const taken = new Set(Object.keys(profiles).map(name => name.toLowerCase()))
+      let name = base
+      for (let n = 2; taken.has(name.toLowerCase()); n++) name = `${base} ${n}`
+      profiles[name] = 'RESET_MAPPINGS\n'
+      return { name, path: `profiles-library/${name}.txt`, content: profiles[name] }
+    },
+    saveAutoloadRule: async (processName: string, profileName: string, options?: { exePath?: string; autoApply?: boolean }) => {
+      const stem = processName.replace(/\.exe$/i, '')
+      let rule = mockRules.find(candidate => candidate.processName.toLowerCase() === stem.toLowerCase())
+      if (!rule) { rule = { processName: stem, fileName: `${stem}.txt`, kind: 'profile', profileName, missingProfile: false, builtIn: false }; mockRules.push(rule) }
+      rule.profileName = profileName
+      if (options?.exePath) rule.exePath = options.exePath
+      if (options?.autoApply !== undefined) rule.paused = !options.autoApply
+      rule.fileName = rule.paused ? `${stem}.txt.paused` : `${stem}.txt`
+      return { ...rule }
+    },
+    deleteAutoloadRule: async (processName: string) => {
+      const index = mockRules.findIndex(candidate => candidate.processName.toLowerCase() === processName.replace(/\.exe$/i, '').toLowerCase())
+      if (index >= 0) mockRules.splice(index, 1)
+      return { success: true }
+    },
     // Answers late and differs from the switch's old default, so ?mock shows
     // whether Preferences opens on the real value (preferenceStore).
     getAutostartEnabled: async () => { await new Promise(resolve => window.setTimeout(resolve, 250)); return mockAutostart.enabled },

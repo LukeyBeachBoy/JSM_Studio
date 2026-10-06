@@ -60,7 +60,7 @@ const GROUP_GLYPHS: Record<string, string> = { STICKS: 'LEFT_STICK', TRIGGERS: '
 export const shiftedInputGlyph = (input: string) => GROUP_GLYPHS[input] ?? input
 
 // The Overview's words for pad and stick modes (OverviewPage PAD_MODES).
-const MODE_WORDS: Record<string, string> = { GRID_AND_STICK: 'Button pad', MOUSE: 'Mouse', PS_TOUCHPAD: 'PlayStation touchpad', NO_MOUSE: 'directions', RADIAL_MENU: 'Radial menu', SCROLL_WHEEL: 'Scroll wheel', MOUSE_RING: 'Mouse ring' }
+const MODE_WORDS: Record<string, string> = { GRID_AND_STICK: 'Button pad', MOUSE: 'Mouse', MOUSE_AREA: 'Mouse area', PS_TOUCHPAD: 'PlayStation touchpad', NO_MOUSE: 'directions', RADIAL_MENU: 'Radial menu', SCROLL_WHEEL: 'Scroll wheel', MOUSE_RING: 'Mouse ring' }
 const words = (value: string) => MODE_WORDS[value.toUpperCase()] ?? value.replace(/_/g, ' ').toLowerCase()
 
 /**

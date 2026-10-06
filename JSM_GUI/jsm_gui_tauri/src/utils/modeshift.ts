@@ -1,6 +1,9 @@
+import { readVirtualMenus, writeVirtualMenus } from './virtualMenus'
+import { PAD_FEEDBACK_FIELDS } from './padFeedback'
 import { getKeymapValue } from './keymap'
 import type { ButtonDefinition } from '../keymap/schema'
 import { shiftedInputOf } from './shiftedInputs'
+import { BINDING_ALIASES, bindingTargetMatches } from './bindingAliases'
 
 export type ModeshiftTarget = {
   id: string
@@ -16,13 +19,13 @@ export type ModeshiftTarget = {
   // different bindings. The editor renders the pad's own mode UI rather than a
   // modeshift-specific imitation of it, so anything the normal card can
   // configure a shifted card can configure too.
-  pad?: { side: 'left' | 'right'; keyPrefix: 'LEFT' | 'RIGHT' }
+  pad?: { side: 'left' | 'right' | 'shared'; keyPrefix: 'LEFT' | 'RIGHT' | '' }
 }
 
 // Every per-pad setting a shift can carry. Used both to scope a shift's
 // lines -- removing or renaming one must take all of them, or orphaned chorded
 // lines keep applying -- and to know what the shifted editor may write.
-export function padModeshiftSettings(keyPrefix: 'LEFT' | 'RIGHT') {
+export function padModeshiftSettings(keyPrefix: 'LEFT' | 'RIGHT' | '') {
   return [
     'TOUCHPAD_MODE',
     'GRID_SIZE',
@@ -31,12 +34,36 @@ export function padModeshiftSettings(keyPrefix: 'LEFT' | 'RIGHT') {
     'GRID_REQUIRES_CLICK',
     'TOUCHPAD_SENS',
     'TOUCHPAD_DUAL_STAGE_MODE',
+    'TOUCHPAD_HAPTICS',
+    ...PAD_FEEDBACK_FIELDS.map(entry => `TOUCHPAD_${entry.field}`),
     'TOUCH_STICK_MODE',
     'TOUCH_STICK_RADIUS',
     'TOUCH_STICK_AXIS',
     'TOUCH_DEADZONE_INNER',
     'TOUCH_RING_MODE',
-  ].map(name => `${keyPrefix}_${name}`)
+  ].map(name => `${keyPrefix ? keyPrefix + '_' : ''}${name}`).concat(SHARED_STICK_SETTINGS)
+}
+
+const SHARED_STICK_SETTINGS = [
+  'STICK_SENS', 'STICK_POWER', 'STICK_ACCELERATION_RATE', 'STICK_ACCELERATION_CAP',
+  'FLICK_TIME', 'FLICK_TIME_EXPONENT', 'FLICK_SNAP_MODE', 'FLICK_SNAP_STRENGTH',
+  'FLICK_DEADZONE_ANGLE', 'MOUSE_RING_RADIUS', 'SCROLL_SENS',
+  'FLICK_STICK_OUTPUT', 'VIRTUAL_STICK_CALIBRATION', 'ROTATE_SMOOTH_OVERRIDE',
+  'SCREEN_RESOLUTION_X', 'SCREEN_RESOLUTION_Y', 'ANGLE_TO_AXIS_DEADZONE_INNER', 'ANGLE_TO_AXIS_DEADZONE_OUTER',
+  'WIND_STICK_RANGE', 'WIND_STICK_POWER', 'UNWIND_RATE', 'MOUSELIKE_FACTOR',
+  'RETURN_DEADZONE_IS_ACTIVE', 'EDGE_PUSH_IS_ACTIVE', 'RETURN_DEADZONE_ANGLE', 'RETURN_DEADZONE_ANGLE_CUTOFF',
+  ...['LEFT', 'RIGHT'].flatMap(side => ['UNDEADZONE_INNER', 'UNDEADZONE_OUTER', 'UNPOWER', 'VIRTUAL_SCALE', 'DEADZONE_PROBE'].map(field => `${side}_STICK_${field}`)),
+]
+
+/** Settings exposed by the full stick editor, including shared mouse tuning. */
+export function stickModeshiftSettings(side: 'LEFT' | 'RIGHT') {
+  return [
+    `${side}_STICK_DEADZONE_INNER`, `${side}_STICK_DEADZONE_OUTER`, `${side}_RING_MODE`,
+    `${side}_STICK_AXIS`,
+    `${side}_STICK_MENU_SIZE`, `${side}_STICK_MENU_DEADZONE`,
+    ...Array.from({ length: 25 }, (_, i) => `${side[0]}M${i + 1}`),
+    ...SHARED_STICK_SETTINGS,
+  ]
 }
 
 /**
@@ -53,14 +80,22 @@ export function readShifted(text: string, trigger: string, key: string) {
 
 // Chord assignments are the persisted representation. Keep all edits scoped to
 // both the input group and its trigger; other groups may use the same trigger.
-const assignment = (line: string) => line.match(/^\s*([^#,=]+),\s*([^=]+?)\s*=\s*(.*)$/)
+const assignment = (line: string) => {
+  const match = line.match(/^\s*([^#,=]+),\s*([^=]+?)\s*=\s*(.*)$/)
+  // Shared assignment shortcuts have no physical ButtonID. Keep invalid
+  // source lines intact, but never manufacture them as held conditions.
+  return match && match[1].trim().toUpperCase().replace(/^!/, '') in BINDING_ALIASES ? null : match
+}
 const owns = (target: ModeshiftTarget, key: string) =>
-  target.buttons.some(button => button.command === key) || target.settings?.includes(key) || target.mode?.key === key
+  target.buttons.some(button => bindingTargetMatches(key, button.command)) || target.settings?.includes(key) || target.mode?.key === key
 
 export function modeshiftTriggers(text: string, target: ModeshiftTarget): string[] {
   return [...new Set(text.split(/\r?\n/).flatMap(line => {
     const match = assignment(line)
-    return match && owns(target, match[2].trim().toUpperCase()) ? [match[1].trim().toUpperCase()] : []
+    const key = match?.[2].trim().toUpperCase()
+    // Shared tuning alone cannot identify a stick. The mode or one of its
+    // own bindings/settings establishes which input actually has a shift.
+    return match && key && owns(target, key) && !SHARED_STICK_SETTINGS.includes(key) ? [match[1].trim().toUpperCase()] : []
   }))]
 }
 
@@ -68,7 +103,7 @@ export function readModeshift(text: string, trigger: string, key: string) {
   const lines = text.split(/\r?\n/)
   for (let i = lines.length - 1; i >= 0; i--) {
     const match = assignment(lines[i])
-    if (match?.[1].trim().toUpperCase() === trigger.toUpperCase() && match[2].trim().toUpperCase() === key.toUpperCase()) {
+    if (match?.[1].trim().toUpperCase() === trigger.toUpperCase() && bindingTargetMatches(match[2].trim().toUpperCase(), key.toUpperCase())) {
       return getKeymapValue(`${key} = ${match[3]}`, key)
     }
   }
@@ -100,22 +135,58 @@ function shiftAnnotation(line: string, target: ModeshiftTarget, trigger: string,
 }
 
 export function removeModeshift(text: string, target: ModeshiftTarget, trigger: string): string {
+  text = updateShiftMenuControls(text, target, trigger)
+  text = splitSharedShiftTargets(text, target, trigger)
+  const shared = sharedTuningInUse(text, target, trigger)
   return text.split(/\r?\n/).filter(line => {
     if (shiftAnnotation(line, target, trigger) === null) return false
     const match = assignment(line)
+    if (shared && match && SHARED_STICK_SETTINGS.includes(match[2].trim().toUpperCase())) return true
     return !(match?.[1].trim().toUpperCase() === trigger && owns(target, match[2].trim().toUpperCase()))
   }).join('\n')
 }
 
 export function renameModeshift(text: string, target: ModeshiftTarget, from: string, to: string): string {
   if (!to || modeshiftTriggers(text, target).includes(to)) return text
-  return text.split(/\r?\n/).map(line => {
+  text = updateShiftMenuControls(text, target, from, to)
+  text = splitSharedShiftTargets(text, target, from)
+  const shared = sharedTuningInUse(text, target, from)
+  return text.split(/\r?\n/).flatMap(line => {
     const annotation = shiftAnnotation(line, target, from, to)
     if (annotation !== undefined) return annotation ?? line
     const match = assignment(line)
+    if (shared && match?.[1].trim().toUpperCase() === from && SHARED_STICK_SETTINGS.includes(match[2].trim().toUpperCase())) {
+      return [line, `${to},${match[2].trim()} = ${match[3]}`]
+    }
     return match?.[1].trim().toUpperCase() === from && owns(target, match[2].trim().toUpperCase())
       ? `${to},${match[2].trim()} = ${match[3]}` : line
   }).join('\n')
+}
+
+// A shared assignment can belong to two physical cards. Split it only when
+// mutating one card's shift, keeping the sibling's assignment and comments.
+function splitSharedShiftTargets(text: string, target: ModeshiftTarget, trigger: string) {
+  return text.split(/\r?\n/).flatMap(line => {
+    const match = assignment(line)
+    const annotation = line.match(/^(\s*#\s*@(label|icon)\s+)([^,\s]+),([^=\s]+)(\s*=.*)$/i)
+    const condition = match?.[1].trim().toUpperCase() ?? annotation?.[3].toUpperCase()
+    const key = match?.[2].trim().toUpperCase() ?? annotation?.[4].toUpperCase()
+    const members = key && BINDING_ALIASES[key as keyof typeof BINDING_ALIASES]
+    if (condition !== trigger.toUpperCase() || !members || !members.some(member => owns(target, member)) || members.every(member => owns(target, member))) return [line]
+    return members.map(member => annotation
+      ? `${annotation[1]}${annotation[3]},${member}${annotation[5]}`
+      : `${match![1].trim()},${member} = ${match![3]}`)
+  }).join('\n')
+}
+
+/** Shared tuning must survive while the other stick uses the same trigger. */
+function sharedTuningInUse(text: string, target: ModeshiftTarget, trigger: string) {
+  return text.split(/\r?\n/).some(line => {
+    const match = assignment(line)
+    const key = match?.[2].trim().toUpperCase() ?? ''
+    return match?.[1].trim().toUpperCase() === trigger.toUpperCase() &&
+      /^(?:(?:LEFT_|RIGHT_)?(?:STICK_MODE|TOUCH_STICK_MODE)|MOTION_STICK_MODE|GYRO_OUTPUT)$/.test(key) && !owns(target, key)
+  })
 }
 
 export function addModeshift(text: string, target: ModeshiftTarget, trigger: string): string {
@@ -160,7 +231,16 @@ const plainAssignment = (line: string) => {
 
 export function projectModeshift(text: string, trigger: string): string {
   const wanted = trigger.trim().toUpperCase()
-  const lines = text.split(/\r?\n/)
+  // Projection is an editor view, not saved source. Expand targets here so a
+  // shifted individual always wins over its inherited shared base assignment.
+  const lines = text.split(/\r?\n/).flatMap(line => {
+    const match = assignment(line)
+    const plain = plainAssignment(line)
+    const key = match?.[2].trim().toUpperCase() ?? plain?.key
+    const members = key && BINDING_ALIASES[key as keyof typeof BINDING_ALIASES]
+    if (!members) return [line]
+    return members.map(member => match ? `${match[1].trim()},${member} = ${match[3]}` : `${plain!.indent}${member}${plain!.separator}${line.slice(line.indexOf('=') + 1).trimStart()}`)
+  })
   const overrides = new Map<string, string>()
   for (const line of lines) {
     const match = assignment(line)
@@ -266,7 +346,7 @@ export function modeshiftCount(text: string, command: string): number {
   const triggers = new Set<string>()
   for (const line of text.split(/\r?\n/)) {
     const match = assignment(line)
-    if (match && match[2].trim().toUpperCase() === wanted) triggers.add(match[1].trim().toUpperCase())
+    if (match && bindingTargetMatches(match[2].trim().toUpperCase(), wanted)) triggers.add(match[1].trim().toUpperCase())
   }
   return triggers.size
 }
@@ -284,7 +364,7 @@ export function modeshiftsOn(text: string, command: string): ModeshiftSummary[] 
   const shifts = new Map<string, string>()
   for (const line of text.split(/\r?\n/)) {
     const match = assignment(line)
-    if (!match || match[2].trim().toUpperCase() !== wanted) continue
+    if (!match || !bindingTargetMatches(match[2].trim().toUpperCase(), wanted)) continue
     const trigger = match[1].trim().toUpperCase()
     shifts.set(trigger, getKeymapValue(`${wanted} = ${match[3]}`, wanted) ?? match[3].trim())
   }
@@ -347,4 +427,18 @@ export function heldStatus(shifts: Map<string, Set<string>>, chords: Map<string,
   if (shift) return { kind: 'shift', ...shift }
   const chord = heldModeshift(chords, pressed)
   return chord ? { kind: 'chord', ...chord } : null
+}
+
+/** Menu controls created from the shifted stick editor follow its lifecycle. */
+function updateShiftMenuControls(text: string, target: ModeshiftTarget, trigger: string, replacement?: string) {
+  const source = target.mode?.key === 'LEFT_STICK_MODE' ? 'LSTICK' : target.mode?.key === 'RIGHT_STICK_MODE' ? 'RSTICK' : null
+  if (!source) return text
+  const catalog = readVirtualMenus(text)
+  const marker = `${source}:${trigger}`
+  const ownsMenu = (menu: typeof catalog.menus[number]) => Array.isArray(menu.extra?.stickModeshiftControls) && menu.extra.stickModeshiftControls.includes(marker)
+  if (catalog.problem || !catalog.menus.some(ownsMenu)) return text
+  return writeVirtualMenus(text, catalog.menus.map(menu => !ownsMenu(menu) ? menu : ({ ...menu,
+    extra: { ...menu.extra, stickModeshiftControls: (menu.extra!.stickModeshiftControls as string[]).flatMap(key => key === marker ? replacement ? [`${source}:${replacement}`] : [] : [key]) },
+    attachments: menu.attachments.flatMap(a => a.source === source && a.activation === 'HOLD' && a.input === trigger ? replacement ? [{ ...a, input: replacement }] : [] : [a]),
+  })))
 }

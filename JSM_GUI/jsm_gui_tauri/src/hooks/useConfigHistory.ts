@@ -19,6 +19,11 @@ export function useConfigHistory() {
     state.current = { text, past: [], future: [], time: 0 }
     render(text)
   }, [])
+  const setTextAsAction = useCallback((action: SetStateAction<string>) => {
+    state.current.time = -Infinity
+    setText(action)
+    state.current.time = -Infinity
+  }, [setText])
   const travel = (redo: boolean) => {
     const s = state.current
     const from = redo ? s.future : s.past
@@ -29,7 +34,7 @@ export function useConfigHistory() {
     s.time = 0
     render(next)
   }
-  return { text, setText, reset, undo: () => travel(false), redo: () => travel(true),
+  return { text, setText, setTextAsAction, reset, undo: () => travel(false), redo: () => travel(true),
     canUndo: state.current.past.length > 0, canRedo: state.current.future.length > 0,
     // What Undo and Redo would put back, so the Configuration menu can name it.
     undoTarget: state.current.past[state.current.past.length - 1], redoTarget: state.current.future[state.current.future.length - 1] }

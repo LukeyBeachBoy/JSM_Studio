@@ -14,9 +14,6 @@ import { onePerButton, parseHints, translateHintLabel, type Hint, type HintButto
 // Anything focusable can declare its own hints with data-hints="A:Edit;X:Capture;Y:Details;B:Back".
 
 export type { Hint, HintButton } from './hintLabels'
-/** What the fixed status slot says: the held input, and what it does to how many. */
-/** `only`: the one input it changes, named instead of counted. */
-export type HeldShiftStatus = { kind: 'shift' | 'chord'; name: string; count: number; only?: string }
 type CapsuleContent = { hints: Hint[]; message?: string }
 
 // The key that does what each button does; every one of them works
@@ -128,14 +125,10 @@ type HintCapsuleProps = {
   controller: boolean
   /** Extra context from the shell, e.g. while testing. */
   override?: CapsuleContent
-  /** A modeshift or chord button held now: "L4 held · 6 shifted", in a fixed slot (2g). */
-  status?: HeldShiftStatus | null
-  /** Keep the slot, empty, while the configuration has any modeshift, so
-   *  holding one never makes the capsule grow. */
-  reserveStatus?: boolean
+
 }
 
-export function HintCapsule({ width, family, controller: connected, override, status, reserveStatus }: HintCapsuleProps) {
+export function HintCapsule({ width, family, controller: connected, override }: HintCapsuleProps) {
   const { t } = useTranslation()
   const showsKeys = useShowsKeys()
   const controller = connected && !showsKeys
@@ -182,18 +175,6 @@ export function HintCapsule({ width, family, controller: connected, override, st
       {faces.map(render)}
       {steps.length > 0 && faces.length > 0 && <span className="hint-capsule__rule" aria-hidden="true" />}
       {steps.map(render)}
-      {(reserveStatus || status) && (
-        <span className="hint-capsule__status" data-held={status ? 'true' : undefined}>
-          {status && (
-            <span key={status.name} className="shift-status__fill">
-              <span className="shift-status__held"><span className="shift-status__text">{t('keymap.shiftHeld', '{{name}} held', { name: status.name })}</span></span>
-              <span className="shift-status__count">{status.kind === 'chord'
-                ? status.only ? t('keymap.chordedNamed', 'with {{name}}', { name: status.only }) : t('keymap.chordedShort', '{{count}} chorded', { count: status.count })
-                : status.only ? t('keymap.shiftedNamed', '→ {{name}}', { name: status.only }) : t('keymap.shiftedShort', '{{count}} shifted', { count: status.count })}</span>
-            </span>
-          )}
-        </span>
-      )}
     </div>
   )
 }

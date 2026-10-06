@@ -51,13 +51,10 @@ const PROFILE = [
     await row.scrollIntoViewIfNeeded();
     if (process.env.JSM_SHOT_DIR) await page.screenshot({ path: `${process.env.JSM_SHOT_DIR}/overview-dpad-left.png` });
 
-    // Holding it: one input, named (short: the slot has a fixed width).
+    // Holding the trigger must not add a live shell indicator.
     await page.evaluate(() => window.__pad.hold(['LEFT']));
-    const status = page.locator('.shift-status[data-held="true"]');
-    await status.waitFor({ timeout: 3000 });
-    const said = (await status.innerText()).replace(/\s+/g, ' ');
-    assert.match(said, /held ?→ Right pad/, `the status said "${said}"`);
-    assert.doesNotMatch(said, /\d+ (inputs )?shifted/, 'the status still counts config keys');
+    await page.waitForTimeout(300);
+    assert.equal(await page.locator('.shift-status, .hint-capsule__status').count(), 0);
     if (process.env.JSM_SHOT_DIR) await page.locator('.titlebar').screenshot({ path: `${process.env.JSM_SHOT_DIR}/titlebar-held.png` });
     await page.evaluate(() => window.__pad.release(['LEFT']));
     await page.waitForTimeout(300);

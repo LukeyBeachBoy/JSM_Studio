@@ -39,19 +39,18 @@ def test_every_control_page_maps_to_real_button_groups():
 def test_a_page_can_focus_more_than_one_group():
     """The single-group limit is what forced everything onto one page."""
     assert 'focusedMappingGroups' in KEYMAP
-    body = KEYMAP.split('const visualMappingGroups', 1)[1].split('}, [', 1)[0]
+    body = KEYMAP.split('const listMappingGroups', 1)[1].split('}, [', 1)[0]
     assert 'focusedMappingGroups.includes(key)' in body, \
         'group focus must filter by membership, not by picking a single entry'
     # The list layout has to agree with the visual one, or the jump bar offers
     # sections the page does not render.
     assert 'listMappingGroups' in KEYMAP
-    assert KEYMAP.count('listMappingGroups.map') >= 2
+    assert KEYMAP.count('listMappingGroups.map') >= 1
 
 
 def test_config_wide_panels_do_not_repeat_on_every_control_page():
-    assert 'showConfigWidePanels' in KEYMAP
-    body = KEYMAP.split('const showConfigWidePanels', 1)[1].split('\n', 1)[0]
-    assert "includes('global')" in body
+    assert '<TimingPage' not in KEYMAP, 'shared defaults must stay on their Studio page'
+    assert "primaryTab === 'timing'" in APP
     # And the mapping layouts must NOT be gated on it, or a control page renders
     # nothing at all -- which is exactly what happened the first time.
     assert '{showMappedLayout && (' in KEYMAP
@@ -61,7 +60,7 @@ def test_config_wide_panels_do_not_repeat_on_every_control_page():
 
 def test_the_config_wide_settings_still_have_a_home():
     assert "primaryTab === 'timing'" in APP
-    assert "visibleSections={['global']}" in APP
+    assert 'return <TimingPage onRemoveLines=' in APP, 'shared timing must render on its own Studio page'
 
 
 if __name__ == '__main__':

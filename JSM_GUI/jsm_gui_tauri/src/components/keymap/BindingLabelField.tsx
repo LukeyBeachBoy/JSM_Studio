@@ -12,8 +12,7 @@ type Props = {
 /**
  * Your own name for what an input does (Binding Editor 7a, the text field in
  * a command row). Committed on blur or Enter; Escape puts the old name back.
- * There is one label per input in the configuration (`# @label N = Jump`),
- * so the field sits on the input's first command.
+ * The caller supplies the individual command name or the menu item label.
  */
 export function BindingLabelField({ value, onChange, className = '', placeholder }: Props) {
   const { t } = useTranslation()

@@ -1,4 +1,4 @@
-import { memo, useMemo, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { memo, useContext, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   BindingCommand,
@@ -8,7 +8,11 @@ import {
   bindingCommandToToken,
   commandTokenPreview,
   commandForValue,
+  commandNameKey,
+  heldLedCommandId,
   inferOutputKindFromBindingValue,
+  isFixedCommand,
+  layerActionCommandId,
   parseRowsToCommands,
   updateCommandExpression,
 } from '../../utils/bindingCommands'
@@ -46,15 +50,27 @@ import { ButtonGlyph } from '../glyphs/ButtonGlyph'
 import { Lane, LaneAddButton, LaneSideButton, laneStyles, useJustAdded } from './Lane'
 import { ActionPicker } from './ActionPicker'
 import { InputModeshiftPanel } from './InputModeshiftPanel'
-import { LayerActionsLane } from './LayerActionsLane'
 import { inputLongName, inputShortName } from '../../keymap/inputNames'
 import type { InputModeshiftsProps } from './InputModeshifts'
 import type { ModeshiftSummary } from '../../utils/modeshift'
 import { TRIGGER_LABEL_KEYS } from './triggerKinds'
 import { getVirtualControllerLogicalOutput, type VirtualControllerType } from '../../utils/virtualController'
-import { describeBinding, explainBinding } from '../../utils/bindingDescription'
+import { describeCommandOutput, explainCommandOutput } from '../../utils/bindingDescription'
+import { LayerUsageContext } from '../LayerBar'
+import { actionsOnInput, sameLayerAction, type LayerAction } from '../../utils/layers'
+import { hasBindingParameters } from '../../utils/bindingParameters'
 
 type ButtonBindingsCardProps = {
+  /** The LED while this input is held (TODO-54): the chorded LIGHT_BAR and
+   *  LED_BRIGHTNESS settings, shown as one command row. Omitted where the
+   *  card has no input of its own to chord them on. */
+  heldLedColor?: string | null
+  heldLedBrightness?: number | null
+  baseLedBrightness?: number
+  /** The profile's (or the app's) LED colour: what a new LED row starts from. */
+  defaultLedColor?: string
+  onHeldLedColorChange?: (color: string | null) => void
+  onHeldLedBrightnessChange?: (brightness: number | null) => void
   button: ButtonDefinition
   /**
    * What this card is called in the DOM, when that is not the input's own
@@ -119,6 +135,7 @@ type ButtonBindingsCardProps = {
   /** Which controller's glyphs to draw beside the input's name. */
   controllerFamily?: ControllerVisualFamily
   onEnableVirtualController?: () => void
+  commandLabels?: Record<string, string>
   bindingLabel?: string
   bindingIcon?: string
   onBindingIconChange?: (command: string, icon: string) => void
@@ -181,6 +198,12 @@ const hasOutputValue = (command: Pick<BindingCommandPreset, 'outputValue'>) => c
 // KeymapControls keeps every prop's identity stable for the same reason.
 export const ButtonBindingsCard = memo(function ButtonBindingsCard({
   button,
+  heldLedColor,
+  heldLedBrightness,
+  baseLedBrightness = 100,
+  defaultLedColor,
+  onHeldLedColorChange,
+  onHeldLedBrightnessChange,
   domCommand,
   rows,
   modifierOptions,
@@ -204,6 +227,7 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
   currentProfileName,
   controllerFamily = 'generic',
   onEnableVirtualController,
+  commandLabels,
   bindingLabel,
   bindingIcon,
   onBindingIconChange,
@@ -254,9 +278,25 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
     ].filter((option, index, source) => source.findIndex(candidate => candidate.value === option.value) === index),
     [t]
   )
+  const isShifted = Boolean(domCommand?.includes(','))
+  // A menu item (3d): a region or segment of an on-screen menu, which has an
+  // icon and a label on the menu and nothing but commands behind them.
+  const menuItem = Boolean(onBindingIconChange)
+  // The LED while held and the layer actions are the input's own (TODO-54,
+  // TODO-55): a shifted card and a menu item chord and annotate nothing.
+  const { actions: layerActions, onSetActions, layers } = useContext(LayerUsageContext)
+  const ownsExtras = !menuItem && !isShifted
+  const heldLed = useMemo(
+    () => (ownsExtras && onHeldLedColorChange ? { color: heldLedColor ?? null, brightness: heldLedBrightness ?? null } : null),
+    [ownsExtras, onHeldLedColorChange, heldLedColor, heldLedBrightness]
+  )
+  const myLayerActions = useMemo(
+    () => (ownsExtras && onSetActions ? actionsOnInput(layerActions, button.command) : undefined),
+    [ownsExtras, onSetActions, layerActions, button.command]
+  )
   const commands = useMemo(
-    () => parseRowsToCommands(rows, button.command, { specialKey, stickShiftAssignments: stickShiftEntries }),
-    [button.command, rows, specialKey, stickShiftEntries]
+    () => parseRowsToCommands(rows, button.command, { specialKey, stickShiftAssignments: stickShiftEntries, heldLed, layerActions: myLayerActions }),
+    [button.command, rows, specialKey, stickShiftEntries, heldLed, myLayerActions]
   )
   const rowCapturing = rows.some(row => isCapturing(button.command, row.slot, row.id)) || commands.some(command => isCapturingValue(captureKeyFor(command))) || isCapturingValue(`${domCommand ?? button.command}:new`)
   const buttonHasTrackball = commands.some(command => command.outputValue.toUpperCase().includes('TRACK'))
@@ -270,7 +310,7 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
     const baseRow = rows.find(row => row.slot === 'tap')
     const existingTokens = baseRow?.expression?.tokens ?? []
     const token = bindingCommandToToken(preset)
-    const expression = createBindingExpression(appendBaseLineTokens(existingTokens, [token]))
+    const expression = createBindingExpression(appendBaseLineTokens(existingTokens, [token, ...(preset.ledBrightness !== null && preset.ledBrightness !== undefined ? [{ ...token, value: `LED_BRIGHTNESS = ${preset.ledBrightness}`, raw: '' }] : [])]))
     onBindingChange(button.command, 'tap', baseRow?.id ?? `${button.command}-tap`, serializeBindingExpression(expression), { writeMode: 'line' })
   }
 
@@ -319,9 +359,30 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
     onBindingChange(button.command, slot, rowId, serializeBindingToken(bindingCommandToToken(preset)), modifier ? { modifier } : undefined)
   }
 
-  const removeCommand = (command: BindingCommand) => {
+  // Layer actions (TODO-55): one row per annotation on this input. Replacing
+  // one keeps every other action, but an input holds one action per layer for
+  // each of press and release, so a change that lands on another's layer and
+  // input takes that one's place.
+  const setLayerAction = (from: LayerAction | null, to: LayerAction | null) => {
+    if (!onSetActions || !myLayerActions) return
+    const rest = myLayerActions.filter(action => !(from && sameLayerAction(action, from)) && !(to && action.layerId === to.layerId && action.input === to.input))
+    onSetActions(button.command, to ? [...rest, to] : rest)
+  }
+
+  const removeCommand = (command: BindingCommand, preserveName = false) => {
+    if (!preserveName) onBindingLabelChange?.(commandNameKey(command, commands, domCommand ?? button.command), '')
     if (command.source.kind === 'special') {
       onClearSpecialAction(command.source.specialKey, button.command)
+      return
+    }
+    if (command.source.kind === 'heldLed') {
+      // Both settings go: the row is the pair of them.
+      onHeldLedColorChange?.(null)
+      onHeldLedBrightnessChange?.(null)
+      return
+    }
+    if (command.source.kind === 'layerAction') {
+      setLayerAction(command.source.action, null)
       return
     }
     if (command.source.kind === 'stickShift') {
@@ -334,7 +395,9 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
       return
     }
     if (command.source.writeMode === 'line' && command.source.expression && command.source.expression.tokens.length > 1) {
-      const expression = removeBindingExpressionToken(command.source.expression, command.source.tokenIndex)
+      const withoutBrightness = command.source.ledBrightnessTokenIndex !== undefined
+        ? removeBindingExpressionToken(command.source.expression, command.source.ledBrightnessTokenIndex) : command.source.expression
+      const expression = withoutBrightness ? removeBindingExpressionToken(withoutBrightness, command.source.tokenIndex) : null
       onBindingChange(
         button.command,
         command.source.slot,
@@ -370,6 +433,53 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
   }
 
   const updateCommand = (command: BindingCommand, patch: BindingCommandPatch) => {
+    if (patch.ledActivation) {
+      const previousNameKey = commandNameKey(command, commands, domCommand ?? button.command)
+      const previousName = commandLabels?.[previousNameKey]
+      const renameLed = (next: BindingCommand) => {
+        if (!previousName || !onBindingLabelChange) return
+        onBindingLabelChange(previousNameKey, '')
+        onBindingLabelChange(commandNameKey(next, [], domCommand ?? button.command), previousName)
+      }
+      if (patch.ledActivation === 'press' && command.source.kind === 'heldLed') {
+        added.expect()
+        sheetOnNextAdd.current = true
+        const color = command.source.color ?? defaultLedColor ?? '#ffffff'
+        removeCommand(command, true)
+        const outputValue = `LIGHT_BAR = x${color.slice(1)}`
+        writeCommand({ triggerKind: 'regular', outputKind: 'command', outputValue, outputBehavior: 'tapOnce', ledBrightness: command.source.brightness })
+        renameLed(commandForValue(button.command, `"${outputValue}"`))
+      } else if (patch.ledActivation === 'hold' && command.source.kind === 'row') {
+        const color = /^LIGHT_BAR\s*=\s*x([0-9a-f]{6})/i.exec(command.outputValue)?.[1]
+        if (!color || !onHeldLedColorChange) return
+        setOpenSettingsFor(heldLedCommandId(button.command))
+        removeCommand(command, true)
+        onHeldLedColorChange(`#${color}`)
+        renameLed({ ...command, source: { kind: 'heldLed', color: `#${color}`, brightness: command.ledBrightness ?? null } })
+        onHeldLedBrightnessChange?.(command.ledBrightness ?? null)
+      }
+      return
+    }
+    if (patch.outputValue && patch.outputValue !== command.outputValue && onBindingLabelChange) {
+      const previousKey = commandNameKey(command, commands, domCommand ?? button.command)
+      const name = commandLabels?.[previousKey]
+      if (name) {
+        onBindingLabelChange(previousKey, '')
+        onBindingLabelChange(commandNameKey({ ...command, ...patch }, [], domCommand ?? button.command), name)
+      }
+    }
+    // The two fixed rows edit their setting or annotation, nothing else: they
+    // have no token to retarget, so a trigger or output patch is ignored.
+    if (command.source.kind === 'heldLed') {
+      if (!patch.heldLed) return
+      if ('color' in patch.heldLed) onHeldLedColorChange?.(patch.heldLed.color ?? null)
+      if ('brightness' in patch.heldLed) onHeldLedBrightnessChange?.(patch.heldLed.brightness ?? null)
+      return
+    }
+    if (command.source.kind === 'layerAction') {
+      if (patch.layerAction) setLayerAction(command.source.action, { ...command.source.action, ...patch.layerAction })
+      return
+    }
     const nextCommand = {
       ...command,
       ...patch,
@@ -423,6 +533,7 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
         outputKind: nextCommand.outputKind,
         outputValue: nextCommand.outputValue,
         outputBehavior: nextCommand.outputBehavior,
+        turboIntervalMs: nextCommand.turboIntervalMs,
         conditionInput: nextCommand.conditionInput,
       })
       removeManualRow(button.command, command.source.slot, command.source.rowId)
@@ -439,6 +550,7 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
         outputKind: nextCommand.outputKind,
         outputValue: nextCommand.outputValue,
         outputBehavior: nextCommand.outputBehavior,
+        turboIntervalMs: nextCommand.turboIntervalMs,
         conditionInput: nextCommand.conditionInput,
       })
       return
@@ -472,6 +584,7 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
           outputKind: nextCommand.outputKind,
           outputValue: nextCommand.outputValue,
           outputBehavior: nextCommand.outputBehavior,
+        turboIntervalMs: nextCommand.turboIntervalMs,
           conditionInput: nextCommand.conditionInput,
         })
         return
@@ -490,6 +603,7 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
         outputKind: nextCommand.outputKind,
         outputValue: nextCommand.outputValue,
         outputBehavior: nextCommand.outputBehavior,
+        turboIntervalMs: nextCommand.turboIntervalMs,
         conditionInput: nextCommand.conditionInput,
       })
       return
@@ -509,16 +623,23 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
     outputKind: command.outputKind,
     outputValue: command.outputValue,
     outputBehavior: command.outputBehavior,
+    turboIntervalMs: command.turboIntervalMs,
+    ledBrightness: command.ledBrightness,
     conditionInput: command.conditionInput,
   })
 
+  // A setting or an annotation is one per input: nothing to duplicate, and a
+  // preset cannot carry it to another input.
   const duplicateCommand = (command: BindingCommand) => {
+    if (isFixedCommand(command)) return
     writeCommand(commandToPreset(command))
   }
 
+  const copyableCommands = commands.filter(command => !isFixedCommand(command))
   const copyCommands = (picked: BindingCommand[]) => {
-    if (picked.length === 0) return
-    onCopyBindings?.(picked.map(commandToPreset))
+    const presets = picked.filter(command => !isFixedCommand(command)).map(commandToPreset)
+    if (presets.length === 0) return
+    onCopyBindings?.(presets)
   }
 
   // Base-line triggers (Press/Tap/Hold/...) all share one config line, so pasting
@@ -588,10 +709,42 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
   // Custom, a stick mode shift its JSM category.
   const [addingCommand, setAddingCommand] = useState(false)
   const added = useJustAdded(commands.map(command => command.id), id => `[data-command-row="${CSS.escape(id)}"] button[aria-label^="${t('keymap.chooseAction', 'Choose action')}"]`)
+  // A command with a parameter (an LED colour or brightness, a sound, a
+  // layer action) is added with a starting value and its sheet opens on the
+  // new row, so the value is chosen where it is edited (TODO-54, TODO-55).
+  // The row's id is known ahead for the fixed rows; a token row's is the one
+  // that was not there before, which useJustAdded finds.
+  const [openSettingsFor, setOpenSettingsFor] = useState<string | null>(null)
+  const sheetOnNextAdd = useRef(false)
+  useEffect(() => {
+    if (added.justAdded && sheetOnNextAdd.current) {
+      sheetOnNextAdd.current = false
+      setOpenSettingsFor(added.justAdded)
+    }
+  }, [added.justAdded])
+  const hasParameter = hasBindingParameters
   const addChosen = (patch: BindingCommandPatch) => {
     added.expect()
+    sheetOnNextAdd.current = hasParameter(patch.outputValue ?? '')
     writeCommand({ triggerKind: 'regular', outputKind: patch.outputKind ?? 'keyboard', outputValue: patch.outputValue ?? '', outputBehavior: 'normal' })
   }
+  // LED while held (TODO-54): the profile's colour to begin with, and the
+  // sheet to change it. Choosing it again on an input that has one only
+  // opens that row's sheet.
+  const addHeldLed = onHeldLedColorChange && heldLed ? () => {
+    added.expect()
+    setOpenSettingsFor(heldLedCommandId(button.command))
+    if (!heldLed.color && heldLed.brightness === null) onHeldLedColorChange(defaultLedColor ?? '#ffffff')
+  } : undefined
+  // A layer (TODO-55): held while this input is down, with the sheet open to
+  // make it a Toggle, Turn on or Turn off. An action this input already has
+  // for the layer is replaced, as the lane's add did.
+  const addLayerAction = onSetActions && myLayerActions ? (layerId: string) => {
+    const action: LayerAction = { input: button.command, verb: 'hold', layerId }
+    added.expect()
+    setOpenSettingsFor(layerActionCommandId(button.command, action, [...myLayerActions.filter(other => !(other.layerId === layerId && other.input === button.command)), action]))
+    setLayerAction(null, action)
+  } : undefined
   // "Capture a key", X on Add command and X in its picker: another way to add
   // a command. The key becomes a new Press command, which glows and takes
   // focus like one chosen from the picker; nothing already on the input is
@@ -612,10 +765,6 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
   const shortName = inputShortName(button, controllerFamily)
   const longName = label ?? inputLongName(button, controllerFamily, t)
   const closeLabel = `Close ${shortName}`
-  const isShifted = Boolean(domCommand?.includes(','))
-  // A menu item (3d): a region or segment of an on-screen menu, which has an
-  // icon and a label on the menu and nothing but commands behind them.
-  const menuItem = Boolean(onBindingIconChange)
   const inputGlyph = menuItem ? undefined : <InputGlyph command={button.command} family={controllerFamily} size={28} />
 
   // Nothing bound yet: one press adds a Press command, as Steam Input's own
@@ -629,6 +778,13 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
     // X on the add button captures a key instead (5).
     onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => { if (event.key === 'x' || event.key === 'X') { event.preventDefault(); captureNew() } },
   }
+  const commandLabelKey = (command: BindingCommand) => {
+    const input = (domCommand ?? button.command).toUpperCase()
+    const key = commandNameKey(command, commands, input)
+    // Legacy profiles label the input once. Keep that annotation on its first
+    // command until a command-specific name exists, including explicit blanks.
+    return commands[0] === command && commandLabels?.[key] === undefined && commandLabels?.[input] !== undefined ? input : key
+  }
   const commandsLane = (
     <Lane concept="command" label={t('keymap.commandsHeading', 'Commands')} count={commands.length} twoUpFooter={!menuItem}
       footer={
@@ -640,16 +796,20 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
       }>
       {commands.length > 0 && (
         <div className={laneStyles.rows} data-capture-ignore="true">
-          {commands.map((command, index) => (
+          {commands.map(command => (
             <BindingCommandCard
               key={command.id}
-              layerInput={isShifted ? undefined : button.command}
               inputLabel={controllerButtonLabel(button, controllerFamily)}
+              inputShortName={shortName}
               command={command}
+              defaultLedColor={defaultLedColor}
+              baseLedBrightness={baseLedBrightness}
+              openSettingsOnMount={openSettingsFor === command.id}
+              onSettingsOpened={() => setOpenSettingsFor(null)}
               glyph={inputGlyph}
-              // One name per input, on its first row (3c); a menu item's is its label field (3d).
-              label={index === 0 && onBindingLabelChange && !menuItem ? bindingLabel ?? '' : undefined}
-              onLabelChange={onBindingLabelChange && !menuItem ? value => onBindingLabelChange(button.command, value) : undefined}
+              // Output names are independent of the input or menu item identity.
+              label={onBindingLabelChange ? commandLabels?.[commandLabelKey(command)] ?? '' : undefined}
+              onLabelChange={onBindingLabelChange ? value => onBindingLabelChange(commandLabelKey(command), value) : undefined}
               modifierOptions={modifierOptions}
               specialOptions={command.source.kind === 'special' ? allSpecialOptionList : actionSpecialOptionList}
               virtualControllerType={virtualControllerType}
@@ -670,12 +830,14 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
         </div>
       )}
       {addingCommand && (
-        // No Layers tab here: a layer action is added from its own lane, not
-        // as a command.
+        // Layers and LED while held are added from here too (TODO-54, TODO-55):
+        // a command is anything the input does, not only a token it sends.
         <ActionPicker inputLabel={controllerButtonLabel(button, controllerFamily)}
           command={commandForValue(button.command, '')} virtualControllerType={virtualControllerType} specialOptions={actionSpecialOptionList}
           libraryProfiles={libraryProfiles} currentProfileName={currentProfileName} onEnableVirtualController={onEnableVirtualController}
-          onSelect={addChosen} onClose={() => setAddingCommand(false)} onCapture={captureNew} onAddStickShift={addStickShift} />
+          defaultLedColor={defaultLedColor}
+          onSelect={addChosen} onClose={() => setAddingCommand(false)} onCapture={captureNew} onAddStickShift={addStickShift}
+          onAddHeldLed={addHeldLed} onAddLayerAction={addLayerAction} />
       )}
     </Lane>
   )
@@ -714,10 +876,11 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
     .map(command => ({
       // Printed on the keycap (3b): PRESS, HOLD, TAP, DOUBLE PRESS.
       trigger: t(TRIGGER_LABEL_KEYS[command.triggerKind]),
-      // What the game receives, in words, not how the file spells it.
-      output: describeBinding(command.outputValue, t),
-      outputTitle: explainBinding(command.outputValue, t),
-      jsm: command.outputKind === 'special' || command.source.kind === 'special' || command.source.kind === 'stickShift',
+      // What the game receives, in words, not how the file spells it; the
+      // LED and layer rows in the words their lanes used (TODO-54, TODO-55).
+      output: describeCommandOutput(command, layers, t),
+      outputTitle: explainCommandOutput(command, shortName, t),
+      jsm: command.outputKind === 'special' || command.outputKind === 'gyroAction' || command.source.kind === 'special' || command.source.kind === 'stickShift' || isFixedCommand(command),
     }))
 
   return (
@@ -735,7 +898,7 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
       onPaste={onCopyBindings ? pasteBindings : undefined}
       canPaste={bindingClipboard.length > 0}
       pasteLabel={t('keymap.bindingsPaste', { count: bindingClipboard.length })}
-      onCopyAll={onCopyBindings && commands.length > 0 ? () => copyCommands(commands) : undefined}
+      onCopyAll={onCopyBindings && copyableCommands.length > 0 ? () => copyCommands(copyableCommands) : undefined}
       onCapture={capturePrimary}
       xAction={xAction}
       glyph={<InputGlyph command={button.command} family={controllerFamily} size={embedded ? 30 : 40} />}
@@ -745,9 +908,10 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
       lanes={
         <>
           {identity}
+          {/* Commands, then the modeshifts: the LED while held and the layer
+              actions are rows of the Commands lane (TODO-54, TODO-55). */}
           {commandsLane}
           {!menuItem && modeshiftPanel && !isShifted && <InputModeshiftPanel {...modeshiftPanel} button={button} shortName={shortName} />}
-          {!menuItem && !isShifted && <LayerActionsPanel command={button.command} label={t('keymap.layerActionsOf', '{{input}} layer actions', { input: longName })} glyph={inputGlyph} shortName={shortName} longName={longName} />}
         </>
       }
       extras={extras}
@@ -755,9 +919,3 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
     />
   )
 })
-
-// The LAYER ACTIONS lane (3c): one row per action -- the input, an arrow, the
-// layer's tile and what it does -- and one add button.
-function LayerActionsPanel({ command, label, glyph, shortName, longName }: { command: string; label: string; glyph: ReactNode; shortName: string; longName: string }) {
-  return <LayerActionsLane command={command} label={label} glyph={glyph} shortName={shortName} longName={longName} />
-}

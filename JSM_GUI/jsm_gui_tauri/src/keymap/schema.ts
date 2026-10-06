@@ -47,7 +47,7 @@ export const TRIGGER_BUTTONS: ButtonDefinition[] = [
 
 export const CENTER_BUTTONS: ButtonDefinition[] = [
   { command: '+', descriptionKey: 'buttons.descriptions.optionsMenuPlus', playstation: 'Options', xbox: 'Menu' },
-  { command: '-', descriptionKey: 'buttons.descriptions.shareViewMinus', playstation: 'Share', xbox: 'View' },
+  { command: '-', descriptionKey: 'buttons.descriptions.shareViewMinus', playstation: 'Create / Share', xbox: 'View' },
   { command: 'MIC', descriptionKey: 'buttons.descriptions.microphoneButton', playstation: 'Mic', xbox: 'Mic' },
   { command: 'HOME', descriptionKey: 'buttons.descriptions.homeGuide', playstation: 'PS', xbox: 'Guide', steam: 'Steam' },
   // Quick Access sits beside the Steam button on the controller, so it belongs
@@ -68,8 +68,8 @@ export const MINI_BUTTONS: ButtonDefinition[] = [
 ]
 
 export const TOUCH_BUTTONS: ButtonDefinition[] = [
-  { command: 'TOUCH', descriptionKey: 'buttons.descriptions.touchContact', playstation: 'Touch', xbox: 'Touch' },
-  { command: 'CAPTURE', descriptionKey: 'buttons.descriptions.touchpadClick', playstation: 'Click', xbox: 'Click' },
+  { command: 'TOUCH', descriptionKey: 'buttons.descriptions.touchContact', playstation: 'Touch', xbox: 'Touch', steam: 'Right pad touch' },
+  { command: 'CAPTURE', descriptionKey: 'buttons.descriptions.touchpadClick', playstation: 'Touchpad click', xbox: 'Click' },
 ]
 
 export const TOUCH_STICK_BUTTONS: ButtonDefinition[] = [
@@ -103,9 +103,17 @@ export const RIGHT_STICK_BUTTONS: ButtonDefinition[] = [
 export const MISC_BUTTONS: ButtonDefinition[] = [
   { command: 'MISC2', descriptionKey: 'buttons.descriptions.extraButton2', playstation: 'Misc 2', xbox: 'Misc 2', steam: 'Right pad click' },
   { command: 'MISC3', descriptionKey: 'buttons.descriptions.extraButton3', playstation: 'Misc 3', xbox: 'Misc 3', steam: 'Left pad click' },
-  { command: 'MISC4', descriptionKey: 'buttons.descriptions.extraButton4', playstation: 'Misc 4', xbox: 'Misc 4' },
+  { command: 'MISC4', descriptionKey: 'buttons.descriptions.extraButton4', playstation: 'Misc 4', xbox: 'Misc 4', steam: 'Left pad touch' },
   { command: 'MISC5', descriptionKey: 'buttons.descriptions.extraButton5', playstation: 'Misc 5', xbox: 'Misc 5', steam: 'Right grip' },
   { command: 'MISC6', descriptionKey: 'buttons.descriptions.extraButton6', playstation: 'Misc 6', xbox: 'Misc 6', steam: 'Left grip' },
+]
+
+export const MOTION_BUTTONS: ButtonDefinition[] = [
+  ...['MUP', 'MDOWN', 'MLEFT', 'MRIGHT', 'MRING', 'LEAN_LEFT', 'LEAN_RIGHT'].map((command, i) => ({
+    command, descriptionKey: ['Tilt up', 'Tilt down', 'Tilt left', 'Tilt right', 'Tilt ring', 'Lean left', 'Lean right'][i],
+    playstation: ['Tilt up', 'Tilt down', 'Tilt left', 'Tilt right', 'Tilt ring', 'Lean left', 'Lean right'][i],
+    xbox: ['Tilt up', 'Tilt down', 'Tilt left', 'Tilt right', 'Tilt ring', 'Lean left', 'Lean right'][i],
+  })),
 ]
 
 // A two-pad controller reports a click per pad rather than the shared CAPTURE
@@ -184,7 +192,7 @@ export const getSpecialOptionList = (t: TFunction) => getSpecialBindings(t).filt
 export const isGyroButtonSettingSpecial = (value: string) => GYRO_BUTTON_SETTING_SPECIALS.has(value.trim().toUpperCase())
 
 export const getActionSpecialOptionList = (t: TFunction) =>
-  getSpecialOptionList(t).filter(option => !isGyroButtonSettingSpecial(option.value))
+  getSpecialOptionList(t).map(option => ({ ...option, label: isGyroButtonSettingSpecial(option.value) ? `${getSpecialLabel(option.value, t)} (this controller)` : getSpecialLabel(option.value, t) }))
 
 export const getSpecialOptionManualList = (t: TFunction) =>
   getActionSpecialOptionList(t)
@@ -233,7 +241,7 @@ export const parseStickShiftSelection = (value: string) => {
 
 export const STICK_AIM_DEFAULTS = {
   sens: '360',
-  power: '2',
+  power: '1',
   accelerationRate: '0',
   accelerationCap: '1000000',
 }

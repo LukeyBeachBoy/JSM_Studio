@@ -1,0 +1,52 @@
+{
+  "+": {
+    "classification": "ALIAS",
+    "reason": "The Equals key sends the same Windows key code; modifiers choose its shifted symbol.",
+    "editor": "components/keymap/KeyboardBindingModal.tsx"
+  },
+  "ALT": {
+    "classification": "ALIAS",
+    "reason": "Left/right Alt choices expose modifier output. Preserve the generic imported token rather than rewriting it.",
+    "editor": "components/keymap/KeyboardBindingModal.tsx"
+  },
+  "CONTROL": {
+    "classification": "ALIAS",
+    "reason": "Left/right Control choices expose modifier output; preserve generic imported spelling.",
+    "editor": "components/keymap/KeyboardBindingModal.tsx"
+  },
+  "SHIFT": {
+    "classification": "ALIAS",
+    "reason": "Left/right Shift choices expose modifier output; preserve generic imported spelling.",
+    "editor": "components/keymap/KeyboardBindingModal.tsx"
+  },
+  "SUBSTRACT": {
+    "classification": "LEGACY",
+    "reason": "Typo alias of the graphical numpad Subtract output; valid imported syntax remains accepted.",
+    "editor": "components/keymap/KeyboardBindingModal.tsx"
+  },
+  "NONE": {
+    "classification": "EMPTY",
+    "reason": "Remove command and empty-binding controls write NONE; empty menu items do not show a fake None command.",
+    "editor": "components/keymap/BindingEditor.tsx"
+  },
+  "SMALL_RUMBLE": {
+    "classification": "FAMILY",
+    "reason": "Graphical feedback controls encode strong/weak motor amplitudes instead of this raw shortcut.",
+    "editor": "components/keymap/BindingEditor.tsx"
+  },
+  "BIG_RUMBLE": {
+    "classification": "FAMILY",
+    "reason": "Graphical feedback controls encode strong/weak motor amplitudes instead of this raw shortcut.",
+    "editor": "components/keymap/BindingEditor.tsx"
+  },
+  "RFF80": {
+    "classification": "FAMILY",
+    "reason": "Representative parameterized rumble output; typed motor amplitude controls own this family.",
+    "editor": "components/keymap/BindingEditor.tsx"
+  },
+  "HAPTIC_BOTH_CLICK_0": {
+    "classification": "FAMILY",
+    "reason": "Representative parameterized haptic output; side, effect and gain use the graphical haptic editor.",
+    "editor": "components/keymap/HapticOutputPicker.tsx"
+  }
+}

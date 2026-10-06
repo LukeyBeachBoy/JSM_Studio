@@ -25,15 +25,26 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
     const choices = picker.locator('.action-picker__body button');
     assert.equal((await choices.first().innerText()).trim(), 'Calibrate gyro', 'Calibrate gyro should lead the JSM tab');
     assert.equal(await picker.getByText('CALIBRATE', { exact: true }).count(), 0, 'the hold-to-calibrate special should not show its raw token');
-    assert.equal(await picker.getByText('Calibrate while held (raw)', { exact: true }).count(), 1);
+    assert.equal(await picker.getByText('Calibrate while held', { exact: true }).count(), 1);
+    assert.equal(await picker.getByRole('button', { name: 'Start continuous gyro calibration', exact: true }).count(), 1);
+    assert.equal(await picker.getByRole('button', { name: 'Finish continuous gyro calibration', exact: true }).count(), 1);
     // Searching finds it by what it does, not only by its token.
     await picker.getByRole('searchbox').fill('overlay');
     assert.ok(await picker.getByText('Calibrate gyro', { exact: true }).count() >= 1, 'search should find Calibrate gyro by its description');
     await picker.getByText('Calibrate gyro', { exact: true }).first().click();
 
     await page.waitForFunction(() => document.querySelector('details[data-input-command="MISC6"] [data-command-row]')?.textContent?.includes('Calibrate gyro'));
+    await row.getByRole('button', { name: 'Add command' }).click();
+    await picker.locator('.action-tab', { hasText: /^JSM$/ }).click();
+    await picker.getByRole('button', { name: 'Start continuous gyro calibration', exact: true }).click();
+    await row.getByText('Start continuous gyro calibration', { exact: true }).waitFor();
+    await row.getByRole('button', { name: 'Add command' }).click();
+    await picker.locator('.action-tab', { hasText: /^JSM$/ }).click();
+    await picker.getByRole('button', { name: 'Finish continuous gyro calibration', exact: true }).click();
+    await row.getByText('Finish continuous gyro calibration', { exact: true }).waitFor();
+    assert.equal(await row.getByText(/\(raw\)/).count(), 0, 'native command identifiers must not be the primary labels');
     assert.deepEqual(errors, []);
-    console.log('PASS Calibrate gyro is a named, described action, first in the JSM tab');
+    console.log('PASS timed, held and continuous start/finish calibration actions have readable graphical choices');
   } finally {
     await browser.close();
   }

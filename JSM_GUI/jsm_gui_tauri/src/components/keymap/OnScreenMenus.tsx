@@ -71,11 +71,11 @@ export function OnScreenMenus({ open, onClose, configName, origin, originLayerId
   useEffect(() => {
     if (!open) return
     const wanted = `${originLayerId}|${origin ?? ''}`
-    setSelectedId(entries.some(entry => entry.id === wanted) ? wanted : entries.find(entry => entry.key === origin)?.id ?? entries[0]?.id ?? null)
-    // Only on opening: entries change with every edit made here.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Keep the requested identity while layer/import surfaces finish loading.
+    // Storing the first available pad here loses a later-arriving stick menu.
+    setSelectedId(origin ? wanted : null)
   }, [open, origin, originLayerId])
-  const selected = entries.find(entry => entry.id === selectedId) ?? entries[0] ?? null
+  const selected = entries.find(entry => entry.id === selectedId) ?? entries.find(entry => entry.key === origin) ?? entries[0] ?? null
 
   const write = (entry: Entry, next: Partial<OverlayPlacement>) => {
     const { pad, chord } = splitKey(entry.key)
@@ -242,8 +242,8 @@ export function OnScreenMenus({ open, onClose, configName, origin, originLayerId
                   <SummaryRow size="sheet" label="Icons" hint="The icons regions were given" toggle={{ on: placement.showIcons !== false, onChange: on => write(selected, { showIcons: on }) }} />
                 </ExpandRow>
                 <SummaryRow size="sheet" label="Appears"
-                  help="As soon as it's touched: the menu is up before anything is selected, so you can aim first. Use it when a region fires the moment it is touched. Once a region is selected: hidden until your thumb or the stick reaches the ring; quieter, and the default for stick wheels."
-                  adjust={{ kind: 'choice', value: placement.reveal, options: [{ value: 'touch', label: 'As soon as it’s touched' }, { value: 'ring', label: 'Once a region is selected' }], onChange: value => write(selected, { reveal: value as 'ring' | 'touch' }) }} />
+                  help="While navigating: show on pad contact or stick deflection beyond its inner deadzone. In an action region: show on a grid cell or beyond a radial menu's centre deadzone. Never: hide the overlay while keeping bindings and the editor preview available. Visibility does not determine when actions run."
+                  adjust={{ kind: 'choice', value: placement.reveal, options: [{ value: 'touch', label: 'While navigating' }, { value: 'ring', label: 'In an action region' }, { value: 'never', label: 'Never' }], onChange: value => write(selected, { reveal: value as 'ring' | 'touch' | 'never' }) }} />
                 <div className="menus-view__spacer" />
                 <footer className="sheet__footer" aria-label="Controls">
                   <span className="sheet__hint"><ButtonGlyph button="A" size={24} />Pick up</span>

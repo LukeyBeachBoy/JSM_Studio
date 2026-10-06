@@ -21,7 +21,9 @@ export function StaticSensForm({ sensitivity, disabled, onChangeX, onChangeY }: 
   const axis = (which: string) => `${t('gyroPage.staticSensitivity')} (${which})`
   const inheritedX = sensitivity.maxSensX ?? 1
   const inheritedY = sensitivity.maxSensY ?? sensitivity.maxSensX ?? 1
-  const hint = t('gyroPage.staticSensitivityDesc')
+  const hint = sensitivity.gyroOutput && sensitivity.gyroOutput !== 'MOUSE'
+    ? 'Desired camera rotation for each degree the controller turns. Horizontal and vertical gain are independent; the game’s maximum stick turn rate limits fast movement.'
+    : t('gyroPage.staticSensitivityDesc')
   return (
     <>
       <NumberField setting="GYRO_SENS" label={axis(t('gyroPage.axisX'))} value={sensitivity.gyroSensX} onChange={onChangeX} min={0} max={30} step={0.1} defaultValue={inheritedX} hint={hint} disabled={disabled} />
