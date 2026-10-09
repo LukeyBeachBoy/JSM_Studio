@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sound library</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.lbl{font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#808c99;font-weight:600}
+.snd{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;align-items:center;gap:14px;min-height:60px;padding:8px 16px;box-sizing:border-box;border-radius:14px;background:transparent;color:#b0bcc8;text-align:left}
+.snd .t{font-size:18px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.snd .s{font-size:14px;color:#808c99;white-space:nowrap}
+.wv{width:34px;height:34px;border-radius:10px;background:#1f2730;display:flex;align-items:center;justify-content:center;flex:none}
+.cs{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;flex-direction:column;gap:2px;min-height:60px;padding:10px 16px;box-sizing:border-box;border-radius:14px;background:#1f2730;color:#e8eef4;text-align:left}
+.cs .k{font-size:14px;color:#808c99}
+.cs .v{font-size:17px;font-weight:600;display:flex;align-items:center;gap:8px}
+.tun{background:#1f2730;border-radius:16px;padding:14px 20px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.seg{display:flex;gap:4px;background:#0f151b;border-radius:12px;padding:4px}
+.seg span{flex:1;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600;color:#b0bcc8}
+.bar{height:8px;border-radius:4px;background:#0f151b;position:relative}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="height: 76px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 40px; background: #0d1217">
+<span style="font-size: 18px; color: #808c99">Light &amp; sounds</span>
+<span style="font-size: 18px; color: #808c99">▸</span>
+<span style="font-size: 22px; font-weight: 700">Sound library</span>
+<span style="margin-left: 8px; font-size: 16px; color: #808c99">For every configuration</span>
+<span style="margin-left: auto; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 20px; background: #1e3d33; color: #93e6c1; font-size: 16px; font-weight: 600"><span style="width: 9px; height: 9px; border-radius: 50%; background: #5fd3a0"></span>Steam Controller connected</span>
+</header>
+
+<main style="flex: 1; min-height: 0; display: grid; grid-template-columns: 330px minmax(0, 1fr); gap: 32px; padding: 28px 40px 24px">
+
+<nav style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+<div style="display: flex; align-items: center; gap: 8px; margin: 0 0 8px 16px; font-size: 14px; color: #808c99"><span class="gp">LT</span>Sound<span class="gp">RT</span></div>
+<button class="snd" style="background: #1f2730; color: #ffffff"><span class="wv" style="background: #1d445c"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#7cc4ee" stroke-width="2" stroke-linecap="round"><path d="M3 12v-2M7 15V6M11 13V8M15 16V4M18 11V9"></path></svg></span><span style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><span class="t">Victory riff</span><span class="s" style="color: #7cc4ee">MIDI · 3.1 s · ready</span></span></button>
+<button class="snd"><span class="wv"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#b0bcc8" stroke-width="2" stroke-linecap="round"><path d="M3 12v-2M7 15V6M11 13V8M15 16V4M18 11V9"></path></svg></span><span style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><span class="t">Squad up</span><span class="s">MP3 · 1.8 s · ready</span></span></button>
+<button class="snd"><span class="wv"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#b0bcc8" stroke-width="2" stroke-linecap="round"><path d="M3 12v-2M7 15V6M11 13V8M15 16V4M18 11V9"></path></svg></span><span style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><span class="t">Low ammo</span><span class="s">MIDI · 0.6 s · ready</span></span></button>
+<button class="snd"><span class="wv" style="background: #4a3320"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffc98f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M6 18L18 6"></path></svg></span><span style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><span class="t">Boss theme</span><span class="s" style="color: #ffc98f">MP3 · needs trimming</span></span></button>
+<button class="snd" style="box-shadow: inset 0 0 0 2px #2e3844; margin-top: 4px"><span class="wv" style="background: transparent"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></span><span style="display: flex; flex-direction: column; gap: 2px"><span class="t" style="color: #d4dde6">Add MP3 or MIDI</span><span class="s">Up to 25 MB</span></span></button>
+
+<span class="lbl" style="margin: 18px 0 6px 16px">The controller plays</span>
+<button class="cs"><span class="k">When it connects</span><span class="v"><span style="width: 8px; height: 8px; border-radius: 50%; background: #7cc4ee"></span>Victory riff</span></button>
+<button class="cs" style="margin-top: 4px"><span class="k">Before it turns off</span><span class="v"><span style="width: 8px; height: 8px; border-radius: 50%; background: #808c99"></span>Deactivate · built in</span></button>
+<span style="font-size: 14px; line-height: 1.45; color: #808c99; padding: 8px 16px 0">Its own power-on jingle still plays first. <a href="#">Settings ▸ Controller</a></span>
+</nav>
+
+<section style="display: flex; flex-direction: column; gap: 12px; min-width: 0">
+<div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h1 style="margin: 0; font-size: 32px; font-weight: 700">Victory riff</h1>
+<span style="font-size: 16px; color: #b0bcc8">From <span style="font-family: 'Geist Mono', monospace; color: #d4dde6">victory.mid</span> · melody track 2 of 4</span>
+</div>
+<span style="display: flex; align-items: center; gap: 8px; font-size: 15px; color: #808c99">Track <span style="color: #e8eef4; font-weight: 600">◂ 2 · Lead ▸</span></span>
+</div>
+
+<div style="background: #0f151b; border-radius: 20px; padding: 16px 18px 12px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.06)">
+<svg viewBox="0 0 900 236" width="100%" height="236" fill="none">
+<g stroke="rgba(255,255,255,.06)"><path d="M0 40H900M0 80H900M0 120H900M0 160H900"></path></g>
+<rect x="150" y="0" width="560" height="200" fill="#3e9fd8" fill-opacity=".1"></rect>
+<rect x="20" y="132" width="40" height="12" rx="6" fill="#5b6571"></rect>
+<rect x="70" y="112" width="30" height="12" rx="6" fill="#5b6571"></rect>
+<rect x="108" y="92" width="34" height="12" rx="6" fill="#5b6571"></rect>
+<rect x="724" y="122" width="44" height="12" rx="6" fill="#5b6571"></rect>
+<rect x="778" y="142" width="60" height="12" rx="6" fill="#5b6571"></rect>
+<rect x="846" y="102" width="40" height="12" rx="6" fill="#5b6571"></rect>
+<rect x="160" y="122" width="52" height="12" rx="6" fill="#3e9fd8"></rect>
+<rect x="220" y="102" width="40" height="12" rx="6" fill="#3e9fd8"></rect>
+<rect x="268" y="82" width="40" height="12" rx="6" fill="#3e9fd8"></rect>
+<rect x="316" y="52" width="90" height="12" rx="6" fill="#3e9fd8"></rect>
+<rect x="414" y="72" width="36" height="12" rx="6" fill="#3e9fd8"></rect>
+<rect x="458" y="52" width="36" height="12" rx="6" fill="#3e9fd8"></rect>
+<rect x="502" y="32" width="70" height="12" rx="6" fill="#3e9fd8"></rect>
+<rect x="580" y="62" width="40" height="12" rx="6" fill="#3e9fd8"></rect>
+<rect x="628" y="42" width="72" height="12" rx="6" fill="#3e9fd8"></rect>
+<path d="M150 4V196" stroke="#e8eef4" stroke-width="2"></path>
+<rect x="141" y="86" width="18" height="30" rx="6" fill="#e8eef4"></rect>
+<path d="M147 94v14M153 94v14" stroke="#0d1217" stroke-width="1.5" stroke-linecap="round"></path>
+<path d="M710 4V196" stroke="#b0bcc8" stroke-width="2"></path>
+<rect x="701" y="86" width="18" height="30" rx="6" fill="#b0bcc8"></rect>
+<path d="M707 94v14M713 94v14" stroke="#0d1217" stroke-width="1.5" stroke-linecap="round"></path>
+<path d="M392 0V200" stroke="#a6d65a" stroke-width="2"></path>
+<circle cx="392" cy="58" r="6" fill="#a6d65a" stroke="#e3eaf1" stroke-width="2"></circle>
+<path d="M0 200H900" stroke="rgba(255,255,255,.1)"></path>
+<g stroke="rgba(255,255,255,.1)" stroke-width="1.5"><path d="M0 200v8M180 200v8M360 200v8M540 200v8M720 200v8M899 200v8"></path></g>
+<g fill="#808c99" font-family="Geist Mono, monospace" font-size="14"><text x="4" y="228">0 s</text><text x="180" y="228" text-anchor="middle">1</text><text x="360" y="228" text-anchor="middle">2</text><text x="540" y="228" text-anchor="middle">3</text><text x="720" y="228" text-anchor="middle">4</text><text x="896" y="228" text-anchor="end">5 s</text></g>
+</svg>
+<div style="display: flex; justify-content: space-between; font-size: 14px; color: #808c99; padding-top: 6px"><span>One note at a time, moved into the range the grips play clearly</span><span style="color: #93e6c1">● playing on controller</span></div>
+</div>
+
+<div class="focus" style="background: #1d445c; border-radius: 16px; padding: 14px 20px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; gap: 20px">
+<span style="font-size: 19px; font-weight: 650">Trim</span>
+<span style="display: flex; align-items: baseline; gap: 8px; font-size: 16px; color: #b8e2fa">Start <span style="font-family: 'Geist Mono', monospace; font-size: 22px; font-weight: 500; color: #ffffff">0.83 s</span></span>
+<span style="display: flex; align-items: baseline; gap: 8px; font-size: 16px; color: #b0bcc8">End <span style="font-family: 'Geist Mono', monospace; font-size: 22px; font-weight: 500; color: #e8eef4">3.94 s</span></span>
+<span style="margin-left: auto; font-size: 16px; color: #d4dde6">Keeps 3.1 s</span>
+</div>
+<span style="font-size: 15px; color: #b8e2fa">◂ ▸ moves the start marker · A switches to the end · hold ◂ ▸ for 0.01 s steps</span>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<div class="tun">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><span style="font-size: 19px; font-weight: 650">Pitch</span><span style="font-size: 15px; color: #808c99">Auto moved it up 1 octave</span></div>
+<div class="seg"><span>Lower</span><span style="background: #2e3844; color: #ffffff">Auto</span><span>Higher</span></div>
+</div>
+<div class="tun">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><span style="font-size: 19px; font-weight: 650">Volume on a button</span><span style="font-size: 18px; font-weight: 650">0 dB</span></div>
+<div class="bar"><span style="position: absolute; left: 0; top: 0; height: 8px; width: 100%; border-radius: 4px; background: #3e9fd8"></span></div>
+<span style="font-size: 14px; color: #808c99">As recorded. Each button that plays it can go down to −30 dB.</span>
+</div>
+</div>
+
+<div style="display: flex; align-items: center; gap: 18px; min-height: 52px; padding: 0 20px; border-radius: 14px; background: #1a222b; font-size: 16px; color: #b0bcc8">
+<span>Sound intensity <span style="color: #e8eef4; font-weight: 600">Full</span></span>
+<span style="width: 1px; height: 20px; background: #2e3844"></span>
+<span>Plays on <span style="color: #e8eef4; font-weight: 600">Grip motors</span></span>
+<a href="#" style="margin-left: auto; font-weight: 600">Settings ▸ Controller</a>
+</div>
+</section>
+</main>
+
+<footer style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Sound library · Victory riff · Trim</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">A</span>Start · end</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">X</span>Preview on controller</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">Y</span>More</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">LT</span><span class="gp">RT</span>Sound</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">☰</span>Save sound</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Back</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

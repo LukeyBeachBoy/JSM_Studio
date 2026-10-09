@@ -128,7 +128,7 @@
 .flex-inputs > label:hover { background: var(--surface-row-hover); }
 body[data-input-source='controller'] .flex-inputs > label:focus-within {
   background: var(--surface-selected);
-  box-shadow: 0 0 0 var(--focus-controller-width) var(--focus-controller), var(--shadow-lift);
+  box-shadow: var(--focus-ring-pad);
 }
 /* The control sits at the end of the caption's line, the description under both. */
 .flex-inputs > label > button[role='combobox'],

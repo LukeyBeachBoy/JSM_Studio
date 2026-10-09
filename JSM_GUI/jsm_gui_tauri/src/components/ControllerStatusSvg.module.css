@@ -415,3 +415,15 @@
 @media (max-width: 1100px) {
   .backView { display: none; }
 }
+
+/* The front art's own column, so a caption can sit under it (console v2 Layout). */
+.frontView { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.frontView > .controllerSvg { width: 100%; overflow: visible; }
+/* Layout's focus mode: the front at 460, the back at 200 beside it, bottoms
+   aligned, each with an uppercase caption; the back only while its input has focus. */
+.steamFocusLayout { align-items: flex-end; justify-content: center; }
+.steamFocusLayout .frontView { flex: none; width: min(460px, calc(100% - 216px)); }
+.backViewFocus { width: 200px; gap: 6px; align-items: center; }
+.backViewFocus .backArt { width: 200px; }
+.viewCaption { font-size: var(--fs-caption, 14px); line-height: 1.2; letter-spacing: .08em; text-transform: uppercase; color: var(--text-3); font-weight: var(--fw-semibold); white-space: nowrap; }
+@media (max-width: 1100px) { .backViewFocus { display: flex; width: 150px; } .backViewFocus .backArt { width: 150px; } }

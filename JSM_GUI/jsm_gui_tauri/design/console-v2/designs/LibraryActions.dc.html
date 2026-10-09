@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Library actions</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.btn{font-family:inherit;border:0;cursor:pointer}
+.tab{font-family:inherit;border:0;background:transparent;color:#b0bcc8;font-size:18px;font-weight:600;height:44px;padding:0 18px;border-radius:12px;cursor:pointer}
+.hatch{background-color:#1a2530;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+.cover{font-family:inherit;border:0;cursor:pointer;width:230px;height:330px;flex:none;border-radius:18px;color:#e8eef4;display:flex;flex-direction:column;justify-content:flex-end;padding:18px;box-sizing:border-box;text-align:left;gap:6px;position:relative}
+.cover .t{font-size:21px;font-weight:700}
+.cover .s{font-size:15px;color:#b0bcc8}
+.ph{position:absolute;top:14px;left:16px;right:16px;font-family:'Geist Mono',monospace;font-size:12px;color:#808c99}
+.mi{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;align-items:center;gap:14px;min-height:52px;padding:8px 16px;box-sizing:border-box;border-radius:12px;background:transparent;color:#e8eef4;text-align:left}
+.mi .t{font-size:18px;font-weight:600;white-space:nowrap}
+.mi .s{font-size:14px;color:#808c99}
+.mi .v{margin-left:auto;font-size:15px;color:#b0bcc8;white-space:nowrap}
+.ic{width:22px;height:22px;flex:none}
+</style>
+</helmet>
+<div style="position: relative; width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="height: 76px; flex: none; display: flex; align-items: center; gap: 24px; padding: 0 32px; background: #0d1217">
+<span style="font-size: 22px; font-weight: 700; width: 220px">Library</span>
+<nav style="display: flex; align-items: center; gap: 4px; flex: 1; justify-content: center">
+<span class="gp" style="margin-right: 8px">LB</span>
+<button class="tab" style="background: #1d445c; color: #ffffff">Games</button>
+<button class="tab">Bases</button>
+<button class="tab">Launch with game</button>
+<span class="gp" style="margin-left: 8px">RB</span>
+</nav>
+<span style="width: 220px; text-align: right; font-size: 16px; color: #808c99">4 configurations</span>
+</header>
+
+<main style="flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 26px; padding: 36px 48px 24px">
+<div style="display: flex; gap: 22px; align-items: flex-end">
+<button class="cover hatch" style="box-shadow: 0 0 0 3px #3e9fd8">
+<span class="ph">[ CAPSULE ART ]</span>
+<span style="align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; border-radius: 14px; background: #1e3d33; color: #93e6c1; font-size: 14px; font-weight: 600"><span style="width: 7px; height: 7px; border-radius: 50%; background: #5fd3a0"></span>Live</span>
+<span class="t">Wardogs</span><span class="s">Shooter · gyro</span>
+</button>
+<button class="cover hatch">
+<span class="ph">[ CAPSULE ART ]</span>
+<span class="t">Cyberpunk 2077</span><span class="s">Launches with game</span>
+</button>
+<button class="cover" style="background: #1f2730">
+<span style="position: absolute; top: 22px; left: 18px"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#808c99" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M8 20h8M12 16v4"></path></svg></span>
+<span class="t">Desktop gamepad</span><span class="s">When no game matches</span>
+</button>
+<button class="cover" style="background: transparent; border: 2px dashed #2e3844; align-items: center; justify-content: center; gap: 12px">
+<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+<span style="font-size: 19px; font-weight: 650; color: #d4dde6">New for a game</span>
+<span style="display: flex; flex-direction: column; gap: 8px; align-items: center; margin-top: 4px">
+<span style="display: flex; align-items: center; gap: 8px; font-size: 15px; color: #b0bcc8"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><circle cx="15" cy="10" r="3"></circle><path d="M3.5 14.5l6 2.5"></path></svg>Import from Steam</span>
+<span style="display: flex; align-items: center; gap: 8px; font-size: 15px; color: #b0bcc8"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h10l6 6v10H4z"></path><path d="M14 4v6h6"></path></svg>Import a file</span>
+</span>
+</button>
+</div>
+
+<section style="background: #1a222b; border-radius: 20px; padding: 26px 30px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: baseline; gap: 16px"><span style="font-size: 32px; font-weight: 700">Wardogs</span><span style="font-size: 17px; color: #808c99">saved 11 minutes ago</span></div>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px">
+<div style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; color: #808c99">Controller</span><span style="font-size: 18px; font-weight: 600">Steam Controller</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; color: #808c99">Sends</span><span style="font-size: 18px; font-weight: 600">Keyboard &amp; mouse</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; color: #808c99">Built on</span><span style="font-size: 18px; font-weight: 600">FPS base</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; color: #808c99">Modes</span><span style="font-size: 18px; font-weight: 600">3</span></div>
+</div>
+</section>
+</main>
+
+<footer style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Library · Games · Wardogs · Delete</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">A</span>Choose</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Keep it</span>
+</div>
+</footer>
+
+<div style="position: absolute; top: 0; left: 0; right: 0; bottom: 64px; background: rgba(5,9,13,.64)"></div>
+
+<div style="position: absolute; top: 96px; left: 300px; width: 480px; background: #181f27; border-radius: 20px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); padding: 18px 16px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px">
+<div style="display: flex; align-items: center; gap: 14px; padding: 4px 16px 12px">
+<span class="hatch" style="width: 40px; height: 40px; border-radius: 10px; flex: none"></span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 22px; font-weight: 700">Wardogs</span><span style="font-family: 'Geist Mono', monospace; font-size: 14px; color: #808c99">Wardogs.txt</span></span>
+</div>
+<button class="mi"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"></path></svg><span class="t">Duplicate</span><span class="v">A copy, opened to edit</span></button>
+<button class="mi"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"></path><path d="M13 7l4 4"></path></svg><span class="t">Rename</span></button>
+<button class="mi"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5z"></path><path d="M3 13l9 5 9-5"></path></svg><span class="t">Change base</span><span class="v">FPS base</span></button>
+<button class="mi"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M10 8l4 2-4 2z"></path><path d="M8 20h8"></path></svg><span class="t">Launch with game</span><span class="v">Wardogs.exe</span></button>
+<button class="mi"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg><span class="t">Show in folder</span></button>
+<button class="mi"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"></path></svg><span class="t">Edit the file directly</span><span class="v">For experts</span></button>
+<div style="height: 1px; background: #2a333e; margin: 6px 16px"></div>
+
+<div style="border-radius: 14px; background: #4a1f26; padding: 16px; display: flex; flex-direction: column; gap: 12px; margin-top: 4px">
+<div style="display: flex; align-items: center; gap: 14px">
+<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#ffb3bd" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"></path></svg>
+<span style="font-size: 20px; font-weight: 700; color: #ffd6dc">Delete Wardogs?</span>
+</div>
+<span style="font-size: 16px; line-height: 1.5; color: #ffd6dc">The file goes to the recycle bin. Wardogs.exe will have nothing to load, and because it’s open now, another configuration opens.</span>
+<div class="focus" style="border-radius: 12px; background: #1d445c; padding: 12px 16px; display: flex; flex-direction: column; gap: 4px">
+<span style="display: flex; align-items: center; gap: 12px; font-size: 18px; font-weight: 650"><span class="g">B</span>Keep it</span>
+<span style="font-size: 15px; color: #b8e2fa; padding-left: 42px">Nothing changes.</span>
+</div>
+<button class="mi" style="background: #e5484d; color: #ffffff; min-height: 52px"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"></path></svg><span class="t" style="font-weight: 650">Delete Wardogs</span></button>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

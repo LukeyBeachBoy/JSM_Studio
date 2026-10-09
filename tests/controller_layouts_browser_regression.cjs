@@ -44,31 +44,44 @@ const { chromium } = require('C:/Users/luker/.cache/codex-runtimes/codex-primary
     }
 
 
-    await page.locator('[data-home-continue]').click();
-    await page.getByRole('button',{name:/Trackpads/i}).first().click();
-    await page.getByRole('combobox',{name:'Editing for controller'}).waitFor();
-    assert.equal(await page.getByRole('combobox',{name:'Editing for controller'}).textContent(),'DualSense');
-    await page.getByRole('combobox',{name:'Touchpad fallback source'}).click();
-    await page.getByRole('option',{name:'Steam left trackpad',exact:true}).click();
+    await page.locator('.app-shell').waitFor();
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('jsm:navigate-page', { detail: 'touchpad' })));
+    // Console v2 (ControllerVariant): Layout for this controller is a full page.
+    await page.evaluate(() => window.dispatchEvent(new Event('jsm:open-controller-layout')));
+    const variant = page.getByRole('dialog', { name: /Layout for this controller$/ });
+    await variant.waitFor();
+    assert.equal(await variant.getByRole('radio', { name: /Only for DualSense/ }).getAttribute('aria-checked'), 'true');
+    const pad = variant.getByRole('radiogroup', { name: 'Touchpad uses', exact: true });
+    assert.match(await pad.innerText(), /Steam right trackpad/);
+    await pad.focus(); await page.keyboard.press('ArrowRight');
     await page.keyboard.press('Control+s');
     await page.waitForFunction(()=>window.__lastSaved?.includes('# @controller-pad type-5 left'));
     const saved=await page.evaluate(()=>window.__lastSaved);
     assert(saved.includes('RIGHT_TOUCHPAD_MODE = MOUSE'));
     assert(saved.includes('LEFT_TOUCHPAD_MODE = GRID_AND_STICK'));
     assert(saved.includes('LT1 = ENTER'));
-    await page.getByRole('combobox',{name:'Editing for controller'}).click();
-    await page.getByRole('option',{name:'Steam Controller',exact:true}).click();
-    await page.waitForTimeout(500);
+    // What DualSense lacks is listed; Pick a button moves it, for DualSense only.
+    const missing = variant.getByRole('region', { name: /DualSense doesn't have/ });
+    const grip = missing.locator('button:has(svg[data-glyph="MISC5"])').first();
+    await grip.click();
+    const capture = page.getByRole('dialog', { name: /Pick a button$/ });
+    await capture.waitFor();
+    await capture.locator('[role="option"]:has(svg[data-glyph="R"])').click();
+    await capture.waitFor({ state: 'detached' });
+    await page.keyboard.press('Control+s');
+    
+    await page.waitForFunction(()=>/# @controller type-5 R = K/.test(window.__lastSaved));
+    assert((await page.evaluate(()=>window.__lastSaved)).includes('MISC5 = K'), 'the shared layout keeps the grip');
+    // Another connected controller has its own view; DualSense's choice is kept.
+    const controller = variant.getByRole('radiogroup', { name: 'Controller', exact: true });
+    await controller.focus(); await page.keyboard.press('ArrowRight');
+    await page.waitForTimeout(400);
     await page.screenshot({path:path.join(__dirname,'../tmp/controller-variants-steam.png')});
-    assert.equal(await page.getByRole('combobox',{name:'Touchpad fallback source'}).count(),0);
-    await page.getByRole('combobox',{name:'Editing for controller'}).click();
-    await page.getByRole('option',{name:'DualSense',exact:true}).click();
-    assert.equal(await page.getByRole('combobox',{name:'Touchpad fallback source'}).textContent(),'Steam left trackpad');
-    await page.waitForTimeout(500);
-    assert.equal(await page.locator('main').getByText('LEFT PAD',{exact:true}).count(),0, 'DualSense exposes one pad even with Steam Controller connected');
-    assert(await page.locator('main').getByText('Grid and Stick',{exact:true}).count()>0, 'selected fallback pad mode is shown');
+    assert.equal(await variant.getByRole('radiogroup', { name: 'Touchpad uses', exact: true }).count(),0);
+    await controller.focus(); await page.keyboard.press('ArrowLeft');
+    assert.match(await variant.getByRole('radiogroup', { name: 'Touchpad uses', exact: true }).innerText(), /Left trackpad/);
     await page.screenshot({path:path.join(__dirname,'../tmp/controller-variants.png')});
-    await page.getByRole('button',{name:'Use regular gamepad',exact:true}).click();
+    await variant.getByRole('button',{name:/Use regular gamepad/}).click();
     await page.keyboard.press('Control+s');
     await page.waitForFunction(()=>window.__lastSaved?.includes('# @controller type-5 S = X_A'));
     const regular=await page.evaluate(()=>window.__lastSaved);
@@ -76,8 +89,15 @@ const { chromium } = require('C:/Users/luker/.cache/codex-runtimes/codex-primary
     assert(regular.includes('MISC5 = K'));
     assert(regular.includes('# @controller type-5 MISC5 = NONE'));
     assert(regular.includes('# @controller type-5 VIRTUAL_CONTROLLER = XBOX'));
-    assert.equal(await page.locator('main').getByText('LEFT PAD',{exact:true}).count(),0);
+    // Reset is confirmed in place, Keep them first.
+    await variant.getByRole('button',{name:/Reset DualSense/}).click();
+    await page.waitForFunction(()=>document.activeElement?.hasAttribute('data-keep'));
+    await page.keyboard.press('Escape');
+    await variant.getByRole('button',{name:/Reset DualSense/}).click();
+    await variant.getByRole('alertdialog').getByRole('button',{name:'Reset',exact:true}).click();
+    await page.keyboard.press('Control+s');
+    await page.waitForFunction(()=>!window.__lastSaved?.includes('# @controller type-5 '));
     assert.deepEqual(errors,[]);
-    console.log('PASS: two-controller selection, single-pad source choice, save preserves original pad bindings, and switching models restores their own view without browser errors');
+    console.log('PASS: variant page, single-pad source choice, Pick a button for this controller only, two-controller views, regular gamepad and reset in place without browser errors');
   } finally {await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

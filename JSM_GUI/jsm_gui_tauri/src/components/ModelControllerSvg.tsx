@@ -12,6 +12,12 @@ type Props = {
   bindingLabels?: Record<string, string | undefined>
   onSelectCommand?: (command: string) => void
   showRawTelemetry?: boolean
+  /** 'always' (default) draws front and back; 'focus' draws the back only while
+   *  an input that lives there is selected (console v2 Layout: "Back · right grip"). */
+  backView?: 'always' | 'focus'
+  /** Captions under each view in 'focus' mode. */
+  frontCaption?: string
+  backCaption?: string
 }
 type Control = { command: string; tag: string; attrs: Record<string, string | undefined> }
 const clamp = (value: number) => Math.max(-1, Math.min(1, Number.isFinite(value) ? value : 0))
@@ -19,7 +25,17 @@ const aliases = (command: string) => command === 'L3' ? ['L3', 'LUP', 'LDOWN', '
   : command === 'R3' ? ['R3', 'RUP', 'RDOWN', 'RLEFT', 'RRIGHT', 'RRING', 'RTOUCH']
   : command === 'ZL' ? ['ZL', 'ZLF'] : command === 'ZR' ? ['ZR', 'ZRF'] : [command]
 
-export function ModelControllerSvg({ device, boundCommands, selectedCommand, bindingLabels, onSelectCommand, showRawTelemetry }: Props) {
+/** Whether an input is drawn only on this model's back art (paddles, and the
+ *  shoulders the front art leaves out). */
+export function modelBackInput(device: Pick<TelemetryDevice, 'type' | 'vid' | 'pid'>, command: string | null | undefined) {
+  const key = controllerArtworkModel(device)
+  const model = key ? models[key] : undefined
+  if (!model || !command) return false
+  const front = new Set(model.controls.flatMap(control => aliases(control.command)))
+  return model.backControls.some(control => aliases(control.command).includes(command)) && !front.has(command)
+}
+
+export function ModelControllerSvg({ device, boundCommands, selectedCommand, bindingLabels, onSelectCommand, showRawTelemetry, backView = 'always', frontCaption, backCaption }: Props) {
   const id = useId().replace(/:/g, '')
   const key = controllerArtworkModel(device)
   const model = key ? models[key] : undefined
@@ -48,8 +64,10 @@ export function ModelControllerSvg({ device, boundCommands, selectedCommand, bin
       } })}
     </g>
   }
-  return <div className={styles.views} data-controller-model={key}>
-    {(['front', 'back'] as const).map(view => <div key={view} className={styles.view}>
+  const focusView = backView === 'focus'
+  const views = focusView && !modelBackInput(device, selectedCommand) ? ['front'] as const : ['front', 'back'] as const
+  return <div className={styles.views} data-controller-model={key} data-back-view={focusView ? 'focus' : undefined}>
+    {views.map(view => <div key={view} className={styles.view} data-view={view}>
       <svg viewBox="0 0 1117 750" role="img" aria-label={`${model.name} ${view}${view === 'back' ? ', mirrored' : ''}`}>
         <g className={styles.art} dangerouslySetInnerHTML={artwork[view]} />
         {(view === 'front' ? model.controls : model.backControls).map(control)}
@@ -65,7 +83,7 @@ export function ModelControllerSvg({ device, boundCommands, selectedCommand, bin
         {view === 'front' && key.startsWith('dual') && device.status?.leftPad?.touched && <circle className={styles.stickDot}
           cx={558.5 + clamp(device.status.leftPad.x) * 140} cy={(key === 'dualsense-edge' ? 118 : 180) - clamp(device.status.leftPad.y) * 60} r="10" />}
       </svg>
-      <span className={styles.caption}>{view === 'front' ? 'Front' : 'Back · mirrored'}</span>
+      <span className={styles.caption}>{view === 'front' ? (focusView ? frontCaption ?? 'Front' : 'Front') : (focusView ? backCaption ?? 'Back' : 'Back · mirrored')}</span>
     </div>)}
   </div>
 }

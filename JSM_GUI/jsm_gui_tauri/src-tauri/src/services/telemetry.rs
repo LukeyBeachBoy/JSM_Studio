@@ -137,6 +137,8 @@ pub fn start(app: AppHandle, state: AppState) {
             match socket.recv_from(&mut buffer) {
                 Ok((size, _)) => match serde_json::from_slice::<Value>(&buffer[..size]) {
                     Ok(mut packet) => {
+                        // Before anyone reads it: a heartbeat keeps the last device list.
+                        let heartbeat = fill_heartbeat_devices(&state, &mut packet);
                         presses.observe(&packet);
                         for (command,owner) in studio_commands.take(&packet) {
                             if command=="OPEN_KEYBOARD" {crate::services::virtual_keyboard::request_toggle(owner);}
@@ -196,7 +198,7 @@ pub fn start(app: AppHandle, state: AppState) {
                             let app = app.clone();
                             thread::spawn(move || crate::commands::mapper_came_up(&app));
                         }
-                        update_latest_packet(&state, packet);
+                        update_latest_packet(&state, packet, heartbeat);
                     }
                     Err(error) => {
                         eprintln!("Failed to parse telemetry packet: {error}");
@@ -385,8 +387,32 @@ fn emit_overlay_packet(app: &AppHandle, packet: &Value) -> Result<(), String> {
     .map_err(|error| format!("Failed to emit overlay packet: {error}"))
 }
 
-fn update_latest_packet(state: &AppState, packet: Value) {
+/// The mapper's idle heartbeat (sent whenever its controller poll has been quiet
+/// for 400 ms, e.g. while it loads a configuration) names no devices. That is
+/// "nothing to report", not "every controller left": give it the last device
+/// list for as long as that list counts as fresh. Without this the UI, the HUD,
+/// the overlay and Hold to swap all saw the controller vanish for a packet --
+/// a held chord ended and began again, and the app showed no controller.
+/// Returns whether the packet was a heartbeat carrying the old list.
+fn fill_heartbeat_devices(state: &AppState, packet: &mut Value) -> bool {
+    if packet_has_devices(packet) { return false; }
+    let Ok(telemetry_state) = state.telemetry.lock() else { return false };
+    let fresh = telemetry_state.latest_received_at.is_some_and(|at| at.elapsed() <= Duration::from_millis(TELEMETRY_STALE_MS));
+    let devices = telemetry_state.latest_packet.as_ref().filter(|previous| packet_has_devices(previous)).and_then(|previous| previous.get("devices")).cloned();
+    match (fresh, devices, packet.as_object_mut()) {
+        (true, Some(devices), Some(object)) => { object.insert("devices".into(), devices); true }
+        _ => false,
+    }
+}
+
+fn update_latest_packet(state: &AppState, packet: Value, heartbeat: bool) {
     if let Ok(mut telemetry_state) = state.telemetry.lock() {
+        // A heartbeat carrying the old list must not keep that list fresh: once
+        // real packets stop for TELEMETRY_STALE_MS, the controller has gone.
+        if heartbeat {
+            telemetry_state.latest_packet = Some(packet);
+            return;
+        }
         telemetry_state.latest_packet = Some(packet);
         telemetry_state.latest_received_at = Some(Instant::now());
         telemetry_state.stale_devices_cleared = false;
@@ -521,5 +547,51 @@ mod studio_command_tests {
         assert!(cursor.take(&next).is_empty());
         assert!(cursor.take(&packet(2,vec![json!({"id":1,"handle":7,"command":"TOGGLE_MAPPING"})])).is_empty());
         assert_eq!(cursor.take(&packet(2,vec![json!({"id":2,"handle":7,"command":"TOGGLE_MAPPING"})])),vec![("TOGGLE_MAPPING".into(),7)]);
+    }
+}
+
+#[cfg(test)]
+mod heartbeat_tests {
+    use super::*;
+
+    fn device_packet() -> Value { json!({ "activeProfile": "Hitman.txt", "devices": [{ "handle": 1, "status": { "buttons": 0 } }] }) }
+    fn heartbeat() -> Value { json!({ "activeProfile": "Hitman.txt", "gyroCal": { "phase": 0 } }) }
+    fn ingest(state: &AppState, mut packet: Value) -> Value {
+        let heartbeat = fill_heartbeat_devices(state, &mut packet);
+        update_latest_packet(state, packet.clone(), heartbeat);
+        packet
+    }
+
+    // A packet without devices between real ones (the mapper's idle heartbeat,
+    // e.g. while a configuration loads) must not read as "every controller
+    // left": that ended and re-began a held Hold to swap, and the UI showed no
+    // controller for a moment.
+    #[test]
+    fn a_heartbeat_keeps_the_last_device_list() {
+        let state = AppState::default();
+        ingest(&state, device_packet());
+        let seen = ingest(&state, heartbeat());
+        assert!(packet_has_devices(&seen), "everything reading the packet still sees the controller");
+        assert!(packet_has_devices(latest_packet(&state).unwrap().as_ref().unwrap()));
+        assert_eq!(seen["gyroCal"]["phase"], 0, "the heartbeat's own fields are kept");
+    }
+
+    #[test]
+    fn a_heartbeat_does_not_keep_a_gone_controller_fresh() {
+        let state = AppState::default();
+        ingest(&state, device_packet());
+        let received = state.telemetry.lock().unwrap().latest_received_at;
+        ingest(&state, heartbeat());
+        assert_eq!(state.telemetry.lock().unwrap().latest_received_at, received, "only real device packets refresh freshness");
+        // Once the last real packet is older than the stale window, a heartbeat no longer carries it.
+        state.telemetry.lock().unwrap().latest_received_at = Some(Instant::now() - Duration::from_millis(TELEMETRY_STALE_MS + 100));
+        let seen = ingest(&state, heartbeat());
+        assert!(!packet_has_devices(&seen));
+    }
+
+    #[test]
+    fn with_no_controller_seen_a_heartbeat_stays_empty() {
+        let state = AppState::default();
+        assert!(!packet_has_devices(&ingest(&state, heartbeat())));
     }
 }

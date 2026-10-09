@@ -47,7 +47,7 @@
 .holdItem:disabled { opacity: .35; cursor: default; }
 .holdItem[aria-pressed='true'] {
   background: var(--shift-soft);
-  box-shadow: 0 0 0 var(--focus-controller-width) var(--focus-controller);
+  box-shadow: var(--focus-ring-pad);
 }
 .holdItem[aria-pressed='true'] .holdSub { color: var(--shift-ink); }
 .holdCap {
@@ -63,6 +63,8 @@
   font-weight: 800;
 }
 .holdCap[data-round='true'] { width: 26px; min-width: 26px; padding: 0; border-radius: 50%; }
+.holdGlyph { flex: none; color: var(--text-1); }
+.holdName { color: var(--text-1); font-size: var(--fs-label); font-weight: var(--fw-semibold); white-space: nowrap; }
 .holdSub { color: var(--text-2); white-space: nowrap; }
 
 /* ---- Which layer? (3f) */
@@ -83,7 +85,7 @@
   cursor: pointer;
 }
 .layerRow:hover { background: var(--surface-row-hover); }
-.layerRow[aria-checked='true'] { background: var(--surface-selected); box-shadow: 0 0 0 var(--focus-controller-width) var(--focus-controller); }
+.layerRow[aria-checked='true'] { background: var(--surface-selected); box-shadow: var(--focus-ring-pad); }
 .layerSwatch { width: 14px; height: 14px; flex: none; border-radius: 4px; }
 .layerName { flex: 1; font-size: var(--fs-label); }
 .layerCount { color: var(--text-3); font-size: var(--fs-hint); font-variant-numeric: tabular-nums; }
@@ -116,3 +118,4 @@
 /* ---- Every input the controller has (3e): what fits no group, and where
    "Or press it on your controller" cannot help. */
 .holdGroup[data-other='true'] { grid-column: 1 / -1; }
+.holdItem[aria-disabled='true'] { opacity: .35; cursor: default; }

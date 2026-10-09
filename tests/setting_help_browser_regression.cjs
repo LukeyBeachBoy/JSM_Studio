@@ -1,3 +1,9 @@
+// Console v2 (P4, V9): every setting on a gamepad stick's Fine-tune explains
+// itself. Focus captions replace the old help dialogs: each row's footer
+// caption names the setting and says what it does, and the rows fit their
+// column at desk and laptop sizes. (Before console v2 this checked seven help
+// dialogs in the stick's "Output settings" sheet; those settings now live in
+// Sticks ▸ Fine-tune ▸ Match the game and Direction.)
 const assert = require('node:assert/strict')
 const fs = require('node:fs')
 const path = require('node:path')
@@ -29,61 +35,45 @@ fs.mkdirSync(out, { recursive: true })
     await page.goto(`${process.env.JSM_TEST_URL || 'http://127.0.0.1:1421'}/?mock`)
     await page.getByRole('button', { name: 'Keep them', exact: true }).click({ timeout: 5000 }).catch(() => {})
     await page.locator('[data-home-continue]').click()
-    await page.getByRole('button', { name: 'Joysticks', exact: true }).click()
+    await page.getByRole('button', { name: 'Sticks', exact: true }).click()
     const left = page.locator('#mapping-section-leftStick')
-    await left.getByRole('button', { name: 'Output settings', exact: true }).click()
-    const sheet = page.getByRole('dialog', { name: /Left stick.*Output settings/ })
-    const labels = ['Deadzone test signal', 'Inner anti-deadzone', 'Outer range correction', 'Game response exponent', 'Physical stick contribution', 'Horizontal source direction', 'Vertical source direction']
-    for (const label of labels) {
-      const info = sheet.getByRole('button', { name: `About ${label}`, exact: true })
-      await info.focus()
-      await page.keyboard.press('Enter')
-      const help = page.getByRole('dialog', { name: label, exact: true })
-      await help.waitFor()
-      if (label === 'Deadzone test signal') {
-        for (const theme of ['dark', 'light']) for (const accent of ['cyan', 'teal', 'amber', 'violet']) {
-          await page.evaluate(({theme, accent}) => {
-            document.documentElement.dataset.theme = theme
-            document.documentElement.dataset.accent = accent
-          }, {theme, accent})
-          assert.equal(await help.locator('.dialog__footer').evaluate(el => getComputedStyle(el).backgroundColor),
-            await help.evaluate(el => getComputedStyle(el).backgroundColor), `${theme}/${accent} footer matches dialog surface`)
-        }
-        await help.screenshot({path: path.join(out, 'themed-help.png')})
-      }
-      assert.ok((await help.locator('.dialog__body').innerText()).length > 50, `${label} explains its behavior`)
-      assert.equal(await help.evaluate(el => el.contains(document.activeElement)), true, 'help traps focus')
-      await page.keyboard.press('Escape')
-      await help.waitFor({ state: 'hidden' })
-      assert.equal(await info.evaluate(el => el === document.activeElement), true, 'close restores the info button')
-      assert.equal(await sheet.isVisible(), true, 'closing help keeps output settings open')
+    assert.equal(await left.locator('[role="radio"][data-current="true"]').getAttribute('data-value'), 'GAMEPAD', 'LEFT_STICK is the Gamepad stick card')
+    await left.locator('[data-stick-fine-tune-row]').click()
+    const sub = page.locator('[data-subpage]').last()
+    await sub.locator('[data-group="match"][aria-current="true"]').waitFor()
+    const caption = page.locator('[data-subpage] [data-focus-caption]')
+    const rowFor = label => sub.locator('[role="slider"], [role="radiogroup"], button.summary-row, button').filter({ hasText: label }).first()
+    // Every Match the game setting: a caption that names it and explains it.
+    for (const label of ['Sends as', 'Game’s dead zone', 'Outer range', 'Response curve', 'Stick share with gyro', 'Dead-zone test signal']) {
+      const row = rowFor(label)
+      await row.focus()
+      await page.waitForTimeout(80)
+      const text = (await row.innerText()) + ' ' + ((await caption.count()) ? await caption.innerText() : '')
+      assert.ok(text.replace(label, '').trim().length > 20, `${label} explains its behavior: ${text}`)
     }
-    // The existing controller X shortcut opens the same dialog on both row types.
-    const numeric = sheet.locator('button.summary-row').filter({ has: page.locator('.summary-row__label').getByText('Inner anti-deadzone', { exact: true }) })
-    const probe = sheet.getByRole('combobox', { name: 'Deadzone test signal', exact: true })
-    for (const control of [numeric, probe]) {
-      await control.focus()
-      await control.evaluate(el => el.dispatchEvent(new CustomEvent('jsm:pad', { detail: { button: 'X' }, bubbles: true, cancelable: true })))
-      await page.locator('.dialog-layer').last().getByRole('dialog').waitFor()
-      await page.keyboard.press('Escape')
-      assert.equal(await control.evaluate(el => el === document.activeElement), true)
+    // ◂ ▸ change the focused value directly; the footer names the arrows.
+    const deadzone = sub.locator('[role="slider"]').filter({ hasText: 'Game’s dead zone' })
+    await deadzone.focus()
+    await page.keyboard.press('ArrowRight')
+    assert.equal(await deadzone.getAttribute('aria-valuetext'), '1%')
+    await page.keyboard.press('ArrowLeft')
+    // Direction: each flip is its own row, explained on the row.
+    await sub.locator('[data-group="direction"]').click()
+    for (const label of ['Flip left and right', 'Flip up and down']) {
+      const row = rowFor(label)
+      await row.waitFor()
+      assert.ok((await row.innerText()).replace(label, '').trim().length > 10, `${label} says what it flips`)
     }
-    assert.equal(await sheet.locator('.summary-row__hint').count(), 0, 'help copy does not crowd or truncate the output rows')
     for (const viewport of [{ width: 1440, height: 900 }, { width: 1024, height: 720 }]) {
       await page.setViewportSize(viewport)
-      await sheet.screenshot({ path: path.join(out, `output-${viewport.width}.png`) })
-      assert.deepEqual(await sheet.evaluate(el => [...el.querySelectorAll('button[aria-haspopup="dialog"], [role="combobox"], .summary-row__value')].filter(node => {
+      await sub.locator('[data-group="match"]').click()
+      await sub.screenshot({ path: path.join(out, `output-${viewport.width}.png`) })
+      assert.deepEqual(await sub.evaluate(el => [...el.querySelectorAll('[role="slider"], [role="radiogroup"]')].filter(node => {
         const a = node.getBoundingClientRect(); const b = el.getBoundingClientRect()
         return a.left < b.left || a.right > b.right
-      }).map(node => node.textContent)), [], 'help buttons and values fit the sheet')
+      }).map(node => node.textContent)), [], 'values fit the page')
     }
-    await sheet.getByRole('button', { name: 'About Deadzone test signal', exact: true }).click()
-    await page.getByRole('dialog', { name: 'Deadzone test signal', exact: true }).screenshot({ path: path.join(out, 'deadzone-help.png') })
-    await page.keyboard.press('Escape')
-    await numeric.focus()
-    await page.keyboard.press('ArrowRight')
-    assert.equal(await sheet.getByRole('button', { name: 'About Inner anti-deadzone', exact: true }).evaluate(el => el === document.activeElement), true, 'directional navigation reaches the info button')
     assert.deepEqual(errors, [])
-    console.log('PASS: seven help dialogs, X shortcuts, focus trap/restoration, navigation and compact layouts')
+    console.log('PASS: every gamepad-stick setting explains itself on focus, ◂ ▸ adjust, compact layouts')
   } finally { await browser.close() }
 })().catch(error => { console.error(error); process.exitCode = 1 })

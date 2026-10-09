@@ -1,12 +1,14 @@
-// Bottom-setting visibility in the real curve editor; isolated renderer, no hardware output.
+// Bottom-setting visibility in the gyro curve editor (console v2: Gyro ▸ Fine-tune ▸ Speed ▸ Advanced); isolated renderer, no hardware output.
 const assert = require('node:assert/strict');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const { prepare, openGyro, top, openFineTune, openRow } = require('./gyro_v2_helpers.cjs');
 
 (async () => {
   const browser = await chromium.launch({ channel: 'msedge', headless: true });
   try {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     const errors = []; page.on('pageerror', e => errors.push(e.message));
+    await prepare(page);
     await page.addInitScript(() => {
       const profiles = { Desktop: [
         'RESET_MAPPINGS',
@@ -35,34 +37,31 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
       } };
     });
     await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
-    await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {});
-    await page.locator('.profile-chip').filter({ hasText: 'Desktop' }).waitFor();
-
-    // ---- In from the Gyro page's Sensitivity section.
-    await page.getByRole('button', { name: 'Gyro', exact: true }).first().click();
-    const entry = page.getByRole('button', { name: 'Open curve editor' });
-    await entry.click();
-    const view = page.locator('.curve-view');
+    await openGyro(page);
+    await openFineTune(page, 'speed');
+    await openRow(page, 'Advanced');
+    const view = top(page).locator('[data-speed-advanced]');
     await view.waitFor();
-    assert.equal(await view.getAttribute('role'), 'dialog');
-    assert.equal(await view.getAttribute('data-side'), 'gyro', 'opened from the Gyro page, it shows the gyro');
     const curve = view.locator('.curve-plot__curve');
     assert.equal(await curve.getAttribute('data-curve'), 'LINEAR');
-    const handles = () => page.evaluate(() => [...document.querySelectorAll('.curve-plot__handle')].map(h => h.getAttribute('data-handle')).join(','));
+    const handles = () => view.evaluate(host => [...host.querySelectorAll('.curve-plot__handle')].map(h => h.getAttribute('data-handle')).join(','));
     assert.equal(await handles(), 'min,max', 'a linear curve has its slow and fast corners to drag');
-    await view.locator('.curve-view__readout').getByText('30 °/s', { exact: true }).first().waitFor();
+    await view.getByText(/live 30 °\/s/).first().waitFor();
 
-    for (const viewport of [{ width: 1440, height: 650 }, { width: 1024, height: 720 }]) {
-      await page.setViewportSize(viewport);
-      const rows = view.locator('.curve-view__panel button.summary-row');
-      await rows.first().focus();
-      for (let index = 1; index < await rows.count(); index++) await page.keyboard.press('ArrowDown');
-      await page.waitForTimeout(500);
-      const lastVisible = await rows.last().evaluate(node => {
-        const box = node.getBoundingClientRect(), frame = node.closest('.curve-view').getBoundingClientRect();
-        return document.activeElement === node && box.top >= frame.top && box.bottom <= frame.bottom - 8;
-      });
-      assert.ok(lastVisible, `final curve setting fully visible at ${viewport.width}px`);
+    for (const part of ['Speeds', 'Game & lean']) {
+      await top(page).locator('[role="tab"]').filter({ hasText: new RegExp('^' + part) }).click();
+      for (const viewport of [{ width: 1440, height: 650 }, { width: 1024, height: 720 }]) {
+        await page.setViewportSize(viewport);
+        const rows = view.locator('[data-part] [role="slider"], [data-part] [role="switch"], [data-part] > button');
+        await rows.first().focus();
+        for (let index = 1; index < await rows.count(); index++) await page.keyboard.press('ArrowDown');
+        await page.waitForTimeout(500);
+        const lastVisible = await rows.last().evaluate(node => {
+          const box = node.getBoundingClientRect(), frame = node.closest('main').getBoundingClientRect();
+          return document.activeElement === node && box.top >= frame.top && box.bottom <= frame.bottom - 8;
+        });
+        assert.ok(lastVisible, `final ${part} setting fully visible at ${viewport.width}px`);
+      }
     }
     await page.setViewportSize({ width: 1440, height: 900 });
     assert.deepEqual(errors, []);

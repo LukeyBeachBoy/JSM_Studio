@@ -64,7 +64,9 @@ export function Dialog({ onClose, eyebrow, title, subtitle, lead, aside, toolbar
   const style = { width, height, ...(hue ? { '--dialog-hue': hue } : {}) } as CSSProperties
   return createPortal(
     <div className="dialog-layer" data-focus-trap="true" style={scrim !== undefined ? { background: `rgba(5, 9, 13, ${scrim})` } : undefined}
-      onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}>
+      // preventDefault: the press on the scrim must not move focus to <body>,
+      // so it returns to what opened the dialog (UX review, B3).
+      onMouseDown={event => { if (event.target === event.currentTarget) { event.preventDefault(); onClose() } }}>
       <section ref={ref} className={`dialog ${className}`.trim()} data-tone={tone} role="dialog" aria-modal="true" aria-labelledby={titleId} style={style} onKeyDown={onKeyDown}>
         <header className="dialog__header">
           {lead}

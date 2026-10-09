@@ -47,7 +47,7 @@
 }
 .process:hover { background: var(--surface-row-hover); }
 .process[aria-pressed='true'] { background: var(--surface-selected); box-shadow: inset 0 0 0 1px var(--accent); }
-:global(body[data-input-source='controller']) .process:focus { background: var(--surface-selected); box-shadow: 0 0 0 var(--focus-controller-width) var(--focus-controller); }
+:global(body[data-input-source='controller']) .process:focus { background: var(--surface-selected); box-shadow: var(--focus-ring-pad); }
 .processText { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .processName { font-size: var(--fs-label); font-weight: var(--fw-medium); }
 .processTitle { color: var(--text-3); font-size: var(--fs-hint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

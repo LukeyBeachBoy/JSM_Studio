@@ -1,0 +1,61 @@
+/* Console v2, P4: Sticks, Triggers and Trackpads. Flat art per STYLE-FLAT.md. */
+
+/* ---- Front pages ---- */
+.front { display: flex; flex-direction: column; gap: var(--sp-5); padding-bottom: var(--sp-6); }
+.frontHeading { display: flex; align-items: baseline; gap: var(--sp-4); flex-wrap: wrap; margin: 0; }
+.frontHeading h1 { margin: 0; font-size: var(--fs-title, 32px); font-weight: var(--fw-bold, 700); letter-spacing: -.01em; }
+.frontHeading span { color: var(--text-3); font-size: var(--fs-hint); }
+.frontLower { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: var(--sp-4); align-items: start; }
+.frontLower[data-wide-visual='true'] { grid-template-columns: minmax(0, 1fr) 520px; }
+.frontLower[data-pad='true'] { grid-template-columns: 440px minmax(0, 1fr); }
+@media (max-width: 1279px) {
+  .frontLower, .frontLower[data-wide-visual='true'], .frontLower[data-pad='true'] { grid-template-columns: minmax(0, 1fr); }
+}
+.frontRows { display: flex; flex-direction: column; gap: var(--sp-2); min-width: 0; }
+.frontRows > :global(div), .frontRows > :global(details) { min-width: 0; }
+.notice { display: flex; gap: var(--sp-3); align-items: flex-start; padding: var(--sp-3) var(--sp-4); border-radius: var(--r-row); background: var(--surface-row); color: var(--text-2); font-size: var(--fs-hint); }
+.notice[data-tone='warn'] { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warning, #e0a23a) 55%, transparent); }
+.notice button { margin-left: auto; }
+
+/* ---- Visual panels ---- */
+.visual { display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-5); border-radius: var(--r-card, 16px); background: var(--surface-row); min-width: 0; }
+.visualHead { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-3); font-size: var(--fs-body); }
+.visualArt { display: grid; place-items: center; min-height: 0; }
+.visualArt > :global(svg) { width: 100%; height: auto; max-height: 340px; }
+.visualCaption { margin: 0; color: var(--text-2); font-size: var(--fs-hint); line-height: var(--lh-body, 1.45); }
+.liveChip { color: var(--telemetry, #a6d65a); font-variant-numeric: tabular-nums; font-size: var(--fs-hint); white-space: nowrap; }
+.legend { display: flex; flex-direction: column; gap: var(--sp-2); margin: 0; padding: 0; list-style: none; }
+.legend li { display: flex; gap: var(--sp-3); align-items: flex-start; font-size: var(--fs-hint); }
+.legend li b { display: block; font-weight: var(--fw-semibold); color: var(--text-1); }
+.legend li small { display: block; color: var(--text-2); font-size: var(--fs-hint); }
+.legendMark { flex: none; display: grid; place-items: center; width: 22px; height: 22px; }
+
+/* Stick diagram beside the front rows. */
+.stickPanel { display: flex; flex-direction: column; align-items: center; gap: var(--sp-3); padding: var(--sp-5); border-radius: var(--r-card, 16px); background: var(--surface-row); }
+.stickPanel svg { width: 100%; max-width: 240px; height: auto; }
+.stickLegend { display: flex; gap: var(--sp-4); color: var(--text-2); font-size: var(--fs-hint); flex-wrap: wrap; justify-content: center; }
+
+/* ---- Inside Fine-tune groups ---- */
+.subHead { margin-top: var(--sp-3); color: var(--text-3); font-size: var(--fs-hint); font-weight: var(--fw-semibold); letter-spacing: .06em; text-transform: uppercase; }
+.note { margin: 0; padding: var(--sp-3) var(--sp-4); border-radius: var(--r-row); background: var(--surface-row); color: var(--text-2); font-size: var(--fs-hint); line-height: var(--lh-body, 1.45); }
+.note[data-tone='warn'] { color: var(--text-1); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warning, #e0a23a) 55%, transparent); }
+.lede { margin: 0 0 var(--sp-3); color: var(--text-2); font-size: var(--fs-body); }
+.whileHolding { max-width: 1100px; display: flex; flex-direction: column; gap: var(--sp-3); }
+.moreList { display: flex; flex-direction: column; gap: var(--sp-2); }
+.proxies { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.proxies button { width: 1px; height: 1px; padding: 0; border: 0; opacity: 0; }
+.minis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-2); }
+.cardsLabel { margin: var(--sp-2) 0 0; color: var(--text-2); font-size: var(--fs-label); font-weight: var(--fw-semibold); }
+.bindRows { display: flex; flex-direction: column; gap: var(--sp-2); }
+.guide { display: flex; flex-direction: column; gap: var(--sp-2); padding: var(--sp-3) var(--sp-4); border-radius: var(--r-row); background: var(--surface-row); }
+.guide ol { margin: 0; padding-left: 1.4em; color: var(--text-2); font-size: var(--fs-hint); line-height: 1.6; }
+.guide li[data-current='true'] { color: var(--text-1); font-weight: var(--fw-semibold); }
+.guideActions { display: flex; gap: var(--sp-2); }
+
+/* Mini rows on the rail of Fine-tune (Other modes). */
+.railMinis { display: flex; flex-direction: column; gap: 2px; margin-top: var(--sp-4); }
+.railMinis b { color: var(--text-3); font-size: var(--fs-hint); text-transform: uppercase; letter-spacing: .06em; }
+.railMinis span { color: var(--text-2); font-size: var(--fs-hint); }
+
+/* Flat svg strokes shared by every P4 visual. */
+.art { --art-line: #e3eaf1; --art-detail: #aebbc8; --art-body: #1c242d; --art-well: #0e1419; --art-cap: #212a34; }

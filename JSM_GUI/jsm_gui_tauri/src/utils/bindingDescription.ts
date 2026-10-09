@@ -7,7 +7,10 @@ import { playSoundLabel } from './controllerSounds'
 import type { BindingCommand, HeldLed } from './bindingCommands'
 import { layerActionDescriptionKeys, layerVerbKeys, type ConfigLayer, type LayerAction } from './layers'
 import { isReleasedInput } from './released'
+import { formatStickModeLabel } from '../constants/sticks'
 import { parseRumbleBinding } from './bindingParameters'
+import { parseCycleBinding } from './cycleBinding'
+import { parseHapticBinding } from './hapticBindings'
 
 /**
  * A binding as a sentence, rather than as JoyShockMapper spells it.
@@ -45,7 +48,7 @@ const outputName = (value: string, t: TFunction): string => {
   const rumble = parseRumbleBinding(value)
   if (rumble) return t('bindingText.output.rumbleStrength', { defaultValue: 'Rumble · small {{small}}%, big {{big}}%', small: Math.round(rumble.small * 100 / 255), big: Math.round(rumble.big * 100 / 255) })
   const menu = menuCommandLabel(value); if (menu) return menu
-  if (/^LIGHT_BAR\s*=/i.test(value.trim().replace(/^"|"$/g, ''))) return 'Change LED Color'
+  if (/^LIGHT_BAR\s*=/i.test(value.trim().replace(/^"|"$/g, ''))) return 'Change light colour'
   const special = SPECIAL_OUTPUT_LABEL_KEYS[value.trim().toUpperCase()]
   // describeOutputValue already covers virtual-controller buttons, the
   // load-a-configuration binding, and every key whose legend differs from the
@@ -136,8 +139,8 @@ const settingPhrase = (value: string): string | null => {
   const match = /^"?\s*([A-Z][A-Z0-9_]*)\s*=\s*([^"]+?)\s*"?$/i.exec(value.trim())
   if (!match) return null
   const [, name, setting] = match
-  if (name.toUpperCase() === 'LED_BRIGHTNESS') return Number(setting) < 0 ? 'LED as the controller has it' : `LED ${setting}%`
-  if (name.toUpperCase() === 'LIGHT_BAR') return `LED color ${setting.replace(/^x/i, '#')}`
+  if (name.toUpperCase() === 'LED_BRIGHTNESS') return Number(setting) < 0 ? 'Light as the controller has it' : `Light ${setting}%`
+  if (name.toUpperCase() === 'LIGHT_BAR') return `Light colour ${setting.replace(/^x/i, '#')}`
   return `${name.toUpperCase()} = ${setting}`
 }
 
@@ -157,6 +160,11 @@ export const describeBinding = (value: string, t: TFunction): string => {
   const menu = menuCommandLabel(value); if (menu) return menu
   const sound = playSoundLabel(value)
   if (sound) return sound
+  // A cycle reads as its steps ("Cycle: Space › E › Q"), a pulse as where and how.
+  const cycle = parseCycleBinding(value)
+  if (cycle) return `Cycle: ${cycle.map(step => describeBinding(step, t)).join(' › ')}`
+  const haptic = parseHapticBinding(value)
+  if (haptic) return `Pulse ${haptic.side === 'BOTH' ? 'both grips' : haptic.side === 'L' ? 'left grip' : 'right grip'} · ${haptic.effect.charAt(0)}${haptic.effect.slice(1).toLowerCase()}`
   const loadConfig = loadConfigPhrase(value, t)
   if (loadConfig) return loadConfig
   const setting = settingPhrase(value)
@@ -214,8 +222,13 @@ export const explainLayerAction = (action: LayerAction, inputName: string, t: TF
 /** A command's output in words, whatever its source: the row, the summary
  *  and the sheet title all read from here so they cannot disagree. */
 export const describeCommandOutput = (command: BindingCommand, layers: readonly Pick<ConfigLayer, 'id' | 'name'>[], t: TFunction): string => {
-  if (command.source.kind === 'heldLed' || /^LIGHT_BAR\s*=/i.test(command.outputValue)) return 'Change LED Color'
+  if (command.source.kind === 'heldLed') return t('bind.lightWhileHeld', 'Light while held')
+  if (/^LIGHT_BAR\s*=/i.test(command.outputValue)) return 'Change light colour'
   if (command.source.kind === 'layerAction') return describeLayerAction(command.source.action, layers, t)
+  if (command.source.kind === 'stickShift') {
+    const mode = formatStickModeLabel(command.source.mode, t)
+    return command.source.target === 'LEFT' ? t('specialBindings.stickShiftLeft', 'Left stick mode shift · {{mode}}', { mode }) : t('specialBindings.stickShiftRight', 'Right stick mode shift · {{mode}}', { mode })
+  }
   return describeBinding(command.outputValue, t)
 }
 

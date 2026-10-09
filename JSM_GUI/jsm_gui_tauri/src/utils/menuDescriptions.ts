@@ -18,7 +18,7 @@ export const describeScreenPosition = (x: number, y: number) => {
 export const describeMenuPlacement = (menu: OverlayMenu) => {
   const { placement } = menu
   return [
-    placement.reveal === 'touch' ? 'Shown on touch' : 'Shown once a region is selected',
+    placement.reveal === 'touch' ? 'Shown on touch' : 'Shown once a zone is reached',
     describeScreenPosition(placement.x, placement.y).toLowerCase(),
     `${Math.round(placement.size)} px`,
   ].join(' · ')

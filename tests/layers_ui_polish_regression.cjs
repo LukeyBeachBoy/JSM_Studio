@@ -1,8 +1,9 @@
-// TODO-50..53 (2026-09-30): the Layers page create field reads as the primary
-// entry point, "Move N assignments" wraps instead of clipping, the Manage
-// layers dialog carries one accent ring at a time, and the shared touch-stick
-// section says what it is under its title.
-// Runs against the mock preview: JSM_TEST_URL defaults to the ?mock dev server.
+// TODO-50..53, on the console v2 screens (P6). The Modes page's "Add a mode"
+// is a labelled card whose chips are the way in; "Bring in old While holding
+// changes" keeps its count on one line without clipping when squeezed; the
+// delete confirmation carries one accent ring, on Keep it. (The shared touch-stick
+// intro this file once checked went with the old Trackpads page, P4.)
+// Runs against the app with its own mocks: JSM_TEST_URL defaults to :1420.
 const assert = require('node:assert/strict');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
 const path = require('node:path');
@@ -12,106 +13,72 @@ const fs = require('node:fs');
  try {
  const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
  const errors = []; page.on('pageerror', e => errors.push(e.message));
- // This check needs an actual legacy modeshift to migrate; the current mock
- // profile already uses named layers and correctly hides migration for it.
+ // A legacy modeshift to bring in, and a mode to bring it into.
  await page.addInitScript(() => {
-   const content = 'RESET_MAPPINGS\nRSR,N = J\nN = SPACE\n';
+   const content = 'RESET_MAPPINGS\nRSR,N = J\nRSR,W = U\nN = SPACE\n# @layer {"id":"veh","name":"Vehicles","overrides":{"E":"H"}}\n# @layer-action LSL = hold veh\n';
    window.electronAPI = {
      getActiveProfile: async () => ({ name: 'Migration', path: 'profiles-library/Migration.txt', content }),
      listLibraryProfiles: async () => ['Migration'],
      loadLibraryProfile: async () => ({ name: 'Migration', content }),
    };
  });
- await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1421/?mock');
- // The mock's first-connect dialog and the Home landing (console refinement 2a).
- await page.getByRole('button', { name: 'Keep them' }).click({ timeout: 8000 }).catch(() => {});
- await page.locator('[data-home-continue]').click({ timeout: 8000 }).catch(() => {});
+ await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
+ await page.locator('.app-shell').waitFor({ timeout: 30000 });
+ await page.getByRole('button', { name: 'Keep them' }).click({ timeout: 3000 }).catch(() => {});
  const artifacts = path.resolve(__dirname, '../tmp/layers-ui-polish'); fs.mkdirSync(artifacts, { recursive: true });
  const rect = async locator => { const b = await locator.boundingBox(); assert.ok(b, 'element has a box'); return b; };
- // The accent as the page resolves it, for comparing computed box-shadows.
- const accentRgb = await page.evaluate(() => { const el = document.createElement('i'); el.style.color = 'var(--accent)'; document.body.append(el); const c = getComputedStyle(el).color; el.remove(); return c; });
- const focusRgb = await page.evaluate(() => { const el = document.createElement('i'); el.style.color = 'var(--focus-keyboard)'; document.body.append(el); const c = getComputedStyle(el).color; el.remove(); return c; });
+ const go = tab => page.evaluate(detail => window.dispatchEvent(new CustomEvent('jsm:navigate-page', { detail })), tab);
 
- // ---- TODO-50: the create field is a labelled well with the primary button.
- await page.getByRole('button', { name: 'Layers', exact: true }).first().click();
- const layersPage = page.locator('.layers-page');
- const create = layersPage.locator('.layer-new');
- await create.waitFor();
- assert.equal((await create.locator('label.layer-new__label').innerText()).trim(), 'New layer', 'the create field is labelled');
- const newField = create.getByRole('textbox', { name: 'New layer name', exact: true });
- assert.ok(await newField.evaluate(el => el.classList.contains('text-field')), 'the create field uses the app text-field look');
- assert.ok((await rect(newField)).height >= 44, 'the create field is the tall, primary field');
- const createButton = create.getByRole('button', { name: 'Create layer', exact: true });
- assert.ok(await createButton.evaluate(el => el.classList.contains('button--primary')), 'Create layer is the primary button');
- assert.notEqual(await create.evaluate(el => getComputedStyle(el).backgroundColor), 'rgba(0, 0, 0, 0)', 'the create block is a card, not a bare row');
- await newField.fill('Test');
- await createButton.click();
- const rename = layersPage.getByRole('textbox', { name: 'Layer name', exact: true });
- await rename.waitFor();
- assert.ok(await rename.evaluate(el => el.classList.contains('text-field') && getComputedStyle(el).boxShadow !== 'none'), 'the layer name field is a text-field well with a hairline');
- await layersPage.locator('#layers-list').screenshot({ path: path.join(artifacts, 'layers-create.png') });
- await layersPage.locator('#layers-overrides').screenshot({ path: path.join(artifacts, 'layers-overrides.png') });
+ // ---- TODO-50: adding a mode is a labelled card, the chips its way in.
+ await go('layers');
+ const modes = page.locator('[data-modes-page]');
+ await modes.waitFor();
+ const add = modes.getByRole('listitem', { name: 'Add a layer' });
+ assert.match(await add.innerText(), /New layer/);
+ assert.match(await add.innerText(), /Start from/, 'the Build / Photo chips are labelled, inside the tile');
+ assert.deepEqual((await add.getByRole('button').allInnerTexts()).map(text => text.replace(/\s+/g, ' ').trim()), ['+ New layer Name it, then pick its button', 'Build', 'Photo']);
+ // Cards: plain state lines, no control-explaining feet; the "⋯" is the mouse's way to X / Y.
+ assert.doesNotMatch(await modes.innerText(), /see it on Layout|X to choose one|A to change buttons/);
+ assert.equal(await modes.locator('[data-mode-id="veh"]').getAttribute('data-hints'), 'A:What changes;X:How it turns on;Y:Rename · colour · delete;B:Back');
+ assert.equal(await modes.getByRole('button', { name: 'More for Vehicles', exact: true }).count(), 1);
+ const grid = await rect(modes.getByRole('list', { name: 'Layers' }));
+ assert.ok(grid.width <= 1280, 'the cards fit the window');
+ assert.equal(await page.evaluate(() => document.querySelector('.shell-scroll')?.scrollWidth <= document.querySelector('.shell-scroll')?.clientWidth), true, 'no sideways scroll');
+ // A focused card shows its mini controller with the changed inputs.
+ await modes.locator('[data-mode-id="veh"]').focus();
+ await modes.locator('[data-mode-id="veh"] svg[viewBox="0 0 1117 750"]').waitFor();
+ assert.match(await modes.locator('[data-mode-id="veh"]').getAttribute('data-hints'), /X:How it turns on;Y:Rename · colour · delete/);
+ await page.screenshot({ path: path.join(artifacts, 'modes.png') });
 
- // ---- TODO-51: the Move button sits on the select's line and wraps when squeezed.
- await layersPage.getByText('Convert existing modeshifts to a layer', { exact: true }).click();
- const move = layersPage.getByRole('button', { name: /^Move \d+ assignment/ });
- const select = layersPage.getByRole('combobox', { name: 'Move modeshifts from', exact: true });
- assert.equal(await move.evaluate(el => getComputedStyle(el).whiteSpace), 'normal', 'the label may wrap');
- assert.ok(Math.abs((await rect(move)).y - (await rect(select)).y) <= 2, 'the Move button lines up with the select');
- const oneLine = (await rect(move)).height;
- await move.evaluate(el => { el.style.maxWidth = '110px'; });
- const squeezed = await move.evaluate(el => ({ sw: el.scrollWidth, cw: el.clientWidth, h: el.getBoundingClientRect().height }));
- assert.ok(squeezed.sw <= squeezed.cw, `squeezed, the label does not clip: ${JSON.stringify(squeezed)}`);
- assert.ok(squeezed.h > oneLine, `squeezed, the label takes a second line: ${JSON.stringify(squeezed)} vs ${oneLine}`);
- await move.screenshot({ path: path.join(artifacts, 'move-button-wrapped.png') });
- await move.evaluate(el => { el.style.maxWidth = ''; });
+ // ---- TODO-51: the Bring in row keeps its count and wraps its words, squeezed or not.
+ await page.keyboard.press('y');
+ const changes = page.getByRole('dialog', { name: /What changes in this layer/ });
+ await changes.waitFor();
+ const bring = changes.locator('[role="group"]').filter({ hasText: 'Bring in chords' });
+ for (const width of [1280, 760]) {
+   await page.setViewportSize({ width, height: 900 });
+   await bring.scrollIntoViewIfNeeded();
+   const value = bring.locator(':scope > span').last();
+   assert.match(await value.innerText(), /R4\D*· 2|· 2/, 'the count is on the row');
+   assert.ok(await bring.evaluate(el => el.scrollWidth <= el.clientWidth + 1), `the row does not clip at ${width}px`);
+ }
+ await page.setViewportSize({ width: 1280, height: 900 });
 
- // ---- TODO-52: only the focused field carries the accent ring in the dialog.
- await page.getByRole('button', { name: /^Editing layer:/ }).click();
- await page.getByRole('menuitem', { name: 'Manage layers…' }).click();
- const modal = page.locator('#layer-management.layer-modal');
- await modal.waitFor();
- const dialogField = modal.getByRole('textbox', { name: 'New layer name', exact: true });
- await dialogField.focus();
- const editingRow = modal.locator('.layer-list li[aria-current="true"]');
- await editingRow.locator('.layer-row__tag', { hasText: 'Editing' }).waitFor();
- const rowShadow = await editingRow.evaluate(el => getComputedStyle(el).boxShadow);
- assert.doesNotMatch(rowShadow, /0px 0px 0px 1px/, `the editing row no longer wears a full ring: ${rowShadow}`);
- assert.match(rowShadow, /3px 0px 0px 0px inset/, `the editing row is marked by a quiet left bar: ${rowShadow}`);
- const ring = async locator => { const s = await locator.evaluate(el => getComputedStyle(el).boxShadow); return s.includes(focusRgb) || s.includes(accentRgb); };
- assert.ok(await ring(dialogField), 'the focused field glows');
- const rowField = editingRow.getByRole('textbox', { name: 'Layer name', exact: true });
- assert.ok(!(await ring(rowField)), 'an unfocused name field does not glow');
- await modal.getByRole('button', { name: 'Close' }).focus();
- assert.ok(!(await ring(dialogField)), 'the field only glows while focused');
- const dialogMove = modal.getByRole('button', { name: /^Move \d+ assignment/ });
- await modal.getByText('Convert existing modeshifts to a layer', { exact: true }).click();
- assert.equal(await dialogMove.evaluate(el => getComputedStyle(el).whiteSpace), 'normal', 'the dialog Move button may wrap too');
- await page.screenshot({ path: path.join(artifacts, 'manage-dialog.png') });
+ // ---- TODO-52: the delete confirmation has one accent ring, on Keep it.
+ await changes.getByRole('button', { name: 'Delete Vehicles' }).click();
+ await page.waitForFunction(() => document.activeElement?.hasAttribute('data-keep'));
+ await page.evaluate(() => document.body.dataset.inputSource = 'controller');
+ const ringed = await page.evaluate(() => [...document.querySelectorAll('[role="dialog"] button')].filter(el => { const s = getComputedStyle(el); return s.outlineStyle !== 'none' && parseFloat(s.outlineWidth) > 0 || /rgb/.test(s.boxShadow) && el === document.activeElement }).length);
+ assert.ok(ringed <= 1, `one ring at a time (${ringed})`);
+ await page.screenshot({ path: path.join(artifacts, 'delete-in-place.png') });
  await page.keyboard.press('Escape');
- await modal.waitFor({ state: 'detached' });
-
- // ---- TODO-53: the shared touch-stick section explains itself under its title.
- await page.getByRole('button', { name: 'Trackpads', exact: true }).click();
- const section = page.locator('#trackpad-buttons > section');
- const title = section.locator('h3', { hasText: 'Shared Touch-Stick Directions' });
- await title.scrollIntoViewIfNeeded();
- const intro = section.locator('.touch-stick-shared__intro');
- assert.match(await intro.innerText(), /touch stick .* joystick/i, 'the intro says what a touch stick is');
- assert.match(await intro.innerText(), /one set .* whichever pad/i, 'the intro says why the directions are shared');
- const firstRow = section.locator('details[data-input-command="TUP"]').first();
- const [t, i, r] = [await rect(title), await rect(intro), await rect(firstRow)];
- assert.ok(i.y >= t.y + t.height - 1, `the intro sits under the title: ${JSON.stringify({ t, i })}`);
- assert.ok(i.y + i.height <= r.y + 1, `the intro sits above the first direction: ${JSON.stringify({ i, r })}`);
- // The "?" keeps the longer explanation.
- await section.getByRole('button', { name: 'Help: Shared Touch-Stick Directions' }).click();
- const help = page.getByRole('dialog', { name: 'Shared Touch-Stick Directions' });
- assert.match(await help.innerText(), /TUP, TDOWN, TLEFT, TRIGHT and TRING/, 'the help names the mapper bindings');
  await page.keyboard.press('Escape');
- await help.waitFor({ state: 'detached' });
- await section.screenshot({ path: path.join(artifacts, 'shared-touch-stick.png') });
+ await changes.waitFor({ state: 'detached' });
+
+ // TODO-53 (the shared touch-stick intro) belonged to the old Trackpads page; Trackpads (P4) replaced it.
 
  assert.deepEqual(errors, []);
- console.log('PASS: labelled primary create field, wrapping Move button, one accent ring in Manage layers, shared touch-stick intro');
+ console.log('PASS: labelled Add a mode card, Bring in row keeps its count, one accent ring when deleting');
  } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exit(1); });
+

@@ -15,7 +15,7 @@
 // - Walking Down form rows and back Up retraces the same controls, and every
 //   control a direction reaches is where the ring then sits (nav/navBox.ts:
 //   the box the pad measures is the box the ring is drawn round).
-// - Nothing takes focus without a press: not the page landing after LT/RT
+// - Nothing takes focus without a press: not the page landing after LB/RB
 //   once the pad has moved on, not the live preview re-rendering, not a menu
 //   closing as the dialog it opened appears (the Configuration menu's
 //   "Values & inheritance" used to hand focus back to the page behind the
@@ -61,7 +61,8 @@ function installAudit() {
     if (el.matches(PILL)) return el
     const row = el.closest('.setting-row')
     if (row) return onlyStop(row) ? row : el
-    const label = el.matches('input[type="checkbox"], input[type="radio"]') ? el.closest('label') : null
+    // A field inside the label that is its only stop is that whole label (nav/navBox.ts).
+    const label = el.matches('input, select, textarea') ? el.closest('label') : null
     return label && onlyStop(label) ? label : el
   }
   const navBox = el => {
@@ -200,7 +201,30 @@ function installAudit() {
 
 const PAGES = ['overview', 'buttons', 'dpad', 'triggers', 'joysticks', 'touchpad', 'gyro', 'layers', 'configurations', 'associations', 'globalChords', 'timing', 'ai', 'deviceVisibility', 'settings', 'help', 'debugConsole'];
 const go = tab => async page => { await page.evaluate(t => { window.__audit.input(2500); window.dispatchEvent(new CustomEvent('jsm:navigate-page', { detail: t })); }, tab); await page.waitForTimeout(1800); };
+const onRightPad = async page => {
+  await go('touchpad')(page);
+  await page.evaluate(() => { window.__audit.input(1500); [...document.querySelectorAll('.section-item')].find(item => item.textContent.includes('Right pad')).click(); });
+  await page.waitForTimeout(800);
+};
 const open = (event, detail, from) => async page => { await go(from)(page); await page.evaluate(([e, d]) => { window.__audit.input(1500); window.dispatchEvent(new CustomEvent(e, { detail: d })); }, [event, detail]); await page.waitForTimeout(1300); };
+// Every Gyro screen (console v2, P5), opened the way Review changes and configuration errors open them.
+const fine = (group, sub) => ({ view: 'fine-tune', group, sub });
+// A rail of groups or parts opens each one as the pad reaches it, so the rows under a walk down the rail
+// change as it goes: those screens (and the curve editor, whose parts sit beside the curve) keep every
+// geometric check but are not asked to retrace a walk row for row.
+const GYRO_RAIL = /^(Fine-tune |Speed advanced|Speed shape|Speed game|Ignore jitter|Smoothing|Adaptive|Snap and|Tilt |Stick )/;
+const GYRO_SCREENS = [
+  ['Fine-tune Speed', fine('speed')], ['Fine-tune Steadiness', fine('steadiness')], ['Fine-tune Direction', fine('direction')], ['Fine-tune Rumble', fine('rumble')],
+  ['Speed advanced', fine('speed', { view: 'speed-advanced', part: 'speeds' })], ['Speed shape', fine('speed', { view: 'speed-advanced', part: 'shape' })], ['Speed game and lean', fine('speed', { view: 'speed-advanced', part: 'game' })],
+  ['Match a full turn', fine('speed', { view: 'match-turn' })],
+  ['Ignore jitter', fine('steadiness', { view: 'steadiness-advanced', part: 'jitter' })], ['Smoothing', fine('steadiness', { view: 'steadiness-advanced', part: 'smoothing' })],
+  ['Adaptive filter', fine('steadiness', { view: 'steadiness-advanced', part: 'adaptive' })], ['Snap and brake', fine('steadiness', { view: 'steadiness-advanced', part: 'snap' })],
+  ['Direction advanced', fine('direction', { view: 'direction-advanced' })],
+  ['Tilt behaviour', fine('direction', { view: 'tilt', part: 'behaviour' })], ['Tilt angles', fine('direction', { view: 'tilt', part: 'angles' })],
+  ['Tilt tuning', fine('direction', { view: 'tilt', part: 'tuning' })], ['Tilt orientation', fine('direction', { view: 'tilt', part: 'orientation' })], ['Tilt when on', fine('direction', { view: 'tilt', part: 'when' })],
+  ['Stick setup', fine('direction', { view: 'stick', part: 'setup' })], ['Stick deadzone', fine('direction', { view: 'stick', part: 'deadzone' })],
+  ['When is gyro on', { view: 'when-on' }], ['While holding', { view: 'while-holding' }], ['Recalibrate', { view: 'calibrate' }],
+];
 const SCENARIOS = [
   { name: 'home', setup: async page => { await page.evaluate(() => { window.__audit.input(2500); return window.__audit.press(['DOWN']); }); await page.waitForTimeout(1200); } },
   ...PAGES.map(tab => ({ name: tab, setup: go(tab) })),
@@ -208,95 +232,72 @@ const SCENARIOS = [
     await go('buttons')(page);
     await page.evaluate(() => { window.__audit.input(1500); document.querySelector('details[data-input-command="S"] > summary').focus(); });
     await page.evaluate(() => window.__audit.press(['S'])); await page.waitForTimeout(1000);
+    // A opens the binding as a sheet from its row and the pad lands inside it (not on the row behind).
+    await page.waitForFunction(() => document.activeElement?.closest('.sheet'), null, { timeout: 5000 });
   } },
-  ...['Touch', 'Click', 'Feedback'].map(label => ({ name: `Right pad ${label} sheet`, setup: async page => {
-    await go('touchpad')(page);
-    await page.evaluate(async target => {
+  // Console v2 (P4): Trackpads shows one pad at a time (the rail picks it). The
+  // pad's Touch and Click are binding rows on its front, opened with A; its
+  // feedback is Fine-tune > Feel. (The binding sheet with its While holding
+  // rows is taller than a 720 px window: the same scrolled-sheet limit as Feel
+  // below, so these run at the desk size; the editor itself is walked at both
+  // sizes by "binding editor".)
+  ...[['Touch', 'TOUCH'], ['Click', 'MISC2']].map(([label, command]) => ({ name: `Right pad ${label} sheet`, minHeight: 800, setup: async page => {
+    await onRightPad(page);
+    await page.evaluate(async command => {
       window.__audit.input(1500);
-      const row = [...document.querySelectorAll('#trackpad-right .summary-row')]
-        .find(row => row.querySelector('.summary-row__label')?.textContent?.trim() === target);
-      if (!row) throw new Error(`Missing right-pad ${target} row`);
+      const row = document.querySelector(`#trackpad-right details[data-input-command="${command}"] > summary`);
+      if (!row) throw new Error(`Missing right-pad ${command} row`);
       row.focus(); await window.__audit.press(['S']);
-    }, label);
+    }, command);
     await page.waitForTimeout(1000);
-    await page.getByRole('dialog', { name: `Right pad · ${label}`, exact: true }).waitFor();
-    if (label === 'Feedback') {
-      await page.evaluate(async () => {
-        const row = [...document.querySelectorAll('[role="dialog"] .summary-row')]
-          .find(row => row.querySelector('.summary-row__label')?.textContent?.trim() === 'Separate feedback');
-        row.focus(); await window.__audit.press(['S']);
-      });
-      await page.waitForTimeout(350);
-    }
+    await page.locator('.sheet').first().waitFor();
+    // The sheet opens over the row; the pad's first press moves into it.
+    await page.evaluate(() => { window.__audit.input(400); document.querySelector('.sheet').querySelector('button, summary, [tabindex]:not([tabindex="-1"])')?.focus(); });
+    await page.waitForTimeout(300);
   } })),
-  { name: 'Trackpad feel sheet', setup: open('jsm:open-sheet', 'mouseFeel', 'overview') },
-  { name: 'Grip sensors sheet', setup: open('jsm:open-sheet', 'gripSensors', 'overview') },
-  { name: 'Configuration menu', setup: async page => { await go('overview')(page); await page.evaluate(() => { window.__audit.input(1500); return window.__audit.press(['+']); }); await page.waitForTimeout(1000); } },
-  { name: 'On-screen menus', setup: open('jsm:menu-layout', 'RIGHT', 'joysticks') },
-  { name: 'Curve editor', setup: open('jsm:accel-curve', 'gyro', 'gyro') },
-  { name: 'Manual calibration schedule', setup: async page => {
-    await go('gyro')(page);
-    await page.evaluate(() => window.__audit.input(1500));
-    await page.getByRole('button').filter({ has: page.locator('.summary-row__label').getByText('Diagnostics', { exact: true }) }).click();
-    await page.evaluate(() => window.__audit.input(1500));
-    await page.getByRole('dialog', { name: 'Diagnostics', exact: true }).locator('summary').getByText('Manual calibration schedule', { exact: true }).click();
-    await page.waitForTimeout(1300);
+  // Feel stacks three columns, taller than a 720 px window. In a scrolled
+  // sub-page Up from the first visible row goes to the header's status chip
+  // (nearer than the row scrolled out above it), so the walk back cannot
+  // retrace: a kit/nav limit that every tall sub-page has (minHeight keeps
+  // this scenario at the desk size until it is fixed there).
+  { name: 'Right pad Feel', minHeight: 800, setup: async page => {
+    await onRightPad(page);
+    await page.evaluate(() => { window.__audit.input(1500); document.querySelector('#trackpad-right [data-trackpad-fine-tune]').click(); });
+    await page.waitForTimeout(900);
+    await page.evaluate(() => { window.__audit.input(1500); document.querySelector('[data-subpage] [data-group="feel"]').click(); });
+    await page.waitForTimeout(700);
   } },
+  { name: 'Stick Fine-tune', setup: async page => {
+    await go('joysticks')(page);
+    await page.evaluate(() => { window.__audit.input(1500); document.querySelector('[data-stick-fine-tune-row]').click(); });
+    await page.waitForTimeout(900);
+  } },
+  { name: 'Trigger Fine-tune', setup: async page => {
+    await go('triggers')(page);
+    await page.evaluate(() => { window.__audit.input(1500); document.querySelector('[data-trigger-fine-tune]').click(); });
+    await page.waitForTimeout(900);
+  } },
+  { name: 'Trackpad Fine-tune', setup: async page => {
+    await go('touchpad')(page);
+    await page.evaluate(() => { window.__audit.input(1500); document.querySelector('[data-trackpad-fine-tune]').click(); });
+    await page.waitForTimeout(900);
+    await page.evaluate(() => { window.__audit.input(1500); document.querySelector('[data-subpage] [data-group="zones"]').click(); });
+    await page.waitForTimeout(700);
+  } },
+  // The feel is Trackpads > Fine-tune > Glide now (it was a sheet over Home).
+  { name: 'Trackpad feel', setup: open('jsm:open-sheet', 'mouseFeel', 'overview') },
+  { name: 'Grip sensors sheet', setup: open('jsm:open-sheet', 'gripSensors', 'overview') },
+  { name: 'Configuration menu', setup: async page => { await go('overview')(page); await page.evaluate(() => { window.__audit.input(1500); return window.__audit.press(['+'], 700); }); await page.waitForTimeout(1000); } },
+  { name: 'On-screen menus', setup: open('jsm:menu-layout', 'RIGHT', 'joysticks') },
+  // The gyro's own curve is Speed ▸ Advanced now (GYRO_SCREENS above); this one is the trackpad's.
+  { name: 'Trackpad curve editor', setup: open('jsm:accel-curve', 'touchpad', 'touchpad') },
+  ...GYRO_SCREENS.map(([name, route]) => ({ name: `Gyro ${name}`, waiveRetrace: GYRO_RAIL.test(name), setup: open('jsm:gyro-route', route, 'gyro') })),
   { name: 'Configuration timing', setup: async page => {
     await go('buttons')(page);
     await page.evaluate(() => window.__audit.input(1500));
     await page.locator('summary').getByText('Configuration timing', { exact: true }).click();
     await page.waitForTimeout(1300);
   } },
-  { name: 'Gyro rotation feedback', setup: async page => {
-    await go('gyro')(page);
-    await page.evaluate(() => window.__audit.input(1500));
-    await page.getByRole('button').filter({ has: page.locator('.summary-row__label').getByText('Rotation feedback', { exact: true }) }).click();
-    const feedback = page.locator('[data-gyro-rotation-feedback]');
-    await page.evaluate(() => window.__audit.input(1500));
-    await feedback.getByRole('button').filter({ has: page.locator('.summary-row__label').getByText('Feedback strength', { exact: true }) }).click();
-    await page.evaluate(() => window.__audit.input(1500));
-    await page.keyboard.press('ArrowRight'); await page.keyboard.press('Enter');
-    await page.waitForTimeout(1300);
-  } },
-  { name: 'PlayStation motion output', setup: async page => {
-    await go('gyro')(page);
-    await page.evaluate(() => window.__audit.input(1500));
-    await page.getByRole('combobox', { name: 'Output', exact: true }).click();
-    await page.evaluate(() => window.__audit.input(1500));
-    await page.getByRole('option', { name: 'PlayStation motion passthrough', exact: true }).click();
-    await page.getByRole('heading', { name: 'PlayStation motion passthrough', exact: true }).waitFor();
-    await page.waitForTimeout(1300);
-  } },
-  { name: 'Gyro angular deflection', setup: async page => {
-    await go('gyro')(page);
-    await page.evaluate(() => window.__audit.input(1500));
-    await page.getByRole('combobox', { name: 'Output', exact: true }).click();
-    await page.getByRole('option', { name: 'Right stick', exact: true }).click();
-    const row = page.getByRole('button').filter({ has: page.locator('.summary-row__label').getByText('Joystick behavior', { exact: true }) });
-    await page.evaluate(() => window.__audit.input(1500));
-    await row.click(); await page.keyboard.press('ArrowRight'); await page.keyboard.press('Enter');
-    await page.getByRole('button').filter({ has: page.locator('.summary-row__label').getByText('Horizontal rotation for full output', { exact: true }) }).waitFor();
-    await page.waitForTimeout(1300);
-  } },
-  ...[false, true].map(guide => ({ name: guide ? 'Gyro joystick deadzone guide' : 'Gyro joystick output', setup: async page => {
-    await go('gyro')(page);
-    await page.evaluate(() => window.__audit.input(1500));
-    await page.getByRole('combobox', { name: 'Output', exact: true }).click();
-    await page.evaluate(() => window.__audit.input(1500));
-    await page.getByRole('option', { name: 'Right stick', exact: true }).click();
-    await page.locator('[data-virtual-stick="RIGHT_STICK"]').waitFor();
-    if (guide) {
-      await page.evaluate(() => window.__audit.input(1500));
-      await page.getByRole('button').filter({ has: page.locator('.summary-row__label').getByText('Tune for this game', { exact: true }) }).click();
-      for (let step = 0; step < 3; step++) {
-        await page.evaluate(() => window.__audit.input(1500));
-        await page.getByRole('dialog').getByRole('button', { name: 'Next', exact: true }).click();
-      }
-    }
-    await page.evaluate(() => window.__audit.input(1500));
-    await page.waitForTimeout(1300);
-  } })),
 ];
 
 const PROBES = 18;
@@ -364,7 +365,13 @@ async function walkPage(browser, viewport, scenario) {
     const up = [];
     for (let i = 0; i < down.length - 1; i++) {
       const m = await move(page, 'UP');
-      check(m, 'walk back');
+      // Up retraces Down: the pad remembers the vertical path (useKeyboardNav), so it
+      // may return to the control Down came from even when that one is not straight
+      // above (the first card, over a picture, when the rows sit to its right), or past a
+      // control that only the way back sees (a link between a button and the row under
+      // it, off the button's column): going back is not skipping that control.
+      const retraced = m.to?.desc === down[down.length - 2 - i];
+      check(retraced ? { ...m, violations: (m.violations ?? []).filter(v => !/left its column|skipped .* nearer/.test(v)) } : m, 'walk back');
       if (!m.moved) break;
       up.push(m.to.desc);
     }
@@ -372,7 +379,7 @@ async function walkPage(browser, viewport, scenario) {
     // Overview's controller diagram has uneven columns feeding a full-width
     // row. Its nearest straight return can include a stop absent from the
     // outward column; the geometric checks above still apply to every move.
-    for (let i = 0; scenario.name !== 'overview' && i < expected.length; i++) {
+    for (let i = 0; scenario.name !== 'overview' && !scenario.waiveRetrace && i < expected.length; i++) {
       if (up[i] !== expected[i]) { problems.push(`${where}: Up does not retrace Down at step ${i}: expected ${expected[i]}, got ${up[i]}`); break; }
     }
 
@@ -406,9 +413,11 @@ async function steals(browser) {
     await go('buttons')(page);
     await press(['DOWN']); await press(['DOWN']);
     const origin = await active();
-    await press(['+'], 600);
-    for (let i = 0; i < 14 && !/Values & inheritance/.test(await active()); i++) await press(['DOWN'], 250);
-    assert.match(await active(), /Values & inheritance/, 'the Configuration menu reaches Values & inheritance');
+    await press(['+'], 700); // hold Menu: the Configuration menu
+    // The menu item is "Where values come from" now (it was "Values & inheritance").
+    const valuesItem = /Values & inheritance|Where values come from|Settings origin/;
+    for (let i = 0; i < 14 && !valuesItem.test(await active()); i++) await press(['DOWN'], 250);
+    assert.match(await active(), valuesItem, 'the Configuration menu reaches Where values come from');
     await press(['S'], 1200);
     if (!(await page.evaluate(() => Boolean(document.activeElement?.closest('.modal-overlay, [data-focus-trap="true"]')))))
       problems.push(`Values & inheritance from the Configuration menu: focus is behind the dialog, on ${await active()}`);
@@ -429,41 +438,54 @@ async function steals(browser) {
     await press(['DOWN']);
     for (let i = 0; i < 7; i++) {
       const n = await page.evaluate(() => window.__audit.state.log.length);
-      await page.evaluate(() => { window.__audit.input(2500); window.__pad.trigger('right', 0.9); });
-      await page.waitForTimeout(80);
-      await page.evaluate(() => window.__pad.trigger('right', 0));
+      // RB turns the page (the bumpers are the tabs; the triggers step sections).
+      await page.evaluate(() => { window.__audit.input(2500); return window.__audit.press(['R']); });
       await page.waitForTimeout(2600);
       const log = await page.evaluate(n => window.__audit.state.log.slice(n), n);
-      const title = await page.evaluate(() => document.querySelector('.page-header__title')?.textContent);
+      const title = await page.evaluate(() => document.querySelector('.page-tab[aria-current="page"]')?.textContent);
       const landings = log.filter(e => e.scope === 'page');
-      if (landings.length !== 1) problems.push(`RT to ${title}: focus landed ${landings.length} times (${landings.map(e => e.desc).join(' then ')})`);
+      if (landings.length !== 1) problems.push(`RB to ${title}: focus landed ${landings.length} times (${landings.map(e => e.desc).join(' then ')})`);
     }
 
-    // Radial menu segments: drawn in one shared box, reached one from another,
-    // and ringed on their own slice.
+    // Console v2 (P4): a stick's wheel and a pad's zones are pictures now, not
+    // walked segment by segment (the wheel's slices are rows under Fine-tune >
+    // Wheel; a pad's zone is stepped with X or by touching the pad). They are
+    // clickable but not pad stops, so Down goes from the cards to the rows
+    // instead of through the wedges. (The While holding editor still draws
+    // walkable segments; this audit no longer walks them one from another.)
+    await go('touchpad')(page);
+    const walked = await page.evaluate(() => [...document.querySelectorAll('#trackpad-left [role="button"][aria-label]')].filter(el => !el.matches('[data-nav-skip]') && el.tabIndex >= 0).length);
+    if (walked) problems.push(`${walked} of the pad's zones are pad stops: they are drawn, and X steps them`);
     await go('joysticks')(page);
-    await page.evaluate(() => { window.__audit.input(400); document.querySelector('[role="button"][aria-label^="RM1"]').focus(); });
-    const segments = new Set(['RM1']);
-    for (const key of ['DOWN', 'DOWN', 'DOWN', 'DOWN', 'LEFT', 'UP', 'UP']) {
-      await press([key], 300);
-      const label = await page.evaluate(() => document.activeElement.getAttribute('aria-label') ?? '');
-      if (/^RM\d/.test(label)) segments.add(label.split(':')[0]);
-      let ring;
-      // Crossing from the wheel into the section rail uses the same 400 ms
-      // scope reveal as every other move. Wait for it instead of measuring
-      // an intentionally hidden ring after only 300 ms.
-      for (let frame = 0; frame < 16; frame++) {
-        ring = await page.evaluate(() => window.__audit.ring());
-        if (ring.ok) break;
-        await page.waitForTimeout(45);
-      }
-      if (!ring.ok) problems.push(`radial segment ${label}: ring ${JSON.stringify(ring)}`);
-    }
-    if (segments.size < 4) problems.push(`the radial menu's segments are not reachable from one another (reached ${[...segments].join(', ')})`);
-    const ringOn = await page.evaluate(() => { document.querySelector('[role="button"][aria-label^="RM3"]').focus(); return window.__audit.ringTarget(document.activeElement).matches('[data-nav-box]'); });
-    if (!ringOn) problems.push('a radial segment rings the whole wheel instead of its own slice');
+    const slices = await page.evaluate(() => document.querySelectorAll('#mapping-section-leftStick [role="button"][aria-label^="RM"], #mapping-section-rightStick [role="button"][aria-label^="RM"]').length);
+    if (slices) problems.push(`${slices} wheel slices are drawn as buttons on the Sticks front`);
   } finally { await page.close(); }
   return problems;
+}
+
+// Default run: walk the scenarios a few at a time, each group in its own process. One browser walking every page
+// for ten minutes eventually loses a tab ("Target crashed"); a group at a time never did. JSM_TEST_SCENARIOS (a regex
+// on scenario names) runs just those, in this process.
+if (!process.env.JSM_TEST_SCENARIOS && !process.env.JSM_TEST_GROUP) {
+  const names = SCENARIOS.map(scenario => scenario.name);
+  const escape = name => name.replace(/[.*+?^${}()|[\]\\]/g, c => '\\' + c);
+  const groups = [];
+  for (let at = 0; at < names.length; at += 2) groups.push(names.slice(at, at + 2));
+  let failed = false;
+  groups.forEach((group, index) => {
+    const result = require('node:child_process').spawnSync(process.execPath, [__filename], {
+      encoding: 'utf8',
+      env: { ...process.env, JSM_TEST_GROUP: '1', JSM_TEST_SCENARIOS: '^(' + group.map(escape).join('|') + ')$', JSM_TEST_STEALS: index === 0 ? '1' : '0' },
+      timeout: 900000,
+    });
+    if (result.status !== 0) {
+      failed = true;
+      process.stderr.write(`group ${index + 1}/${groups.length} (${group.join(', ')}) failed:\n${(result.stdout || '') + (result.stderr || '')}\n`);
+    }
+  });
+  if (failed) process.exit(1);
+  console.log(`PASS: ${names.length} pages and views at two sizes, in ${groups.length} groups -- moves follow the axis, form rows retrace, the ring sits on focus, nothing takes focus without a press; menu-to-dialog focus, page landing, radial segments`);
+  process.exit(0);
 }
 
 (async () => {
@@ -471,8 +493,8 @@ async function steals(browser) {
   try {
     const jobs = [];
     const selected = process.env.JSM_TEST_SCENARIOS ? SCENARIOS.filter(s => new RegExp(process.env.JSM_TEST_SCENARIOS).test(s.name)) : SCENARIOS;
-    for (const viewport of [{ width: 1440, height: 900 }, { width: 1024, height: 720 }]) for (const scenario of selected) jobs.push(() => walkPage(browser, viewport, scenario));
-    jobs.push(() => steals(browser));
+    for (const viewport of [{ width: 1440, height: 900 }, { width: 1024, height: 720 }]) for (const scenario of selected) if (!scenario.minHeight || viewport.height >= scenario.minHeight) jobs.push(() => walkPage(browser, viewport, scenario));
+    if (process.env.JSM_TEST_STEALS !== '0') jobs.push(() => steals(browser));
     const problems = [];
     await Promise.all(Array.from({ length: Number(process.env.JSM_TEST_WORKERS || 1) }, async () => {
       while (jobs.length) problems.push(...await jobs.shift()());

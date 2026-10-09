@@ -110,5 +110,5 @@
 .hapticTile[aria-checked='true'] { background: var(--surface-selected); color: var(--text-1); box-shadow: inset 0 0 0 2px var(--accent); }
 .hapticTile small { color: var(--text-4); font-size: var(--fs-micro); }
 :global(body[data-input-source='controller']) .hapticTile:focus {
-  box-shadow: 0 0 0 var(--focus-controller-width) var(--focus-controller), var(--shadow-lift);
+  box-shadow: var(--focus-ring-pad);
 }

@@ -239,6 +239,83 @@ pub struct RuntimeMappingState {
     /// "pads" (the trackpads' actuators) or "both".
     #[serde(default = "default_sound_actuators")]
     pub sound_actuators: String,
+    /// Settings ▸ Startup ▸ Start in the tray (console v2, D20): a launch from
+    /// the logon task keeps the window hidden. On by default, which is how
+    /// autostart always behaved before it was a choice.
+    #[serde(default = "default_true")]
+    pub start_in_tray: bool,
+    /// Settings ▸ Startup ▸ What loads first (D20): "last" (the last one
+    /// live), "fallback" (Desktop gamepad: the configuration used when no game
+    /// matches) or "named:<library name>".
+    #[serde(default = "default_startup_profile")]
+    pub startup_profile: String,
+}
+
+fn default_startup_profile() -> String { STARTUP_LAST_LIVE.to_string() }
+pub const STARTUP_LAST_LIVE: &str = "last";
+pub const STARTUP_FALLBACK: &str = "fallback";
+pub const STARTUP_NAMED_PREFIX: &str = "named:";
+
+/// Settings ▸ Startup, as the UI reads and writes it.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StartupPreferences {
+    pub start_in_tray: bool,
+    /// "last", "fallback" or "named:<name>".
+    pub startup_profile: String,
+}
+
+/// A stored or submitted startup choice, or Last one live for anything else.
+fn validated_startup_profile(value: &str) -> String {
+    let trimmed = value.trim();
+    if trimmed == STARTUP_FALLBACK { return STARTUP_FALLBACK.to_string(); }
+    if let Some(name) = trimmed.strip_prefix(STARTUP_NAMED_PREFIX).map(str::trim).filter(|name| !name.is_empty()) {
+        return format!("{STARTUP_NAMED_PREFIX}{}", sanitize_profile_name(name));
+    }
+    STARTUP_LAST_LIVE.to_string()
+}
+
+/// The library path "What loads first" names, when it names one that exists.
+/// None means Last one live: the startup file keeps the configuration that
+/// was live when the app last ran.
+fn startup_choice_path(app: &AppHandle, state: &RuntimeMappingState) -> Option<String> {
+    let choice = validated_startup_profile(&state.startup_profile);
+    let name = if choice == STARTUP_FALLBACK {
+        state.autoload_fallback_profile.clone()?
+    } else {
+        choice.strip_prefix(STARTUP_NAMED_PREFIX)?.to_string()
+    };
+    let relative = relative_profile_path_from_name(&sanitize_profile_name(&name));
+    absolute_profile_path(app, &relative).ok()?.is_file().then_some(relative)
+}
+
+pub fn get_startup_preferences(app: &AppHandle) -> Result<StartupPreferences, String> {
+    let state = read_runtime_mapping_state(app)?;
+    Ok(StartupPreferences { start_in_tray: state.start_in_tray, startup_profile: validated_startup_profile(&state.startup_profile) })
+}
+
+pub fn set_startup_preferences(app: &AppHandle, preferences: StartupPreferences) -> Result<StartupPreferences, String> {
+    let mut state = read_runtime_mapping_state(app)?;
+    state.start_in_tray = preferences.start_in_tray;
+    state.startup_profile = validated_startup_profile(&preferences.startup_profile);
+    persist_runtime_mapping_state(app, &state)?;
+    Ok(StartupPreferences { start_in_tray: state.start_in_tray, startup_profile: state.startup_profile })
+}
+
+/// Called once as the app starts, before the mapper launches: "What loads
+/// first" makes its configuration the live one, so the startup file the
+/// mapper reads (written from the live configuration) loads it, and the UI
+/// says the same thing the mapper does. Last one live changes nothing.
+pub fn apply_startup_choice(app: &AppHandle) -> Result<(), String> {
+    let mut state = read_runtime_mapping_state(app)?;
+    let Some(relative) = startup_choice_path(app, &state) else { return Ok(()) };
+    if state.active_profile_path.eq_ignore_ascii_case(&relative) && state.applied_preview_path.is_none() {
+        return Ok(());
+    }
+    state.active_profile_path = relative;
+    state.applied_preview_path = None;
+    persist_runtime_mapping_state(app, &state)?;
+    write_startup_file(app, &state)
 }
 
 /// Any of the global timing values, as the Timing page changes them one at a time.
@@ -320,6 +397,21 @@ pub struct GlobalChord {
     #[serde(default)] pub trigger_groups: Vec<Vec<String>>,
     #[serde(default)] pub controller_model: Option<String>,
     pub profile_path: String,
+    /// Place in Settings ▸ Hold to swap's list once it has been reordered:
+    /// when two chords match, the lower rank (the higher card) wins. Chords
+    /// without one keep the old rule: your own before the built-in ones.
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub rank: Option<u32>,
+}
+
+/// Chords in the order they win: ranked ones first by rank, then the rest as
+/// before (your own ahead of the built-in ones), each group keeping file order.
+pub fn chords_in_priority_order(chords: &[GlobalChord]) -> Vec<GlobalChord> {
+    let mut ordered: Vec<(usize, &GlobalChord)> = chords.iter().enumerate().collect();
+    ordered.sort_by_key(|(index, chord)| match chord.rank {
+        Some(rank) => (0u8, rank, *index),
+        None => (if chord.id.starts_with("builtin-") { 2 } else { 1 }, 0, *index),
+    });
+    ordered.into_iter().map(|(_, chord)| chord.clone()).collect()
 }
 
 pub fn ensure_required_files(app: &AppHandle) -> Result<(), String> {
@@ -346,6 +438,8 @@ pub fn ensure_required_files(app: &AppHandle) -> Result<(), String> {
     }
     ensure_mapping_disabled_file(app)?;
     seed_default_chord_if_missing(app)?;
+    // The shipped preset bases (console v2, D24), refreshed like AppNavigation.
+    crate::services::bases::seed(app)?;
 
     let state = ensure_runtime_mapping_state(app)?;
     ensure_file(
@@ -1554,7 +1648,8 @@ fn chords_file(app: &AppHandle) -> Result<PathBuf, String> {
 
 pub fn list_global_chords(app: &AppHandle) -> Result<Vec<GlobalChord>, String> {
     ensure_required_files(app)?;
-    read_global_chords(app)
+    // In the order they win, which is the order Hold to swap lists them.
+    Ok(chords_in_priority_order(&read_global_chords(app)?))
 }
 
 pub(crate) fn read_global_chords(app: &AppHandle) -> Result<Vec<GlobalChord>, String> {
@@ -1584,7 +1679,7 @@ pub fn reset_default_settings(app:&AppHandle)->Result<RuntimeMappingState,String
     Ok(defaults)
 }
 pub fn default_global_chord()->GlobalChord {
-    GlobalChord { controller_model:None, id:"builtin-default".into(), buttons:vec![], trigger_groups:vec![vec!["HOME".into()],vec!["MISC1".into()]], profile_path:relative_profile_path_from_name(DEFAULT_CHORD_PROFILE_NAME) }
+    GlobalChord { controller_model:None, id:"builtin-default".into(), buttons:vec![], trigger_groups:vec![vec!["HOME".into()],vec!["MISC1".into()]], profile_path:relative_profile_path_from_name(DEFAULT_CHORD_PROFILE_NAME), rank:None }
 }
 fn merge_global_chords(chords:Vec<GlobalChord>)->Vec<GlobalChord> {
     let mut merged:Vec<GlobalChord>=Vec::new();
@@ -1628,6 +1723,26 @@ pub fn delete_global_chord(app: &AppHandle, id: &str) -> Result<Vec<GlobalChord>
     let chords=merge_global_chords(chords);
     write_global_chords_list(app, &chords)?;
     Ok(chords)
+}
+
+/// Settings ▸ Hold to swap's "Order · higher wins": `ids` top to bottom. Every
+/// chord gets its place, so the order holds for the built-in one too; any id
+/// not named keeps its place after the named ones.
+pub fn reorder_global_chords(app: &AppHandle, ids: &[String]) -> Result<Vec<GlobalChord>, String> {
+    let chords = list_global_chords(app)?;
+    let reordered = apply_chord_order(chords, ids);
+    write_global_chords_list(app, &reordered)?;
+    Ok(reordered)
+}
+
+fn apply_chord_order(chords: Vec<GlobalChord>, ids: &[String]) -> Vec<GlobalChord> {
+    let current = chords_in_priority_order(&chords);
+    let mut ordered: Vec<GlobalChord> = ids.iter().filter_map(|id| current.iter().find(|chord| &chord.id == id).cloned()).collect();
+    for chord in &current {
+        if !ordered.iter().any(|existing| existing.id == chord.id) { ordered.push(chord.clone()); }
+    }
+    for (index, chord) in ordered.iter_mut().enumerate() { chord.rank = Some(index as u32); }
+    ordered
 }
 
 /// A fresh install (and anyone updating from before chords existed) gets one
@@ -2011,6 +2126,8 @@ fn default_runtime_mapping_state(app: &AppHandle) -> Result<RuntimeMappingState,
         connect_sound_file: None,
         shutdown_sound_file: None,
         sound_actuators: default_sound_actuators(),
+        start_in_tray: true,
+        startup_profile: default_startup_profile(),
     })
 }
 
@@ -2367,13 +2484,33 @@ mod tests {
         assert!(migrate_keyboard_command("W = SPACE\n").is_none());
     }
     #[test] fn legacy_chord_rows_merge_and_empty_list_stays_empty() {
-        let a=GlobalChord{controller_model:None,id:"a".into(),buttons:vec!["HOME".into()],trigger_groups:vec![],profile_path:"profile.txt".into()};
+        let a=GlobalChord{controller_model:None,id:"a".into(),buttons:vec!["HOME".into()],trigger_groups:vec![],profile_path:"profile.txt".into(),rank:None};
         let b=GlobalChord{id:"b".into(),buttons:vec!["MISC1".into()],..a.clone()};
         let merged=merge_global_chords(vec![a,b]);
         assert_eq!(merged.len(),1);
         assert_eq!(merged[0].trigger_groups,vec![vec!["HOME"],vec!["MISC1"]]);
         assert!(merged[0].buttons.is_empty());
         assert!(merge_global_chords(vec![]).is_empty());
+    }
+    #[test] fn startup_choice_is_last_live_unless_it_names_fallback_or_a_configuration() {
+        assert_eq!(validated_startup_profile("fallback"), "fallback");
+        assert_eq!(validated_startup_profile("named:Wardogs"), "named:Wardogs");
+        assert_eq!(validated_startup_profile("named:  "), "last");
+        assert_eq!(validated_startup_profile("anything"), "last");
+        assert_eq!(validated_startup_profile(""), "last");
+        let state: RuntimeMappingState = serde_json::from_str(r#"{"activeProfilePath":"profiles-library/A.txt","mappingEnabled":true,"autoloadEnabled":true}"#).unwrap();
+        assert!(state.start_in_tray, "autostart stays in the tray unless asked otherwise");
+        assert_eq!(state.startup_profile, "last");
+    }
+    #[test] fn reordered_chords_win_top_down_and_unranked_keep_personal_first() {
+        let chord=|id:&str| GlobalChord{controller_model:None,id:id.into(),buttons:vec![],trigger_groups:vec![vec!["HOME".into()]],profile_path:format!("{id}.txt"),rank:None};
+        let ids=|list:&[GlobalChord]| list.iter().map(|c|c.id.clone()).collect::<Vec<_>>();
+        let legacy=vec![chord("builtin-default"),chord("photo"),chord("desktop")];
+        assert_eq!(ids(&chords_in_priority_order(&legacy)),vec!["photo","desktop","builtin-default"]);
+        let ordered=apply_chord_order(legacy,&["builtin-default".into(),"desktop".into()]);
+        assert_eq!(ids(&ordered),vec!["builtin-default","desktop","photo"]);
+        assert_eq!(ordered.iter().map(|c|c.rank).collect::<Vec<_>>(),vec![Some(0),Some(1),Some(2)]);
+        assert_eq!(ids(&chords_in_priority_order(&ordered)),vec!["builtin-default","desktop","photo"]);
     }
     #[test]
     fn builtin_configuration_is_protected_and_ships_keyboard_command() {

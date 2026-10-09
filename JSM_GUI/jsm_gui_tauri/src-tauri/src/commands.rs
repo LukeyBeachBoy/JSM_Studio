@@ -594,6 +594,41 @@ fn inject_console_command_with_retry(
     Ok(false)
 }
 
+/// Windows' pointer speed (Settings ▸ Mouse): SPI_GETMOUSESPEED's 1-20, where
+/// 10 is the default 6-of-11 notch, and whether Enhance pointer precision
+/// (mouse acceleration) is on. Gyro ▸ Speed ▸ Advanced ▸ Game & lean shows it
+/// beside "Ignore Windows pointer speed". None off Windows or if it can't be read.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WindowsPointerSpeed {
+    speed: u32,
+    enhance_precision: bool,
+}
+
+#[tauri::command]
+pub fn get_windows_pointer_speed() -> Option<WindowsPointerSpeed> {
+    read_windows_pointer_speed()
+}
+
+#[cfg(target_os = "windows")]
+fn read_windows_pointer_speed() -> Option<WindowsPointerSpeed> {
+    use windows_sys::Win32::UI::WindowsAndMessaging::{SystemParametersInfoW, SPI_GETMOUSE, SPI_GETMOUSESPEED};
+    let mut speed: u32 = 0;
+    // SPI_GETMOUSE fills three ints: two thresholds and the acceleration flag.
+    let mut mouse: [i32; 3] = [0; 3];
+    let ok_speed = unsafe { SystemParametersInfoW(SPI_GETMOUSESPEED, 0, &mut speed as *mut u32 as *mut core::ffi::c_void, 0) };
+    let ok_mouse = unsafe { SystemParametersInfoW(SPI_GETMOUSE, 0, mouse.as_mut_ptr() as *mut core::ffi::c_void, 0) };
+    if ok_speed == 0 || !(1..=20).contains(&speed) {
+        return None;
+    }
+    Some(WindowsPointerSpeed { speed, enhance_precision: ok_mouse != 0 && mouse[2] != 0 })
+}
+
+#[cfg(not(target_os = "windows"))]
+fn read_windows_pointer_speed() -> Option<WindowsPointerSpeed> {
+    None
+}
+
 #[tauri::command(async)]
 pub fn recalibrate_gyro(
     app: AppHandle,
@@ -717,6 +752,12 @@ pub fn sound_library_save(
     midi_track: Option<String>,
 ) -> CommandResult<sound_library::SoundEntry> {
     sound_library::save(&app, &id, &name, duration_ms, trim_start_ms, trim_end_ms, &tones, midi_track.as_deref())
+}
+
+/// "Volume on a button" for a library sound (console v2, D15).
+#[tauri::command(async)]
+pub fn sound_library_set_gain(app: AppHandle, id: String, gain_db: f32) -> CommandResult<sound_library::SoundEntry> {
+    sound_library::set_default_gain(&app, &id, gain_db)
 }
 
 #[tauri::command(async)]
@@ -1314,8 +1355,11 @@ pub fn overlay_workarea(app: AppHandle) -> CommandResult<OverlayWorkarea> {
 // Drawing a MOUSE_AREA trackpad's rectangle on the screen itself, over the
 // game. See services/area_picker.rs.
 
+// Async on purpose: a synchronous command runs on the main thread, and on
+// Windows building a window from there deadlocks -- Draw on screen used to hang
+// right here, with the picker window never created.
 #[tauri::command]
-pub fn area_picker_open(app: AppHandle, request: area_picker::AreaRequest) -> CommandResult<area_picker::PickerState> {
+pub async fn area_picker_open(app: AppHandle, request: area_picker::AreaRequest) -> CommandResult<area_picker::PickerState> {
     area_picker::open(&app, request)
 }
 
@@ -1458,4 +1502,73 @@ pub fn tray_quit(app: AppHandle) {
 #[tauri::command]
 pub fn set_brand_icon(app: AppHandle, request: tauri::ipc::Request<'_>) -> CommandResult<()> {
     crate::services::brand_icon::set_from_request(&app, request)
+}
+
+// --- Console v2 SHELL: updates, startup, Hold to swap order, the log ---------
+
+/// The shared update status (D19), without asking GitHub.
+#[tauri::command]
+pub fn get_update_status(app: AppHandle) -> crate::services::updates::UpdateStatus {
+    crate::services::updates::status(&app)
+}
+
+/// Ask GitHub's latest release now ("Check now", X on About).
+#[tauri::command]
+pub async fn check_for_updates(app: AppHandle) -> CommandResult<crate::services::updates::UpdateStatus> {
+    Ok(crate::services::updates::check(&app).await)
+}
+
+/// Download the new version's installer, start it and close the app.
+#[tauri::command]
+pub async fn install_update(app: AppHandle) -> CommandResult<()> {
+    crate::services::updates::install(&app).await
+}
+
+/// Settings ▸ Startup: Start in the tray and What loads first (D20).
+#[tauri::command(async)]
+pub fn get_startup_preferences(app: AppHandle) -> CommandResult<runtime::StartupPreferences> {
+    runtime::get_startup_preferences(&app)
+}
+
+#[tauri::command(async)]
+pub fn set_startup_preferences(app: AppHandle, preferences: runtime::StartupPreferences) -> CommandResult<runtime::StartupPreferences> {
+    runtime::set_startup_preferences(&app, preferences)
+}
+
+/// Settings ▸ Hold to swap: the list top to bottom; the higher card wins.
+#[tauri::command(async)]
+pub fn reorder_global_chords(app: AppHandle, ids: Vec<String>) -> CommandResult<Vec<runtime::GlobalChord>> {
+    runtime::reorder_global_chords(&app, &ids)
+}
+
+/// Settings ▸ Troubleshooting log's Recent commands, newest first.
+#[tauri::command(async)]
+pub fn list_recent_console_commands(app: AppHandle) -> CommandResult<Vec<String>> {
+    crate::services::console_history::list(&app)
+}
+
+#[tauri::command(async)]
+pub fn record_console_command(app: AppHandle, command: String) -> CommandResult<Vec<String>> {
+    crate::services::console_history::record(&app, &command)
+}
+
+#[tauri::command(async)]
+pub fn clear_recent_console_commands(app: AppHandle) -> CommandResult<Vec<String>> {
+    crate::services::console_history::clear(&app)
+}
+
+/// The app in front other than this one (Library ▸ Launch with game's "Right
+/// now"); changes arrive as the "foreground-app" event.
+#[tauri::command]
+pub fn get_foreground_app() -> Option<crate::services::foreground::ForegroundApp> {
+    crate::services::foreground::current_app()
+}
+
+/// "Restart the mapper" (Troubleshooting log ▸ Fix it): stop it and start it
+/// again on the live configuration.
+#[tauri::command(async)]
+pub fn restart_mapper(app: AppHandle, state: State<'_, AppState>) -> CommandResult<()> {
+    jsm_process::terminate_jsm(&app, state.inner())?;
+    jsm_process::launch_jsm(&app, state.inner())?;
+    Ok(())
 }

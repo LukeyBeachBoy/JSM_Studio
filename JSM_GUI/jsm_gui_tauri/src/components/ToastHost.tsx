@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { toastEventName, type ToastKind } from '../utils/toast'
+import { toastClearEventName, toastEventName, type ToastKind } from '../utils/toast'
 import styles from './Misc.module.css'
 
 type ToastPayload = {
@@ -7,14 +7,18 @@ type ToastPayload = {
   kind?: ToastKind
 }
 
-type Toast = ToastPayload & { id: string }
+type Toast = ToastPayload & { id: string; at: number }
 
-// System States 17h: toasts stack rather than replace each other, stay 4 s,
-// and an error stays longer and can be dismissed early. They are never in the
-// focus order (the pad has no business in a toast), so an error still goes
-// by itself in the end rather than needing the mouse.
-const TOAST_MS = 4000
-const ERROR_MS = 8000
+// System States 17h: toasts stack rather than replace each other, and an
+// error stays longer and can be dismissed early. They are never in the focus
+// order (the pad has no business in a toast), so an error still goes by
+// itself in the end rather than needing the mouse. They dock bottom right,
+// above the hint capsule, away from the title bar's chips and the test
+// banner (UX review 2026-10-09, S10), and leave with the screen they were
+// about: a page change or the end of a test takes them down (clearToasts).
+// One sentence per action: the same message is never shown twice at once.
+const TOAST_MS = 3000
+const ERROR_MS = 6000
 const MAX_STACK = 3
 
 export function ToastHost() {
@@ -31,19 +35,34 @@ export function ToastHost() {
     const listener = (event: Event) => {
       const detail = (event as CustomEvent<ToastPayload>)?.detail
       if (!detail?.message) return
-      const next = { id: crypto.randomUUID(), ...detail }
+      const next = { id: crypto.randomUUID(), at: performance.now(), ...detail }
       setToasts(current => {
+        // The same sentence again only restarts its clock.
+        const same = current.find(item => item.message === detail.message)
+        if (same) { window.clearTimeout(timers.current.get(same.id)); timers.current.delete(same.id) }
+        const without = current.filter(item => item !== same)
         // The oldest goes when the stack is full.
-        const kept = current.slice(Math.max(0, current.length + 1 - MAX_STACK))
-        current.slice(0, current.length - kept.length).forEach(item => { window.clearTimeout(timers.current.get(item.id)); timers.current.delete(item.id) })
+        const kept = without.slice(Math.max(0, without.length + 1 - MAX_STACK))
+        without.slice(0, without.length - kept.length).forEach(item => { window.clearTimeout(timers.current.get(item.id)); timers.current.delete(item.id) })
         return [...kept, next]
       })
       timers.current.set(next.id, window.setTimeout(() => dismiss(next.id), next.kind === 'error' ? ERROR_MS : TOAST_MS))
     }
+    const clear = (event: Event) => {
+      const olderThanMs = (event as CustomEvent<{ olderThanMs: number }>).detail?.olderThanMs ?? 0
+      const cutoff = performance.now() - olderThanMs
+      setToasts(current => {
+        const gone = current.filter(item => item.at <= cutoff)
+        gone.forEach(item => { window.clearTimeout(timers.current.get(item.id)); timers.current.delete(item.id) })
+        return gone.length ? current.filter(item => item.at > cutoff) : current
+      })
+    }
     window.addEventListener(toastEventName, listener as EventListener)
+    window.addEventListener(toastClearEventName, clear as EventListener)
     const pending = timers.current
     return () => {
       window.removeEventListener(toastEventName, listener as EventListener)
+      window.removeEventListener(toastClearEventName, clear as EventListener)
       pending.forEach(timer => window.clearTimeout(timer))
       pending.clear()
     }
@@ -61,7 +80,7 @@ export function ToastHost() {
             toast.kind === 'error' ? styles.toastError : toast.kind === 'warn' ? styles.toastWarn : styles.toastSuccess
           }`}
           onClick={() => dismiss(toast.id)}
-          title="Dismiss"
+          aria-label="Dismiss"
         >
           {toast.kind === 'error' || toast.kind === 'warn'
             ? <span className={styles.toastDot} aria-hidden="true" />

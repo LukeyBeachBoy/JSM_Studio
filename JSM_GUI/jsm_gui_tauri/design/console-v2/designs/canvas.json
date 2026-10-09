@@ -1,0 +1,918 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Assistant.dc.html": {
+      "h": 900,
+      "title": "12 Assistant: ask first, set up later",
+      "w": 1440,
+      "x": 6160,
+      "y": 2520
+    },
+    "BindingDetails.dc.html": {
+      "h": 900,
+      "title": "Binding: where this comes from",
+      "w": 1440,
+      "x": 16800,
+      "y": 9160
+    },
+    "BindingFineTune.dc.html": {
+      "h": 900,
+      "title": "Binding: Fine-tune (how it's sent, light, parameters)",
+      "w": 1440,
+      "x": 6160,
+      "y": 9160
+    },
+    "BindingMore.dc.html": {
+      "h": 900,
+      "title": "Binding: More ways to trigger",
+      "w": 1440,
+      "x": 3120,
+      "y": 9160
+    },
+    "BindingSheet.dc.html": {
+      "h": 900,
+      "title": "04 Binding sheet: pick, don't type",
+      "w": 1440,
+      "x": 6160,
+      "y": 0
+    },
+    "BindingWhileHolding.dc.html": {
+      "h": 900,
+      "title": "Binding: while holding another button",
+      "w": 1440,
+      "x": 4640,
+      "y": 9160
+    },
+    "ButtonList.dc.html": {
+      "h": 900,
+      "title": "03 Buttons: one stop per row",
+      "w": 1440,
+      "x": 4640,
+      "y": 0
+    },
+    "ControllerActions.dc.html": {
+      "h": 900,
+      "title": "Picker: Controller actions · Gyro",
+      "w": 1440,
+      "x": 7680,
+      "y": 9160
+    },
+    "ControllerActionsCalibrate.dc.html": {
+      "h": 900,
+      "title": "Picker: Controller actions · Calibrate",
+      "w": 1440,
+      "x": 10720,
+      "y": 9160
+    },
+    "ControllerActionsLightOther.dc.html": {
+      "h": 900,
+      "title": "Picker: Controller actions · Light",
+      "w": 1440,
+      "x": 13760,
+      "y": 9160
+    },
+    "ControllerActionsOther.dc.html": {
+      "h": 900,
+      "title": "Picker: Controller actions · Other",
+      "w": 1440,
+      "x": 15280,
+      "y": 9160
+    },
+    "ControllerActionsRumble.dc.html": {
+      "h": 900,
+      "title": "Picker: Controller actions · Rumble & sound",
+      "w": 1440,
+      "x": 12240,
+      "y": 9160
+    },
+    "ControllerLight.dc.html": {
+      "h": 900,
+      "title": "Controller light & sounds",
+      "w": 1440,
+      "x": 4640,
+      "y": 10780
+    },
+    "ControllerVariant.dc.html": {
+      "h": 900,
+      "title": "Only for this controller (variants)",
+      "w": 1440,
+      "x": 18320,
+      "y": 10780
+    },
+    "GripSensors.dc.html": {
+      "h": 900,
+      "title": "Grip sensors sheet",
+      "w": 1440,
+      "x": 15280,
+      "y": 7900
+    },
+    "Gyro.dc.html": {
+      "h": 900,
+      "title": "07 Gyro: three questions",
+      "w": 1440,
+      "x": 4640,
+      "y": 1260
+    },
+    "GyroAdaptiveFilter.dc.html": {
+      "h": 900,
+      "title": "Gyro Steadiness ▸ Advanced: adaptive filter",
+      "w": 1440,
+      "x": 18320,
+      "y": 5380
+    },
+    "GyroCalibrate.dc.html": {
+      "h": 900,
+      "title": "Gyro: recalibrate",
+      "w": 1440,
+      "x": 25920,
+      "y": 5380
+    },
+    "GyroDirection.dc.html": {
+      "h": 900,
+      "title": "Gyro Fine-tune: Direction",
+      "w": 1440,
+      "x": 9200,
+      "y": 5380
+    },
+    "GyroDirectionAdvanced.dc.html": {
+      "h": 900,
+      "title": "Gyro Direction ▸ Advanced",
+      "w": 1440,
+      "x": 21360,
+      "y": 5380
+    },
+    "GyroFineTune.dc.html": {
+      "h": 900,
+      "title": "15 Gyro Fine-tune: one group at a time",
+      "w": 1440,
+      "x": 3120,
+      "y": 5380
+    },
+    "GyroJitterFilter.dc.html": {
+      "h": 900,
+      "title": "Gyro Steadiness ▸ Advanced: ignore jitter",
+      "w": 1440,
+      "x": 16800,
+      "y": 5380
+    },
+    "GyroRumble.dc.html": {
+      "h": 900,
+      "title": "Gyro Fine-tune: Rumble",
+      "w": 1440,
+      "x": 10720,
+      "y": 5380
+    },
+    "GyroSnapBrake.dc.html": {
+      "h": 900,
+      "title": "Gyro Steadiness ▸ Advanced: snap & brake",
+      "w": 1440,
+      "x": 19840,
+      "y": 5380
+    },
+    "GyroSpeedAdvanced.dc.html": {
+      "h": 900,
+      "title": "Gyro Speed ▸ Advanced: curve editor",
+      "w": 1440,
+      "x": 7680,
+      "y": 5380
+    },
+    "GyroSpeedGame.dc.html": {
+      "h": 900,
+      "title": "Gyro Speed ▸ Advanced: game & lean",
+      "w": 1440,
+      "x": 15280,
+      "y": 5380
+    },
+    "GyroSpeedShape.dc.html": {
+      "h": 900,
+      "title": "Gyro Speed ▸ Advanced: curve shape",
+      "w": 1440,
+      "x": 13760,
+      "y": 5380
+    },
+    "GyroSteadiness.dc.html": {
+      "h": 900,
+      "title": "Gyro Fine-tune: Steadiness",
+      "w": 1440,
+      "x": 4640,
+      "y": 5380
+    },
+    "GyroSteadinessAdvanced.dc.html": {
+      "h": 900,
+      "title": "Gyro Steadiness ▸ Advanced: Smoothing",
+      "w": 1440,
+      "x": 6160,
+      "y": 5380
+    },
+    "GyroStickSettings.dc.html": {
+      "h": 900,
+      "title": "Gyro as stick: dead zone & curve",
+      "w": 1440,
+      "x": 24400,
+      "y": 5380
+    },
+    "GyroStickSetup.dc.html": {
+      "h": 900,
+      "title": "Gyro as stick: setup",
+      "w": 1440,
+      "x": 22880,
+      "y": 5380
+    },
+    "GyroWhenOn.dc.html": {
+      "h": 900,
+      "title": "Gyro: when is it on (advanced)",
+      "w": 1440,
+      "x": 12240,
+      "y": 5380
+    },
+    "Home.dc.html": {
+      "h": 900,
+      "title": "01 Home: game-first",
+      "w": 1440,
+      "x": 1600,
+      "y": 0
+    },
+    "IconPicker.dc.html": {
+      "h": 900,
+      "title": "Icon picker",
+      "w": 1440,
+      "x": 18320,
+      "y": 9160
+    },
+    "KeyPicker.dc.html": {
+      "h": 900,
+      "title": "05 Key picker: on-screen keyboard",
+      "w": 1440,
+      "x": 1600,
+      "y": 1260
+    },
+    "Kit.dc.html": {
+      "h": 1240,
+      "title": "13 Console component kit",
+      "w": 1440,
+      "x": 1600,
+      "y": 3780
+    },
+    "Layout.dc.html": {
+      "h": 900,
+      "title": "02 Layout: the controller is the menu",
+      "w": 1440,
+      "x": 3120,
+      "y": 0
+    },
+    "Library.dc.html": {
+      "h": 900,
+      "title": "09 Library (was Configurations)",
+      "w": 1440,
+      "x": 1600,
+      "y": 2520
+    },
+    "LibraryActions.dc.html": {
+      "h": 900,
+      "title": "Library: Y menu and delete",
+      "w": 1440,
+      "x": 9200,
+      "y": 10780
+    },
+    "LibraryBases.dc.html": {
+      "h": 900,
+      "title": "Library: Bases",
+      "w": 1440,
+      "x": 12240,
+      "y": 10780
+    },
+    "LibraryDetail.dc.html": {
+      "h": 900,
+      "title": "Library: detail, links and loop warning",
+      "w": 1440,
+      "x": 22880,
+      "y": 10780
+    },
+    "LibraryTabs.dc.html": {
+      "h": 900,
+      "title": "Library: Launch with game",
+      "w": 1440,
+      "x": 10720,
+      "y": 10780
+    },
+    "Main.dc.html": {
+      "expand": "fill",
+      "h": 8000,
+      "title": "Review: console-feel audit",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "MenuEditor.dc.html": {
+      "h": 900,
+      "title": "Menus: virtual menu editor",
+      "w": 1440,
+      "x": 18320,
+      "y": 7900
+    },
+    "MenuEditorMore.dc.html": {
+      "h": 900,
+      "title": "Menus: opened by and details",
+      "w": 1440,
+      "x": 19840,
+      "y": 7900
+    },
+    "ModeChanges.dc.html": {
+      "h": 900,
+      "title": "Modes: what changes in this mode",
+      "w": 1440,
+      "x": 21360,
+      "y": 10780
+    },
+    "ModeHow.dc.html": {
+      "h": 900,
+      "title": "Modes: how it turns on and off",
+      "w": 1440,
+      "x": 6160,
+      "y": 10780
+    },
+    "Modes.dc.html": {
+      "h": 900,
+      "title": "08 Modes (was Layers)",
+      "w": 1440,
+      "x": 6160,
+      "y": 1260
+    },
+    "NewConfig.dc.html": {
+      "h": 900,
+      "title": "10 New configuration: start from a game",
+      "w": 1440,
+      "x": 3120,
+      "y": 2520
+    },
+    "NewConfigGame.dc.html": {
+      "h": 900,
+      "title": "New configuration: step 1, the game",
+      "w": 1440,
+      "x": 13760,
+      "y": 10780
+    },
+    "NewConfigTry.dc.html": {
+      "h": 900,
+      "title": "New configuration: step 3, try it",
+      "w": 1440,
+      "x": 15280,
+      "y": 10780
+    },
+    "Parity.dc.html": {
+      "expand": "fill",
+      "h": 3400,
+      "title": "14 Every setting, and where it lives",
+      "w": 1440,
+      "x": 1600,
+      "y": 5380
+    },
+    "PickerFamily.dc.html": {
+      "h": 1240,
+      "title": "Pickers: mouse, gamepad, menu, mode, config, command, key",
+      "w": 1440,
+      "x": 9200,
+      "y": 9160
+    },
+    "QuickMenu.dc.html": {
+      "h": 900,
+      "title": "Layout: Y quick menu",
+      "w": 1440,
+      "x": 3120,
+      "y": 10780
+    },
+    "ReviewChanges.dc.html": {
+      "h": 900,
+      "title": "Review changes, undo, save",
+      "w": 1440,
+      "x": 7680,
+      "y": 10780
+    },
+    "Settings.dc.html": {
+      "h": 900,
+      "title": "11 Settings (was 11 Studio tabs)",
+      "w": 1440,
+      "x": 4640,
+      "y": 2520
+    },
+    "SettingsAbout.dc.html": {
+      "h": 900,
+      "title": "Settings: About & credits",
+      "w": 1440,
+      "x": 15280,
+      "y": 12040
+    },
+    "SettingsAssistant.dc.html": {
+      "h": 900,
+      "title": "Settings: Assistant (sign-in options)",
+      "w": 1440,
+      "x": 10720,
+      "y": 12040
+    },
+    "SettingsControllerMore.dc.html": {
+      "h": 900,
+      "title": "Settings: Controller (continued)",
+      "w": 1440,
+      "x": 24400,
+      "y": 12040
+    },
+    "SettingsGuides.dc.html": {
+      "h": 900,
+      "title": "Settings: Guides & reference",
+      "w": 1440,
+      "x": 12240,
+      "y": 12040
+    },
+    "SettingsGuidesSearch.dc.html": {
+      "h": 900,
+      "title": "Settings: Guides, searching",
+      "w": 1440,
+      "x": 22880,
+      "y": 12040
+    },
+    "SettingsHide.dc.html": {
+      "h": 900,
+      "title": "Settings: Hide the real controller",
+      "w": 1440,
+      "x": 6160,
+      "y": 12040
+    },
+    "SettingsHideSetup.dc.html": {
+      "h": 900,
+      "title": "Settings: Hide the real controller, setup",
+      "w": 1440,
+      "x": 18320,
+      "y": 12040
+    },
+    "SettingsHoldToSwap.dc.html": {
+      "h": 900,
+      "title": "Settings: Hold to swap",
+      "w": 1440,
+      "x": 3120,
+      "y": 12040
+    },
+    "SettingsHoldToSwapCopy.dc.html": {
+      "h": 900,
+      "title": "Settings: Hold to swap, edit and copy",
+      "w": 1440,
+      "x": 19840,
+      "y": 12040
+    },
+    "SettingsLook.dc.html": {
+      "h": 900,
+      "title": "Settings: Look & language",
+      "w": 1440,
+      "x": 7680,
+      "y": 12040
+    },
+    "SettingsMappingDebug.dc.html": {
+      "h": 900,
+      "title": "Settings: What Windows receives",
+      "w": 1440,
+      "x": 21360,
+      "y": 12040
+    },
+    "SettingsPressTiming.dc.html": {
+      "h": 900,
+      "title": "Settings: Press timing",
+      "w": 1440,
+      "x": 4640,
+      "y": 12040
+    },
+    "SettingsStartup.dc.html": {
+      "h": 900,
+      "title": "Settings: Startup",
+      "w": 1440,
+      "x": 9200,
+      "y": 12040
+    },
+    "SettingsTimingAdvanced.dc.html": {
+      "h": 900,
+      "title": "Settings: Press timing ▸ Advanced",
+      "w": 1440,
+      "x": 16800,
+      "y": 12040
+    },
+    "SettingsTroubleshooting.dc.html": {
+      "h": 900,
+      "title": "Settings: Troubleshooting log",
+      "w": 1440,
+      "x": 13760,
+      "y": 12040
+    },
+    "SoundLibrary.dc.html": {
+      "h": 900,
+      "title": "Sound library",
+      "w": 1440,
+      "x": 16800,
+      "y": 10780
+    },
+    "SteamImport.dc.html": {
+      "h": 900,
+      "title": "Steam import review",
+      "w": 1440,
+      "x": 19840,
+      "y": 10780
+    },
+    "StickAdvanced.dc.html": {
+      "h": 900,
+      "title": "Stick Fine-tune: Advanced",
+      "w": 1440,
+      "x": 24400,
+      "y": 6640
+    },
+    "StickDeadZone.dc.html": {
+      "h": 900,
+      "title": "Stick Fine-tune: dead zone, edge, direction",
+      "w": 1440,
+      "x": 12240,
+      "y": 6640
+    },
+    "StickFineTuneAim.dc.html": {
+      "h": 900,
+      "title": "Stick Fine-tune: Looking around",
+      "w": 1440,
+      "x": 3120,
+      "y": 6640
+    },
+    "StickFineTuneFlick.dc.html": {
+      "h": 900,
+      "title": "Stick Fine-tune: Flick to turn",
+      "w": 1440,
+      "x": 4640,
+      "y": 6640
+    },
+    "StickFineTuneOther.dc.html": {
+      "h": 900,
+      "title": "Stick Fine-tune: Wheel and other modes",
+      "w": 1440,
+      "x": 6160,
+      "y": 6640
+    },
+    "StickFlickOutput.dc.html": {
+      "h": 900,
+      "title": "Stick Fine-tune: flick turning output",
+      "w": 1440,
+      "x": 16800,
+      "y": 6640
+    },
+    "StickFlickSnap.dc.html": {
+      "h": 900,
+      "title": "Stick Fine-tune: flick snap & forward zone",
+      "w": 1440,
+      "x": 15280,
+      "y": 6640
+    },
+    "StickGamepadOutput.dc.html": {
+      "h": 900,
+      "title": "Stick Fine-tune: match the game (gamepad stick)",
+      "w": 1440,
+      "x": 18320,
+      "y": 6640
+    },
+    "StickHybridAim.dc.html": {
+      "h": 900,
+      "title": "Stick Fine-tune: mouse-like feel",
+      "w": 1440,
+      "x": 22880,
+      "y": 6640
+    },
+    "StickSmallModes.dc.html": {
+      "h": 900,
+      "title": "Stick Fine-tune: small modes",
+      "w": 1440,
+      "x": 19840,
+      "y": 6640
+    },
+    "StickSpeedUp.dc.html": {
+      "h": 900,
+      "title": "Stick Fine-tune: speed-up",
+      "w": 1440,
+      "x": 13760,
+      "y": 6640
+    },
+    "Sticks.dc.html": {
+      "h": 900,
+      "title": "06 Sticks & pads: mode cards",
+      "w": 1440,
+      "x": 3120,
+      "y": 1260
+    },
+    "TextEntry.dc.html": {
+      "h": 900,
+      "title": "On-screen keyboard",
+      "w": 1440,
+      "x": 19840,
+      "y": 9160
+    },
+    "Trackpads.dc.html": {
+      "h": 900,
+      "title": "Trackpads: mode cards and zones",
+      "w": 1440,
+      "x": 3120,
+      "y": 7900
+    },
+    "TrackpadsClick.dc.html": {
+      "h": 900,
+      "title": "Trackpads Fine-tune: Click",
+      "w": 1440,
+      "x": 16800,
+      "y": 7900
+    },
+    "TrackpadsFeel.dc.html": {
+      "h": 900,
+      "title": "Trackpads Fine-tune: Feel",
+      "w": 1440,
+      "x": 7680,
+      "y": 7900
+    },
+    "TrackpadsFineTune.dc.html": {
+      "h": 900,
+      "title": "Trackpads Fine-tune: Speed & curve",
+      "w": 1440,
+      "x": 4640,
+      "y": 7900
+    },
+    "TrackpadsFineTuneMore.dc.html": {
+      "h": 900,
+      "title": "Trackpads Fine-tune: Zones ▸ Layout",
+      "w": 1440,
+      "x": 6160,
+      "y": 7900
+    },
+    "TrackpadsGlideClick.dc.html": {
+      "h": 900,
+      "title": "Trackpads Fine-tune: Glide",
+      "w": 1440,
+      "x": 13760,
+      "y": 7900
+    },
+    "TrackpadsMouseArea.dc.html": {
+      "h": 900,
+      "title": "Trackpads: Mouse area mode",
+      "w": 1440,
+      "x": 12240,
+      "y": 7900
+    },
+    "TrackpadsTouchClick.dc.html": {
+      "h": 900,
+      "title": "Trackpads Zones: touch and click",
+      "w": 1440,
+      "x": 9200,
+      "y": 7900
+    },
+    "TrackpadsTouchStick.dc.html": {
+      "h": 900,
+      "title": "Trackpads Zones: touch stick",
+      "w": 1440,
+      "x": 10720,
+      "y": 7900
+    },
+    "Triggers.dc.html": {
+      "h": 900,
+      "title": "Triggers: behaviour cards",
+      "w": 1440,
+      "x": 7680,
+      "y": 6640
+    },
+    "TriggersAdvanced.dc.html": {
+      "h": 900,
+      "title": "Triggers: Advanced",
+      "w": 1440,
+      "x": 25920,
+      "y": 6640
+    },
+    "TriggersCalibrate.dc.html": {
+      "h": 900,
+      "title": "Triggers: calibration (DualSense)",
+      "w": 1440,
+      "x": 10720,
+      "y": 6640
+    },
+    "TriggersEffects.dc.html": {
+      "h": 1240,
+      "title": "Triggers: every resistance effect's fields",
+      "w": 1440,
+      "x": 27440,
+      "y": 6640
+    },
+    "TriggersFineTune.dc.html": {
+      "h": 900,
+      "title": "Triggers Fine-tune: Press points",
+      "w": 1440,
+      "x": 9200,
+      "y": 6640
+    },
+    "TriggersResistance.dc.html": {
+      "h": 900,
+      "title": "Triggers Fine-tune: resistance (DualSense)",
+      "w": 1440,
+      "x": 21360,
+      "y": 6640
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-10-06T12:00:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "rowA": {
+      "kind": "title1",
+      "maxW": 6000,
+      "text": "Redesigns: the core editing loop",
+      "w": 240,
+      "x": 1600,
+      "y": -260
+    },
+    "rowB": {
+      "kind": "title1",
+      "maxW": 6000,
+      "text": "Redesigns: choosing behaviour without numbers",
+      "w": 240,
+      "x": 1600,
+      "y": 1000
+    },
+    "rowC": {
+      "kind": "title1",
+      "maxW": 6000,
+      "text": "Redesigns: library, onboarding, settings, assistant",
+      "w": 240,
+      "x": 1600,
+      "y": 2260
+    },
+    "rowD": {
+      "kind": "title1",
+      "maxW": 3000,
+      "text": "The rules every screen follows",
+      "w": 240,
+      "x": 1600,
+      "y": 3520
+    },
+    "rowE": {
+      "kind": "title1",
+      "maxW": 3000,
+      "text": "Nothing removed: every setting has a home",
+      "w": 240,
+      "x": 1600,
+      "y": 5120
+    },
+    "rowE2": {
+      "kind": "title1",
+      "maxW": 8000,
+      "text": "Gyro in depth",
+      "w": 240,
+      "x": 4640,
+      "y": 5120
+    },
+    "rowF": {
+      "kind": "title1",
+      "maxW": 8000,
+      "text": "Sticks and triggers in depth",
+      "w": 240,
+      "x": 3120,
+      "y": 6380
+    },
+    "rowG": {
+      "kind": "title1",
+      "maxW": 8000,
+      "text": "Trackpads, menus and grips in depth",
+      "w": 240,
+      "x": 3120,
+      "y": 7640
+    },
+    "rowH": {
+      "kind": "title1",
+      "maxW": 8000,
+      "text": "Bindings in depth",
+      "w": 240,
+      "x": 3120,
+      "y": 8900
+    },
+    "rowI": {
+      "kind": "title1",
+      "maxW": 8000,
+      "text": "Layout, modes, review and library in depth",
+      "w": 240,
+      "x": 3120,
+      "y": 10520
+    },
+    "rowJ": {
+      "kind": "title1",
+      "maxW": 8000,
+      "text": "Every Settings category",
+      "w": 240,
+      "x": 3120,
+      "y": 11780
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Home.dc.html",
+    "Layout.dc.html",
+    "ButtonList.dc.html",
+    "BindingSheet.dc.html",
+    "KeyPicker.dc.html",
+    "Sticks.dc.html",
+    "Gyro.dc.html",
+    "Modes.dc.html",
+    "Library.dc.html",
+    "NewConfig.dc.html",
+    "Settings.dc.html",
+    "Assistant.dc.html",
+    "Kit.dc.html",
+    "Parity.dc.html",
+    "GyroFineTune.dc.html",
+    "Trackpads.dc.html",
+    "TrackpadsFineTune.dc.html",
+    "TrackpadsFineTuneMore.dc.html",
+    "TrackpadsFeel.dc.html",
+    "GripSensors.dc.html",
+    "SettingsAssistant.dc.html",
+    "QuickMenu.dc.html",
+    "ControllerLight.dc.html",
+    "ModeHow.dc.html",
+    "ReviewChanges.dc.html",
+    "LibraryActions.dc.html",
+    "LibraryTabs.dc.html",
+    "LibraryBases.dc.html",
+    "NewConfigGame.dc.html",
+    "NewConfigTry.dc.html",
+    "GyroSteadiness.dc.html",
+    "GyroSteadinessAdvanced.dc.html",
+    "GyroSpeedAdvanced.dc.html",
+    "GyroDirection.dc.html",
+    "GyroRumble.dc.html",
+    "GyroWhenOn.dc.html",
+    "SettingsHoldToSwap.dc.html",
+    "SettingsPressTiming.dc.html",
+    "SettingsHide.dc.html",
+    "SettingsLook.dc.html",
+    "SettingsStartup.dc.html",
+    "SettingsGuides.dc.html",
+    "SettingsTroubleshooting.dc.html",
+    "SettingsAbout.dc.html",
+    "BindingMore.dc.html",
+    "BindingWhileHolding.dc.html",
+    "BindingFineTune.dc.html",
+    "ControllerActions.dc.html",
+    "PickerFamily.dc.html",
+    "StickFineTuneAim.dc.html",
+    "StickFineTuneFlick.dc.html",
+    "StickFineTuneOther.dc.html",
+    "Triggers.dc.html",
+    "TriggersFineTune.dc.html",
+    "TriggersCalibrate.dc.html",
+    "SoundLibrary.dc.html",
+    "ControllerVariant.dc.html",
+    "SteamImport.dc.html",
+    "ModeChanges.dc.html",
+    "LibraryDetail.dc.html",
+    "TrackpadsTouchClick.dc.html",
+    "TrackpadsTouchStick.dc.html",
+    "TrackpadsMouseArea.dc.html",
+    "TrackpadsGlideClick.dc.html",
+    "TrackpadsClick.dc.html",
+    "MenuEditor.dc.html",
+    "MenuEditorMore.dc.html",
+    "ControllerActionsCalibrate.dc.html",
+    "ControllerActionsRumble.dc.html",
+    "ControllerActionsLightOther.dc.html",
+    "ControllerActionsOther.dc.html",
+    "BindingDetails.dc.html",
+    "IconPicker.dc.html",
+    "TextEntry.dc.html",
+    "GyroSpeedShape.dc.html",
+    "GyroSpeedGame.dc.html",
+    "GyroJitterFilter.dc.html",
+    "GyroAdaptiveFilter.dc.html",
+    "GyroSnapBrake.dc.html",
+    "GyroDirectionAdvanced.dc.html",
+    "GyroStickSetup.dc.html",
+    "GyroStickSettings.dc.html",
+    "GyroCalibrate.dc.html",
+    "SettingsTimingAdvanced.dc.html",
+    "SettingsHideSetup.dc.html",
+    "SettingsHoldToSwapCopy.dc.html",
+    "SettingsMappingDebug.dc.html",
+    "SettingsGuidesSearch.dc.html",
+    "SettingsControllerMore.dc.html",
+    "StickDeadZone.dc.html",
+    "StickSpeedUp.dc.html",
+    "StickFlickSnap.dc.html",
+    "StickFlickOutput.dc.html",
+    "StickGamepadOutput.dc.html",
+    "StickSmallModes.dc.html",
+    "TriggersResistance.dc.html",
+    "StickHybridAim.dc.html",
+    "StickAdvanced.dc.html",
+    "TriggersAdvanced.dc.html",
+    "TriggersEffects.dc.html"
+  ],
+  "pages": [],
+  "title": "JSM Evolved Console UX Review"
+}

@@ -1,9 +1,10 @@
-// TODO-44: the Preferences page splits its sections over two columns from
-// 1280px up, and the split is by height: neither column may trail the other
-// by more than a section's worth. Before the fix the right column ran to
-// 2.4x the left (2004px against 840px in the mock).
+// TODO-44, console v2 edition: Settings ▸ Controller is one readable column
+// (the two-column Preferences split is gone with Startup having its own
+// category), and its sections come in the design's order. Pages with a
+// preview or a test beside them (Press timing, Look & language) keep their
+// two columns starting on the same line at 1280 and 1600.
 //
-//   JSM_TEST_URL='http://127.0.0.1:1421/?mock' node tests/todo44_prefs_columns_browser_regression.cjs
+//   JSM_TEST_URL='http://127.0.0.1:1420' node tests/todo44_prefs_columns_browser_regression.cjs
 const assert = require('node:assert/strict')
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright')
 
@@ -14,32 +15,32 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
       const page = await browser.newPage({ viewport: { width, height: 900 } })
       const errors = []
       page.on('pageerror', error => errors.push(error.message))
-      await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420/?mock')
+      await page.goto((process.env.JSM_TEST_URL || 'http://127.0.0.1:1420').replace(/\/$/, '') + '/?mock')
       const firstConnect = page.getByRole('dialog', { name: 'Controller power-on sound' })
       if (await firstConnect.waitFor({ state: 'visible', timeout: 5000 }).then(() => true).catch(() => false)) {
         await firstConnect.getByRole('button', { name: 'Keep them' }).click()
         await firstConnect.waitFor({ state: 'hidden' })
       }
-      await page.getByRole('button', { name: /^Preferences/ }).first().click()
+      const go = async id => { await page.evaluate(d => window.dispatchEvent(new CustomEvent('jsm:navigate-page', { detail: d })), id); await page.waitForTimeout(700) }
+      await go('settings')
       await page.getByText('Controller sounds', { exact: true }).first().waitFor()
-      await page.getByText('Trackpad orientation', { exact: true }).first().waitFor()
-      await page.waitForTimeout(300)
-      const columns = await page.evaluate(() => [...document.querySelectorAll('.prefs-columns > .prefs-column')].map(column => {
-        const box = column.getBoundingClientRect()
-        return { region: column.dataset.navRegion, top: box.top, height: box.height, headings: [...column.querySelectorAll('.prefs-eyebrow')].map(h => h.textContent.trim()) }
-      }))
-      assert.equal(columns.length, 2, `${width}px: two columns side by side`)
-      const [left, right] = columns
-      assert.ok(Math.abs(left.top - right.top) < 1, `${width}px: both columns start on the same line (${left.top} vs ${right.top})`)
-      const shorter = Math.min(left.height, right.height), taller = Math.max(left.height, right.height)
-      assert.ok(shorter / taller >= 0.75, `${width}px: columns are balanced, shorter is ${Math.round(shorter)} of ${Math.round(taller)}`)
-      // Startup and the pad's own switches read first; the hardware sections sit together.
-      assert.deepEqual(left.headings.slice(0, 2), ['Startup', 'Controller'], `${width}px: left column order`)
-      assert.ok(left.headings.includes('Controller sounds'), `${width}px: sounds are on the left`)
-      assert.ok(right.headings.includes('Gyro calibration') && right.headings.includes('Trackpad orientation'), `${width}px: the long sensor sections are on the right`)
+      const sections = await page.evaluate(() => [...document.querySelectorAll('main section h2')].map(h => h.textContent.trim()))
+      const wanted = ['On-screen keyboard', 'Calibration and light', 'Controller sounds', 'Trackpad rotation']
+      assert.deepEqual(sections.filter(title => wanted.includes(title)), wanted, `${width}px: sections in the design's order (${sections.join(' | ')})`)
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${width}px: no sideways scroll`)
+      // The category's own switches come before any section.
+      const switches = await page.getByRole('switch').evaluateAll(nodes => nodes.map(n => n.textContent.split('\n')[0].trim()).slice(0, 2))
+      assert.ok(switches[0].startsWith('Navigate this app with the controller') && switches[1].startsWith('Stop the Steam Controller recalibrating its gyro'), `${width}px: first switches (${switches.join(' | ')})`)
+      for (const id of ['timing', 'appearance']) {
+        await go(id)
+        const boxes = await page.evaluate(() => [document.querySelector('[data-nav-region="settings"]'), document.querySelector('aside[data-nav-region="aside"]')].map(el => el?.getBoundingClientRect()).map(box => box && { top: box.top, left: box.left }))
+        assert.ok(boxes[0] && boxes[1], `${id}: main column and aside`)
+        assert.ok(Math.abs(boxes[0].top - boxes[1].top) < 2, `${id} ${width}px: both columns start on the same line (${boxes[0].top} vs ${boxes[1].top})`)
+        assert.ok(boxes[1].left > boxes[0].left + 300, `${id} ${width}px: the aside sits beside the settings`)
+      }
       assert.deepEqual(errors, [])
       await page.close()
     }
-    console.log('PASS: Preferences columns start level and end within a quarter of each other at 1280 and 1600')
+    console.log('PASS: Settings ▸ Controller is one column in the design\'s order; Press timing and Look & language keep their aside level at 1280 and 1600')
   } finally { await browser.close() }
 })().catch(error => { console.error(error); process.exit(1) })

@@ -20,29 +20,40 @@ const BASE = (process.env.JSM_TEST_URL || 'http://127.0.0.1:1420').replace(/\/$/
       await page.locator('[data-home-continue]').waitFor({ timeout: 30000 })
       const keep = page.getByRole('button', { name: 'Keep them', exact: true })
       if (await keep.isVisible()) await keep.click()
-      const title = language === 'en' ? 'Credits' : '致谢'
-      await page.locator('section[aria-labelledby="home-studio-title"]').getByRole('button', { name: new RegExp(title) }).click()
+      const title = language === 'en' ? 'About & credits' : '关于与致谢'
+      // Console v2 (V6): Home's Settings door, then the rail's last category.
+      await page.locator('section[aria-labelledby="home-studio-title"]').getByRole('button', { name: /^(Settings|设置)/ }).click()
+      if (width >= 1024) await page.locator('.section-list .section-item').filter({ hasText: title }).click()
+      else await page.evaluate(() => window.dispatchEvent(new CustomEvent('jsm:navigate-page', { detail: 'credits' })))
       await page.locator('.page-header__title').filter({ hasText: title }).waitFor()
       const first = page.locator('a[href="https://github.com/JibbSmart/JoyShockMapper"]')
       await first.waitFor()
-      assert.equal(await page.locator('main section[aria-labelledby^="credits-"]').count(), 5)
-      assert.equal(await page.locator('main a[href]').count(), 27)
-      assert.match(await page.locator('main').innerText(), /Evan McLean.*evan1mclean/s)
+      // Console v2 (SettingsAbout): people and featured projects on the page, the rest behind And N more.
+      assert.equal(await page.locator('main section[aria-labelledby^="credits-"]').count(), 2)
+      assert.equal(await page.locator('main a[href]').count(), 13)
+      assert.match(await page.locator('main').innerText(), /Version \d+\.\d+\.\d+ · /)
+      await page.locator('[data-credits-more]').click()
+      await page.locator('[data-subpage]').waitFor()
+      assert.ok(await page.locator('[data-subpage] a[href]').count() >= 10, 'the long tail is behind And N more')
+      await page.keyboard.press('Escape')
+      await page.locator('[data-subpage]').waitFor({ state: 'detached' })
+      assert.match(await page.locator('main').innerText(), /Evan McLean/)
       assert.match(await page.locator('main').innerText(), /hotuns/)
       assert.match(await page.locator('main').innerText(), language === 'en' ? /not an exhaustive list/ : /不是完整名单/)
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'no horizontal window overflow')
       assert.equal(await page.locator('main').evaluate(el => el.scrollWidth <= el.clientWidth), true, 'no content overflow')
-      const gridColumns = await page.locator('main section[aria-labelledby="credits-people"]').evaluate(el => getComputedStyle(el.parentElement).gridTemplateColumns.split(' ').length)
+      const gridColumns = await page.locator('main section[aria-labelledby="credits-people"] > div').evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').length)
       assert.equal(gridColumns, width < 960 ? 1 : 2)
       if (language === 'en') {
-        const tab = page.locator('.page-tab').filter({ hasText: /^Credits$/ })
+        const tab = page.locator('.section-list .section-item').filter({ hasText: /^About & credits$/ })
         if (width >= 1280) {
           assert.equal(await tab.evaluate(el => { const r=el.getBoundingClientRect(),p=el.parentElement.getBoundingClientRect(); return r.left>=p.left-1 && r.right<=p.right+1 }), true, 'Credits tab is not clipped')
         }
-        await page.keyboard.press('PageDown')
-        await page.locator('.page-header__title').filter({ hasText: 'Debug console' }).waitFor()
-        await page.keyboard.press('PageUp')
-        await page.locator('.page-header__title').filter({ hasText: 'Credits' }).waitFor()
+        // LT/RT step the categories; LB/RB (PgUp/PgDn) do nothing in Settings.
+        await page.keyboard.press('[')
+        await page.locator('.page-header__title').filter({ hasText: 'Troubleshooting log' }).waitFor()
+        await page.keyboard.press(']')
+        await page.locator('.page-header__title').filter({ hasText: 'About & credits' }).waitFor()
         await page.evaluate(() => {
           window.__creditLinks = []
           window.electronAPI.openExternal = async url => { window.__creditLinks.push(url) }
@@ -60,7 +71,8 @@ const BASE = (process.env.JSM_TEST_URL || 'http://127.0.0.1:1420').replace(/\/$/
         assert.equal(await page.evaluate(() => document.activeElement.href), 'https://github.com/Electronicks/JoyShockMapper')
         await first.focus()
         await page.evaluate(() => window.__pad.press(['DOWN']))
-        assert.equal(await page.evaluate(() => document.activeElement.href), 'https://github.com/Electronicks/JoyShockMapper')
+        // Two columns: Down from Jibb lands on Evan, the row below.
+        assert.equal(await page.evaluate(() => document.activeElement.href), 'https://github.com/evan1mclean/JSM_custom_curve')
         await page.evaluate(() => window.__pad.press(['E']))
         await page.locator('[data-home-continue]').waitFor()
       }

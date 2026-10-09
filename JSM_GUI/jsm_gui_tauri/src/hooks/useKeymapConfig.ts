@@ -1,5 +1,5 @@
 import { useConfigHistory } from './useConfigHistory'
-import { useCallback, useMemo, useState, type Dispatch, type SetStateAction } from 'react'
+import { useCallback, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import { defaultLayer, foldLayer, projectLayer, readLayers, writeLayers } from '../utils/layers'
 import { getKeymapValue } from '../utils/keymap'
 import { keyName } from '../constants/configKeys'
@@ -11,7 +11,7 @@ import { useBindingsConfig } from './useBindingsConfig'
 import { useConfigIncludes } from './useConfigIncludes'
 import { INCLUDE_ROOT } from '../utils/configIncludes'
 import { dropRedundantOverrides } from '../utils/inheritedOverrides'
-import { controllerBase, projectController, foldController } from '../utils/controllerLayouts'
+import { controllerBase, projectController, foldController, sharedController } from '../utils/controllerLayouts'
 
 export function useKeymapConfig(controllerModel = '') {
   const history = useConfigHistory()
@@ -33,8 +33,8 @@ export function useKeymapConfig(controllerModel = '') {
   const fold = useCallback((document: string, id: string, next: string, before: string) => {
     const projected = controllerProjection(document)
     const edited = foldLayer(projected, id, next, before)
-    return controllerModel ? foldController(document, controllerModel, projected, edited) : edited
-  }, [controllerModel, controllerProjection])
+    return controllerModel ? foldController(document, controllerModel, projected, edited, sharedController(document, controllerModel, includes.resolveText(controllerBase(document)))) : edited
+  }, [controllerModel, controllerProjection, includes.resolveText])
   const configText = useMemo(() => projection(documentText), [projection, documentText])
   // Every edit made through the controls lands here, so this is where a value
   // set back to what the imports already say stops being an override (see
@@ -42,15 +42,23 @@ export function useKeymapConfig(controllerModel = '') {
   // are measured against Default, which foldLayer owns. A profile that
   // imports nothing has nothing to inherit, and is passed straight through.
   const hasImports = includes.resolution !== null
+  // On a controller's own layout there is nothing to settle here: foldController
+  // compares the edit with the shared layout itself (imports and the file's own
+  // lines), and has to see the line the user wrote, not the line this would
+  // leave out, to tell "set back to the shared value" from "cleared".
   const settle = useCallback((id: string, before: string, after: string) =>
-    id || !hasImports ? after : dropRedundantOverrides(before, after, includes.resolveText), [hasImports, includes.resolveText])
+    id || !hasImports || controllerModel ? after : dropRedundantOverrides(before, after, includes.resolveText), [hasImports, includes.resolveText, controllerModel])
   const setConfigText: Dispatch<SetStateAction<string>> = useCallback(update => {
     setDocumentText(previous => {
       const before = projection(previous)
       return fold(previous, layerId, settle(layerId, before, typeof update === 'function' ? update(before) : update), before)
     })
   }, [layerId, setDocumentText, projection, settle, fold])
-  const resetConfigHistory = useCallback((text: string) => { selectLayer(''); history.reset(text) }, [history.reset])
+  // When the saved text last changed, and whether that was opening the file or
+  // saving it (Review changes: "since you last saved, 11 minutes ago").
+  const opening = useRef(false)
+  const [savedAt, setSavedAt] = useState<{ at: number; kind: 'opened' | 'saved' } | null>(null)
+  const resetConfigHistory = useCallback((text: string) => { selectLayer(''); opening.current = true; history.reset(text) }, [history.reset])
   // The same projection and write, for a layer other than the one being
   // edited: On-screen menus (2d) draws and moves every layer's menus at once.
   // eslint-disable-next-line react-hooks/exhaustive-deps -- resolveText is the only part of includes it reads, as with projection above
@@ -64,13 +72,27 @@ export function useKeymapConfig(controllerModel = '') {
       return fold(previous, id, settle(id, before, update(before)), before)
     })
   }, [setDocumentText, projectionFor, settle, fold])
-  const [appliedConfig, setAppliedConfig] = useState('')
+  const [appliedConfig, setAppliedConfigState] = useState('')
+  const setAppliedConfig = useCallback((text: string) => {
+    setSavedAt({ at: Date.now(), kind: opening.current ? 'opened' : 'saved' })
+    opening.current = false
+    setAppliedConfigState(text)
+  }, [])
+  // Menus always save to Default (console v2, D16): the catalogue is one
+  // VIRTUAL_MENUS line, and writing it through the selected mode copied the
+  // whole catalogue into that mode's overrides.
+  const setDefaultConfigText: Dispatch<SetStateAction<string>> = useCallback(update => {
+    setConfigTextFor('', previous => typeof update === 'function' ? update(previous) : update)
+  }, [setConfigTextFor])
 
   // A profile that imports a template is not the same thing as the text in its
   // file. Every read below goes through the resolved text so inherited settings
   // show up; writes still go to configText, so changing an inherited value
   // writes an override into this profile rather than editing the template.
   const readText = useMemo(() => projectLayer(writeLayers(controllerModel ? projectedDocument : includes.effectiveText, layers), layerId), [includes.effectiveText, layers, layerId, controllerModel, projectedDocument])
+
+  // What the menus read: Default with its imports resolved, whichever mode is selected.
+  const defaultText = useMemo(() => projectLayer(writeLayers(controllerModel ? projectedDocument : includes.effectiveText, layers), ''), [includes.effectiveText, layers, controllerModel, projectedDocument])
 
   const sensitivityConfig = useSensitivityConfig({ configText, readText, setConfigText })
   const touchpadConfig = useTouchpadConfig({ configText, readText, setConfigText })
@@ -135,6 +157,12 @@ export function useKeymapConfig(controllerModel = '') {
     canUndo: history.canUndo,
     canRedo: history.canRedo,
     undoTarget: history.undoTarget,
+    historyPast: history.past,
+    historyFuture: history.future,
+    historyAt: history.currentAt,
+    savedAt,
+    defaultText,
+    setDefaultConfigText,
     redoTarget: history.redoTarget,
     undo: () => { sensitivityConfig.resetPendingSensitivityChanges(); history.undo() },
     redo: () => { sensitivityConfig.resetPendingSensitivityChanges(); history.redo() },

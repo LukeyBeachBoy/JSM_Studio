@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Flick turning output</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.grp{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;flex-direction:column;gap:4px;padding:16px 20px;box-sizing:border-box;border-radius:14px;background:transparent;color:#b0bcc8;text-align:left}
+.grp .t{font-size:20px;font-weight:600}
+.grp .s{font-size:15px;color:#808c99}
+.row{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;align-items:center;gap:16px;min-height:76px;padding:14px 22px;box-sizing:border-box;border-radius:16px;background:#1f2730;color:#e8eef4;text-align:left}
+.opt{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;align-items:center;gap:14px;min-height:64px;padding:10px 20px;box-sizing:border-box;border-radius:14px;background:#1f2730;color:#e8eef4;text-align:left}
+.opt .t{font-size:19px;font-weight:600}
+.opt .s{font-size:15px;color:#808c99}
+.radio{width:22px;height:22px;border-radius:50%;border:2px solid #5b6571;box-sizing:border-box;flex:none}
+.radio.on{border:7px solid #3e9fd8}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="height: 76px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 40px; background: #0d1217">
+<span style="font-size: 18px; color: #808c99">Wardogs · Sticks · Right stick</span>
+<span style="font-size: 18px; color: #808c99">▸</span>
+<span style="font-size: 22px; font-weight: 700">Fine-tune</span>
+<span style="margin-left: auto; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 20px; background: #4a3320; color: #ffc98f; font-size: 16px; font-weight: 600"><span style="width: 9px; height: 9px; border-radius: 50%; background: #f0a05a"></span>Unsaved · ☰ to save</span>
+</header>
+
+<main style="flex: 1; min-height: 0; display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 36px; padding: 32px 40px 24px">
+
+<nav style="display: flex; flex-direction: column; gap: 6px; min-height: 0">
+<div style="display: flex; align-items: center; gap: 8px; margin: 0 0 10px 20px; font-size: 14px; color: #808c99"><span class="gp">LT</span>Group<span class="gp">RT</span></div>
+<button class="grp"><span class="t">Flick</span><span class="s">Default · 0.10 s</span></button>
+<button class="grp"><span class="t">Snap &amp; forward zone</span><span class="s">Snap off · no forward zone</span></button>
+<button class="grp" style="background: #1f2730; color: #ffffff"><span class="t">Turning output</span><span class="s" style="color: #7cc4ee">Changed: right gamepad stick</span></button>
+<button class="grp"><span class="t">Dead zone &amp; edge</span><span class="s">Flicks past 90%</span></button>
+<button class="grp"><span class="t">Direction</span><span class="s">Normal up, down, left, right</span></button>
+<div style="margin-top: auto; background: #4a3320; border-radius: 14px; padding: 14px 18px; display: flex; gap: 12px; align-items: flex-start">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffc98f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex: none; margin-top: 2px"><path d="M12 3L22 20H2Z"></path><path d="M12 10v4M12 17v.01"></path></svg>
+<span style="font-size: 15px; line-height: 1.45; color: #ffc98f">Needs Xbox or PlayStation output. Turn it on under Controller output.</span>
+</div>
+</nav>
+
+<section style="display: grid; grid-template-columns: minmax(0, 1fr) 470px; gap: 28px; min-width: 0; min-height: 0">
+
+<div style="display: flex; flex-direction: column; gap: 12px; min-width: 0">
+<div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px">
+<h1 style="margin: 0; font-size: 32px; font-weight: 700">Turning output</h1>
+<p style="margin: 0; font-size: 17px; color: #b0bcc8">Send flicks as mouse movement, or through a gamepad stick.</p>
+</div>
+
+<button class="opt"><span class="radio"></span><span style="display: flex; flex-direction: column; gap: 2px"><span class="t">Mouse</span><span class="s">Most precise. Uses Match a full turn (360°).</span></span></button>
+<button class="opt"><span class="radio"></span><span style="display: flex; flex-direction: column; gap: 2px"><span class="t">Left gamepad stick</span><span class="s">For a game that turns with the left stick</span></span></button>
+<button class="opt" style="background: #24323f"><span class="radio on"></span><span style="display: flex; flex-direction: column; gap: 2px"><span class="t">Right gamepad stick</span><span class="s" style="color: #b0bcc8">The usual camera stick</span></span></button>
+
+<div class="focus" style="background: #1d445c; border-radius: 16px; padding: 18px 22px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 16px"><span style="display: flex; flex-direction: column; gap: 3px"><span style="font-size: 20px; font-weight: 650">Game’s top turn speed</span><span style="font-size: 15px; color: #b8e2fa">One full turn in 0.50 s</span></span><span style="display: flex; align-items: center; gap: 14px; font-size: 28px; font-weight: 700; white-space: nowrap"><span style="color: #7cc4ee; font-size: 22px">◂</span>720°/s<span style="color: #7cc4ee; font-size: 22px">▸</span></span></div>
+<span style="font-size: 15px; line-height: 1.45; color: #b8e2fa">Hold the game’s stick fully and time one full turn. Shared with gyro to joystick.</span>
+</div>
+
+<button class="row"><span style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 20px; font-weight: 650">Find the game’s dead zone</span><span style="font-size: 15px; color: #808c99">Guided, about a minute</span></span><span style="margin-left: auto; font-size: 17px; color: #7cc4ee; font-weight: 600">Start ▸</span></button>
+
+<span style="font-size: 15px; line-height: 1.5; color: #808c99; padding: 0 4px">With a gamepad stick, Flick time and Small flicks don’t apply: the stick is held fully for as long as the turn needs.</span>
+</div>
+
+<div style="background: #1a222b; border-radius: 20px; padding: 22px; display: flex; flex-direction: column; gap: 14px; min-height: 0">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 17px; font-weight: 600">How a flick reaches the game</span><span style="font-family: 'Geist Mono', monospace; font-size: 14px; color: #93e6c1">● flick 180°</span></div>
+
+<svg viewBox="0 0 420 420" width="100%" height="420" fill="none">
+<circle cx="110" cy="110" r="92" stroke="#aebbc8" stroke-width="2"></circle>
+<circle cx="110" cy="110" r="89" fill="#0e1419"></circle>
+<circle cx="110" cy="110" r="80" stroke="#7cc4ee" stroke-width="1.6" stroke-dasharray="3 6" stroke-linecap="round"></circle>
+<path d="M110 30v160M30 110h160" stroke="rgba(255,255,255,.035)"></path>
+<path d="M110 110L172 110" stroke="#3e9fd8" stroke-width="2" stroke-linecap="round"></path>
+<circle cx="172" cy="110" r="25" fill="#212a34" stroke="#e3eaf1" stroke-width="2"></circle>
+<circle cx="172" cy="110" r="14" fill="none" stroke="#aebbc8" stroke-width="1.5"></circle>
+<circle cx="172" cy="110" r="6" fill="#3e9fd8" stroke="#e3eaf1" stroke-width="2"></circle>
+<path d="M210 110H238" stroke="#808c99" stroke-width="2" stroke-linecap="round"></path>
+<path d="M244 110L236 105V115Z" fill="#808c99"></path>
+<circle cx="320" cy="110" r="70" stroke="rgba(255,255,255,.07)" stroke-width="10"></circle>
+<path d="M320 40A70 70 0 0 1 320 180" stroke="#7cc4ee" stroke-width="4" stroke-linecap="round"></path>
+<path d="M307 180L320 173V187Z" fill="#b8e2fa"></path>
+<path d="M320 110L320 92" stroke="#808c99" stroke-width="2" stroke-linecap="round"></path>
+<circle cx="320" cy="110" r="5" fill="#e8eef4"></circle>
+<text x="320" y="135" fill="#e8eef4" font-size="18" font-weight="700" font-family="Geist, sans-serif" text-anchor="middle">180°</text>
+<text x="110" y="222" fill="#b0bcc8" font-size="15" font-family="Geist, sans-serif" text-anchor="middle">Game’s right stick</text>
+<text x="320" y="222" fill="#b0bcc8" font-size="15" font-family="Geist, sans-serif" text-anchor="middle">Camera turns</text>
+<text x="30" y="282" fill="#b8e2fa" font-size="15" font-weight="600" font-family="Geist, sans-serif">Full tilt for 0.25 s</text>
+<rect x="30" y="296" width="360" height="16" rx="8" fill="#0e1419" stroke="rgba(255,255,255,.07)"></rect>
+<rect x="30" y="296" width="180" height="16" rx="8" fill="#3e9fd8"></rect>
+<path d="M120 318v6M210 318v6M300 318v6" stroke="rgba(255,255,255,.16)" stroke-linecap="round"></path>
+<g fill="#808c99" font-size="15" font-family="'Geist Mono', monospace"><text x="30" y="342">0</text><text x="210" y="342" text-anchor="middle">0.25 s</text><text x="390" y="342" text-anchor="end">0.5 s</text></g>
+<text x="210" y="384" fill="#d4dde6" font-size="16" font-family="Geist, sans-serif" text-anchor="middle">180° at 720°/s takes a quarter second</text>
+</svg>
+<span style="font-size: 15px; line-height: 1.5; color: #808c99">If flicks fall short or overshoot, re-time the game’s full turn and adjust the top turn speed.</span>
+</div>
+</section>
+</main>
+
+<footer style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Wardogs · Sticks · Right stick · Fine-tune · Turning output</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px">◂ ▸ Adjust</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">X</span>Try it</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">Y</span>Reset</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">LT</span><span class="gp">RT</span>Group</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Back to Sticks</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -7,7 +7,6 @@ import { SummaryRow, RowGroup } from './ui/SummaryRow'
 import { SettingPrefix } from './SettingOrigin'
 import { CurvePlot, TRAIL_MS, type CurveHandle, type CurveMarker } from './CurvePlot'
 import { niceCeil, niceStep, snapTo } from '../utils/niceNumbers'
-import { PAD_EVENT, type PadEventDetail } from '../nav/useControllerNavigation'
 import { inputDisplayName } from '../keymap/inputNames'
 import type { SensitivityValues } from '../utils/keymap'
 import type { TouchpadAccelParamKey, TouchpadAccelValues } from '../hooks/useTouchpadConfig'
@@ -29,10 +28,11 @@ import {
 
 // The acceleration curve editor (TODO-40): a full-window view, like On-screen
 // menus, with the curve at the size of the window in the middle and every
-// setting that shapes it in the panel on the right. Opened from the Gyro
-// page's Sensitivity section and from Mouse feel › Acceleration; LB/RB switch
-// between the gyro's curve and the trackpad's, since either can borrow the
-// other's shape. The curve is drawn from the configuration being edited, so
+// setting that shapes it in the panel on the right. Opened from Mouse feel ›
+// Acceleration. Console v2 (P5): the gyro's half moved to Gyro ▸ Fine-tune ▸
+// Speed ▸ Advanced (components/gyro/SpeedAdvanced), and LB / RB no longer
+// switch inputs here, since V1 gives the bumpers to the tabs. Asking for the
+// gyro side closes this view and opens that page instead. The curve is drawn from the configuration being edited, so
 // it moves with every row and every drag before anything is saved; the live
 // input speed rides on it so the thresholds can be set against the hand.
 
@@ -127,21 +127,13 @@ export function AccelCurveView(props: AccelCurveViewProps) {
   const link = normalizeAccelCurveLink(props.link)
   const [range, setRange] = useState<'fit' | 'wide'>('fit')
 
-  // LB / RB switch inputs, as they step menus in On-screen menus.
-  const latestSide = useRef(side)
-  latestSide.current = side
+  // The gyro's side lives on the Gyro tab now: hand over and close.
   useEffect(() => {
-    if (!open) return
-    const onPad = (event: Event) => {
-      const button = (event as CustomEvent<PadEventDetail>).detail.button
-      if (button !== 'LB' && button !== 'RB') return
-      const next: CurveSide = button === 'LB' ? 'gyro' : 'touchpad'
-      if (next !== latestSide.current) onSideChange(next)
-      event.preventDefault()
-    }
-    document.addEventListener(PAD_EVENT, onPad)
-    return () => document.removeEventListener(PAD_EVENT, onPad)
-  }, [open, onSideChange])
+    if (!open || side !== 'gyro') return
+    onClose()
+    window.dispatchEvent(new CustomEvent('jsm:accel-curve', { detail: 'gyro' }))
+  }, [open, side, onClose])
+  void onSideChange
 
   // The last few seconds of live speed, for the plot's ticks and the peak
   // readout. Taken on every render (App renders per telemetry frame) at most
@@ -424,7 +416,7 @@ export function AccelCurveView(props: AccelCurveViewProps) {
           {inherits ? (
             <p className="curve-view__note">
               {t('curveView.inheritingNote', 'Using the {{other}}’s curve shape ({{curve}}), stretched across this input’s speed range. Press {{button}} to change the shape; the speeds and outputs here stay the {{own}}’s own.',
-                { other: other.name.toLowerCase(), own: model.name.toLowerCase(), curve: t(`sensitivity.curves.${curveType.toLowerCase()}`), button: side === 'gyro' ? 'RB' : 'LB' })}
+                { other: other.name.toLowerCase(), own: model.name.toLowerCase(), curve: t(`sensitivity.curves.${curveType.toLowerCase()}`), button: 'Gyro ▸ Fine-tune ▸ Speed ▸ Advanced' })}
             </p>
           ) : (
             <SummaryRow size="sheet" label={t('curveView.curve', 'Curve')} hint={t(`curveView.words.${curveType.toLowerCase()}`, CURVE_WORDS[curveType])} setting={model.keys.curve} disabled={disabled}
@@ -481,7 +473,6 @@ export function AccelCurveView(props: AccelCurveViewProps) {
             <b id="curve-view-title">{t('curveView.title', 'Acceleration curve')}</b>
           </div>
           <div className="curve-view__chips" role="tablist" aria-label={t('curveView.inputs', 'Input')}>
-            <ButtonGlyph button="LB" size={22} />
             {sides.map(key => (
               <button key={key} type="button" role="tab" aria-selected={key === side} className="menus-chip" data-state={key === side ? 'selected' : undefined}
                 data-nav-entry-skip="" tabIndex={key === side ? 0 : -1} onClick={() => onSideChange(key)} data-hints="A:Select;B:Done">
@@ -489,7 +480,6 @@ export function AccelCurveView(props: AccelCurveViewProps) {
                 <span>{inheritsCurveShape(key, link) ? t('curveView.borrowed', 'borrowed shape') : key === 'gyro' && gyro.mode === 'static' ? t('gyroPage.modeStatic') : t(`sensitivity.curves.${normalizeAccelCurveType(models[key].shape.curve).toLowerCase()}`)}</span>
               </button>
             ))}
-            <ButtonGlyph button="RB" size={22} />
           </div>
         </header>
 
@@ -519,7 +509,6 @@ export function AccelCurveView(props: AccelCurveViewProps) {
             <footer className="sheet__footer" aria-label="Controls">
               <span className="sheet__hint"><ButtonGlyph button="A" size={24} />{t('curveView.footerAdjust', 'Adjust')}</span>
               <span className="sheet__hint"><ButtonGlyph button="Y" size={24} />{t('curveView.footerDefault', 'Default')}</span>
-              <span className="sheet__hint"><ButtonGlyph button="LB" size={24} /><ButtonGlyph button="RB" size={24} />{t('curveView.footerSides', 'Input')}</span>
               <span className="sheet__hint"><ButtonGlyph button="B" size={24} />{t('curveView.footerDone', 'Done')}</span>
             </footer>
           </div>

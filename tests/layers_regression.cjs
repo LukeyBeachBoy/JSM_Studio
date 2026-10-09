@@ -14,7 +14,7 @@ function load(file) {
   return mod.exports;
 }
 
-const {readLayers,writeLayers,projectLayer,foldLayer,convertModeshifts,inputUses,layerEntries,readLayerActions,setLayerActions,describeLayerActivation} = load('JSM_GUI/jsm_gui_tauri/src/utils/layers.ts');
+const {readLayers,writeLayers,projectLayer,foldLayer,convertModeshifts,inputUses,layerEntries,readLayerActions,setLayerActions,describeLayerActivation,reorderLayers,replaceLayerActions,modeActivation,overrideInput,layerSlotOf,layerHueName} = load('JSM_GUI/jsm_gui_tauri/src/utils/layers.ts');
 const {parseConfigText,serializeConfig} = load('JSM_GUI/jsm_gui_tauri/src/utils/configSerializer.ts');
 const source = 'RESET_MAPPINGS\nN = SPACE\nRSR = NONE\nRSR,N = J\nRSR,W = U\nLSL,N = H\n# @label RSR,N = Squad talk\n# @overlay RIGHT:RSR at 0.5 0.5 size 300\n';
 let text=convertModeshifts(source,{id:'comms',name:'Comms',overrides:{}},'RSR');
@@ -41,7 +41,7 @@ text=writeLayers(text,[layer]);
 assert.equal(layerEntries(projectLayer(text,'comms')).N,'SPACE','reset inherits Default');
 assert.ok(inputUses(text,'RSR').includes('Hold Comms'));
 assert.ok(inputUses(text,'LSL').some(v=>v.startsWith('Shift trigger:')));
-assert.ok(inputUses('N+S = ENTER','N').some(v=>v.startsWith('Chord:')));
+assert.ok(inputUses('N+S = ENTER','N').some(v=>v.startsWith('Press together:')));
 assert.equal(inputUses('+ = ESC','+').length,0,'Plus is a button, not a simultaneous chord');
 assert.equal(foldLayer(source,'',source),source,'no-op keeps exact original');
 assert.equal(projectLayer(writeLayers('N = OLD\nN = NEW',[{id:'x',name:'X',overrides:{}}]),'x').match(/N =/g).length,1,'collapse inherited duplicate assignments');
@@ -112,4 +112,25 @@ assert.equal(readLayers('# @layer '+JSON.stringify({id:'x',name:'X',overrides:{N
   assert.equal(kept.overrides.S,'E','a different value is still an override');
 }
 
-console.log('PASS: activation belongs to inputs, several may drive one layer, it round-trips through save and import, and a pre-move profile still works and is migrated on write');
+// Console v2 (P6): a mode edited from its own side.
+{
+  const base=writeLayers('N = SPACE\n',[{id:'a',name:'Vehicles',overrides:{N:'H'}},{id:'b',name:'Map',overrides:{}},{id:'c',name:'Comms',overrides:{}}],[{input:'LSL',verb:'hold',layerId:'a'},{input:'RSL',verb:'toggle',layerId:'b'},{input:'-',verb:'remove',layerId:'b'}]);
+  // Order is the colour: moving a mode keeps its actions and the others' places.
+  const moved=reorderLayers(base,readLayers(base),'c',0);
+  assert.deepEqual(readLayers(moved).map(l=>l.name),['Comms','Vehicles','Map']);
+  assert.equal(readLayerActions(moved).length,3);
+  assert.equal(reorderLayers(base,readLayers(base),'a',-5),base,'already first: no change');
+  assert.equal(layerSlotOf(readLayers(moved).findIndex(l=>l.id==='a')),2);
+  assert.equal(layerHueName(1),'Purple');assert.equal(layerHueName(5),'Lime');assert.equal(layerHueName(6),'Pink');
+  // Replacing a mode's actions leaves every other mode's alone, including release actions.
+  const swapped=replaceLayerActions(base,'b',[{input:'!RSL',verb:'apply',layerId:'b'}]);
+  assert.deepEqual(readLayerActions(swapped).filter(a=>a.layerId==='b').map(a=>a.input+':'+a.verb),['!RSL:apply']);
+  assert.deepEqual(readLayerActions(swapped).filter(a=>a.layerId==='a').map(a=>a.input),['LSL']);
+  const info=modeActivation(readLayerActions(base),'b',c=>c);
+  assert.equal(info.phrase,'Tap to open');assert.equal(info.closes,'- closes');assert.equal(info.mixed,false);
+  assert.equal(modeActivation(readLayerActions(swapped),'b',c=>c).phrase,'Let go to turn on'.replace('Let go to turn on','Let go to turn on'));
+  assert.equal(modeActivation([],'a').phrase,'Not on a button yet');
+  assert.equal(overrideInput('RSR,N'),'N');assert.equal(overrideInput('# @label N'),'N');assert.equal(overrideInput('RIGHT_TOUCHPAD_SENS'),'RIGHT_PAD');assert.equal(overrideInput('LIGHT_BAR'),null);assert.equal(overrideInput('LEFT_STICK_MODE'),'L3');
+  assert.ok(inputUses('RSR,N = J\nLSL = A\n','RSR').some(v=>v.startsWith('Chord with:')||v.startsWith('Shift trigger:')));
+}
+console.log('PASS: mode order, replacing a mode actions, activation phrases and override inputs; activation belongs to inputs, several may drive one layer, it round-trips through save and import, and a pre-move profile still works and is migrated on write');

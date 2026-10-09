@@ -1,0 +1,58 @@
+# @base {"preset":"strategy","title":"Strategy & builders","short":"Strategy","blurb":"Trackpad is the mouse, wheels for hotkeys, zoom on a trigger.","families":["steam"],"needs":["trackpads"],"order":5}
+# Strategy and builders, for the Steam Controller. It ships with JSM Evolved,
+# so it can't be changed in place: duplicate it to make your own.
+
+# The right pad is the mouse; clicking it clicks
+RIGHT_TOUCHPAD_MODE = MOUSE
+MISC2 = LMOUSE
+
+# The left pad: four hotkeys
+LEFT_TOUCHPAD_MODE = GRID_AND_STICK
+LEFT_GRID_SHAPE = FOUR_WAY
+LT1 = F1
+LT2 = F2
+LT3 = F3
+LT4 = F4
+MISC3 = SPACE
+
+# The right stick is a wheel of eight hotkeys
+RIGHT_STICK_MODE = RADIAL_MENU
+RIGHT_STICK_MENU_SIZE = 8
+RM1 = 1
+RM2 = 2
+RM3 = 3
+RM4 = 4
+RM5 = 5
+RM6 = 6
+RM7 = 7
+RM8 = 8
+
+# The left stick pans the camera
+LEFT_STICK_MODE = NO_MOUSE
+LUP = W
+LDOWN = S
+LLEFT = A
+LRIGHT = D
+
+# Face buttons, bumpers
+S = LMOUSE
+E = RMOUSE
+W = LCONTROL
+N = LSHIFT
+L = TAB
+R = H
++ = ESC
+- = F10
+
+# Triggers zoom
+ZL = SCROLLDOWN
+ZR = SCROLLUP
+
+# @label S = Select
+# @label E = Order
+# @label W = Group
+# @label N = Add to selection
+# @label ZL = Zoom out
+# @label ZR = Zoom in
+# @label L = Next idle
+# @label R = Home base

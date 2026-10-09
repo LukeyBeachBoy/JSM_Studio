@@ -27,9 +27,11 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
   }};
  });
  await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
+ // A Steam Controller's first connection asks about its power-on sound.
+ await page.addLocatorHandler(page.getByRole('button',{name:'Keep them',exact:true}), async () => { await page.getByRole('button',{name:'Keep them',exact:true}).click() });
  await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {});
  await page.locator('.profile-chip').filter({hasText:'Desktop'}).waitFor();
- await page.locator('.page-tabs').getByRole('button',{name:'Overview',exact:true}).click();
+ await page.locator('.page-tabs').getByRole('button',{name:'Layout',exact:true}).click();
  const jump = page.locator('[data-overview-input="L"]');
  const trigger = page.locator('[data-overview-input="LSL"]');
  await jump.waitFor();

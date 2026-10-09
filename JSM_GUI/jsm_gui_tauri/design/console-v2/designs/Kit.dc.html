@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Console component kit</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.btn{font-family:inherit;border:0;cursor:pointer}
+.panel{background:#1a222b;border-radius:22px;padding:26px;display:flex;flex-direction:column;gap:18px;min-width:0}
+.lbl{font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#808c99;font-weight:600}
+.h{font-size:24px;font-weight:700}
+.row{font-family:inherit;border:0;cursor:pointer;display:flex;align-items:center;gap:14px;height:60px;padding:0 20px;box-sizing:border-box;border-radius:14px;background:#1f2730;color:#e8eef4;font-size:18px;font-weight:600;text-align:left;width:100%}
+.sw{width:56px;height:32px;border-radius:16px;background:#2e3844;position:relative;flex:none;margin-left:auto}
+.sw span{position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:50%;background:#808c99}
+.sw.y{background:#3e9fd8}
+.sw.y span{left:28px;background:#ffffff}
+.chip{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 16px;border-radius:19px;font-size:16px;font-weight:600}
+.tpl{font-family:inherit;border:0;cursor:pointer;border-radius:16px;background:#1f2730;color:#e8eef4;padding:16px;display:flex;flex-direction:column;gap:10px;text-align:left;min-width:0}
+</style>
+</helmet>
+<div style="width: 1440px; height: 1240px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; padding: 48px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: min-content; gap: 24px">
+
+<section class="panel" style="grid-column: span 3">
+<span class="lbl">Docked footer · always reserved, never covers content</span>
+<div style="height: 64px; display: flex; align-items: center; justify-content: space-between; padding: 0 28px; background: #0d1217; border-radius: 14px; font-size: 17px; color: #b0bcc8">
+<span>Where you are · Wardogs · Buttons · Face buttons</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">A</span>Primary</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">X</span>Second</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">Y</span>More…</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">LT</span><span class="gp">RT</span>Section</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">LB</span><span class="gp">RB</span>Tabs</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Back</span>
+</div>
+</div>
+<div style="display: flex; gap: 32px; font-size: 16px; color: #b0bcc8">
+<span>Order never changes: A, X, Y, triggers, bumpers, B.</span>
+<span>Y always opens a menu of the rest; it never does something destructive.</span>
+<span>View = Home. Menu = save and configuration options.</span>
+</div>
+</section>
+
+<section class="panel">
+<span class="lbl">Focus states</span>
+<div style="display: flex; flex-direction: column; gap: 14px">
+<button class="row">Rest</button>
+<button class="row focus" style="background: #1d445c">Focused · ring and tint, no lift</button>
+<button class="row" style="background: #3e9fd8; color: #07131d">Pressed · solid accent</button>
+<button class="row" style="opacity: .45">Unavailable · still focusable, says why</button>
+</div>
+</section>
+
+<section class="panel">
+<span class="lbl">Whole row is the control</span>
+<div style="display: flex; flex-direction: column; gap: 14px">
+<button class="row">Invert vertical aim<span class="sw"><span></span></span></button>
+<button class="row">Rumble<span style="margin-left: auto; font-weight: 500">◂ Medium ▸</span></button>
+<div class="focus" style="background: #1d445c; border-radius: 14px; padding: 16px 20px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 18px; font-weight: 600">Turn speed</span><span style="font-size: 26px; font-weight: 700">2.3×</span></div>
+<div style="position: relative; height: 8px; border-radius: 4px; background: #0f151b"><span style="position: absolute; left: 0; top: 0; height: 8px; width: 38%; border-radius: 4px; background: #3e9fd8"></span></div>
+<span style="font-size: 15px; color: #b8e2fa">◂ ▸ 0.1 · hold LB for 0.01 · Y types a number</span>
+</div>
+</div>
+</section>
+
+<section class="panel">
+<span class="lbl">Focus caption replaces tooltips</span>
+<div style="display: flex; flex-direction: column; gap: 14px">
+<button class="row"><span style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis">Stop the Steam Controller recalibr…</span><span class="sw y"><span></span></span></button>
+<div class="focus" style="background: #1d445c; border-radius: 14px; padding: 16px 20px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; gap: 14px"><span style="font-size: 18px; font-weight: 600">Stop the Steam Controller recalibrating its gyro</span><span class="sw y"><span></span></span></div>
+<span style="font-size: 15px; line-height: 1.5; color: #b8e2fa">Its firmware slowly re-centres the gyro while you play, which can feel like your aim sliding back.</span>
+</div>
+</div>
+</section>
+
+<section class="panel">
+<span class="lbl">Status chip · one, top right</span>
+<div style="display: flex; flex-wrap: wrap; gap: 12px">
+<span class="chip" style="background: #1e3d33; color: #93e6c1"><span style="width: 9px; height: 9px; border-radius: 50%; background: #5fd3a0"></span>Live · saved</span>
+<span class="chip" style="background: #4a3320; color: #ffc98f"><span style="width: 9px; height: 9px; border-radius: 50%; background: #f0a05a"></span>Unsaved · ☰ to save</span>
+<span class="chip" style="background: #173a52; color: #a8dbfa"><span style="width: 9px; height: 9px; border-radius: 50%; background: #3e9fd8"></span>Testing · B to stop</span>
+<span class="chip" style="background: #2e3844; color: #d4dde6"><span style="width: 9px; height: 9px; border-radius: 50%; background: #808c99"></span>Paused while you edit</span>
+</div>
+<span style="font-size: 16px; line-height: 1.5; color: #b0bcc8">Replaces the separate Mapping dropdown, Changes button and Applied button.</span>
+</section>
+
+<section class="panel">
+<span class="lbl">Type · Couch and Desk</span>
+<div style="display: grid; grid-template-columns: 70px minmax(0, 1fr) minmax(0, 1fr); gap: 10px 16px; align-items: baseline">
+<span></span><span style="font-size: 14px; color: #808c99">Couch</span><span style="font-size: 14px; color: #808c99">Desk</span>
+<span style="font-size: 14px; color: #808c99">Title</span><span style="font-size: 40px; font-weight: 700">40</span><span style="font-size: 28px; font-weight: 700">28</span>
+<span style="font-size: 14px; color: #808c99">Section</span><span style="font-size: 26px; font-weight: 650">26</span><span style="font-size: 20px; font-weight: 650">20</span>
+<span style="font-size: 14px; color: #808c99">Body</span><span style="font-size: 20px">20</span><span style="font-size: 16px">16</span>
+<span style="font-size: 14px; color: #808c99">Caption</span><span style="font-size: 16px; color: #b0bcc8">16</span><span style="font-size: 14px; color: #b0bcc8">14</span>
+</div>
+<span style="font-size: 16px; color: #b0bcc8">Nothing below 14. The 8 px PRESS and 11 px eyebrow labels go.</span>
+</section>
+
+<section class="panel">
+<span class="lbl">Glyphs follow the controller</span>
+<div style="display: flex; flex-wrap: wrap; gap: 10px">
+<span class="g">A</span><span class="g">B</span><span class="g">X</span><span class="g">Y</span>
+<span class="gp">LB</span><span class="gp">RB</span><span class="gp">LT</span><span class="gp">RT</span>
+<span class="gp">View</span><span class="gp">Menu</span><span class="gp">L4</span><span class="gp">R4</span>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 10px">
+<span class="g" style="font-size: 16px">✕</span><span class="g" style="font-size: 16px">○</span><span class="g" style="font-size: 15px">□</span><span class="g" style="font-size: 15px">△</span>
+<span class="gp">L1</span><span class="gp">R1</span><span class="gp">L2</span><span class="gp">R2</span>
+</div>
+<span style="font-size: 16px; color: #b0bcc8">Same shapes, the connected pad’s labels. Keyboard users see Enter, Esc, Tab, Q / E.</span>
+</section>
+
+<section class="panel" style="grid-column: span 3">
+<span class="lbl">Empty state · Menus tab, nothing made yet</span>
+<div style="display: grid; grid-template-columns: 380px minmax(0, 1fr); gap: 32px; align-items: center">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<span style="font-size: 30px; font-weight: 700; line-height: 1.2">Put many actions on one button</span>
+<span style="font-size: 18px; line-height: 1.5; color: #b0bcc8">Hold a button, point at what you want, let go. Good for weapons, emotes and build items.</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px">
+<button class="tpl focus" style="background: #1d445c">
+<svg width="100%" height="90" viewBox="0 0 120 90" fill="none" stroke="#b8e2fa" stroke-width="2"><circle cx="60" cy="45" r="38"></circle><circle cx="60" cy="45" r="13"></circle><path d="M60 7v25M60 58v25M22 45h25M73 45h25M33 18l18 18M69 54l18 18M87 18L69 36M51 54L33 72"></path></svg>
+<span style="font-size: 18px; font-weight: 650">Weapon wheel</span><span style="font-size: 15px; color: #b8e2fa">8 slots on a stick</span>
+</button>
+<button class="tpl">
+<svg width="100%" height="90" viewBox="0 0 120 90" fill="none" stroke="#b0bcc8" stroke-width="2"><circle cx="60" cy="45" r="38"></circle><path d="M60 7v76M22 45h76"></path></svg>
+<span style="font-size: 18px; font-weight: 650">Quick wheel</span><span style="font-size: 15px; color: #808c99">4 big slices on a pad</span>
+</button>
+<button class="tpl">
+<svg width="100%" height="90" viewBox="0 0 120 90" fill="none" stroke="#b0bcc8" stroke-width="2"><rect x="10" y="32" width="18" height="26" rx="4"></rect><rect x="32" y="32" width="18" height="26" rx="4"></rect><rect x="54" y="32" width="18" height="26" rx="4"></rect><rect x="76" y="32" width="18" height="26" rx="4"></rect><rect x="98" y="32" width="14" height="26" rx="4"></rect></svg>
+<span style="font-size: 18px; font-weight: 650">Hotbar</span><span style="font-size: 15px; color: #808c99">1 to 0 along a strip</span>
+</button>
+<button class="tpl" style="background: transparent; box-shadow: inset 0 0 0 2px #2e3844">
+<svg width="100%" height="90" viewBox="0 0 120 90" fill="none" stroke="#808c99" stroke-width="2"><path d="M60 30v30M45 45h30"></path></svg>
+<span style="font-size: 18px; font-weight: 650">Start empty</span><span style="font-size: 15px; color: #808c99">Wheel, grid or strip</span>
+</button>
+</div>
+</div>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1240}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

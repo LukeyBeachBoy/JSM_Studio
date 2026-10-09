@@ -72,6 +72,10 @@ struct SoundMetadata {
     trim_end_ms: Option<u32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     note_count: Option<u32>,
+    /// "Volume on a button" (console v2, D15): the gain a new binding of this
+    /// sound starts at, in dB. A binding's own gain still overrides it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    default_gain_db: Option<f32>,
 }
 
 /// A library sound as the UI sees it.
@@ -91,6 +95,8 @@ pub struct SoundEntry {
     pub trim_end_ms: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub note_count: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub default_gain_db: Option<f32>,
     /// `tones.txt` exists, so the sound can be chosen and played.
     pub ready: bool,
 }
@@ -284,6 +290,7 @@ fn import_in(root: &Path, name: &str, mp3_base64: &str) -> Result<SoundEntry, St
         trim_start_ms: None,
         trim_end_ms: None,
         note_count: None,
+        default_gain_db: None,
     };
     write_metadata(&dir, &metadata)?;
     Ok(entry_from(&dir, metadata))
@@ -342,6 +349,26 @@ fn rename_in(root: &Path, id: &str, name: &str) -> Result<SoundEntry, String> {
     Ok(entry_from(&dir, metadata))
 }
 
+/// The lowest a binding can play a sound at, as in utils/controllerSounds.ts.
+pub const SOUND_GAIN_MIN_DB: f32 = -30.0;
+
+pub fn set_default_gain(app: &AppHandle, id: &str, gain_db: f32) -> Result<SoundEntry, String> {
+    set_default_gain_in(&sounds_dir(app)?, id, gain_db)
+}
+
+fn set_default_gain_in(root: &Path, id: &str, gain_db: f32) -> Result<SoundEntry, String> {
+    validate_sound_id(id)?;
+    if !gain_db.is_finite() {
+        return Err("The volume must be a number of decibels.".to_string());
+    }
+    let dir = root.join(id);
+    let mut metadata = read_metadata(&dir, id)?;
+    let gain = gain_db.clamp(SOUND_GAIN_MIN_DB, 0.0);
+    metadata.default_gain_db = if gain == 0.0 { None } else { Some((gain * 10.0).round() / 10.0) };
+    write_metadata(&dir, &metadata)?;
+    Ok(entry_from(&dir, metadata))
+}
+
 fn delete_in(root: &Path, id: &str) -> Result<(), String> {
     validate_sound_id(id)?;
     let dir = root.join(id);
@@ -387,6 +414,7 @@ fn entry_from(dir: &Path, metadata: SoundMetadata) -> SoundEntry {
         trim_start_ms: metadata.trim_start_ms,
         trim_end_ms: metadata.trim_end_ms,
         note_count: metadata.note_count,
+        default_gain_db: metadata.default_gain_db,
     }
 }
 
@@ -704,6 +732,20 @@ mod tests {
 
         let ids: Vec<String> = list_in(&root).unwrap().into_iter().map(|entry| entry.id).collect();
         assert_eq!(ids, ["snd-1-0000", "snd-2-0000", "snd-3-0000"]);
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn volume_on_a_button_is_kept_per_sound() {
+        let root = temp_root("gain");
+        let imported = import_in(&root, "Low ammo", &encode_base64(b"ID3 fake")).unwrap();
+        assert_eq!(imported.default_gain_db, None);
+        let quieter = set_default_gain_in(&root, &imported.id, -12.34).unwrap();
+        assert_eq!(quieter.default_gain_db, Some(-12.3));
+        assert_eq!(list_in(&root).unwrap()[0].default_gain_db, Some(-12.3));
+        assert_eq!(set_default_gain_in(&root, &imported.id, -80.0).unwrap().default_gain_db, Some(SOUND_GAIN_MIN_DB));
+        assert_eq!(set_default_gain_in(&root, &imported.id, 6.0).unwrap().default_gain_db, None, "0 dB and louder is as recorded");
+        assert!(set_default_gain_in(&root, &imported.id, f32::NAN).is_err());
         let _ = fs::remove_dir_all(&root);
     }
 }

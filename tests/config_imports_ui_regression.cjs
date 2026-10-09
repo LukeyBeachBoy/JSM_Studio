@@ -28,6 +28,8 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
   }};
  });
  await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
+ await page.addLocatorHandler(page.getByRole('button',{name:'Keep them',exact:true}),async()=>{ await page.getByRole('button',{name:'Keep them',exact:true}).click() })
+ await page.getByRole('button', { name: 'Keep them', exact: true }).click({ timeout: 5000 }).catch(() => {})
  // The app opens on Home (console refinement 2a); these checks start in the editing shell.
  await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
  await page.locator('.profile-chip').filter({hasText:'Desktop'}).waitFor();
@@ -44,27 +46,27 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  // it to reach the badge.
  await west.locator(':scope > summary').click();
  // The open card's first command names its output on its keycap (3c).
- const westOutput = west.locator('[data-command-row]').first().getByRole('button',{name:/^Choose action/});
+ const westOutput = west.locator('[data-chip-command]').first();
  await westOutput.waitFor();
- assert.equal(await westOutput.innerText(), 'R',
+ assert.equal((await westOutput.getAttribute('aria-label')).replace(/^Choose action: /, ''), 'R',
    'an inherited binding must be visible, not blank');
 
  // ...and marked with the row's origin marker (Buttons Content), which names the file.
  const badge = west.locator('.origin-marker[data-origin="inherited"]').first();
  assert.equal(await badge.count(), 1, 'inherited binding is not marked');
- assert.match(await badge.innerText(), /Inherited . Base/, 'the marker must name where the value comes from');
+ assert.match(await badge.innerText(), /From Base/, 'the marker must name where the value comes from');
 
  // The profile's own value wins over the imported one, and is not marked.
  const north = cardFor('N');
  // The keycap prints its activation over the key (3b): "PRESS / Space".
- assert.equal((await north.locator('kbd').first().innerText()).split('\n').pop(), 'Space',
+ assert.equal((await north.locator('[data-row-output]').first().innerText()).trim(), 'Space',
    'the profile overrides the import; the import must not win');
  assert.equal(await north.locator('.origin-marker[data-origin="inherited"]').count(), 0,
    'an overridden binding is owned, not inherited');
 
  // A binding only the profile sets is untouched and unmarked.
  const south = cardFor('S');
- assert.equal((await south.locator('kbd').first().innerText()).split('\n').pop(), 'Tab');
+ assert.equal((await south.locator('[data-row-output]').first().innerText()).trim(), 'Tab');
  assert.equal(await south.locator('.origin-marker[data-origin="inherited"]').count(), 0);
 
  // TODO-1: the indicator belongs on every control that exposes a value, not
@@ -74,56 +76,53 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  // says where it comes from on its second line: "From Base" (inherited) or
  // "Overrides Base" -- this replaced the separate origin markers.
  await page.getByRole('button',{name:'Trackpads',exact:true}).click();
- const sheet = page.locator('.sheet');
- const row = (scope, label) => scope.locator('button.summary-row').filter({has:page.locator('.summary-row__label').getByText(label,{exact:true})}).first();
- const line = r => r.locator('.summary-row__hint');
- const assertInherited = async (r, what) => {
-   assert.equal(await line(r).getAttribute('data-tone'), 'inherited', `${what} must say it is inherited`);
-   assert.equal(await line(r).innerText(), 'From Base', `${what} must say where its effective value comes from`);
- };
+ // Console v2 (P4): the pad's mode is the card row's heading marker; Zones ▸
+ // Layout rows carry their own origin pill ("From Base", "Changed from Base").
+ await page.locator('.section-item').filter({hasText:'Right pad'}).click();
  const right = page.locator('#trackpad-right');
- const padMode = right.locator('button.summary-row[data-input-command="RIGHT_PAD"]');
- await padMode.waitFor();
- await assertInherited(padMode, 'RIGHT_TOUCHPAD_MODE');
- // A grid cell: the region's row opens its binding editor in a sheet, where
- // the card carries the same origin marker as on Buttons.
+ await right.waitFor();
+ const padOrigin = right.locator('.origin-marker[data-setting-origin="RIGHT_TOUCHPAD_MODE"]');
+ await padOrigin.waitFor();
+ assert.equal(await padOrigin.getAttribute('data-origin'), 'inherited', 'RIGHT_TOUCHPAD_MODE must say it is inherited');
+ assert.match(await padOrigin.innerText(), /From Base/, 'and where its effective value comes from');
+ // A grid cell: the region's row carries the same origin marker as on Buttons.
  const regionOrigin = async () => {
-   await right.locator('button.summary-row').filter({has:page.locator('.summary-row__label').getByText(/^Region 1 · /)}).click();
-   const marker = sheet.locator('details[data-input-command="RT1"] .origin-marker[data-origin="inherited"]').first();
+   const marker = right.locator('details[data-input-command="RT1"] .origin-marker[data-origin="inherited"]').first();
    await marker.waitFor();
-   const text = await marker.innerText();
-   await page.keyboard.press('Escape');
-   await sheet.waitFor({state:'detached'});
-   return text;
+   return marker.innerText();
  };
- assert.match(await regionOrigin(), /Inherited . Base/, 'RT1 must say where its effective value comes from');
- // Columns and rows are in the Mode sheet.
- await padMode.click();
- const columns = row(sheet, 'Columns');
+ assert.match(await regionOrigin(), /From Base/, 'RT1 must say where its effective value comes from');
+ // Columns and rows are in Fine-tune ▸ Zones ▸ Layout.
+ await right.locator('[data-trackpad-fine-tune]').click();
+ const sub = page.locator('[data-subpage]');
+ await sub.locator('[data-group="zones"]').click();
+ const columns = sub.locator('[role="slider"]').filter({hasText:'Columns'});
  await columns.waitFor();
- await assertInherited(columns, 'RIGHT_GRID_SIZE');
- await assertInherited(row(sheet, 'Mode'), 'RIGHT_TOUCHPAD_MODE in its sheet');
+ const pill = r => r.locator('[class*="tag"]');
+ assert.equal(await pill(columns).innerText(), 'From Base', 'RIGHT_GRID_SIZE must say where its effective value comes from');
+ assert.equal(await columns.getAttribute('aria-valuenow'), '3');
 
  // Overriding one value claims that control alone; the rest stay inherited.
- await columns.focus(); await page.keyboard.press('Enter');
- await page.waitForFunction(() => document.activeElement?.getAttribute('data-adjusting') === 'true');
- await page.keyboard.press('ArrowLeft'); await page.keyboard.press('Enter');
- assert.equal((await columns.locator('.summary-row__value').innerText()).trim(), '2');
+ await columns.focus(); await page.keyboard.press('ArrowLeft');
+ assert.equal(await columns.getAttribute('aria-valuenow'), '2');
  // An override is marked as one: the import it overrides.
- assert.equal(await line(columns).getAttribute('data-tone'), 'changed');
- assert.equal(await line(columns).innerText(), 'Overrides Base', 'named by what it overrides, not by the configuration being edited');
- await assertInherited(row(sheet, 'Mode'), 'editing the grid size must not mark the mode as owned');
+ assert.equal(await pill(columns).innerText(), 'Changed from Base', 'named by what it overrides, not by the configuration being edited');
+ await page.locator('[data-subpage] [data-modal-close]').evaluate(close => close.click());
+ await sub.waitFor({state:'detached'});
+ assert.equal(await padOrigin.getAttribute('data-origin'), 'inherited', 'editing the grid size must not mark the mode as owned');
 
  // ...and the value can be handed back to the import from the control itself:
  // Y (Use Default) on the row.
+ await right.locator('[data-trackpad-fine-tune]').click();
+ await sub.locator('[data-group="zones"]').click();
  await columns.focus(); await page.keyboard.press('y');
- await page.waitForFunction(() => [...document.querySelectorAll('.sheet button.summary-row')].find(r => r.querySelector('.summary-row__label')?.textContent === 'Columns')?.querySelector('.summary-row__hint')?.getAttribute('data-tone') === 'inherited');
- await assertInherited(columns, 'RIGHT_GRID_SIZE after Use Default');
- assert.equal((await columns.locator('.summary-row__value').innerText()).trim(), '3', 'restoring inheritance restores the imported value');
- await page.keyboard.press('Escape');
- await sheet.waitFor({state:'detached'});
- await assertInherited(padMode, 'RIGHT_TOUCHPAD_MODE after the grid edit');
- assert.match(await regionOrigin(), /Inherited . Base/, 'editing the grid size must not mark the inherited grid cell as owned');
+ await page.waitForFunction(() => document.querySelector('[data-subpage] [role="slider"][aria-valuenow="3"]'));
+ assert.equal(await pill(columns).innerText(), 'From Base', 'RIGHT_GRID_SIZE after Use Default');
+ assert.equal(await columns.getAttribute('aria-valuenow'), '3', 'restoring inheritance restores the imported value');
+ await page.locator('[data-subpage] [data-modal-close]').evaluate(close => close.click());
+ await sub.waitFor({state:'detached'});
+ assert.equal(await padOrigin.getAttribute('data-origin'), 'inherited', 'RIGHT_TOUCHPAD_MODE after the grid edit');
+ assert.match(await regionOrigin(), /From Base/, 'editing the grid size must not mark the inherited grid cell as owned');
 
  await page.getByRole('button',{name:'Buttons',exact:true}).click();
  await west.locator(':scope > summary').click();
@@ -131,9 +130,12 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  // The import line is visible in the source editor, opened from the
  // configuration's detail panel in Studio (Studio Home 8a) -- Home, then its
  // Configurations tile; the row's origin marker is a label, not a link.
- await page.locator('.home-chip').click();
- await page.getByRole('button',{name:/^Configurations/}).click();
- await page.getByRole('button',{name:'Edit source',exact:true}).click();
+ // Console v2: the Library is a page, reached by id.
+ await page.evaluate(() => window.dispatchEvent(new CustomEvent('jsm:navigate-page', { detail: 'configurations' })));
+ // Console v2: Y on the configuration's cover opens More ▸ "Edit the file directly".
+ await page.locator('[data-profile="Desktop"] button').first().focus();
+ await page.keyboard.press('y');
+ await page.getByRole('dialog',{name:'Desktop'}).getByRole('button',{name:/^Edit the file directly/}).click();
  const editor = page.locator('.config-source-window textarea');
  await editor.waitFor();
  const shown = await editor.inputValue();

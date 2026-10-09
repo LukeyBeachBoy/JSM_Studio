@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Timing Advanced</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.btn{font-family:inherit;border:0;cursor:pointer}
+.row{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;align-items:center;gap:14px;min-height:64px;padding:10px 20px;box-sizing:border-box;border-radius:14px;background:#1f2730;color:#e8eef4;text-align:left}
+.row .t{font-size:19px;font-weight:650}
+.row .s{font-size:15px;color:#808c99}
+.row .v{font-size:19px;font-weight:650;white-space:nowrap;min-width:70px;text-align:right}
+.src{display:inline-flex;align-items:center;height:28px;padding:0 12px;border-radius:14px;background:#2e3844;color:#b0bcc8;font-size:14px;font-weight:600;white-space:nowrap;flex:none}
+.panel{background:#1a222b;border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.ph{font-size:22px;font-weight:700}
+.pn{font-size:15px;color:#b0bcc8;line-height:1.45;margin-bottom:4px}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="height: 76px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 40px; background: #0d1217">
+<span style="font-size: 18px; color: #808c99">Settings · Press timing</span>
+<span style="font-size: 18px; color: #5b6571">▸</span>
+<span style="font-size: 22px; font-weight: 700">Advanced</span>
+<span style="margin-left: auto; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 20px; background: #4a3320; color: #ffc98f; font-size: 16px; font-weight: 600"><span style="width: 9px; height: 9px; border-radius: 50%; background: #f0a05a"></span>Not saved · fix the hold time</span>
+</header>
+
+<main style="flex: 1; min-height: 0; display: grid; grid-template-columns: 700px minmax(0, 1fr); gap: 32px; padding: 30px 40px 24px">
+
+<section style="display: flex; flex-direction: column; gap: 10px; min-width: 0">
+<div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px">
+<div style="display: flex; align-items: center; gap: 12px"><span style="width: 30px; height: 30px; border-radius: 8px; background: #a43fd6"></span><h1 style="margin: 0; font-size: 32px; font-weight: 700">Wardogs’ own timing</h1></div>
+<p style="margin: 0; font-size: 17px; color: #b0bcc8">Rows on Shared follow Press timing. Change one and only Wardogs uses it.</p>
+</div>
+
+<div class="focus" style="background: #1d445c; border-radius: 16px; padding: 16px 20px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: center; gap: 14px">
+<span style="display: flex; flex-direction: column; gap: 3px"><span style="font-size: 20px; font-weight: 650">Hold time</span><span style="font-size: 15px; color: #d4dde6">Was Shared · 0.15 s</span></span>
+<span class="src" style="margin-left: auto; background: #4a1f26; color: #ffb3bd">Too short</span>
+<span style="font-size: 30px; font-weight: 700; color: #ffb3bd; min-width: 90px; text-align: right">0.04 s</span>
+</div>
+<svg viewBox="0 0 660 64" width="100%" height="64" fill="none">
+<rect x="20" y="22" width="620" height="8" rx="4" fill="#0f151b"></rect>
+<rect x="20" y="12" width="103" height="28" rx="8" fill="#e5484d" fill-opacity=".2" stroke="#e5484d" stroke-opacity=".5"></rect>
+<text x="26" y="58" fill="#ffb3bd" font-size="14" font-weight="600" font-family="Geist, sans-serif">Press-together 0.05 s</text>
+<path d="M330 10V42" stroke="#808c99" stroke-width="1.5" stroke-dasharray="3 4"></path>
+<text x="330" y="58" fill="#808c99" font-size="14" font-family="Geist, sans-serif" text-anchor="middle">Shared 0.15 s</text>
+<circle cx="102" cy="26" r="8" fill="#ffffff" stroke="#e5484d" stroke-width="3"></circle>
+<text x="640" y="58" fill="#808c99" font-size="14" font-family="Geist, sans-serif" text-anchor="end">0.3 s</text>
+</svg>
+<div style="display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; background: #4a1f26">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffb3bd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex: none; margin-top: 1px"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v6M12 16.5h.01"></path></svg>
+<span style="font-size: 15px; line-height: 1.45; color: #ffb3bd">A hold has to last longer than the press-together window, or holds never start. This isn’t saved until it does.</span>
+</div>
+<span style="font-size: 15px; color: #b8e2fa">◂ ▸ 0.01 s · Y goes back to Shared</span>
+</div>
+
+<button class="row"><span style="display: flex; flex-direction: column; gap: 3px"><span class="t">Double-tap window</span><span class="s">Second tap must land within</span></span><span class="src" style="margin-left: auto">Shared</span><span class="v" style="color: #b0bcc8">0.15 s</span></button>
+<button class="row"><span style="display: flex; flex-direction: column; gap: 3px"><span class="t">Press-together window</span><span class="s">Same value while a button is held</span></span><span class="src" style="margin-left: auto">Shared</span><span class="v" style="color: #b0bcc8">0.05 s</span></button>
+<button class="row"><span style="display: flex; flex-direction: column; gap: 3px"><span class="t">Turbo rate</span><span class="s">Repeats a second while held</span></span><span class="src" style="margin-left: auto; background: #173a52; color: #a8dbfa">From FPS base</span><span class="v">16 /s</span></button>
+<button class="row"><span style="display: flex; flex-direction: column; gap: 3px"><span class="t">Controller polling</span><span class="s">Same value while a button is held</span></span><span class="src" style="margin-left: auto">Shared</span><span class="v" style="color: #b0bcc8">3 ms</span></button>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 16px; min-width: 0">
+<div class="panel">
+<span class="ph">While a button is held</span>
+<span class="pn">Hold time, double-tap and turbo can change while a button is down. Press-together and polling stay as they are.</span>
+<button class="row"><span class="gp" style="background: #f0a05a; color: #2a1606">R4</span><span style="display: flex; flex-direction: column; gap: 3px"><span class="t" style="font-size: 18px">Holding R4 · Comms</span><span class="s">Hold time</span></span><span class="v" style="margin-left: auto">0.30 s</span><span style="color: #808c99; font-size: 17px">▸</span></button>
+<button class="row"><span class="gp" style="background: #b48cf0; color: #1a1030">L4</span><span style="display: flex; flex-direction: column; gap: 3px"><span class="t" style="font-size: 18px">Holding L4 · Vehicles</span><span class="s">Turbo rate</span></span><span class="v" style="margin-left: auto">8 /s</span><span style="color: #808c99; font-size: 17px">▸</span></button>
+<button class="row" style="background: transparent; box-shadow: inset 0 0 0 2px #2e3844; min-height: 56px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg><span style="font-size: 17px; font-weight: 600; color: #d4dde6">Add one</span><span class="s" style="margin-left: auto">Press the button, then pick a value</span></button>
+</div>
+
+<div class="panel">
+<span class="ph">Still set in a file</span>
+<span class="pn">These files set their own value. It replaces the shared one while they’re live.</span>
+<button class="row" style="min-height: 72px"><span style="width: 36px; height: 36px; border-radius: 9px; flex: none; background: #1a2530; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08)"></span><span style="display: flex; flex-direction: column; gap: 3px; min-width: 0"><span class="t" style="font-size: 18px">Cyberpunk 2077</span><span class="s">Hold time 0.20 s</span></span><span style="margin-left: auto; display: flex; gap: 8px"><span class="src" style="background: #24323f; color: #a8dbfa">Make it shared</span><span class="src">Remove it</span></span></button>
+<button class="row" style="min-height: 72px"><span style="width: 36px; height: 36px; border-radius: 9px; flex: none; background: #2e3844; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M8 20h8M12 16v4"></path></svg></span><span style="display: flex; flex-direction: column; gap: 3px; min-width: 0"><span class="t" style="font-size: 18px">Desktop gamepad</span><span class="s">Polling 1 ms · 1000 Hz</span></span><span style="margin-left: auto; display: flex; gap: 8px"><span class="src" style="background: #24323f; color: #a8dbfa">Make it shared</span><span class="src">Remove it</span></span></button>
+</div>
+</section>
+</main>
+
+<footer style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Settings · Press timing · Advanced · Hold time</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px">◂ ▸ Adjust</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">Y</span>Use Shared</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">LT</span><span class="gp">RT</span>Panel</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Back to Press timing</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

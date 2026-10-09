@@ -30,6 +30,21 @@ function Check($items, $modules, $expected) {
     if (($actual -join ',') -ne ($expected -join ',')) { throw "Expected $expected; got $actual" }
 }
 Check $fixture $true @(10,11,12,13,14,15,30,31)
+# The native mapper is built at the repository root, not under the GUI app.
+$nativeFixture = @(
+    (Item 40 1 'JoyShockMapper.exe' 'C:\Test\Repo\build-jsm-sdl\Release\JoyShockMapper.exe'),
+    (Item 41 1 'JoyShockMapper.exe' 'C:\Test\Repo\build-jsm-sdl-other\Release\JoyShockMapper.exe'),
+    (Item 42 1 'JoyShockMapper.exe' 'C:\Other\build-jsm-sdl\Release\JoyShockMapper.exe')
+)
+$nativeIds = @(Get-InstallerBlockers -Processes $nativeFixture -AppRoot 'C:\Test\Repo\JSM_GUI\jsm_gui_tauri' -ProtectedIds @(2,3) -IncludeModules $false |
+    ForEach-Object { [int]$_.ProcessId })
+if (($nativeIds -join ',') -ne '40') { throw "Incorrect repository output selection: $nativeIds" }
+# Stop-Process can wrap the Windows exception; preserve the access-denied cause.
+$denied = [System.ComponentModel.Win32Exception]::new(5)
+$record = [System.Management.Automation.ErrorRecord]::new([Exception]::new('wrapped', $denied), 'test', 'NotSpecified', $null)
+if (-not (Test-InstallerAccessDenied $record)) { throw 'Wrapped access denied was missed' }
+$other = [System.Management.Automation.ErrorRecord]::new([System.ComponentModel.Win32Exception]::new(87), 'test', 'NotSpecified', $null)
+if (Test-InstallerAccessDenied $other) { throw 'Unrelated failure requested elevation' }
 Check $fixture $false @(10,11,12,13,14,15,31)
 # With no running output executable, --skip-install leaves dev servers alone.
 Check @($fixture | Where-Object { $_.ProcessId -notin @(14,15,31) }) $false @()

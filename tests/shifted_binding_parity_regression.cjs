@@ -1,11 +1,9 @@
-// A shifted binding is edited with the card the unshifted input uses.
+// A shifted binding is edited with the sheet the unshifted input uses.
 //
-// The modeshift panel used to carry its own, smaller binding editor: no
-// activation kinds beyond what was already written, no output-kind picker, no
-// advanced options, no capture, a bare "Add Another Trigger" button. Anything
-// added to the real card had to be added again here or quietly went missing
-// under a shift. This requires the two to be the same card, and requires the
-// writes it produces to stay inside the one shift being edited.
+// The While holding page (console v2, BindingWhileHolding) opens a change's
+// "Every way of pressing, while held" on the same binding sheet as the input
+// itself -- the When you… strip, More, the eight kinds, the pickers -- and the
+// writes it produces stay inside the one shift being edited.
 //
 // Isolated renderer check; mocks never invoke a physical controller or runtime.
 const assert = require('node:assert/strict');
@@ -35,7 +33,7 @@ const PROFILE = [
         listLibraryProfiles: async () => Object.keys(profiles),
         loadLibraryProfile: async name => ({ name, content: profiles[name] }),
         saveLibraryProfile: async (name, content) => { window.__lastSaved = content; profiles[name] = content; return { name } },
-        applyProfile: async (path, text) => ({ path, mappingEnabled: true }),
+        applyProfile: async path => ({ path, mappingEnabled: true }),
       };
       window.telemetry = { onSample: cb => {
         const emit = () => cb({ console: 'Mapper ready', activeProfile: 'profiles-library/Desktop.txt', devices: [{ handle: 1, type: 24, supportedButtons: 8589934591, status: { buttons: 0, leftStick: { x: 0, y: 0 }, rightStick: { x: 0, y: 0 }, triggers: { left: 0, right: 0 }, gyro: { x: 0, y: 0, z: 0 }, leftPad: { x: 0, y: 0, touched: false }, rightPad: { x: 0, y: 0, touched: false } } }] });
@@ -43,97 +41,74 @@ const PROFILE = [
       } };
     }, PROFILE);
     await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
-    // The app opens on Home (console refinement 2a); these checks start in the editing shell.
+    await page.getByRole('button', { name: 'Keep them', exact: true }).click({ timeout: 5000 }).catch(() => {});
     await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
     page.setDefaultTimeout(15000);
     await page.locator('.profile-chip').filter({ hasText: 'Desktop' }).waitFor();
     await page.getByRole('button', { name: 'Buttons', exact: true }).click();
+    const eff = (text, key) => {
+      const lines = text.split('\n');
+      const own = lines.filter(line => line.startsWith(`# @controller type-24 ${key} = `)).pop();
+      const shared = lines.filter(line => line.startsWith(`${key} = `)).pop();
+      const line = own ? own.slice('# @controller type-24 '.length) : shared;
+      return line ? line.slice(key.length + 3).trim() : undefined;
+    };
 
-    // --- the compact row says what the input does before it is opened --------
+    // The focused row says what the shifts do without opening (ButtonList).
     const north = page.locator('details[data-input-command="N"]').first();
-    const rowText = await north.locator(':scope > summary').innerText();
+    await north.locator(':scope > summary').focus();
+    const rowText = (await north.locator(':scope > summary').innerText()).replace(/\s+/g, ' ');
     assert.match(rowText, /Space/, 'the row must show what the binding sends');
-    // The first shift is a tile and the rest one "+n" (3b).
-    assert.match(rowText.replace(/\s+/g, ' '), /LB → F \+1/, 'the row must show the first shift and count the rest');
+    assert.match(rowText, /With LB held: F/, `the focused row names the first shift: ${rowText}`);
+    assert.match(rowText, /With RB held: H/, `and the second: ${rowText}`);
 
-    // --- the shifted card is the normal card --------------------------------
-    // A shift is a row in the input's Modeshifts lane; its cog opens the
-    // shift's sheet, which holds the shift's commands as the same rows the
-    // card's own Commands lane has (3c).
     await north.locator(':scope > summary').click();
     const openN = page.locator('details[data-input-command="N"][open]');
-    const shiftRow = openN.locator('[data-modeshift-row="L"]');
-    await shiftRow.waitFor();
-    await shiftRow.getByRole('button', { name: 'Modeshift settings' }).click();
+    await openN.locator('[data-fold="while-holding"]').click();
+    await page.locator('[data-modeshift-row="L"]').click();
+    await page.getByRole('button', { name: /Every way of pressing/ }).click();
     const shifted = page.locator('[data-input-command="L,N"]');
     await shifted.waitFor();
     assert.equal(await shifted.count(), 1, 'a shifted card must be separately addressable from the normal one');
+    const tiles = (await shifted.locator('[data-when]').allInnerTexts()).map(text => text.split('\n')[0].trim());
+    assert.deepEqual(tiles, ['Press', 'Tap', 'Hold', 'Double-tap', 'More'], 'a shifted binding offers the same ways of pressing');
+    assert.equal(await shifted.locator('[data-kind]').count(), 8, 'and the same eight kinds');
+    assert.equal(await shifted.locator('[data-fold="while-holding"]').count(), 0, 'a shift has no While holding of its own');
+    assert.match(await shifted.locator('[data-when="regular"]').innerText(), /F/);
 
-    // One trigger picker, offering the same activation kinds the normal card
-    // offers for a binding already written to its line.
-    const trigger = shifted.getByRole('combobox', { name: 'Trigger' });
-    await trigger.first().waitFor();
-    assert.equal(await trigger.count(), 1, 'the shifted card offers the trigger in more than one place');
-    await trigger.first().click();
-    assert.deepEqual(
-      (await page.getByRole('option').allInnerTexts()).map(text => text.trim()),
-      ['Press', 'Tap', 'Hold', 'Double press', 'Release', 'Turbo'],
-      'a shifted binding must offer the same activation kinds as an unshifted one'
-    );
-    await page.keyboard.press('Escape');
-
-    // The editing capabilities the reduced version did not have.
-    for (const name of [/Add command/i, /Capture a key/i]) {
-      assert.ok(await shifted.getByRole('button', { name }).count() >= 1, `the shifted card is missing ${name}`);
-    }
-    // Its commands are named in their settings sheet, like any other.
-    await shifted.locator('[data-command-row]').first().getByRole('button', { name: 'Command settings' }).click();
-    const commandSheet = page.getByRole('dialog').last();
-    assert.equal(await commandSheet.getByRole('textbox', { name: /Action name/i }).count(), 1, 'a shifted binding cannot be named');
-    const sheets = await page.getByRole('dialog').count();
-    await commandSheet.locator('[data-modal-close]').click();
-    await page.waitForFunction(count => document.querySelectorAll('[role=dialog]').length < count, sheets);
-
-    // A shift has no second condition to hang a chord on, so it must not offer
-    // to make one: the chip above offers no chord kind, and Add command goes
-    // straight to the picker as a Press (5).
-
-    // --- writes stay inside the shift ---------------------------------------
-    const choose = async (index, key) => {
-      await shifted.locator('[data-command-row]').nth(index).getByRole('button', { name: /^Choose action/ }).click();
-      await page.getByRole('dialog', { name: 'Choose an action' }).locator('button.key-cap').filter({ hasText: new RegExp(`^${key}$`) }).click();
+    const pickLetter = async letter => {
+      const picker = page.getByRole('dialog', { name: /Pick a key/ });
+      await picker.waitFor();
+      await picker.getByRole('button', { name: 'Letters', exact: true }).click();
+      await picker.getByRole('button', { name: new RegExp(`^${letter}( ·|$)`) }).first().click();
+      await picker.waitFor({ state: 'detached' });
     };
-    await choose(0, 'K');
+    await shifted.locator('[data-when="regular"]').focus();
+    await shifted.locator('[data-kind="key"]').click();
+    await pickLetter('K');
     await page.keyboard.press('Control+s');
     await page.waitForFunction(() => /L,N\s*=\s*K/.test(window.__lastSaved || ''));
     const saved = await page.evaluate(() => window.__lastSaved);
+    assert.equal(eff(saved, 'N'), 'SPACE', 'editing a shift rewrote the normal binding');
+    assert.equal(eff(saved, 'L,E'), 'G', 'editing one shifted input disturbed another');
+    assert.equal(eff(saved, 'R,N'), 'H', 'editing one shift disturbed a different trigger');
+    assert.ok(!/^(# @controller type-24 )?L,S\s*=/m.test(saved), `an untouched inherited binding was written as an override:\n${saved}`);
+    // Once in the shared layout and at most once in this controller's own.
+    assert.ok((saved.match(/^L,N\s*=/gm) || []).length <= 1 && (saved.match(/^# @controller type-24 L,N\s*=/gm) || []).length <= 1, 'the shifted line was written twice');
 
-    assert.match(saved, /^N = SPACE$/m, 'editing a shift rewrote the normal binding');
-    assert.match(saved, /^L,E = G$/m, 'editing one shifted input disturbed another');
-    assert.match(saved, /^R,N = H$/m, 'editing one shift disturbed a different trigger');
-    // The shift inherits S through the projection; reading it must not be
-    // enough to mint an override for it.
-    assert.ok(!/^L,S\s*=/m.test(saved), `an untouched inherited binding was written as an override:\n${saved}`);
-    assert.equal((saved.match(/^L,N\s*=/gm) || []).length, 1, 'the shifted line was written twice');
-
-
-    // --- a second command on the same shifted input --------------------------
-    // Editing one command must not take the other with it: both live on one
-    // config line, and the old shifted editor wrote that line from a single
-    // binding expression.
-    await shifted.getByRole('button', { name: /Add command/i }).click();
-    await page.getByRole('dialog', { name: 'Choose an action' }).locator('button.key-cap').filter({ hasText: /^M$/ }).click();
-    await shifted.locator('[data-command-row]').nth(1).waitFor();
+    // A second command on the same shifted press keeps the first.
+    await shifted.getByRole('button', { name: 'Also send' }).click();
+    await pickLetter('M');
     await page.keyboard.press('Control+s');
     await page.waitForFunction(() => /L,N\s*=.*M/.test(window.__lastSaved || ''));
     const both = await page.evaluate(() => window.__lastSaved);
-    const line = (both.match(/^L,N\s*=\s*(.*)$/m) || [])[1] ?? '';
+    const line = eff(both, 'L,N') ?? '';
     assert.match(line, /K/, `editing the second command dropped the first: ${line}`);
     assert.match(line, /M/, `the second command was not written: ${line}`);
-    assert.match(both, /^N = SPACE$/m, 'a second shifted command reached the normal binding');
+    assert.equal(eff(both, 'N'), 'SPACE', 'a second shifted command reached the normal binding');
 
     assert.deepEqual(errors, []);
-    console.log('PASS: shifted bindings use the normal card, offer no chords, keep several commands on one line, and write only their own shift');
+    console.log('PASS: shifted bindings use the normal sheet, offer no While holding of their own, keep several commands on one line, and write only their own shift');
   } finally {
     await browser.close();
   }

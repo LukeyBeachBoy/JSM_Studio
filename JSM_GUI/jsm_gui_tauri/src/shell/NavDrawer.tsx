@@ -84,7 +84,7 @@ export function NavDrawer({ open, onClose, current, onSelect, onHome, sections, 
         <div className="drawer__spacer" />
         <button type="button" className="nav-item" onClick={() => { onHome(); onClose() }}>
           <Icon name="overview" size={18} />Home
-          <span className="nav-item__note">This configuration and Studio</span>
+          <span className="nav-item__note">This configuration, your games and Settings</span>
         </button>
         <div className="drawer__status" data-state={status.kind}>
           <span className="controller-status__dot" />

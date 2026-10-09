@@ -1,0 +1,11 @@
+/* The "⋯" in a card's corner (MoreChip). Lives in a wrapper that is
+   position: relative; it appears while the wrapper is hovered or holds focus. */
+.chip {
+  position: absolute; top: 12px; right: 12px; z-index: 1;
+  width: 30px; height: 26px; display: grid; place-items: center;
+  border: 0; border-radius: var(--r-pill); background: var(--surface-control); color: var(--text-2);
+  font: inherit; font-size: 16px; font-weight: 700; line-height: 1; letter-spacing: .05em; cursor: pointer;
+  opacity: 0; transition: opacity 120ms ease;
+}
+.chip:hover { background: var(--surface-control-hover, var(--surface-row-hover)); color: var(--text-1); }
+:global(.more-host):hover > .chip, :global(.more-host):focus-within > .chip { opacity: 1; }

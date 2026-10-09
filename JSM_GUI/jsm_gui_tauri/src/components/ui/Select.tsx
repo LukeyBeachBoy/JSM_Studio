@@ -123,7 +123,7 @@ export function Select({
 
   return (
     <RadixSelect.Root value={value} onValueChange={onValueChange} disabled={disabled} onOpenChange={next => { setOpen(next); if (next) setHelpValue(value) }}>
-      <RadixSelect.Trigger className={`${styles.trigger} ${className}`.trim()} aria-label={ariaLabel} aria-describedby={ariaDescribedBy} title={title} id={id}
+      <RadixSelect.Trigger className={`${styles.trigger} ${className}`.trim()} aria-label={ariaLabel} aria-describedby={ariaDescribedBy} data-caption={title} id={id}
         // Radix opens a closed trigger on Up/Down. Here Up/Down walk to the
         // neighbouring control instead, so the pad can pass a row of selects
         // without opening each one; A / Enter / Space open the list.

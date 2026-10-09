@@ -1,0 +1,19 @@
+/* Grip sensors sheet (console v2, GripSensors.dc.html). */
+.sheetIcon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: var(--surface-row); color: var(--text-2); }
+.live { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: var(--sp-4); align-items: center; padding: var(--sp-4); border-radius: var(--r-card, 16px); background: var(--surface-row); }
+.back { position: relative; --art-line: #e3eaf1; --art-detail: #aebbc8; --art-body: #1c242d; --art-well: #0e1419; --art-cap: #212a34; --art-rim: rgba(255, 255, 255, .10); }
+.backArt { transform: scaleX(-1); }
+.backArt :global(svg), .backMarks { display: block; width: 100%; height: auto; }
+.backMarks { position: absolute; inset: 0; }
+.meters { display: flex; flex-direction: column; gap: var(--sp-4); }
+.meter { display: flex; flex-direction: column; gap: var(--sp-2); }
+.meterHead { display: flex; justify-content: space-between; font-size: var(--fs-label); }
+.meterHead span { color: var(--text-2); font-size: var(--fs-hint); }
+.meter[data-state='touching'] .meterHead span { color: var(--telemetry, #a6d65a); }
+.meterTrack { height: 8px; border-radius: 4px; background: #0e1419; overflow: hidden; }
+.meterTrack span { display: block; height: 100%; border-radius: 4px; background: rgba(255, 255, 255, .2); transition: width 160ms ease; }
+.meter[data-state='touching'] .meterTrack span { background: var(--telemetry, #a6d65a); }
+.explain { margin: var(--sp-3) 0 0; padding: var(--sp-3) var(--sp-4); border-radius: var(--r-row); background: var(--surface-row); color: var(--text-2); font-size: var(--fs-hint); line-height: 1.45; }
+.rows { display: flex; flex-direction: column; gap: var(--sp-2); margin-top: var(--sp-4); }
+.scale { width: 100%; height: auto; margin: calc(var(--sp-2) * -1) 0 var(--sp-2); }
+.nested { display: flex; flex-direction: column; gap: var(--sp-2); padding-left: var(--sp-5); }

@@ -1,0 +1,52 @@
+# @base {"preset":"third-person","title":"Third-person action","short":"Third-person","blurb":"Camera on the right stick, dodge and lock-on on the bumpers.","families":["steam","playstation","xbox","nintendo","generic"],"needs":[],"order":3}
+# Third-person action. It works on every controller. It ships with JSM
+# Evolved, so it can't be changed in place: duplicate it to make your own.
+
+# Face buttons
+S = SPACE
+E = LCONTROL
+W = E
+N = Q
+
+# Bumpers: dodge and lock on
+L = LALT
+R = MMOUSE
+
+# Triggers: block or aim, and attack
+ZL = RMOUSE
+ZR = LMOUSE
+ZL_MODE = NO_FULL
+ZR_MODE = NO_FULL
++ = ESC
+- = TAB
+
+# The left stick moves; clicking it sprints
+LEFT_STICK_MODE = NO_MOUSE
+LUP = W
+LDOWN = S
+LLEFT = A
+LRIGHT = D
+L3 = LSHIFT
+
+# The right stick turns the camera, gently
+RIGHT_STICK_MODE = AIM
+STICK_SENS = 270
+STICK_POWER = 1.5
+R3 = Z
+
+# The D-pad is the quick items
+UP = 1
+RIGHT = 2
+DOWN = 3
+LEFT = 4
+
+# @label S = Jump
+# @label E = Crouch
+# @label W = Interact
+# @label N = Ability
+# @label L = Dodge
+# @label R = Lock on
+# @label ZL = Block
+# @label ZR = Attack
+# @label L3 = Sprint
+# @label R3 = Centre camera

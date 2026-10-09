@@ -1,20 +1,13 @@
-.keyboard-settings{border:1px solid var(--line-2);border-radius:var(--r-card,14px);padding:18px;background:var(--surface-row);margin:16px 0;color:var(--text-1)}
-.keyboard-settings-title{display:flex;align-items:center;gap:12px;margin-bottom:12px}.keyboard-settings-title h3{margin:0;font-size:17px}.keyboard-settings-title p{margin:4px 0 0;font-size:13px;color:var(--text-2)}
-.keyboard-settings-icon{font-size:30px;color:var(--accent)}.keyboard-settings-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 0;border-radius:6px;background:transparent!important}.keyboard-settings-row>span{font-size:13px}.keyboard-settings-row small{display:block;font-size:12px;color:var(--text-2);margin-top:5px}
-.keyboard-settings-hint{font-size:12px;line-height:1.6;color:var(--text-2);margin:0 0 12px}.keyboard-settings-error{color:var(--error);font-size:13px}.keyboard-settings-preview{padding:10px 0;margin-bottom:14px}.keyboard-settings-shortcuts{border-top:1px solid var(--line-2);padding:12px 0}.keyboard-settings-shortcuts summary{cursor:pointer;font-size:13px;margin-bottom:12px}.keyboard-settings-choice{display:flex;align-items:center;gap:8px;--glyph-ink:var(--surface-row)}
-
-.keyboard-settings-opening{--glyph-ink:var(--surface-row)}
-
-/* Match the inset of shared setting rows in every interaction state. */
-.keyboard-settings .keyboard-settings-row{padding:12px var(--sp-4);min-height:60px}
-.keyboard-settings .keyboard-settings-hint{padding-inline:var(--sp-4);margin:8px 0 16px;line-height:1.5}
-.keyboard-settings .keyboard-settings-shortcuts{padding:12px 0 0}
-.keyboard-settings .keyboard-settings-shortcuts summary{margin:0;padding:12px var(--sp-4)}
-.keyboard-settings .keyboard-settings-opening{margin:16px 0 12px;line-height:1.6}
-.keyboard-settings > .button{margin-inline-start:var(--sp-4)}
-
-.keyboard-settings-shortcuts summary{padding:10px 12px;border-radius:var(--r-row);list-style:none;background:var(--surface-control);outline:none}.keyboard-settings-shortcuts summary::before{content:'›';display:inline-block;margin-right:10px}.keyboard-settings-shortcuts[open] summary::before{transform:rotate(90deg)}.keyboard-settings-shortcuts summary:hover,.keyboard-settings-shortcuts summary:focus-visible{background:var(--surface-control-hover);box-shadow:inset 3px 0 var(--accent)}
-
-body[data-input-source=controller] .keyboard-settings-shortcuts summary:focus{box-shadow:none;background:var(--surface-selected);outline:none}
-
-.keyboard-shortcuts-reset{margin:0 var(--sp-4) 12px}
+/* The on-screen keyboard's settings (console v2, Settings ▸ Controller,
+   continued): kit rows inside a section; the preview and the shortcut legend
+   in a two-column grid. */
+.keyboard-settings { color: var(--text-1); --glyph-ink: var(--surface-row); }
+.keyboard-settings-hint { margin: 0; color: var(--text-2); font-size: var(--fs-hint); line-height: var(--lh-hint); }
+.keyboard-settings-error { color: var(--error); font-size: var(--fs-hint); }
+.keyboard-settings-preview { padding: var(--sp-3); border-radius: var(--r-card); background: var(--surface-sunken); }
+.keyboard-settings-feel { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-2); }
+@media (max-width: 1279px) { .keyboard-settings-feel { grid-template-columns: minmax(0, 1fr); } }
+.keyboard-settings-legend { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2); }
+@media (max-width: 1279px) { .keyboard-settings-legend { grid-template-columns: minmax(0, 1fr); } }
+.keyboard-settings-legend .vk-glyph { display: inline-flex; align-items: center; gap: 2px; color: var(--text-1); }
+.keyboard-settings-opening { --glyph-ink: var(--surface-row); }

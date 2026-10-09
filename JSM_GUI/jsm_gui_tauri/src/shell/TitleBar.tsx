@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Icon } from '../components/icons/Icon'
 import { Menu, type MenuItem } from '../components/ui/Menu'
@@ -7,6 +7,9 @@ import { BrandMark } from '../components/BrandMark'
 import type { ShellWidth } from './useShellWidth'
 import { windowControls } from './windowControls'
 import { layerHue, layerSlotOf } from '../utils/layers'
+import { useProfileAssociation } from '../hooks/useAppIcon'
+import { AppIconImage } from '../components/AppIconImage'
+import { useShowsKeys } from '../nav/inputSource'
 
 export type MappingPlateState = 'studio' | 'testing' | 'on' | 'off' | 'disconnected'
 export type VirtualOutput = 'NONE' | 'XBOX' | 'DS4'
@@ -15,10 +18,13 @@ export type TitleBarProfile = { name: string; description?: string; template?: b
 export type TitleBarLayer = { id: string; name: string; description?: string; colorIndex: number }
 
 /**
- * The one state button (console refinement 1e): its label says what it will
- * do. Unsaved edits: "Apply 3 changes" (saves and applies). Saved but not
- * running: "Apply Wardogs". Saved and running: "✓ Applied", still focusable
- * so A can say so. Test mode: "Return to Studio".
+ * The status chip's state (console v2, V3). One chip says it all:
+ *   applied           "Live · saved"
+ *   changes           "Unsaved · ☰ to save"
+ *   testing           "Testing · B to stop"
+ *   apply / idle      "Paused while you edit": the configuration being edited
+ *                     is saved but is not the one live (A makes it live), or
+ *                     nothing can be made live right now (idle, with why).
  */
 export type StateButton =
   | { kind: 'changes'; count: number }
@@ -27,7 +33,7 @@ export type StateButton =
   | { kind: 'testing' }
   | { kind: 'idle'; reason: string }
 
-/** Which bar: Home (2a), a configuration page (2b) or Studio (2f). */
+/** Which bar: Home, a configuration page, or the Library / Settings. */
 export type TitleBarVariant = 'home' | 'editing' | 'studio'
 
 type TitleBarProps = {
@@ -36,39 +42,40 @@ type TitleBarProps = {
   variant: TitleBarVariant
   /** The Home chip: View from anywhere, or a click. */
   onHome: () => void
-  /** Home's bar shows the controller where the editing bar has page tabs. */
-  controllerLabel?: { text: string; connected: boolean }
+  /** The Library or Settings bar's title (console v2, V6). */
+  studioTitle?: string
+  /** The controller, with its battery: Home's bar shows it on the right. */
+  controllerLabel?: { text: string; connected: boolean; battery?: string }
+  /** The game chip's second line (V4): the controller, and "only for this
+   *  controller" when the configuration has a layout of its own for it. */
+  chipController?: string
+  /** The mode being edited, when not Default (P6 mode indicator): shown in the chip. */
+  modeName?: string | null
+  modeColor?: string
+  /** The page tabs, drawn in this one row (V3). */
+  tabs?: ReactNode
 
   editingName: string | null
   dirty: boolean
   profiles: TitleBarProfile[]
   appliedName: string | null
-  /** Layers the mapper has active on the applied configuration right now (JSM Shell 3d). */
-  appliedLayers?: { name: string; color: string }[]
   onSelectProfile: (name: string) => void
   onOpenLibrary: () => void
-  /** The Configuration menu (1e), also on the Menu button. */
+  /** The configuration menu (☰): Review changes, Undo, Save, and the rest. */
   onOpenConfigMenu: () => void
   editingDisabled?: boolean
-
-  layers: TitleBarLayer[]
-  layerId: string
-  onSelectLayer: (id: string) => void
-  onManageLayers: () => void
-
   onEditApplied: () => void
 
+  /** Mapping off or no controller shows in the game chip; the switch itself
+   *  is in the ☰ menu (V3: the Mapping dropdown is gone). */
   mapping: MappingPlateState
-  mappingBusy: boolean
-  onToggleMapping: () => void
-  output: VirtualOutput
-  onOutputChange: (output: VirtualOutput) => void
-  onBindWholeController: () => void
 
   state: StateButton
   onStatePress: () => void
-  onReviewChanges: () => void
-  pendingChangeCount: number
+  /** Console v2 (V4): which controller the edits go to ("Shared layout",
+   *  "Only for Steam Controller"); the game chip's menu opens the sheet. */
+  controllerScope?: string
+  onOpenControllerLayout?: () => void
 }
 
 export const OUTPUT_LABELS: Record<VirtualOutput, string> = { NONE: 'Disabled', XBOX: 'Virtual Xbox', DS4: 'Virtual DualShock 4' }
@@ -79,11 +86,13 @@ export const OUTPUT_DESCRIPTIONS: Record<VirtualOutput, string> = {
 }
 export const layerColor = (index: number) => layerHue(layerSlotOf(index))
 
-const Chevron = () => <span className="titlebar__chevron" aria-hidden="true"><Icon name="chevronDown" size={16} /></span>
-
-function MappingDot({ state }: { state: MappingPlateState }) {
-  return <span className="mapping-plate__dot" data-state={state} aria-hidden="true"><span /></span>
-}
+/** The four words the chip can say (Kit: "Status chip · one, top right"). */
+export const STATUS_TEXT = {
+  live: 'Live · saved',
+  unsaved: 'Unsaved',
+  testing: 'Testing · B to stop',
+  paused: 'Paused while you edit',
+} as const
 
 function WindowControls() {
   const [maximized, setMaximized] = useState(false)
@@ -113,104 +122,53 @@ function WindowControls() {
   )
 }
 
+/** Home's clock (Home.dc.html: "21:40"), to the minute. */
+function Clock() {
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 15_000)
+    return () => window.clearInterval(timer)
+  }, [])
+  return <time className="titlebar__clock" dateTime={now.toISOString()}>{now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}</time>
+}
+
 export function TitleBar(props: TitleBarProps) {
   const { t } = useTranslation()
-  const { width, mapping } = props
-  const compact = width !== 'wide'
   const [profileQuery, setProfileQuery] = useState('')
-  const editingLabel = props.editingName ?? t('app.profileSummary.selectProfile', 'Select configuration')
-  const currentLayer = props.layers.find(layer => layer.id === props.layerId)
+  const editingLabel = props.editingName ?? t('app.profileSummary.selectProfile', 'Choose a configuration')
   const appliedIsEditing = Boolean(props.appliedName && props.appliedName === props.editingName)
+  // The game's own icon in the chip (Layout header), when it launches with one.
+  const game = useProfileAssociation(props.editingName)
 
-  // ---- Editing menu (Shell Directions 2b): grouped and searchable.
+  // ---- The game chip's menu: switch configuration, grouped and searchable.
   const query = profileQuery.trim().toLowerCase()
   const matches = (profile: TitleBarProfile) => !query || profile.name.toLowerCase().includes(query)
   const profileItem = (profile: TitleBarProfile): MenuItem => ({
     label: profile.name,
     description: profile.description,
     checked: profile.name === props.editingName,
-    tag: profile.name === props.appliedName ? { label: 'Applied', tone: 'ok' } : profile.template ? { label: 'Template' } : undefined,
+    tag: profile.name === props.appliedName ? { label: 'Live', tone: 'ok' } : profile.template ? { label: 'Base' } : undefined,
     onSelect: () => props.onSelectProfile(profile.name),
   })
-  const regular = props.profiles.filter(profile => !profile.template && matches(profile))
-  const templates = props.profiles.filter(profile => profile.template && matches(profile))
-  const editingItems: MenuItem[] = [
-    // The bar has no Applied segment (2b): what is running lives here, with
-    // the layers the mapper has active on it.
+  const games = props.profiles.filter(profile => !profile.template && matches(profile))
+  const bases = props.profiles.filter(profile => profile.template && matches(profile))
+  const chipItems: MenuItem[] = [
     ...(props.appliedName && !appliedIsEditing
-      ? [{ kind: 'label' as const, label: 'Applied' }, { label: props.appliedName, description: ['Running now', ...(props.appliedLayers ?? []).map(layer => layer.name), 'select to edit'].join(' · '), tag: { label: 'Applied', tone: 'ok' as const }, onSelect: props.onEditApplied }]
+      ? [{ kind: 'label' as const, label: 'Live now' }, { label: props.appliedName, description: 'Running now · select to edit', tag: { label: 'Live', tone: 'ok' as const }, onSelect: props.onEditApplied }]
       : []),
-    ...(regular.length ? [{ kind: 'label' as const, label: 'Profiles' }, ...regular.map(profileItem)] : []),
-    ...(templates.length ? [{ kind: 'label' as const, label: 'Templates' }, ...templates.map(profileItem)] : []),
+    ...(games.length ? [{ kind: 'label' as const, label: 'Games' }, ...games.map(profileItem)] : []),
+    ...(bases.length ? [{ kind: 'label' as const, label: 'Bases' }, ...bases.map(profileItem)] : []),
     { kind: 'separator' },
-    { label: 'Open configuration library', navigates: true, onSelect: props.onOpenLibrary },
+    ...(props.onOpenControllerLayout ? [{ label: 'This controller only', description: props.controllerScope === 'Shared layout' || !props.controllerScope ? 'Off · shared layout' : `On · ${props.controllerScope}`, navigates: true, onSelect: props.onOpenControllerLayout }] : []),
+    { label: 'Open the library', navigates: true, onSelect: props.onOpenLibrary },
     ...(props.editingName
-      ? [{ label: 'Configuration menu…', description: 'Undo, save as copy, test, values & inheritance', icon: <ButtonGlyph button="MENU" size={18} />, onSelect: props.onOpenConfigMenu }]
+      ? [{ label: 'Options…', description: 'Review changes, undo, save', icon: <ButtonGlyph button="MENU" size={18} />, onSelect: props.onOpenConfigMenu }]
       : []),
   ]
-
-  // ---- Layer menu (2c): switches the editing layer only.
-  const layerItems: MenuItem[] = [
-    { kind: 'label', label: 'Editing layer' },
-    { label: 'Default', description: 'Base bindings', checked: !props.layerId, onSelect: () => props.onSelectLayer('') },
-    ...props.layers.map(layer => ({
-      label: layer.name,
-      description: layer.description,
-      checked: layer.id === props.layerId,
-      swatch: layer.id === props.layerId ? undefined : layerColor(layer.colorIndex),
-      onSelect: () => props.onSelectLayer(layer.id),
-    })),
-    { kind: 'separator' },
-    { label: 'Manage layers…', onSelect: props.onManageLayers },
-  ]
-
-  // ---- Mapping plate menu (2d): on/off first, then the virtual output.
-  const mappingOn = mapping !== 'off'
-  const mappingItems: MenuItem[] = [
-    {
-      label: 'Mapping',
-      description: mappingOn ? 'JSM is reading the controller' : 'Your controller is not mapped',
-      keepOpen: true,
-      disabled: props.mappingBusy,
-      onSelect: props.onToggleMapping,
-      trailing: (
-        <span className="segmented segmented--tiny" aria-hidden="true">
-          <span data-selected={mappingOn ? 'true' : undefined} data-tone="telemetry">On</span>
-          <span data-selected={!mappingOn ? 'true' : undefined}>Off</span>
-        </span>
-      ),
-    },
-    { kind: 'label', label: 'Virtual output' },
-    ...(Object.keys(OUTPUT_LABELS) as VirtualOutput[]).map(value => ({
-      label: OUTPUT_LABELS[value],
-      description: OUTPUT_DESCRIPTIONS[value],
-      checked: value === props.output,
-      onSelect: () => props.onOutputChange(value),
-    })),
-    { kind: 'separator' },
-    {
-      label: 'Bind whole controller',
-      description: props.output === 'NONE' ? 'Choose a virtual output first' : `Map every input to the matching ${props.output === 'DS4' ? 'DualShock 4' : 'Xbox'} button`,
-      disabled: props.output === 'NONE',
-      navigates: true,
-      onSelect: props.onBindWholeController,
-    },
-  ]
-
-  const plateLabel = (() => {
-    switch (mapping) {
-      case 'testing': return <b className="mapping-plate__label mapping-plate__label--testing">Testing {props.editingName ?? ''}</b>
-      case 'studio': return <><b className="mapping-plate__label">Mapping</b>{!compact && <span className="mapping-plate__note">paused in Studio</span>}</>
-      case 'on': return <b className="mapping-plate__label">Mapping</b>
-      case 'off': return <b className="mapping-plate__label mapping-plate__label--off">Mapping off</b>
-      case 'disconnected': return <b className="mapping-plate__label mapping-plate__label--warn">No controller</b>
-    }
-  })()
-  const showOutput = !compact && (mapping === 'on' || mapping === 'off') && props.output !== 'NONE'
 
   const homeChip = (
     <button type="button" className="home-chip" onClick={props.onHome} data-hints="A:Home;B:Back"
-      title="Home: this configuration and Studio">
+      data-caption="Home · this configuration, your games and Settings">
       <BrandMark size={20} />
       <span>Home</span>
       {/* 24, not 22: the glyphs are drawn on a 24 grid, so this is the size
@@ -219,45 +177,11 @@ export function TitleBar(props: TitleBarProps) {
     </button>
   )
 
-  const stateButton = (() => {
-    const state = props.state
-    switch (state.kind) {
-      case 'testing':
-        return <button type="button" className="state-button" data-tone="testing" onClick={props.onStatePress} data-hints="A:Return to Studio;B:Back">Return to Studio</button>
-      case 'changes':
-        return <button type="button" className="state-button" data-tone="accent" onClick={props.onStatePress} data-hints="A:Save and apply;B:Back"
-          title={`Save ${props.editingName ?? ''} and apply it (Ctrl+Shift+A)`}>Apply {state.count} {state.count === 1 ? 'change' : 'changes'}</button>
-      case 'apply':
-        return <button type="button" className="state-button" data-tone="control" onClick={props.onStatePress} data-hints="A:Apply;B:Back"
-          title={`Make ${state.name} the applied configuration (Ctrl+Shift+A)`}>Apply {state.name}</button>
-      case 'applied':
-        // Stays focusable; A says so rather than doing nothing silently.
-        return <button type="button" className="state-button" data-tone="applied" onClick={props.onStatePress} data-hints="A:Applied;B:Back"
-          title={`${props.editingName ?? ''} is saved and running`}>✓ Applied</button>
-      case 'idle':
-        return <button type="button" className="state-button" data-tone="control" aria-disabled="true" data-reason={state.reason} title={state.reason}>Apply</button>
-    }
-  })()
-
-  const mappingPlate = (
-    <Menu
-      ariaLabel="Mapping and virtual output"
-      width={340}
-      align="end"
-      items={mappingItems}
-      trigger={
-        <button type="button" className="mapping-plate mapping-status" data-state={mapping} role="button"
-          aria-label={`${t('app.profileSummary.mappingOutput', 'Mapping')}: ${mapping === 'off' ? 'off' : mapping === 'disconnected' ? 'no controller' : 'on'}`}
-          data-hints="A:Open;X:Toggle mapping;B:Back" data-pad-keys="X"
-          onKeyDown={event => { if ((event.key === 'x' || event.key === 'X') && !props.mappingBusy) { event.preventDefault(); props.onToggleMapping() } }}>
-          <MappingDot state={mapping} />
-          {plateLabel}
-          {showOutput && <><span className="mapping-plate__rule" aria-hidden="true" /><span className="mapping-plate__output">{OUTPUT_LABELS[props.output]}</span></>}
-          <Chevron />
-        </button>
-      }
-    />
-  )
+  // Mapping off or no controller replaces the controller line: the one thing
+  // the old Mapping plate said that the status chip does not.
+  const chipLine = props.mapping === 'off' ? 'Mapping off · ☰ turns it on'
+    : props.mapping === 'disconnected' ? 'No controller'
+      : `${props.chipController ?? 'Controller'}${props.modeName ? ` · ${props.modeName} layer` : ''}`
 
   return (
     <header className="titlebar" data-variant={props.variant} data-focus-scope="titlebar" data-tauri-drag-region data-frameless={props.frameless ? 'true' : undefined}>
@@ -269,47 +193,39 @@ export function TitleBar(props: TitleBarProps) {
             {t('common.appName', 'JSM Evolved')}
           </div>
         )
-        : <>{homeChip}<span className="titlebar__divider" aria-hidden="true" /></>}
+        : homeChip}
 
       {props.variant === 'studio' && (
-        <div className="titlebar__studio" data-tauri-drag-region><b>Studio</b><span>Applies to every configuration</span></div>
+        <div className="titlebar__studio" data-tauri-drag-region><b>{props.studioTitle ?? 'Settings'}</b><span>For every configuration</span></div>
       )}
 
-      {props.variant === 'editing' && <>
+      {props.variant === 'editing' && (
         <Menu
-          ariaLabel="Editing configuration"
+          ariaLabel="Configuration"
           width={380}
-          items={editingItems}
+          items={chipItems}
           empty="No configurations match"
           search={{ placeholder: 'Search configurations', value: profileQuery, onChange: setProfileQuery }}
           onOpenChange={open => { if (!open) setProfileQuery('') }}
           trigger={
-            <button type="button" className="context-segment context-segment--editing profile-chip" disabled={props.editingDisabled}
-              data-hints={props.appliedName ? 'A:Switch configuration;X:Edit applied;B:Back' : 'A:Switch configuration;B:Back'} data-pad-keys="X" onKeyDown={event => { if ((event.key === 'x' || event.key === 'X') && props.appliedName) { event.preventDefault(); props.onEditApplied() } }}
+            <button type="button" className="context-segment context-segment--editing profile-chip game-chip" disabled={props.editingDisabled}
+              data-mapping={props.mapping}
+              data-hints={props.appliedName && !appliedIsEditing ? 'A:Switch game;X:Edit the live one;B:Back' : 'A:Switch game;B:Back'} data-pad-keys="X"
+              onKeyDown={event => { if ((event.key === 'x' || event.key === 'X') && props.appliedName) { event.preventDefault(); props.onEditApplied() } }}
+              data-caption={`${editingLabel} · ${chipLine}${props.controllerScope ? ` · ${props.controllerScope}` : ''}`}
               aria-label={`${t('app.profileSummary.editingTitle', 'Editing')}: ${editingLabel}${props.dirty ? ', unsaved changes' : ''}`}>
-              <b className="profile-chip-name">{editingLabel}</b>
-              {props.dirty && <span className="unsaved-dot profile-chip-dot" title="Unsaved changes" />}
-              <Chevron />
+              <span className="game-chip__art" aria-hidden="true"><AppIconImage exePath={game?.exePath} size={30} fallback={editingLabel.slice(0, 1).toUpperCase()} /></span>
+              <span className="game-chip__text">
+                <b className="profile-chip-name">{editingLabel}{props.dirty && <span className="unsaved-dot profile-chip-dot" aria-hidden="true" />}</b>
+                <span className="game-chip__controller" data-mapping={props.mapping}>{props.modeName && props.mapping !== 'off' && props.mapping !== 'disconnected' && <span className="game-chip__mode" style={{ background: props.modeColor }} aria-hidden="true" />}{chipLine}</span>
+              </span>
+              <span className="titlebar__chevron" aria-hidden="true"><Icon name="chevronDown" size={16} /></span>
             </button>
           }
         />
+      )}
 
-        <Menu
-          ariaLabel="Editing layer"
-          width={320}
-          items={layerItems}
-          trigger={
-            // The layer's own tile colours (2a): its soft fill, its hue, its mark.
-            <button type="button" className="context-segment context-segment--layer" disabled={props.editingDisabled} aria-label={`Editing layer: ${currentLayer?.name ?? 'Default'}`} data-hints="A:Open;B:Back"
-              data-layer-slot={currentLayer ? layerSlotOf(currentLayer.colorIndex) : undefined}>
-              <Icon name="layer" size={14} />
-              <span className="context-segment__key">{t('keymap.editingLayerLabel', 'Editing layer:')}</span>
-              <b>{currentLayer?.name ?? 'Default'}</b>
-              <Chevron />
-            </button>
-          }
-        />
-      </>}
+      {props.tabs}
 
       <div className="titlebar__drag" data-tauri-drag-region />
 
@@ -318,15 +234,46 @@ export function TitleBar(props: TitleBarProps) {
           <span className="controller-status__dot" />{props.controllerLabel.text}
         </span>
       )}
-
-      {mappingPlate}
+      {props.variant === 'home' && <Clock />}
 
       {props.variant === 'editing' && <>
-        <button type="button" className="ghost-btn change-review-button" onClick={props.onReviewChanges} disabled={props.editingDisabled} title="Review changes and revert individual settings" aria-label={`Review ${props.pendingChangeCount} changes`}><Icon name="undo" size={18} /><span>Changes{props.pendingChangeCount > 0 ? ` · ${props.pendingChangeCount}` : ''}</span></button>
-        {stateButton}
+        <StatusChip state={props.state} onPress={props.onStatePress} editingName={props.editingName} />
+        <button type="button" className="menu-chip" aria-label="Options: review changes, undo, save" onClick={props.onOpenConfigMenu}
+          data-hints="A:Options;B:Back" data-caption="Options · review changes, undo, save, test and more · hold Menu (M) to open">
+          <Icon name="more" size={20} />
+        </button>
       </>}
 
       {props.frameless && <WindowControls />}
     </header>
   )
+}
+
+/** The header's one status chip (console v2, V3): the title bar draws it, and
+ *  so does every full-screen sub-page's header (ui/SubPage via ShellContext). */
+export function StatusChip({ state, onPress, editingName }: { state: StateButton; onPress: () => void; editingName: string | null }) {
+  const name = editingName ?? 'This configuration'
+  const showsKeys = useShowsKeys()
+  switch (state.kind) {
+    case 'testing':
+      // One exit, named the same everywhere: B (Esc with the keyboard) stops
+      // the test; the banner's button and holding View + Menu do too.
+      return <button type="button" className="state-button" data-tone="testing" data-state="testing" onClick={onPress} data-hints="A:Stop testing;B:Stop testing"
+        data-caption={`Testing ${name} · B (Esc), the banner's Stop testing, or holding View + Menu stops it`}><span className="state-button__dot" aria-hidden="true" />{showsKeys ? 'Testing · Esc to stop' : STATUS_TEXT.testing}</button>
+    case 'changes':
+      // Menu (M) saves from anywhere; holding it opens the Configuration menu.
+      return <button type="button" className="state-button" data-tone="accent" data-state="unsaved" onClick={onPress} data-hints="A:Save and make live;MENU:Save · hold for options;B:Back"
+        data-caption={`Unsaved · ${state.count} ${state.count === 1 ? 'change' : 'changes'} to ${name}. Menu saves and makes it live (Ctrl+Shift+A); hold Menu to review first`}>
+        <span className="state-button__dot" aria-hidden="true" />{STATUS_TEXT.unsaved}<span className="state-button__sep" aria-hidden="true">·</span><ButtonGlyph button="MENU" size={20} className="state-button__glyph" />Save</button>
+    case 'apply':
+      return <button type="button" className="state-button" data-tone="control" data-state="paused" onClick={onPress} data-hints="A:Make live;B:Back"
+        data-caption={`Paused while you edit · ${state.name || name} is saved but not live. A makes it live (Ctrl+Shift+A)`}><span className="state-button__dot" aria-hidden="true" />{STATUS_TEXT.paused}</button>
+    case 'applied':
+      // Stays focusable; A says so rather than doing nothing silently.
+      return <button type="button" className="state-button" data-tone="applied" data-state="live" onClick={onPress} data-hints="A:Live;B:Back"
+        data-caption={`Live · saved · ${name} is saved and live`}><span className="state-button__dot" aria-hidden="true" />{STATUS_TEXT.live}</button>
+    case 'idle':
+      return <button type="button" className="state-button" data-tone="control" data-state="paused" aria-disabled="true" data-reason={state.reason}
+        data-caption={`Paused while you edit · ${state.reason}`}><span className="state-button__dot" aria-hidden="true" />{STATUS_TEXT.paused}</button>
+  }
 }

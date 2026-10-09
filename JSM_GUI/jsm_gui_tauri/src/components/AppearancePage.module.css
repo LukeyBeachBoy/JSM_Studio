@@ -26,7 +26,7 @@
 .swatch:hover { background: var(--surface-row-hover); }
 .swatch[data-selected='true'] { background: var(--surface-selected); box-shadow: inset 0 0 0 2px var(--accent); }
 .swatch:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--accent), 0 0 0 2px var(--focus-keyboard); }
-:global(body[data-input-source='controller']) .swatch:focus { box-shadow: inset 0 0 0 2px var(--accent), 0 0 0 var(--focus-controller-width) var(--focus-controller); }
+:global(body[data-input-source='controller']) .swatch:focus { box-shadow: inset 0 0 0 2px var(--accent), var(--focus-ring-pad); }
 
 .swatchMark { flex: none; border-radius: 12px; }
 .swatchText { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
@@ -76,7 +76,7 @@
   padding: 0 var(--sp-4);
   border-radius: var(--r-row);
   background: var(--surface-selected);
-  box-shadow: 0 0 0 var(--focus-controller-width) var(--focus-controller);
+  box-shadow: var(--focus-ring-pad);
   font-size: var(--fs-label);
   font-weight: var(--fw-medium);
 }
@@ -88,3 +88,23 @@
 .semantics { display: flex; flex-wrap: wrap; gap: var(--sp-4); font-size: var(--fs-hint); color: var(--text-2); }
 .semantics span { display: inline-flex; align-items: center; gap: 6px; }
 .semantics i { width: 10px; height: 10px; border-radius: 50%; }
+
+/* Console v2 (SettingsLook): picture cards for theme and language. */
+.cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-3); }
+.cards[data-columns='2'] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.card { display: flex; flex-direction: column; align-items: stretch; gap: var(--sp-2); padding: var(--sp-3); border: 0; border-radius: var(--r-card); background: var(--surface-row); color: var(--text-1); font: inherit; font-size: var(--fs-label); text-align: left; cursor: pointer; }
+.card:hover { background: var(--surface-row-hover); }
+.card[data-current='true'] { box-shadow: inset 0 0 0 2px var(--accent); }
+.cardArt { display: grid; place-items: center; aspect-ratio: 3 / 2; border-radius: 12px; background: var(--surface-sunken); overflow: hidden; }
+.cardArt svg { width: 100%; height: 100%; }
+.languageGlyph { font-size: 34px; font-weight: var(--fw-semibold); color: var(--text-2); }
+.tabs { display: flex; gap: var(--sp-2); font-size: var(--fs-hint); }
+.tabs span { padding: 4px 10px; border-radius: 8px; color: var(--text-2); }
+.tabs span[data-current='true'] { background: var(--surface-selected); color: var(--text-1); box-shadow: inset 0 -2px 0 var(--accent); }
+.row:not([data-selected]) { background: var(--surface-control); box-shadow: none; }
+.toggle { width: 40px; height: 22px; border-radius: 11px; background: var(--accent-strong); position: relative; }
+.toggle::after { content: ''; position: absolute; top: 3px; right: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; }
+.icons { display: flex; align-items: flex-end; gap: var(--sp-6); }
+.icons span { display: flex; flex-direction: column; align-items: center; gap: var(--sp-2); }
+.icons small { color: var(--text-3); font-size: var(--fs-hint); }
+.cards[data-columns='2'] .cardArt { aspect-ratio: 4 / 1; }

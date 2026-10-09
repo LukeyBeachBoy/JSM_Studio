@@ -98,6 +98,15 @@ const PACKET = {
     await page.evaluate(packet => window.__emit(packet), PACKET);
     const segments = page.locator('[data-selected]');
     assert.equal(await segments.count(), 4, 'expected four wheel segments');
+    // The live overlay reveals with a 160ms scale(.96) -> 1 (Overlay.module.css
+    // "Reveal"). Bounding boxes include that transform while the layout sizes
+    // used below do not, so measure only once the reveal has finished. The
+    // reveal is transform-only on purpose: the geometry being tested is the
+    // same before and after it.
+    await page.waitForFunction(() => {
+      const pad = document.querySelector('[class*="pad"]');
+      return !!pad && getComputedStyle(pad).transform === 'none';
+    });
 
     const padBox = await pad.boundingBox();
     const boxes = [];

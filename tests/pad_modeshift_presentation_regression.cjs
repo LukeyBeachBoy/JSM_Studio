@@ -5,12 +5,12 @@
 //    mouse pad, and the "Click regions 0" row that counted only shift-specific
 //    lines (0, while four regions fell through from the unshifted pad) is gone.
 // 2. The pad's modeshift is the pad section itself -- the same preview, shape
-//    tiles and region row -- announced as "While Right pad click is held"
-//    rather than "Click regions", and not "Pad click" (which pad?).
+//    tiles and region row -- on its own page from a "While holding Right pad
+//    click" row, rather than "Click regions", and not "Pad click" (which pad?).
 // 3. A menu's size, text and icons are set from its own On-screen menu row
 //    (the On-screen menus view, console refinement 2d), and written to that
 //    menu's own @overlay line.
-// 4. The two sticks are two rows, not four dense columns.
+// 4. One stick at a time (console v2, P4): the rail picks the stick.
 // 5. A paddle that only drives a layer says so on its row; it used to read
 //    Unbound. "Timing" opened no timing; it is "Options".
 //
@@ -62,51 +62,67 @@ const WARDOGS = [
     const row = (scope, label) => scope.locator('.summary-row').filter({ has: page.locator('.summary-row__label', { hasText: label }) });
 
     // --- 1 and 2: the right pad and its click shift -------------------------
+    // Console v2 (P4): one pad at a time on the rail; the pad's changes while
+    // another button is held are a sub-page (D11), here reached from the
+    // mouse pad's Click zones row.
     await page.getByRole('button', { name: 'Trackpads', exact: true }).click();
+    await page.locator('.section-item').filter({ hasText: 'Right pad' }).click();
     const right = page.locator('#trackpad-right');
-    await right.getByText('Moves the mouse', { exact: true }).waitFor();
-    const base = right.locator(':scope > div > div').first();
+    await right.waitFor();
+    assert.equal(await right.locator('[role="radio"][data-current="true"]').getAttribute('data-value'), 'MOUSE', 'the right pad is a mouse pad');
     assert.equal(await right.getByRole('button', { name: /^RT1:/ }).count(), 0, 'with the shift closed, the mouse pad must not draw any menu region');
     assert.equal(await page.getByText('Click regions', { exact: true }).count(), 0, 'the "Click regions" row and card title are gone');
-    assert.ok(base, 'the pad section renders');
-
-    const shift = right.locator('details[data-modeshift="MISC2"]');
-    const head = await shift.locator(':scope > summary').innerText();
-    assert.match(head, /While\s+Right pad click\s+is held/, `the shift names its held input and side, got: ${head}`);
-    assert.match(head, /4-way/, 'the header says what the pad becomes');
+    await right.locator('button').filter({ hasText: /^Click zones/ }).click();
+    const holding = page.locator('[data-subpage]').first();
+    // The shifts are a "<pad> while holding" list of rows; each opens its own editor page.
+    const list = holding.locator('[data-modeshift-list]');
+    assert.match(await list.getAttribute('aria-label'), /mode shifts$/, 'the shifts are one labelled list');
+    assert.equal(await list.locator('[data-modeshift]').count(), 1, 'with one row per shift');
+    const shiftRow = list.locator('[data-modeshift="MISC2"]');
+    const head = await shiftRow.innerText();
+    assert.match(head, /Right pad click held/, `the shift names its held input and side, got: ${head}`);
+    assert.match(head, /4-way/, 'the row says what the pad becomes');
     assert.match(head, /Ping, Melee, Inventory, Sights/, 'and which regions it offers, including ones that fall through from the unshifted pad');
-    assert.match(await right.locator('section[aria-label$="modeshifts"] header').innerText(), /Modeshifts\s*1/i, 'the modeshifts are a counted group');
 
-    await shift.locator(':scope > summary').click();
+    await shiftRow.click();
+    const shift = page.locator('[data-modeshift-editor="MISC2"]');
     await shift.getByRole('button', { name: /^RT1: Ping/ }).waitFor();
     // The shape lives in the pad section's Mode sheet now (2b); the shifted
     // pad has that same Mode row, naming the shape it becomes.
     assert.match(await row(shift, /^Mode$/).locator('.summary-row__value').innerText(), /Menu · 4-way/, 'the shifted pad has the pad section\'s own Mode row');
-    assert.equal(await shift.getByRole('combobox', { name: 'Held input', exact: true }).innerText().then(text => /Right pad click/.test(text)), true, 'the held-input picker says which pad click');
+    assert.match(await shift.locator('[data-modeshift-button]').innerText(), /Right pad click/, 'the held-button row says which pad click');
 
     // --- 3: a menu's look, from its own On-screen menu row -------------------
     // Menu appearance folded into the On-screen menus view (2d): the left
     // pad's row opens it with the left menu selected, every menu drawn.
+    await page.locator('[data-subpage]').filter({ has: shift }).locator('[data-modal-close]').evaluate(close => close.click());
+    await shift.waitFor({ state: 'detached' });
+    await holding.locator('[data-modal-close]').evaluate(close => close.click());
+    await page.locator('[data-subpage]').waitFor({ state: 'detached' });
+    await page.locator('.section-item').filter({ hasText: 'Left pad' }).click();
     const left = page.locator('#trackpad-left');
-    await row(left, /^On-screen menu$/).click();
-    const menus = page.getByRole('dialog', { name: 'On-screen menus', exact: true });
+    await left.locator('button').filter({ hasText: /^On-screen menu/ }).click();
+    // The view is a console sub-page (UX review I5): "Trackpads · Left pad ▸ On-screen menu", with console rows.
+    const menus = page.getByRole('dialog', { name: /On-screen menu$/ });
     await menus.waitFor();
     assert.match(await menus.locator('.menus-chip[data-state="selected"]').innerText(), /Left pad/, 'the left pad opened it, so its menu is selected');
     assert.ok(await menus.locator('.menus-chip').filter({ hasText: /Right pad/ }).count() >= 1, 'the right pad\'s click-shift menu is drawn too');
-    const text = row(menus, /^Text size$/);
-    await text.focus(); await page.keyboard.press('Enter');
-    assert.equal(await text.getAttribute('data-adjusting'), 'true', 'A (Enter) adjusts the text size in place');
-    for (let i = 0; i < 20 && !/^11 px$/.test(await text.locator('.summary-row__value').innerText()); i++) {
-      const now = Number((await text.locator('.summary-row__value').innerText()).replace(/\D+/g, ''));
+    // Text size is a number row: ◂ ▸ change it directly.
+    const text = menus.locator('[role="slider"]').filter({ hasText: /^Text size/ }).first();
+    await text.focus();
+    for (let i = 0; i < 20 && !/^11 px$/.test(await text.getAttribute('aria-valuetext')); i++) {
+      const now = Number((await text.getAttribute('aria-valuetext')).replace(/\D+/g, ''));
       await page.keyboard.press(now > 11 ? 'ArrowLeft' : 'ArrowRight');
     }
-    await page.keyboard.press('Enter');
-    assert.match(await text.locator('.summary-row__value').innerText(), /^11 px$/);
+    assert.match(await text.getAttribute('aria-valuetext'), /^11 px$/);
     await row(menus, /^Shows$/).click();
     const keys = row(menus, /^Keys$/);
-    assert.equal(await keys.getAttribute('aria-pressed'), 'true');
+    // A toggle row is a two-choice adjust row now: it reads On/Off, A adjusts, ◂ picks Off, A keeps.
+    assert.equal(await keys.locator('.summary-row__value').innerText(), 'On');
     await keys.click();
-    assert.equal(await keys.getAttribute('aria-pressed'), 'false');
+    await page.keyboard.press('ArrowLeft');
+    await page.keyboard.press('Enter');
+    assert.equal(await keys.locator('.summary-row__value').innerText(), 'Off');
     await menus.getByRole('button', { name: 'Done', exact: true }).click();
     await menus.waitFor({ state: 'detached' });
     await page.keyboard.press('Control+s');
@@ -118,34 +134,47 @@ const WARDOGS = [
     assert.ok(!/# @overlay RIGHT:MISC2/.test(saved) || !/# @overlay RIGHT:MISC2.*font 11/.test(saved), 'the other menu is untouched');
 
     // --- 4: joysticks stack ---------------------------------------------------
-    await page.getByRole('button', { name: 'Joysticks', exact: true }).click();
+    await page.getByRole('button', { name: 'Sticks', exact: true }).click();
     const leftStick = page.locator('#mapping-section-leftStick');
     const rightStick = page.locator('#mapping-section-rightStick');
+    await leftStick.waitFor();
+    assert.equal(await rightStick.count(), 0, 'one stick at a time: the right stick waits on the rail');
+    await page.locator('.section-item').filter({ hasText: 'Right stick' }).click();
     await rightStick.waitFor();
-    const [a, b] = [await leftStick.boundingBox(), await rightStick.boundingBox()];
-    assert.ok(b.y >= a.y + a.height - 1, `the right stick sits under the left, not beside it (${JSON.stringify({ a, b })})`);
-    // The wheel's look and place on screen: the same On-screen menu row (2d).
+    assert.equal(await leftStick.count(), 0, 'the rail swaps the stick, it does not stack them');
+    // The wheel's look and place on screen: Fine-tune ▸ Wheel ▸ On-screen wheel (2d).
     assert.equal(await rightStick.getByText('Menu appearance', { exact: true }).count(), 0, 'Menu appearance is gone from the stick');
-    const wheelRow = row(rightStick, /^On-screen menu$/);
+    await rightStick.locator('[data-stick-fine-tune-row]').click();
+    const wheelRow = page.locator('[data-subpage] button').filter({ hasText: /^On-screen wheel/ });
     await wheelRow.waitFor();
     await wheelRow.click();
     await menus.waitFor();
     assert.match(await menus.locator('.menus-chip[data-state="selected"]').innerText(), /Right stick wheel/, 'the stick wheel opened it, so its menu is selected');
     await page.keyboard.press('Escape');
     await menus.waitFor({ state: 'detached' });
+    // B closes the view only; the Fine-tune page it opened from is still there, with focus back on its row, until B again.
+    assert.equal(await wheelRow.evaluate(row => row === document.activeElement), true, 'focus returns to the On-screen wheel row');
+    await page.keyboard.press('Escape');
+    await page.locator('[data-subpage]').waitFor({ state: 'detached' });
 
     // --- 5: rows that drive layers, and Options --------------------------------
     await page.getByRole('button', { name: 'Buttons', exact: true }).click();
     const l4 = await page.locator('details[data-input-command="LSL"] > summary').innerText();
     assert.match(l4, /Hold Vehicles & utility/, `L4 names the layer it holds: ${l4}`);
     assert.ok(!/Unbound/.test(l4), `L4 does not read Unbound: ${l4}`);
-    const r5 = await page.locator('details[data-input-command="RSL"] > summary').innerText();
-    assert.match(r5, /Toggle Tactical map/, `R5 shows its layer: ${r5}`);
-    assert.match(r5, /\bM\b/, `and still its key: ${r5}`);
+    // R5 sends M and also toggles a mode: the row keeps its key and counts the rest ("M +1"); the focus caption and the
+    // open sheet name the mode.
+    const r5Summary = page.locator('details[data-input-command="RSL"] > summary');
+    const r5 = await r5Summary.innerText();
+    assert.match(r5, /\bM\b/, `R5 still shows its key: ${r5}`);
+    assert.match(r5, /\+1/, `and counts its mode toggle: ${r5}`);
+    assert.match(await r5Summary.getAttribute('data-caption'), /Toggle Tactical map/, 'R5 caption shows its layer');
     const face = page.locator('details[data-input-command="RSL"]');
-    await face.locator(':scope > summary').click();
-    // A command's options are behind its row's cog now (3c).
-    await face.getByRole('button', { name: 'Command settings', exact: true }).first().waitFor();
+    await r5Summary.click();
+    await face.locator('[data-binding-sheet]').waitFor();
+    assert.match(await face.locator('[data-when="regular"]').innerText(), /Toggle Tactical map/, 'the sheet shows its layer');
+    // A command's options are the sheet's Fine-tune row now (3c), not a cog.
+    await face.getByRole('button', { name: /^Fine-tune/ }).first().waitFor();
     assert.equal(await face.getByText('Timing', { exact: true }).count(), 0, 'nothing is labelled Timing any more');
 
     assert.deepEqual(errors, []);

@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Trackpad Click</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.grp{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;flex-direction:column;gap:4px;padding:14px 20px;box-sizing:border-box;border-radius:14px;background:transparent;color:#b0bcc8;text-align:left}
+.grp .t{font-size:20px;font-weight:600}
+.grp .s{font-size:15px;color:#808c99;line-height:1.35}
+.row{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;align-items:center;gap:16px;min-height:76px;padding:14px 22px;box-sizing:border-box;border-radius:16px;background:#1f2730;color:#e8eef4;text-align:left}
+.row .t{font-size:20px;font-weight:650}
+.row .s{font-size:15px;color:#808c99}
+.row .v{margin-left:auto;font-size:18px;font-weight:600;white-space:nowrap}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="height: 76px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 40px; background: #0d1217">
+<span style="font-size: 18px; color: #808c99">Wardogs · Trackpads · Right pad</span>
+<span style="font-size: 18px; color: #5b6571">▸</span>
+<span style="font-size: 22px; font-weight: 700">Fine-tune</span>
+<span style="margin-left: auto; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 20px; background: #1e3d33; color: #93e6c1; font-size: 16px; font-weight: 600"><span style="width: 9px; height: 9px; border-radius: 50%; background: #5fd3a0"></span>Live · saved</span>
+</header>
+
+<main style="flex: 1; min-height: 0; display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 36px; padding: 32px 40px 24px">
+
+<nav style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: center; gap: 8px; margin: 0 0 10px 20px; font-size: 14px; color: #808c99"><span class="gp">LT</span>Group<span class="gp">RT</span></div>
+<button class="grp"><span class="t">Speed &amp; curve</span><span class="s">Default speed · no speed-up</span></button>
+<button class="grp"><span class="t">Glide</span><span class="s">No coasting · Balanced smoothing</span></button>
+<button class="grp"><span class="t">Zones</span><span class="s">4 click zones · touch and click</span></button>
+<button class="grp" style="background: #1f2730; color: #ffffff"><span class="t">Click</span><span class="s" style="color: #b0bcc8">Damping off · lift guard 150 px/s</span></button>
+<button class="grp"><span class="t">Feel</span><span class="s">Shared with the left pad · all off</span></button>
+</nav>
+
+<section style="display: grid; grid-template-columns: minmax(0, 1fr) 470px; gap: 28px; min-width: 0">
+
+<div style="display: flex; flex-direction: column; gap: 12px; min-width: 0">
+<div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px">
+<h1 style="margin: 0; font-size: 32px; font-weight: 700">Click</h1>
+<p style="margin: 0; font-size: 17px; color: #b0bcc8">Keep your aim still while you press the pad in, and as your thumb lifts off.</p>
+</div>
+
+<div class="focus" style="background: #1d445c; border-radius: 16px; padding: 18px 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><span style="font-size: 20px; font-weight: 650">Hold still while clicking</span><span style="font-size: 30px; font-weight: 700">Off</span></div>
+<div style="position: relative; height: 8px; border-radius: 4px; background: #0f151b"><span style="position: absolute; left: 0; top: -8px; width: 24px; height: 24px; margin-left: -4px; border-radius: 50%; background: #ffffff; box-shadow: 0 0 0 5px rgba(62,159,216,.3)"></span></div>
+<span style="font-size: 15px; color: #b8e2fa">How much cursor movement a press takes away. 100% stops it.</span>
+</div>
+
+<button class="row" style="opacity: .45"><span style="display: flex; flex-direction: column; gap: 4px"><span class="t">Fully still from</span><span class="s">Used once holding still is on</span></span><span class="v">At the click</span></button>
+
+<button class="row"><span style="display: flex; flex-direction: column; gap: 4px"><span class="t">Lift-off guard</span><span class="s">Holds the cursor as your thumb rolls off</span></span><span class="v">◂ 150 px/s ▸</span></button>
+
+<button class="row" style="opacity: .45"><span style="display: flex; flex-direction: column; gap: 4px"><span class="t">Pad fit</span><span class="s">Only for a pad set to Mouse area</span></span><span class="v">Stretch to fill</span></button>
+</div>
+
+<div style="background: #1a222b; border-radius: 20px; padding: 22px; display: flex; flex-direction: column; gap: 12px; align-self: start">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 17px; font-weight: 600">Press, click, let go</span><span style="font-family: 'Geist Mono', monospace; font-size: 14px; color: #a6d65a">● pressure 0.000</span></div>
+<svg viewBox="0 0 426 316" width="100%" height="316" fill="none">
+<defs>
+
+
+<pattern id="ck3" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><path d="M0 0V8" stroke="#ffffff" stroke-opacity=".08" stroke-width="3"></path></pattern>
+</defs>
+<text x="36" y="16" fill="#b0bcc8" font-size="15" font-weight="600" font-family="Geist, sans-serif">How hard you press</text>
+<rect x="300" y="24" width="48" height="126" fill="url(#ck3)"></rect>
+<path d="M36 150H420M36 150V24" stroke="#2e3844" stroke-width="1.5"></path>
+<path d="M36 62H420" stroke="#808c99" stroke-width="1.5"></path>
+<text x="416" y="56" fill="#b0bcc8" font-size="15" font-family="Geist, sans-serif" text-anchor="end">Pad clicks</text>
+<path d="M36 88H420" stroke="#5b6571" stroke-dasharray="3 5"></path>
+<text x="416" y="106" fill="#808c99" font-size="15" font-family="Geist, sans-serif" text-anchor="end">Fully still</text>
+<path d="M36 148C80 148 100 66 150 46S232 34 262 52S318 142 344 148H420V150H36Z" fill="#3e9fd8" fill-opacity="0.12"></path>
+
+<path d="M36 148C80 148 100 66 150 46S232 34 262 52S318 142 344 148H420" stroke="#3e9fd8" stroke-width="2" stroke-linecap="round"></path>
+<text x="318" y="40" fill="#808c99" font-size="15" font-family="Geist, sans-serif" text-anchor="middle">guard</text>
+<text x="36" y="190" fill="#b0bcc8" font-size="15" font-weight="600" font-family="Geist, sans-serif">How far the cursor can move</text>
+<path d="M36 290H420M36 290V200" stroke="#2e3844" stroke-width="1.5"></path>
+<path d="M36 210H112C132 210 140 286 162 286H250C272 286 280 210 300 210H420" stroke="#808c99" stroke-width="2" stroke-dasharray="5 6"></path>
+<path d="M36 210H420" stroke="#3e9fd8" stroke-width="2" stroke-linecap="round"></path>
+<text x="40" y="236" fill="#b8e2fa" font-size="15" font-weight="600" font-family="Geist, sans-serif">Off · moves freely</text>
+<text x="206" y="278" fill="#808c99" font-size="15" font-family="Geist, sans-serif" text-anchor="middle">at 100%</text>
+<text x="230" y="312" fill="#808c99" font-size="15" font-family="Geist, sans-serif" text-anchor="middle">time →</text>
+</svg>
+<span style="font-size: 15px; line-height: 1.5; color: #808c99">Press the pad and read the pressure; set Fully still just below where it clicks.</span>
+</div>
+</section>
+</main>
+
+<footer style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Wardogs · Trackpads · Right pad · Fine-tune · Click</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px">◂ ▸ Adjust</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">Y</span>Reset</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">LT</span><span class="gp">RT</span>Group</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Back to Trackpads</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

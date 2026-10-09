@@ -29,6 +29,8 @@ const COMMAND_KEYS: Record<string, string> = {
   '+': 'PLUS', PLUS: 'PLUS', '-': 'MINUS', MINUS: 'MINUS',
   LTOUCH: 'LST', LEFT_STICK: 'LS', LSTICK: 'LS', RIGHT_STICK: 'RS', RSTICK: 'RS',
   LEFT_PAD: 'LTOUCH', LEFT_PAD_TOUCH: 'LTOUCH',
+  // The Steam Controller's left pad touch (MISC4) is the left pad's own drawing.
+  MISC4: 'LTOUCH',
 }
 
 // Right-hand and second-of-a-pair inputs the set draws only once.
@@ -105,6 +107,21 @@ const patternGlyph = (key: string, small: boolean): string | null => {
   }
   const mini = key.match(/^([LR])MINI$/)
   if (mini) return `<rect x="2.5" y="6.5" width="19" height="11" rx="5.5" fill="currentColor"/>` + label(12, 12.25, 7.5, `${mini[1]}m`, 'var(--glyph-ink)')
+  // Tilt (the motion stick, MUP…): the pad's body tipped the way it is tilted,
+  // with a motion arc; Lean: the body rolled left or right (UX review, L11).
+  const tilt = key.match(/^M(UP|DOWN|LEFT|RIGHT)$/)
+  if (tilt) {
+    const rotate = { UP: 0, RIGHT: 90, DOWN: 180, LEFT: 270 }[tilt[1]]
+    return `<g transform="rotate(${rotate} 12 12)"><rect x="4" y="9" width="16" height="9" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7V3M9.5 5.5 12 3l2.5 2.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>`
+  }
+  if (key === 'MRING') {
+    return `<circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="3 2.5"/><rect x="7" y="9.5" width="10" height="5.5" rx="2" fill="currentColor"/>`
+  }
+  const lean = key.match(/^LEAN_(LEFT|RIGHT)$/)
+  if (lean) {
+    const sign = lean[1] === 'LEFT' ? -18 : 18
+    return `<rect x="4" y="9" width="16" height="9" rx="3" fill="none" stroke="currentColor" stroke-width="2" transform="rotate(${sign} 12 13.5)"/><path d="M${lean[1] === 'LEFT' ? '5 5 3 3.5 2.5 6' : '19 5 21 3.5 21.5 6'}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`
+  }
   return null
 }
 

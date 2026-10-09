@@ -3,7 +3,9 @@
    the state button and the Home chip -- and the taller 56px bars. */
 
 /* Title bar and page tabs are 56 each (2a, 2b), controls in them 40. */
-:root, :root[data-theme] { --titlebar-h: 56px; --page-tabs-h: 56px; --bar-control-h: 40px; }
+/* Console v2 (V3): one 64px header row holds the game chip, the tabs and the
+   status chip (76 on the couch, design-tokens.css). */
+:root, :root[data-theme] { --titlebar-h: 64px; --page-tabs-h: 56px; --bar-control-h: 40px; }
 
 /* ============ Eyebrow (§5): 11px, .12em, 600, text-3, uppercase ============ */
 .eyebrow {
@@ -85,9 +87,16 @@
 .state-button[data-tone='control'] { background: var(--surface-control); color: var(--text-1); }
 .state-button[data-tone='control']:hover:not([aria-disabled='true']) { background: var(--surface-control-hover); }
 .state-button[data-tone='control'][aria-disabled='true'] { color: var(--text-3); cursor: default; }
-.state-button[data-tone='applied'] { background: var(--surface-row); color: var(--text-2); }
+.state-button[data-tone='applied'] { background: var(--ok-soft, rgba(95, 211, 160, .14)); color: var(--ok, #93e6c1); }
+/* Console v2 (V3): the status chip's dot says the state at a glance. */
+.state-button { gap: var(--sp-2); }
+.state-button__dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.state-button__sep { opacity: .6; }
+.state-button .state-button__glyph, .state-button .hint-key { flex: none; color: currentColor; }
+.state-button[data-tone='accent'] .state-button__dot { background: var(--warn, #f0a05a); }
+.state-button[data-tone='testing'] .state-button__dot { background: var(--telemetry); }
 .state-button[data-tone='testing'] { background: var(--telemetry-soft); color: var(--text-1); }
-body[data-input-source='controller'] :is(.state-button, .home-chip):focus { box-shadow: 0 0 0 2px var(--surface-frame), 0 0 0 4px var(--focus-controller); }
+body[data-input-source='controller'] :is(.state-button, .home-chip):focus { box-shadow: 0 0 0 2px var(--surface-frame), var(--focus-ring-pad-gap); }
 
 /* ============ Page tabs (2b, 2f): 40px tabs, selected fill + underline ============ */
 .page-tabs { gap: var(--sp-2); padding: 0 var(--sp-5); box-shadow: inset 0 -1px 0 var(--line-1); border-bottom: 0; }
@@ -104,7 +113,9 @@ body[data-input-source='controller'] :is(.state-button, .home-chip):focus { box-
 .trigger-mark { display: grid; place-items: center; height: auto; margin: 0; padding: 0; background: none; border-radius: 0; }
 
 /* Home has no page tabs; its content starts under the title bar. */
-.app-shell[data-page-group='home'] { grid-template-rows: var(--titlebar-h) auto minmax(0, 1fr); }
+.app-shell[data-page-group='home'] { grid-template-rows: var(--titlebar-h) auto minmax(0, 1fr) var(--hintbar-h); }
+/* Settings (console v2, V6): no tab strip; the rail lists its categories. */
+.app-shell[data-hub='settings'] { grid-template-rows: var(--titlebar-h) auto minmax(0, 1fr) var(--hintbar-h); }
 .shell-page--home { max-width: none; padding: 0; height: 100%; }
 .shell-scroll:has(> .shell-page--home) { overflow-y: auto; }
 
@@ -200,6 +211,10 @@ body[data-input-source='controller'] .summary-row:focus { background: var(--surf
   background: var(--surface-scrim);
   animation: fade-in var(--dur-3) var(--ease-standard);
 }
+/* A sheet opened from a full-screen sub-page (z 45) sits over it, and covers
+   it whole: the sub-page has no title bar above it (LIBRARY: the wizard's
+   Every binding, Steam import's Show all, the assistant's Working on). */
+body:has([data-subpage]) > .sheet-layer { z-index: 46; inset: 0; }
 .sheet {
   position: absolute;
   top: 0;
@@ -233,6 +248,9 @@ body[data-input-source='controller'] .summary-row:focus { background: var(--surf
   color: var(--text-3);
   cursor: pointer;
 }
+/* A sheet's own buttons (a binding's cog and Details), left of the close mark. */
+.sheet__actions { position: absolute; top: -8px; right: 40px; display: flex; align-items: center; gap: var(--sp-2); }
+.sheet__header:has(.sheet__actions) { padding-right: 200px; }
 .sheet__close:hover { background: var(--surface-row-hover); color: var(--text-1); }
 .sheet__body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 6px; margin: 0 calc(-1 * var(--sp-2)); padding: 8px var(--sp-2) var(--sp-4); }
 .sheet__body > * { flex-shrink: 0; }
@@ -243,10 +261,19 @@ body[data-input-source='controller'] .summary-row:focus { background: var(--surf
 .sheet__footer { display: flex; align-items: center; gap: var(--sp-5); font-size: var(--fs-hint); color: var(--text-2); }
 .sheet__hint { display: flex; align-items: center; gap: var(--sp-2); }
 .sheet__hint .button-glyph { color: var(--text-1); }
-/* The sheet carries its own footer, so the page's capsule steps aside. */
+/* The sheet carries its own footer, so the page's capsule steps aside. The
+   Configuration menu has none of its own: the capsule stays and names the
+   menu's buttons (A Select · B Close; UX review 2026-10-09, S1). */
 body:has(.sheet-layer) .hint-capsule,
-body:has(.dialog-layer) .hint-capsule,
-body:has(.config-menu-overlay) .hint-capsule { visibility: hidden; }
+body:has(.dialog-layer) .hint-capsule { visibility: hidden; }
+/* A full-screen sub-page (ui/console/SubPage) opened from a sheet -- the
+   pickers, Fine-tune, Chords, the Light pages -- covers that sheet and docks a
+   capsule of its own, which stays (UX review 2026-10-09, L3). Only a sheet or
+   dialog opened over the sub-page (a later sibling in the body) hides it. */
+body:has(.sheet-layer) [data-subpage] .hint-capsule,
+body:has(.dialog-layer) [data-subpage] .hint-capsule { visibility: visible; }
+body:has([data-subpage] ~ .sheet-layer) [data-subpage] .hint-capsule,
+body:has([data-subpage] ~ .dialog-layer) [data-subpage] .hint-capsule { visibility: hidden; }
 
 /* Scope strip (2c) and contact tiles (2e): one 48px tile per pad or grip. */
 .scope-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: var(--sp-2); }
@@ -275,11 +302,15 @@ body:has(.config-menu-overlay) .hint-capsule { visibility: hidden; }
 
 /* ============ Configuration menu (1e): centred, 520, 52px rows ============ */
 .modal-overlay.config-menu-overlay {
-  inset: var(--titlebar-h) 0 0 0;
+  inset: var(--titlebar-h) 0 var(--hintbar-h) 0;
   margin: 0;
 }
 .config-menu {
   width: min(520px, calc(100vw - 32px));
+  /* Never taller than the window: the item list scrolls, and a focused item
+     keeps itself in view (UX review, S1). */
+  max-height: calc(100vh - var(--titlebar-h) - var(--hintbar-h) - 24px);
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -292,7 +323,9 @@ body:has(.config-menu-overlay) .hint-capsule { visibility: hidden; }
 }
 .config-menu__header { position: relative; display: flex; flex-direction: column; gap: 2px; padding: 4px 12px 14px; }
 .config-menu__title { font-size: 20px; font-weight: var(--fw-semibold); }
-.config-menu__items { display: flex; flex-direction: column; gap: 4px; }
+.config-menu__status { font-size: var(--fs-hint); color: var(--text-2); }
+.config-menu__items { display: flex; flex-direction: column; gap: 4px; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+.config-menu__item { flex: none; }
 .config-menu__item {
   height: 52px;
   display: flex;

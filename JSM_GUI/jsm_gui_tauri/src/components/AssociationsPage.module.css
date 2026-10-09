@@ -17,8 +17,7 @@
 /* The pad's focus is the whole row (16f): selected fill + ring. */
 :global(body[data-input-source='controller']) .row:focus-within {
   background: var(--surface-selected);
-  box-shadow: 0 0 0 var(--focus-controller-width) var(--focus-controller), var(--shadow-lift);
-  transform: translateY(-1px);
+  box-shadow: var(--focus-ring-pad);
 }
 :global(body[data-input-source='controller']) .row :focus { box-shadow: none; }
 .row[data-paused] .name, .row[data-paused] .appIcon:not(:has(img)) { opacity: .55; }

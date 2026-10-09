@@ -175,8 +175,7 @@ body[data-focus-glide] .action-picker__search:focus-within { box-shadow: inset 0
 body[data-input-source='controller'] .key-cap:focus,
 body[data-input-source='controller'] .action-choice:focus {
   background: var(--surface-selected);
-  box-shadow: 0 0 0 var(--focus-controller-width) var(--focus-controller), var(--shadow-lift);
-  transform: translateY(-1px);
+  box-shadow: var(--focus-ring-pad);
 }
 .action-used {
   position: absolute;
@@ -269,3 +268,20 @@ body[data-input-source='controller'] .action-choice:focus {
 .picker-detail__name[data-kind='layerAction'] strong { color: var(--layer-1); padding: 10px 12px; border-radius: var(--r-md); background: var(--layer-1-soft); }
 .picker-detail { min-width: 0; }
 .picker-detail__raw code { overflow-wrap: anywhere; }
+
+/* Common in games (console v2, KeyPicker): the key, what games use it for, and
+   which input already sends it. */
+.action-grid--common { grid-template-columns: repeat(auto-fill, minmax(196px, 1fr)); }
+.action-choice.action-common { position: relative; height: auto; min-height: 84px; display: flex; align-items: center; gap: 12px; padding: 12px 14px; text-align: left; }
+.action-common__key { flex: none; min-width: 44px; height: 44px; padding: 0 10px; display: grid; place-items: center; border-radius: var(--r-sm); background: var(--surface-key, var(--surface-row-hover)); box-shadow: inset 0 -2px 0 rgb(0 0 0 / .25); font: inherit; font-weight: var(--fw-bold); font-size: var(--fs-label); color: var(--text-1); }
+.action-common__text { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.action-common__use { font-weight: var(--fw-semibold); color: var(--text-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.action-common__by { font-size: var(--fs-hint); color: var(--accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.action-common .action-used { display: none; }
+
+/* Console v2: the groups inside the open family, stepped by LT / RT. */
+.action-picker__groups { display: flex; align-items: center; gap: var(--sp-1); padding: var(--sp-3) var(--sp-8) 0; overflow-x: auto; }
+.action-group-tab { height: 36px; display: inline-flex; align-items: center; gap: var(--sp-2); flex: none; padding: 0 var(--sp-3); border: 0; border-radius: var(--r-pill); background: transparent; color: var(--text-2); font: inherit; font-size: var(--fs-label); font-weight: var(--fw-medium); cursor: pointer; }
+.action-group-tab:hover { background: var(--surface-row-hover); color: var(--text-1); }
+.action-group-tab[aria-pressed='true'] { background: var(--surface-row-hover); color: var(--text-1); box-shadow: inset 0 0 0 1px var(--line-2); }
+.action-group-tab__count { color: var(--text-3); font-size: var(--fs-hint); }

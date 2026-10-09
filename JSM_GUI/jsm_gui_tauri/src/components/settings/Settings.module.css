@@ -1,0 +1,103 @@
+/* Settings categories (console v2, Settings*.dc.html): rows 64px+, sections
+   with a heading and a note, an aside for previews and tests. */
+
+.columns { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-7); align-items: start; }
+.columns[data-aside='true'] { grid-template-columns: minmax(0, 1fr) minmax(300px, 400px); }
+@media (max-width: 1279px) { .columns[data-aside='true'] { grid-template-columns: minmax(0, 1fr); } }
+.mainColumn { min-width: 0; display: flex; flex-direction: column; gap: var(--sp-6); }
+.aside { min-width: 0; position: sticky; top: 0; display: flex; flex-direction: column; gap: var(--sp-4); }
+
+.section { display: flex; flex-direction: column; gap: var(--sp-3); }
+.sectionHead { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); }
+.sectionTitle { margin: 0; font-size: var(--fs-section); line-height: var(--lh-section); font-weight: var(--fw-semibold); }
+.sectionNote { color: var(--text-3); font-size: var(--fs-hint); }
+.sectionAction { margin-left: auto; display: flex; align-items: center; gap: var(--sp-2); color: var(--text-2); font-size: var(--fs-hint); }
+.sectionBody { display: flex; flex-direction: column; gap: var(--sp-2); }
+.note { margin: 0; color: var(--text-3); font-size: var(--fs-hint); line-height: var(--lh-hint); }
+
+/* ---- Switch row: A turns it on or off. */
+.switchRow {
+  width: 100%;
+  min-height: var(--row-h, 64px);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-3) var(--sp-5);
+  border: 0;
+  border-radius: var(--r-card);
+  background: var(--surface-row);
+  color: var(--text-1);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.switchRow:hover { background: var(--surface-row-hover); }
+.switchRow[aria-disabled='true'] { cursor: default; }
+.switchRow[aria-disabled='true'] .rowLabel { color: var(--text-2); }
+.rowText { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.rowLabel { font-size: var(--fs-label); line-height: var(--lh-label); font-weight: var(--fw-semibold); }
+.rowHint { color: var(--text-3); font-size: var(--fs-hint); line-height: var(--lh-hint); }
+.switch { flex: none; position: relative; width: 60px; height: 32px; border-radius: 16px; background: var(--surface-control); transition: background var(--dur-2) var(--ease-standard); }
+.switch > span { position: absolute; top: 4px; left: 4px; width: 24px; height: 24px; border-radius: 50%; background: var(--text-3); transition: transform var(--dur-2) var(--ease-standard), background var(--dur-2) var(--ease-standard); }
+.switch[data-on='true'] { background: var(--accent-strong); }
+.switch[data-on='true'] > span { transform: translateX(28px); background: #fff; }
+
+/* ---- Status strip. */
+.strip { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-5); min-height: 56px; padding: var(--sp-3) var(--sp-5); border-radius: var(--r-card); background: var(--surface-row); }
+.stripItem { display: inline-flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-body); }
+.stripDot { width: 9px; height: 9px; border-radius: 50%; background: var(--ok); }
+.stripItem[data-tone='warn'] .stripDot { background: var(--warn); }
+.stripItem[data-tone='off'] .stripDot { background: transparent; box-shadow: inset 0 0 0 2px var(--text-3); }
+.stripAction { margin-left: auto; }
+
+/* ---- Tiles: three numbers side by side (Calibration and light). */
+.tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-3); }
+@media (max-width: 1279px) { .tiles { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---- Cards with art (controllers, apps, guides). */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--sp-3); }
+.card {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-4) var(--sp-5);
+  border: 0;
+  border-radius: var(--r-card);
+  background: var(--surface-row);
+  color: var(--text-1);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.card:hover { background: var(--surface-row-hover); }
+.card[aria-disabled='true'] { cursor: default; }
+.cardArt { flex: none; width: 96px; height: 64px; display: grid; place-items: center; border-radius: var(--r-row); background: var(--surface-sunken); color: var(--art-line); }
+.cardArt img { max-width: 88px; max-height: 56px; }
+.cardText { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.cardTitle { font-size: var(--fs-label); font-weight: var(--fw-semibold); }
+.cardSub { color: var(--text-2); font-size: var(--fs-hint); line-height: var(--lh-hint); }
+.cardAction { flex: none; color: var(--accent); font-size: var(--fs-hint); font-weight: var(--fw-semibold); white-space: nowrap; }
+.tag { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: var(--r-pill); background: var(--surface-control); color: var(--text-2); font-size: var(--fs-hint); font-weight: var(--fw-semibold); }
+.tag[data-tone='accent'] { background: var(--accent-soft); color: var(--accent); }
+.tag[data-tone='ok'] { background: var(--ok-soft); color: var(--ok); }
+.tag[data-tone='warn'] { background: var(--warn-soft); color: var(--warn); }
+
+/* ---- A panel on the aside: the test, the preview, a picture. */
+.panel { display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-5); border-radius: var(--r-card); background: var(--surface-nav); box-shadow: inset 0 0 0 1px var(--line-1); }
+.panelTitle { margin: 0; font-size: var(--fs-label); font-weight: var(--fw-semibold); }
+.panelNote { margin: 0; color: var(--text-2); font-size: var(--fs-hint); line-height: var(--lh-hint); }
+
+/* ---- A plain list of rows read top to bottom (the log, matches). */
+.list { display: flex; flex-direction: column; gap: 2px; }
+.mono { font-family: var(--font-mono); }
+
+/* ---- The light colour row's swatches; the current one ringed. */
+.swatches { flex: none; display: flex; gap: var(--sp-2); }
+.swatch { width: 26px; height: 26px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .25); }
+.swatch[data-current='true'] { box-shadow: 0 0 0 3px var(--surface-row), 0 0 0 5px var(--text-1); }
+.cardArt :global(svg) { width: 88px; height: 56px; }
+.card[data-current='true'] { box-shadow: inset 0 0 0 2px var(--accent); }
+.switchRow[role='radio'][aria-checked='true'] { box-shadow: inset 0 0 0 2px var(--accent); }

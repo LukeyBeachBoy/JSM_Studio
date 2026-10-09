@@ -1,4 +1,4 @@
-import { memo, useContext, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { memo, useContext, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   BindingCommand,
@@ -9,13 +9,12 @@ import {
   commandTokenPreview,
   commandForValue,
   commandNameKey,
-  heldLedCommandId,
   inferOutputKindFromBindingValue,
   isFixedCommand,
-  layerActionCommandId,
   parseRowsToCommands,
   updateCommandExpression,
 } from '../../utils/bindingCommands'
+import { takePasteRequest, useBindingClipboard } from '../../utils/bindingClipboard'
 import {
   BindingSlot,
   ButtonBindingRow,
@@ -28,28 +27,20 @@ import {
   replaceBaseLineToken,
   serializeBindingExpression,
   serializeBindingToken,
+  type BindingExpression,
 } from '../../utils/keymap'
 import keymapStyles from '../Keymap.module.css'
 import {
   MODIFIER_SLOT_TYPES,
   getActionSpecialOptionList,
   getDefaultModifierForButton,
-  getSpecialOptionList,
   isGyroButtonSettingSpecial,
   type ButtonDefinition,
 } from '../../keymap/schema'
-import { BindingCommandCard } from './BindingCommandCard'
-import { NumberField } from '../NumberField'
-import { controllerButtonLabel, type ControllerVisualFamily } from '../../utils/controllerStatus'
+import { type ControllerVisualFamily } from '../../utils/controllerStatus'
 import { InputGlyph } from '../glyphs/InputGlyph'
-
 import { ButtonMappingCard, type BindingSummaryEntry } from './ButtonMappingCard'
 import { BindingIconArt, IconPicker } from './IconPicker'
-import { BindingLabelField } from './BindingLabelField'
-import { ButtonGlyph } from '../glyphs/ButtonGlyph'
-import { Lane, LaneAddButton, LaneSideButton, laneStyles, useJustAdded } from './Lane'
-import { ActionPicker } from './ActionPicker'
-import { InputModeshiftPanel } from './InputModeshiftPanel'
 import { inputLongName, inputShortName } from '../../keymap/inputNames'
 import type { InputModeshiftsProps } from './InputModeshifts'
 import type { ModeshiftSummary } from '../../utils/modeshift'
@@ -58,7 +49,7 @@ import { getVirtualControllerLogicalOutput, type VirtualControllerType } from '.
 import { describeCommandOutput, explainCommandOutput } from '../../utils/bindingDescription'
 import { LayerUsageContext } from '../LayerBar'
 import { actionsOnInput, sameLayerAction, type LayerAction } from '../../utils/layers'
-import { hasBindingParameters } from '../../utils/bindingParameters'
+import type { ActivationRef, BindingApi } from './binding/model'
 
 type ButtonBindingsCardProps = {
   /** The LED while this input is held (TODO-54): the chorded LIGHT_BAR and
@@ -234,7 +225,6 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
   onBindingLabelChange,
   bindingClipboard = [],
   onCopyBindings,
-  chordsLiveInModeshifts,
   defaultOpen,
   label,
   subtitle,
@@ -242,7 +232,6 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
   modeshiftPanel,
   xAction,
   modeshifts,
-  beginCapture,
   embedded,
 }: ButtonBindingsCardProps) {
   const { t } = useTranslation()
@@ -259,15 +248,6 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
   const stickShiftEntries = useMemo(
     () => stickModeShiftAssignments?.[buttonKey] ?? [],
     [buttonKey, stickModeShiftAssignments]
-  )
-  const allSpecialOptionList = useMemo(
-    () => [
-      { value: 'NONE', label: 'NONE' },
-      { value: 'DEFAULT', label: 'DEFAULT' },
-      { value: 'CALIBRATE', label: 'Calibrate while held (raw)' },
-      ...getSpecialOptionList(t),
-    ].filter((option, index, source) => source.findIndex(candidate => candidate.value === option.value) === index),
-    [t]
   )
   const actionSpecialOptionList = useMemo(
     () => [
@@ -442,8 +422,6 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
         onBindingLabelChange(commandNameKey(next, [], domCommand ?? button.command), previousName)
       }
       if (patch.ledActivation === 'press' && command.source.kind === 'heldLed') {
-        added.expect()
-        sheetOnNextAdd.current = true
         const color = command.source.color ?? defaultLedColor ?? '#ffffff'
         removeCommand(command, true)
         const outputValue = `LIGHT_BAR = x${color.slice(1)}`
@@ -452,7 +430,6 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
       } else if (patch.ledActivation === 'hold' && command.source.kind === 'row') {
         const color = /^LIGHT_BAR\s*=\s*x([0-9a-f]{6})/i.exec(command.outputValue)?.[1]
         if (!color || !onHeldLedColorChange) return
-        setOpenSettingsFor(heldLedCommandId(button.command))
         removeCommand(command, true)
         onHeldLedColorChange(`#${color}`)
         renameLed({ ...command, source: { kind: 'heldLed', color: `#${color}`, brightness: command.ledBrightness ?? null } })
@@ -635,7 +612,14 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
     writeCommand(commandToPreset(command))
   }
 
-  const copyableCommands = commands.filter(command => !isFixedCommand(command))
+  // Layout's quick menu pastes by opening this card (utils/bindingClipboard).
+  const clipboard = useBindingClipboard()
+  useEffect(() => {
+    if (menuItem || isShifted || clipboard.pasteInto !== button.command) return
+    if (takePasteRequest(button.command)) pasteBindings()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clipboard.pasteInto, button.command])
+
   const copyCommands = (picked: BindingCommand[]) => {
     const presets = picked.filter(command => !isFixedCommand(command)).map(commandToPreset)
     if (presets.length === 0) return
@@ -691,72 +675,101 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
     })
   }
 
-  // X on the closed row: the primary command takes the key, or a new Press
-  // binding is captured when there is none.
-  const capturePrimary = () => {
-    const primary = commands.find(command => command.source.kind === 'row' && command.triggerKind !== 'stickShift')
-    if (primary) {
-      captureCommand(primary)
-      return
+  // Several commands at once (X Clear, the row's Y ▸ Clear): one write per
+  // config line. Removing them one by one would each re-read the same line
+  // and put back what the last removal took out.
+  const clearCommands = (picked: BindingCommand[]) => {
+    const byRow = new Map<string, BindingCommand[]>()
+    let rest: BindingCommand[] = []
+    for (const command of picked) {
+      if (command.source.kind === 'row' && command.source.writeMode === 'line' && command.source.expression && command.source.expression.tokens.length > 1) {
+        const key = `${command.source.slot}:${command.source.rowId}`
+        byRow.set(key, [...(byRow.get(key) ?? []), command])
+      } else rest.push(command)
     }
-    const baseRow = rows.find(row => row.slot === 'tap')
-    beginCapture(button.command, 'tap', baseRow?.id ?? `${button.command}-tap`, t('keymap.anyBindingPrompt'))
+    for (const group of byRow.values()) {
+      const first = group[0]
+      if (first.source.kind !== 'row' || !first.source.expression) continue
+      const drop = new Set<number>()
+      group.forEach(command => {
+        if (command.source.kind !== 'row') return
+        drop.add(command.source.tokenIndex)
+        if (command.source.ledBrightnessTokenIndex !== undefined) drop.add(command.source.ledBrightnessTokenIndex)
+      })
+      let expression: BindingExpression | null = first.source.expression
+      for (const index of [...drop].sort((a, b) => b - a)) expression = expression ? removeBindingExpressionToken(expression, index) : null
+      group.forEach(command => onBindingLabelChange?.(commandNameKey(command, commands, domCommand ?? button.command), ''))
+      onBindingChange(button.command, first.source.slot, first.source.rowId, expression && expression.tokens.length ? serializeBindingExpression(expression) : null, { modifier: first.conditionInput, writeMode: 'line' })
+    }
+    // A tap-and-hold pair ("R E") cleared together is the whole line.
+    const pair = rows.find(row => row.slot === 'tap' && row.writeMode === 'slot' && row.expression?.tokens.length === 2)
+    const pairParts = rest.filter(command => command.source.kind === 'row' && command.source.writeMode === 'slot' && (command.source.slot === 'tap' || command.source.slot === 'hold'))
+    if (pair && pairParts.length === 2) {
+      pairParts.forEach(command => onBindingLabelChange?.(commandNameKey(command, commands, domCommand ?? button.command), ''))
+      onBindingChange(button.command, 'tap', pair.id, null, { writeMode: 'line' })
+      rest = rest.filter(command => !pairParts.includes(command))
+    }
+    rest.forEach(command => removeCommand(command))
   }
 
-  // Add command (5): the action picker straight away, as a Press; what it
-  // chooses is written as a new command, which keeps focus and glows. Other
-  // activations are the new row's chip; a console command is the picker's
-  // Custom, a stick mode shift its JSM category.
-  const [addingCommand, setAddingCommand] = useState(false)
-  const added = useJustAdded(commands.map(command => command.id), id => `[data-command-row="${CSS.escape(id)}"] button[aria-label^="${t('keymap.chooseAction', 'Choose action')}"]`)
-  // A command with a parameter (an LED colour or brightness, a sound, a
-  // layer action) is added with a starting value and its sheet opens on the
-  // new row, so the value is chosen where it is edited (TODO-54, TODO-55).
-  // The row's id is known ahead for the fixed rows; a token row's is the one
-  // that was not there before, which useJustAdded finds.
-  const [openSettingsFor, setOpenSettingsFor] = useState<string | null>(null)
-  const sheetOnNextAdd = useRef(false)
-  useEffect(() => {
-    if (added.justAdded && sheetOnNextAdd.current) {
-      sheetOnNextAdd.current = false
-      setOpenSettingsFor(added.justAdded)
+  // A new command on an activation (the sheet's kinds, More's cards). A key
+  // combo comes as several keys in one value: they go down together.
+  const addCommand = (activation: ActivationRef, patch: BindingCommandPatch, extra?: Partial<BindingCommandPreset>, replace?: BindingCommand | null) => {
+    const preset: BindingCommandPreset = {
+      triggerKind: activation.kind,
+      outputKind: patch.outputKind ?? 'keyboard',
+      outputValue: patch.outputValue ?? '',
+      outputBehavior: patch.outputBehavior ?? 'normal',
+      turboIntervalMs: extra?.turboIntervalMs ?? patch.turboIntervalMs,
+      ledBrightness: extra?.ledBrightness ?? patch.ledBrightness,
+      conditionInput: activation.with ?? extra?.conditionInput ?? patch.conditionInput,
     }
-  }, [added.justAdded])
-  const hasParameter = hasBindingParameters
-  const addChosen = (patch: BindingCommandPatch) => {
-    added.expect()
-    sheetOnNextAdd.current = hasParameter(patch.outputValue ?? '')
-    writeCommand({ triggerKind: 'regular', outputKind: patch.outputKind ?? 'keyboard', outputValue: patch.outputValue ?? '', outputBehavior: 'normal' })
+    const keys = preset.outputKind === 'keyboard' ? preset.outputValue.trim().split(/\s+/).filter(Boolean) : []
+    if (keys.length > 1) {
+      const tokens = appendBaseLineTokens([], keys.map(value => bindingCommandToToken({ ...preset, outputValue: value })))
+      if (triggerUsesBaseLine(preset.triggerKind)) {
+        const baseRow = rows.find(row => row.slot === 'tap')
+        // The replaced command's token on the base line (a tap-and-hold pair's hold is its second).
+        const own = replace && replace.source.kind === 'row' && (replace.source.slot === 'tap' || replace.source.slot === 'hold') && triggerUsesBaseLine(replace.triggerKind)
+          ? (replace.source.writeMode === 'slot' && replace.source.slot === 'hold' ? 1 : replace.source.tokenIndex) : -1
+        const kept = (baseRow?.expression?.tokens ?? []).filter((_, index) => index !== own)
+        if (replace && own < 0) removeCommand(replace)
+        const expression = createBindingExpression(appendBaseLineTokens(kept, tokens))
+        onBindingChange(button.command, 'tap', baseRow?.id ?? `${button.command}-tap`, serializeBindingExpression(expression), { writeMode: 'line' })
+        return
+      }
+      if (replace && triggerToSlot(replace.triggerKind) !== triggerToSlot(preset.triggerKind)) removeCommand(replace)
+      const slot = triggerToSlot(preset.triggerKind)
+      const modifier = MODIFIER_SLOT_TYPES.includes(slot) ? preset.conditionInput || defaultModifier : undefined
+      const rowId = ensureManualRow(button.command, slot, modifier ? { modifierCommand: modifier } : undefined)
+      onBindingChange(button.command, slot, rowId, serializeBindingExpression(createBindingExpression(tokens)), modifier ? { modifier } : undefined)
+      return
+    }
+    writeCommand(preset)
   }
-  // LED while held (TODO-54): the profile's colour to begin with, and the
-  // sheet to change it. Choosing it again on an input that has one only
-  // opens that row's sheet.
-  const addHeldLed = onHeldLedColorChange && heldLed ? () => {
-    added.expect()
-    setOpenSettingsFor(heldLedCommandId(button.command))
-    if (!heldLed.color && heldLed.brightness === null) onHeldLedColorChange(defaultLedColor ?? '#ffffff')
+
+  // LED while held (TODO-54), from the picker: it is a command of its own, with
+  // the colour and brightness chosen there.
+  const addHeldLed = onHeldLedColorChange && heldLed ? (color?: string, brightness?: number | null) => {
+    if (color) onHeldLedColorChange(color)
+    else if (!heldLed.color && heldLed.brightness === null) onHeldLedColorChange(defaultLedColor ?? '#ffffff')
+    if (brightness !== undefined) onHeldLedBrightnessChange?.(brightness)
   } : undefined
-  // A layer (TODO-55): held while this input is down, with the sheet open to
-  // make it a Toggle, Turn on or Turn off. An action this input already has
-  // for the layer is replaced, as the lane's add did.
-  const addLayerAction = onSetActions && myLayerActions ? (layerId: string) => {
-    const action: LayerAction = { input: button.command, verb: 'hold', layerId }
-    added.expect()
-    setOpenSettingsFor(layerActionCommandId(button.command, action, [...myLayerActions.filter(other => !(other.layerId === layerId && other.input === button.command)), action]))
-    setLayerAction(null, action)
+  // A mode (TODO-55): held while this input is down; Fine-tune ▸ Switch mode
+  // makes it a Toggle, Turn on or Turn off. An action this input already has
+  // for the mode is replaced.
+  const addLayerAction = onSetActions && myLayerActions ? (layerId: string, verb: LayerAction['verb'] = 'hold', released = false) => {
+    setLayerAction(null, { input: released ? `!${button.command}` : button.command, verb, layerId })
   } : undefined
-  // "Capture a key", X on Add command and X in its picker: another way to add
-  // a command. The key becomes a new Press command, which glows and takes
-  // focus like one chosen from the picker; nothing already on the input is
-  // overwritten.
+  // Listen for a key (the key picker's X): into a command, or a new one on
+  // the activation being edited.
   const newCaptureKey = `${domCommand ?? button.command}:new`
-  const captureNew = () => {
+  const captureInto = (command: BindingCommand | null, activation: ActivationRef) => {
+    if (command && command.source.kind === 'row') { captureCommand(command); return }
     beginValueCapture(newCaptureKey, t('keymap.anyBindingPrompt'), value => {
-      added.expect()
-      writeCommand({ triggerKind: 'regular', ...capturedOutput(value), outputBehavior: 'normal' })
+      writeCommand({ triggerKind: activation.kind, ...capturedOutput(value), outputBehavior: 'normal', conditionInput: activation.with })
     })
   }
-  const capturingNew = isCapturingValue(newCaptureKey)
   const addStickShift = onStickModeShiftChange ? () => {
     onStickModeShiftChange(button.command, 'RIGHT', 'NO_MOUSE')
     updateStickShiftDisplayMode(buttonKey, 'extra')
@@ -764,158 +777,83 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
 
   const shortName = inputShortName(button, controllerFamily)
   const longName = label ?? inputLongName(button, controllerFamily, t)
-  const closeLabel = `Close ${shortName}`
-  const inputGlyph = menuItem ? undefined : <InputGlyph command={button.command} family={controllerFamily} size={28} />
+  // A command's own name ("Name this action", Fine-tune ▸ Y). The input's name
+  // ("Jump") is the input-level label, the sheet's title.
+  const commandLabelKey = (command: BindingCommand) => commandNameKey(command, commands, (domCommand ?? button.command).toUpperCase())
 
-  // Nothing bound yet: one press adds a Press command, as Steam Input's own
-  // empty slot does. With a command there the same button offers the kinds.
-  const addButtonProps = {
-    concept: 'command' as const,
-    label: t('keymap.addCommand'),
-    hints: `A:Add command;X:Capture;B:${closeLabel}`,
-    'data-pad-keys': 'X',
-    onClick: () => setAddingCommand(true),
-    // X on the add button captures a key instead (5).
-    onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => { if (event.key === 'x' || event.key === 'X') { event.preventDefault(); captureNew() } },
-  }
-  const commandLabelKey = (command: BindingCommand) => {
-    const input = (domCommand ?? button.command).toUpperCase()
-    const key = commandNameKey(command, commands, input)
-    // Legacy profiles label the input once. Keep that annotation on its first
-    // command until a command-specific name exists, including explicit blanks.
-    return commands[0] === command && commandLabels?.[key] === undefined && commandLabels?.[input] !== undefined ? input : key
-  }
-  const commandsLane = (
-    <Lane concept="command" label={t('keymap.commandsHeading', 'Commands')} count={commands.length} twoUpFooter={!menuItem}
-      footer={
-        <>
-          <LaneAddButton {...addButtonProps} />
-          {!menuItem && <LaneSideButton glyph={<ButtonGlyph button="X" size={28} family={controllerFamily === 'generic' ? undefined : controllerFamily} />}
-            label={t('keymap.captureAKey', 'Capture a key')} onClick={captureNew} hints={`A:Capture a key;B:${closeLabel}`} capturing={capturingNew} />}
-        </>
-      }>
-      {commands.length > 0 && (
-        <div className={laneStyles.rows} data-capture-ignore="true">
-          {commands.map(command => (
-            <BindingCommandCard
-              key={command.id}
-              inputLabel={controllerButtonLabel(button, controllerFamily)}
-              inputShortName={shortName}
-              command={command}
-              defaultLedColor={defaultLedColor}
-              baseLedBrightness={baseLedBrightness}
-              openSettingsOnMount={openSettingsFor === command.id}
-              onSettingsOpened={() => setOpenSettingsFor(null)}
-              glyph={inputGlyph}
-              // Output names are independent of the input or menu item identity.
-              label={onBindingLabelChange ? commandLabels?.[commandLabelKey(command)] ?? '' : undefined}
-              onLabelChange={onBindingLabelChange ? value => onBindingLabelChange(commandLabelKey(command), value) : undefined}
-              modifierOptions={modifierOptions}
-              specialOptions={command.source.kind === 'special' ? allSpecialOptionList : actionSpecialOptionList}
-              virtualControllerType={virtualControllerType}
-              libraryProfiles={libraryProfiles}
-              currentProfileName={currentProfileName}
-              isCapturing={isCapturingValue(captureKeyFor(command))}
-              onUpdate={updateCommand}
-              onRemove={removeCommand}
-              chordsLiveInModeshifts={chordsLiveInModeshifts}
-              onDuplicate={duplicateCommand}
-              onCopy={onCopyBindings ? (picked) => copyCommands([picked]) : undefined}
-              onCapture={captureCommand}
-              closeLabel={closeLabel}
-              onEnableVirtualController={onEnableVirtualController}
-              justAdded={added.justAdded === command.id}
-            />
-          ))}
-        </div>
-      )}
-      {addingCommand && (
-        // Layers and LED while held are added from here too (TODO-54, TODO-55):
-        // a command is anything the input does, not only a token it sends.
-        <ActionPicker inputLabel={controllerButtonLabel(button, controllerFamily)}
-          command={commandForValue(button.command, '')} virtualControllerType={virtualControllerType} specialOptions={actionSpecialOptionList}
-          libraryProfiles={libraryProfiles} currentProfileName={currentProfileName} onEnableVirtualController={onEnableVirtualController}
-          defaultLedColor={defaultLedColor}
-          onSelect={addChosen} onClose={() => setAddingCommand(false)} onCapture={captureNew} onAddStickShift={addStickShift}
-          onAddHeldLed={addHeldLed} onAddLayerAction={addLayerAction} />
-      )}
-    </Lane>
-  )
-
-  // Change icon and the text shown on the menu (3d).
-  const identity = menuItem ? (
-    <div className={keymapStyles.identityRow} data-capture-ignore="true">
-      <IconPicker value={bindingIcon ?? ''} label={bindingLabel || undefined} family={controllerFamily} onChange={value => onBindingIconChange?.(button.command, value)} />
-      {onBindingLabelChange && (
-        <BindingLabelField value={bindingLabel} onChange={value => onBindingLabelChange(button.command, value)}
-          className={keymapStyles.identityField} placeholder={t('keymap.menuLabelPlaceholder', 'Label on the menu')} />
-      )}
-    </div>
-  ) : null
-
-  const extras = buttonHasTrackball ? (
-    <div className={keymapStyles.trackballInline} data-capture-ignore="true">
-      {buttonHasTrackball && <NumberField setting="TRACKBALL_DECAY"
-        label={t('keymap.trackballDecay')}
-        value={trackballDecay}
-        onChange={onTrackballDecayChange}
-        min={0}
-        max={10}
-        step={0.1}
-        coarseStep={0.5}
-        placeholder={t('common.defaultValue', { value: '1.0' })}
-      />}
-    </div>
-  ) : null
-
-  // NONE is how a profile says "nothing" over an imported binding, and a pill
-  // reading "Unbound" beside a row that drives a layer said the opposite of
-  // what the input does.
+  // NONE is how a profile says "nothing" over an imported binding, and a row
+  // that drives a mode says what it does rather than "Not set".
   const summary: BindingSummaryEntry[] = commands
-    .filter(command => command.outputValue.trim().length > 0 && command.outputValue.trim().toUpperCase() !== 'NONE')
+    .filter(command => command.triggerKind !== 'chord' && command.outputValue.trim().length > 0 && command.outputValue.trim().toUpperCase() !== 'NONE')
     .map(command => ({
-      // Printed on the keycap (3b): PRESS, HOLD, TAP, DOUBLE PRESS.
       trigger: t(TRIGGER_LABEL_KEYS[command.triggerKind]),
-      // What the game receives, in words, not how the file spells it; the
-      // LED and layer rows in the words their lanes used (TODO-54, TODO-55).
+      kind: command.source.kind === 'layerAction' || command.source.kind === 'special' || command.triggerKind === 'stickShift' ? (command.triggerKind === 'release' ? 'release' : 'regular') : command.triggerKind,
       output: describeCommandOutput(command, layers, t),
       outputTitle: explainCommandOutput(command, shortName, t),
       jsm: command.outputKind === 'special' || command.outputKind === 'gyroAction' || command.source.kind === 'special' || command.source.kind === 'stickShift' || isFixedCommand(command),
     }))
 
+  const api: BindingApi = {
+    button,
+    command: domCommand ?? button.command,
+    shortName,
+    longName,
+    family: controllerFamily,
+    glyph: <InputGlyph command={button.command} family={controllerFamily} size={embedded ? 30 : 40} />,
+    commands,
+    label: bindingLabel || undefined,
+    onRename: onBindingLabelChange ? value => onBindingLabelChange(domCommand ?? button.command, value) : undefined,
+    menuItem: menuItem ? {
+      icon: <BindingIconArt value={bindingIcon} size={28} />,
+      identity: (
+        <div className={keymapStyles.identityRow} data-capture-ignore="true">
+          <IconPicker value={bindingIcon ?? ''} label={bindingLabel || undefined} family={controllerFamily} onChange={value => onBindingIconChange?.(button.command, value)} />
+        </div>
+      ),
+    } : undefined,
+    pickerProps: {
+      virtualControllerType, specialOptions: actionSpecialOptionList, libraryProfiles, currentProfileName, onEnableVirtualController,
+      onAddStickShift: addStickShift, onAddHeldLed: addHeldLed, onAddLayerAction: addLayerAction, defaultLedColor, family: controllerFamily,
+    },
+    add: addCommand,
+    update: updateCommand,
+    remove: command => removeCommand(command),
+    clear: clearCommands,
+    duplicate: duplicateCommand,
+    copy: onCopyBindings ? picked => copyCommands(picked) : undefined,
+    paste: onCopyBindings && !menuItem ? pasteBindings : undefined,
+    canPaste: bindingClipboard.length > 0,
+    pasteLabel: t('keymap.bindingsPaste', { count: bindingClipboard.length }),
+    nameOf: command => commandLabels?.[commandLabelKey(command)] || undefined,
+    setName: onBindingLabelChange ? (command, value) => onBindingLabelChange(commandLabelKey(command), value) : undefined,
+    capture: captureInto,
+    isCapturing: rowCapturing,
+    heldLed: heldLed && onHeldLedColorChange ? {
+      color: heldLed.color, brightness: heldLed.brightness, defaultColor: defaultLedColor ?? '#ffffff', baseBrightness: baseLedBrightness,
+      setColor: onHeldLedColorChange, setBrightness: value => onHeldLedBrightnessChange?.(value),
+    } : undefined,
+    setStickShift: onStickModeShiftChange ? (target, mode) => {
+      onStickModeShiftChange(button.command, target, mode)
+      updateStickShiftDisplayMode(buttonKey, mode ? 'extra' : undefined)
+    } : undefined,
+    modifierOptions,
+    modeshifts: !menuItem && !isShifted ? modeshiftPanel : undefined,
+    trackball: buttonHasTrackball ? { value: trackballDecay, onChange: onTrackballDecayChange } : undefined,
+    shifted: isShifted,
+    xAction,
+    emptyLabel,
+  }
+
   return (
     <ButtonMappingCard
-      command={domCommand ?? button.command}
-      title={longName}
-      shortName={shortName}
+      api={api}
       summary={summary}
-      defaultOpen={defaultOpen}
       shifts={modeshifts}
-      family={controllerFamily}
+      defaultOpen={defaultOpen}
       rowTitle={label}
       rowSubtitle={subtitle}
-      emptyLabel={emptyLabel}
-      onPaste={onCopyBindings ? pasteBindings : undefined}
-      canPaste={bindingClipboard.length > 0}
-      pasteLabel={t('keymap.bindingsPaste', { count: bindingClipboard.length })}
-      onCopyAll={onCopyBindings && copyableCommands.length > 0 ? () => copyCommands(copyableCommands) : undefined}
-      onCapture={capturePrimary}
-      xAction={xAction}
-      glyph={<InputGlyph command={button.command} family={controllerFamily} size={embedded ? 30 : 40} />}
-      iconWell={menuItem ? <BindingIconArt value={bindingIcon} size={22} /> : undefined}
       isCapturing={rowCapturing}
       embedded={embedded}
-      lanes={
-        <>
-          {identity}
-          {/* Commands, then the modeshifts: the LED while held and the layer
-              actions are rows of the Commands lane (TODO-54, TODO-55). */}
-          {commandsLane}
-          {!menuItem && modeshiftPanel && !isShifted && <InputModeshiftPanel {...modeshiftPanel} button={button} shortName={shortName} />}
-        </>
-      }
-      extras={extras}
-      label={bindingLabel}
     />
   )
 })

@@ -1,193 +1,28 @@
 import { useRef, useState } from 'react'
-import { NumberField } from './NumberField'
-import { AppSelect } from './ui/AppSelect'
 import { desktopBridge, type ControllerPreferences as Preferences, type SoundActuators } from '../platform/desktopBridge'
 import { showToast } from '../utils/toast'
-import { getPreferenceSnapshot, patchRuntimePreferences } from '../platform/preferenceStore'
-import { usePreferences } from '../platform/preferenceStore'
+import { getPreferenceSnapshot, patchRuntimePreferences, usePreferences } from '../platform/preferenceStore'
 import { controllerPreferencesFromRuntime } from '../utils/controllerPreferences'
 import { BUILT_IN_SOUNDS } from '../utils/controllerSounds'
 import { useSoundLibrary } from '../hooks/useSoundLibrary'
 import { SoundLibraryDialog } from './SoundLibraryDialog'
-import { SummaryRow } from './ui/SummaryRow'
 import { LightBarPicker } from './keymap/LightBarPicker'
+import { LIGHT_BAR_PRESETS } from './keymap/lightBarColor'
+import { ModeCards, OpenRow, SegmentedRow, SubPage, ValueRow } from './ui/console'
+import { SettingsNote, SettingsSection, SwitchRow, usePadButton } from './settings/SettingsKit'
+import styles from './settings/Settings.module.css'
 
-// Steam's own names for the Steam Controller's built-in tunes, in script order
-// (SettingController_HapticSound_0..13). Script 12 is also what Steam's
-// "Identify Controller" ping plays.
-const SOUNDS = BUILT_IN_SOUNDS
+// The controller's own settings (console v2, Settings ▸ Controller and
+// "Controller, continued"): the gyro's firmware recalibration, calibration and
+// light, the controller's sounds, and the trackpads' rotation. Saved as they
+// change: each value reaches the running mapper at once, so there is nothing to
+// make live. Number rows fire per step, hence the short wait before writing.
 
-// How loud the tunes play: the firmware's gain in dB. Full is the tune as the
-// controller plays it (and what played before there was a choice).
-const INTENSITIES = [
-  { gain: -18, label: 'Quiet' },
-  { gain: -12, label: 'Soft' },
-  { gain: -6, label: 'Medium' },
-  { gain: 0, label: 'Full' },
-]
-const gainHelp = 'How strongly the controller plays the connect and shutdown sounds, and their previews.'
-
-function SoundIntensity({ gain, onChange, onPreview }: { gain: number; onChange: (gain: number) => void; onPreview: (gain: number) => void }) {
-  const nearest = INTENSITIES.reduce((best, option) => Math.abs(option.gain - gain) < Math.abs(best.gain - gain) ? option : best)
-  const choose = (next: number) => { onChange(next); onPreview(next) }
-  return (
-    <div className="controller-sound-row" data-hints="MOVE:Choose;A:Select;B:Back">
-      <div className="controller-sound-label controller-sound-intensity" title={gainHelp}>
-        <span>Sound Intensity</span>
-        <small>{gainHelp}</small>
-        <div className="segmented" role="radiogroup" aria-label="Sound intensity">
-          {INTENSITIES.map(option => (
-            <button key={option.gain} type="button" role="radio" aria-checked={option === nearest}
-              onClick={() => choose(option.gain)}>
-              {option.label}
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// Where a custom sound plays. The controller's own tunes are tone requests
-// aimed at the two motors behind the grips, so that pair is the default: a
-// converted sound comes out with the same voice as the built-in ones. The
-// trackpads' actuators are quieter and thinner for the same notes.
-const ACTUATORS: { value: SoundActuators; label: string }[] = [
-  { value: 'grips', label: 'Grip motors' },
-  { value: 'pads', label: 'Trackpads' },
-  { value: 'both', label: 'Both' },
-]
-const actuatorsHelp = "Which actuators play your own sounds. The grip motors are where the controller's built-in tunes play; the trackpads sound thinner."
-
-function SoundActuatorsPicker({ value, onChange, onPreview }: { value: SoundActuators; onChange: (value: SoundActuators) => void; onPreview: () => void }) {
-  return (
-    <div className="controller-sound-row" data-hints="MOVE:Choose;A:Select;B:Back">
-      <div className="controller-sound-label controller-sound-intensity" title={actuatorsHelp}>
-        <span>Play Sounds On</span>
-        <small>{actuatorsHelp}</small>
-        <div className="segmented" role="radiogroup" aria-label="Play sounds on">
-          {ACTUATORS.map(option => (
-            <button key={option.value} type="button" role="radio" aria-checked={option.value === value}
-              onClick={() => { onChange(option.value); onPreview() }}>
-              {option.label}
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// The controller's own power-on / power-off jingle. Its tune is fixed in the
-// firmware; how loud it plays is a byte the controller keeps in its own store,
-// so the choice holds with JSM Evolved closed. Off also silences the cue the
-// controller plays when it loses its link (docs/triton-firmware-customisation.md).
-const jingleHelp = "Silences the Steam Controller's own power-on and power-off jingles. This also silences its lost-connection and low-battery cues. Turning this off restores the factory volume."
-
-function JingleLevel({ level, onChange }: { level: number; onChange: (level: number) => void }) {
-  return <SummaryRow label="Silence the controller's own sounds" hint={jingleHelp} help={jingleHelp}
-    adjust={{ kind: 'choice', value: String(level),
-      options: [{ value: level === 0 ? '2' : String(level), label: 'Off' }, { value: '0', label: 'On' }],
-      onChange: next => onChange(Number(next)), onRevert: start => onChange(Number(start)) }} />
-}
-
-// The 2026's pads are mounted about 10.6 degrees outward (measured from the
-// controller artwork: left 10.7, right -10.5 in the same sense JoyShockMapper
-// uses). "Level" turns each reading back by that much, so a swipe straight up
-// the controller reads as straight up. Kept in step with
-// touchpad_rotation::kLeftPadCantDegrees / kRightPadCantDegrees in the mapper.
-const PAD_CANT = { left: 10.7, right: -10.5 } as const
-const ORIENTATIONS = [
-  { key: 'mounted', label: 'As mounted', left: 0, right: 0 },
-  { key: 'level', label: 'Level with the controller', left: PAD_CANT.left, right: PAD_CANT.right },
-]
-const rotationHelp = 'Turns each pad’s reading about its centre. Positive is clockwise as you look at the controller. Applies to menus, the touch stick, the mouse, the virtual keyboard touch cursor and the live touch Studio draws, in every configuration.'
-const nearDegrees = (a: number, b: number) => Math.abs(a - b) < 0.05
-const clampDegrees = (value: number) => Math.min(180, Math.max(-180, value))
-
-function TrackpadOrientation({ prefs, disabled, onChange }: { prefs: Preferences; disabled: boolean; onChange: (patch: Partial<Preferences>) => void }) {
-  const preset = ORIENTATIONS.find(option => nearDegrees(option.left, prefs.leftPadRotation) && nearDegrees(option.right, prefs.rightPadRotation))
-  return <>
-    <div className="controller-sound-row" data-hints="MOVE:Choose;A:Select;B:Back">
-      <div className="controller-sound-label controller-sound-intensity" title={rotationHelp}>
-        <span>Orientation</span>
-        <small>{rotationHelp}</small>
-        <div className="segmented" role="radiogroup" aria-label="Pad orientation">
-          {ORIENTATIONS.map(option => (
-            <button key={option.key} type="button" role="radio" aria-checked={preset?.key === option.key} disabled={disabled}
-              onClick={() => onChange({ leftPadRotation: option.left, rightPadRotation: option.right })}>
-              {option.label}
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-    <NumberField label="Left pad" value={prefs.leftPadRotation} min={-180} max={180} step={0.5} unit="°" disabled={disabled}
-      hint="Degrees the left pad’s reading is turned; 10.7 levels it with the controller body."
-      onChange={value => { if (value !== '') onChange({ leftPadRotation: clampDegrees(Number(value)) }) }} />
-    <NumberField label="Right pad" value={prefs.rightPadRotation} min={-180} max={180} step={0.5} unit="°" disabled={disabled}
-      hint="Degrees the right pad’s reading is turned; -10.5 levels it with the controller body."
-      onChange={value => { if (value !== '') onChange({ rightPadRotation: clampDegrees(Number(value)) }) }} />
-    <p className="prefs-note">A configuration can still set <code>LEFT_TOUCHPAD_ROTATION</code> or <code>RIGHT_TOUCHPAD_ROTATION</code> itself; that value holds until this preference changes or the configuration is reloaded.</p>
-  </>
-}
-
-const hardwareCalibrationHelp = 'Steam Controller only. Its firmware recalibrates the gyro whenever the controller seems to be still, and a bug lets slow, deliberate movements pass as still: small aim adjustments get cancelled out and the cursor slides back. Keep this on and correct drift with Recalibrate instead.'
-
-function HardwareCalibrationSwitch({ value, disabled, onChange }: { value: boolean; disabled: boolean; onChange: (value: boolean) => void }) {
-  return <SummaryRow label="Disable hardware calibration" hint={hardwareCalibrationHelp} help={hardwareCalibrationHelp} disabled={disabled}
-    toggle={{ on: value, onChange, onRevert: onChange }} />
-}
-
-const delayHelp ='Seconds to wait before calibration starts, so a chord or binding leaves time to put the controller down. The countdown shows in the overlay.'
-const timeHelp = 'Seconds the gyro is sampled for. Keep the controller still on a flat surface for the whole time.'
-const soundHelp = 'Played by the controller when it connects to JSM Evolved. The controller’s own power-on jingle is built into its firmware and still plays first.'
-const shutdownHelp = 'Played before JSM Evolved turns the controller off (Turn off controller, or a binding to it). Turning it off with its own button still plays the firmware’s jingle.'
-
-const preview = (sound: number, gain: number, soundId?: string) => desktopBridge.playControllerSound(sound, gain, soundId).then(result => {
-  if (!result.success) showToast('No controller is connected to play the sound on.', 'error')
-}).catch(error => showToast(String(error), 'error'))
-
-function SoundPicker({ label, value, file, gain, hint, onChange }: { label: string; value: number; file: string | null; gain: number; hint: string; onChange: (value: number, file: string | null) => void }) {
-  const { sounds } = useSoundLibrary()
-  const selected = file ? `file:${file}` : String(value)
-  return (
-    <div className="controller-sound-row">
-      <label className="controller-sound-label" title={hint}>
-        <span>{label}</span>
-        <small>{hint}</small>
-        <AppSelect className="app-select" aria-label={label} value={selected} onChange={event => {
-          const next = event.target.value
-          onChange(next.startsWith('file:') ? value : Number(next), next.startsWith('file:') ? next.slice(5) : null)
-        }}>
-          <option value="-1">None</option>
-          {SOUNDS.map((name, index) => <option key={name} value={String(index)}>{name}</option>)}
-          {sounds.some(sound => sound.ready) && <optgroup label="Your sounds">{sounds.filter(sound => sound.ready).map(sound => <option key={sound.id} value={`file:${sound.id}`}>{sound.name}</option>)}</optgroup>}
-        </AppSelect>
-      </label>
-      <button
-        type="button"
-        className="icon-button controller-sound-play"
-        aria-label={`Preview ${label}`}
-        title="Preview"
-        disabled={!file && value < 0}
-        onClick={() => void preview(value, gain, file ?? undefined)}
-      >
-        ▶
-      </button>
-    </div>
-  )
-}
-
-export function ControllerPreferences({ part = 'all' }: { part?: 'all' | 'calibration' | 'sounds' | 'trackpads' | 'light' }) {
+export function useControllerPreferences() {
   const { runtime } = usePreferences()
   const prefs = controllerPreferencesFromRuntime(runtime)
   const ready = !!runtime
-  const [libraryOpen, setLibraryOpen] = useState(false)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  // Saved as you go: each value reaches the running mapper immediately, so
-  // there is nothing to apply. Number fields fire per keystroke, hence the wait.
   const update = (patch: Partial<Preferences>) => {
     patchRuntimePreferences(patch)
     if (saveTimer.current) clearTimeout(saveTimer.current)
@@ -196,47 +31,231 @@ export function ControllerPreferences({ part = 'all' }: { part?: 'all' | 'calibr
       desktopBridge.setControllerPreferences(latest).then(state => patchRuntimePreferences(state)).catch(error => showToast(String(error), 'error'))
     }, 400)
   }
+  return { prefs, ready, update }
+}
 
+const DEFAULT_LIGHT = '#ffffff'
+
+/** "Light colour when a configuration doesn't set one": ◂ ▸ steps the colours,
+ *  A opens the full picker and the brightness. */
+export function DefaultLightRow() {
+  const { prefs, ready, update } = useControllerPreferences()
+  const [open, setOpen] = useState(false)
+  const current = (prefs.ledColor ?? DEFAULT_LIGHT).toLowerCase()
+  const index = LIGHT_BAR_PRESETS.findIndex(preset => preset.hex === current)
+  const name = index >= 0 ? LIGHT_BAR_PRESETS[index].name : current.toUpperCase()
+  const step = (direction: 1 | -1) => {
+    const next = LIGHT_BAR_PRESETS[(Math.max(0, index) + direction + LIGHT_BAR_PRESETS.length) % LIGHT_BAR_PRESETS.length]
+    update({ ledColor: next.hex })
+  }
+  return <>
+    <button type="button" className={styles.switchRow} data-arrows="horizontal" disabled={!ready} aria-label={`Light colour when a configuration doesn't set one: ${name}`}
+      data-hints="MOVE:Change;A:More colours;Y:Reset to default;B:Back"
+      data-caption="Light colour when a configuration doesn't set one · ◂ ▸ steps through the colours; A picks any colour and the brightness"
+      onKeyDown={event => {
+        if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); event.stopPropagation(); step(event.key === 'ArrowRight' ? 1 : -1) }
+        if (event.key === 'y' || event.key === 'Y') { event.preventDefault(); update({ ledColor: DEFAULT_LIGHT }) }
+      }}
+      onClick={() => setOpen(true)}>
+      <span className={styles.rowText}>
+        <span className={styles.rowLabel} data-caption-label="">Light colour when a configuration doesn’t set one</span>
+        <span className={styles.rowHint}>{name} · {prefs.ledBrightness}% bright</span>
+      </span>
+      <span className={styles.swatches} aria-hidden="true">
+        {LIGHT_BAR_PRESETS.slice(0, 5).map(preset => <span key={preset.hex} className={styles.swatch} data-current={preset.hex === current ? 'true' : undefined} style={{ background: preset.hex }} />)}
+        {index < 0 || index >= 5 ? <span className={styles.swatch} data-current="true" style={{ background: current }} /> : null}
+      </span>
+    </button>
+    <SubPage open={open} onClose={() => setOpen(false)} crumbRoot="Settings" trail={['Controller']} title="Light colour" backLabel="Back to Controller">
+      <div className={styles.mainColumn} style={{ maxWidth: 860 }}>
+        <SettingsSection title="Light colour" note="Used when a configuration doesn't set its own">
+          <div className="prefs-light-picker"><LightBarPicker value={prefs.ledColor} allowClear={false} disabled={!ready} onChange={ledColor => { if (ledColor) update({ ledColor }) }} /></div>
+        </SettingsSection>
+        <ValueRow label="Brightness" hint="How bright the light is when a configuration doesn't say" value={prefs.ledBrightness} min={0} max={100} step={5} fineStep={1}
+          format={value => `${value}%`} onChange={ledBrightness => update({ ledBrightness })} onReset={() => update({ ledBrightness: 100 })} disabled={ready ? undefined : 'Reading the controller settings…'} />
+      </div>
+    </SubPage>
+  </>
+}
+
+const hardwareCalibrationHelp = 'Its firmware slowly re-centres the gyro while you play, which can feel like your aim sliding back.'
+
+export function HardwareCalibrationRow() {
+  const { prefs, ready, update } = useControllerPreferences()
+  return <SwitchRow label="Stop the Steam Controller recalibrating its gyro" hint={hardwareCalibrationHelp} setting="DISABLE_HARDWARE_GYRO_CALIBRATION"
+    on={ready ? prefs.disableHardwareGyroCalibration : null} onChange={disableHardwareGyroCalibration => update({ disableHardwareGyroCalibration })}
+    onReset={() => update({ disableHardwareGyroCalibration: true })} />
+}
+
+/** Calibration and light: Countdown · Sample · Light, side by side. */
+export function CalibrationAndLight() {
+  const { prefs, ready, update } = useControllerPreferences()
+  const waiting = ready ? undefined : 'Reading the controller settings…'
   return (
-    <section className="prefs-section">
-      {(part === 'all' || part === 'light') && <>
-      <h3 className="prefs-eyebrow">Controller light</h3>
-      <p className="prefs-note">Default LED color and brightness for profiles that do not set their own.</p>
-      <div className="prefs-light-picker"><LightBarPicker value={prefs.ledColor} allowClear={false} disabled={!ready} onChange={ledColor => { if (ledColor) update({ ledColor }) }} /></div>
-      <NumberField label="Default brightness" value={prefs.ledBrightness} min={0} max={100} step={5} unit="%" disabled={!ready}
-        onChange={value => { if (value !== '') update({ ledBrightness: Math.min(100, Math.max(0, Number(value))) }) }} />
-      </>}
-      {(part === 'all' || part === 'calibration') && <>
-      <h3 className="prefs-eyebrow">Gyro calibration</h3>
-      <HardwareCalibrationSwitch value={prefs.disableHardwareGyroCalibration} disabled={!ready}
-        onChange={disableHardwareGyroCalibration => update({ disableHardwareGyroCalibration })} />
-      <NumberField label="Start Delay" value={prefs.gyroCalibrationDelay} min={0} max={30} step={1} unit="s" hint={delayHelp} disabled={!ready}
-        onChange={value => { if (value !== '') update({ gyroCalibrationDelay: Math.min(30, Math.max(0, Number(value))) }) }} />
-      <NumberField label="Duration" value={prefs.gyroCalibrationSeconds} min={0.5} max={60} step={1} unit="s" hint={timeHelp} disabled={!ready}
-        onChange={value => { if (value !== '') update({ gyroCalibrationSeconds: Math.min(60, Math.max(0.5, Number(value))) }) }} />
-      <p className="prefs-note">Runs from the Recalibrate button, a Calibrate gyro command binding, or a binding that loads <code>RecalibrateGyro.txt</code>.</p>
-      </>}
-      {(part === 'all' || part === 'trackpads') && <>
-      <h3 className="prefs-eyebrow">Trackpad orientation</h3>
-      <TrackpadOrientation prefs={prefs} disabled={!ready} onChange={update} />
-      </>}
-      {(part === 'all' || part === 'sounds') && <>
-      <h3 className="prefs-eyebrow">Controller sounds</h3>
-      <SoundPicker label="Connect Sound" value={prefs.connectSound} file={prefs.connectSoundFile} gain={prefs.soundGain} hint={soundHelp} onChange={(connectSound, connectSoundFile) => update({ connectSound, connectSoundFile })} />
-      <SoundPicker label="Shutdown Sound" value={prefs.shutdownSound} file={prefs.shutdownSoundFile} gain={prefs.soundGain} hint={shutdownHelp} onChange={(shutdownSound, shutdownSoundFile) => update({ shutdownSound, shutdownSoundFile })} />
-      {/* Picking a level plays the connect sound at it (or the shutdown
-          sound, when only that one is set), so it can be judged by feel. */}
-      <SoundIntensity gain={prefs.soundGain} onChange={soundGain => update({ soundGain })}
-        onPreview={gain => { const file = prefs.connectSoundFile ?? prefs.shutdownSoundFile; const sound = prefs.connectSound >= 0 ? prefs.connectSound : prefs.shutdownSound; if (file || sound >= 0) void preview(sound, gain, file ?? undefined) }} />
-      {/* Only a library sound is routed by this choice, so the preview after a
-          pick plays one of those when there is one to play. The saved
-          preference has to reach the mapper before the preview reads it. */}
-      <SoundActuatorsPicker value={prefs.soundActuators} onChange={soundActuators => update({ soundActuators })}
-        onPreview={() => { const file = prefs.connectSoundFile ?? prefs.shutdownSoundFile; if (file) setTimeout(() => void preview(-1, prefs.soundGain, file), 700) }} />
-      <JingleLevel level={prefs.bootSoundLevel} onChange={bootSoundLevel => update({ bootSoundLevel })} />
-      <button type="button" className="button button--secondary" onClick={() => setLibraryOpen(true)}>Manage sounds…</button>
-      </>}
-      {libraryOpen && <SoundLibraryDialog onClose={() => setLibraryOpen(false)} />}
-    </section>
+    <SettingsSection title="Calibration and light">
+      <div className={styles.tiles}>
+        <ValueRow label="Countdown" setting="GYRO_CALIBRATION_DELAY" global value={prefs.gyroCalibrationDelay} min={0} max={30} step={1} format={value => `${value} s`}
+          hint="Time to set it down" onChange={gyroCalibrationDelay => update({ gyroCalibrationDelay })} onReset={() => update({ gyroCalibrationDelay: 0 })} disabled={waiting} />
+        <ValueRow label="Sample" setting="GYRO_CALIBRATION_TIME" global value={prefs.gyroCalibrationSeconds} min={0.5} max={60} step={1} fineStep={0.5} format={value => `${value} s`}
+          hint="Keep it still this long" onChange={gyroCalibrationSeconds => update({ gyroCalibrationSeconds })} onReset={() => update({ gyroCalibrationSeconds: 5 })} disabled={waiting} />
+        <ValueRow label="Light" setting="LED_BRIGHTNESS" global value={prefs.ledBrightness} min={0} max={100} step={5} fineStep={1} format={value => `${value}%`}
+          hint="When a configuration sets none" onChange={ledBrightness => update({ ledBrightness })} onReset={() => update({ ledBrightness: 100 })} disabled={waiting} />
+      </div>
+      <SettingsNote>Countdown to set it down, then how long the gyro samples. Runs from Recalibrate, a Calibrate gyro binding, or a binding that loads RecalibrateGyro.txt. Light: when a configuration sets none.</SettingsNote>
+    </SettingsSection>
   )
+}
+
+// How loud the tunes play: the firmware's gain in dB.
+const LOUDNESS = [
+  { value: '-18', label: 'Quiet' },
+  { value: '-12', label: 'Soft' },
+  { value: '-6', label: 'Medium' },
+  { value: '0', label: 'Full' },
+]
+const ACTUATORS: { value: SoundActuators; label: string; caption: string }[] = [
+  { value: 'grips', label: 'Grip motors', caption: 'Where its own tunes play' },
+  { value: 'pads', label: 'Trackpads', caption: 'Thinner, quieter' },
+  { value: 'both', label: 'Both', caption: 'Grips and trackpads together' },
+]
+
+const preview = (sound: number, gain: number, soundId?: string) => desktopBridge.playControllerSound(sound, gain, soundId).then(result => {
+  if (!result.success) showToast('No controller is connected to play the sound on.', 'error')
+}).catch(error => showToast(String(error), 'error'))
+
+type SoundChoice = { key: string; label: string; sound: number; file: string | null }
+
+function SoundPickerPage({ open, title, value, file, gain, onChange, onClose }: {
+  open: boolean; title: string; value: number; file: string | null; gain: number
+  onChange: (sound: number, file: string | null) => void; onClose: () => void
+}) {
+  const { sounds } = useSoundLibrary()
+  const choices: SoundChoice[] = [
+    { key: '-1', label: 'None', sound: -1, file: null },
+    ...BUILT_IN_SOUNDS.map((name, index) => ({ key: String(index), label: name, sound: index, file: null })),
+    ...sounds.filter(sound => sound.ready).map(sound => ({ key: `file:${sound.id}`, label: sound.name, sound: value, file: sound.id })),
+  ]
+  const selected = file ? `file:${file}` : String(value)
+  return (
+    <SubPage open={open} onClose={onClose} crumbRoot="Settings" trail={['Controller', 'Controller sounds']} title={title} backLabel="Back to Controller">
+      <div className={styles.mainColumn} style={{ maxWidth: 760 }} role="radiogroup" aria-label={title}>
+        {choices.map(choice => (
+          <button key={choice.key} type="button" role="radio" aria-checked={choice.key === selected} className={styles.switchRow}
+            data-autofocus={choice.key === selected ? '' : undefined}
+            data-hints={choice.key === '-1' ? 'A:Choose;B:Back' : 'A:Choose;X:Hear it;B:Back'} data-pad-keys="X"
+            onKeyDown={event => { if ((event.key === 'x' || event.key === 'X') && choice.key !== '-1') { event.preventDefault(); void preview(choice.sound, gain, choice.file ?? undefined) } }}
+            onClick={() => { onChange(choice.sound, choice.file); onClose() }}>
+            <span className={styles.rowText}><span className={styles.rowLabel}>{choice.label}</span>{choice.file && <span className={styles.rowHint}>Your sound</span>}</span>
+            {choice.key === selected && <span className={styles.tag} data-tone="accent">Chosen</span>}
+          </button>
+        ))}
+      </div>
+    </SubPage>
+  )
+}
+
+const soundName = (sound: number, file: string | null, names: Map<string, string>) =>
+  file ? names.get(file) ?? 'Your sound' : sound >= 0 ? BUILT_IN_SOUNDS[sound] ?? `Tune ${sound}` : 'None'
+
+/** Controller sounds: On connect, On turn off, How loud, where your sounds
+ *  play, and the controller's own jingles. Y opens Your sounds. */
+export function ControllerSounds() {
+  const { prefs, ready, update } = useControllerPreferences()
+  const { sounds } = useSoundLibrary()
+  const names = new Map(sounds.map(sound => [sound.id, sound.name]))
+  const [picking, setPicking] = useState<'connect' | 'shutdown' | null>(null)
+  const [libraryOpen, setLibraryOpen] = useState(false)
+  const host = useRef<HTMLDivElement>(null)
+  usePadButton('Y', () => { setLibraryOpen(true) }, host)
+  const loudness = LOUDNESS.reduce((best, option) => Math.abs(Number(option.value) - prefs.soundGain) < Math.abs(Number(best.value) - prefs.soundGain) ? option : best)
+  const waiting = ready ? undefined : 'Reading the controller settings…'
+  const playChosen = (gain: number) => {
+    const file = prefs.connectSoundFile ?? prefs.shutdownSoundFile
+    const sound = prefs.connectSound >= 0 ? prefs.connectSound : prefs.shutdownSound
+    if (file || sound >= 0) void preview(sound, gain, file ?? undefined)
+  }
+  return (
+    <div ref={host}>
+      <SettingsSection title="Controller sounds" note="Y Your sounds"
+        action={<button type="button" className="button button--secondary button--sm" onClick={() => setLibraryOpen(true)} tabIndex={-1}>Your sounds…</button>}>
+        <OpenRow label="On connect" setting="CONNECT_SOUND" hint="Plays when the controller connects to JSM Evolved" value={soundName(prefs.connectSound, prefs.connectSoundFile, names)}
+          onOpen={() => setPicking('connect')} disabled={waiting} hints="A:Change;Y:Your sounds;B:Back" />
+        <OpenRow label="On turn off" setting="SHUTDOWN_SOUND" hint="Plays before JSM Evolved turns the controller off" value={soundName(prefs.shutdownSound, prefs.shutdownSoundFile, names)}
+          onOpen={() => setPicking('shutdown')} disabled={waiting} hints="A:Change;Y:Your sounds;B:Back" />
+        <SegmentedRow label="How loud" setting="SOUND_GAIN" global value={loudness.value} options={LOUDNESS} disabled={waiting}
+          onChange={value => { update({ soundGain: Number(value) }); playChosen(Number(value)) }} onReset={() => update({ soundGain: 0 })} />
+        <SegmentedRow label="Your sounds play on" setting="SOUND_ACTUATORS" global value={prefs.soundActuators} options={ACTUATORS} disabled={waiting}
+          onChange={value => {
+            update({ soundActuators: value as SoundActuators })
+            const file = prefs.connectSoundFile ?? prefs.shutdownSoundFile
+            if (file) setTimeout(() => void preview(-1, prefs.soundGain, file), 700)
+          }} onReset={() => update({ soundActuators: 'grips' })} />
+        <SwitchRow label="Silence its own jingles" setting="BOOT_SOUND_LEVEL"
+          hint="The Steam Controller's own power-on and power-off tunes, and its lost-connection and low-battery cues. Off brings the factory volume back."
+          on={ready ? prefs.bootSoundLevel === 0 : null} onChange={silence => update({ bootSoundLevel: silence ? 0 : 2 })} onReset={() => update({ bootSoundLevel: 2 })} />
+      </SettingsSection>
+      <SoundPickerPage open={picking === 'connect'} title="On connect" value={prefs.connectSound} file={prefs.connectSoundFile} gain={prefs.soundGain}
+        onChange={(connectSound, connectSoundFile) => update({ connectSound, connectSoundFile })} onClose={() => setPicking(null)} />
+      <SoundPickerPage open={picking === 'shutdown'} title="On turn off" value={prefs.shutdownSound} file={prefs.shutdownSoundFile} gain={prefs.soundGain}
+        onChange={(shutdownSound, shutdownSoundFile) => update({ shutdownSound, shutdownSoundFile })} onClose={() => setPicking(null)} />
+      {libraryOpen && <SoundLibraryDialog onClose={() => setLibraryOpen(false)} />}
+    </div>
+  )
+}
+
+// The 2026's pads are mounted about 10.6 degrees outward (left 10.7, right
+// -10.5, in the sense JoyShockMapper uses). Level turns each reading back by
+// that much, so a swipe straight up the controller reads as straight up. Kept
+// in step with touchpad_rotation::kLeftPadCantDegrees / kRightPadCantDegrees.
+const PAD_CANT = { left: 10.7, right: -10.5 } as const
+const nearDegrees = (a: number, b: number) => Math.abs(a - b) < 0.05
+
+/** The two pads, turned the way the setting turns their readings (STYLE-FLAT). */
+function PadsArt({ left, right }: { left: number; right: number }) {
+  const pad = (cx: number, angle: number) => (
+    <g transform={`rotate(${-angle} ${cx} 50)`}>
+      <rect x={cx - 26} y={24} width={52} height={52} rx={14} fill="var(--art-well)" stroke="var(--art-line)" strokeWidth={2} />
+      <path d={`M${cx} 32 v36 M${cx - 18} 50 h36`} stroke="var(--art-detail)" strokeWidth={1.5} strokeDasharray="3 4" />
+      <path d={`M${cx} 30 l-5 7 h10 z`} fill="var(--accent)" />
+    </g>
+  )
+  return <svg viewBox="0 0 200 100" role="img" aria-label="The trackpads">{pad(58, left)}{pad(142, right)}</svg>
+}
+
+export function TrackpadRotation() {
+  const { prefs, ready, update } = useControllerPreferences()
+  const [advanced, setAdvanced] = useState(false)
+  const preset = nearDegrees(prefs.leftPadRotation, 0) && nearDegrees(prefs.rightPadRotation, 0) ? 'mounted'
+    : nearDegrees(prefs.leftPadRotation, PAD_CANT.left) && nearDegrees(prefs.rightPadRotation, PAD_CANT.right) ? 'level' : 'custom'
+  const clampDegrees = (value: number) => Math.min(180, Math.max(-180, value))
+  const waiting = ready ? undefined : 'Reading the controller settings…'
+  return (
+    <SettingsSection title="Trackpad rotation" note={`Left ${prefs.leftPadRotation}° · Right ${prefs.rightPadRotation}° · every configuration`}>
+      <ModeCards columns={3} value={preset} onChange={value => update(value === 'level' ? { leftPadRotation: PAD_CANT.left, rightPadRotation: PAD_CANT.right } : { leftPadRotation: 0, rightPadRotation: 0 })}
+        options={[
+          { value: 'mounted', label: 'As mounted', caption: 'Each pad reads along its own edges', art: <PadsArt left={0} right={0} />, unavailable: waiting },
+          { value: 'level', label: 'Level', caption: 'Level turns them 10.7° and −10.5°, so a swipe up reads as up', art: <PadsArt left={PAD_CANT.left} right={PAD_CANT.right} />, unavailable: waiting },
+        ]}
+        more={{ label: 'Advanced', caption: preset === 'custom' ? `Your own angles` : 'Exact degrees per pad', current: preset === 'custom', onOpen: () => setAdvanced(true) }} />
+      <SubPage open={advanced} onClose={() => setAdvanced(false)} crumbRoot="Settings" trail={['Controller', 'Trackpad rotation']} title="Advanced" backLabel="Back to Controller">
+        <div className={styles.mainColumn} style={{ maxWidth: 860 }}>
+          <ValueRow label="Left pad" setting="LEFT_TOUCHPAD_ROTATION" global hint="Degrees the left pad's reading is turned; 10.7 levels it with the controller body" value={prefs.leftPadRotation}
+            min={-180} max={180} step={0.5} fineStep={0.1} format={value => `${value}°`} onChange={value => update({ leftPadRotation: clampDegrees(value) })} onReset={() => update({ leftPadRotation: 0 })} disabled={waiting} />
+          <ValueRow label="Right pad" setting="RIGHT_TOUCHPAD_ROTATION" global hint="Degrees the right pad's reading is turned; −10.5 levels it with the controller body" value={prefs.rightPadRotation}
+            min={-180} max={180} step={0.5} fineStep={0.1} format={value => `${value}°`} onChange={value => update({ rightPadRotation: clampDegrees(value) })} onReset={() => update({ rightPadRotation: 0 })} disabled={waiting} />
+          <SettingsNote>Positive is clockwise as you look at the controller. It turns menus, the touch stick, the mouse, the on-screen keyboard's touch cursor and the live touch the app draws. A configuration can still set LEFT_TOUCHPAD_ROTATION or RIGHT_TOUCHPAD_ROTATION itself; that value holds until this changes or the configuration loads again.</SettingsNote>
+        </div>
+      </SubPage>
+    </SettingsSection>
+  )
+}
+
+/** The old entry point, by part (kept for anything still asking for one). */
+export function ControllerPreferences({ part = 'all' }: { part?: 'all' | 'calibration' | 'sounds' | 'trackpads' | 'light' }) {
+  return <>
+    {(part === 'all' || part === 'light') && <DefaultLightRow />}
+    {(part === 'all' || part === 'calibration') && <><HardwareCalibrationRow /><CalibrationAndLight /></>}
+    {(part === 'all' || part === 'trackpads') && <TrackpadRotation />}
+    {(part === 'all' || part === 'sounds') && <ControllerSounds />}
+  </>
 }

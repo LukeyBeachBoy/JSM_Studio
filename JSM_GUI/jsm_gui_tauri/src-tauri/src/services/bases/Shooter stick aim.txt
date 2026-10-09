@@ -1,0 +1,50 @@
+# @base {"preset":"shooter-stick","title":"Shooter, stick aim","short":"Shooter · stick","blurb":"Classic twin-stick with a smooth aim curve.","families":["steam","playstation","xbox","nintendo","generic"],"needs":[],"order":2}
+# Shooter, stick aim. It works on every controller. It ships with JSM Evolved,
+# so it can't be changed in place: duplicate it to make your own.
+
+# Face buttons, bumpers, triggers
+S = SPACE
+E = LCONTROL
+W = R
+N = F
+L = Q
+R = G
+ZL = RMOUSE
+ZR = LMOUSE
+ZL_MODE = NO_FULL
+ZR_MODE = NO_FULL
++ = ESC
+- = TAB
+
+# The left stick moves
+LEFT_STICK_MODE = NO_MOUSE
+LUP = W
+LDOWN = S
+LLEFT = A
+LRIGHT = D
+L3 = LSHIFT
+
+# The right stick aims, slow near the centre and quicker held at the edge
+RIGHT_STICK_MODE = AIM
+STICK_SENS = 360
+STICK_POWER = 2
+STICK_ACCELERATION_RATE = 1.5
+STICK_ACCELERATION_CAP = 2
+R3 = V
+
+# The D-pad picks equipment
+UP = 1
+RIGHT = 2
+DOWN = 3
+LEFT = 4
+
+# @label S = Jump
+# @label E = Crouch
+# @label W = Reload
+# @label N = Use
+# @label ZL = Aim
+# @label ZR = Fire
+# @label L = Ability
+# @label R = Grenade
+# @label L3 = Sprint
+# @label R3 = Melee

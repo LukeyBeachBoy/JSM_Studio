@@ -1,0 +1,57 @@
+# @base {"preset":"strategy","title":"Strategy & builders","short":"Strategy","blurb":"The right stick is the mouse, a wheel of hotkeys while you hold a bumper, zoom on a trigger.","families":["playstation","xbox","nintendo","generic"],"needs":[],"order":5}
+# Strategy and builders, for controllers without the Steam Controller's
+# trackpads. It ships with JSM Evolved, so it can't be changed in place:
+# duplicate it to make your own.
+
+# The right stick moves the mouse; hold the left bumper and it is a wheel of
+# eight hotkeys
+RIGHT_STICK_MODE = AIM
+STICK_SENS = 240
+STICK_POWER = 1.5
+R3 = MMOUSE
+L,RIGHT_STICK_MODE = RADIAL_MENU
+RIGHT_STICK_MENU_SIZE = 8
+RM1 = 1
+RM2 = 2
+RM3 = 3
+RM4 = 4
+RM5 = 5
+RM6 = 6
+RM7 = 7
+RM8 = 8
+
+# A touchpad, where there is one, is the mouse as well
+TOUCHPAD_MODE = MOUSE
+CAPTURE = LMOUSE
+
+# The left stick pans the camera
+LEFT_STICK_MODE = NO_MOUSE
+LUP = W
+LDOWN = S
+LLEFT = A
+LRIGHT = D
+
+# Face buttons, bumper, D-pad
+S = LMOUSE
+E = RMOUSE
+W = LCONTROL
+N = LSHIFT
+R = TAB
+UP = F1
+RIGHT = F2
+DOWN = F3
+LEFT = F4
++ = ESC
+- = F10
+
+# Triggers zoom
+ZL = SCROLLDOWN
+ZR = SCROLLUP
+
+# @label S = Select
+# @label E = Order
+# @label W = Group
+# @label N = Add to selection
+# @label ZL = Zoom out
+# @label ZR = Zoom in
+# @label R = Next idle

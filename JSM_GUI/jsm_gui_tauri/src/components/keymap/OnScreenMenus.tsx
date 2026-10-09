@@ -1,24 +1,24 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import { MenuDrawing } from '../../overlay/MenuDrawing'
 import { SummaryRow, ExpandRow } from '../ui/SummaryRow'
-import { ButtonGlyph } from '../glyphs/ButtonGlyph'
-import { Icon } from '../icons/Icon'
-import { PAD_EVENT, type PadEventDetail } from '../../nav/useControllerNavigation'
+import { SegmentedRow, SubPage, ValueRow } from '../ui/console'
 import { defaultPosition, resolveOverlayMenus, setOverlayPlacement, type OverlayMenu, type OverlayPad, type OverlayPlacement } from '../../utils/overlayLayout'
 import { resolveIcons, type IconData } from '../../utils/iconLibrary'
 import { menuBox } from '../../utils/padGeometry'
 import { describeScreenPosition } from '../../utils/menuDescriptions'
 import { inputDisplayName } from '../../keymap/inputNames'
 import { layerHue, layerSlotOf } from '../../utils/layers'
+import styles from './OnScreenMenus.module.css'
 
-// On-screen menus (console refinement 2d, D6): a full-window view, opened from
-// the On-screen menu row of any pad or stick wheel, that draws every menu the
-// configuration has -- every layer's included -- where it sits on screen, so
-// overlaps show. The menu it was opened from is selected; LB/RB step through
-// the rest. Look and position are edited together in the panel on the right.
-// A picks the selected menu up: the left stick (or arrows) moves it, the
-// right stick resizes it, A drops it and B puts it back. B otherwise closes
-// the view and returns to the row that opened it.
+// On-screen menu (console v2; was the "On-screen menus" modal, console
+// refinement 2d): a sub-page opened from the On-screen menu row of any pad or
+// stick wheel. It draws every menu the configuration has -- every layer's
+// included -- where it sits on screen, so overlaps show. The menu it was opened
+// from is selected; LT/RT step through the rest. Position, size, text and when
+// it appears are console rows beside the preview. A on Position picks the
+// menu up: the left stick (or arrows) moves it, the right stick resizes it, A
+// drops it and B puts it back. B otherwise closes the page and returns to the
+// row that opened it.
 
 export type MenuSurface = {
   /** '' for Default, else the Studio layer's id. */
@@ -46,6 +46,8 @@ type Props = {
 type Entry = { id: string; key: string; surface: MenuSurface; menu: OverlayMenu }
 
 const SURFACE_NAMES: Record<OverlayPad, string> = { LEFT: 'Left pad', RIGHT: 'Right pad', LSTICK: 'Left stick wheel', RSTICK: 'Right stick wheel' }
+/** The breadcrumb up to the page the row sits on: Trackpads · Left pad, Sticks · Right stick. */
+const TRAIL: Record<OverlayPad, string[]> = { LEFT: ['Trackpads', 'Left pad'], RIGHT: ['Trackpads', 'Right pad'], LSTICK: ['Sticks', 'Left stick'], RSTICK: ['Sticks', 'Right stick'] }
 const splitKey = (key: string) => { const [pad, chord = ''] = key.split(':'); return { pad: pad as OverlayPad, chord } }
 const chordName = (chord: string) => chord.split(/[,+]/).map(part => inputDisplayName(part, 'generic')).join(' + ')
 const layerVar = (index: number | undefined, soft = false) => index === undefined ? undefined : layerHue(layerSlotOf(index), soft ? '-soft' : '')
@@ -82,26 +84,13 @@ export function OnScreenMenus({ open, onClose, configName, origin, originLayerId
     onChange(entry.surface.layerId, previous => setOverlayPlacement(previous, pad, chord, { ...entry.menu.placement, ...next }))
   }
 
-  // LB / RB step menus (D10) -- the pad sends them to an open view as events.
-  const view = useRef<HTMLDivElement>(null)
-  const latest = useRef({ entries, selected })
-  latest.current = { entries, selected }
-  useEffect(() => {
-    const node = view.current
-    if (!open || !node) return
-    const onPad = (event: Event) => {
-      const button = (event as CustomEvent<PadEventDetail>).detail.button
-      if (button !== 'LB' && button !== 'RB') return
-      const { entries: list, selected: current } = latest.current
-      if (!list.length) return
-      const index = Math.max(0, list.findIndex(entry => entry.id === current?.id))
-      const next = list[Math.min(list.length - 1, Math.max(0, index + (button === 'LB' ? -1 : 1)))]
-      setSelectedId(next.id)
-      event.preventDefault()
-    }
-    document.addEventListener(PAD_EVENT, onPad)
-    return () => document.removeEventListener(PAD_EVENT, onPad)
-  }, [open])
+  // LT / RT step menus (console v2: the triggers step a sub-page's parts).
+  const step = (direction: -1 | 1) => {
+    if (!entries.length) return
+    const index = Math.max(0, entries.findIndex(entry => entry.id === selected?.id))
+    const next = entries[Math.min(entries.length - 1, Math.max(0, index + direction))]
+    setSelectedId(next.id)
+  }
 
   // The monitor's own proportions and resolution ("Your screen · 2560 × 1440").
   const screenW = typeof window !== 'undefined' && window.screen?.width ? window.screen.width : 1920
@@ -148,114 +137,103 @@ export function OnScreenMenus({ open, onClose, configName, origin, originLayerId
   const showsText = shows.length ? shows.join(', ').replace(/^./, c => c.toUpperCase()) : 'Shape only'
   const describe = (entry: Entry) => {
     const { chord } = splitKey(entry.key)
-    const regions = entry.menu.regions.length
-    return `${entry.surface.layerId ? `${entry.surface.layerName} layer` : 'Default layer'}${chord ? ` · while ${chordName(chord)} is held` : ''} · ${regions} ${regions === 1 ? 'region' : 'regions'}`
+    const zones = entry.menu.regions.length
+    return `${entry.surface.layerId ? `${entry.surface.layerName} layer` : 'Default layer'}${chord ? ` · while ${chordName(chord)} is held` : ''} · ${zones} ${zones === 1 ? 'zone' : 'zones'}`
   }
+  const originPad = (origin ? splitKey(origin).pad : selected ? splitKey(selected.key).pad : 'LEFT') as OverlayPad
+  const trail = TRAIL[originPad] ?? ['Trackpads']
+  const selectedName = selected ? SURFACE_NAMES[splitKey(selected.key).pad] : ''
 
   return (
-    <div className="modal-overlay menus-overlay" onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}>
-      <div ref={view} className="menus-view" role="dialog" aria-modal="true" aria-labelledby="menus-title">
-        <button type="button" className="sheet__close" tabIndex={-1} data-nav-skip data-modal-close aria-label="Done" onClick={onClose}>
-          <Icon name="close" size={18} />
-        </button>
-        <header className="menus-view__header">
-          <div className="menus-view__title">
-            <span className="eyebrow">{configName}</span>
-            <b id="menus-title">On-screen menus</b>
-          </div>
-          {entries.length > 0 && (
-            <div className="menus-view__chips" role="tablist" aria-label="Menus">
-              <ButtonGlyph button="LB" size={22} />
-              {entries.map(entry => {
-                const { pad, chord } = splitKey(entry.key)
-                const current = entry.id === selected?.id
-                return (
-                  <button key={entry.id} type="button" role="tab" aria-selected={current} className="menus-chip" data-state={current ? 'selected' : undefined}
-                    data-nav-entry-skip="" tabIndex={current ? 0 : -1} onClick={() => setSelectedId(entry.id)} data-hints="A:Select;B:Done">
-                    <b>{SURFACE_NAMES[pad]}{chord ? ` · ${chordName(chord)}` : ''}</b>
-                    <span style={{ color: layerVar(entry.surface.colorIndex) ?? (current ? 'var(--text-2)' : 'var(--text-3)') }}>{entry.surface.layerName}</span>
-                  </button>
-                )
-              })}
-              <ButtonGlyph button="RB" size={22} />
-            </div>
-          )}
-        </header>
-
-        {entries.length === 0 ? (
-          <p className="menus-view__empty">No on-screen menus yet. Set a pad to Menu, or a stick to a radial menu, and bind a region; its menu appears here.</p>
-        ) : (
-          <div className="menus-view__body">
-            <div className="menus-view__screen-col">
-              <div ref={screenRef} className="menus-screen" style={{ aspectRatio: String(screenAspect) } as CSSProperties}
-                onPointerMove={onPointerMove} onPointerUp={() => { drag.current = null }} onPointerLeave={() => { drag.current = null }}>
-                <span className="menus-screen__label">Your screen · {Math.round(screenW * ratio)} × {Math.round(screenH * ratio)}</span>
+    <SubPage open={open} onClose={onClose} trail={trail} title="On-screen menu" backLabel="Done"
+      stepLabel={entries.length > 1 ? 'Menu' : undefined} onStep={entries.length > 1 ? step : undefined}
+      where={`${configName} · ${trail.join(' · ')} · On-screen menu${selectedName ? ` · ${selectedName}` : ''}`}>
+      {entries.length === 0 ? (
+        <p className={styles.empty}>No on-screen menus yet. Set a pad to Zones, or a stick to Picking from a wheel, and bind a zone; its menu appears here.</p>
+      ) : (
+        <div className={styles.body} data-on-screen-menu="">
+          <div className={styles.screenCol}>
+            {(
+              <div className={styles.menus} role="tablist" aria-label="Menus">
+                <span className={styles.menusLabel}>Menus</span>
                 {entries.map(entry => {
-                  const aspect = entry.menu.shape === 'RADIAL' || entry.menu.shape === 'EIGHT_WAY' ? 1 : padAspect
-                  const box = menuBox(entry.menu.placement.size, aspect)
+                  const { pad, chord } = splitKey(entry.key)
                   const current = entry.id === selected?.id
-                  const widthPct = (box.width / screenW) * 100
-                  const heightPct = (box.height / screenH) * 100
                   return (
-                    <div key={entry.id} className="menus-screen__menu" data-state={current ? 'selected' : undefined} data-carrying={current && carrying ? 'true' : undefined}
-                      style={{
-                        left: `${entry.menu.placement.x * 100}%`, top: `${entry.menu.placement.y * 100}%`, width: `${widthPct}%`, height: `${heightPct}%`,
-                        ['--menu-ring' as string]: current ? 'var(--focus-controller)' : layerVar(entry.surface.colorIndex) ?? 'var(--line-2)',
-                      } as CSSProperties}
-                      onPointerDown={onPointerDown(entry, 'move')} aria-hidden="true">
-                      <ScaledMenu menu={entry.menu} icons={icons} aspect={aspect} />
-                      {current && <span className="menus-screen__handle" onPointerDown={onPointerDown(entry, 'resize')} />}
-                    </div>
+                    <button key={entry.id} type="button" role="tab" aria-selected={current} className="menus-chip" data-state={current ? 'selected' : undefined}
+                      data-nav-entry-skip="" tabIndex={current ? 0 : -1} onClick={() => setSelectedId(entry.id)} data-hints="A:Select">
+                      <b>{SURFACE_NAMES[pad]}{chord ? ` · ${chordName(chord)}` : ''}</b>
+                      <span style={{ color: layerVar(entry.surface.colorIndex) ?? (current ? 'var(--text-2)' : 'var(--text-3)') }}>{entry.surface.layerName}</span>
+                    </button>
                   )
                 })}
               </div>
-              <p className="menus-view__note">A picks up the selected menu. Move it with the left stick and resize it with the right stick, then A to drop or B to put it back.</p>
-            </div>
-
-            {selected && placement && (
-              <div className="menus-view__panel" data-nav-region="menu-rows">
-                <div className="menus-view__menu-name">
-                  <b>{SURFACE_NAMES[splitKey(selected.key).pad]}</b>
-                  <span>{describe(selected)}</span>
-                </div>
-                <SummaryRow size="sheet" label="Position" value={describeScreenPosition(placement.x, placement.y)} hints="A:Pick up;Y:Reset position;B:Done"
-                  data={{ 'data-autofocus': '' }}
-                  onUseDefault={() => write(selected, defaultPosition(splitKey(selected.key).pad))}
-                  adjust={{
-                    kind: 'custom',
-                    onBegin: () => { pickedFrom.current = { ...placement }; setCarrying(true) },
-                    onEnd: revert => { if (revert && pickedFrom.current) write(selected, pickedFrom.current); pickedFrom.current = null; setCarrying(false) },
-                    onArrow: key => {
-                      const step = 0.01
-                      const [dx, dy] = key === 'ArrowLeft' ? [-step, 0] : key === 'ArrowRight' ? [step, 0] : key === 'ArrowUp' ? [0, -step] : [0, step]
-                      write(selected, { x: Math.min(1, Math.max(0, placement.x + dx)), y: Math.min(1, Math.max(0, placement.y + dy)) })
-                    },
-                    onStick: (_dx, dy) => write(selected, { size: Math.round(Math.min(900, Math.max(120, placement.size - dy * 0.4))) }),
-                  }} />
-                <SummaryRow size="sheet" label="Width" mono value={`${Math.round(placement.size)} px`}
-                  adjust={{ kind: 'number', value: Math.round(placement.size), min: 120, max: 900, step: 10, onChange: value => write(selected, { size: value }) }} />
-                <SummaryRow size="sheet" label="Text size" mono value={`${Math.round(placement.fontSize)} px`}
-                  adjust={{ kind: 'number', value: Math.round(placement.fontSize), min: 8, max: 48, step: 1, onChange: value => write(selected, { fontSize: value }) }} />
-                <ExpandRow size="sheet" label="Shows" value={showsText}>
-                  <SummaryRow size="sheet" label="Action names" toggle={{ on: placement.showLabels, onChange: on => write(selected, { showLabels: on }) }} />
-                  <SummaryRow size="sheet" label="Keys" hint="The key or button each region sends" toggle={{ on: placement.showKeys, onChange: on => write(selected, { showKeys: on }) }} />
-                  <SummaryRow size="sheet" label="Icons" hint="The icons regions were given" toggle={{ on: placement.showIcons !== false, onChange: on => write(selected, { showIcons: on }) }} />
-                </ExpandRow>
-                <SummaryRow size="sheet" label="Appears"
-                  help="While navigating: show on pad contact or stick deflection beyond its inner deadzone. In an action region: show on a grid cell or beyond a radial menu's centre deadzone. Never: hide the overlay while keeping bindings and the editor preview available. Visibility does not determine when actions run."
-                  adjust={{ kind: 'choice', value: placement.reveal, options: [{ value: 'touch', label: 'While navigating' }, { value: 'ring', label: 'In an action region' }, { value: 'never', label: 'Never' }], onChange: value => write(selected, { reveal: value as 'ring' | 'touch' | 'never' }) }} />
-                <div className="menus-view__spacer" />
-                <footer className="sheet__footer" aria-label="Controls">
-                  <span className="sheet__hint"><ButtonGlyph button="A" size={24} />Pick up</span>
-                  <span className="sheet__hint"><ButtonGlyph button="Y" size={24} />Reset position</span>
-                  <span className="sheet__hint"><ButtonGlyph button="B" size={24} />Done</span>
-                </footer>
-              </div>
             )}
+            <div ref={screenRef} className="menus-screen" style={{ aspectRatio: String(screenAspect) } as CSSProperties}
+              onPointerMove={onPointerMove} onPointerUp={() => { drag.current = null }} onPointerLeave={() => { drag.current = null }}>
+              <span className="menus-screen__label">Your screen · {Math.round(screenW * ratio)} × {Math.round(screenH * ratio)}</span>
+              {entries.map(entry => {
+                const aspect = entry.menu.shape === 'RADIAL' || entry.menu.shape === 'EIGHT_WAY' ? 1 : padAspect
+                const box = menuBox(entry.menu.placement.size, aspect)
+                const current = entry.id === selected?.id
+                const widthPct = (box.width / screenW) * 100
+                const heightPct = (box.height / screenH) * 100
+                return (
+                  <div key={entry.id} className="menus-screen__menu" data-state={current ? 'selected' : undefined} data-carrying={current && carrying ? 'true' : undefined}
+                    style={{
+                      left: `${entry.menu.placement.x * 100}%`, top: `${entry.menu.placement.y * 100}%`, width: `${widthPct}%`, height: `${heightPct}%`,
+                      ['--menu-ring' as string]: current ? 'var(--focus-controller)' : layerVar(entry.surface.colorIndex) ?? 'var(--line-2)',
+                    } as CSSProperties}
+                    onPointerDown={onPointerDown(entry, 'move')} aria-hidden="true">
+                    <ScaledMenu menu={entry.menu} icons={icons} aspect={aspect} />
+                    {current && <span className="menus-screen__handle" onPointerDown={onPointerDown(entry, 'resize')} />}
+                  </div>
+                )
+              })}
+            </div>
           </div>
-        )}
-      </div>
-    </div>
+
+          {selected && placement && (
+            <div className={styles.panel} data-nav-region="menu-rows">
+              <div className={styles.panelHead}>
+                <b>{selectedName}</b>
+                <span>{describe(selected)}</span>
+              </div>
+              <SummaryRow size="sheet" label="Position" hint="Drag it on the preview, or pick it up and move it" value={describeScreenPosition(placement.x, placement.y)} hints="A:Pick up;Y:Reset position"
+                data={{ 'data-autofocus': '' }}
+                onUseDefault={() => write(selected, defaultPosition(splitKey(selected.key).pad))}
+                adjust={{
+                  kind: 'custom',
+                  onBegin: () => { pickedFrom.current = { ...placement }; setCarrying(true) },
+                  onEnd: revert => { if (revert && pickedFrom.current) write(selected, pickedFrom.current); pickedFrom.current = null; setCarrying(false) },
+                  onArrow: key => {
+                    const step = 0.01
+                    const [dx, dy] = key === 'ArrowLeft' ? [-step, 0] : key === 'ArrowRight' ? [step, 0] : key === 'ArrowUp' ? [0, -step] : [0, step]
+                    write(selected, { x: Math.min(1, Math.max(0, placement.x + dx)), y: Math.min(1, Math.max(0, placement.y + dy)) })
+                  },
+                  onStick: (_dx, dy) => write(selected, { size: Math.round(Math.min(900, Math.max(120, placement.size - dy * 0.4))) }),
+                }} />
+              <ValueRow label="Width" value={Math.round(placement.size)} min={120} max={900} step={10} format={value => `${value} px`}
+                onChange={value => write(selected, { size: value })} />
+              <ValueRow label="Text size" value={Math.round(placement.fontSize)} min={8} max={48} step={1} format={value => `${value} px`}
+                onChange={value => write(selected, { fontSize: value })} />
+              <ExpandRow size="sheet" label="Shows" value={showsText}>
+                <SummaryRow size="sheet" label="Action names" toggle={{ on: placement.showLabels, onChange: on => write(selected, { showLabels: on }) }} />
+                <SummaryRow size="sheet" label="Keys" hint="The key or button each zone sends" toggle={{ on: placement.showKeys, onChange: on => write(selected, { showKeys: on }) }} />
+                <SummaryRow size="sheet" label="Icons" hint="The icons zones were given" toggle={{ on: placement.showIcons !== false, onChange: on => write(selected, { showIcons: on }) }} />
+              </ExpandRow>
+              <SegmentedRow label="Appears" value={placement.reveal}
+                options={[
+                  { value: 'touch', label: 'On touch', caption: 'Shows as soon as the pad is touched or the stick moves.' },
+                  { value: 'ring', label: 'In a zone', caption: 'Shows once a zone is reached; hidden in the middle.' },
+                  { value: 'never', label: 'Never', caption: 'Hidden in game. Its zones still fire.' },
+                ]}
+                onChange={value => write(selected, { reveal: value as 'ring' | 'touch' | 'never' })} />
+            </div>
+          )}
+        </div>
+      )}
+    </SubPage>
   )
 }
 

@@ -6,11 +6,14 @@ import { initI18n } from './i18n'
 import { markFor } from './brand/brand'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { initTheme } from './hooks/useTheme'
+import { initDisplayPrefs } from './hooks/useDisplayPrefs'
 import { currentAccent, initAccent } from './hooks/useAccent'
 
 void restoreAppearance().then(() => {
   // Before anything draws, so a Light or System choice never flashes dark.
   initTheme()
+  // Console v2: screen distance and config names, also before the first paint.
+  initDisplayPrefs()
   // The main window owns the window and tray icons; they follow the accent.
   initAccent({ syncIcons: true })
 

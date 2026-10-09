@@ -133,7 +133,10 @@ pub fn initialize(app: &AppHandle) -> Result<(),String> {
 fn capture_profile()->String {
     // NONE is a binding value, not a supported TouchpadMode. Use the grid
     // with cleared bindings and silence touch sticks even if OnReset enables them.
-    let mut text=String::from("RESET_MAPPINGS\nGYRO_SENS = 0\nMIN_GYRO_SENS = 0\nMAX_GYRO_SENS = 0\nLEFT_STICK_MODE = NO_MOUSE\nRIGHT_STICK_MODE = NO_MOUSE\nMOTION_STICK_MODE = NO_MOUSE\nTOUCHPAD_MODE = GRID_AND_STICK\nLEFT_TOUCHPAD_MODE = GRID_AND_STICK\nRIGHT_TOUCHPAD_MODE = GRID_AND_STICK\nTOUCH_STICK_MODE = NO_MOUSE\nLEFT_TOUCH_STICK_MODE = NO_MOUSE\nRIGHT_TOUCH_STICK_MODE = NO_MOUSE\nVIRTUAL_CONTROLLER = NONE\nAUTOLOAD = OFF\n");
+    let mut text=String::from("RESET_MAPPINGS\nGYRO_SENS = 0\nMIN_GYRO_SENS = 0\nMAX_GYRO_SENS = 0\nLEFT_STICK_MODE = NO_MOUSE\nRIGHT_STICK_MODE = NO_MOUSE\nMOTION_STICK_MODE = NO_MOUSE\nTOUCHPAD_MODE = GRID_AND_STICK\nLEFT_TOUCHPAD_MODE = GRID_AND_STICK\nRIGHT_TOUCHPAD_MODE = GRID_AND_STICK\nTOUCH_STICK_MODE = NO_MOUSE\nLEFT_TOUCH_STICK_MODE = NO_MOUSE\nRIGHT_TOUCH_STICK_MODE = NO_MOUSE\nAUTOLOAD = OFF\n");
+    // No VIRTUAL_CONTROLLER line: the capture keeps the virtual pad plugged in
+    // (idle, since nothing above is bound to it). Unplugging it on every open
+    // made Steam announce an Xbox 360 controller leaving and coming back.
     let inputs="UP DOWN LEFT RIGHT L ZL - E S N W R ZR + HOME LSL LSR RSL RSR L3 R3 LEAN_LEFT LEAN_RIGHT MIC LUP LDOWN LLEFT LRIGHT LRING RUP RDOWN RLEFT RRIGHT RRING MUP MDOWN MLEFT MRIGHT MRING TOUCH LTOUCH RTOUCH LMINI RMINI MISC1 MISC2 MISC3 MISC4 MISC5 MISC6 ZLF CAPTURE ZRF TUP TDOWN TLEFT TRIGHT TRING";
     for input in inputs.split_whitespace() { text.push_str(&format!("{input} = NONE\n")); }
     for prefix in ["T","LT","RT","LM","RM"] { for i in 1..=25 { text.push_str(&format!("{prefix}{i} = NONE\n")); } }
@@ -388,7 +391,11 @@ pub fn on_packet(app:&AppHandle,packet:&Value) {
         let d=e.owner.and_then(|id|devices.iter().find(|d|d["handle"].as_i64()==Some(id)))
             .or_else(||if e.owner.is_none(){devices.first()} else {None});
         if let Some(d)=d {
-            let captured=packet["activeProfile"].as_str().unwrap_or("").replace('\\',"/")==CAPTURE;
+            // The capture is held per controller (a device chord), so that
+            // controller reports it, not the packet's whole-mapper profile;
+            // checking only the latter left the keyboard waiting, invisible.
+            let is_capture=|value:&Value|value.as_str().unwrap_or("").replace('\\',"/")==CAPTURE;
+            let captured=is_capture(&d["activeProfile"]) || is_capture(&packet["activeProfile"]);
             if e.frame.open && e.frame.ready && e.armed && !guide && !GLOBAL.load(Ordering::Relaxed) {
                 transform=transform_input(&mut e,d);
             }

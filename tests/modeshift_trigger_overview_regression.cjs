@@ -6,8 +6,8 @@
 // - Holding it said "29 shifted": every config key counted as an input. It is
 //   one input, the right trackpad, and the status names it ("Left held → Right pad").
 // - The D-pad Left row carried an "Inspect uses" button that opened a list of
-//   raw keys ("Rt2 → NONE →"). The row now carries a modeshift tile naming
-//   the pad, and the inspector shows one modeshift row per input changed.
+//   raw keys ("Rt2 → NONE →"). The D callout's focus card now names the pad
+//   it changes, and the inspector (Every use) shows one row per input changed.
 // In the dev mock (?mock), with its scriptable window.__pad.
 const assert = require('node:assert/strict');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
@@ -28,26 +28,31 @@ const PROFILE = [
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: Number(process.env.JSM_SHOT_SCALE || 1) });
     const errors = []; page.on('pageerror', e => errors.push(e.message));
     await page.goto((process.env.JSM_TEST_URL || 'http://127.0.0.1:1420') + '/?mock');
+    // A Steam Controller's first connection asks about its power-on sound.
+    await page.addLocatorHandler(page.getByRole('button',{name:'Keep them',exact:true}), async () => { await page.getByRole('button',{name:'Keep them',exact:true}).click() });
     await page.waitForFunction(() => window.__pad && document.querySelector('.titlebar') && window.electronAPI?.saveLibraryProfile);
     await page.waitForTimeout(800);
     await page.evaluate(text => window.electronAPI.saveLibraryProfile('Cyberpunk', text), PROFILE);
     await page.evaluate(() => [...document.querySelectorAll('.titlebar button')].find(b => /Home/.test(b.textContent))?.click());
     await page.waitForTimeout(700);
-    await page.evaluate(() => [...document.querySelectorAll('button, a')].find(b => b.textContent.trim().startsWith('Configurations'))?.click());
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('jsm:navigate-page', { detail: 'configurations' })));
     await page.locator('[data-profile="Cyberpunk"] > button').first().focus();
     await page.keyboard.press('Enter');
-    const left = page.locator('[data-overview-input="LEFT"]');
-    await left.waitFor({ timeout: 10000 });
+    // Layout (console v2): the D-pad is one callout (D) standing for all four.
+    const row = page.locator('[data-overview-slot="dpad"]');
+    await row.waitFor({ timeout: 10000 });
     await page.waitForTimeout(2500);
+    assert.ok((await row.getAttribute('data-overview-inputs')).split(' ').includes('LEFT'), 'D-pad Left is part of the D callout');
 
-    // The D-pad Left row: a modeshift tile naming the pad, no "Inspect uses".
-    const row = left.locator('xpath=..');
+    // Its focus card names the pad D-pad Left changes; no "Inspect uses".
     assert.equal(await page.getByText('Inspect uses').count(), 0, 'an "Inspect uses" button is still drawn');
-    const tile = row.locator('button[data-concept="shift"]');
-    assert.equal((await tile.innerText()).trim(), 'Right pad', 'the tile does not name the right pad');
-    assert.match(await tile.getAttribute('title'), /Right trackpad/);
-    // LSL shifts two buttons: a count, in its chip.
-    assert.match(await page.locator('[data-overview-input="LSL"]').innerText(), /Shifts 2/);
+    await row.focus();
+    const card = page.locator('[data-focus-card="dpad"]');
+    await card.waitFor();
+    assert.match(await card.innerText(), /while held, changes Right trackpad/, 'the card does not name the right pad');
+    assert.doesNotMatch(await card.innerText(), /RT\d|NONE|29/, 'nor counts the pad\'s keys');
+    // LSL shifts two buttons: a count, on its one line.
+    assert.match(await page.locator('[data-overview-input="LSL"]').innerText(), /changes 2 while held/);
     await row.scrollIntoViewIfNeeded();
     if (process.env.JSM_SHOT_DIR) await page.screenshot({ path: `${process.env.JSM_SHOT_DIR}/overview-dpad-left.png` });
 
@@ -59,9 +64,10 @@ const PROFILE = [
     await page.evaluate(() => window.__pad.release(['LEFT']));
     await page.waitForTimeout(300);
 
-    // The inspector: one Right trackpad row, described, not 29 key rows.
-    await tile.click();
-    const sheet = page.getByRole('dialog');
+    // The inspector (Every use, jsm:input-uses): one Right trackpad row,
+    // described, not 29 key rows.
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('jsm:input-uses', { detail: 'LEFT' })));
+    const sheet = page.getByRole('dialog').filter({ hasText: /Where D-Pad Left is used/i });
     await sheet.waitFor();
     assert.match(await sheet.innerText(), /Where D-Pad Left is used/i);
     const rows = sheet.locator('button[data-hints="A:Open;B:Close"]');

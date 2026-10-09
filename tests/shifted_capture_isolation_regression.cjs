@@ -64,48 +64,58 @@ assert.ok(normalIds.some(id => shiftedIds.includes(id)), 'the ids no longer coll
     }, PROFILE);
     await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
     // The app opens on Home (console refinement 2a); these checks start in the editing shell.
+    // A Steam Controller's first connection asks about its power-on sound.
+    await page.getByRole('button', { name: 'Keep them', exact: true }).click({ timeout: 5000 }).catch(() => {});
     await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
     await page.locator('.profile-chip').waitFor();
     await page.getByRole('button', { name: 'Buttons', exact: true }).click();
 
-    // A shift is a row in the input's Modeshifts lane; its cog opens the
-    // shift's sheet with its commands as ordinary rows (3c).
-    await page.locator('details[data-input-command="S"] > summary').first().click();
-    await page.locator('details[data-input-command="S"][open] [data-modeshift-row="RSR"]').getByRole('button', { name: 'Modeshift settings' }).click();
-    const shifted = page.locator('[data-input-command="RSR,S"]').first();
-    const keycap = shifted.locator('[data-command-row]').first().getByRole('button', { name: /^Choose action/ });
-    await keycap.waitFor();
-    const pickKey = async key => {
-      await keycap.click();
-      await page.getByRole('dialog', { name: 'Choose an action' }).locator('button.key-cap').filter({ hasText: new RegExp(`^${key}$`) }).click();
+    // A shift is a row of the input's While holding page; "Every way of
+    // pressing, while held" opens its own binding sheet (console v2).
+    const eff = (text, key) => {
+      const lines = text.split('\n');
+      const own = lines.filter(line => line.startsWith(`# @controller type-24 ${key} = `)).pop();
+      const shared = lines.filter(line => line.startsWith(`${key} = `)).pop();
+      const line = own ? own.slice('# @controller type-24 '.length) : shared;
+      return line ? line.slice(key.length + 3).trim() : undefined;
     };
+    await page.getByRole('button', { name: 'Keep them', exact: true }).click({ timeout: 3000 }).catch(() => {});
+    await page.locator('details[data-input-command="S"] > summary').first().click();
+    await page.locator('details[data-input-command="S"][open] [data-fold="while-holding"]').click();
+    await page.locator('[data-modeshift-row="RSR"]').click();
+    await page.getByRole('button', { name: /Every way of pressing/ }).click();
+    const shifted = page.locator('[data-input-command="RSR,S"]').first();
+    await shifted.locator('[data-binding-sheet]').waitFor();
     const normal = page.locator('details[data-input-command="S"]').first();
 
-    // --- the action picker on the shifted card -------------------------------
-    await pickKey('Tab');
+    // --- the key picker on the shifted sheet ---------------------------------
+    await shifted.locator('[data-when="regular"]').focus();
+    await shifted.locator('[data-kind="key"]').click();
+    const picker = page.getByRole('dialog', { name: /Pick a key/ });
+    await picker.getByRole('button', { name: 'Common in games', exact: true }).click();
+    await picker.getByRole('button', { name: /^Tab( ·|$)/ }).first().click();
+    await picker.waitFor({ state: 'detached' });
     await page.keyboard.press('Control+s');
     await page.waitForFunction(() => /RSR,S = TAB/.test(window.__lastSaved || ''));
     const withTab = await page.evaluate(() => window.__lastSaved);
-    assert.match(withTab, /^RSR,S = TAB$/m, `the picker did not reach the shifted binding:\n${withTab}`);
-    assert.match(withTab, /^S = SPACE$/m, `the picker changed the unshifted binding:\n${withTab}`);
+    assert.equal(eff(withTab, 'RSR,S'), 'TAB', `the picker did not reach the shifted binding:\n${withTab}`);
+    assert.equal(eff(withTab, 'S'), 'SPACE', `the picker changed the unshifted binding:\n${withTab}`);
 
-    // --- and capture on the shifted card -------------------------------------
-    // "Capture a key" adds a command to the card it is on (binding card
-    // review 1): only that card's Capture button should be listening, and the
+    // --- and Listen for a key on the shifted sheet ---------------------------
+    // Also send ▸ the key picker's X adds a command to the sheet it is on: the
     // key lands on the shifted line, after what it already sends.
-    await shifted.getByRole('button', { name: 'Capture a key' }).click();
-    const capturing = await page.locator('button[data-capturing="true"]').count();
-    assert.equal(capturing, 1, `${capturing} capture buttons are waiting for the same capture`);
-    assert.equal(await shifted.locator('button[data-capturing="true"]').count(), 1, 'the shifted card is not the one waiting');
-    assert.equal(await page.locator('[data-command-row][data-capturing="true"]').count(), 0, 'an existing command is waiting to be overwritten');
+    await shifted.getByRole('button', { name: 'Also send' }).click();
+    await picker.waitFor();
+    await page.keyboard.press('x');
+    await page.waitForFunction(() => document.body.dataset.bindingCapture === 'true');
     await page.keyboard.press('KeyJ');
     await page.waitForTimeout(500);
 
     await page.keyboard.press('Control+s');
     await page.waitForFunction(() => /RSR,S = TAB\\ J\\/.test(window.__lastSaved || ''));
     const saved = await page.evaluate(() => window.__lastSaved);
-    assert.match(saved, /^RSR,S = TAB\\ J\\$/m, `the capture did not reach the shifted binding as a second press:\n${saved}`);
-    assert.match(saved, /^S = SPACE$/m, `the capture landed on the unshifted binding instead:\n${saved}`);
+    assert.equal(eff(saved, 'RSR,S'), 'TAB\\ J\\', `the capture did not reach the shifted binding as a second press:\n${saved}`);
+    assert.equal(eff(saved, 'S'), 'SPACE', `the capture landed on the unshifted binding instead:\n${saved}`);
     assert.ok(await normal.count(), 'the unshifted row disappeared');
 
     assert.deepEqual(errors, []);

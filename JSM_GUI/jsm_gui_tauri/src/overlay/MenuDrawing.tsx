@@ -99,7 +99,7 @@ export function MenuDrawing({ menu, icons, onRegionRef, onDotRef, onSelect, sele
                       ? { clipPath: radialSegmentClip(index, segments, menu.deadzone) }
                       : undefined
                 }
-                title={region.binding ? explainBinding(region.binding, t) : undefined}
+                data-caption={region.binding ? explainBinding(region.binding, t) : undefined}
                 data-selected={selectedCommand === region.command ? "true" : "false"}
                 data-bound={region.label || region.binding ? 'true' : 'false'}
               >

@@ -1,289 +1,367 @@
 import { useEffect, useRef, useState } from 'react'
-import { useTranslation } from 'react-i18next'
 import { desktopBridge, type GlobalChord } from '../platform/desktopBridge'
+import { shellBridge } from '../platform/shellBridge'
 import type { TelemetryDevice } from '../hooks/useTelemetry'
-import { controllerSupportsInput } from '../utils/controllerStatus'
+import { controllerSupportsInput, controllerButtonLabel, controllerVisualFamily } from '../utils/controllerStatus'
 import { controllerModelKey, controllerVariantLabel } from '../utils/controllerLayouts'
 import { showToast } from '../utils/toast'
-import { controllerButtonLabel, controllerVisualFamily } from '../utils/controllerStatus'
 import { InputGlyph } from './glyphs/InputGlyph'
 import {
-  BUMPER_BUTTONS,
-  CENTER_BUTTONS,
-  DPAD_BUTTONS,
-  FACE_BUTTONS,
-  LEFT_STICK_BUTTONS,
-  MISC_BUTTONS,
-  PADDLE_BUTTONS,
-  RIGHT_STICK_BUTTONS,
-  TRIGGER_BUTTONS,
-  TOUCH_BUTTONS,
-  type ButtonDefinition,
+  BUMPER_BUTTONS, CENTER_BUTTONS, DPAD_BUTTONS, FACE_BUTTONS, LEFT_STICK_BUTTONS, MISC_BUTTONS, PADDLE_BUTTONS,
+  RIGHT_STICK_BUTTONS, TRIGGER_BUTTONS, TOUCH_BUTTONS, type ButtonDefinition,
 } from '../keymap/schema'
-import { AppSelect } from './ui/AppSelect'
+import { OpenRow, SubPage } from './ui/console'
+import { SettingsNote, SettingsSection } from './settings/SettingsKit'
+import { usePressCapture } from './settings/usePressCapture'
+import { useShell } from '../shell/ShellContext'
+import settingsStyles from './settings/Settings.module.css'
 import styles from './GlobalChordsPage.module.css'
 
-// A chord is "just a configuration": the button picker below decides when it
-// loads, but editing what it *does* happens on the normal config pages, by
-// switching the Configuration dropdown to it. No separate editor here.
+// Settings ▸ Hold to swap (console v2, SettingsHoldToSwap.dc.html and
+// SettingsHoldToSwapCopy): hold a button, or a few together, to swap in a
+// whole other configuration; let go to come back. Each entry is a card with a
+// Holding / Let go picture. A changes the buttons by pressing them, X opens
+// the configuration to edit what it does, Y the rest (order, controller,
+// configuration, remove). When two match, the higher card wins.
 
-const BUTTON_GROUPS: Array<{ titleKey: string; buttons: ButtonDefinition[] }> = [
-  { titleKey: 'keymap.faceButtonsTitle', buttons: FACE_BUTTONS },
-  { titleKey: 'keymap.dpadTitle', buttons: DPAD_BUTTONS },
-  { titleKey: 'keymap.bumpersTitle', buttons: BUMPER_BUTTONS },
-  { titleKey: 'keymap.triggersTitle', buttons: TRIGGER_BUTTONS },
-  { titleKey: 'keymap.centerButtonsTitle', buttons: CENTER_BUTTONS },
-  { titleKey: 'keymap.touchpadTitle', buttons: TOUCH_BUTTONS },
-  { titleKey: 'keymap.paddlesTitle', buttons: PADDLE_BUTTONS },
-  { titleKey: 'keymap.leftStickTitle', buttons: LEFT_STICK_BUTTONS },
-  { titleKey: 'keymap.rightStickTitle', buttons: RIGHT_STICK_BUTTONS },
-  { titleKey: 'keymap.extraButtonsTitle', buttons: MISC_BUTTONS },
-]
-const ALL_BUTTONS = BUTTON_GROUPS.flatMap(group => group.buttons)
-const buttonLabel = (command: string, family: ReturnType<typeof controllerVisualFamily> = 'generic') => {
-  const definition = ALL_BUTTONS.find(button => button.command.toUpperCase() === command)
-  return definition ? controllerButtonLabel(definition, family) : command
-}
+const ALL_BUTTONS: ButtonDefinition[] = [FACE_BUTTONS, DPAD_BUTTONS, BUMPER_BUTTONS, TRIGGER_BUTTONS, CENTER_BUTTONS, TOUCH_BUTTONS, PADDLE_BUTTONS, LEFT_STICK_BUTTONS, RIGHT_STICK_BUTTONS, MISC_BUTTONS].flat()
 
-const BUILTIN_NAME = 'Default Global Chords'
-const isBuiltin = (chord: GlobalChord) => profileNameFromPath(chord.profilePath) === BUILTIN_NAME
-
-const CREATE_NEW = '__create_new__'
+export const BUILTIN_NAME = 'Default Global Chords'
+/** The built-in entry's name on screen (console v2: "Quick tools"). */
+export const BUILTIN_DISPLAY = 'Quick tools'
+const COPY_NAME = 'My Quick tools'
 const PROFILE_PREFIX = 'profiles-library/'
-
 const profileNameFromPath = (path: string) => path.replace(PROFILE_PREFIX, '').replace(/\.txt$/, '')
 const profilePathFromName = (name: string) => `${PROFILE_PREFIX}${name}.txt`
+const isBuiltin = (chord: GlobalChord) => profileNameFromPath(chord.profilePath) === BUILTIN_NAME
+const displayName = (chord: GlobalChord) => isBuiltin(chord) ? BUILTIN_DISPLAY : profileNameFromPath(chord.profilePath)
+const groupsOf = (chord: GlobalChord) => chord.triggerGroups?.length ? chord.triggerGroups : [chord.buttons]
 
 let idCounter = 0
 const nextId = () => `chord-${Date.now().toString(36)}-${(idCounter += 1)}`
 
 type GlobalChordsPageProps = {
-  /** The chord watcher (services/global_chords.rs) reads chords.json on its own
-   *  short poll; this just lets other panels (the profile picker) refresh in sync. */
+  /** Open a configuration to edit what it does. */
   onEditConfiguration?: (name: string) => void
   onChordsChanged?: () => void
   devices?: TelemetryDevice[]
+  /** The configuration live under the swap ("Let go · Wardogs"). */
+  currentName?: string | null
 }
 
-export function GlobalChordsPage({ onEditConfiguration, onChordsChanged, devices }: GlobalChordsPageProps) {
-  const { t } = useTranslation()
+/** Holding / Let go: the swapped-in configuration over the one you come back to. */
+function SwapPicture({ holding, letGo }: { holding: string; letGo: string }) {
+  return (
+    <span className={styles.picture} aria-hidden="true">
+      <span className={styles.paneHolding}><small>Holding</small><b>{holding}</b></span>
+      <span className={styles.paneLetGo}><small>Let go</small><b>{letGo}</b></span>
+    </span>
+  )
+}
+
+export function GlobalChordsPage({ onEditConfiguration, onChordsChanged, devices, currentName }: GlobalChordsPageProps) {
+  const shell = useShell()
+  const family = devices?.[0] ? controllerVisualFamily(devices[0].type) : shell.family
   const [chords, setChords] = useState<GlobalChord[]>([])
   const [profiles, setProfiles] = useState<string[]>([])
-  const [protectedChord, setProtectedChord] = useState<GlobalChord | null>(null)
   const [loaded, setLoaded] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [open, setOpen] = useState<string | null>(null)
-  // A destructive confirmation starts on Cancel (System States 17g): it is the
-  // dialog's first control, which useKeyboardNav focuses when the overlay
-  // appears. Focusing it here instead would run before that hook records the
-  // Remove button as where to return, and B would leave focus nowhere.
+  // The entry whose Y page is open, the one its buttons are being pressed for,
+  // the "Add one" page, and a removal waiting for its answer.
+  const [entry, setEntry] = useState<string | null>(null)
+  const [capturingFor, setCapturingFor] = useState<{ id: string; group: number } | null>(null)
+  const [adding, setAdding] = useState(false)
+  const [listFor, setListFor] = useState<{ id: string; group: number } | null>(null)
   const [confirming, setConfirming] = useState<GlobalChord | null>(null)
-  // Disabling the fieldset while a save is in flight drops focus; the pad
-  // would otherwise restart from the top of the page after every chip.
-  const focusReturn = useRef<HTMLElement | null>(null)
-  useEffect(() => {
-    if (busy || !focusReturn.current) return
-    if (focusReturn.current.isConnected) focusReturn.current.focus()
-    focusReturn.current = null
-  }, [busy])
-  // The header's "+ Add chord" asks for a new one.
-  useEffect(() => {
-    const add = () => void addNewChord()
-    window.addEventListener('jsm:add-chord', add)
-    return () => window.removeEventListener('jsm:add-chord', add)
-  })
-  const family = controllerVisualFamily(devices?.[0]?.type)
-  const labelButton = (command: string) => buttonLabel(command, family)
+  const [copying, setCopying] = useState<GlobalChord | null>(null)
+  const focusAfter = useRef<string | null>(null)
 
   useEffect(() => {
     let disposed = false
     void Promise.all([desktopBridge.listGlobalChords(), desktopBridge.listLibraryProfiles()]).then(([chordList, profileList]) => {
       if (disposed) return
-      setChords(chordList.map(chord => ({...chord, triggerGroups: chord.triggerGroups?.length ? chord.triggerGroups : [chord.buttons]})))
+      setChords(chordList.map(chord => ({ ...chord, triggerGroups: groupsOf(chord) })))
       setProfiles(profileList)
       setLoaded(true)
-    }).catch(() => {
-      if (disposed) return
-      setLoaded(true)
-      showToast(t('globalChords.saveFailed'), 'error')
-    })
-    return () => {
-      disposed = true
-    }
+    }).catch(() => { if (!disposed) { setLoaded(true); showToast('Could not read Hold to swap.', 'error') } })
+    return () => { disposed = true }
   }, [])
+  useEffect(() => {
+    if (!focusAfter.current) return
+    document.querySelector<HTMLElement>(`[data-chord-card="${CSS.escape(focusAfter.current)}"]`)?.focus()
+    focusAfter.current = null
+  }, [chords])
 
   const persist = async (chord: GlobalChord) => {
-    focusReturn.current = document.activeElement as HTMLElement | null
     setBusy(true)
-    try { const next = await desktopBridge.saveGlobalChord(chord); setChords(next); onChordsChanged?.() }
-    catch { showToast(t('globalChords.saveFailed'), 'error') }
+    try { const next = await desktopBridge.saveGlobalChord(chord); if (next.length || !chords.length) setChords(next.map(item => ({ ...item, triggerGroups: groupsOf(item) }))); onChordsChanged?.() }
+    catch { showToast('Could not save Hold to swap.', 'error') }
     finally { setBusy(false) }
   }
-
   const remove = async (id: string) => {
     setBusy(true)
-    try { const next = await desktopBridge.deleteGlobalChord(id); setChords(next); onChordsChanged?.() }
-    catch { showToast(t('globalChords.removeFailed'), 'error') }
+    try { const next = await desktopBridge.deleteGlobalChord(id); setChords(next.map(item => ({ ...item, triggerGroups: groupsOf(item) }))); onChordsChanged?.() }
+    catch { showToast('Could not remove it.', 'error') }
     finally { setBusy(false) }
   }
-
-  const groups = (chord: GlobalChord) => chord.triggerGroups?.length ? chord.triggerGroups : [chord.buttons]
-  const toggleButton = (chord: GlobalChord, index: number, command: string) => {
-    const next = groups(chord).map((buttons, i) => i !== index ? buttons : buttons.includes(command) ? buttons.filter(b => b !== command) : [...buttons, command])
-    void persist({ ...chord, buttons: [], triggerGroups: next })
+  const move = async (id: string, direction: -1 | 1) => {
+    const index = chords.findIndex(chord => chord.id === id)
+    const target = index + direction
+    if (index < 0 || target < 0 || target >= chords.length) return
+    const next = [...chords]
+    ;[next[index], next[target]] = [next[target], next[index]]
+    setChords(next)
+    const saved = await shellBridge.reorderGlobalChords(next.map(chord => chord.id)).catch(() => null)
+    if (saved) setChords(saved.map(item => ({ ...item, triggerGroups: groupsOf(item) })))
+    onChordsChanged?.()
   }
 
-  const rememberProfile = (name: string) => setProfiles(prev => (prev.includes(name) ? prev : [...prev, name].sort((a, b) => a.localeCompare(b))))
+  // A on a card, or "X then press the buttons": the press sets that way to hold it.
+  const capture = usePressCapture(buttons => {
+    const target = capturingFor && chords.find(chord => chord.id === capturingFor.id)
+    if (!target) return
+    const groups = [...groupsOf(target)]
+    groups[capturingFor.group] = buttons
+    focusAfter.current = target.id
+    void persist({ ...target, buttons: [], triggerGroups: groups.filter(group => group.length) })
+    setCapturingFor(null)
+  })
+  const pressFor = (id: string, group: number) => { setCapturingFor({ id, group }); capture.start() }
+  useEffect(() => { if (!capture.capturing && capturingFor) setCapturingFor(null) }, [capture.capturing])
 
-  const changeChordProfile = async (chord: GlobalChord, value: string) => {
-    if (!value) return
-    if (value === CREATE_NEW) {
+  const addWith = async (name: string | null) => {
+    setAdding(false)
+    let path: string
+    if (name === null) {
       const created = await desktopBridge.createLibraryProfile()
-      if (!created) {
-        showToast(t('globalChords.createFailed'), 'error')
-        return
-      }
-      rememberProfile(created.name)
-      void persist({ ...chord, profilePath: created.path })
-      return
-    }
-    void persist({ ...chord, profilePath: profilePathFromName(value) })
+      if (!created) { showToast('Could not make a new configuration.', 'error'); return }
+      setProfiles(previous => [...previous, created.name])
+      path = created.path
+    } else path = profilePathFromName(name)
+    const id = nextId()
+    await persist({ id, buttons: [], triggerGroups: [[]], controllerModel: null, profilePath: path })
+    // It works as soon as you pick: press the buttons for it now.
+    pressFor(id, 0)
   }
 
-  const addNewChord = async () => {
-    const created = await desktopBridge.createLibraryProfile()
-    if (!created) {
-      showToast(t('globalChords.createFailed'), 'error')
-      return
-    }
-    rememberProfile(created.name)
-    await persist({ id: nextId(), buttons: [], controllerModel: controllerModelKey(devices?.[0]) || null, profilePath: created.path })
-  }
-
-  const addExistingChord = async (name: string) => {
-    await persist({ id: nextId(), buttons: [], controllerModel: controllerModelKey(devices?.[0]) || null, profilePath: profilePathFromName(name) })
-  }
-
-  const cloneBuiltin = async () => {
+  const makeCopy = async (chord: GlobalChord) => {
     setBusy(true)
     try {
       const source = await desktopBridge.loadLibraryProfile(BUILTIN_NAME)
-      if (!source) throw new Error('Could not load the built-in configuration.')
-      const created = await desktopBridge.createLibraryProfile('Personal Default Global Chords')
-      if (!created || !await desktopBridge.saveLibraryProfile(created.name, source.content)) throw new Error('Could not clone the built-in configuration.')
-      let next = chords
-      for (const chord of chords.filter(isBuiltin)) next = await desktopBridge.saveGlobalChord({ ...chord, id: nextId(), profilePath: created.path })
-      setChords(next); rememberProfile(created.name); onChordsChanged?.(); setProtectedChord(null)
+      if (!source) throw new Error('Could not read Quick tools.')
+      const created = await desktopBridge.createLibraryProfile(COPY_NAME)
+      if (!created || !await desktopBridge.saveLibraryProfile(created.name, source.content)) throw new Error('Could not make the copy.')
+      const next = await desktopBridge.saveGlobalChord({ ...chord, profilePath: created.path })
+      setChords(next.map(item => ({ ...item, triggerGroups: groupsOf(item) })))
+      setProfiles(previous => [...previous, created.name])
+      onChordsChanged?.()
+      setCopying(null)
+      setEntry(null)
       onEditConfiguration?.(created.name)
-    } catch (e) { showToast(String(e), 'error') }
+    } catch (error) { showToast(String(error instanceof Error ? error.message : error), 'error') }
     finally { setBusy(false) }
   }
 
-  const keys = (buttons: string[]) => (
-    <span className={styles.keys} aria-label={buttons.map(labelButton).join(' + ')}>
-      {buttons.length ? buttons.map((button, index) => <span key={button} className={styles.key}>
-        {index > 0 && <span className={styles.plus} aria-hidden="true">+</span>}
-        <InputGlyph command={button} family={family} size={22} />
-      </span>) : <span className={styles.unset}>No buttons yet</span>}
-    </span>
-  )
+  const keys = (buttons: string[]) => buttons.length
+    ? <span className={styles.keys} aria-label={buttons.map(command => { const known = ALL_BUTTONS.find(button => button.command.toUpperCase() === command); return known ? controllerButtonLabel(known, family) : command }).join(' + ')}>
+        {buttons.map((button, index) => <span key={button} className={styles.key}>{index > 0 && <span className={styles.plus} aria-hidden="true">+</span>}<InputGlyph command={button} family={family} size={24} /></span>)}
+      </span>
+    : <span className={styles.unset}>No buttons yet</span>
+  const holdLine = (chord: GlobalChord) => {
+    const groups = groupsOf(chord).filter(group => group.length)
+    return groups.length ? <>Hold {groups.map((group, index) => <span key={index}>{index > 0 && <span className={styles.or}> or </span>}{keys(group)}</span>)}</> : <span className={styles.unset}>No buttons yet · A presses them</span>
+  }
+  const controllerText = (chord: GlobalChord) => {
+    if (!chord.controllerModel) return 'Any controller'
+    const device = devices?.find(item => controllerModelKey(item) === chord.controllerModel)
+    return device ? `${controllerVariantLabel(device)} only` : `${chord.controllerModel} only · not connected`
+  }
+  const letGo = currentName ?? 'This game'
+  const open = chords.find(chord => chord.id === entry) ?? null
+  const usedNames = new Set(chords.map(chord => profileNameFromPath(chord.profilePath)))
 
-  // Global chords (Tuning and Studio Pages 16g): each chord swaps to a whole
-  // configuration while it is held. The row says which buttons and which
-  // configuration; opening it picks the buttons.
   return (
-    <fieldset className={styles.page} disabled={busy} aria-busy={!loaded || undefined} style={{ border: 0, minWidth: 0, padding: 0 }}>
-      <span className={styles.eyebrow}>Swap while held</span>
-      {loaded && chords.length === 0 ? (
-        <div className={styles.empty}>{t('globalChords.noChords')}</div>
-      ) : (
-        <div className={styles.rows}>
-          {chords.map(chord => {
-            const name = profileNameFromPath(chord.profilePath)
-            const expanded = open === chord.id
-            return (
-              <div className={styles.row} key={chord.id} data-open={expanded || undefined} data-nav-disclosure>
-                <div className={styles.rowHead}>
-                  <button type="button" className={styles.rowMain} data-nav-disclosure-trigger aria-expanded={expanded} onClick={() => setOpen(expanded ? null : chord.id)} data-hints="A:Edit;B:Back">
-                    <span className={styles.rowText}>
-                      <span className={styles.rowName}>{name} {isBuiltin(chord) && <span className={styles.builtinTag}>Built-in</span>}</span>
-                      <span className={styles.rowSub}>{groups(chord).some(g => g.length) ? 'Swaps in while held; release to return' : t('globalChords.pickButtonHint')}</span>
-                    </span>
-                    <span className={styles.triggerAlternatives}>
-                      {groups(chord).map((group, i) => <span key={i} className={styles.triggerAlternative}>{i > 0 && <small>or</small>}<span className={styles.keys}>{keys(group)}</span></span>)}
-                    </span>
-                  </button>
-                  <button type="button" className="button button--secondary button--sm" onClick={() => isBuiltin(chord) ? setProtectedChord(chord) : onEditConfiguration?.(name)}>Edit</button>
-                  <button type="button" className="button button--secondary button--sm" onClick={() => setConfirming(chord)}>Remove</button>
-                  <AppSelect aria-label={`Configuration for ${chord.buttons.map(labelButton).join(' + ') || 'this chord'}`}
-                    value={name}
-                    onChange={event => void changeChordProfile(chord, event.target.value)}>
-                    {!profiles.includes(name) && <option value={name}>{name}</option>}
-                    {profiles.map(profile => <option key={profile} value={profile}>{profile}</option>)}
-                    <option value={CREATE_NEW}>{t('globalChords.createNew')}</option>
-                  </AppSelect>
-                </div>
-                {expanded && (
-                  <div className={styles.picker}>
-                    <label>Controller <AppSelect aria-label={`Controller for ${name}`} value={chord.controllerModel ?? ''} onChange={event => void persist({ ...chord, controllerModel: event.target.value || null })}>
-                      <option value="">Any controller</option>
-                      {[...new Map((devices ?? []).map(device => [controllerModelKey(device), device])).values()].map(device => <option key={controllerModelKey(device)} value={controllerModelKey(device)}>{controllerVariantLabel(device)}</option>)}
-                      {chord.controllerModel && !devices?.some(device => controllerModelKey(device) === chord.controllerModel) && <option value={chord.controllerModel}>{chord.controllerModel} (disconnected)</option>}
-                    </AppSelect></label>
-                    {groups(chord).map((buttons, index) => <div key={index} className={styles.triggerGroup}>
-                      <div className={styles.pickerFooter}><span className={styles.pickerLabel}>{index ? 'OR hold these buttons together' : 'Hold these buttons together'}</span>{groups(chord).length > 1 && <button type="button" className="button button--tertiary button--sm" onClick={() => void persist({ ...chord, buttons: [], triggerGroups: groups(chord).filter((_, i) => i !== index) })}>Remove alternative</button>}</div>
-                      <div className={styles.chips}>
-                        {ALL_BUTTONS.filter(button => !/^(L|R)(UP|DOWN|LEFT|RIGHT|RING)$/.test(button.command) && (controllerSupportsInput(devices?.[0], button.command) || buttons.includes(button.command))).map(button => {
-                          const command = button.command.toUpperCase()
-                          return <button type="button" key={command} className={styles.chip} aria-pressed={buttons.includes(command)} onClick={() => toggleButton(chord, index, command)}><InputGlyph command={command} family={family} size={16} />{labelButton(command)}</button>
-                        })}
-                      </div>
-                    </div>)}
-                    <button type="button" className="button button--secondary button--sm" onClick={() => void persist({ ...chord, buttons: [], triggerGroups: [...groups(chord), []] })}>Add OR alternative</button>
-                    <div className={styles.pickerFooter}>
-                      <span className={styles.note}>{t('globalChords.editHint')}</span>
-                      <button type="button" className="button button--danger button--sm" onClick={() => setConfirming(chord)}>{t('globalChords.remove')}</button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )
-          })}
+    <div className={styles.page} aria-busy={!loaded || busy || undefined}>
+      <div className={styles.explainer}>
+        <SwapPicture holding="Another configuration" letGo={letGo} />
+        <p><b>Not a mode.</b> A mode changes a few buttons inside one configuration. This swaps in a whole other one while you hold, and lets go when you do.</p>
+      </div>
+
+      <div className={styles.cards} role="list" aria-label="Hold to swap · the higher card wins">
+        {chords.map((chord, index) => (
+          <div key={chord.id} role="listitem" className={styles.cardWrap}>
+            <button type="button" className={styles.card} data-chord-card={chord.id} data-builtin={isBuiltin(chord) ? 'true' : undefined}
+              data-hints={`A:Change buttons;X:${isBuiltin(chord) ? 'Make your own copy' : 'Edit configuration'};Y:Move, controller, remove…;B:Home`} data-pad-keys="XY"
+              data-caption={`${displayName(chord)} · ${index === 0 ? 'Wins when two match' : `Number ${index + 1} in the order`} · ${controllerText(chord)}`}
+              onKeyDown={event => {
+                if (event.key === 'x' || event.key === 'X') { event.preventDefault(); if (isBuiltin(chord)) setCopying(chord); else onEditConfiguration?.(profileNameFromPath(chord.profilePath)) }
+                if (event.key === 'y' || event.key === 'Y') { event.preventDefault(); setEntry(chord.id) }
+              }}
+              onClick={() => pressFor(chord.id, 0)}>
+              <SwapPicture holding={displayName(chord)} letGo={letGo} />
+              <span className={styles.cardText}>
+                <span className={styles.cardName}>{displayName(chord)}{isBuiltin(chord) && <span className={settingsStyles.tag}>Built-in</span>}</span>
+                <span className={styles.cardHold}>{holdLine(chord)}</span>
+                <span className={styles.cardSub}>{isBuiltin(chord) ? 'On-screen keyboard, pause mapping, calibrate gyro · ' : ''}{controllerText(chord)}</span>
+              </span>
+              <span className={styles.rank} aria-hidden="true">{index + 1}</span>
+            </button>
+          </div>
+        ))}
+        <div role="listitem" className={styles.cardWrap}>
+          <button type="button" className={`${styles.card} ${styles.add}`} data-hints="A:Add one;B:Home" onClick={() => setAdding(true)}
+            data-caption="Add one · from your library, or start a new one. It works as soon as you pick">
+            <span className={styles.addMark} aria-hidden="true">+</span>
+            <span className={styles.cardText}><span className={styles.cardName}>Add one</span><span className={styles.cardSub}>From your library, or start a new one. It works as soon as you pick.</span></span>
+          </button>
+        </div>
+      </div>
+      {loaded && <SettingsNote>A changes the buttons. X opens the configuration to edit what it does. When two match, the higher card wins.</SettingsNote>}
+
+      {/* Pressing the buttons: a sheet over the page while the pad is read raw. */}
+      {capture.capturing && (
+        <div className="modal-overlay modal-overlay--over" data-focus-trap="true">
+          <div className="modal-card confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="chord-capture-title">
+            <h3 id="chord-capture-title">Press the buttons together</h3>
+            <p>Hold them all, then let go. {capture.held.length ? keys(capture.held) : 'Waiting for a press…'}</p>
+            <div className="confirm-dialog__actions"><button type="button" className="button button--secondary" data-modal-close onClick={capture.cancel}>Cancel</button></div>
+          </div>
         </div>
       )}
 
-      <div className={styles.addBar}>
-        <span className={styles.note}>{t('globalChords.chooseExisting')}</span>
-        <AppSelect aria-label={t('globalChords.chooseExisting')} value="" onChange={event => { if (event.target.value) void addExistingChord(event.target.value) }}>
-          <option value="">{t('globalChords.chooseExistingPlaceholder')}</option>
-          {profiles.filter(name => !chords.some(chord => profileNameFromPath(chord.profilePath) === name)).map(name => <option key={name} value={name}>{name}</option>)}
-        </AppSelect>
-      </div>
-
-      {protectedChord && <div className="modal-overlay modal-overlay--over" onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); setProtectedChord(null) } }}>
-        <div className="modal-card confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="builtin-chord-title">
-          <h3 id="builtin-chord-title">Built-in configuration</h3>
-          <p>Built-in configurations cannot be edited or deleted. Clone this layout to create a Personal configuration with your own bindings. Activation buttons can be changed in the chord row.</p>
-          <div className="confirm-dialog__actions"><button type="button" className="button button--secondary" data-modal-close onClick={() => setProtectedChord(null)}>Cancel</button><button type="button" className="button" onClick={() => void cloneBuiltin()}>Clone as Personal</button></div>
+      <SubPage open={adding} onClose={() => setAdding(false)} crumbRoot="Settings" trail={['Hold to swap']} title="Add one" backLabel="Back to Hold to swap">
+        <div className={settingsStyles.mainColumn} style={{ maxWidth: 760 }}>
+          <OpenRow label="Start a new one" hint="An empty configuration, swapped in while you hold" onOpen={() => void addWith(null)} hints="A:Start a new one;B:Back" />
+          <SettingsSection title="From your library">
+            {profiles.filter(name => !usedNames.has(name) && name !== BUILTIN_NAME).map(name => (
+              <OpenRow key={name} label={name} onOpen={() => void addWith(name)} hints="A:Use this;B:Back" />
+            ))}
+          </SettingsSection>
         </div>
-      </div>}
+      </SubPage>
 
-      {/* Escape must preventDefault, or the same press also reaches the
-          page's own handler once the overlay is gone and backs out of Studio. */}
+      <SubPage open={open !== null} onClose={() => setEntry(null)} crumbRoot="Settings" trail={['Hold to swap']} title={open ? displayName(open) : ''} backLabel="Back to Hold to swap">
+        {open && (() => {
+          const index = chords.findIndex(chord => chord.id === open.id)
+          const groups = groupsOf(open)
+          const models = [...new Map((devices ?? []).map(device => [controllerModelKey(device), device])).values()]
+          return (
+            <div className={styles.entry}>
+              <div className={settingsStyles.mainColumn}>
+                <span className={settingsStyles.sectionNote}>Hold to swap · {index === 0 ? 'first' : index === 1 ? 'second' : `number ${index + 1}`} in the list</span>
+                {isBuiltin(open) ? (
+                  <div className={settingsStyles.panel}>
+                    <h2 className={settingsStyles.sectionTitle}>Make your own copy</h2>
+                    <p className={settingsStyles.panelNote}>Built-in configurations can’t be changed. Copy it, and this entry swaps in your copy instead.</p>
+                    <OpenRow label="Make my own copy" hint={`It goes in your library as “${COPY_NAME}” and opens so you can change it.`} onOpen={() => void makeCopy(open)} hints="A:Make my own copy;X:Press new buttons;B:Not now" />
+                  </div>
+                ) : (
+                  <OpenRow label="Edit configuration" hint={`What ${displayName(open)} does while you hold`} value={displayName(open)} onOpen={() => { setEntry(null); onEditConfiguration?.(profileNameFromPath(open.profilePath)) }} />
+                )}
+                <SettingsSection title="Hold these" note="X then press the buttons">
+                  {groups.map((group, groupIndex) => (
+                    <div key={groupIndex} className={styles.wayRow}>
+                      <OpenRow label={groupIndex === 0 ? 'One way' : 'Or'} value={keys(group)} onOpen={() => pressFor(open.id, groupIndex)}
+                        hints={`A:Press new buttons;X:Press new buttons;Y:Choose from a list;B:Back`} />
+                      <button type="button" className="button button--ghost button--sm" tabIndex={-1} onClick={() => setListFor({ id: open.id, group: groupIndex })}>Choose from a list</button>
+                      {groups.length > 1 && <button type="button" className="button button--ghost button--sm" onClick={() => void persist({ ...open, buttons: [], triggerGroups: groups.filter((_, i) => i !== groupIndex) })} data-hints="A:Remove this way;B:Back">Remove this way</button>}
+                    </div>
+                  ))}
+                  <OpenRow label="Another way to hold it" hint="Either one swaps it in" onOpen={() => pressFor(open.id, groups.length)} hints="A:Press the buttons;B:Back" />
+                </SettingsSection>
+                <SettingsSection title="Configuration" note="What swaps in">
+                  <div role="radiogroup" aria-label="Configuration">
+                    {[...new Set([profileNameFromPath(open.profilePath), ...profiles])].map(name => (
+                      <button key={name} type="button" role="radio" aria-checked={name === profileNameFromPath(open.profilePath)} className={settingsStyles.switchRow} data-hints="A:Use this;B:Back"
+                        onClick={() => void persist({ ...open, profilePath: profilePathFromName(name) })}>
+                        <span className={settingsStyles.rowText}><span className={settingsStyles.rowLabel}>{name === BUILTIN_NAME ? BUILTIN_DISPLAY : name}</span></span>
+                        {name === profileNameFromPath(open.profilePath) && <span className={settingsStyles.tag} data-tone="accent">Swaps in</span>}
+                      </button>
+                    ))}
+                  </div>
+                </SettingsSection>
+                <OpenRow label="Remove from Hold to swap" hint={`${displayName(open)} stays in your library`} onOpen={() => setConfirming(open)} hints="A:Remove…;B:Back" />
+              </div>
+              <aside className={settingsStyles.mainColumn}>
+                <SettingsSection title="Which controller">
+                  <div role="radiogroup" aria-label="Which controller">
+                    {[{ key: '', label: 'Any controller', note: '' },
+                      ...models.map(device => ({ key: controllerModelKey(device), label: `${controllerVariantLabel(device)} only`, note: '' })),
+                      ...(open.controllerModel && !models.some(device => controllerModelKey(device) === open.controllerModel) ? [{ key: open.controllerModel, label: `${open.controllerModel} only`, note: 'not connected' }] : []),
+                    ].map(option => (
+                      <button key={option.key || 'any'} type="button" role="radio" aria-checked={(open.controllerModel ?? '') === option.key} className={settingsStyles.switchRow} data-hints="A:Choose;B:Back"
+                        onClick={() => void persist({ ...open, controllerModel: option.key || null })}>
+                        <span className={settingsStyles.rowText}><span className={settingsStyles.rowLabel}>{option.label}</span>{option.note && <span className={settingsStyles.rowHint}>{option.note}</span>}</span>
+                      </button>
+                    ))}
+                  </div>
+                </SettingsSection>
+                <SettingsSection title="Order · higher wins">
+                  {chords.map((chord, position) => (
+                    <div key={chord.id} className={styles.orderRow} data-current={chord.id === open.id ? 'true' : undefined}>
+                      <span className={styles.rankSmall}>{position + 1}</span>
+                      <span className={styles.orderName}>{displayName(chord)}</span>
+                      {chord.id === open.id && <>
+                        <button type="button" className="button button--ghost button--sm" aria-label={`Move ${displayName(chord)} up`} disabled={position === 0} data-hints="A:Move up;B:Back" onClick={() => void move(chord.id, -1)}>▴ Up</button>
+                        <button type="button" className="button button--ghost button--sm" aria-label={`Move ${displayName(chord)} down`} disabled={position === chords.length - 1} data-hints="A:Move down;B:Back" onClick={() => void move(chord.id, 1)}>▾ Down</button>
+                      </>}
+                    </div>
+                  ))}
+                </SettingsSection>
+              </aside>
+            </div>
+          )
+        })()}
+      </SubPage>
+
+      {/* The buttons from a list, for when no controller is at hand. */}
+      <SubPage open={listFor !== null} onClose={() => setListFor(null)} crumbRoot="Settings" trail={['Hold to swap']} title="Choose from a list" backLabel="Back">
+        {listFor && (() => {
+          const chord = chords.find(item => item.id === listFor.id)
+          if (!chord) return null
+          const groups = groupsOf(chord)
+          const selected = groups[listFor.group] ?? []
+          const toggle = (command: string) => {
+            const next = [...groups]
+            next[listFor.group] = selected.includes(command) ? selected.filter(item => item !== command) : [...selected, command]
+            void persist({ ...chord, buttons: [], triggerGroups: next })
+          }
+          return (
+            <div className={styles.chips} role="group" aria-label="Buttons to hold together">
+              {ALL_BUTTONS.filter(button => !/^(L|R)(UP|DOWN|LEFT|RIGHT|RING)$/.test(button.command) && (controllerSupportsInput(devices?.[0], button.command) || selected.includes(button.command.toUpperCase()))).map(button => {
+                const command = button.command.toUpperCase()
+                return <button type="button" key={command} className={styles.chip} aria-pressed={selected.includes(command)} data-hints="A:Add or take away;B:Back" onClick={() => toggle(command)}>
+                  <InputGlyph command={command} family={family} size={18} />{controllerButtonLabel(button, family)}
+                </button>
+              })}
+            </div>
+          )
+        })()}
+      </SubPage>
+
+      {copying && (
+        <SubPage open onClose={() => setCopying(null)} crumbRoot="Settings" trail={['Hold to swap']} title={BUILTIN_DISPLAY} backLabel="Not now">
+          <div className={settingsStyles.mainColumn} style={{ maxWidth: 720 }}>
+            <span className={settingsStyles.tag}>Built-in</span>
+            <h2 className={settingsStyles.sectionTitle}>Make your own copy</h2>
+            <p className={settingsStyles.panelNote}>Built-in configurations can’t be changed. Copy it, and this entry swaps in your copy instead.</p>
+            <OpenRow label="Make my own copy" hint={`It goes in your library as “${COPY_NAME}” and opens so you can change it.`} onOpen={() => void makeCopy(copying)} hints="A:Make my own copy;B:Not now" />
+          </div>
+        </SubPage>
+      )}
+
       {confirming && (
         <div className="modal-overlay modal-overlay--over" onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); setConfirming(null) } }}>
           <div className="modal-card confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="delete-chord-title" aria-describedby="delete-chord-body">
-            <h3 id="delete-chord-title">Remove the {profileNameFromPath(confirming.profilePath)} chord?</h3>
-            <p id="delete-chord-body">
-              {groups(confirming).some(g => g.length) ? `${groups(confirming).map(g => g.map(labelButton).join(' + ')).join(' or ')} stops swapping to it.` : 'It has no buttons yet.'} <strong>{profileNameFromPath(confirming.profilePath)}</strong> stays in your library.
-            </p>
+            <h3 id="delete-chord-title">Remove {displayName(confirming)} from Hold to swap?</h3>
+            <p id="delete-chord-body">Holding its buttons stops swapping it in. <strong>{displayName(confirming)}</strong> stays in your library.</p>
             <div className="confirm-dialog__actions">
-              <button type="button" className="button button--secondary" data-modal-close onClick={() => setConfirming(null)}>{t('common.cancel')}</button>
-              <button type="button" className="button button--danger-solid" onClick={() => { const id = confirming.id; setConfirming(null); void remove(id) }}>{t('globalChords.remove')}</button>
+              <button type="button" className="button button--secondary" data-modal-close onClick={() => setConfirming(null)}>Keep it</button>
+              <button type="button" className="button button--danger-solid" onClick={() => { const id = confirming.id; setConfirming(null); setEntry(null); void remove(id) }}>Remove</button>
             </div>
           </div>
         </div>
       )}
-    </fieldset>
+    </div>
   )
 }

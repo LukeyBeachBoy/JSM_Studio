@@ -138,7 +138,9 @@ export function scrollHostBy(host: HTMLElement, delta: number, options: { smooth
 
 // Keep what the pad lands on clear of the top of the page and of the capsule.
 export const CLEAR_TOP = 96
-export const CLEAR_BOTTOM = 44 + 16 + 16
+// The hint bar docks under the scroll area (console v2, V2), so the page only
+// keeps a little breathing room at the bottom.
+export const CLEAR_BOTTOM = 24
 
 /**
  * Bring the full focus ring into view in its actual scrolling container,

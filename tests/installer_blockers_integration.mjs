@@ -45,6 +45,14 @@ try {
   const outputProcess = spawn(outputExe, ['/d', '/c', 'ping -t 127.0.0.1 >nul'], { stdio: 'ignore' });
   children.push(outputProcess);
   await new Promise((resolve, reject) => { outputProcess.once('spawn', resolve); outputProcess.once('error', reject); });
+  // Simulate CIM hiding a running output's path, as it does for elevated apps.
+  const probe = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command',
+    `. '${helper.replaceAll("'", "''")}' -AppRoot '${app.replaceAll("'", "''")}' -BuilderProcessId $PID; ` +
+    `function Get-CimInstance { [pscustomobject]@{ProcessId=${outputProcess.pid}; ParentProcessId=0; Name='test-blocker.exe'; ExecutablePath=$null; CommandLine=$null; CreationDate=Get-Date} }; ` +
+    `$items=@(Get-InstallerProcessSnapshot); if ($items[0].ExecutablePath -ne '${outputExe.replaceAll("'", "''")}') { throw 'Hidden path was not resolved' }; ` +
+    `$blockers=@(Get-InstallerBlockers -Processes $items -AppRoot '${app.replaceAll("'", "''")}' -ProtectedIds @($PID) -IncludeModules $false); if ($blockers.Count -ne 1) { throw 'Hidden output was missed' }`],
+    { encoding: 'utf8', timeout: 20000 });
+  assert.equal(probe.status, 0, `${probe.stdout}\n${probe.stderr}\n${probe.error ?? ''}`);
   cleanup(app, true);
   assert(!alive(outputProcess.pid), '--skip-install still stops build output executables');
   assert(alive(blocked.child.pid) && alive(blocked.pid), '--skip-install preserves module processes');
@@ -56,9 +64,13 @@ try {
   assert(alive(process.pid), 'cleanup caller stays running');
   cleanup(app); // Repeated cleanup with no blockers succeeds.
   console.log('PASS: real Windows process cleanup, descendants, skip-install and unrelated process protection');
+} catch (error) {
+  console.error(error);
+  throw error;
 } finally {
   for (const child of children) { if (alive(child.pid)) child.kill(); }
   for (const pid of descendants) { if (alive(pid)) process.kill(pid); }
   // Only remove the exact directory created for this test.
-  rmSync(temporary, { recursive: true, force: true });
+  // Windows may retain executable handles briefly after process termination.
+  rmSync(temporary, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
 }

@@ -24,6 +24,7 @@ const fs = require('node:fs');
   }};
  });
  await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
+ await page.getByRole('button', { name: 'Keep them', exact: true }).click({ timeout: 5000 }).catch(() => {})
  // The app opens on Home (console refinement 2a); these checks start in the editing shell.
  await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
  // Switching configurations is one control: the Editing segment in the title
@@ -46,10 +47,10 @@ const fs = require('node:fs');
  // Nothing unsaved and not running: the state button offers to apply it
  // (1e), and the Configuration menu's Save idles saying why. Ctrl+S still
  // writes the file, and must not apply it.
- assert.equal(await page.locator('.titlebar .state-button').innerText(),'Apply Game');
- await picker.click();
- await page.getByRole('menuitem',{name:/^Configuration menu/}).click();
- const save=page.locator('.config-menu__item').filter({hasText:'Save without applying'});
+ // Console v2: the chip says Paused while you edit; ☰ has the actions.
+ assert.equal(await page.locator('.titlebar .state-button').innerText(),'Paused while you edit');
+ await page.locator('.titlebar .menu-chip').click();
+ const save=page.locator('.config-menu__item').filter({hasText:'Save, not live yet'});
  assert.equal(await save.getAttribute('data-reason'),'No unsaved changes');
  await page.keyboard.press('Escape');
  await save.waitFor({state:'detached'});
@@ -57,34 +58,31 @@ const fs = require('node:fs');
  await page.waitForFunction(()=>window.__calls.length>0);
  assert.deepEqual(await page.evaluate(()=>window.__calls),['save'],'Save must not Apply');
  await selectProfile('Desktop');
- await page.getByRole('button',{name:'Overview',exact:true}).click();
+ await page.getByRole('button',{name:'Layout',exact:true}).click();
  const output=page.locator('button[class*=callout]').filter({hasText:'SPACE'}).first();
  await output.waitFor();
  const out=fs.mkdtempSync(path.join(require('node:os').tmpdir(),'jsm-feedback-'));
  await page.screenshot({path:path.join(out,'overview.png'),fullPage:true});
  await output.click();
  const north=page.locator('[data-input-command="N"]');await north.waitFor();
- assert(await north.evaluate(el=>el.contains(document.activeElement)),'preview shortcut did not focus N');
- const firstRow=north.locator('[data-command-row]').first();
- await firstRow.waitFor();
- await firstRow.getByRole('button',{name:'Command settings',exact:true}).click();
- // The row's cog opens its settings sheet; its exact contents are
- // binding_card_regression's business, this only proves it opens here.
- const settingsSheet=page.getByRole('dialog').last();
- await settingsSheet.getByRole('button',{name:'Duplicate',exact:true}).waitFor();
- await settingsSheet.locator('[data-modal-close]').click();
- await settingsSheet.waitFor({state:'detached'});
- await page.getByRole('button',{name:'Overview',exact:true}).click();
- // A callout names the action, not the command -- 'LT3' is what it is called
- // in the configuration, not what it does -- so reach it by accessible name.
- await page.locator('button[aria-label^="LT3:"]').click();
- const region=page.locator('[data-input-command="LT3"]');
+ assert(await north.evaluate(el=>el.contains(document.activeElement)),'preview shortcut did not focus N (its binding sheet is open)');
+ // The row opens its binding sheet (console v2); its contents are binding_card_regression's business, this only proves it opens here.
+ // (Choosing a Layout callout is A Change: it opens the input's binding sheet at once.)
+ const bindingSheet=page.getByRole('dialog').last();
+ await bindingSheet.getByRole('tablist',{name:'When you…'}).waitFor();
+ await page.keyboard.press('Escape');
+ await bindingSheet.waitFor({state:'detached'});
+ await page.getByRole('button',{name:'Layout',exact:true}).click();
+ // Console v2: the left pad is one callout ("LP"); choosing it goes to that pad on Trackpads.
+ await page.locator('[data-overview-slot="left-pad"]').click();
+ const region=page.locator('[data-input-command="LEFT_PAD"]');
  await region.waitFor();
  // Trackpads is a lazy page, so give the shortcut's focus a moment to land.
  const focused=sel=>page.waitForFunction(sel=>document.querySelector(sel)?.contains(document.activeElement),sel,{timeout:3000}).then(()=>true,()=>false);
- assert(await focused('[data-input-command="LT3"]'),'grid shortcut did not select and focus LT3');
- // Click-to-activate is a summary row on the pad's column now (2b), toggled with A.
+ assert(await focused('main [role="radiogroup"]'),'pad shortcut did not select the left pad and focus its mode cards');
+ // Click-to-activate is a switch row on the pad's front (console v2, P4), toggled with A.
  await page.locator('.summary-row').filter({has:page.locator('.summary-row__label').getByText('Click required',{exact:true})}).first().waitFor();
+ assert.equal(await page.locator('.section-item[aria-current="true"]').innerText().then(text=>/Left pad/.test(text)),true,'the pad shortcut lands on the left pad');
  await page.locator('[data-input-command="LEFT_PAD"]').waitFor();
  assert(await page.locator('main').evaluate(el=>el.contains(document.activeElement)),'lazy page focus escaped');
  await page.screenshot({path:path.join(out,'trackpads.png'),fullPage:true});
@@ -96,23 +94,23 @@ const fs = require('node:fs');
  await page.evaluate(()=>window.__finishSave());
  await page.waitForFunction(()=>window.__saved);
  await picker.filter({hasText:'Desktop'}).waitFor();
- await page.getByRole('button',{name:'Overview',exact:true}).click();
+ await page.getByRole('button',{name:'Layout',exact:true}).click();
  await page.locator('button[class*=callout]').filter({hasText:'SPACE'}).first().waitFor();
  await page.evaluate(async()=>{
   window.__hidStatus={supported:true,installed:true,active:false,inverse:false,steamAllowed:false,whitelistSynced:true,requiresElevation:false,managedInstanceIds:['test'],devices:[{instanceId:'test',displayName:'Test Steam Controller',vendor:'Valve',product:'Controller',present:true,hidden:true,partiallyHidden:false,managedByApp:true,stale:false,likelyCurrentController:false}]};
   window.__TAURI_INTERNALS__={invoke:async command=>{if(command==='get_hidhide_status')return structuredClone(window.__hidStatus);throw new Error('Unexpected mocked Tauri command: '+command)}};
  });
  // Studio is one press from Home (2a): the Home chip, then its tile.
- await page.locator('.titlebar .home-chip').click();
- await page.locator('section[aria-labelledby="home-studio-title"]').getByRole('button',{name:/^Device visibility/}).click();
- await page.locator('.page-header__title').filter({hasText:'Device visibility'}).waitFor();
- await page.getByText('Set to hide · filtering is off',{exact:true}).waitFor();
- await page.evaluate(()=>{window.__hidStatus.active=true;window.__hidStatus.inverse=true;window.__hidStatus.steamAllowed=true;window.dispatchEvent(new Event('focus'))});
- await page.getByText('Hidden from listed applications',{exact:true}).waitFor();
- await page.getByText('Steam currently has access through the application list.',{exact:false}).waitFor();
- await page.evaluate(()=>{window.__hidStatus.inverse=false;window.__hidStatus.steamAllowed=false;window.dispatchEvent(new Event('focus'))});
- await page.getByText('Hidden',{exact:true}).waitFor();
- assert.equal(await page.getByText('Steam currently has access through the application list.',{exact:false}).count(),0);
+ // Console v2: Settings ▸ Hide the real controller.
+ await page.evaluate(() => window.dispatchEvent(new CustomEvent('jsm:navigate-page', { detail: 'deviceVisibility' })));
+ await page.locator('.page-header__title').filter({hasText:'Hide the real controller'}).waitFor();
+ await page.getByText('Set to hide · hiding is off',{exact:true}).waitFor();
+ await page.evaluate(()=>{window.__hidStatus.active=true;window.__hidStatus.inverse=true;window.__hidStatus.appList=[{name:'steam.exe',path:'C:/Steam/steam.exe',addedForYou:false,steam:true}];window.dispatchEvent(new Event('focus'))});
+ await page.getByText('Hidden from the apps on HidHide’s list',{exact:true}).waitFor();
+ await page.locator('[data-hidhide-app="steam.exe"]').getByText('Can see them too, so games may react twice',{exact:false}).waitFor();
+ await page.evaluate(()=>{window.__hidStatus.inverse=false;window.__hidStatus.appList=[];window.dispatchEvent(new Event('focus'))});
+ await page.getByText('Hidden from games · JSM still reads it',{exact:true}).waitFor();
+ assert.equal(await page.locator('[data-hidhide-app="steam.exe"]').count(),0);
  assert.deepEqual(errors,[]);
  console.log('PASS: independent edit/save and delayed-save switching; actual overview bindings; preview shortcut focus; command menu; lazy page focus; live HidHide mode/status rendering.');
  } finally { await browser.close() }

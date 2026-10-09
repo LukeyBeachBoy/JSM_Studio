@@ -136,6 +136,10 @@ assert.match(missed.find(item => item.where === 'R5').detail, /Ping.*game action
 for (const item of missed) {
   assert.ok(main.includes(`${item.where}: ${item.detail}`), `"${item.where}" is listed in the file as well as the dialog`);
 }
+// Console v2 (SteamImport): each line names its input for the glyph.
+assert.equal(missed.find(item => item.where === 'R5').input, 'RSL');
+assert.equal(missed.find(item => item.where === 'Right trackpad').input, 'RIGHT_PAD');
+assert.equal(missed.find(item => item.where === 'Gyro').input, 'GYRO');
 assert.equal(result.counts.skipped, 2);
 assert.equal(result.counts.approximated, 2);
 assert.ok(result.counts.converted >= 30, `counts every converted input: ${result.counts.converted}`);
@@ -148,7 +152,7 @@ for (const key of ['S', 'W', 'N,N', 'LSL,RM3', 'LT4', 'ZLF', 'LSR', 'GYRO_SENS']
 }
 assert.deepEqual(readLayers(saved), layers);
 assert.deepEqual(parseBindingLabels(saved), parseBindingLabels(main));
-assert.ok(saved.includes('# - Not converted: R5:'), 'the notes survive Save');
+assert.ok(saved.includes('# - Not brought over: R5:'), 'the notes survive Save');
 
 // --- An input Studio does not know is reported, not dropped ------------------
 {
@@ -176,6 +180,8 @@ assert.equal(v2.counts.skipped, 0);
 // A name typed in the dialog names every configuration and its references.
 const renamed = convertSteamLayout(fixture('wardogs_v3.vdf'), { title: 'My Wardogs' });
 assert.deepEqual(renamed.sets.map(set => set.name), ['My Wardogs', 'My Wardogs - Menus']);
+// The review names a set "Title · Set"; the file keeps " - ".
+assert.deepEqual(renamed.sets.map(set => set.displayName), ['My Wardogs', 'My Wardogs · Menus']);
 assert.equal(value(renamed.sets[1].text, 'LSR'), '"profiles-library/My Wardogs.txt"');
 
 console.log('PASS: Steam layouts convert to Studio configurations, and everything that cannot is reported');

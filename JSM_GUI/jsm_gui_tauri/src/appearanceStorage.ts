@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core'
 
-const keys = ['jsm-theme', 'jsm-accent', 'jsm-language'] as const
+const keys = ['jsm-theme', 'jsm-accent', 'jsm-language', 'jsm-density', 'jsm-config-names'] as const
 type AppearanceKey = typeof keys[number]
 const restored = new Map<string, string>()
 const isDesktop = () => typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Settings, was eleven Studio tabs</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.btn{font-family:inherit;border:0;cursor:pointer}
+.cat{font-family:inherit;border:0;background:transparent;color:#b0bcc8;font-size:19px;font-weight:500;height:56px;padding:0 20px;border-radius:14px;text-align:left;cursor:pointer;display:flex;align-items:center;gap:14px;width:100%}
+.set{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;align-items:center;gap:16px;min-height:68px;padding:12px 22px;box-sizing:border-box;border-radius:14px;background:#1f2730;color:#e8eef4;text-align:left}
+.set .t{font-size:19px;font-weight:600}
+.set .v{margin-left:auto;font-size:18px;color:#d4dde6;white-space:nowrap}
+.sw{width:56px;height:32px;border-radius:16px;background:#2e3844;position:relative;flex:none;margin-left:auto}
+.sw span{position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:50%;background:#808c99}
+.sw.y{background:#3e9fd8}
+.sw.y span{left:28px;background:#ffffff}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="height: 76px; flex: none; display: flex; align-items: center; padding: 0 40px; background: #0d1217">
+<span style="font-size: 22px; font-weight: 700">Settings</span>
+<span style="margin-left: 16px; font-size: 16px; color: #808c99">For every configuration</span>
+</header>
+
+<main style="flex: 1; min-height: 0; display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 40px; padding: 30px 40px 24px">
+<nav style="display: flex; flex-direction: column; gap: 4px">
+<button class="cat" style="background: #1f2730; color: #ffffff; font-weight: 650">Controller</button>
+<button class="cat">Hold to swap</button>
+<button class="cat">Press timing</button>
+<button class="cat">Hide the real controller</button>
+<button class="cat">Look &amp; language</button>
+<button class="cat">Startup</button>
+<button class="cat">Assistant</button>
+<div style="height: 1px; background: #232c36; margin: 10px 20px"></div>
+<button class="cat" style="font-size: 17px; height: 48px">Guides &amp; reference</button>
+<button class="cat" style="font-size: 17px; height: 48px">Troubleshooting log</button>
+<button class="cat" style="font-size: 17px; height: 48px">About &amp; credits</button>
+</nav>
+
+<section style="display: flex; flex-direction: column; gap: 10px; min-width: 0; max-width: 860px">
+<h1 style="margin: 0 0 10px; font-size: 32px; font-weight: 700">Controller</h1>
+
+<button class="set"><span class="t">Navigate this app with the controller</span><span class="sw y"><span></span></span></button>
+
+<div class="focus" style="border-radius: 14px; background: #1d445c; display: flex; flex-direction: column">
+<div style="display: flex; align-items: center; gap: 16px; min-height: 68px; padding: 12px 22px; box-sizing: border-box">
+<span style="font-size: 19px; font-weight: 650">Screen distance</span>
+<span style="margin-left: auto; display: flex; align-items: center; gap: 14px; font-size: 19px; font-weight: 600"><span style="color: #7cc4ee">◂</span>Couch<span style="color: #7cc4ee">▸</span></span>
+</div>
+<div style="padding: 0 22px 16px; font-size: 16px; line-height: 1.5; color: #b8e2fa">Bigger text and targets for playing from across the room. Desk keeps today’s density.</div>
+</div>
+
+<button class="set"><span class="t">Rumble when moving around the app</span><span class="v">◂ Medium ▸</span></button>
+<button class="set"><span style="display: flex; flex-direction: column; gap: 4px"><span class="t">Stop the Steam Controller recalibrating its gyro</span><span style="font-size: 15px; color: #808c99; line-height: 1.45">Its firmware slowly re-centres the gyro while you play, which can feel like your aim sliding back.</span></span><span class="sw y"><span></span></span></button>
+<button class="set"><span class="t">Show where my thumb is on the trackpads</span><span class="sw"><span></span></span></button>
+<button class="set"><span class="t">Show a countdown while calibrating</span><span class="sw y"><span></span></span></button>
+<button class="set"><span class="t">Light colour when a configuration doesn’t set one</span><span style="margin-left: auto; display: flex; gap: 8px"><span style="width: 26px; height: 26px; border-radius: 50%; background: #ffffff; box-shadow: 0 0 0 3px #131920, 0 0 0 5px #e8eef4"></span><span style="width: 26px; height: 26px; border-radius: 50%; background: #e5484d"></span><span style="width: 26px; height: 26px; border-radius: 50%; background: #3e9fd8"></span><span style="width: 26px; height: 26px; border-radius: 50%; background: #5fd3a0"></span><span style="width: 26px; height: 26px; border-radius: 50%; background: #b48cf0"></span></span></button>
+</section>
+</main>
+
+<footer style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Settings · Controller</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px">◂ ▸ Change</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">Y</span>Reset to default</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">LT</span><span class="gp">RT</span>Category</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Home</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

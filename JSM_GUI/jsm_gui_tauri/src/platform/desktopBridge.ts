@@ -7,6 +7,12 @@ export type CalibrationStatus = {
   seconds?: number
 }
 
+/** Windows' pointer speed (SPI_GETMOUSESPEED 1-20, 10 is the 6/11 notch) and Enhance pointer precision. */
+export type WindowsPointerSpeed = {
+  speed: number
+  enhancePrecision: boolean
+}
+
 /** The mapper stopping by itself (System States 17c). */
 export type MapperExit = {
   exitCode: number
@@ -90,6 +96,8 @@ export type SoundEntry = {
   id: string
   name: string
   createdAt: number
+  /** "Volume on a button" (console v2, D15): where a new binding of it starts, dB, −30 to 0. */
+  defaultGainDb?: number
   /** The whole original, as decoded. */
   durationMs: number
   trimStartMs?: number
@@ -177,6 +185,8 @@ export type GlobalChord = {
   triggerGroups?: string[][]
   controllerModel?: string | null
   profilePath: string
+  /** Place in Hold to swap's order once reordered; the lower wins. */
+  rank?: number | null
 }
 
 /** A Steam Input layout file found in the local Steam install. */
@@ -295,7 +305,11 @@ export type HidHideStatus = {
   managedInstanceIds: string[]
   whitelistSynced: boolean
   requiresElevation: boolean
+  /** HidHide's application list ("Apps that can still see them"). */
+  appList?: HidHideApp[]
 }
+
+export type HidHideApp = { path: string; name: string; addedForYou: boolean; steam: boolean }
 
 export type HidHideInstallResult = {
   completed: boolean
@@ -308,19 +322,67 @@ export type ReconnectControllersResult = {
   restarted: boolean
 }
 
+// The assistant's connection (console v2, D18; services/ai.rs). Keys live in
+// Windows Credential Manager: the web view sees only whether one is stored.
+export type AiProvider = 'chatgpt' | 'anthropic' | 'openai_compatible' | 'local'
+export type AiCareful = 'careful' | 'balanced' | 'quick'
+export type AiKeyState = { hasKey: boolean; keyHint: string | null }
+export type AiEndpointView = AiKeyState & { model: string; baseUrl: string }
 export type AiSettings = {
-  apiKey: string
-  model: string
-  baseUrl: string
-  temperature: number
+  provider: AiProvider | null
+  careful: AiCareful
+  anthropic: AiKeyState & { model: string; suggestedModels: string[] }
+  openaiCompatible: AiEndpointView
+  local: AiEndpointView
+  chatgpt: {
+    clientId: string
+    model: string
+    redirectPort: number
+    authorizeUrl: string
+    tokenUrl: string
+    responsesUrl: string
+    signedIn: boolean
+    account: string | null
+    /** False without a client id from OpenAI; reason says so. */
+    available: boolean
+    reason: string | null
+  }
+  connected: boolean
+  /** "Claude · claude-opus-5-5", or "not connected". */
+  status: string
 }
 
+/** A change from Settings ▸ Assistant; anything left out stays as it is. */
 export type AiSettingsInput = {
-  apiKey: string
-  model?: string
-  baseUrl?: string
-  temperature?: number
+  provider?: AiProvider | null
+  careful?: AiCareful
+  anthropic?: { model?: string }
+  openaiCompatible?: { model?: string; baseUrl?: string }
+  local?: { model?: string; baseUrl?: string }
+  chatgpt?: { clientId?: string; model?: string; redirectPort?: number; authorizeUrl?: string; tokenUrl?: string; responsesUrl?: string }
 }
+
+export type AiConnectionTest = { ok: boolean; models: string[]; error: string | null }
+export type LocalAiServer = { name: string; baseUrl: string; models: string[] }
+
+export const DEFAULT_AI_SETTINGS: AiSettings = {
+  provider: null,
+  careful: 'careful',
+  anthropic: { model: 'claude-opus-5-5', hasKey: false, keyHint: null, suggestedModels: ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5', 'claude-haiku-4-5'] },
+  openaiCompatible: { model: '', baseUrl: '', hasKey: false, keyHint: null },
+  local: { model: '', baseUrl: 'http://127.0.0.1:11434/v1', hasKey: false, keyHint: null },
+  chatgpt: { clientId: '', model: 'gpt-5', redirectPort: 1455, authorizeUrl: 'https://auth.openai.com/oauth/authorize', tokenUrl: 'https://auth.openai.com/oauth/token', responsesUrl: 'https://api.openai.com/v1/responses', signedIn: false, account: null, available: false, reason: 'Needs OpenAI’s approval for this app' },
+  connected: false,
+  status: 'not connected',
+}
+
+// Steam's library (console v2, D23; services/steam_library.rs).
+export type SteamGame = { appId: string; name: string; lastPlayed: number; installDir?: string | null; hasCapsule: boolean; hasHeader: boolean; hasHero: boolean }
+export type SteamApp = { appId: string; name: string; installDir: string }
+export type SteamArtKind = 'capsule' | 'header' | 'hero' | 'logo'
+/** A running app, games first: Steam games come named, with their app id. */
+export type RunningGame = RunningProcess & { kind: 'steam' | 'store' | 'app'; steamAppId?: string; name?: string }
+export type { BuiltinBase } from '../utils/presetBases'
 
 export type AiConversationMessage = {
   role: 'user' | 'assistant'
@@ -341,7 +403,10 @@ export type AiGenerateResponse = {
   configText: string
   assumptions: string[]
   warnings: string[]
+  /** Keys the change relates to but leaves alone ("X Reload · R unchanged"). */
+  unchanged?: string[]
   model: string
+  provider?: string
 }
 
 type Unsubscribe = () => void
@@ -387,6 +452,7 @@ export interface DesktopBridge {
   soundLibraryReadAudio: (id: string) => Promise<string>
   soundLibrarySave: (id: string, name: string, durationMs: number, trimStartMs: number, trimEndMs: number, tones: Tone[], midiTrack?: string) => Promise<SoundEntry>
   soundLibraryRename: (id: string, name: string) => Promise<SoundEntry>
+  soundLibrarySetGain: (id: string, gainDb: number) => Promise<SoundEntry>
   /** Also clears the sound from connect / shutdown when it was chosen there. */
   soundLibraryDelete: (id: string) => Promise<void>
   setControllerNavEnabled: (enabled: boolean) => Promise<RuntimeMappingState>
@@ -424,6 +490,8 @@ export interface DesktopBridge {
   saveGlobalChord: (chord: GlobalChord) => Promise<GlobalChord[]>
   deleteGlobalChord: (id: string) => Promise<GlobalChord[]>
   recalibrateGyro: () => Promise<{ success: boolean }>
+  /** Null where it cannot be read (not Windows, or the mock without one). */
+  getWindowsPointerSpeed: () => Promise<WindowsPointerSpeed | null>
   getCalibrationSeconds: () => Promise<number | null>
   setCalibrationSeconds: (seconds: number) => Promise<number | null>
   onCalibrationStatus: (callback: (payload: CalibrationStatus) => void) => Unsubscribe
@@ -487,6 +555,17 @@ export interface DesktopBridge {
   getAiSettings: () => Promise<AiSettings>
   saveAiSettings: (settings: AiSettingsInput) => Promise<AiSettings>
   generateAiMapping: (request: AiGenerateRequest) => Promise<AiGenerateResponse>
+  setAiKey: (provider: AiProvider, key: string) => Promise<AiSettings>
+  forgetAiCredentials: () => Promise<AiSettings>
+  testAiConnection: (provider: AiProvider) => Promise<AiConnectionTest>
+  detectLocalAiModels: () => Promise<LocalAiServer[]>
+  chatgptSignIn: () => Promise<AiSettings>
+  chatgptCancelSignIn: () => Promise<void>
+  listBuiltinBases: () => Promise<import('../utils/presetBases').BuiltinBase[]>
+  listRecentSteamGames: (limit?: number) => Promise<SteamGame[]>
+  steamGameArt: (appId: string, kind: SteamArtKind) => Promise<string | null>
+  steamAppForExe: (exePath: string) => Promise<SteamApp | null>
+  listRunningGames: () => Promise<RunningGame[]>
 }
 
 /** One UI feedback effect (JoyShockMapper StudioFeedback.h). */
@@ -522,6 +601,30 @@ type MockAssociationApi = {
   deleteAutoloadRule?: (processName: string) => Promise<{ success: boolean }>
 }
 const mockAssociationApi = () => getElectronAPI() as MockAssociationApi | undefined
+// The ?mock preview's library and assistant calls (dev/mockDesktop.ts).
+type MockLibraryApi = {
+  getAiSettingsV2?: () => Promise<AiSettings>
+  saveAiSettingsV2?: (settings: AiSettingsInput) => Promise<AiSettings>
+  generateAiMappingV2?: (request: AiGenerateRequest) => Promise<AiGenerateResponse>
+  setAiKey?: (provider: AiProvider, key: string) => Promise<AiSettings>
+  forgetAiCredentials?: () => Promise<AiSettings>
+  testAiConnection?: (provider: AiProvider) => Promise<AiConnectionTest>
+  detectLocalAiModels?: () => Promise<LocalAiServer[]>
+  chatgptSignIn?: () => Promise<AiSettings>
+  listRecentSteamGames?: (limit?: number) => Promise<SteamGame[]>
+  steamGameArt?: (appId: string, kind: SteamArtKind) => Promise<string | null>
+  steamAppForExe?: (exePath: string) => Promise<SteamApp | null>
+  listRunningGames?: () => Promise<RunningGame[]>
+}
+const mockLibraryApi = () => getElectronAPI() as MockLibraryApi | undefined
+// The ?mock preview's Hold to swap chords and HidHide status (console v2 SHELL).
+type ShellMockApi = {
+  listGlobalChords?: () => Promise<GlobalChord[]>
+  saveGlobalChord?: (chord: GlobalChord) => Promise<GlobalChord[]>
+  deleteGlobalChord?: (id: string) => Promise<GlobalChord[]>
+  getHidHideStatus?: () => Promise<HidHideStatus>
+}
+const shellMockApi = () => getElectronAPI() as ShellMockApi | undefined
 
 // Outside Tauri every executable has an icon: a 32 × 32 rounded square whose
 // hue comes from the path, so two games in the preview look different.
@@ -771,6 +874,14 @@ export const desktopBridge: DesktopBridge = {
     entry.name = trimmed
     return { ...entry }
   },
+  async soundLibrarySetGain(id, gainDb) {
+    if (isTauriWindow()) return invokeTauri<SoundEntry>('sound_library_set_gain', { id, gainDb })
+    const entry = previewSounds.find(candidate => candidate.id === id)
+    if (!entry) throw new Error(`No sound ${id}`)
+    const gain = Math.round(Math.max(-30, Math.min(0, gainDb)) * 10) / 10
+    entry.defaultGainDb = gain === 0 ? undefined : gain
+    return { ...entry }
+  },
   async soundLibraryDelete(id) {
     if (isTauriWindow()) { await invokeTauri<void>('sound_library_delete', { id }); return }
     const index = previewSounds.findIndex(candidate => candidate.id === id)
@@ -807,19 +918,20 @@ export const desktopBridge: DesktopBridge = {
     if (isTauriWindow()) {
       return invokeTauri<GlobalChord[]>('list_global_chords').catch(() => [])
     }
-    return []
+    // ?mock previews Hold to swap with chords of its own (dev/mockDesktop.ts).
+    return (await shellMockApi()?.listGlobalChords?.()) ?? []
   },
   async saveGlobalChord(chord) {
     if (isTauriWindow()) {
       return invokeTauri<GlobalChord[]>('save_global_chord', { chord })
     }
-    return []
+    return (await shellMockApi()?.saveGlobalChord?.(chord)) ?? []
   },
   async deleteGlobalChord(id) {
     if (isTauriWindow()) {
       return invokeTauri<GlobalChord[]>('delete_global_chord', { id })
     }
-    return []
+    return (await shellMockApi()?.deleteGlobalChord?.(id)) ?? []
   },
   async listAutoloadRules() {
     if (isTauriWindow()) {
@@ -900,6 +1012,12 @@ export const desktopBridge: DesktopBridge = {
     }
     const result = await getElectronAPI()?.recalibrateGyro?.()
     return result ?? { success: false }
+  },
+  async getWindowsPointerSpeed() {
+    if (isTauriWindow()) {
+      return invokeTauri<WindowsPointerSpeed | null>('get_windows_pointer_speed').catch(() => null)
+    }
+    return (await getElectronAPI()?.getWindowsPointerSpeed?.()) ?? null
   },
   async getCalibrationSeconds() {
     if (isTauriWindow()) {
@@ -1225,7 +1343,7 @@ export const desktopBridge: DesktopBridge = {
     if (isTauriWindow()) {
       return invokeTauri<HidHideStatus>('get_hidhide_status')
     }
-    return unsupportedHidHideStatus()
+    return (await shellMockApi()?.getHidHideStatus?.()) ?? unsupportedHidHideStatus()
   },
   async setUiRefreshHz(hz) {
     // Nothing to tell outside the desktop shell: the browser harness just
@@ -1273,35 +1391,22 @@ export const desktopBridge: DesktopBridge = {
   },
   async getAiSettings() {
     if (isTauriWindow()) {
-      return invokeTauri<AiSettings>('get_ai_settings').catch(() => ({
-        apiKey: '',
-        model: '',
-        baseUrl: '',
-        temperature: 0.2,
-      }))
+      return invokeTauri<AiSettings>('get_ai_settings').catch(() => DEFAULT_AI_SETTINGS)
     }
-    return {
-      apiKey: '',
-      model: '',
-      baseUrl: '',
-      temperature: 0.2,
-    }
+    return (await mockLibraryApi()?.getAiSettingsV2?.()) ?? DEFAULT_AI_SETTINGS
   },
   async saveAiSettings(settings) {
     if (isTauriWindow()) {
       return invokeTauri<AiSettings>('save_ai_settings', { settings })
     }
-    return {
-      apiKey: settings.apiKey,
-      model: settings.model ?? '',
-      baseUrl: settings.baseUrl ?? '',
-      temperature: settings.temperature ?? 0.2,
-    }
+    return (await mockLibraryApi()?.saveAiSettingsV2?.(settings)) ?? DEFAULT_AI_SETTINGS
   },
   async generateAiMapping(request) {
     if (isTauriWindow()) {
       return invokeTauri<AiGenerateResponse>('generate_ai_mapping', { request })
     }
+    const mocked = await mockLibraryApi()?.generateAiMappingV2?.(request)
+    if (mocked) return mocked
     return {
       summary: 'AI mapping generation is only available in the Tauri desktop app.',
       configText: request.currentConfig ?? '',
@@ -1309,5 +1414,54 @@ export const desktopBridge: DesktopBridge = {
       warnings: ['AI mapping generation is unavailable in this environment.'],
       model: '',
     }
+  },
+  async setAiKey(provider, key) {
+    if (isTauriWindow()) return invokeTauri<AiSettings>('set_ai_key', { provider, key })
+    return (await mockLibraryApi()?.setAiKey?.(provider, key)) ?? DEFAULT_AI_SETTINGS
+  },
+  async forgetAiCredentials() {
+    if (isTauriWindow()) return invokeTauri<AiSettings>('forget_ai_credentials')
+    return (await mockLibraryApi()?.forgetAiCredentials?.()) ?? DEFAULT_AI_SETTINGS
+  },
+  async testAiConnection(provider) {
+    if (isTauriWindow()) return invokeTauri<AiConnectionTest>('test_ai_connection', { provider })
+    return (await mockLibraryApi()?.testAiConnection?.(provider)) ?? { ok: false, models: [], error: 'Only in the desktop app.' }
+  },
+  async detectLocalAiModels() {
+    if (isTauriWindow()) return invokeTauri<LocalAiServer[]>('detect_local_ai_models').catch(() => [])
+    return (await mockLibraryApi()?.detectLocalAiModels?.()) ?? []
+  },
+  async chatgptSignIn() {
+    if (isTauriWindow()) return invokeTauri<AiSettings>('chatgpt_sign_in_command')
+    const mocked = await mockLibraryApi()?.chatgptSignIn?.()
+    if (mocked) return mocked
+    throw new Error('Continue with ChatGPT needs OpenAI’s approval for this app.')
+  },
+  async chatgptCancelSignIn() {
+    if (isTauriWindow()) await invokeTauri<void>('chatgpt_cancel_sign_in').catch(() => {})
+  },
+  async listBuiltinBases() {
+    const { SHIPPED_BASES } = await import('../utils/presetBases')
+    if (isTauriWindow()) return invokeTauri<import('../utils/presetBases').BuiltinBase[]>('list_builtin_bases').catch(() => SHIPPED_BASES)
+    return SHIPPED_BASES
+  },
+  async listRecentSteamGames(limit) {
+    if (isTauriWindow()) return invokeTauri<SteamGame[]>('list_recent_steam_games', { limit }).catch(() => [])
+    return (await mockLibraryApi()?.listRecentSteamGames?.(limit)) ?? []
+  },
+  async steamGameArt(appId, kind) {
+    if (isTauriWindow()) return invokeTauri<string | null>('steam_game_art', { appId, kind }).catch(() => null)
+    return (await mockLibraryApi()?.steamGameArt?.(appId, kind)) ?? null
+  },
+  async steamAppForExe(exePath) {
+    if (isTauriWindow()) return invokeTauri<SteamApp | null>('steam_app_for_exe', { exePath }).catch(() => null)
+    return (await mockLibraryApi()?.steamAppForExe?.(exePath)) ?? null
+  },
+  async listRunningGames() {
+    if (isTauriWindow()) return invokeTauri<RunningGame[]>('list_running_games').catch(() => [])
+    const mocked = await mockLibraryApi()?.listRunningGames?.()
+    if (mocked) return mocked
+    // Without the desktop runtime (a test's own mocks): the windowed apps, unranked.
+    return ((await getElectronAPI()?.listRunningProcesses?.()) ?? []).map(process => ({ ...process, kind: 'app' as const }))
   },
 }

@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Setting parity map</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#131920}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.st{display:inline-flex;align-items:center;height:28px;padding:0 12px;border-radius:14px;font-size:14px;font-weight:600;white-space:nowrap}
+.st-Drawn{background:#1e3d33;color:#93e6c1}
+.st-Pattern{background:#173a52;color:#a8dbfa}
+.st-Todesign{background:#4a3320;color:#ffc98f}
+.lv{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:8px;font-size:13px;font-weight:600;background:#2e3844;color:#d4dde6;white-space:nowrap}
+</style>
+</helmet>
+<div style="font-family: Geist, system-ui, sans-serif; color: #e8eef4; background: #131920; min-height: 100vh; padding: 64px 24px 96px; box-sizing: border-box">
+<div style="max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 48px">
+
+<header style="display: flex; flex-direction: column; gap: 16px">
+<div style="font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: #7cc4ee; font-weight: 600">Parity check · against JSM Evolved 0.7.134 source</div>
+<h1 style="margin: 0; font-size: 52px; line-height: 1.05; font-weight: 700; letter-spacing: -0.02em">Every setting, and where it lives</h1>
+<p style="margin: 0; font-size: 19px; line-height: 1.55; color: #b0bcc8; max-width: 900px">Nothing is removed. The redesign moves settings, it never drops them. Each one sits at exactly one of three depths, and a <span style="color: #e8eef4; font-weight: 600">Show config names</span> switch puts the JoyShockMapper key beside every friendly label, so a config written by hand still reads one-to-one.</p>
+</header>
+
+<section style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px">
+<div style="background: #1f2730; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 8px"><span class="lv" style="align-self: flex-start; background: #3e9fd8; color: #07131d">Front</span><span style="font-size: 20px; font-weight: 650">The choice most people make</span><span style="font-size: 16px; line-height: 1.5; color: #b0bcc8">Mode cards, the three gyro questions, “When you…” tiles. Visible on arrival.</span></div>
+<div style="background: #1f2730; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 8px"><span class="lv" style="align-self: flex-start">Fine-tune</span><span style="font-size: 20px; font-weight: 650">Every number, grouped by what it changes</span><span style="font-size: 16px; line-height: 1.5; color: #b0bcc8">One step in, one group at a time: the common settings with a live preview, the rest under Advanced (artboard 15).</span></div>
+<div style="background: #1f2730; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 8px"><span class="lv" style="align-self: flex-start">Y menu · Settings</span><span style="font-size: 20px; font-weight: 650">Actions on the focused thing; global options</span><span style="font-size: 16px; line-height: 1.5; color: #b0bcc8">Rename, copy, find, calibrate. Anything shared by every configuration goes in Settings.</span></div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 12px">
+<h2 style="margin: 0; font-size: 30px; font-weight: 650">The map</h2>
+<div style="display: flex; gap: 10px; align-items: center; font-size: 14px; color: #808c99"><span class="st st-Drawn">Drawn</span>on an artboard </div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<sc-for list="{{ rows }}" as="r" hint-placeholder-count="25">
+<article style="display: grid; grid-template-columns: 220px minmax(0, 1.2fr) minmax(0, 1fr) 120px; gap: 22px; align-items: start; background: #1f2730; border-radius: 16px; padding: 20px 22px">
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 19px; font-weight: 650">{{ r.area }}</span><span style="font-size: 14px; color: #808c99">{{ r.count }}</span></div>
+<div style="font-size: 15px; line-height: 1.55; color: #b0bcc8">{{ r.today }}</div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 15px; line-height: 1.55; color: #e8eef4">{{ r.home }}</span><span style="font-size: 13px; color: #808c99">{{ r.boards }}</span></div>
+<div><span class="st st-{{ r.st }}">{{ r.label }}</span></div>
+</article>
+</sc-for>
+</div>
+</section>
+
+<section style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px">
+<div style="background: #182129; border: 1px solid #2e3844; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 20px; font-weight: 650">Moved or merged, not removed</span>
+<sc-for list="{{ moved }}" as="m" hint-placeholder-count="5"><span style="font-size: 16px; line-height: 1.55; color: #b0bcc8">{{ m }}</span></sc-for>
+</div>
+<div style="background: #182129; border: 1px solid #4a3320; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 20px; font-weight: 650">Still to draw</span>
+<sc-for list="{{ todo }}" as="t" hint-placeholder-count="4"><span style="font-size: 16px; line-height: 1.55; color: #b0bcc8">{{ t }}</span></sc-for>
+</div>
+</section>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3400}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const D = { st: 'Drawn', label: 'Drawn' };
+    const P = { st: 'Pattern', label: 'Pattern' };
+    const T = { st: 'Todesign', label: 'To design' };
+    return {
+      rows: [
+        { ...D, area: 'Gyro settings', count: '42 config keys', today: 'Gyro page: General, Calibration, Sensitivity, Fine tuning, Tilt. Speed, acceleration curve and its 6 shape values, jitter cutoff, smoothing, one-euro filter, angle snap, brake, click dampen, axes, space, output, tilt, tick time, gyro rumble.', home: 'Front: the three questions. Fine-tune: four groups (Speed, Steadiness, Direction, Rumble), one at a time. Each shows its 3–4 common settings with a live graph; exact numbers and curve shape sit under Advanced.', boards: 'Gyro row: Fine-tune · Steadiness · Speed, Shape, Game & lean · Jitter · Adaptive filter · Snap & brake · Direction (+ Advanced) · Rumble' },
+        { ...D, area: 'When gyro is on', count: 'activation, conditions, per-input', today: 'Always on / Hold to enable / Hold to disable / Always off, activation input, activation conditions (touch, grip sense, buttons), gyro modeshifts, gyro-as-stick.', home: 'Question 1 on Gyro. Combined conditions under its Fine-tune. Per-input gyro changes are “While holding…” on that input’s sheet.', boards: 'Gyro row: When is it on · Gyro as stick (setup, dead zone & curve) · Recalibrate' },
+        { ...D, area: 'Binding: when', count: '10 trigger kinds', today: 'Regular, tap, hold, double, release, turbo, chord, simultaneous, diagonal, stick mode shift.', home: 'Tiles for Press, Tap, Hold, Double-tap. “More” holds Let go, Turbo, Press together with…, Stick diagonal. Chord and stick mode shift are “While holding another button…”.', boards: '04 Binding sheet · Binding: More ways to trigger · While holding another button' },
+        { ...D, area: 'Binding: what it sends', count: '12 output kinds', today: 'Keyboard (including system and media keys), mouse, wheel, special actions, gyro action, console command, load config, raw token, virtual controller, rumble and sound, light while held, layer action.', home: 'Eight kind tiles: Keyboard key, Mouse, Gamepad button, Open a menu, Switch mode, Controller action, Load a configuration, Type it yourself. Media keys are a tab of the key picker.', boards: 'Bindings row: Controller actions (Gyro, Calibrate, Rumble & sound, Light, Other) · Pickers sheet · 05 Key picker' },
+        { ...D, area: 'Binding: behaviour', count: 'normal, once, toggle, release-only', today: 'Output behaviour per command, command parameters (cycle lists, haptic options, MIDI tones).', home: 'Binding sheet ▸ Fine-tune, for the selected “When you…” tile.', boards: 'Binding: Fine-tune (how it’s sent, light, cycle, rumble, sound)' },
+        { ...D, area: 'Names, icons, clipboard', count: 'per binding', today: 'Action names (“Name this action”), icons, copy, paste, clear, controller-only layouts, “Use regular gamepad”.', home: 'Y on a row or in the sheet: Rename, Icon, Copy, Paste, Clear, Only for this controller / Use shared layout.', boards: 'On-screen keyboard · Icon picker · Where this comes from · Layout quick menu' },
+        { ...D, area: 'Sticks', count: '20 mode values · 27 config keys', today: 'Directions, aim, flick, flick only, rotate only, mouse area, mouse ring, scroll wheel, hybrid aim, inner and outer ring, radial menu, gamepad passthrough, angle to X / Y axis, wind (steering). Inner and outer dead zone per stick and probe, speed, power, acceleration rate and cap, flick time and exponent, snap mode and strength, flick dead-zone angle, ring radius, scroll speed, wheel slices and dead zone.', home: 'Front: five mode cards and a “+10 More” card, then dead zone, L3 and Fine-tune. Fine-tune shows only the chosen mode’s settings, laid out like the gyro one.', boards: 'Sticks row: Looking around · Speed-up · Mouse-like feel · Flick · Snap & forward · Turning output · Match the game · Wheel · Small modes · Dead zone · Advanced' },
+        { ...D, area: 'Triggers', count: 'mode, threshold, release, adaptive', today: 'Behaviour (ZL / ZR mode), half and full pull bindings, soft-press threshold, release margin, DualSense adaptive triggers, trigger calibration, live meter.', home: 'Behaviour cards (one stage, half then full, full replaces half…), the live meter kept, Fine-tune for threshold, release margin and resistance. Calibrate on Y.', boards: 'Triggers row: Behaviour cards · Press points · Resistance · Effects sheet · Advanced · Calibration' },
+        { ...D, area: 'Trackpads', count: '5 modes · 86 config keys', today: 'Per pad: mode, grid size, shape, dead zone, click-required, sensitivity, mouse area and fit, two-stage click, acceleration curve (12), glide (2), movement threshold, rotation, touch-stick (5), touch, click and release haptics, click dampen, on-screen menu layout.', home: 'Keep today’s region preview, it is the best screen in the app. Add mode cards per pad and Fine-tune groups: Speed & curve, Glide, Regions, Click, Feel.', boards: 'Trackpads row: Mode & zones · Mouse area · Speed & curve · Zones layout · Touch and click · Touch stick · Glide · Click · Feel' },
+        { ...D, area: 'Grip sensors', count: '8 config keys', today: 'Grip sensors sheet: sensor range, flicker guard, squeeze and release rumble.', home: 'Buttons ▸ Grips ▸ Fine-tune, the same sheet restyled.', boards: 'Grip sensors sheet' },
+        { ...D, area: 'Modes (layers)', count: 'per mode', today: 'Name, colour, hold / toggle / remove, suppress holds, stack order, overrides, editing layer selector in the title bar.', home: 'Mode cards. X: how it turns on and off. Y: rename, colour, order, delete. Editing a mode is Layout with LT/RT on the mode strip.', boards: '08 Modes · How it turns on and off · What changes in this mode · 02 Layout' },
+        { ...D, area: 'Virtual menus', count: 'wheel, grid, hotbar', today: 'Menu library, slot actions and icons, appearance, position on screen.', home: 'Menus tab: templates up front, then an editor that shows the menu at full size and edits slots in place.', boards: 'Menus: editor · Opened by and details · Icon picker' },
+        { ...D, area: 'Light, sounds, firmware', count: 'LIGHT_BAR, LED, jingles', today: 'Controller light colour and brightness, light while held, custom sounds, power jingle level, pad rotation.', home: 'Per configuration: Layout ▸ Y ▸ Controller. Defaults: Settings ▸ Controller.', boards: 'Controller light & sounds · Sound library · Settings: Controller (continued)' },
+        { ...D, area: 'What the game sees', count: 'virtual controller, bases', today: 'Output type (keyboard and mouse, Xbox, DualShock), imported templates.', home: 'Library detail (“Sends”, “Built on”), the Bases tab, and step 2 of New configuration.', boards: 'Library: Bases · Library detail · Only for this controller · New configuration' },
+        { ...D, area: 'Press timing & polling', count: '7 config keys + polling', today: 'Hold time, double-tap window, press-together window, turbo rate, controller polling.', home: 'Settings ▸ Press timing, with a live tap tester.', boards: 'Settings: Press timing · Press timing ▸ Advanced' },
+        { ...D, area: 'Hold to swap', count: 'global chords', today: 'Studio ▸ Global chords.', home: 'Settings ▸ Hold to swap: hold a button or buttons to swap to another whole configuration until you let go.', boards: 'Settings: Hold to swap · Edit and copy' },
+        { ...D, area: 'Launch with game', count: 'associations, AutoLoad', today: 'Associations page, AutoLoad, the desktop fallback.', home: 'Library ▸ Launch with game, and the line on each game’s detail.', boards: 'Library: Launch with game' },
+        { ...D, area: 'Hide the real controller', count: 'HidHide', today: 'Device visibility page.', home: 'Settings ▸ Hide the real controller.', boards: 'Settings: Hide the real controller · Setup' },
+        { ...D, area: 'App preferences', count: 'startup, nav, overlays…', today: 'Start with Windows, navigate with controller, trackpad overlay, calibration HUD, nav rumble, virtual keyboard layout and look, calibration delay and duration, default light, firmware gyro recalibration.', home: 'Settings ▸ Controller and Startup, plus the new Screen distance (Couch / Desk).', boards: 'Settings: Controller · Controller (continued) · Startup' },
+        { ...D, area: 'Look & language', count: 'theme, accent, language', today: 'Appearance page.', home: 'Settings ▸ Look & language.', boards: 'Settings: Look & language' },
+        { ...D, area: 'Assistant', count: 'provider, key, model, URL, temp.', today: 'API fields above the conversation.', home: 'Conversation first. Settings ▸ Assistant: Continue with ChatGPT (your plan), Claude or OpenAI with a key, a model on this PC, or drive JSM Evolved from Claude Desktop.', boards: '12 Assistant · Settings: Assistant' },
+        { ...D, area: 'Configuration files', count: 'library actions', today: 'Import, Import from Steam, New, Edit, Apply, Duplicate, Rename, Show in folder, Edit source, Delete.', home: 'Library: A edit, X make live, Y for everything else. Import sits on the “New for a game” cover.', boards: 'Library: Y menu · Steam import review · New configuration steps 1–3' },
+        { ...D, area: 'Review & undo', count: 'Changes, history', today: 'Changes button (diff review), Applied, history.', home: 'One status chip. Menu ▸ Review changes, Undo, Save.', boards: 'Review changes, undo, save' },
+        { ...D, area: 'Finding things', count: 'search, filters', today: 'Overview: search, All / Overrides / Available / Uses a modifier, Show unbound, Details, Controller.', home: 'Y on Layout and Buttons: Find, Show unused, Show only this mode’s changes. Pressing a real button jumps to its row.', boards: 'Layout: Y quick menu · On-screen keyboard' },
+        { ...D, area: 'Help & troubleshooting', count: 'docs, credits, console', today: 'Documentation, Credits, Debug console with command line, mapping debug.', home: 'Settings ▸ Guides & reference, About & credits, Troubleshooting log.', boards: 'Settings: Guides · Guides search · Troubleshooting log · What Windows receives · About' }
+      ],
+      moved: [
+        'D-Pad tab → a section of Buttons. Same four directions and diagonals.',
+        'Overview → Layout. Same information, laid out around the controller.',
+        'Editing layer dropdown (title bar) → the mode strip on Layout and Modes.',
+        'Changes + Applied + Mapping status → one status chip; Menu saves.',
+        'Eleven Studio tabs → Library (games, bases, launch with game) and Settings.'
+      ],
+      todo: [
+        'Nothing. Every value above has a drawn screen. Some screens show example values that are not Wardogs’ real settings.'
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

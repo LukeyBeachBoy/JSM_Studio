@@ -38,15 +38,15 @@ export const ACCENT_META: Record<Accent, AccentMeta> = {
   },
   teal: {
     id: 'teal', name: 'Volt teal', hex: '#2FD8BB', ink: '#0C7F6F', mark: teal, mark16: teal16,
-    note: 'Closest to the original cyan, pushed toward green so it reads as new. The green layer moves over to stay apart from it.',
+    note: 'Closest to the original cyan, pushed toward green so it reads as new. The green mode colour moves over to stay apart from it.',
   },
   amber: {
     id: 'amber', name: 'Solar amber', hex: '#F5A623', ink: '#9A5C00', mark: amber, mark16: amber16,
-    note: 'The biggest break from JSM Studio. Warm and high-energy. The orange layer and the warning colour shift so they stay apart from it.',
+    note: 'The biggest break from JSM Studio. Warm and high-energy. The orange mode colour and the warning colour shift so they stay apart from it.',
   },
   violet: {
     id: 'violet', name: 'Ultraviolet', hex: '#8B6FF5', ink: '#4A2FC0', mark: violet, mark16: violet16,
-    note: 'Most next-gen of the four. The violet layer moves to a periwinkle so the two never sit on top of each other.',
+    note: 'Most next-gen of the four. The violet mode colour moves to a periwinkle so the two never sit on top of each other.',
   },
 }
 

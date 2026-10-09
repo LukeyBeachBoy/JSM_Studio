@@ -21,7 +21,7 @@ const hubSymbols: Partial<Record<ShortcutAction, ReactNode>> = { caps: '⇪', ba
 const keyActions: Record<string, ShortcutAction> ={ '⌫': 'backspace', '↵': 'enter', '⇧': 'shift', Caps: 'caps', Space: 'space', Done: 'close' }
 const Key = memo(function Key({ label, left, right, selected, shortcut, family, span = 1 }: { label: string; left: boolean; right: boolean; selected: boolean; shortcut?: string; family: ControllerVisualFamily; span?: number }) {
   const name = label === 'Done' ? 'Close keyboard' : label === 'Caps' ? 'Caps Lock' : label
-  return <div className="vk-key" style={{ flex: span }} data-left={left || undefined} data-right={right || undefined} data-selected={selected || undefined} data-action={keyActions[label] || undefined} aria-label={name} title={name}>
+  return <div className="vk-key" style={{ flex: span }} data-left={left || undefined} data-right={right || undefined} data-selected={selected || undefined} data-action={keyActions[label] || undefined} data-caption={name} aria-label={name}>
     <span className="vk-key-label">{label === 'Done' ? <CloseKeyboardIcon /> : label === 'Caps' ? 'Caps' : label === '⇧' ? 'Shift' : label === '↵' ? 'Enter' : label}</span>
     {shortcut && <span className="vk-key-shortcut"><ShortcutGlyph command={shortcut} family={family} /></span>}
   </div>

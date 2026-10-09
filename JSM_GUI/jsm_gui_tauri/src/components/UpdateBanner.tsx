@@ -1,94 +1,63 @@
-import { useEffect, useRef, useState } from 'react'
-import { desktopBridge } from '../platform/desktopBridge'
+import { useEffect, useState } from 'react'
+import { shellBridge, useUpdateStatus } from '../platform/shellBridge'
 import { focusPageStart } from './SystemNotices'
 import styles from './Misc.module.css'
 
-type UpdateState =
-  | { phase: 'idle' }
-  | { phase: 'available'; version: string }
-  | { phase: 'downloading'; version: string }
-  | { phase: 'installing'; version: string }
-  | { phase: 'error'; version?: string }
-
-// Update banner (System States 17h): one line under the tabs, left of where
-// toasts stack. "Install and restart" downloads, then installs as soon as the
-// download lands; the download's progress fills the banner meanwhile.
+// The update line under the header (System States 17h; console v2, D19): it
+// shows when GitHub has a newer release than this app, from the status the
+// Startup and About pages share. "Install and restart" downloads the
+// release's installer (its progress fills the line), starts it, and closes
+// the app so it can replace the files.
 export function UpdateBanner() {
-  const [update, setUpdate] = useState<UpdateState>({ phase: 'idle' })
-  const [dismissed, setDismissed] = useState(false)
+  const update = useUpdateStatus()
+  const [dismissed, setDismissed] = useState<string | null>(null)
+  const [phase, setPhase] = useState<'idle' | 'downloading' | 'installing' | 'error'>('idle')
   const [progress, setProgress] = useState(0)
-  // The version the listeners see; a state updater must stay pure, and
-  // StrictMode runs it twice, which would start two installs.
-  const versionRef = useRef('')
+  useEffect(() => shellBridge.onUpdateProgress(percent => {
+    setProgress(percent)
+    if (percent >= 100) setPhase('installing')
+  }), [])
 
-  useEffect(() => {
-    const removeAvailable = desktopBridge.onUpdateAvailable((version) => {
-      versionRef.current = version
-      setUpdate({ phase: 'available', version })
-      setDismissed(false)
-    })
-    const removeProgress = desktopBridge.onUpdateDownloadProgress((percent) => {
-      setProgress(percent)
-    })
-    const removeDownloaded = desktopBridge.onUpdateDownloaded(() => {
-      const version = versionRef.current
-      setUpdate({ phase: 'installing', version })
-      void desktopBridge.installUpdate().catch(error => {
-        console.error('Failed to install JSM Evolved update', error)
-        setUpdate({ phase: 'error', version })
-      })
-    })
-    const checkTimer = window.setTimeout(() => {
-      void desktopBridge.checkForUpdates()
-    }, 1500)
-    return () => {
-      window.clearTimeout(checkTimer)
-      removeAvailable?.()
-      removeProgress?.()
-      removeDownloaded?.()
-    }
-  }, [])
+  const version = update?.latestVersion ?? ''
+  if (!update?.available || dismissed === version) return null
 
-  if (update.phase === 'idle' || dismissed) return null
-
-  const version = 'version' in update ? update.version : undefined
-  const install = (target: string) => {
+  const install = () => {
     setProgress(0)
-    setUpdate({ phase: 'downloading', version: target })
-    void desktopBridge.downloadUpdate().catch(error => {
-      console.error('Failed to download JSM Evolved update', error)
-      setUpdate({ phase: 'error', version: target })
+    setPhase('downloading')
+    void shellBridge.installUpdate().then(() => setPhase(current => current === 'downloading' ? 'installing' : current)).catch(error => {
+      console.error('Failed to install the JSM Evolved update', error)
+      setPhase('error')
     })
   }
 
   return (
-    <div className={styles.updateBanner} role="status" data-phase={update.phase}>
-      {update.phase === 'downloading' && (
+    <div className={styles.updateBanner} role="status" data-phase={phase === 'idle' ? 'available' : phase}>
+      {phase === 'downloading' && (
         <span className={styles.updateBannerFill} style={{ transform: `scaleX(${Math.max(0, Math.min(100, progress)) / 100})` }} aria-hidden="true" />
       )}
       <b>
-        {update.phase === 'available' && 'Update available'}
-        {update.phase === 'downloading' && 'Downloading update'}
-        {update.phase === 'installing' && 'Installing update'}
-        {update.phase === 'error' && 'The update did not install'}
+        {phase === 'idle' && 'Update available'}
+        {phase === 'downloading' && 'Downloading update'}
+        {phase === 'installing' && 'Installing update'}
+        {phase === 'error' && 'The update did not install'}
       </b>
       <span className={styles.updateBannerDetail}>
-        {update.phase === 'downloading'
+        {phase === 'downloading'
           ? `JSM Evolved ${version} · ${Math.round(progress)}%`
-          : update.phase === 'installing'
-            ? 'JSM Evolved restarts on its own'
-            : update.phase === 'error'
-              ? 'Try again, or download it from the releases page'
-              : `JSM Evolved ${version}`}
+          : phase === 'installing'
+            ? 'The installer takes over; JSM Evolved closes so it can update'
+            : phase === 'error'
+              ? 'Try again, or get it from the releases page'
+              : `JSM Evolved ${version} · you have ${update.currentVersion}`}
       </span>
       <span className={styles.updateBannerSpacer} />
-      {(update.phase === 'available' || (update.phase === 'error' && version)) && (
-        <button type="button" className={styles.updateBannerAction} onClick={() => install(version!)}>
-          {update.phase === 'error' ? 'Try again' : 'Install and restart'}
+      {(phase === 'idle' || phase === 'error') && (
+        <button type="button" className={styles.updateBannerAction} onClick={install}>
+          {phase === 'error' ? 'Try again' : 'Install and restart'}
         </button>
       )}
-      {(update.phase === 'available' || update.phase === 'error') && (
-        <button type="button" className={styles.updateBannerLater} onClick={() => { setDismissed(true); focusPageStart() }}>Later</button>
+      {(phase === 'idle' || phase === 'error') && (
+        <button type="button" className={styles.updateBannerLater} onClick={() => { setDismissed(version); focusPageStart() }}>Later</button>
       )}
     </div>
   )

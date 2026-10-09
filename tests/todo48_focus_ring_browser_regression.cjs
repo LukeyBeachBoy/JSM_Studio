@@ -67,19 +67,20 @@ const countRings = () => {
       assert.equal(rings[0], 'focus-glide', `${name}, controller: the one ring is the glide`)
     }
 
-    await page.getByRole('button', { name: /^Documentation/ }).first().click()
-    await expectOne('Documentation search', page.locator('input[type="search"]').first())
+    // Console v2: the guides' search is behind Y; the Troubleshooting log's command line
+    // is the page's text field now.
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('jsm:navigate-page', { detail: 'debugConsole' })))
+    await expectOne('Command line', page.locator('input[aria-label="Command to send to JoyShockMapper"]').first())
 
-    await page.getByRole('button', { name: /^Preferences/ }).first().click()
-    await page.getByText('Gyro calibration', { exact: true }).first().waitFor()
-    // The first NumberField on the page is Gyro calibration's Start Delay.
-    await expectOne('Start Delay value', page.locator('.prefs-section [class*="valueInput"]').first())
-
-    // The editing shell's Overview has the bindings search.
+    // Layout's Find, first in its quick menu (Y).
     await source('mouse')
     await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
-    const overviewSearch = page.getByRole('searchbox', { name: 'Search bindings' })
-    if (await overviewSearch.count()) await expectOne('Overview search', overviewSearch.first())
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('jsm:navigate-page', { detail: 'overview' })))
+    await page.locator('[data-overview-slot]').first().focus()
+    await page.keyboard.press('y')
+    const layoutFind = page.getByRole('searchbox', { name: 'Find an input or action' })
+    await layoutFind.waitFor()
+    await expectOne('Layout find', layoutFind)
 
     assert.deepEqual(errors, [])
     console.log('PASS: one focus ring per text field with the keyboard and with the pad')

@@ -1,482 +1,355 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { AdvancedDisclosure } from './AdvancedDisclosure'
-import { NumberField } from './NumberField'
-import styles from './AiMappingPage.module.css'
-import {
-  desktopBridge,
-  type AiConversationMessage,
-  type AiGenerateResponse,
-  type AiSettings,
-} from '../platform/desktopBridge'
-import { ensureHeaderLines } from '../utils/config'
-import { showToast } from '../utils/toast'
-import { describeBinding } from '../utils/bindingDescription'
-import { inputDefinitions } from '../utils/layers'
-import { controllerButtonLabel } from '../utils/controllerStatus'
-import { InputGlyph } from './glyphs/InputGlyph'
-import { useLastSeenController } from '../hooks/useLastSeenController'
-import { Menu } from './ui/Menu'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { desktopBridge, DEFAULT_AI_SETTINGS, type AiConnectionTest, type AiProvider, type AiSettings, type AiSettingsInput, type LocalAiServer } from '../platform/desktopBridge'
+import { PAD_EVENT, type PadEventDetail } from '../nav/useControllerNavigation'
+import { ModeCards, SegmentedRow, type ModeCard } from './ui/console'
+import { Sheet } from './ui/Sheet'
 import { Icon } from './icons/Icon'
+import { showToast } from '../utils/toast'
+import styles from './assistant/Assistant.module.css'
+
+// Settings ▸ Assistant (console v2: SettingsAssistant; D18, README §6): how
+// the assistant connects, chosen once. Four ways, as cards:
+//
+//   Continue with ChatGPT   plan-billed sign-in in the browser (PKCE). OpenAI
+//                           offers it to approved apps only, so without a
+//                           client id it stays here and says why.
+//   Claude, with an API key we open Anthropic's key page, the key is pasted
+//                           (Y on the pad) and tested; no Claude.ai login,
+//                           which Anthropic doesn't allow for other apps.
+//   OpenAI or another …     any OpenAI-compatible endpoint: key, model, address.
+//   On this PC              Ollama or LM Studio, found by probing, no key.
+//
+// Keys go straight to Windows Credential Manager; this page only ever sees
+// whether one is stored and its last four characters. The conversation itself
+// is its own page (components/assistant/AssistantPage).
+
+export const CLAUDE_KEY_PAGE = 'https://console.anthropic.com/settings/keys'
+
+const PROVIDER_LABEL: Record<AiProvider, string> = {
+  chatgpt: 'ChatGPT',
+  anthropic: 'Claude',
+  openai_compatible: 'OpenAI-compatible',
+  local: 'On this PC',
+}
 
 type AiMappingPageProps = {
-  configText: string
-  currentProfileName: string | null
-  hasPendingChanges: boolean
-  onReplaceConfig: (value: string) => void
-  onApplyGeneratedConfig: (value: string) => Promise<void>
-  /** The library, for the Working on picker (console refinement D8). */
-  libraryProfiles: string[]
-  /** Save and apply a proposal to a configuration other than the one being edited. */
-  onApplyToProfile: (name: string, value: string) => Promise<void>
+  /** The conversation page, for "Try it now" once connected. */
+  onOpenAssistant?: () => void
 }
 
-type ChatEntry = {
-  id: string
-  role: 'user' | 'assistant'
-  content: string
-  result?: AiGenerateResponse
-  /** The configuration the proposal was made against, for its diff. */
-  base?: string
+const pasteFromClipboard = async () => {
+  try { return (await navigator.clipboard.readText()).trim() } catch { return '' }
 }
 
-const DEFAULT_SETTINGS: AiSettings = {
-  apiKey: '',
-  model: '',
-  baseUrl: '',
-  temperature: 0.2,
-}
-
-// What a proposal changes, as a binding diff (16e): one row per key whose
-// value changed -- the input's glyph, the old action, the new action -- with
-// the raw line under it. Header lines Studio manages itself are left out.
-const HEADER = /^(TELEMETRY_ENABLED|TELEMETRY_PORT|AUTOCONNECT|RESET_MAPPINGS)\b/
-type Change = { key: string; before?: string; after?: string }
-const assignments = (text: string) => {
-  const map = new Map<string, string>()
-  const other: string[] = []
-  for (const raw of text.split(/\r?\n/)) {
-    const line = raw.trim()
-    if (!line || line.startsWith('#') || HEADER.test(line)) continue
-    const match = /^([^=]+?)\s*=\s*(.*)$/.exec(line)
-    if (match) map.set(match[1].trim().toUpperCase(), match[2].trim())
-    else other.push(line)
-  }
-  return { map, other }
-}
-const diffBindings = (before: string, after: string): Change[] => {
-  const old = assignments(before), next = assignments(after)
-  const changes: Change[] = []
-  for (const [key, value] of next.map) if (old.map.get(key) !== value) changes.push({ key, before: old.map.get(key), after: value })
-  for (const [key, value] of old.map) if (!next.map.has(key)) changes.push({ key, before: value })
-  const oldOther = new Set(old.other), nextOther = new Set(next.other)
-  for (const line of next.other) if (!oldOther.has(line)) changes.push({ key: line, after: '' })
-  for (const line of old.other) if (!nextOther.has(line)) changes.push({ key: line, before: '' })
-  return changes
-}
-/** The input a key names: the last command of a chord, or none for a setting. */
-const inputOf = (key: string) => {
-  const command = key.split(',').pop()?.trim().toUpperCase() ?? ''
-  return inputDefinitions.find(button => button.command === command) ?? null
-}
-
-const createEntryId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-
-const formatAssistantHistoryContent = (result: AiGenerateResponse) => {
-  const sections = [result.summary.trim()].filter(Boolean)
-
-  if (result.assumptions.length > 0) {
-    sections.push(`Assumptions:\n${result.assumptions.map(item => `- ${item}`).join('\n')}`)
-  }
-
-  if (result.warnings.length > 0) {
-    sections.push(`Warnings:\n${result.warnings.map(item => `- ${item}`).join('\n')}`)
-  }
-
-  return sections.join('\n\n').trim()
-}
-
-const toConversationHistory = (entries: ChatEntry[]): AiConversationMessage[] =>
-  entries.map(entry => ({
-    role: entry.role,
-    content: entry.role === 'assistant' && entry.result ? formatAssistantHistoryContent(entry.result) : entry.content,
-  }))
-
-export function AiMappingPage({
-  configText: editingText,
-  currentProfileName: editingName,
-  hasPendingChanges: editingDirty,
-  onReplaceConfig,
-  onApplyGeneratedConfig,
-  libraryProfiles,
-  onApplyToProfile,
-}: AiMappingPageProps) {
-  const { t, i18n } = useTranslation()
-  // Working on (D8): the configuration the conversation is about. The one
-  // being edited unless another is picked; another is read from its file.
-  const [picked, setPicked] = useState<{ name: string; text: string } | null>(null)
-  const configText = picked ? picked.text : editingText
-  const currentProfileName = picked ? picked.name : editingName
-  const hasPendingChanges = picked ? false : editingDirty
-  const [pickerQuery, setPickerQuery] = useState('')
-  const pick = async (name: string) => {
-    if (name === editingName) { setPicked(null); return }
-    const profile = await desktopBridge.loadLibraryProfile(name)
-    if (!profile) { showToast(`Could not read ${name}.`, 'error'); return }
-    setPicked({ name, text: profile.content })
-  }
-  const { family } = useLastSeenController()
-  const [settings, setSettings] = useState<AiSettings>(DEFAULT_SETTINGS)
-  const [composer, setComposer] = useState('')
-  const [includeCurrentConfig, setIncludeCurrentConfig] = useState(true)
-  const [messages, setMessages] = useState<ChatEntry[]>([])
-  const [workingConfig, setWorkingConfig] = useState('')
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [settingsLoaded, setSettingsLoaded] = useState(false)
-  const [savingSettings, setSavingSettings] = useState(false)
-  const [generating, setGenerating] = useState(false)
-  const [applying, setApplying] = useState(false)
-  const chatViewportRef = useRef<HTMLDivElement | null>(null)
-
-  const hasAssistantDraft = messages.some(message => message.role === 'assistant' && message.result)
+export function AiMappingPage({ onOpenAssistant }: AiMappingPageProps) {
+  const [settings, setSettings] = useState<AiSettings>(DEFAULT_AI_SETTINGS)
+  const [loaded, setLoaded] = useState(false)
+  const [open, setOpen] = useState<AiProvider | null>(null)
+  const [test, setTest] = useState<Partial<Record<AiProvider, AiConnectionTest | 'testing'>>>({})
+  const [local, setLocal] = useState<LocalAiServer[] | null>(null)
+  const [signingIn, setSigningIn] = useState(false)
+  const [forgetOpen, setForgetOpen] = useState(false)
+  const [keyDraft, setKeyDraft] = useState<Record<string, string>>({})
+  const pageRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     let disposed = false
-    void desktopBridge.getAiSettings()
-      .then(nextSettings => {
-        if (!disposed) {
-          setSettings(nextSettings)
-          setSettingsLoaded(true)
-        }
-      })
-      .catch(error => {
-        if (!disposed) {
-          console.error('Failed to load AI settings', error)
-          setErrorMessage(error instanceof Error ? error.message : String(error))
-          setSettingsLoaded(true)
-        }
-      })
-
-    return () => {
-      disposed = true
-    }
+    void desktopBridge.getAiSettings().then(next => {
+      if (disposed) return
+      setSettings(next)
+      setOpen(next.provider)
+      setLoaded(true)
+    })
+    return () => { disposed = true }
   }, [])
 
-  useEffect(() => {
-    if (!hasAssistantDraft) {
-      setWorkingConfig(configText)
-    }
-  }, [configText, hasAssistantDraft])
+  const save = useCallback(async (patch: AiSettingsInput) => {
+    try { setSettings(await desktopBridge.saveAiSettings(patch)) }
+    catch (error) { showToast(`Couldn't save the assistant settings: ${error instanceof Error ? error.message : String(error)}`, 'error') }
+  }, [])
 
-  useEffect(() => {
-    const viewport = chatViewportRef.current
-    if (!viewport) return
-    viewport.scrollTop = viewport.scrollHeight
-  }, [messages, generating])
+  const detect = useCallback(async () => {
+    setLocal(null)
+    setLocal(await desktopBridge.detectLocalAiModels())
+  }, [])
+  useEffect(() => { void detect() }, [detect])
 
-  const previewConfig = useMemo(() => {
-    const source = hasAssistantDraft ? workingConfig : configText
-    return ensureHeaderLines(source)
-  }, [configText, hasAssistantDraft, workingConfig])
+  const runTest = async (provider: AiProvider) => {
+    setTest(current => ({ ...current, [provider]: 'testing' }))
+    const result = await desktopBridge.testAiConnection(provider)
+    setTest(current => ({ ...current, [provider]: result }))
+    return result
+  }
 
-  const currentConfigForRequest = useMemo(() => {
-    if (hasAssistantDraft) {
-      return previewConfig
-    }
-    return includeCurrentConfig ? configText : undefined
-  }, [configText, hasAssistantDraft, includeCurrentConfig, previewConfig])
-
-  const [settingsEdited, setSettingsEdited] = useState(0)
-  const editSettings = (update: (current: AiSettings) => AiSettings) => { setSettings(update); setSettingsEdited(value => value + 1) }
-  useEffect(() => {
-    if (!settingsEdited) return
-    const timer = window.setTimeout(() => { void persistSettings() }, 700)
-    return () => window.clearTimeout(timer)
-    // persistSettings reads the latest settings; the edit counter is the trigger.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settingsEdited])
-
-  const persistSettings = async () => {
-    setSavingSettings(true)
-    setErrorMessage(null)
+  const storeKey = async (provider: 'anthropic' | 'openai_compatible', key: string) => {
+    if (!key) { showToast('The clipboard has no key in it. Copy the key, then paste again.', 'error'); return }
     try {
-      const persisted = await desktopBridge.saveAiSettings(settings)
-      setSettings(persisted)
-      showToast(t('messages.aiSettingsSaved'))
+      setSettings(await desktopBridge.setAiKey(provider, key))
+      setKeyDraft(current => ({ ...current, [provider]: '' }))
+      showToast('Key saved in Windows Credential Manager')
+      const result = await runTest(provider)
+      // A tested Claude key fills the picker; keep the default model if it's offered.
+      if (provider === 'anthropic' && result.ok && result.models.length && !result.models.includes(settings.anthropic.model)) {
+        const pick = result.models.find(model => model.startsWith('claude-opus')) ?? result.models[0]
+        await save({ anthropic: { model: pick } })
+      }
     } catch (error) {
-      console.error('Failed to save AI settings', error)
-      const message = t('messages.aiSettingsFailed', {
-        error: error instanceof Error ? error.message : String(error),
-      })
-      setErrorMessage(message)
-      showToast(message, 'error')
-    } finally {
-      setSavingSettings(false)
+      showToast(error instanceof Error ? error.message : String(error), 'error')
     }
   }
 
-  const handleSend = async () => {
-    const userPrompt = composer.trim()
-    if (!userPrompt) {
-      const message = t('ai.requestRequired')
-      setErrorMessage(message)
-      showToast(message, 'error')
-      return
-    }
-    if (!settings.apiKey.trim()) {
-      const message = t('ai.apiKeyRequired')
-      setErrorMessage(message)
-      showToast(message, 'error')
-      return
-    }
-    if (!settings.model.trim()) {
-      const message = t('ai.modelRequired')
-      setErrorMessage(message)
-      showToast(message, 'error')
-      return
-    }
-    if (!settings.baseUrl.trim()) {
-      const message = t('ai.baseUrlRequired')
-      setErrorMessage(message)
-      showToast(message, 'error')
-      return
-    }
-
-    const nextUserEntry: ChatEntry = {
-      id: createEntryId(),
-      role: 'user',
-      content: userPrompt,
-    }
-
-    const priorMessages = messages
-    setMessages(current => [...current, nextUserEntry])
-    setComposer('')
-    setGenerating(true)
-    setErrorMessage(null)
-
+  const signIn = async () => {
+    if (!settings.chatgpt.available) return
+    setSigningIn(true)
     try {
-      const persistedSettings = await desktopBridge.saveAiSettings(settings)
-      setSettings(persistedSettings)
-
-      const nextResult = await desktopBridge.generateAiMapping({
-        userPrompt,
-        currentConfig: currentConfigForRequest,
-        currentProfileName,
-        includeCurrentConfig,
-        conversationHistory: toConversationHistory(priorMessages),
-        locale: i18n.language,
-      })
-
-      setWorkingConfig(nextResult.configText)
-      setMessages(current => [
-        ...current,
-        {
-          id: createEntryId(),
-          role: 'assistant',
-          content: nextResult.summary || t('ai.emptySummary'),
-          result: nextResult,
-          base: currentConfigForRequest ?? '',
-        },
-      ])
+      setSettings(await desktopBridge.chatgptSignIn())
+      showToast('Signed in with ChatGPT')
     } catch (error) {
-      console.error('Failed to generate AI mapping', error)
-      const message = t('messages.aiGenerationFailed', {
-        error: error instanceof Error ? error.message : String(error),
-      })
-      setErrorMessage(message)
-      showToast(message, 'error')
-    } finally {
-      setGenerating(false)
+      showToast(error instanceof Error ? error.message : String(error), 'error')
+    } finally { setSigningIn(false) }
+  }
+
+  const forget = async () => {
+    setForgetOpen(false)
+    setSettings(await desktopBridge.forgetAiCredentials())
+    setTest({})
+    showToast('Signed out. Every key is gone from Windows Credential Manager.')
+  }
+
+  // Y: Sign out · forget keys, through a confirmation (Y never destroys directly).
+  useEffect(() => {
+    const host = pageRef.current
+    if (!host) return
+    const onPad = (event: Event) => {
+      const { button } = (event as CustomEvent<PadEventDetail>).detail
+      const target = event.target as HTMLElement | null
+      if (button !== 'Y' || target?.closest('[data-pastes-key]')) return
+      event.preventDefault()
+      setForgetOpen(true)
+    }
+    host.addEventListener(PAD_EVENT, onPad)
+    return () => host.removeEventListener(PAD_EVENT, onPad)
+  }, [])
+
+  const choose = (value: string) => {
+    const provider = value as AiProvider
+    setOpen(provider)
+    if (provider === 'chatgpt') {
+      if (settings.chatgpt.available && !settings.chatgpt.signedIn) void signIn()
+      else if (settings.chatgpt.signedIn) void save({ provider })
+    } else void save({ provider })
+    window.requestAnimationFrame(() => pageRef.current?.querySelector<HTMLElement>('[data-setup] button, [data-setup] input, [data-setup] [tabindex="0"]')?.focus())
+  }
+
+  const localFound = local?.flatMap(server => server.models.map(model => `${server.name}: ${model}`)) ?? []
+  const card = (badge: string, tone: string | undefined, text: string): ReactNode => (
+    <span className={styles.cardHead}><span className={styles.badge} data-tone={tone}>{badge}</span><span>{text}</span></span>
+  )
+  const cards: ModeCard[] = [
+    { value: 'chatgpt', label: 'Continue with ChatGPT', caption: card(settings.chatgpt.available ? 'Uses your ChatGPT plan · preview' : settings.chatgpt.reason ?? 'Needs OpenAI’s approval for this app', undefined, 'Sign in once in your browser. Requests count against your ChatGPT plan; no key to copy.') },
+    { value: 'anthropic', label: 'Claude, with an API key', caption: card('Billed to your Claude Console account', undefined, 'We open the key page and test the key for you. Claude doesn’t offer subscription sign-in for other apps.') },
+    { value: 'openai_compatible', label: 'OpenAI or another provider, with a key', caption: card('Any OpenAI-compatible service', undefined, 'Key, model and address, with a Test button.') },
+    { value: 'local', label: 'On this PC', caption: card('Free · no account', 'free', `Uses Ollama or LM Studio if one is running. Found: ${local === null ? 'looking…' : localFound.length ? localFound.slice(0, 2).join(', ') + (localFound.length > 2 ? ` and ${localFound.length - 2} more` : '') : 'none yet'}.`) },
+  ]
+
+  const testLine = (provider: AiProvider) => {
+    const result = test[provider]
+    if (!result) return null
+    if (result === 'testing') return <p className={styles.result} role="status">Testing…</p>
+    return <p className={styles.result} data-ok={result.ok} role="status">{result.ok ? `Works${result.models.length ? ` · ${result.models.length} model${result.models.length === 1 ? '' : 's'} available` : ''}` : result.error}</p>
+  }
+
+  const keyStep = (provider: 'anthropic' | 'openai_compatible', number: number) => {
+    const state = provider === 'anthropic' ? settings.anthropic : settings.openaiCompatible
+    return (
+      <div className={styles.step}>
+        <span className={styles.stepNo} data-done={state.hasKey}>{state.hasKey ? '✓' : number}</span>
+        <span className={styles.stepText}>
+          <b>{state.hasKey ? `Key ${state.keyHint ?? ''} saved` : 'Paste the key'}</b>
+          <small>{state.hasKey ? 'Kept in Windows Credential Manager, never in a file.' : 'Copy it, then Paste. Or type it below.'}</small>
+          <input className="text-field" type="password" autoComplete="off" spellCheck={false} aria-label={`${PROVIDER_LABEL[provider]} API key`} placeholder={state.hasKey ? 'Replace the key' : 'Paste or type the key'}
+            value={keyDraft[provider] ?? ''} onChange={event => setKeyDraft(current => ({ ...current, [provider]: event.target.value }))}
+            onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); void storeKey(provider, (keyDraft[provider] ?? '').trim()) } }} style={{ marginTop: 8 }} />
+        </span>
+        <span className={styles.buttons}>
+          <button type="button" className="button button--primary" data-pastes-key="" data-hints="A:Paste the key;Y:Paste the key;B:Back"
+            onClick={async () => void storeKey(provider, (keyDraft[provider] ?? '').trim() || await pasteFromClipboard())}
+            ref={node => {
+              // Y on this button pastes too (the design's "paste with Y").
+              if (!node || node.dataset.padBound) return
+              node.dataset.padBound = 'true'
+              node.addEventListener(PAD_EVENT, event => {
+                if ((event as CustomEvent<PadEventDetail>).detail.button !== 'Y') return
+                event.preventDefault()
+                node.click()
+              })
+            }}>Paste</button>
+        </span>
+      </div>
+    )
+  }
+
+  const setup = () => {
+    switch (open) {
+      case 'anthropic': return (
+        <section className={styles.setup} data-setup="" aria-label="Claude setup">
+          <h3>Claude, with an API key</h3>
+          <p>Claude needs a key from your Claude Console account; requests are billed there. JSM Evolved talks to Claude directly from this PC.</p>
+          <div className={styles.step}>
+            <span className={styles.stepNo}>1</span>
+            <span className={styles.stepText}><b>Open the key page</b><small>Sign in at console.anthropic.com and create a key.</small></span>
+            <button type="button" className="button button--secondary" data-hints="A:Open the key page;B:Back" onClick={() => void desktopBridge.openExternal(CLAUDE_KEY_PAGE)}>Open key page</button>
+          </div>
+          {keyStep('anthropic', 2)}
+          <div className={styles.step}>
+            <span className={styles.stepNo}>3</span>
+            <span className={styles.stepText}><b>Test it</b><small>Lists the models your key can use.</small></span>
+            <button type="button" className="button button--secondary" aria-disabled={!settings.anthropic.hasKey || undefined} data-reason={settings.anthropic.hasKey ? undefined : 'Paste a key first'}
+              onClick={() => { if (settings.anthropic.hasKey) void runTest('anthropic') }}>Test</button>
+          </div>
+          {testLine('anthropic')}
+          <SegmentedRow label="Model" hint="Opus is the most careful; Sonnet and Haiku cost less."
+            value={settings.anthropic.model}
+            options={[...new Set([...settings.anthropic.suggestedModels, ...(typeof test.anthropic === 'object' ? test.anthropic.models.filter(model => /^claude-(opus|sonnet|haiku)-/.test(model)) : []), settings.anthropic.model])].slice(0, 6).map(model => ({ value: model, label: model.replace(/^claude-/, '').replace(/-(\d+)-(\d+)$/, ' $1.$2').replace(/-(\d+)$/, ' $1'), caption: model }))}
+            onChange={model => void save({ anthropic: { model } })} />
+        </section>
+      )
+      case 'openai_compatible': return (
+        <section className={styles.setup} data-setup="" aria-label="OpenAI-compatible setup">
+          <h3>OpenAI or another provider</h3>
+          <p>Any service that speaks the OpenAI chat API: its address, a model and your key.</p>
+          <div className={styles.fields}>
+            <label className={styles.field}><span>Address</span>
+              <input className="text-field" type="url" placeholder="https://api.openai.com/v1" defaultValue={settings.openaiCompatible.baseUrl} key={`url-${loaded}`}
+                onBlur={event => { if (event.target.value !== settings.openaiCompatible.baseUrl) void save({ openaiCompatible: { baseUrl: event.target.value } }) }} />
+            </label>
+            <label className={styles.field}><span>Model</span>
+              <input className="text-field" type="text" placeholder="gpt-4.1" defaultValue={settings.openaiCompatible.model} key={`model-${loaded}-${settings.openaiCompatible.model}`}
+                onBlur={event => { if (event.target.value !== settings.openaiCompatible.model) void save({ openaiCompatible: { model: event.target.value } }) }} />
+            </label>
+          </div>
+          {keyStep('openai_compatible', 1)}
+          <div className={styles.step}>
+            <span className={styles.stepNo}>2</span>
+            <span className={styles.stepText}><b>Test it</b><small>Asks the address for its models.</small></span>
+            <button type="button" className="button button--secondary" onClick={() => void runTest('openai_compatible')}>Test</button>
+          </div>
+          {testLine('openai_compatible')}
+          {typeof test.openai_compatible === 'object' && test.openai_compatible.models.length > 0 && (
+            <div className={styles.models} role="group" aria-label="Models">
+              {test.openai_compatible.models.slice(0, 24).map(model => (
+                <button key={model} type="button" className={styles.model} aria-pressed={model === settings.openaiCompatible.model} onClick={() => void save({ openaiCompatible: { model } })}>{model}</button>
+              ))}
+            </div>
+          )}
+        </section>
+      )
+      case 'local': return (
+        <section className={styles.setup} data-setup="" aria-label="On this PC setup">
+          <h3>On this PC</h3>
+          <p>Ollama or LM Studio, running here. Nothing leaves this PC and there's no key.</p>
+          <div className={styles.step}>
+            <span className={styles.stepNo} data-done={Boolean(local?.length)}>{local?.length ? '✓' : 1}</span>
+            <span className={styles.stepText}><b>{local === null ? 'Looking for Ollama and LM Studio…' : local.length ? `Found ${local.map(server => server.name).join(' and ')}` : 'Neither is running'}</b>
+              <small>{local?.length ? 'Pick a model below.' : 'Start Ollama (port 11434) or LM Studio’s server (port 1234), then look again.'}</small></span>
+            <button type="button" className="button button--secondary" onClick={() => void detect()}>Look again</button>
+          </div>
+          {local?.map(server => (
+            <div key={server.baseUrl} className={styles.models} role="group" aria-label={`${server.name} models`}>
+              {server.models.length === 0 && <span className={styles.result}>{server.name} has no models yet.</span>}
+              {server.models.map(model => (
+                <button key={model} type="button" className={styles.model} aria-pressed={settings.local.model === model && settings.local.baseUrl === server.baseUrl}
+                  onClick={() => void save({ provider: 'local', local: { model, baseUrl: server.baseUrl } })}>{server.name} · {model}</button>
+              ))}
+            </div>
+          ))}
+          <div className={styles.fields}>
+            <label className={styles.field}><span>Address</span>
+              <input className="text-field" type="url" defaultValue={settings.local.baseUrl} key={`local-url-${loaded}-${settings.local.baseUrl}`}
+                onBlur={event => { if (event.target.value !== settings.local.baseUrl) void save({ local: { baseUrl: event.target.value } }) }} />
+            </label>
+            <label className={styles.field}><span>Model</span>
+              <input className="text-field" type="text" defaultValue={settings.local.model} key={`local-model-${loaded}-${settings.local.model}`}
+                onBlur={event => { if (event.target.value !== settings.local.model) void save({ local: { model: event.target.value } }) }} />
+            </label>
+          </div>
+          <div className={styles.buttons}><button type="button" className="button button--secondary" onClick={() => void runTest('local')}>Test</button></div>
+          {testLine('local')}
+        </section>
+      )
+      case 'chatgpt': return (
+        <section className={styles.setup} data-setup="" aria-label="ChatGPT setup">
+          <h3>Continue with ChatGPT</h3>
+          <p className={styles.disclosure}>
+            You sign in on OpenAI’s own page in your browser; JSM Evolved never sees your password. What you ask the assistant, and the configuration it works on,
+            is sent to OpenAI and counts against your ChatGPT plan’s limits. Nothing is stored by OpenAI for this app (requests ask not to be kept).
+            Sign out here at any time.
+          </p>
+          {!settings.chatgpt.available && <p className={styles.result} data-ok="false">{settings.chatgpt.reason}. OpenAI offers ChatGPT sign-in only to apps it has approved; once it issues this app a client id, enter it below.</p>}
+          {settings.chatgpt.signedIn
+            ? <div className={styles.step}><span className={styles.stepNo} data-done="true">✓</span><span className={styles.stepText}><b>Signed in{settings.chatgpt.account ? ` as ${settings.chatgpt.account}` : ''}</b><small>Model {settings.chatgpt.model}</small></span>
+                <button type="button" className="button button--secondary" onClick={() => setForgetOpen(true)}>Sign out</button></div>
+            : <div className={styles.buttons}>
+                <button type="button" className="button button--primary" aria-disabled={!settings.chatgpt.available || signingIn || undefined} data-reason={settings.chatgpt.available ? undefined : settings.chatgpt.reason ?? undefined}
+                  onClick={() => void signIn()}>{signingIn ? 'Waiting for your browser…' : 'Continue with ChatGPT'}</button>
+                {signingIn && <button type="button" className="button button--secondary" onClick={() => void desktopBridge.chatgptCancelSignIn()}>Cancel</button>}
+              </div>}
+          <div className={styles.fields}>
+            <label className={styles.field}><span>Client id (issued by OpenAI)</span>
+              <input className="text-field" type="text" defaultValue={settings.chatgpt.clientId} key={`cid-${loaded}-${settings.chatgpt.clientId}`}
+                onBlur={event => { if (event.target.value.trim() !== settings.chatgpt.clientId) void save({ chatgpt: { clientId: event.target.value.trim() } }) }} />
+            </label>
+            <label className={styles.field}><span>Model</span>
+              <input className="text-field" type="text" defaultValue={settings.chatgpt.model} key={`cmodel-${loaded}-${settings.chatgpt.model}`}
+                onBlur={event => { if (event.target.value.trim() !== settings.chatgpt.model) void save({ chatgpt: { model: event.target.value.trim() } }) }} />
+            </label>
+            <label className={styles.field}><span>Sign-in port on 127.0.0.1 (0 picks any)</span>
+              <input className="text-field" type="number" min={0} max={65535} defaultValue={settings.chatgpt.redirectPort} key={`port-${loaded}-${settings.chatgpt.redirectPort}`}
+                onBlur={event => { const port = Number.parseInt(event.target.value, 10); if (Number.isFinite(port) && port !== settings.chatgpt.redirectPort) void save({ chatgpt: { redirectPort: port } }) }} />
+            </label>
+          </div>
+        </section>
+      )
+      default: return null
     }
   }
-
-  // "Edit in Buttons" (16e): the proposal goes into the editor as a draft,
-  // and the Buttons page opens on it. App listens for jsm:navigate-page.
-  const handleEditInButtons = () => {
-    onReplaceConfig(previewConfig)
-    showToast(t('messages.aiEditorReplaced'))
-    window.dispatchEvent(new CustomEvent('jsm:navigate-page', { detail: 'buttons' }))
-  }
-
-  const handleApplyGeneratedConfig = async () => {
-    setApplying(true)
-    try {
-      if (picked) {
-        await onApplyToProfile(picked.name, previewConfig)
-        setPicked({ name: picked.name, text: previewConfig })
-      } else await onApplyGeneratedConfig(previewConfig)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      setErrorMessage(message)
-      showToast(message, 'error')
-    } finally {
-      setApplying(false)
-    }
-  }
-
-  const handleResetConversation = () => {
-    setMessages([])
-    setWorkingConfig(configText)
-    setErrorMessage(null)
-  }
-
-  const latestProposal = [...messages].reverse().find(message => message.role === 'assistant' && message.result)
-  const settingsReady = Boolean(settings.apiKey.trim() && settings.model.trim() && settings.baseUrl.trim())
-
-  // AI assistant (Tuning and Studio Pages 16e): a conversation. Each answer is
-  // a proposal -- the change as config lines -- applied only when you say so.
-  // A new configuration starts a new conversation.
-  const choose = (name: string) => { void pick(name).then(() => { setMessages([]); setErrorMessage(null) }) }
-  const query = pickerQuery.trim().toLowerCase()
 
   return (
-    <div className={styles.page}>
-      <Menu ariaLabel="Working on" width={360} empty="No configurations match"
-        search={{ placeholder: 'Search configurations', value: pickerQuery, onChange: setPickerQuery }}
-        onOpenChange={open => { if (!open) setPickerQuery('') }}
-        items={libraryProfiles.filter(name => !query || name.toLowerCase().includes(query)).map(name => ({
-          label: name,
-          description: name === editingName ? 'Being edited' : undefined,
-          checked: name === (currentProfileName ?? ''),
-          onSelect: () => choose(name),
-        }))}
-        trigger={
-          <button type="button" className="summary-row ai-working-on" data-size="page" data-hints="A:Choose configuration;B:Home">
-            <span className="summary-row__icon" aria-hidden="true"><Icon name="library" size={20} /></span>
-            <span className="summary-row__text">
-              <span className="summary-row__label">Working on</span>
-              <span className="summary-row__hint">{picked ? `Changes are saved to ${picked.name}.txt` : 'The configuration being edited'}</span>
-            </span>
-            <span className="summary-row__value">{currentProfileName ?? t('app.profileSummary.unsavedProfile')}</span>
-            <span className="summary-row__chevron" aria-hidden="true"><Icon name="chevronDown" size={18} /></span>
-          </button>
-        } />
-      <AdvancedDisclosure label={t('ai.apiSettingsTitle')} summary={settingsReady ? `${settings.model} · ${settings.baseUrl}` : 'Not set up yet'} defaultOpen={settingsLoaded && !settingsReady}>
-        <div className={styles.settingsGrid}>
-          <label className={styles.field}>
-            <span>{t('ai.apiKeyLabel')}</span>
-            <input className="text-field" type="password" placeholder={t('ai.apiKeyPlaceholder')} value={settings.apiKey}
-              onChange={event => editSettings(current => ({ ...current, apiKey: event.target.value }))} />
-          </label>
-          <label className={styles.field}>
-            <span>{t('ai.modelLabel')}</span>
-            <input className="text-field" type="text" placeholder={t('ai.modelPlaceholder')} value={settings.model}
-              onChange={event => editSettings(current => ({ ...current, model: event.target.value }))} />
-          </label>
-          <label className={styles.field}>
-            <span>{t('ai.baseUrlLabel')}</span>
-            <input className="text-field" type="url" placeholder={t('ai.baseUrlPlaceholder')} value={settings.baseUrl}
-              onChange={event => editSettings(current => ({ ...current, baseUrl: event.target.value }))} />
-          </label>
-        </div>
-        <NumberField label={t('ai.temperatureLabel')} value={settings.temperature} hint={t('ai.temperatureHint')}
-          onChange={raw => {
-            const nextValue = Number.parseFloat(raw)
-            editSettings(current => ({ ...current, temperature: Number.isFinite(nextValue) ? nextValue : current.temperature }))
-          }}
-          min={0} max={2} step={0.1} coarseStep={0.5} />
-        <div className={styles.settingsFooter}>
-          <span className={styles.note}>{t('ai.apiSettingsDescription')} {t('ai.providerNote')}</span>
-          <span className={styles.note} role="status">{savingSettings ? t('ai.savingSettings') : 'Saved as you type'}</span>
-        </div>
-      </AdvancedDisclosure>
-
-      {errorMessage && <div className={styles.errorBanner} role="alert">{errorMessage}</div>}
-
-      <div ref={chatViewportRef} className={styles.chat} aria-live="polite">
-        {messages.length === 0 && !generating && (
-          <div className={styles.empty}>
-            <b>{t('ai.emptyConversationTitle')}</b>
-            <p>{t('ai.emptyConversationDescription')}</p>
-          </div>
-        )}
-        {messages.map(message => message.role === 'user'
-          ? <div key={message.id} className={styles.userBubble}>{message.content}</div>
-          : (
-            <article key={message.id} className={styles.proposal}>
-              <p className={styles.proposalText}>{message.content}</p>
-              {message.result && (() => {
-                const changes = diffBindings(message.base ?? '', message.result.configText)
-                const isLatest = message === latestProposal
-                return <>
-                  {changes.length > 0
-                    ? <div className={styles.diff} aria-label="Proposed change">
-                        {changes.slice(0, 12).map((change, index) => {
-                          const input = inputOf(change.key)
-                          const setting = change.after === '' || change.before === ''
-                          const label = input ? controllerButtonLabel(input, family) : change.key
-                          const chord = change.key.includes(',') ? change.key.split(',').slice(0, -1).map(part => { const button = inputOf(part); return button ? controllerButtonLabel(button, family) : part }).join(' + ') + ' + ' : ''
-                          return (
-                            <div key={index} className={styles.change}>
-                              <div className={styles.changeRow}>
-                                {input
-                                  ? <InputGlyph command={input.command} family={family} size={22} className={styles.changeGlyph} />
-                                  : <span className={styles.changeKey}>{setting ? 'cmd' : 'set'}</span>}
-                                {/* The glyph already reads the input; the text only adds the chord or a setting's name. */}
-                                {(chord || !input) && <span className={styles.changeLabel}>{chord}{label}</span>}
-                                {!setting && <>
-                                  <span className={styles.changeOld}>{change.before !== undefined ? describeBinding(change.before, t) : 'Available'}</span>
-                                  <span className={styles.changeArrow} aria-hidden="true">→</span>
-                                  <span className={change.after !== undefined ? styles.changeNew : styles.changeOld}>{change.after !== undefined ? describeBinding(change.after, t) : 'Unbound'}</span>
-                                </>}
-                              </div>
-                              <code className={styles.changeRaw}>
-                                {change.before !== undefined && <span className={styles.removed}>− {change.key}{change.before === '' ? '' : ` = ${change.before}`}{'\n'}</span>}
-                                {change.after !== undefined && <span className={styles.added}>+ {change.key}{change.after === '' ? '' : ` = ${change.after}`}</span>}
-                              </code>
-                            </div>
-                          )
-                        })}
-                        {changes.length > 12 && <span className={styles.more}>…and {changes.length - 12} more changes</span>}
-                      </div>
-                    : <p className={styles.note}>No lines changed.</p>}
-                  {message.result.assumptions.length > 0 && <div className={styles.block}><b>{t('ai.assumptions')}</b><ul>{message.result.assumptions.map((item, index) => <li key={index}>{item}</li>)}</ul></div>}
-                  {message.result.warnings.length > 0 && <div className={`${styles.block} ${styles.warn}`}><b>{t('ai.warnings')}</b><ul>{message.result.warnings.map((item, index) => <li key={index}>{item}</li>)}</ul></div>}
-                  {isLatest && (
-                    <div className={styles.proposalActions}>
-                      <button type="button" className="button button--primary" onClick={() => void handleApplyGeneratedConfig()} disabled={applying} data-hints="A:Apply change;B:Back">{applying ? t('ai.applyingToJsm') : 'Apply change'}</button>
-                      {!picked && <button type="button" className="button button--secondary" onClick={handleEditInButtons}>Edit in Buttons</button>}
-                      <button type="button" className="button button--tertiary" onClick={handleResetConversation}>Discard</button>
-                    </div>
-                  )}
-                </>
-              })()}
-            </article>
-          ))}
-        {generating && <article className={`${styles.proposal} ${styles.pending}`}><p className={styles.proposalText}>{t('ai.generating')}</p></article>}
+    <div className={styles.settings} ref={pageRef} aria-busy={!loaded || undefined}
+      data-hints="Y:Sign out · forget keys">
+      <ModeCards variant="compare" columns={2} options={cards} value={settings.provider ?? ''}
+        onChange={choose}
+        useLabel={option => option.value === 'chatgpt' ? 'Continue with ChatGPT' : option.value === settings.provider ? 'Set it up' : `Use ${option.value === 'anthropic' ? 'Claude' : option.value === 'local' ? 'this PC' : 'this provider'}`} />
+      {setup()}
+      <div className={styles.extension}>
+        <span className={styles.plug} aria-hidden="true"><Icon name="connected" size={22} /></span>
+        <span><b>Or use JSM Evolved from Claude Desktop</b><p>Install our extension and ask Claude, signed in with your own plan, to change your mappings. Nothing to set up here.</p></span>
+        <button type="button" className={styles.linkButton} aria-disabled="true" data-reason="The Claude Desktop extension is a separate project and isn’t released yet"
+          data-caption="Install · The Claude Desktop extension isn’t released yet">Install ▸</button>
       </div>
-
-      <label className={styles.baseSwitch}>
-        <input type="checkbox" checked={includeCurrentConfig} onChange={event => setIncludeCurrentConfig(event.target.checked)} />
-        <span>
-          <span>{t('ai.useCurrentProfile')}</span>
-          <small>{hasAssistantDraft
-            ? t('ai.followupUsesDraft')
-            : configText.trim()
-              ? t('ai.useCurrentProfileHint', { profileName: currentProfileName ?? t('app.profileSummary.unsavedProfile') })
-              : t('ai.useCurrentProfileUnavailable')}
-            {!hasAssistantDraft && includeCurrentConfig && hasPendingChanges ? ` ${t('ai.includePendingChanges')}` : ''}</small>
-        </span>
-      </label>
-
-      <div className={styles.composer}>
-        <textarea className={styles.prompt} value={composer} rows={1} aria-label={t('ai.promptLabel')}
-          placeholder="Ask for a mapping change"
-          onChange={event => setComposer(event.target.value)}
-          onKeyDown={event => {
-            if (event.key === 'Enter' && !event.shiftKey) {
-              event.preventDefault()
-              if (!generating) void handleSend()
-            }
-          }} />
-        <button type="button" className="button button--secondary" onClick={() => void handleSend()} disabled={!settingsLoaded || generating}>
-          {generating ? t('ai.generating') : t('ai.send')}
+      <div className={styles.statusLine}>
+        <span role="status">Currently: <b>{settings.connected ? settings.status : 'not connected'}</b>
+          {settings.connected && onOpenAssistant && <button type="button" className={styles.linkButton} onClick={onOpenAssistant}>Ask the assistant ▸</button>}</span>
+        <div style={{ minWidth: 420 }}>
+          <SegmentedRow label="How careful the assistant is" value={settings.careful}
+            options={[
+              { value: 'careful', label: 'Careful', caption: 'Thinks longest before changing anything (Claude: high effort)' },
+              { value: 'balanced', label: 'Balanced', caption: 'A middle way (Claude: medium effort)' },
+              { value: 'quick', label: 'Quick', caption: 'Answers fastest (Claude: low effort)' },
+            ]}
+            onChange={careful => void save({ careful: careful as AiSettings['careful'] })} />
+        </div>
+      </div>
+      <Sheet open={forgetOpen} onClose={() => setForgetOpen(false)} eyebrow="Settings · Assistant" title="Sign out and forget keys?"
+        description="Every key and ChatGPT sign-in is removed from Windows Credential Manager. Your choices here stay."
+        hints={[{ button: 'A', label: 'Choose' }, { button: 'B', label: 'Keep them' }]} width={520}>
+        <button type="button" className="unsaved-choice unsaved-choice--recommended" data-autofocus="" data-hints="A:Keep them;B:Keep them" onClick={() => setForgetOpen(false)}>
+          <span className="unsaved-choice__text"><span className="unsaved-choice__label">Keep them</span><span className="unsaved-choice__hint">Nothing changes.</span></span>
         </button>
-      </div>
-
-      <AdvancedDisclosure label={t('ai.currentDraftTitle')} summary={hasAssistantDraft ? t('ai.currentDraftDescription') : t('ai.currentEditorDescription')}>
-        <textarea className={styles.preview} value={previewConfig} readOnly aria-label={t('ai.currentConfigPreview')} />
-      </AdvancedDisclosure>
+        <button type="button" className="unsaved-choice unsaved-choice--danger" data-hints="A:Sign out · forget keys;B:Keep them" onClick={() => void forget()}>
+          <span className="unsaved-choice__text"><span className="unsaved-choice__label">Sign out · forget keys</span><span className="unsaved-choice__hint">The assistant stops until you connect it again.</span></span>
+        </button>
+      </Sheet>
     </div>
   )
 }

@@ -1,498 +1,520 @@
-import { BrandMark } from './BrandMark'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { desktopBridge, type AutoloadRule, type LibraryProfileMeta } from '../platform/desktopBridge'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { desktopBridge, type AutoloadRule } from '../platform/desktopBridge'
 import { PAD_EVENT, type PadEventDetail } from '../nav/useControllerNavigation'
-import { FPS_TEMPLATE_NAME, FPS_TEMPLATE_TEXT } from '../constants/fpsTemplate'
-import { extractIncludePaths, includeDisplayName } from '../utils/configIncludes'
-import { loadConfigBindingName } from '../utils/loadConfigBinding'
-import { inputDefinitions, readLayers } from '../utils/layers'
-import { getVirtualControllerType } from '../utils/virtualController'
-import { controllerButtonLabel, type ControllerVisualFamily } from '../utils/controllerStatus'
-import { layerColor } from '../shell/TitleBar'
-import { Icon } from './icons/Icon'
-import { Menu } from './ui/Menu'
-import { relativeTime, useClock, useLastSeenController } from '../hooks/useLastSeenController'
+import { requestValueEntry } from '../nav/textEntry'
+import { useLibraryGraph, duplicateConfiguration, libraryChanged } from '../hooks/useLibraryGraph'
+import { baseFromGame, baseLabel, BUILTIN_CHORD_NAME, libraryPath, meantToImport, type ConfigFacts } from '../utils/libraryGraph'
+import { includeDisplayName } from '../utils/configIncludes'
+import { ensureHeaderLines } from '../utils/config'
+import { parseConfigText, serializeConfig } from '../utils/configSerializer'
+import { layerSlotOf, layerHue } from '../utils/layers'
+import type { ControllerVisualFamily } from '../utils/controllerStatus'
+import { relativeTime, useClock } from '../hooks/useLastSeenController'
 import { associationFor, exeFileName } from '../hooks/useAppIcon'
-import { AppIconImage } from './AppIconImage'
-import { ConfigurationDialog, type NewConfigurationDraft } from './ConfigurationDialog'
-import styles from './ProfileManager.module.css'
+import { showToast } from '../utils/toast'
+import { InputGlyph } from './glyphs/InputGlyph'
+import { ButtonGlyph } from './glyphs/ButtonGlyph'
+import { Icon } from './icons/Icon'
+import { BrandMark } from './BrandMark'
+import { Sheet } from './ui/Sheet'
+import { ConfigurationDialog } from './ConfigurationDialog'
+import { LibraryCover } from './library/LibraryCover'
+import { MoreSheet, BasePickerSheet, type MoreItem } from './library/LibrarySheets'
+import styles from './library/Library.module.css'
+import { landOn } from '../nav/landing'
+
+// The Library (console v2: Library, LibraryActions, LibraryDetail,
+// LibraryBases). Games: a shelf of covers -- each game's configuration, the
+// Desktop gamepad one used when no game matches, and New for a game -- with
+// the focused one's detail below. A edits, X makes live, Y opens the rest
+// (duplicate, rename, change base, launch with game, show in folder, edit the
+// file directly, delete). Bases: the files games are built on, yours and the
+// ones JSM Evolved ships, and what uses each.
+//
+// Selecting never loads: Edit does, through the unsaved-changes guard.
 
 type ProfileManagerProps = {
-  currentProfileName: string | null
-  appliedProfileName?: string | null
-  hasPendingChanges: boolean
-  isCalibrating: boolean
-  profileApplied: boolean
-  onImportProfile?: (fileName: string, content: string) => void
-  onImportFromSteam?: () => void
+  view?: 'games' | 'bases'
   libraryProfiles: string[]
   libraryLoading?: boolean
-  editedProfileNames: Record<string, string>
-  onProfileNameChange: (originalName: string, value: string) => void
-  onRenameProfile: (originalName: string) => void
-  onDeleteProfile: (name: string) => void
-  onAddProfile: () => void
-  /** The New configuration dialog's Create (TODO-46): name, optional game, auto-apply.
-      The header's "+ New configuration" opens it through the jsm:new-configuration event. */
-  onCreateProfile?: (draft: NewConfigurationDraft) => Promise<void> | void
-  onLoadLibraryProfile: (name: string) => void
-  lockMessage?: string
-  onCopyActiveProfile?: () => void
-  /** Configurations the one being edited imports; listed as templates. */
-  templateNames?: Set<string>
-  /** Facts about the configuration being edited, for the detail panel. */
-  editingDetails?: { output?: string; imports?: string[]; layers?: { name: string; color: string }[] }
-  onApply?: () => void
-  /** Apply a configuration that is not the one being edited (X on its row):
-      open it through the unsaved guard, then apply. Without it, X opens it. */
-  onApplyLibraryProfile?: (name: string) => void
-  /** Edit on a row that is not being edited: make it the one being edited
-      and open it. Without it, Edit only switches to it. */
-  onEditLibraryProfile?: (name: string) => void
-  onShowInFolder?: () => void
-  onEditSource?: () => void
-  /** Glyph family for "L4 + Menu"; defaults to the controller last seen. */
-  family?: ControllerVisualFamily
+  currentProfileName: string | null
+  /** The configuration the mapper runs, when mapping is on. */
+  appliedProfileName?: string | null
+  /** The text the mapper was given, to tell "Live (older version)". */
+  runtimeConfig?: string | null
+  hasPendingChanges: boolean
+  isCalibrating: boolean
+  /** Changes when a save may have changed a file (the shelf re-reads). */
+  refreshKey?: unknown
+  family: ControllerVisualFamily
+  controllerName?: string | null
+  onEdit: (name: string) => void
+  onMakeLive: (name: string) => void
+  onRename: (name: string, next: string) => Promise<void> | void
+  onDelete: (name: string) => void
+  /** Open it for editing, then the source window. */
+  onEditSource: (name: string) => void
+  onShowInFolder: () => void
+  onNewConfiguration: () => void
+  onImportFromSteam: () => void
+  onImportFile: (fileName: string, content: string) => void
+  onChangeBase: (name: string, path: string | null) => Promise<void> | void
+  /** The built-in Hold to swap configuration's dialog (Copy to make your own). */
+  onOpenBuiltin: () => void
+  /** The footer's "where" after "Library · Games". */
+  onWhere?: (where: string | null) => void
+  /** The header's count: "4 configurations", "1 base · 5 built in". */
+  onCount?: (count: string | null) => void
 }
 
-const OUTPUT_LABEL = { XBOX: 'Virtual Xbox', DS4: 'Virtual DualShock 4', NONE: 'Keyboard and mouse only' } as const
+const normalized = (text: string) => serializeConfig(parseConfigText(ensureHeaderLines(text)))
 
-/** A binding that loads another configuration: which keys, which target. */
-type LoadLink = { keys: string; target: string }
-
-// What a configuration's own text says about it (Studio Home 8a row
-// subtitles and detail facts): output, imports, layers, what it loads.
-const describeText = (text: string) => {
-  const loads: LoadLink[] = []
-  for (const raw of text.split(/\r?\n/)) {
-    const line = raw.trim()
-    if (!line || line.startsWith('#')) continue
-    const match = /^([^=]+?)\s*=\s*(.+)$/.exec(line)
-    if (!match) continue
-    const value = match[2].trim().replace(/^"(.*)"$/, '$1')
-    const target = loadConfigBindingName(value)
-    if (target) loads.push({ keys: match[1].trim(), target })
-  }
-  return {
-    output: OUTPUT_LABEL[getVirtualControllerType(text)] as string,
-    imports: extractIncludePaths(text).map(includeDisplayName),
-    layers: readLayers(text).map((layer, index) => ({ name: layer.name, color: layerColor(index) })),
-    loads,
-  }
-}
-type TextFacts = ReturnType<typeof describeText>
-
-const exeName = (processName: string) => (/\.exe$/i.test(processName) ? processName : `${processName}.exe`)
-
-// Studio home (Studio Home.dc.html 8a): every profile and template in the
-// config folder as rows, the selected one's facts and actions beside them.
-// Selecting a row never loads it; Edit (A) does, through the unsaved guard.
-export function ProfileManager({
-  currentProfileName,
-  appliedProfileName,
-  hasPendingChanges,
-  isCalibrating,
-  profileApplied,
-  libraryProfiles,
-  libraryLoading = false,
-  editedProfileNames,
-  onProfileNameChange,
-  onRenameProfile,
-  onDeleteProfile,
-  onAddProfile,
-  onCreateProfile,
-  onImportProfile,
-  onImportFromSteam,
-  onLoadLibraryProfile,
-  lockMessage,
-  onCopyActiveProfile,
-  templateNames,
-  editingDetails,
-  onApply,
-  onApplyLibraryProfile,
-  onEditLibraryProfile,
-  onShowInFolder,
-  onEditSource,
-  family,
-}: ProfileManagerProps) {
-  const { t } = useTranslation()
-  const [selected, setSelected] = useState<string | null>(currentProfileName)
-  const [confirming, setConfirming] = useState<string | null>(null)
-  const [renaming, setRenaming] = useState(false)
-  const [optionsFor, setOptionsFor] = useState<string | null>(null)
-  const [texts, setTexts] = useState<Record<string, TextFacts>>({})
-  const [meta, setMeta] = useState<Record<string, LibraryProfileMeta>>({})
-  const [rules, setRules] = useState<AutoloadRule[]>([])
-  // TODO-46: the New configuration dialog, or the game picker for one row.
-  const [dialog, setDialog] = useState<{ mode: 'create' } | { mode: 'associate'; name: string } | null>(null)
-  const importRef = useRef<HTMLInputElement | null>(null)
-  const listRef = useRef<HTMLDivElement | null>(null)
-  const pageRef = useRef<HTMLDivElement | null>(null)
-  const renameRef = useRef<HTMLInputElement | null>(null)
-  const seen = useLastSeenController()
-  const glyphFamily = family ?? seen.family
+export function ProfileManager(props: ProfileManagerProps) {
+  const { view = 'games', libraryProfiles, libraryLoading, currentProfileName, appliedProfileName, runtimeConfig, hasPendingChanges, isCalibrating, refreshKey, family, controllerName,
+    onEdit, onMakeLive, onRename, onDelete, onEditSource, onShowInFolder, onNewConfiguration, onImportFromSteam, onImportFile, onChangeBase, onOpenBuiltin, onWhere, onCount } = props
+  const data = useLibraryGraph(libraryProfiles, refreshKey)
+  const { graph, texts, rules, fallback, chords, meta, builtinBases } = data
   const now = useClock()
+  const [selected, setSelected] = useState<string | null>(null)
+  const [moreFor, setMoreFor] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [baseFor, setBaseFor] = useState<string | null>(null)
+  const [gameFor, setGameFor] = useState<string | null>(null)
+  const [newBaseOpen, setNewBaseOpen] = useState(false)
+  const [subWhere, setSubWhere] = useState<string | null>(null)
+  const importRef = useRef<HTMLInputElement>(null)
+  const pageRef = useRef<HTMLDivElement>(null)
 
-  // Follow the editor: switching configuration selects the new one.
-  useEffect(() => { setSelected(currentProfileName); setRenaming(false) }, [currentProfileName])
-  useEffect(() => { if (selected && !libraryProfiles.includes(selected)) setSelected(currentProfileName) }, [libraryProfiles, selected, currentProfileName])
-  // A destructive confirmation starts on Cancel (System States 17g): it is the
-  // dialog's first control, which useKeyboardNav focuses when the overlay
-  // appears. Focusing it here instead would run before that hook records the
-  // Delete button as where to return, and B would leave focus nowhere.
+  // ---- What each configuration is, for covers and the detail.
+  const liveState = useCallback((name: string): 'live' | 'older' | null => {
+    if (!appliedProfileName || appliedProfileName !== name) return null
+    const text = texts[name]
+    if (runtimeConfig && text && normalized(runtimeConfig) !== normalized(text)) return 'older'
+    return 'live'
+  }, [appliedProfileName, runtimeConfig, texts])
+  const ruleFor = (name: string): AutoloadRule | null => associationFor(rules, name)
+  const desktopName = fallback?.enabled && fallback.profileName && libraryProfiles.includes(fallback.profileName) ? fallback.profileName : null
+  const baseText = (facts: ConfigFacts | undefined) => {
+    if (!facts?.base) return null
+    const builtin = builtinBases.find(base => base.relativePath.toLowerCase() === facts.base!.toLowerCase())
+    return builtin ? (builtin.short || builtin.title) : includeDisplayName(facts.base)
+  }
+  const coverSub = (name: string) => {
+    if (name === desktopName) return 'When no game matches'
+    const facts = graph.configs[name]
+    const rule = ruleFor(name)
+    return baseText(facts) ?? (rule && !rule.paused ? 'Launches with game' : rule ? 'Art only' : facts?.sends ?? 'Configuration')
+  }
 
-  // Each row's subtitle comes from its own file: output, imports, layers and
-  // the configurations it loads. Read once per name, again after a save
-  // changes the file's modified time.
-  const listKey = libraryProfiles.join('\n')
-  const refreshMeta = useCallback(async () => {
-    const list = await desktopBridge.listLibraryProfileMeta().catch(() => [] as LibraryProfileMeta[])
-    setMeta(Object.fromEntries(list.map(entry => [entry.name, entry])))
-  }, [])
-  useEffect(() => { void refreshMeta() }, [refreshMeta, listKey, hasPendingChanges])
-  useEffect(() => {
-    let disposed = false
+  const games = useMemo(() => {
+    const list = graph.games.filter(name => name !== desktopName)
     const stamp = (name: string) => meta[name]?.modifiedAtMs ?? 0
-    void Promise.all(libraryProfiles.map(async name => {
-      const profile = await desktopBridge.loadLibraryProfile(name).catch(() => null)
-      return [name, profile ? describeText(profile.content) : null, stamp(name)] as const
-    })).then(entries => {
-      if (disposed) return
-      setTexts(Object.fromEntries(entries.filter(([, facts]) => facts).map(([name, facts]) => [name, facts as TextFacts])))
+    list.sort((a, b) => Number(b === appliedProfileName) - Number(a === appliedProfileName) || Number(b === currentProfileName) - Number(a === currentProfileName) || stamp(b) - stamp(a))
+    return desktopName ? [...list, desktopName] : list
+  }, [graph.games, desktopName, meta, appliedProfileName, currentProfileName])
+  const userBases = graph.bases.filter(name => name !== BUILTIN_CHORD_NAME)
+  const presets = useMemo(() => {
+    const seen = new Map<string, typeof builtinBases>()
+    for (const base of builtinBases) seen.set(base.preset, [...(seen.get(base.preset) ?? []), base])
+    // The variant for the controller in hand first: its blurb is the one shown.
+    return [...seen.values()].map(variants => [...variants].sort((a, b) => Number(b.families.includes(family)) - Number(a.families.includes(family))))
+  }, [builtinBases, family])
+
+  // The focused item; follows the editor the first time round.
+  const items = view === 'games' ? games : [...userBases, ...(libraryProfiles.includes(BUILTIN_CHORD_NAME) ? [BUILTIN_CHORD_NAME] : []), ...presets.map(variants => `builtin:${variants[0].preset}`)]
+  const current = selected && items.includes(selected) ? selected : (currentProfileName && items.includes(currentProfileName) ? currentProfileName : items[0] ?? null)
+  useEffect(() => {
+    const label = current?.startsWith('builtin:') ? presets.find(variants => `builtin:${variants[0].preset}` === current)?.[0].title ?? null : current
+    onWhere?.([label, subWhere].filter(Boolean).join(' · ') || null)
+  }, [current, subWhere, onWhere, presets])
+  useEffect(() => () => onWhere?.(null), [onWhere])
+
+  useEffect(() => {
+    const builtinCount = presets.length + (libraryProfiles.includes(BUILTIN_CHORD_NAME) ? 1 : 0)
+    onCount?.(view === 'games' ? `${games.length} ${games.length === 1 ? 'configuration' : 'configurations'}` : `${userBases.length} ${userBases.length === 1 ? 'base' : 'bases'} · ${builtinCount} built in`)
+  }, [view, games.length, userBases.length, presets.length, libraryProfiles, onCount])
+  useEffect(() => () => onCount?.(null), [onCount])
+
+  // ---- Actions.
+  const duplicate = async (name: string) => {
+    setMoreFor(null)
+    const created = await duplicateConfiguration(name)
+    if (!created) { showToast(`Couldn’t duplicate ${name}.`, 'error'); return }
+    showToast(`${created} is a copy of ${name}`)
+    libraryChanged()
+    onEdit(created)
+  }
+  const rename = (name: string) => {
+    setMoreFor(null)
+    requestValueEntry({
+      title: 'Rename', eyebrow: `Library · ${name}`, value: name, hint: 'The file is renamed too; Launch with game and Hold to swap follow it.',
+      onDone: next => { const trimmed = next.trim(); if (trimmed && trimmed !== name) void Promise.resolve(onRename(name, trimmed)).then(libraryChanged) },
     })
-    return () => { disposed = true }
-    // The file list and each file's modified time decide when to re-read.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [listKey, Object.values(meta).map(entry => entry.modifiedAtMs).join(',')])
-  useEffect(() => {
-    let disposed = false
-    const read = () => void desktopBridge.listAutoloadRules().then(list => { if (!disposed) setRules(list) }).catch(() => {})
-    read()
-    window.addEventListener('jsm:associations-changed', read)
-    return () => { disposed = true; window.removeEventListener('jsm:associations-changed', read) }
-  }, [])
-  // The header's "+ New configuration" opens the dialog here, beside the list.
-  useEffect(() => {
-    const open = () => { if (onCreateProfile) setDialog({ mode: 'create' }); else onAddProfile() }
-    window.addEventListener('jsm:new-configuration', open)
-    return () => window.removeEventListener('jsm:new-configuration', open)
-  })
-
-  const isTemplate = (name: string) => !!templateNames?.has(name) && name !== currentProfileName
-  const profiles = libraryProfiles.filter(name => !isTemplate(name))
-  const templates = libraryProfiles.filter(isTemplate)
-  const current = selected ?? currentProfileName
-  const editingSelected = !!current && current === currentProfileName
-
-  const keyLabel = useCallback((keys: string) => keys.split(',').map(command => {
-    const definition = inputDefinitions.find(button => button.command === command.trim().toUpperCase())
-    return definition ? controllerButtonLabel(definition, glyphFamily) : command.trim()
-  }).join(' + '), [glyphFamily])
-
-  // Who loads whom: a binding in one configuration that opens another.
-  const loadedBy = useMemo(() => {
-    const map = new Map<string, { by: string; keys: string }[]>()
-    for (const [name, facts] of Object.entries(texts)) {
-      for (const link of facts.loads) {
-        const list = map.get(link.target) ?? []
-        list.push({ by: name, keys: link.keys })
-        map.set(link.target, list)
-      }
-    }
-    return map
-  }, [texts])
-  const importedBy = useMemo(() => {
-    const map = new Map<string, string[]>()
-    for (const [name, facts] of Object.entries(texts)) for (const imported of facts.imports) map.set(imported, [...(map.get(imported) ?? []), name])
-    return map
-  }, [texts])
-  const autoloadFor = (name: string) => rules.filter(rule => rule.kind === 'profile' && !rule.builtIn && !rule.paused && rule.profileName === name).map(rule => exeName(rule.processName))
-  // The game a configuration is associated with (TODO-46), applied or not.
-  const gameFor = (name: string) => associationFor(rules, name)
-  const rowIcon = (name: string) => (
-    <span className={styles.rowIcon} aria-hidden="true">
-      <AppIconImage exePath={gameFor(name)?.exePath} size={28} fallback={<Icon name="library" size={20} />} />
-    </span>
-  )
-  const dialogNode = dialog && (
-    <ConfigurationDialog
-      mode={dialog.mode}
-      profileName={dialog.mode === 'associate' ? dialog.name : undefined}
-      rule={dialog.mode === 'associate' ? gameFor(dialog.name) : undefined}
-      onCreate={onCreateProfile}
-      onClose={() => setDialog(null)}
-    />
-  )
-
-  const factsFor = (name: string): TextFacts | undefined => {
-    if (name === currentProfileName && editingDetails) {
-      return {
-        output: editingDetails.output ?? texts[name]?.output ?? OUTPUT_LABEL.NONE,
-        imports: editingDetails.imports ?? texts[name]?.imports ?? [],
-        layers: editingDetails.layers ?? texts[name]?.layers ?? [],
-        loads: texts[name]?.loads ?? [],
-      }
-    }
-    return texts[name]
   }
-
-  const subtitle = (name: string) => {
-    const importers = importedBy.get(name) ?? []
-    if (isTemplate(name)) return `Imported by ${importers.length ? importers.join(', ') : currentProfileName} · not applied directly`
-    const loaders = loadedBy.get(name)
-    if (loaders?.length) return `Loaded by ${loaders[0].by} · ${keyLabel(loaders[0].keys)}`
-    const facts = factsFor(name)
-    if (!facts) return 'Configuration file'
-    const parts = [facts.output, ...facts.imports.map(imported => `imports ${imported}`)]
-    if (facts.layers.length) parts.push(`${facts.layers.length} layer${facts.layers.length === 1 ? '' : 's'}`)
-    return parts.join(' · ')
-  }
-
-  const edit = (name: string) => {
-    if (onEditLibraryProfile) { onEditLibraryProfile(name); return }
-    if (name === currentProfileName) { window.dispatchEvent(new CustomEvent('jsm:navigate-page', { detail: 'overview' })); return }
-    onLoadLibraryProfile(name)
-  }
-  const apply = (name: string) => {
+  const makeLive = (name: string) => {
+    if (graph.isBase(name) && name !== BUILTIN_CHORD_NAME) { showToast('A base goes live only through a game built on it.'); return }
     if (isCalibrating) return
-    if (name === currentProfileName) { onApply?.(); return }
-    if (onApplyLibraryProfile) onApplyLibraryProfile(name)
-    else onLoadLibraryProfile(name)
+    onMakeLive(name)
+  }
+  const edit = (name: string) => {
+    if (name === BUILTIN_CHORD_NAME) { onOpenBuiltin(); return }
+    onEdit(name)
+  }
+  const deleteBody = (name: string): ReactNode => {
+    const rule = ruleFor(name)
+    const loaders = graph.swappedFrom[name] ?? []
+    const users = graph.usedBy[name] ?? []
+    return <>
+      The file goes to the recycle bin.
+      {rule ? <> <b>{exeFileName(rule.processName)}</b> will have nothing to load.</> : null}
+      {users.length ? <> {users.join(', ')} {users.length === 1 ? 'is' : 'are'} built on it and will say the base is missing.</> : null}
+      {loaders.length ? <> {loaders[0].by} swaps to it; that button will show as missing.</> : null}
+      {name === currentProfileName ? ' Because it’s open now, another configuration opens.' : ''}
+    </>
+  }
+  const moreItems = (name: string): MoreItem[] => {
+    if (name === BUILTIN_CHORD_NAME) return [{ key: 'copy', icon: 'copy', label: 'Copy to make your own', note: 'Built-in configurations can’t be changed', run: () => { setMoreFor(null); onOpenBuiltin() } }]
+    const facts = graph.configs[name]
+    const rule = ruleFor(name)
+    const isBase = graph.isBase(name)
+    return [
+      { key: 'duplicate', icon: 'copy', label: 'Duplicate', note: 'A copy, opened to edit', run: () => void duplicate(name) },
+      { key: 'rename', icon: 'details', label: 'Rename', run: () => rename(name) },
+      { key: 'base', icon: 'inherited', label: 'Change base', note: facts?.base ? baseLabel(facts.base, builtinBases) : 'Nothing', run: () => { setMoreFor(null); setBaseFor(name) } },
+      ...(isBase ? [] : [{ key: 'game', icon: 'associations' as const, label: 'Launch with game', note: rule ? exeFileName(rule.processName) : 'None', run: () => { setMoreFor(null); setGameFor(name) } }]),
+      { key: 'folder', icon: 'folder', label: 'Show in folder', run: () => { setMoreFor(null); onShowInFolder() } },
+      { key: 'source', icon: 'source', label: 'Edit the file directly', note: 'For experts', run: () => { setMoreFor(null); onEditSource(name) } },
+    ]
+  }
+  const loopsWith = (name: string) => (path: string) => {
+    // A base that already builds on this configuration, directly or not.
+    const seen = new Set<string>()
+    const walk = (candidate: string): boolean => {
+      const key = candidate.toLowerCase()
+      if (key === libraryPath(name).toLowerCase()) return true
+      if (seen.has(key)) return false
+      seen.add(key)
+      const target = Object.values(graph.configs).find(facts => facts.path.toLowerCase() === key)
+      return Boolean(target?.imports.some(walk))
+    }
+    return walk(path)
   }
 
-  // Y applies the focused row's configuration -- or, from the panel beside
-  // the list, the selected one -- without walking to the Apply button. X
-  // opens a row's options.
+  // ---- Pad: X makes live, Y opens More, on the focused cover or card.
   useEffect(() => {
     const host = pageRef.current
     if (!host) return
     const onPad = (event: Event) => {
-      const detail = (event as CustomEvent<PadEventDetail>).detail
+      const { button } = (event as CustomEvent<PadEventDetail>).detail
       const target = event.target as HTMLElement | null
-      if (target?.closest('input, textarea, .modal-overlay')) return
-      const row = target?.closest<HTMLElement>('[data-profile]')
-      const name = row?.dataset.profile ?? (target?.closest('[data-nav-region="detail"]') ? current : undefined)
+      if (target?.closest('input, textarea, .sheet-layer, .modal-overlay')) return
+      const name = target?.closest<HTMLElement>('[data-profile]')?.dataset.profile ?? (target?.closest('[data-library-detail]') ? current ?? undefined : undefined)
       if (!name) return
-      if (detail.button === 'Y') { event.preventDefault(); apply(name) }
-      else if (detail.button === 'X' && row) { event.preventDefault(); setSelected(name); setOptionsFor(name) }
+      if (button === 'X' && view === 'games') { event.preventDefault(); makeLive(name) }
+      else if (button === 'Y' && !name.startsWith('builtin:')) { event.preventDefault(); setConfirmDelete(false); setMoreFor(name) }
     }
     host.addEventListener(PAD_EVENT, onPad)
     return () => host.removeEventListener(PAD_EVENT, onPad)
   })
 
-  const renamed = current ? (editedProfileNames[current] ?? current) : ''
-  const canRename = !!current && !!renamed.trim() && renamed.trim() !== current
-  const startRename = (name: string) => { setSelected(name); setRenaming(true) }
-  const rowButton = (name: string) => listRef.current?.querySelector<HTMLElement>(`[data-profile="${CSS.escape(name)}"] > button`)
-  const cancelRename = () => { if (current) onProfileNameChange(current, current); setRenaming(false) }
-  const commitRename = () => { if (current && canRename) { onRenameProfile(current); setRenaming(false) } }
-  useEffect(() => { if (renaming) { renameRef.current?.focus(); renameRef.current?.select() } }, [renaming])
+  const glyphs = (keys: string) => (
+    <span className={styles.keys}>{keys.split(',').map((key, index) => <InputGlyph key={index} command={key.trim()} family={family} size={22} />)}</span>
+  )
+  const chordsFor = (name: string) => chords.filter(chord => chord.profilePath.replace(/\\/g, '/').toLowerCase() === libraryPath(name).toLowerCase())
 
-  const row = (name: string) => {
-    const importers = importedBy.get(name) ?? []
-    const autoload = autoloadFor(name)
+  // ---- Games.
+  // An empty library (first run): a welcome instead of an empty shelf.
+  const firstRun = !libraryLoading && !data.loading && libraryProfiles.length === 0
+  // The welcome arrives after the page did (the library answered first, then
+  // this panel loaded), so the pad lands on New for a game here, when nothing
+  // on the page has focus yet (UX review, B5).
+  useEffect(() => {
+    if (!firstRun) return
+    return landOn(pageRef.current, () => pageRef.current?.querySelector<HTMLElement>('[data-autofocus]'))
+  }, [firstRun])
+  // The shelf changed under the pad (a delete, a copy, a rename): when that
+  // took the focused control away, land on the selected cover, else the
+  // first one, never on <body> (UX review, B3).
+  const shelfKey = items.join('\n')
+  useEffect(() => {
+    if (firstRun) return
+    return landOn(pageRef.current, () => {
+      const root = pageRef.current
+      if (!root) return null
+      const wanted = current ? root.querySelector<HTMLElement>(`[data-profile="${CSS.escape(current)}"] button, button[data-profile="${CSS.escape(current)}"]`) : null
+      return wanted ?? root.querySelector<HTMLElement>('[data-profile] button, button[data-profile], [data-builtin-base]')
+    })
+  // Only when the shelf itself changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shelfKey, firstRun])
+  const compact = view === 'games' && (Object.values(graph.configs).some(facts => facts.swaps.length > 0) || Object.keys(graph.problems).length > 0)
+  const renderGames = () => {
+    const name = current
+    const facts = name ? graph.configs[name] : undefined
+    const live = name ? liveState(name) : null
+    const rule = name ? ruleFor(name) : null
+    const problem = name ? graph.problems[name] : undefined
+    const swaps = facts?.swaps ?? []
+    const swappedFrom = name ? graph.swappedFrom[name] ?? [] : []
+    const builtIn = name ? chordsFor(name) : []
+    const baseName = facts?.base ? baseLabel(facts.base, builtinBases) : null
+    return <>
+      <input ref={importRef} type="file" accept=".txt,.cfg,.ini,*/*" hidden onChange={async event => {
+        const file = event.target.files?.[0]
+        if (file) onImportFile(file.name, await file.text())
+        event.target.value = ''
+      }} />
+      {!firstRun && <div className={styles.shelf} data-compact={compact ? 'true' : undefined} role="list" aria-label="Your games">
+        {games.map(game => {
+          const gameRule = ruleFor(game)
+          return (
+            <div key={game} role="listitem" className={styles.coverWrap} data-profile={game} data-editing={game === currentProfileName ? 'true' : undefined}>
+              <LibraryCover name={game} sub={coverSub(game)} live={liveState(game)} compact={compact} current={game === current}
+                steamAppId={graph.configs[game]?.game?.steamAppId} exePath={gameRule?.exePath} desktop={game === desktopName}
+                hints="A:Edit;X:Make live;Y:More;B:Home"
+                onFocus={() => setSelected(game)} onClick={() => { setSelected(game); edit(game) }} />
+            </div>
+          )
+        })}
+        <div className={styles.newCover} role="listitem">
+          <button type="button" className={styles.newMain} data-hints="A:New for a game;B:Home" onClick={onNewConfiguration} onFocus={() => setSelected(null)}>
+            <span className={styles.newPlus} aria-hidden="true">+</span><b>New for a game</b>{!compact && <span>Or import from Steam or a file</span>}
+          </button>
+          <button type="button" className={styles.newSub} data-hints="A:Import from Steam;B:Home" onClick={onImportFromSteam}><Icon name="library" size={16} />Import from Steam</button>
+          <button type="button" className={styles.newSub} data-hints="A:Import a file;B:Home" onClick={() => importRef.current?.click()}><Icon name="source" size={16} />Import a file</button>
+        </div>
+      </div>}
+
+      {firstRun && (
+        <section className={styles.welcome} aria-label="Welcome to JSM Evolved" data-hints="A:Choose;B:Home">
+          <BrandMark size={56} />
+          <h2>Welcome to JSM Evolved</h2>
+          <p>Start from how you play, import a layout from Steam, or bring in a JoyShockMapper file. You can change everything later.</p>
+          <div className={styles.buttonsRow}>
+            <button type="button" className={styles.act} data-primary="true" data-autofocus="" data-hints="A:New for a game;B:Home" onClick={onNewConfiguration}><ButtonGlyph button="A" size={26} family={family} pad />New for a game</button>
+            <button type="button" className={styles.act} data-hints="A:Import from Steam;B:Home" onClick={onImportFromSteam}>Import from Steam</button>
+            <button type="button" className={styles.act} data-hints="A:Import a file;B:Home" onClick={() => importRef.current?.click()}>Import a file</button>
+          </div>
+        </section>
+      )}
+
+      {name && facts && (
+        <aside className={styles.detail} aria-label={`${name} details`} data-library-detail="" data-profile-detail={name}>
+          <div className={styles.detailMain}>
+            <div className={styles.detailHead}>
+              <h2 className={styles.detailName}>{name}</h2>
+              {live === 'live' && <span className={styles.livePill}>Live</span>}
+              {live === 'older' && <span className={styles.olderPill}>Live (older version)</span>}
+              {name === currentProfileName && hasPendingChanges && <span className={styles.olderPill}>Unsaved changes</span>}
+              <span className={styles.detailFile}>{name}.txt{meta[name] ? ` · saved ${relativeTime(meta[name].modifiedAtMs, now)}` : ''}</span>
+            </div>
+            <dl className={styles.facts}>
+              <div><dt>Controller</dt><dd>{controllerName ?? 'Any'}</dd></div>
+              <div><dt>Sends</dt><dd>{facts.sends}</dd></div>
+              <div><dt>Built on</dt><dd data-warn={problem ? 'true' : undefined}>{baseName ?? 'Nothing'}{problem?.cyclic.length ? ' · loop' : problem?.missing.length ? ' · missing' : ''}</dd></div>
+              <div><dt>Layers</dt><dd><span className={styles.modeDots}>{facts.modes.map((mode, index) => <i key={mode.name} style={{ background: layerHue(layerSlotOf(index)) }} />)}{facts.modes.length}</span></dd></div>
+              {rule && <div><dt>Launches with</dt><dd className={styles.mono}>{exeFileName(rule.processName)}{rule.paused ? ' · art only' : ''}</dd></div>}
+            </dl>
+            {name === desktopName
+              ? <p className={styles.sentence}>Goes live when no game with its own configuration is in front.</p>
+              : rule && !rule.paused
+                ? <p className={styles.sentence}>Goes live automatically when <b>{exeFileName(rule.processName)}</b> comes to the front.</p>
+                : rule ? <p className={styles.sentence}>Wears <b>{exeFileName(rule.processName)}</b>’s art; it doesn’t go live by itself.</p> : null}
+            {(swaps.length > 0 || swappedFrom.length > 0 || builtIn.length > 0) && (
+              <div className={styles.links}>
+                <div className={styles.linkCol}>
+                  {swaps.length > 0 && <p className={styles.eyebrow}>Hold to swap · goes to</p>}
+                  {swaps.map(swap => <div key={`${swap.keys}-${swap.target}`} className={styles.linkRow}>{glyphs(swap.keys)}<span className={styles.arrowText}>→</span><b>{swap.target}</b></div>)}
+                </div>
+                <div className={styles.linkCol}>
+                  {(swappedFrom.length > 0 || builtIn.length > 0) && <p className={styles.eyebrow}>Swapped to from</p>}
+                  {swappedFrom.map(link => <div key={`${link.by}-${link.keys}`} className={styles.linkRow}><b>{link.by}</b><span className={styles.arrowText}>·</span>{glyphs(link.keys)}</div>)}
+                  {builtIn.map(chord => <div key={chord.id} className={styles.linkRow}><b>Hold to swap</b><span className={styles.muted}>built in</span><span className={styles.arrowText}>·</span>{glyphs((chord.triggerGroups?.[0] ?? chord.buttons).join(','))}</div>)}
+                </div>
+              </div>
+            )}
+            {problem && facts.base && (
+              <div className={styles.warnCard} role="alert">
+                <Icon name="warning" size={28} />
+                <div>
+                  <h4>{problem.cyclic.length ? `${baseName} and ${name} build on each other` : `${baseName} is missing`}</h4>
+                  <p>{problem.cyclic.length
+                    ? 'Each was read once and the loop was skipped, so some settings may not be what you expect. Change one of the two bases to fix it.'
+                    : 'Nothing from it is being used. Pick another base, or none.'}</p>
+                </div>
+                <button type="button" className={styles.warnButton} data-hints="A:Change base;B:Home" onClick={() => setBaseFor(name)}>Change base ▸</button>
+              </div>
+            )}
+          </div>
+          <div className={styles.actions}>
+            <button type="button" className={styles.act} data-primary="true" data-hints="A:Edit;X:Make live;Y:More;B:Home" onClick={() => edit(name)}>
+              <ButtonGlyph button="A" size={26} family={family} pad />Edit
+            </button>
+            <button type="button" className={styles.act} data-hints="A:Make live;Y:More;B:Home" aria-disabled={live === 'live' || isCalibrating || undefined}
+              data-reason={live === 'live' ? 'It’s live now' : isCalibrating ? 'Calibrating' : undefined} onClick={() => { if (live !== 'live') makeLive(name) }}>
+              <ButtonGlyph button="X" size={26} family={family} pad />{live === 'older' ? 'Make this version live' : live === 'live' ? 'Live now' : 'Make live'}
+              {live === 'older' && <small>The live copy is from before your last save.</small>}
+            </button>
+            <button type="button" className={styles.act} data-hints="A:More;B:Home" onClick={() => { setConfirmDelete(false); setMoreFor(name) }}>
+              <ButtonGlyph button="Y" size={26} family={family} pad />Duplicate, rename, file…
+            </button>
+            {(swaps.length > 0 || swappedFrom.length > 0 || builtIn.length > 0) && (
+              <p className={styles.note}>Hold to swap links are set on the buttons themselves and in Settings ▸ Hold to swap.</p>
+            )}
+          </div>
+        </aside>
+      )}
+    </>
+  }
+
+  // ---- Bases.
+  const [newBaseGame, setNewBaseGame] = useState<string | null>(null)
+  const makeBaseFrom = async (game: string) => {
+    setNewBaseOpen(false)
+    const text = texts[game]
+    if (text === undefined) return
+    const taken = new Set(libraryProfiles.map(entry => entry.toLowerCase()))
+    let name = `${game} base`
+    for (let n = 2; taken.has(name.toLowerCase()); n++) name = `${game} base ${n}`
+    const saved = await desktopBridge.saveLibraryProfile(name, baseFromGame(text) + (text.endsWith('\n') ? '' : '\n'))
+    if (!saved) { showToast('Couldn’t make the base.', 'error'); return }
+    setNewBaseGame(null)
+    setSelected(saved.name)
+    libraryChanged()
+    showToast(`${saved.name} has ${game}’s settings. Change a game’s base to build on it.`)
+  }
+  const copyBuiltin = async (relativePath: string, title: string) => {
+    const base = builtinBases.find(entry => entry.relativePath === relativePath)
+    if (!base) return
+    const taken = new Set(libraryProfiles.map(entry => entry.toLowerCase()))
+    let name = `My ${title.replace(/[,&]/g, '').replace(/\s+/g, ' ')}`
+    for (let n = 2; taken.has(name.toLowerCase()); n++) name = `My ${title} ${n}`
+    const text = base.text.split(/\r?\n/).filter(line => !/^\s*#\s*@base\b/.test(line)).join('\n')
+    const saved = await desktopBridge.saveLibraryProfile(name, text)
+    if (!saved) { showToast('Couldn’t copy the base.', 'error'); return }
+    libraryChanged()
+    showToast(`${saved.name} is yours to change`)
+    onEdit(saved.name)
+  }
+  const renderBases = () => {
+    const isPreset = current?.startsWith('builtin:')
+    const variants = isPreset ? presets.find(entry => `builtin:${entry[0].preset}` === current) ?? [] : []
+    const name = isPreset ? variants[0]?.title ?? '' : current
+    const userFacts = !isPreset && current ? graph.configs[current] : undefined
+    const usedBy = isPreset ? variants.flatMap(base => graph.builtinUsedBy[base.relativePath] ?? []) : current ? graph.usedBy[current] ?? [] : []
+    const firstUser = usedBy[0]
+    const blurb = (text: string | undefined) => text?.split(/\r?\n/).find(line => /^\s*#\s*[^@\s]/.test(line))?.replace(/^\s*#\s*/, '') ?? 'Shared settings'
     return (
-      <li key={name} className={styles.item} data-profile={name}>
-        <button
-          type="button"
-          className={styles.row}
-          aria-pressed={current === name}
-          onClick={() => setSelected(name)}
-          onFocus={() => setSelected(name)}
-          onDoubleClick={() => edit(name)}
-          onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); edit(name) } }}
-          data-hints="A:Edit;X:Options;Y:Apply;B:Back"
-        >
-          {rowIcon(name)}
-          <span className={styles.rowText}>
-            <span className={styles.rowName}>{name}{name === 'Default Global Chords' && <small style={{ marginLeft: 8, color: 'var(--text-2)' }}>Built-in</small>}</span>
-            <span className={styles.rowSub}>{subtitle(name)}</span>
-          </span>
-          <span className={styles.tags}>
-            {name === currentProfileName && <span className={`${styles.tag} ${styles.tagAccent}`}>{t('profiles.editing')}</span>}
-            {name === appliedProfileName && <span className={`${styles.tag} ${styles.tagOk}`}><span className={styles.tagDot} />{t('profiles.applied')}</span>}
-            {name === currentProfileName && hasPendingChanges && <span className={`${styles.tag} ${styles.tagWarn}`}>Unsaved</span>}
-            {autoload.length > 0 && <span className={styles.tag}>Autoload: {autoload.join(', ')}</span>}
-            {isTemplate(name) && <span className={styles.tag}>Template</span>}
-            {isTemplate(name) && importers.length > 0 && <span className={styles.tag}>Imported by {importers.length}</span>}
-          </span>
-        </button>
-        <Menu
-          open={optionsFor === name}
-          // Closing lands back on the row, not on the hidden trigger: Radix
-          // refocuses the trigger as its content unmounts, so this waits it out.
-          // Only then, though: an option that moved focus on purpose keeps it.
-          // Delete opens its confirmation and Rename its name field, and this
-          // used to pull focus back to the row behind the dialog, so the pad
-          // could not reach Cancel or Delete.
-          onOpenChange={open => {
-            setOptionsFor(open ? name : null)
-            if (!open) window.setTimeout(() => {
-              const active = document.activeElement as HTMLElement | null
-              const stray = !active || active === document.body || active.matches('[data-nav-skip]') || Boolean(active.closest('[data-radix-popper-content-wrapper]'))
-              if (!stray || document.querySelector('.modal-overlay, [data-focus-trap="true"]')) return
-              // Rename opened its field while the menu still held focus, so
-              // the field could not take it then; it takes it now.
-              if (renameRef.current) { renameRef.current.focus(); renameRef.current.select(); return }
-              rowButton(name)?.focus()
-            }, 80)
-          }}
-          returnFocusTo={() => rowButton(name)}
-          align="end"
-          ariaLabel={`Options for ${name}`}
-          trigger={<button type="button" className={`icon-button ${styles.options}`} aria-label={`Options for ${name}`} tabIndex={-1} data-nav-skip onClick={() => setSelected(name)}><Icon name="cog" size={18} /></button>}
-          items={name === 'Default Global Chords' ? [{ label: 'Clone as Personal', onSelect: () => edit(name) }] : [
-            { label: 'Duplicate', description: name === currentProfileName ? 'A copy beside it, opened for editing' : 'Open it for editing to duplicate it', disabled: name !== currentProfileName || !onCopyActiveProfile || isCalibrating, onSelect: () => onCopyActiveProfile?.() },
-            { label: 'Rename', disabled: isCalibrating, onSelect: () => startRename(name) },
-            { kind: 'separator' },
-            { label: 'Delete', description: 'Moves the file to the recycle bin', disabled: isCalibrating, onSelect: () => { setSelected(name); setConfirming(name) } },
-          ]}
-        />
-      </li>
+      <div className={styles.basesLayout}>
+        <div className={styles.page}>
+          <div className={styles.baseGrid} role="list" aria-label="Bases">
+            {userBases.map(base => (
+              <button key={base} type="button" role="listitem" className={styles.baseCard} data-profile={base} aria-current={base === current ? 'true' : undefined}
+                data-hints="A:Edit base;Y:More;B:Home" onFocus={() => setSelected(base)} onClick={() => edit(base)}>
+                <span className={styles.baseArt} aria-hidden="true"><span className={styles.stack}><i style={{ background: 'var(--layer-2)' }} /><i style={{ background: 'var(--accent)', width: 110 }} /></span></span>
+                <b>{base}</b>
+                <p>{blurb(texts[base])}</p>
+                <p className={styles.used}>{(graph.usedBy[base] ?? []).length ? `Used by ${(graph.usedBy[base] ?? []).join(', ')}` : 'Not used yet'}</p>
+                <p className={styles.hint}>A edits it. Every game on it follows.</p>
+              </button>
+            ))}
+            {libraryProfiles.includes(BUILTIN_CHORD_NAME) && (
+              <button type="button" role="listitem" className={styles.baseCard} data-profile={BUILTIN_CHORD_NAME} aria-current={current === BUILTIN_CHORD_NAME ? 'true' : undefined}
+                data-hints="A:Copy to make your own;B:Home" onFocus={() => setSelected(BUILTIN_CHORD_NAME)} onClick={onOpenBuiltin}>
+                <span className={styles.baseArt} aria-hidden="true"><InputGlyph command="LSL" family={family} size={36} /><span className={styles.arrowText}>→</span><Icon name="library" size={30} /></span>
+                <b>Hold to swap<span className={styles.builtTag}>BUILT IN</span></b>
+                <p>Hold buttons to swap to another whole configuration until you let go</p>
+                <p className={styles.hint}>Can’t be changed · copy it to make your own</p>
+              </button>
+            )}
+            {presets.map(entry => {
+              const id = `builtin:${entry[0].preset}`
+              const users = entry.flatMap(base => graph.builtinUsedBy[base.relativePath] ?? [])
+              return (
+                <button key={id} type="button" role="listitem" className={styles.baseCard} data-builtin-base={entry[0].preset} aria-current={id === current ? 'true' : undefined}
+                  data-hints="A:Copy to make your own;B:Home" onFocus={() => setSelected(id)} onClick={() => void copyBuiltin(entry[0].relativePath, entry[0].title)}>
+                  <span className={styles.baseArt} aria-hidden="true"><span className={styles.stack}><i style={{ background: 'var(--text-3)' }} /><i style={{ background: 'var(--accent)', width: 110 }} /></span></span>
+                  <b>{entry[0].title}<span className={styles.builtTag}>BUILT IN</span></b>
+                  <p>{entry[0].blurb}</p>
+                  {users.length > 0 && <p className={styles.used}>Used by {users.join(', ')}</p>}
+                  <p className={styles.hint}>Can’t be changed · copy it to make your own{entry.length > 1 ? ` · ${entry.length} versions, by controller` : ''}</p>
+                </button>
+              )
+            })}
+            <button type="button" role="listitem" className={styles.newCard} data-hints="A:New base;B:Home" onClick={() => setNewBaseOpen(true)}>
+              <span className={styles.newPlus} aria-hidden="true">+</span><b>New base</b><p>Start from a game you already set up</p>
+            </button>
+          </div>
+          {current && name && (
+            <aside className={styles.detail} aria-label={`${current === BUILTIN_CHORD_NAME ? BUILTIN_CHORD_NAME : name} details`} data-library-detail="" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
+              <div className={styles.detailHead}>
+                <h2 className={styles.detailName}>{current === BUILTIN_CHORD_NAME ? 'Hold to swap' : name}</h2>
+                <span className={styles.mono} style={{ color: 'var(--text-3)' }}>{isPreset ? variants.map(base => base.fileName).join(' · ') : `${current}.txt`}</span>
+              </div>
+              <dl className={styles.facts}>
+                <div><dt>Used by</dt><dd>{usedBy.length ? usedBy.join(', ') : 'Nothing yet'}</dd></div>
+                <div><dt>Built on</dt><dd>{userFacts?.base ? baseLabel(userFacts.base, builtinBases) : 'Nothing'}</dd></div>
+                <div><dt>Sends</dt><dd>{isPreset ? (variants[0].text.match(/VIRTUAL_CONTROLLER\s*=\s*XBOX/) ? 'Xbox controller' : 'Keyboard & mouse') : userFacts?.sends ?? '—'}</dd></div>
+                <div><dt>Goes live</dt><dd>{current === BUILTIN_CHORD_NAME ? 'While its buttons are held' : 'Only through a game'}</dd></div>
+              </dl>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                {isPreset
+                  ? <button type="button" className={styles.act} data-primary="true" onClick={() => void copyBuiltin(variants[0].relativePath, variants[0].title)}><ButtonGlyph button="A" size={26} family={family} pad />Copy to make your own</button>
+                  : current === BUILTIN_CHORD_NAME
+                    ? <button type="button" className={styles.act} data-primary="true" onClick={onOpenBuiltin}><ButtonGlyph button="A" size={26} family={family} pad />Copy to make your own</button>
+                    : <>
+                      <button type="button" className={styles.act} data-primary="true" data-hints="A:Edit base;Y:More;B:Home" onClick={() => edit(current)}><ButtonGlyph button="A" size={26} family={family} pad />Edit base</button>
+                      <button type="button" className={styles.act} data-hints="A:More;B:Home" onClick={() => { setConfirmDelete(false); setMoreFor(current) }}><ButtonGlyph button="Y" size={26} family={family} pad />Duplicate, rename, file…</button>
+                    </>}
+              </div>
+            </aside>
+          )}
+        </div>
+        <aside className={styles.aside} aria-label="How a game is built">
+          <p className={styles.eyebrow}>{firstUser ? `How ${firstUser} is built` : 'How a game is built'}</p>
+          <div className={styles.diagram} aria-hidden="true">
+            <small>What {firstUser ?? 'the game'} sets wins</small>
+            <span className={styles.diagramLine} style={{ borderLeftStyle: 'solid', borderColor: 'var(--text-3)', height: 18 }} />
+            <span className={styles.diagramBox} style={{ boxShadow: 'inset 0 0 0 2px var(--layer-2)' }}>{firstUser ?? 'Your game'}</span>
+            <span className={styles.diagramLine} />
+            <span className={styles.diagramBox} style={{ background: 'color-mix(in srgb, var(--accent) 22%, transparent)', boxShadow: 'inset 0 0 0 2px var(--accent)' }}>{current === BUILTIN_CHORD_NAME ? 'Hold to swap' : name || 'A base'}</span>
+          </div>
+          <p className={styles.sentence}>Anything {firstUser ?? 'a game'} leaves alone comes from {name || 'its base'}. On Layout those rows say <b>From {name || 'the base'}</b>.</p>
+          <p className={styles.note}>If a base goes missing, the games on it say so and ask you to pick another.</p>
+        </aside>
+      </div>
     )
   }
 
-  // First run (System States 17d): nothing in the library yet.
-  if (!libraryLoading && libraryProfiles.length === 0) return (
-    <div className={styles.welcome} data-hints="A:Choose;B:Skip">
-      <BrandMark size={64} className={styles.welcomeMark} />
-      <h2>Welcome to JSM Evolved</h2>
-      <p>Start from a template, import an existing JoyShockMapper config, or begin with an empty configuration. You can change everything later.</p>
-      <input ref={importRef} type="file" accept=".txt,.cfg,.ini,*/*" hidden onChange={async event => {
-        const file = event.target.files?.[0]
-        if (file && onImportProfile) onImportProfile(file.name, await file.text())
-        event.target.value = ''
-      }} />
-      <div className={styles.welcomeChoices}>
-        {onImportProfile && <button type="button" className={styles.choice} onClick={() => onImportProfile(`${FPS_TEMPLATE_NAME}.txt`, FPS_TEMPLATE_TEXT)}>
-          <b>FPS Template</b><span>Gyro aim on grip, pads as mouse and menu</span>
-        </button>}
-        {onImportProfile && <button type="button" className={styles.choice} onClick={() => importRef.current?.click()}>
-          <b>Import a config</b><span>Pick a .txt from your JSM folder</span>
-        </button>}
-        {onImportFromSteam && <button type="button" className={styles.choice} onClick={onImportFromSteam}>
-          <b>From Steam</b><span>Convert a Steam Input layout</span>
-        </button>}
-        <button type="button" className={styles.choice} onClick={onAddProfile}>
-          <b>Empty</b><span>Every input unbound</span>
-        </button>
-      </div>
-      {dialogNode}
-    </div>
-  )
-
-  const facts = current ? factsFor(current) : undefined
-  const currentMeta = current ? meta[current] : undefined
-  const loaders = current ? loadedBy.get(current) ?? [] : []
-  const currentAutoload = current ? autoloadFor(current) : []
-  const currentGame = current ? gameFor(current) : null
-
+  const moreName = moreFor
+  const deletable = moreName && moreName !== BUILTIN_CHORD_NAME
   return (
-    <div className={styles.library} ref={pageRef} aria-busy={libraryLoading || undefined}>
-      {/* Two regions for the pad: Up/Down walk the list or the panel, never
-          across, so going down the list does not jump into the panel when
-          one of its buttons sits nearer than the next row. Left/Right cross. */}
-      <div className={styles.lists} ref={listRef} data-nav-region="list">
-        <h3 className={styles.eyebrow}>Profiles · {profiles.length}</h3>
-        {libraryProfiles.length === 0
-          ? <p className={styles.empty}>{t('profiles.empty')}</p>
-          : <ul className={styles.rows}>{profiles.map(row)}</ul>}
-        {templates.length > 0 && <>
-          <h3 className={styles.eyebrow}>Templates · {templates.length}</h3>
-          <ul className={styles.rows}>{templates.map(row)}</ul>
-        </>}
-      </div>
-
-      {current && (
-        <aside className={styles.detail} aria-label={`${current} details`} data-nav-region="detail">
-          <span className={styles.eyebrow}>Selected</span>
-          {renaming ? (
-            <div className={styles.rename}>
-              <input ref={renameRef} className="text-field" aria-label="Configuration name" maxLength={80} value={renamed} disabled={isCalibrating}
-                onChange={event => onProfileNameChange(current, event.target.value)}
-                onKeyDown={event => {
-                  if (event.key === 'Enter') { event.preventDefault(); commitRename() }
-                  if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); cancelRename() }
-                }} />
-              <button type="button" className="button button--primary button--sm" disabled={!canRename || isCalibrating} onClick={commitRename}>Rename</button>
-              <button type="button" className="button button--tertiary button--sm" onClick={cancelRename}>{t('common.cancel')}</button>
-            </div>
-          ) : <h3 className={styles.detailName}>{current}</h3>}
-          <dl className={styles.facts}>
-            {seen.name && editingSelected && <div><dt>Controller</dt><dd>{seen.name}</dd></div>}
-            <div><dt>Output</dt><dd>{facts?.output ?? '—'}</dd></div>
-            <div><dt>Imports</dt><dd>{facts?.imports.length ? facts.imports.join(', ') : 'none'}</dd></div>
-            <div><dt>Layers</dt><dd className={styles.layerList}>{facts?.layers.length ? facts.layers.map(layer => <span key={layer.name}><span className={styles.swatch} style={{ background: layer.color }} />{layer.name}</span>) : 'none'}</dd></div>
-            {!!facts?.loads.length && <div><dt>Loads</dt><dd>{facts.loads.map(link => `${link.target} (${keyLabel(link.keys)})`).join(', ')}</dd></div>}
-            {loaders.length > 0 && <div><dt>Loaded by</dt><dd>{loaders.map(link => `${link.by} (${keyLabel(link.keys)})`).join(', ')}</dd></div>}
-            {isTemplate(current) && <div><dt>Imported by</dt><dd>{(importedBy.get(current) ?? [currentProfileName]).join(', ')}</dd></div>}
-            <div><dt>Game</dt><dd className={styles.gameFact}>
-              {currentGame ? (
-                <span className={styles.gameLine}>
-                  <AppIconImage exePath={currentGame.exePath} size={18} fallback={null} />
-                  <span className={styles.gameName}>{exeFileName(currentGame.processName)}</span>
-                </span>
-              ) : 'none'}
-              <span className={styles.gameMeta}>
-                {currentGame && <span>{currentGame.paused ? 'Icon only' : 'Applies automatically'}</span>}
-                <button type="button" className="button button--tertiary button--sm" disabled={isCalibrating} onClick={() => setDialog({ mode: 'associate', name: current })} data-hints="A:Choose game;B:Back">
-                  {currentGame ? 'Change…' : 'Associate…'}
-                </button>
-              </span>
-            </dd></div>
-            <div><dt>Autoload</dt><dd>{currentAutoload.length ? currentAutoload.join(', ') : 'none'}</dd></div>
-            <div><dt>File</dt><dd className={styles.mono}>{current}.txt{currentMeta ? ` · saved ${relativeTime(currentMeta.modifiedAtMs, now)}` : ''}</dd></div>
-            {(editingSelected && hasPendingChanges) || (current === appliedProfileName && !profileApplied) ? <div><dt>Status</dt><dd>{[editingSelected && hasPendingChanges ? 'Unsaved changes' : null, current === appliedProfileName && !profileApplied ? 'Applied (older version)' : null].filter(Boolean).join(' · ')}</dd></div> : null}
-          </dl>
-
-          <div className={styles.actionGrid}>
-            <button type="button" className={`button ${editingSelected ? 'button--secondary' : 'button--primary'}`} disabled={isCalibrating} onClick={() => edit(current)} data-hints="A:Edit;B:Back">
-              <span className={styles.faceKey} aria-hidden="true">A</span>Edit
-            </button>
-            <button type="button" className={`button ${editingSelected ? 'button--primary' : 'button--secondary'}`} disabled={isCalibrating || (editingSelected ? !onApply : !onApplyLibraryProfile)}
-              title={editingSelected || onApplyLibraryProfile ? undefined : 'Open it for editing to apply it'} onClick={() => apply(current)} data-hints="A:Apply;B:Back">
-              <span className={styles.faceKey} aria-hidden="true">Y</span>Apply
-            </button>
-            <button type="button" className="button button--secondary" disabled={!editingSelected || !onCopyActiveProfile || isCalibrating}
-              title={editingSelected ? undefined : 'Open it for editing to duplicate it'} onClick={() => onCopyActiveProfile?.()}>Duplicate</button>
-            {current !== 'Default Global Chords' && <button type="button" className="button button--secondary" disabled={isCalibrating || renaming} onClick={() => startRename(current)}>Rename</button>}
-          </div>
-
-          <div className={styles.quiet}>
-            {onShowInFolder && <button type="button" className="button button--tertiary" onClick={onShowInFolder}>Show in folder</button>}
-            {onEditSource && <button type="button" className="button button--tertiary" disabled={!editingSelected}
-              title={editingSelected ? undefined : 'Open it for editing to see its source'} onClick={onEditSource}>{t('app.profileSummary.openSourceConfig', 'Edit source')}</button>}
-            {current !== 'Default Global Chords' && <button type="button" className="button button--danger" disabled={isCalibrating} onClick={() => setConfirming(current)}>Delete</button>}
-          </div>
-          {isCalibrating && lockMessage && <p className={styles.lock}>{lockMessage}</p>}
-        </aside>
+    <div className={styles.page} ref={pageRef} aria-busy={libraryLoading || data.loading || undefined} data-library-view={view}>
+      {view === 'games' ? renderGames() : renderBases()}
+      {moreName && (
+        <MoreSheet open onClose={() => setMoreFor(null)} eyebrow={`Library · ${view === 'games' ? 'Games' : 'Bases'}`} title={moreName} file={`${moreName}.txt`}
+          items={moreItems(moreName)} confirming={confirmDelete} onWhere={setSubWhere}
+          remove={deletable ? { label: `Delete ${moreName}`, body: deleteBody(moreName), run: () => { setMoreFor(null); onDelete(moreName); libraryChanged() } } : undefined} />
       )}
-
-      {/* Escape must preventDefault, or the same press also reaches the
-          page's own handler once the overlay is gone and backs out of Studio. */}
-      {confirming && (() => {
-        const loadedFrom = loadedBy.get(confirming) ?? []
-        const importers = importedBy.get(confirming) ?? []
-        return (
-          <div className="modal-overlay modal-overlay--over" onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); setConfirming(null) } }}>
-            <div className="modal-card confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="delete-config-title" aria-describedby="delete-config-body">
-              <h3 id="delete-config-title">Delete {confirming}?</h3>
-              <p id="delete-config-body">
-                The file moves to the recycle bin.
-                {loadedFrom.length > 0 ? <> <strong>{loadedFrom[0].by}</strong> loads it from {keyLabel(loadedFrom[0].keys)}; that binding will show as missing until you choose another configuration.</> : null}
-                {importers.length > 0 ? <> <strong>{importers.join(', ')}</strong> import{importers.length === 1 ? 's' : ''} it; that import will be missing until you choose another.</> : null}
-                {confirming === currentProfileName ? ' It is open now, so Studio opens another configuration.' : ''}
-              </p>
-              <div className="confirm-dialog__actions">
-                <button type="button" className="button button--secondary" data-modal-close onClick={() => setConfirming(null)}>{t('common.cancel')}</button>
-                <button type="button" className="button button--danger-solid" onClick={() => { onDeleteProfile(confirming); setConfirming(null) }}>{t('common.delete')}</button>
-              </div>
-            </div>
-          </div>
-        )
-      })()}
-      {dialogNode}
+      {baseFor && (
+        <BasePickerSheet open onClose={() => setBaseFor(null)} name={baseFor} current={graph.configs[baseFor]?.base ?? null}
+          builtin={builtinBases} userBases={userBases.filter(base => base !== baseFor)} loops={loopsWith(baseFor)}
+          onPick={path => { const name = baseFor; setBaseFor(null); void Promise.resolve(onChangeBase(name, path)).then(() => { libraryChanged(); showToast(path ? `${name} is built on ${baseLabel(path, builtinBases)}` : `${name} isn’t built on anything now`) }) }} />
+      )}
+      {gameFor && (
+        <ConfigurationDialog mode="associate" profileName={gameFor} rule={ruleFor(gameFor)} onClose={() => setGameFor(null)} />
+      )}
+      <Sheet open={newBaseOpen} onClose={() => setNewBaseOpen(false)} eyebrow="Library · Bases" title="New base"
+        description="Start from a game you already set up: its settings become a base other games can build on. The game itself doesn’t change."
+        hints={[{ button: 'A', label: 'Start from this' }, { button: 'B', label: 'Back' }]} width={520}>
+        {graph.games.length === 0 && <p className={styles.sentence}>Set up a game first.</p>}
+        {graph.games.map(game => (
+          <button key={game} type="button" className={styles.menuRow} data-hints="A:Start from this;B:Back" aria-busy={newBaseGame === game || undefined}
+            onClick={() => { setNewBaseGame(game); void makeBaseFrom(game) }}>
+            <Icon name="library" size={20} /><span>{game}</span><span>{meantToImport(texts[game] ?? '') ? '' : graph.configs[game]?.sends}</span>
+          </button>
+        ))}
+      </Sheet>
     </div>
   )
 }

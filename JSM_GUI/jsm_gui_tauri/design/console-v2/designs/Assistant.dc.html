@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Assistant, ask first</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.btn{font-family:inherit;border:0;cursor:pointer}
+.chip{font-family:inherit;border:0;cursor:pointer;min-height:64px;padding:12px 20px;box-sizing:border-box;border-radius:16px;background:#1f2730;color:#e8eef4;font-size:18px;font-weight:600;text-align:left;display:flex;align-items:center}
+.ib{display:inline-flex;align-items:center;justify-content:center;min-width:38px;height:26px;padding:0 6px;box-sizing:border-box;border-radius:7px;background:#2e3844;color:#e8eef4;font-weight:700;font-size:12px;flex:none}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="height: 76px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 40px; background: #0d1217">
+<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#7cc4ee" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path></svg>
+<span style="font-size: 22px; font-weight: 700">Assistant</span>
+<button class="btn" style="margin-left: auto; display: flex; align-items: center; gap: 12px; height: 48px; padding: 0 16px 0 8px; border-radius: 14px; background: #1f2730; color: #e8eef4">
+<span style="width: 34px; height: 34px; border-radius: 9px; background: #a43fd6"></span>
+<span style="font-size: 16px"><span style="color: #808c99">Working on</span> <span style="font-weight: 650">Wardogs</span></span>
+</button>
+</header>
+
+<main style="flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 560px; gap: 32px; padding: 36px 40px 24px">
+
+<section style="display: flex; flex-direction: column; gap: 22px; min-width: 0">
+<h1 style="margin: 0; font-size: 40px; font-weight: 700; letter-spacing: -0.01em">What should change?</h1>
+<p style="margin: 0; font-size: 19px; color: #b0bcc8">Pick one or say your own. You’ll see the change and try it before anything is saved.</p>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<button class="chip focus" style="background: #1d445c">Make gyro aim less twitchy</button>
+<button class="chip">Put reload on a back button</button>
+<button class="chip">Add a driving mode on L4</button>
+<button class="chip">Turn the right pad into a weapon wheel</button>
+<button class="chip">Hold A to sprint, tap to jump</button>
+<button class="chip">Copy movement from Cyberpunk 2077</button>
+</div>
+<div style="display: flex; align-items: center; gap: 16px; height: 72px; padding: 0 22px; border-radius: 18px; background: #0f151b; box-shadow: inset 0 0 0 2px #2e3844">
+<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg>
+<span style="font-size: 19px; color: #808c99">Say or type your own…</span>
+<span style="margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 15px; color: #808c99"><span class="g">X</span>Speak</span>
+</div>
+</section>
+
+<aside style="background: #1a222b; border-radius: 22px; padding: 26px; display: flex; flex-direction: column; gap: 18px">
+<div style="align-self: flex-end; max-width: 80%; background: #2e3844; border-radius: 18px 18px 4px 18px; padding: 14px 18px; font-size: 18px">Put reload on a back button</div>
+<div style="display: flex; flex-direction: column; gap: 14px; background: #1f2730; border-radius: 18px; padding: 20px">
+<span style="font-size: 18px; line-height: 1.5; color: #d4dde6">L5 is free, so reload goes there. X keeps reload too, so nothing you’re used to breaks.</span>
+<div style="display: flex; flex-direction: column; gap: 10px; background: #131920; border-radius: 14px; padding: 16px">
+<span style="display: flex; align-items: center; gap: 12px; font-size: 17px"><span class="ib">L5</span><span style="color: #808c99; text-decoration: line-through">Not set</span><span style="color: #7cc4ee">→</span><span style="font-weight: 650">Reload · R</span></span>
+<span style="display: flex; align-items: center; gap: 12px; font-size: 17px"><span class="ib">X</span><span style="color: #b0bcc8">Reload · R</span><span style="color: #808c99">unchanged</span></span>
+</div>
+<div style="display: flex; gap: 10px">
+<span style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 10px; height: 54px; border-radius: 14px; background: #3e9fd8; color: #07131d; font-size: 18px; font-weight: 650"><span class="g" style="background: #07131d; color: #e8eef4">A</span>Keep it</span>
+<span style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 10px; height: 54px; border-radius: 14px; background: #2e3844; font-size: 18px; font-weight: 600"><span class="g">Y</span>Try it first</span>
+</div>
+</div>
+<div style="margin-top: auto; font-size: 15px; line-height: 1.5; color: #808c99">Uses your own AI provider. Change it in Settings ▸ Assistant.</div>
+</aside>
+</main>
+
+<footer style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Assistant · Wardogs</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">A</span>Ask this</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">X</span>Speak</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">Y</span>Type</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Home</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

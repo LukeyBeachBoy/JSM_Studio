@@ -4,7 +4,7 @@
 .meta { margin-right: auto; color: var(--text-3); font-size: var(--fs-hint); }
 
 .log {
-  height: min(56vh, 520px);
+  height: min(46vh, 420px);
   overflow-y: auto;
   padding: var(--sp-4);
   border-radius: var(--r-card);
@@ -47,3 +47,14 @@
   font-family: var(--font-mono);
   font-size: var(--fs-hint);
 }
+
+/* Console v2 (SettingsTroubleshooting): Live / Paused, help, Recent. */
+.toolbar { justify-content: flex-start; }
+.toolbar .meta { margin-right: 0; }
+.toolbarSpacer { flex: 1; }
+.meta[data-paused='true'] { color: var(--warn); }
+.help { margin: 0; color: var(--text-3); font-size: var(--fs-hint); }
+.recent { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.recentTitle { color: var(--text-3); font-size: var(--fs-hint); margin-right: var(--sp-2); }
+.recentItem { height: 40px; padding: 0 var(--sp-4); border: 0; border-radius: var(--r-pill); background: var(--surface-row); color: var(--text-1); font-family: var(--font-mono); font-size: var(--fs-hint); cursor: pointer; }
+.recentItem:hover { background: var(--surface-row-hover); }

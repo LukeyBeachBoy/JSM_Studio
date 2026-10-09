@@ -55,6 +55,8 @@ const STEAM = 24;
     }, [PROFILE, STEAM]);
     await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
     // The app opens on Home (console refinement 2a); these checks start in the editing shell.
+    // A Steam Controller's first connection asks about its power-on sound.
+    await page.getByRole('button', { name: 'Keep them', exact: true }).click({ timeout: 5000 }).catch(() => {});
     await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
     page.setDefaultTimeout(15000);
     await page.locator('.profile-chip').filter({ hasText: 'Desktop' }).waitFor();
@@ -84,62 +86,55 @@ const STEAM = 24;
     await page.waitForFunction(() => document.getAnimations().every(animation => animation.playState !== 'running'));
     // Top-level rows only: a shifted card ("RSR,N") is nested inside its input's editor now.
     const rowSummaries = page.locator('details[data-input-command]:not([data-input-command*=","]) > summary');
-    const rows = rowSummaries.locator('[class*=rowOutput]');
-    const compactRights = [];
+    // Console v2 (ButtonList): what a row sends sits on its right, the same
+    // right edge down the list.
+    const rows = rowSummaries.locator('[class*=rowRight]');
+    const rights = [];
     for (let i = 0; i < 3; i++) {
       const row = await rowSummaries.nth(i).boundingBox();
       const hint = await rows.nth(i).boundingBox();
       assert.ok(hint.x > row.x + row.width * 0.5, `the value is adrift in the middle of the row (${hint.x} of ${row.x}..${row.x + row.width})`);
       assert.ok(hint.x + hint.width <= row.x + row.width + 1, 'the output stays inside its row');
-      const compact = await rowSummaries.nth(i).evaluate(el => el.parentElement.dataset.noExtras === 'true');
-      if (compact) compactRights.push(Math.round(hint.x + hint.width));
+      rights.push(Math.round(hint.x + hint.width));
     }
-    assert.ok(compactRights.length >= 2, 'the fixture covers independent compact output rows');
-    assert.equal(new Set(compactRights).size, 1, `compact outputs share a right edge: ${compactRights.join(', ')}`);
+    assert.equal(new Set(rights).size, 1, `outputs share a right edge: ${rights.join(', ')}`);
 
-    // --- a modeshift names its trigger the same way --------------------------
-    // The shift lives in the input's own editor (Binding Editor 7a).
+    // While holding (console v2): the change is a row of the input's While
+    // holding page, named for this controller's own button.
     await page.locator('details[data-input-command="N"] > summary').first().click();
-    // The card's body grows open (2f); read the row once it is shown.
-    await page.locator('details[data-input-command="N"] [data-modeshift-row]').first().waitFor({ state: 'visible' });
-    await page.waitForFunction(() => (document.querySelector('details[data-input-command="N"] [data-modeshift-row]')?.innerText ?? '').trim().length > 0);
-    const shiftRow =(await page.locator('details[data-input-command="N"] [data-modeshift-row]').first().innerText()).replace(/\s+/g, ' ').trim();
+    await page.locator('details[data-input-command="N"][open] [data-fold="while-holding"]').click();
+    const shiftRowLocator = page.locator('[data-modeshift-row]').first();
+    await shiftRowLocator.waitFor({ state: 'visible' });
+    const shiftRow = (await shiftRowLocator.innerText()).replace(/\s+/g, ' ').trim();
     assert.ok(!/RSR|Paddle 1/.test(shiftRow), `the trigger should use the pad's own name: ${shiftRow}`);
     assert.match(shiftRow, /R4/, `a Steam Controller calls it R4: ${shiftRow}`);
-    // Its cog opens the shift's own card (3c).
-    await page.locator('details[data-input-command="N"] [data-modeshift-row="RSR"]').getByRole('button', { name: 'Modeshift settings' }).click();
+    await page.locator('[data-modeshift-row="RSR"]').click();
+    await page.getByRole('button', { name: /Every way of pressing/ }).click();
     await page.locator('[data-input-command="RSR,N"]').first().waitFor();
-    await page.getByRole('dialog').last().locator('[data-modal-close]').click();
-
-    // --- no phantom thumb in the editor preview -----------------------------
-    // Scoped to the content pane: the header carries its own unrelated status
-    // dot (the mapping on/off indicator), which also matches [class*=dot].
-    await page.getByRole('button', { name: 'Trackpads', exact: true }).click();
-    await page.locator('[data-input-command="LT1"]').first().waitFor();
-    assert.equal(
-      await page.locator('.main-pane [class*=Overlay_dot], .main-pane [class*=dot]').count(),
-      0,
-      'the preview draws a live-touch dot that nothing is driving'
-    );
+    for (let i = 0; i < 4; i++) { await page.keyboard.press('Escape'); await page.waitForTimeout(150); }
+    await page.waitForFunction(() => !document.querySelector('[data-subpage], .sheet-layer'));
 
     // --- one frame around the selected region, not three --------------------
-    // The selected region is a summary row on the pad (console refinement
-    // 2b) that already shows what it sends; A opens its binding editor in a
-    // sheet, arriving open rather than behind another click.
-    const regionRow = page.locator('.main-pane button.summary-row[data-input-command="LT1"]').first();
-    assert.match(await regionRow.locator('.summary-row__label').innerText(), /^Region 1 · /);
-    assert.equal((await regionRow.locator('.summary-row__value').innerText()).trim(), 'G', 'the region row names its binding');
+    // The selected zone is a binding row on the pad's page (console v2,
+    // Trackpads) that already shows what it sends; A opens its binding sheet,
+    // arriving open rather than behind another click.
+    await page.getByRole('button', { name: 'Trackpads', exact: true }).click();
+    const regionRow = page.locator('details[data-input-command="LT1"] > summary').first();
+    await regionRow.waitFor();
+    const regionText = (await regionRow.innerText()).replace(/\s+/g, ' ');
+    assert.match(regionText, /Row 1, column 1|Region 1/i, `the row names the zone: ${regionText}`);
+    assert.match(regionText, /\bG\b/, `the zone row names its binding: ${regionText}`);
     await regionRow.click();
-    const region = page.locator('.sheet details[data-input-command="LT1"]').first();
+    const region = page.locator('details[data-input-command="LT1"][open]').first();
     await region.waitFor();
-    assert.notEqual(await region.getAttribute('open'), null, 'the selected region should arrive open, not behind another click');
     assert.equal(await page.getByText('Selected region', { exact: false }).count(), 0,
       'the region editor still wraps the card in a panel that repeats it');
     await page.keyboard.press('Escape');
     await page.locator('.sheet').waitFor({ state: 'detached' });
 
+
     assert.deepEqual(errors, []);
-    console.log('PASS: rows name this controller and the output the game gets, values line up, and the preview has no phantom thumb');
+    console.log('PASS: rows name this controller and the output the game gets, and values line up');
   } finally {
     await browser.close();
   }

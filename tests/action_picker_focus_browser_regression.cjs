@@ -1,5 +1,10 @@
 // Full renderer regression driven through simulated controller telemetry.
 // Does not invoke a physical controller or installed mapper.
+//
+// Search every action (console v2): Y from any of the binding sheet's kind
+// pickers opens the whole catalogue -- families on LB/RB in the kinds' order,
+// groups on LT/RT -- and the pad must never lose focus in it: family and group
+// changes, empty families, empty searches, the keyboard's PgUp/PgDn and [ ].
 const assert = require('node:assert/strict')
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright')
 
@@ -27,7 +32,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
       window.telemetry = { onSample: callback => {
         const emit = () => callback({ console: 'ready', activeProfile: 'AppNavigation.txt', devices: [{ handle: 1, type: 24, supportedButtons: 8589934591, status: {
           buttons: window.__focusButtons.reduce((mask, key) => mask + 2 ** bits[key], 0),
-          leftStick: { x: 0, y: 0 }, rightStick: { x: 0, y: 0 }, triggers: { left: 0, right: 0 }, gyro: { x: 0, y: 0, z: 0 },
+          leftStick: { x: 0, y: 0 }, rightStick: { x: 0, y: 0 }, triggers: { left: window.__focusTriggers?.left ?? 0, right: window.__focusTriggers?.right ?? 0 }, gyro: { x: 0, y: 0, z: 0 },
         } }] })
         emit(); const timer = setInterval(emit, 10); return () => clearInterval(timer)
       } }
@@ -36,48 +41,73 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
     await page.locator('[data-home-continue]').click()
     await page.getByRole('button', { name: 'Buttons', exact: true }).click()
     const card = page.locator('details[data-input-command="N"]').first()
-    await card.locator('summary').first().click()
-    const open = async () => {
-      await card.getByRole('button', { name: 'Add command', exact: true }).click()
-      await picker.waitFor()
-      await page.waitForTimeout(100)
+    await card.locator(':scope > summary').click()
+    const pull = async side => {
+      await page.evaluate(side => { window.__focusTriggers = { [side]: 1 } }, side)
+      await page.waitForTimeout(120)
+      await page.evaluate(() => { window.__focusTriggers = {} })
+      await page.waitForTimeout(220)
     }
-    const picker = page.getByRole('dialog', { name: 'Choose an action', exact: true })
-    const tab = name => picker.locator('.action-picker__tabs').getByRole('button', { name, exact: true })
-    const selected = () => picker.locator('.action-tab[aria-pressed="true"]').innerText()
     const press = async key => {
       await page.evaluate(key => { window.__focusButtons = [key] }, key)
       await page.waitForTimeout(80)
       await page.evaluate(() => { window.__focusButtons = [] })
-      await page.waitForTimeout(120)
+      await page.waitForTimeout(160)
     }
+    const picker = page.getByRole('dialog', { name: 'Search every action', exact: true })
+    const kindPicker = page.locator('[data-picker="key"]')
+    // Open the Keyboard key picker from the sheet, then Y: Search every action.
+    const open = async () => {
+      if (!(await kindPicker.count())) {
+        await card.locator('[data-kind="key"]').first().click()
+        await kindPicker.waitFor()
+        await page.waitForTimeout(200)
+      }
+      await press('N')
+      await picker.waitFor()
+      await page.waitForTimeout(150)
+    }
+    const tab = name => picker.locator('.action-picker__tabs').getByRole('button', { name, exact: true })
+    const selected = () => picker.locator('.action-tab[aria-pressed="true"]').innerText()
+    const group = () => picker.locator('.action-group-tab[aria-pressed="true"]').innerText()
     const focusedInside = async message => assert.ok(await picker.evaluate(el => el.contains(document.activeElement)), message)
     const focusedContent = async () => assert.ok(await picker.locator('.action-picker__content').evaluate(el => el.contains(document.activeElement)), 'focus lands on category content')
 
     await open()
-    await tab('Numpad').click()
-    await picker.locator('.action-picker__content button').first().focus()
-    await press('R')
-    assert.equal(await selected(), 'Layers')
-    await focusedContent() // Empty Layers already provides a Go to Layers button.
-    await press('R')
-    assert.equal(await selected(), 'Virtual menus')
-    assert.match(await picker.locator('.action-picker__content').innerText(), /Create a menu/)
-    await focusedInside('empty Virtual menus must keep controller focus inside the picker')
-    assert.ok(await tab('Virtual menus').evaluate(el => el === document.activeElement), 'empty category focuses its selected tab')
-    await press('R')
-    assert.equal(await selected(), 'System & media', 'next bumper still reaches the picker')
+    assert.ok(await picker.getByRole('searchbox').evaluate(el => el === document.activeElement), 'Search every action opens in its search box')
+    assert.equal(await selected(), 'Keyboard key', 'it opens on the kind it came from')
+    assert.match(await group(), /^Common in games/)
+    assert.deepEqual(await picker.locator('.action-picker__tabs .action-tab[data-family]').allInnerTexts(),
+      ['Keyboard key', 'Mouse', 'Gamepad button', 'Open a menu', 'Switch layer', 'Controller action', 'Load a config', 'Command'])
+    await picker.getByRole('searchbox').press('ArrowDown')
     await focusedContent()
+    await press('R')
+    assert.equal(await selected(), 'Mouse')
+    await focusedContent()
+    await press('R'); await press('R')
+    assert.equal(await selected(), 'Open a menu')
+    assert.match(await picker.locator('.action-picker__content').innerText(), /No menus yet/)
+    await focusedInside('empty Open a menu must keep controller focus inside the picker')
+    await press('R')
+    assert.equal(await selected(), 'Switch layer')
+    await focusedInside('a family with no modes keeps focus inside')
+    await press('R')
+    assert.equal(await selected(), 'Controller action')
+    assert.match(await group(), /^Gyro/)
+    for (const expected of ['Calibrate', 'Rumble & sound', 'Light', 'Other', 'Gyro']) {
+      await pull('right')
+      assert.match(await group(), new RegExp(`^${expected}`))
+      assert.equal(await selected(), 'Controller action', 'a trigger never changes the family')
+      await focusedContent()
+    }
+    await press('R')
+    assert.equal(await selected(), 'Load a config', 'the library is offered even when it is only this configuration')
+    await focusedInside('Load a config keeps focus')
     await press('L')
-    assert.equal(await selected(), 'Virtual menus')
-    await press('LEFT')
-    await focusedInside('D-pad remains inside empty category')
-    await press('E')
-    await picker.waitFor({ state: 'detached' })
+    assert.equal(await selected(), 'Controller action')
 
-    // Repeated full cycles cover wraparound, Custom and Configurations too.
-    await open()
-    const names = await picker.locator('.action-picker__tabs .action-tab[aria-pressed]').allInnerTexts()
+    // Repeated full cycles cover wraparound and Command too.
+    const names = await picker.locator('.action-picker__tabs .action-tab[data-family]').allInnerTexts()
     let index = names.indexOf(await selected())
     for (let step = 0; step < names.length * 2; step++) {
       await press('R'); index = (index + 1) % names.length
@@ -85,68 +115,58 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
       await focusedInside(`focus survives ${names[index]}`)
     }
 
-    // Mouse tab clicks keep focus on the clicked tab; bumpers move to actions.
-    await tab('Virtual menus').click()
-    assert.ok(await tab('Virtual menus').evaluate(el => el === document.activeElement))
-    await tab('Keyboard').click()
-    assert.ok(await tab('Keyboard').evaluate(el => el === document.activeElement))
-    await press('R')
-    assert.equal(await selected(), 'Numpad')
-    await focusedContent()
+    // The triggers step the Keyboard key family's groups, both ways, wrapping.
+    await tab('Keyboard key').click()
+    assert.match(await group(), /^Common in games/)
+    for (const expected of ['Full keyboard', 'Numpad', 'System & media', 'Common in games']) {
+      await pull('right')
+      assert.match(await group(), new RegExp(`^${expected}`))
+      assert.equal(await selected(), 'Keyboard key')
+      await focusedContent()
+    }
+    await pull('left')
+    assert.match(await group(), /^System & media/)
+    // A one-group family has no group strip; a trigger there does nothing.
+    await tab('Mouse').click()
+    assert.equal(await picker.locator('.action-picker__groups').count(), 0)
+    await pull('right')
+    assert.equal(await selected(), 'Mouse')
+    await focusedInside('a trigger in a one-group family keeps focus inside')
 
-    // Search has no results; Down/Enter must still have a safe landing target.
+    // Search has no results; Down must still have a safe landing target.
+    await tab('Keyboard key').click()
     await press('N') // Y
     const search = picker.getByRole('searchbox')
     assert.ok(await search.evaluate(el => el === document.activeElement))
     await search.fill('no-such-action-zzzz')
     await search.press('ArrowDown')
     await focusedInside('empty search must preserve focus')
-    assert.ok(await tab('Numpad').evaluate(el => el === document.activeElement))
     await press('R')
-    assert.equal(await selected(), 'Layers')
+    assert.equal(await selected(), 'Mouse')
     assert.equal(await search.inputValue(), '')
     await focusedContent()
-    await press('N')
-    await search.fill('no-such-action-zzzz')
-    await search.press('Escape')
-    await focusedContent()
 
-    // Keyboard category shortcuts and Tab/Escape continue to work.
-    await tab('Layers').focus()
+    // Keyboard shortcuts: PgUp/PgDn are LB/RB, [ and ] are LT/RT (console v2).
+    await tab('Switch layer').click()
+    await page.keyboard.press('PageDown')
+    await page.waitForFunction(() => document.querySelector('.action-tab[aria-pressed="true"]')?.textContent === 'Controller action')
+    await focusedInside('keyboard family step preserves focus')
+    await tab('Keyboard key').click()
     await page.keyboard.press(']')
-    await page.waitForFunction(() => document.querySelector('.action-tab[aria-pressed="true"]')?.textContent === 'Virtual menus')
-    assert.equal(await selected(), 'Virtual menus')
-    await focusedInside('keyboard category step preserves focus')
-    await page.keyboard.press(']')
-    await page.waitForFunction(() => document.querySelector('.action-tab[aria-pressed="true"]')?.textContent === 'System & media')
-    assert.equal(await selected(), 'System & media')
+    await page.waitForFunction(() => /^Full keyboard/.test(document.querySelector('.action-group-tab[aria-pressed="true"]')?.textContent ?? ''))
     await focusedContent()
+    await page.keyboard.press('[')
+    await page.waitForFunction(() => /^Common in games/.test(document.querySelector('.action-group-tab[aria-pressed="true"]')?.textContent ?? ''))
     await page.keyboard.press('Tab')
     await focusedInside('Tab is trapped in the picker')
-    await page.keyboard.press('Escape')
-    await picker.waitFor({ state: 'detached' })
-    // A profile that opens directly on an unavailable menu has no old action
-    // to unmount; the opening focus path must use the same safe fallback.
-    await page.evaluate(() => {
-      localStorage.clear()
-      localStorage.setItem('__focusProfile', 'RESET_MAPPINGS\nN = "MENU_OPEN missing"\n')
-    })
-    await page.reload()
-    await page.locator('[data-home-continue]').click()
-    await page.getByRole('button', { name: 'Buttons', exact: true }).click()
-    await card.locator('summary').first().click()
-    await card.getByRole('button', { name: /^Choose action/ }).first().click()
-    await picker.waitFor()
-    await page.waitForTimeout(100)
-    assert.equal(await selected(), 'Virtual menus')
-    assert.ok(await tab('Virtual menus').evaluate(el => el === document.activeElement), 'opening on an empty category focuses its tab')
-    await press('R')
-    assert.equal(await selected(), 'System & media')
-    await focusedContent()
+    // B leaves Search every action for the kind's own picker.
     await press('E')
     await picker.waitFor({ state: 'detached' })
+    await kindPicker.waitFor()
+    await press('E')
+    await kindPicker.waitFor({ state: 'detached' })
 
-    // Populated Virtual menus still focuses and chooses an actual action.
+    // Populated menus: Search every action offers Hold/Open/Close/Toggle for each.
     await page.evaluate(() => {
       localStorage.clear()
       localStorage.setItem('__focusProfile', 'RESET_MAPPINGS\nN = SPACE\nVIRTUAL_MENU wheel TOUCH 2 2 .1\nVIRTUAL_MENU_ACTION wheel 1 SPACE\\\n')
@@ -154,16 +174,16 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
     await page.reload()
     await page.locator('[data-home-continue]').click()
     await page.getByRole('button', { name: 'Buttons', exact: true }).click()
-    await card.locator('summary').first().click()
+    await card.locator(':scope > summary').click()
     await open()
-    await tab('Layers').click()
+    await tab('Gamepad button').click()
     await press('R')
-    assert.equal(await selected(), 'Virtual menus')
+    assert.equal(await selected(), 'Open a menu')
     await focusedContent()
-    assert.match(await picker.locator('.action-picker__content button:focus').innerText(), /Open wheel/)
+    assert.match(await picker.locator('.action-picker__content button:focus').innerText(), /Hold wheel/)
     await press('S')
     await picker.waitFor({ state: 'detached' })
-    assert.match(await card.innerText(), /Open menu · wheel/)
+    await page.waitForFunction(() => /wheel/i.test(document.querySelector('details[data-input-command="N"]')?.textContent ?? ''))
     assert.deepEqual(errors, [])
     console.log('action picker controller focus regression: ok')
   } finally { await browser.close() }

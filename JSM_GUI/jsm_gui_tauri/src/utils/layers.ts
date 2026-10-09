@@ -314,11 +314,71 @@ export function inputUses(text: string, command: string, layers = readLayers(tex
     if (key.length > 1 && key.includes('+') && key.split('+').includes(command)) chords.add(key)
   }
   if (targets.size) uses.push(`Shift trigger: ${[...targets].map(target => inputs.has(target) ? name(target) : target).join(', ')}`)
-  if (shifted.size) uses.push(`Modeshift: hold ${[...shifted].map(name).join(' / ')}`)
-  if (chords.size) uses.push(`Chord: ${[...chords].map(name).join(', ')}`)
+  if (shifted.size) uses.push(`Chord with: ${[...shifted].map(name).join(' / ')}`)
+  if (chords.size) uses.push(`Press together: ${[...chords].map(name).join(', ')}`)
   inputUsage(text, command, [], name).filter(use => use.kind === 'setting' || use.kind === 'analog').forEach(use => uses.push(use.label))
   return uses
 }
 
 /** Names annotate behavior; they do not count as additional overrides. */
 export const visibleOverrideKeys = (overrides: Record<string, string>) => Object.keys(overrides).filter(key => !/^#\s*@label\s/i.test(key))
+
+// ---- Console v2 (P6): editing a mode from the mode's own side.
+
+/** The colour names of the six mode hues, in the design tokens' order (D17):
+ *  --layer-1 … --layer-6 are hues 300, 160, 60, 200, 110, 340. */
+export const LAYER_HUE_NAMES = ['Purple', 'Green', 'Orange', 'Blue', 'Lime', 'Pink'] as const
+export const layerHueName = (slot: number) => LAYER_HUE_NAMES[(Math.max(1, slot) - 1) % LAYER_HUES]
+export const ordinal = (n: number) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] ?? 'th'}`
+
+/** Moves one mode to another place in the list (its colour follows its place). */
+export function reorderLayers(text: string, layers: ConfigLayer[], id: string, to: number) {
+  const from = layers.findIndex(layer => layer.id === id)
+  if (from < 0) return text
+  const target = Math.max(0, Math.min(layers.length - 1, to))
+  if (target === from) return text
+  const next = [...layers]
+  const [moved] = next.splice(from, 1)
+  next.splice(target, 0, moved)
+  return writeLayers(text, next, readLayerActions(text, layers))
+}
+
+/** Replaces every action that drives one mode, keeping the other modes' actions. */
+export function replaceLayerActions(text: string, layerId: string, next: LayerAction[]) {
+  const layers = readLayers(text)
+  const kept = readLayerActions(text, layers).filter(action => action.layerId !== layerId)
+  return writeLayers(text, layers, [...kept, ...next.filter(action => action.layerId === layerId)])
+}
+
+/** The verbs that turn a mode on (remove only takes it off). */
+export const onVerbs: readonly LayerVerb[] = ['hold', 'toggle', 'apply']
+
+/** How a mode is reached, in the player's words (Modes.dc.html cards, ModeHow):
+ *  the first input that turns it on and the phrase for its verb, plus what
+ *  takes it off ("View closes"). */
+export function modeActivation(actions: LayerAction[], layerId: string, name: InputNamer = rawName) {
+  const mine = actionsForLayer(actions, layerId)
+  const on = mine.filter(action => onVerbs.includes(action.verb))
+  const off = mine.filter(action => action.verb === 'remove')
+  const primary = on[0]
+  const released = !!primary?.input.startsWith('!')
+  const verbs = [...new Set(on.map(action => action.verb))]
+  const phrase = !primary ? (off.length ? 'Nothing turns it on' : 'Not on a button yet')
+    : primary.verb === 'hold' ? (released ? 'On while let go' : 'On while held')
+    : primary.verb === 'toggle' ? (released ? 'Let go to open' : 'Tap to open')
+    : (released ? 'Let go to turn on' : 'Turns on')
+  const closes = off.length ? `${[...new Set(off.map(action => name(action.input.replace(/^!/, ''))))].join(' or ')} closes` : ''
+  return { primary, on, off, mixed: verbs.length > 1, phrase, closes, released }
+}
+
+/** The input an override key belongs to ("RB", "N", "LEFT_PAD"), or null for a setting. */
+export function overrideInput(key: string): string | null {
+  const plain = key.replace(/^#\s*@(label|icon)\s+/i, '').split('::')[0]
+  const target = plain.split(',').pop() ?? plain
+  if (inputs.has(target) || /^[LR]?[TM]\d+$/.test(target)) return target
+  if (/^(LEFT|RIGHT)_(TOUCHPAD|GRID|TOUCH)/.test(target)) return target.startsWith('LEFT') ? 'LEFT_PAD' : 'RIGHT_PAD'
+  if (/^LEFT_STICK_|^LEFT_RING/.test(target)) return 'L3'
+  if (/^RIGHT_STICK_|^RIGHT_RING/.test(target)) return 'R3'
+  if (/^(ZL|ZR)_MODE$/.test(target)) return target.slice(0, 2)
+  return null
+}

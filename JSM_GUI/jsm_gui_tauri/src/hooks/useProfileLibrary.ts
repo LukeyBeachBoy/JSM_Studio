@@ -9,7 +9,12 @@ import type { NewConfigurationDraft } from '../components/ConfigurationDialog'
 import { loadConfigBindingValue } from '../utils/loadConfigBinding'
 import type { SteamConversion } from '../utils/steamLayout'
 
-type Options = { textOverride?: string; profileNameOverride?: string; profilePathOverride?: string; normalize?: boolean }
+type Options = {
+  textOverride?: string; profileNameOverride?: string; profilePathOverride?: string; normalize?: boolean
+  /** No toast on success: the caller says what happened in its own words (a
+   *  test starting, save-and-apply as one action), or nothing was saved. */
+  quiet?: boolean
+}
 type Params = {
   configText: string
   resetConfigHistory: (text: string) => void
@@ -73,17 +78,21 @@ export function useProfileLibrary({ resetConfigHistory, configText, setConfigTex
     resetConfigHistory(drafts.current.get(profile.name) ?? profile.content)
     setAppliedConfig(profile.content)
   }, [resetPendingSensitivityChanges, setAppliedConfig, resetConfigHistory])
+  // The library and the active profile have both answered once: Home can
+  // tell a first run (nothing to edit) from a library still loading.
+  const [libraryReady, setLibraryReady] = useState(false)
   useEffect(() => {
     const request = selection.current
-    void refreshLibraryProfiles()
-    void desktopBridge.getActiveProfile().then(profile => {
+    const listed = refreshLibraryProfiles().catch(() => [])
+    const active = desktopBridge.getActiveProfile().then(profile => {
       if (!profile) return
       setAppliedProfileName(profile.name)
       // The active profile is what the mapper was started with, so the state
       // button can say "✓ Applied" from launch rather than "Apply Wardogs".
       setRuntimeConfig(current => current ?? profile.content)
       if (selection.current === request) selectProfile(profile)
-    })
+    }).catch(() => {})
+    void Promise.all([listed, active]).then(() => setLibraryReady(true))
   }, [refreshLibraryProfiles, selectProfile])
 
   const handleLoadProfileFromLibrary = async (name: string, discardPrevious = false) => {
@@ -108,7 +117,7 @@ export function useProfileLibrary({ resetConfigHistory, configText, setConfigTex
     const result = await desktopBridge.saveLibraryProfile(name, text)
     if (!result) { report(t('messages.saveProfileFailed'), true); return false }
     finishSave(name, text, options?.textOverride ?? configText)
-    report(t('messages.profileSaved', { profileName: result.name }))
+    if (!options?.quiet) report(t('messages.profileSaved', { profileName: result.name }))
     return true
   }
   const applyConfig = async (options?: Options) => {
@@ -126,7 +135,7 @@ export function useProfileLibrary({ resetConfigHistory, configText, setConfigTex
       if (path) setActiveProfilePath(path)
       setRuntimeConfig(text)
       setAppliedProfileName(profileName)
-      report(t('messages.profileApplied', { profileName: profileName ?? t('app.profileSummary.unsavedProfile') }))
+      if (!options?.quiet) report(t('messages.profileApplied', { profileName: profileName ?? t('app.profileSummary.unsavedProfile') }))
     } catch (error) {
       // The backend's own message named the failing path; swallowing it left
       // "Failed to apply keymap." as the only clue that Apply was rejecting
@@ -141,8 +150,16 @@ export function useProfileLibrary({ resetConfigHistory, configText, setConfigTex
   // association lends its icon without ever switching configurations.
   const handleCreateProfile = async (draft?: NewConfigurationDraft) => {
     const request = ++selection.current
-    const profile = await desktopBridge.createLibraryProfile(draft?.name.trim() || undefined)
-    if (!profile) { report(t('messages.createProfileFailed'), true); return }
+    const created = await desktopBridge.createLibraryProfile(draft?.name.trim() || undefined)
+    if (!created) { report(t('messages.createProfileFailed'), true); return null }
+    let profile = created
+    // The wizard's draft (console v2): header, the base it's built on, its game.
+    if (draft?.text) {
+      const text = serializeConfig(parseConfigText(ensureHeaderLines(draft.text)))
+      const saved = await desktopBridge.saveLibraryProfile(created.name, text)
+      if (!saved) { report(t('messages.createProfileFailed'), true); return null }
+      profile = { ...created, content: text }
+    }
     if (draft?.processName) {
       const rule = await desktopBridge.saveAutoloadRule(draft.processName, profile.name, { exePath: draft.exePath, autoApply: draft.autoApply })
       if (!rule) report(t('messages.associateProfileFailed', { profileName: profile.name, game: `${draft.processName}.exe` }), true)
@@ -151,11 +168,12 @@ export function useProfileLibrary({ resetConfigHistory, configText, setConfigTex
     if (selection.current === request) selectProfile(profile)
     await refreshLibraryProfiles()
     if (draft) report(t('messages.profileCreated', { profileName: profile.name }))
+    return profile.name
   }
-  const handleRenameProfile = async (name: string) => {
+  const handleRenameProfile = async (name: string, nextName?: string) => {
     let result: Awaited<ReturnType<typeof desktopBridge.renameLibraryProfile>>
     try {
-      result = await desktopBridge.renameLibraryProfile(name, editedLibraryNames[name] ?? name)
+      result = await desktopBridge.renameLibraryProfile(name, nextName ?? editedLibraryNames[name] ?? name)
     } catch (error) {
       report(`${t('messages.renameProfileFailed')} ${String(error)}`.trim(), true)
       return
@@ -222,14 +240,15 @@ export function useProfileLibrary({ resetConfigHistory, configText, setConfigTex
   // loading the others by name. The library picks the final names (it may add
   // a number to avoid a clash), so every file is created first and the
   // references are rewritten to the names it chose before anything is written.
-  const handleImportSteamLayout = async (conversion: SteamConversion) => {
+  // `renames`: the review's per-set names (console v2, SteamImport), by planned name.
+  const handleImportSteamLayout = async (conversion: SteamConversion, renames: Record<string, string> = {}) => {
     const created: string[] = []
     try {
       await runLongOperation(`Importing ${conversion.title}…`, async ({ progress, signal }) => {
         const names = new Map<string, string>()
         for (const [index, set] of conversion.sets.entries()) {
           progress(0.1 + 0.3 * (index / conversion.sets.length), `Creating ${set.name}`)
-          const profile = await desktopBridge.createLibraryProfile(set.name)
+          const profile = await desktopBridge.createLibraryProfile(renames[set.name]?.trim() || set.name)
           if (!profile) { report(t('messages.importProfileFailed'), true); return }
           created.push(profile.name)
           names.set(set.name, profile.name)
@@ -284,7 +303,7 @@ export function useProfileLibrary({ resetConfigHistory, configText, setConfigTex
     return result.name
   }
   return {
-    libraryProfiles, isLibraryLoading, editedLibraryNames, currentLibraryProfile, activeProfilePath,
+    libraryProfiles, isLibraryLoading, libraryReady, editedLibraryNames, currentLibraryProfile, activeProfilePath,
     appliedProfileName, runtimeConfig, refreshLibraryProfiles, applyConfig, saveConfig, handleLoadProfileFromLibrary,
     handleLibraryProfileNameChange: (name: string, value: string) => setEditedLibraryNames(prev => ({ ...prev, [name]: value })),
     handleCreateProfile, handleRenameProfile, handleDeleteLibraryProfile, handleImportProfile, handleImportSteamLayout, handleCopyActiveProfile, handleSaveAsCopy,

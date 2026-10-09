@@ -89,13 +89,17 @@ const assignment = (line: string) => {
 const owns = (target: ModeshiftTarget, key: string) =>
   target.buttons.some(button => bindingTargetMatches(key, button.command)) || target.settings?.includes(key) || target.mode?.key === key
 
+/** `X,X = …` is JoyShockMapper's double press of X, not X chorded with itself
+ *  (UX review 2026-10-09, L5): never a held trigger. */
+const selfChord = (trigger: string, key: string) => trigger.replace(/^!/, '').toUpperCase() === key.toUpperCase()
+
 export function modeshiftTriggers(text: string, target: ModeshiftTarget): string[] {
   return [...new Set(text.split(/\r?\n/).flatMap(line => {
     const match = assignment(line)
     const key = match?.[2].trim().toUpperCase()
     // Shared tuning alone cannot identify a stick. The mode or one of its
     // own bindings/settings establishes which input actually has a shift.
-    return match && key && owns(target, key) && !SHARED_STICK_SETTINGS.includes(key) ? [match[1].trim().toUpperCase()] : []
+    return match && key && owns(target, key) && !SHARED_STICK_SETTINGS.includes(key) && !selfChord(match[1].trim(), key) ? [match[1].trim().toUpperCase()] : []
   }))]
 }
 
@@ -346,7 +350,7 @@ export function modeshiftCount(text: string, command: string): number {
   const triggers = new Set<string>()
   for (const line of text.split(/\r?\n/)) {
     const match = assignment(line)
-    if (match && bindingTargetMatches(match[2].trim().toUpperCase(), wanted)) triggers.add(match[1].trim().toUpperCase())
+    if (match && bindingTargetMatches(match[2].trim().toUpperCase(), wanted) && !selfChord(match[1].trim(), match[2].trim())) triggers.add(match[1].trim().toUpperCase())
   }
   return triggers.size
 }
@@ -364,7 +368,7 @@ export function modeshiftsOn(text: string, command: string): ModeshiftSummary[] 
   const shifts = new Map<string, string>()
   for (const line of text.split(/\r?\n/)) {
     const match = assignment(line)
-    if (!match || !bindingTargetMatches(match[2].trim().toUpperCase(), wanted)) continue
+    if (!match || !bindingTargetMatches(match[2].trim().toUpperCase(), wanted) || selfChord(match[1].trim(), match[2].trim())) continue
     const trigger = match[1].trim().toUpperCase()
     shifts.set(trigger, getKeymapValue(`${wanted} = ${match[3]}`, wanted) ?? match[3].trim())
   }
@@ -382,7 +386,7 @@ export function shiftTriggerTargets(text: string): Map<string, Set<string>> {
     const match = assignment(line)
     if (!match) continue
     const trigger = match[1].trim().toUpperCase()
-    if (trigger.startsWith('!')) continue
+    if (trigger.startsWith('!') || selfChord(trigger, match[2].trim())) continue
     if (!triggers.has(trigger)) triggers.set(trigger, new Set())
     triggers.get(trigger)!.add(shiftedInputOf(match[2]))
   }

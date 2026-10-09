@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Press sends pickers</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.btn{font-family:inherit;border:0;cursor:pointer}
+.panel{background:#1a222b;border-radius:22px;padding:22px;display:flex;flex-direction:column;gap:12px;min-width:0;box-sizing:border-box}
+.lbl{font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#808c99;font-weight:600;white-space:nowrap}
+.ms{flex:1;min-height:0;background:#131920;border-radius:14px;box-shadow:inset 0 0 0 1px #232c36;display:flex;flex-direction:column;overflow:hidden}
+.mh{height:50px;flex:none;display:flex;align-items:center;gap:10px;padding:0 14px;background:#0d1217}
+.mh .e{font-size:14px;color:#808c99;line-height:1.1}
+.mh .t{font-size:17px;font-weight:700;line-height:1.2}
+.mb{flex:1;min-height:0;padding:12px 14px;display:flex;flex-direction:column;gap:8px;box-sizing:border-box}
+.mf{height:40px;flex:none;display:flex;align-items:center;justify-content:flex-end;gap:14px;padding:0 14px;background:#0d1217;border-top:1px solid #1f2730;font-size:15px;color:#b0bcc8}
+.mf span{display:flex;align-items:center;gap:6px}
+.mf .g{width:24px;height:24px;font-size:12px}
+.mf .gp{height:22px;min-width:26px;font-size:12px;padding:0 6px}
+.tl{font-family:inherit;border:0;cursor:pointer;height:34px;border-radius:10px;background:#1f2730;color:#e8eef4;font-size:15px;font-weight:600;padding:0 10px;display:flex;align-items:center;gap:8px;text-align:left;box-sizing:border-box;min-width:0;white-space:nowrap}
+.seg{display:flex;gap:4px;background:#0f151b;border-radius:11px;padding:3px}
+.seg span{flex:1;height:34px;padding:0 10px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:#b0bcc8;white-space:nowrap}
+.pb{font-family:inherit;border:0;cursor:pointer;height:46px;border-radius:12px;background:#1f2730;color:#e8eef4;display:flex;align-items:center;justify-content:center;box-sizing:border-box;min-width:0}
+.hatch{background-color:#1a2530;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+.cv{font-family:inherit;border:0;cursor:pointer;width:104px;height:128px;flex:none;border-radius:12px;color:#e8eef4;display:flex;flex-direction:column;justify-content:flex-end;padding:10px;box-sizing:border-box;text-align:left;gap:2px}
+.cv .t{font-size:15px;font-weight:700;line-height:1.2}
+.cv .s{font-size:14px;color:#b0bcc8}
+.vk{flex:1;height:34px;border-radius:8px;background:#2e3844;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600;color:#e8eef4;min-width:0}
+.mod{font-family:inherit;border:0;cursor:pointer;flex:1;height:40px;border-radius:12px;background:#2e3844;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);color:#e8eef4;font-size:16px;font-weight:650;min-width:0}
+.art{--art-line:#e3eaf1;--art-detail:#aebbc8;--art-body:#1c242d;--art-well:#0e1419;--art-cap:#212a34;--art-rim:rgba(255,255,255,.10);display:block}
+</style>
+</helmet>
+<div style="width: 1440px; height: 1240px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; padding: 48px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: 352px 352px 352px; gap: 24px">
+
+<section class="panel">
+<span class="lbl">Mouse · clicks and wheel</span>
+<div class="ms">
+<div class="mh"><span class="g" style="width: 28px; height: 28px; font-size: 14px">A</span><span style="display: flex; flex-direction: column"><span class="e">A button · Press sends</span><span class="t">Mouse</span></span></div>
+<div class="mb" style="flex-direction: row; gap: 12px">
+<div style="width: 104px; flex: none; display: flex; flex-direction: column; align-items: center; gap: 6px">
+<svg viewBox="0 0 110 140" width="96" height="122" fill="none">
+
+<rect x="17" y="6" width="76" height="122" rx="38" fill="#1c242d" stroke="#e3eaf1" stroke-width="2"></rect>
+
+<path d="M55 6C34 6 17 23 17 44V54Q36 60 55 60Z" fill="#3e9fd8"></path>
+<path d="M55 6V60M55 60Q74 60 93 54" stroke="#aebbc8" stroke-width="1.5"></path>
+<rect x="17" y="6" width="76" height="122" rx="38" stroke="#e3eaf1" stroke-width="2"></rect>
+<rect x="50" y="18" width="10" height="22" rx="5" fill="#212a34" stroke="#aebbc8" stroke-width="1.5"></rect>
+<rect x="13" y="70" width="6" height="15" rx="3" fill="#212a34" stroke="#aebbc8" stroke-width="1.5"></rect>
+<rect x="13" y="89" width="6" height="15" rx="3" fill="#212a34" stroke="#aebbc8" stroke-width="1.5"></rect>
+
+</svg>
+<span style="font-size: 14px; color: #b8e2fa; text-align: center; line-height: 1.25">RT uses it too</span>
+</div>
+<div style="flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 34px; gap: 8px">
+<button class="tl focus" style="background: #1d445c">Left click</button>
+<button class="tl">Right click</button>
+<button class="tl">Middle</button>
+<button class="tl">Back</button>
+<button class="tl">Forward</button>
+<button class="tl">Wheel up</button>
+<button class="tl">Wheel down</button>
+</div>
+</div>
+<div class="mf"><span><span class="g">A</span>Use</span><span><span class="g">B</span>Back</span></div>
+</div>
+</section>
+
+<section class="panel" style="grid-column: span 2">
+<span class="lbl">Gamepad button · Xbox or DualShock 4 · whole sticks are on Sticks</span>
+<div class="ms">
+<div class="mh"><span class="g" style="width: 28px; height: 28px; font-size: 14px">A</span><span style="display: flex; flex-direction: column"><span class="e">A button · Press sends</span><span class="t">Gamepad button</span></span></div>
+<div class="mb" style="flex-direction: row; gap: 20px">
+<div style="width: 280px; flex: none; display: flex; flex-direction: column; gap: 8px">
+<div class="seg"><span style="background: #2e3844; color: #ffffff">Xbox</span><span>DualShock 4</span></div>
+<span style="font-size: 15px; color: #ffc98f">Turns on the virtual gamepad</span>
+<svg class="art" viewBox="60 30 1000 420" width="280" height="90" fill="none"><defs><linearGradient id="pfX-xsf-l" x1="0" y1="0" x2="0" y2="1"><stop style="stop-color:#fff;stop-opacity:.09" offset="0"></stop><stop style="stop-color:#fff;stop-opacity:0" offset=".55"></stop></linearGradient><mask id="pfX-xsf-m"><path d="M558.5 44.3C541.8 44.3 488.7 42.7 476.3 44.3C459.2 46.4 421.3 46.4 404.3 44.3C392.1 42.7 385 26.6 370.3 24.8C340.1 21 283.9 34.7 258.3 50.8C235.4 65.1 219.3 81.7 207.3 105.8C203.5 113.2 195.6 118.6 191.8 126.3C180.6 148.6 171.1 172.8 162.3 196.3C134.8 269.4 105.7 342.3 86.8 418.3C81.5 439.3 73.9 460.8 71.3 482.3C69.9 493 66.1 503.5 64.8 514.3C58.8 561.6 56.1 606.6 73.3 652.3C78.1 665.1 86.9 676.9 95.8 687.3C106.1 699.3 141.8 721.8 157.8 721.8C166.6 721.8 192.1 699.3 199.8 692.8C241.3 657.2 268.6 609.3 303.8 568.3C316.4 553.5 334.7 540 352.8 533.3C387.3 520.3 452.4 526.3 490.8 526.3C506.1 526.3 521.4 526.3 536.8 526.3C541.4 526.3 546.1 526.3 550.8 526.3C553.3 526.3 561.1 526.3 558.5 526.3C555.9 526.3 563.7 526.3 566.2 526.3C570.9 526.3 575.6 526.3 580.2 526.3C595.6 526.3 610.9 526.3 626.2 526.3C664.6 526.3 729.7 520.3 764.2 533.3C782.3 540 800.6 553.5 813.2 568.3C848.4 609.3 875.7 657.2 917.2 692.8C924.9 699.3 950.4 721.8 959.2 721.8C975.2 721.8 1010.9 699.3 1021.2 687.3C1030.1 676.9 1038.9 665.1 1043.7 652.3C1060.9 606.6 1058.2 561.6 1052.2 514.3C1050.9 503.5 1047.1 493 1045.7 482.3C1043.1 460.8 1035.5 439.3 1030.2 418.3C1011.3 342.3 982.2 269.4 954.7 196.3C945.9 172.8 936.4 148.6 925.2 126.3C921.4 118.6 913.5 113.2 909.7 105.8C897.7 81.7 881.6 65.1 858.7 50.8C833.1 34.7 776.9 21 746.7 24.8C732 26.6 724.9 42.7 712.7 44.3C695.7 46.4 657.8 46.4 640.7 44.3C628.3 42.7 575.2 44.3 558.5 44.3Z" fill="#fff"></path></mask><pattern id="pfX-xsf-p" width="13" height="13" patternUnits="userSpaceOnUse"><circle style="fill:var(--art-detail,#aebbc8);fill-opacity:.22" cx="6.5" cy="6.5" r="1.9"></circle></pattern></defs><path style="fill:var(--art-body,#1c242d)" d="M558.5 44.3C541.8 44.3 488.7 42.7 476.3 44.3C459.2 46.4 421.3 46.4 404.3 44.3C392.1 42.7 385 26.6 370.3 24.8C340.1 21 283.9 34.7 258.3 50.8C235.4 65.1 219.3 81.7 207.3 105.8C203.5 113.2 195.6 118.6 191.8 126.3C180.6 148.6 171.1 172.8 162.3 196.3C134.8 269.4 105.7 342.3 86.8 418.3C81.5 439.3 73.9 460.8 71.3 482.3C69.9 493 66.1 503.5 64.8 514.3C58.8 561.6 56.1 606.6 73.3 652.3C78.1 665.1 86.9 676.9 95.8 687.3C106.1 699.3 141.8 721.8 157.8 721.8C166.6 721.8 192.1 699.3 199.8 692.8C241.3 657.2 268.6 609.3 303.8 568.3C316.4 553.5 334.7 540 352.8 533.3C387.3 520.3 452.4 526.3 490.8 526.3C506.1 526.3 521.4 526.3 536.8 526.3C541.4 526.3 546.1 526.3 550.8 526.3C553.3 526.3 561.1 526.3 558.5 526.3C555.9 526.3 563.7 526.3 566.2 526.3C570.9 526.3 575.6 526.3 580.2 526.3C595.6 526.3 610.9 526.3 626.2 526.3C664.6 526.3 729.7 520.3 764.2 533.3C782.3 540 800.6 553.5 813.2 568.3C848.4 609.3 875.7 657.2 917.2 692.8C924.9 699.3 950.4 721.8 959.2 721.8C975.2 721.8 1010.9 699.3 1021.2 687.3C1030.1 676.9 1038.9 665.1 1043.7 652.3C1060.9 606.6 1058.2 561.6 1052.2 514.3C1050.9 503.5 1047.1 493 1045.7 482.3C1043.1 460.8 1035.5 439.3 1030.2 418.3C1011.3 342.3 982.2 269.4 954.7 196.3C945.9 172.8 936.4 148.6 925.2 126.3C921.4 118.6 913.5 113.2 909.7 105.8C897.7 81.7 881.6 65.1 858.7 50.8C833.1 34.7 776.9 21 746.7 24.8C732 26.6 724.9 42.7 712.7 44.3C695.7 46.4 657.8 46.4 640.7 44.3C628.3 42.7 575.2 44.3 558.5 44.3Z"></path><path style="" fill="url(#pfX-xsf-l)" d="M558.5 44.3C541.8 44.3 488.7 42.7 476.3 44.3C459.2 46.4 421.3 46.4 404.3 44.3C392.1 42.7 385 26.6 370.3 24.8C340.1 21 283.9 34.7 258.3 50.8C235.4 65.1 219.3 81.7 207.3 105.8C203.5 113.2 195.6 118.6 191.8 126.3C180.6 148.6 171.1 172.8 162.3 196.3C134.8 269.4 105.7 342.3 86.8 418.3C81.5 439.3 73.9 460.8 71.3 482.3C69.9 493 66.1 503.5 64.8 514.3C58.8 561.6 56.1 606.6 73.3 652.3C78.1 665.1 86.9 676.9 95.8 687.3C106.1 699.3 141.8 721.8 157.8 721.8C166.6 721.8 192.1 699.3 199.8 692.8C241.3 657.2 268.6 609.3 303.8 568.3C316.4 553.5 334.7 540 352.8 533.3C387.3 520.3 452.4 526.3 490.8 526.3C506.1 526.3 521.4 526.3 536.8 526.3C541.4 526.3 546.1 526.3 550.8 526.3C553.3 526.3 561.1 526.3 558.5 526.3C555.9 526.3 563.7 526.3 566.2 526.3C570.9 526.3 575.6 526.3 580.2 526.3C595.6 526.3 610.9 526.3 626.2 526.3C664.6 526.3 729.7 520.3 764.2 533.3C782.3 540 800.6 553.5 813.2 568.3C848.4 609.3 875.7 657.2 917.2 692.8C924.9 699.3 950.4 721.8 959.2 721.8C975.2 721.8 1010.9 699.3 1021.2 687.3C1030.1 676.9 1038.9 665.1 1043.7 652.3C1060.9 606.6 1058.2 561.6 1052.2 514.3C1050.9 503.5 1047.1 493 1045.7 482.3C1043.1 460.8 1035.5 439.3 1030.2 418.3C1011.3 342.3 982.2 269.4 954.7 196.3C945.9 172.8 936.4 148.6 925.2 126.3C921.4 118.6 913.5 113.2 909.7 105.8C897.7 81.7 881.6 65.1 858.7 50.8C833.1 34.7 776.9 21 746.7 24.8C732 26.6 724.9 42.7 712.7 44.3C695.7 46.4 657.8 46.4 640.7 44.3C628.3 42.7 575.2 44.3 558.5 44.3Z"></path><path style="fill:none;stroke:var(--art-rim,rgba(255,255,255,.1));stroke-width:5.6" d="M558.5 44.3C541.8 44.3 488.7 42.7 476.3 44.3C459.2 46.4 421.3 46.4 404.3 44.3C392.1 42.7 385 26.6 370.3 24.8C340.1 21 283.9 34.7 258.3 50.8C235.4 65.1 219.3 81.7 207.3 105.8C203.5 113.2 195.6 118.6 191.8 126.3C180.6 148.6 171.1 172.8 162.3 196.3C134.8 269.4 105.7 342.3 86.8 418.3C81.5 439.3 73.9 460.8 71.3 482.3C69.9 493 66.1 503.5 64.8 514.3C58.8 561.6 56.1 606.6 73.3 652.3C78.1 665.1 86.9 676.9 95.8 687.3C106.1 699.3 141.8 721.8 157.8 721.8C166.6 721.8 192.1 699.3 199.8 692.8C241.3 657.2 268.6 609.3 303.8 568.3C316.4 553.5 334.7 540 352.8 533.3C387.3 520.3 452.4 526.3 490.8 526.3C506.1 526.3 521.4 526.3 536.8 526.3C541.4 526.3 546.1 526.3 550.8 526.3C553.3 526.3 561.1 526.3 558.5 526.3C555.9 526.3 563.7 526.3 566.2 526.3C570.9 526.3 575.6 526.3 580.2 526.3C595.6 526.3 610.9 526.3 626.2 526.3C664.6 526.3 729.7 520.3 764.2 533.3C782.3 540 800.6 553.5 813.2 568.3C848.4 609.3 875.7 657.2 917.2 692.8C924.9 699.3 950.4 721.8 959.2 721.8C975.2 721.8 1010.9 699.3 1021.2 687.3C1030.1 676.9 1038.9 665.1 1043.7 652.3C1060.9 606.6 1058.2 561.6 1052.2 514.3C1050.9 503.5 1047.1 493 1045.7 482.3C1043.1 460.8 1035.5 439.3 1030.2 418.3C1011.3 342.3 982.2 269.4 954.7 196.3C945.9 172.8 936.4 148.6 925.2 126.3C921.4 118.6 913.5 113.2 909.7 105.8C897.7 81.7 881.6 65.1 858.7 50.8C833.1 34.7 776.9 21 746.7 24.8C732 26.6 724.9 42.7 712.7 44.3C695.7 46.4 657.8 46.4 640.7 44.3C628.3 42.7 575.2 44.3 558.5 44.3Z" mask="url(#pfX-xsf-m)" transform="translate(0 2.8)"></path><path style="fill:none;stroke:var(--art-line,#e3eaf1);stroke-width:3.6;stroke-linecap:round;stroke-linejoin:round" d="M208 104C238 79 300 57 400 49L717 49C817 57 879 79 909 104"></path><circle style="fill:var(--art-well,#0e1419);stroke:var(--art-detail,#aebbc8);stroke-width:2.4" cx="300.5" cy="211" r="71"></circle><circle style="fill:var(--art-cap,#212a34);stroke:var(--art-line,#e3eaf1);stroke-width:3.6;stroke-linejoin:round" cx="300.5" cy="211" r="60"></circle><circle style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" cx="300.5" cy="211" r="37"></circle><circle style="fill:var(--art-well,#0e1419);stroke:var(--art-detail,#aebbc8);stroke-width:2.4" cx="690" cy="365" r="71"></circle><circle style="fill:var(--art-cap,#212a34);stroke:var(--art-line,#e3eaf1);stroke-width:3.6;stroke-linejoin:round" cx="690" cy="365" r="60"></circle><circle style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" cx="690" cy="365" r="37"></circle><circle style="fill:var(--art-well,#0e1419);stroke:var(--art-detail,#aebbc8);stroke-width:2.4" cx="427" cy="379" r="80"></circle><circle style="fill:var(--art-cap,#212a34);stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linejoin:round" cx="427" cy="379" r="74"></circle><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M402 313.4796327024208L452 313.4796327024208L452 354L492.5203672975792 354L492.5203672975792 404L452 404L452 444.5203672975792L402 444.5203672975792L402 404L361.4796327024208 404L361.4796327024208 354L402 354Z"></path><circle style="fill:var(--art-cap,#212a34);stroke:var(--art-line,#e3eaf1);stroke-width:3.6;stroke-linejoin:round" cx="558.5" cy="114" r="39"></circle><circle style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" cx="558.5" cy="114" r="27"></circle><circle style="fill:var(--art-cap,#212a34);stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linejoin:round" cx="485" cy="215" r="23"></circle><rect style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" x="476" y="207.5" width="13" height="10" rx="2"></rect><rect style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" x="481.5" y="213" width="13" height="10" rx="2"></rect><circle style="fill:var(--art-cap,#212a34);stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linejoin:round" cx="632" cy="215" r="23"></circle><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M625 210L639 210"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M625 215L639 215"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M625 220L639 220"></path><rect style="fill:var(--art-cap,#212a34);stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linejoin:round" x="530.5" y="254.5" width="56" height="33" rx="16.5"></rect><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M548.5 269L548.5 278L568.5 278L568.5 269"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M558.5 274L558.5 262M554.5 266L558.5 262L562.5 266"></path><circle style="fill:var(--art-cap,#212a34);stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linejoin:round" cx="816" cy="151" r="36"></circle><circle style="fill:var(--art-cap,#212a34);stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linejoin:round" cx="749" cy="218" r="36"></circle><circle style="fill:var(--art-cap,#212a34);stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linejoin:round" cx="883" cy="218" r="36"></circle><circle style="fill:var(--art-cap,#212a34);stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linejoin:round" cx="816" cy="284" r="36"></circle><path style="fill:none;stroke:var(--art-line,#e3eaf1);stroke-width:5.2;stroke-linejoin:round" d="M558.5 44.3C541.8 44.3 488.7 42.7 476.3 44.3C459.2 46.4 421.3 46.4 404.3 44.3C392.1 42.7 385 26.6 370.3 24.8C340.1 21 283.9 34.7 258.3 50.8C235.4 65.1 219.3 81.7 207.3 105.8C203.5 113.2 195.6 118.6 191.8 126.3C180.6 148.6 171.1 172.8 162.3 196.3C134.8 269.4 105.7 342.3 86.8 418.3C81.5 439.3 73.9 460.8 71.3 482.3C69.9 493 66.1 503.5 64.8 514.3C58.8 561.6 56.1 606.6 73.3 652.3C78.1 665.1 86.9 676.9 95.8 687.3C106.1 699.3 141.8 721.8 157.8 721.8C166.6 721.8 192.1 699.3 199.8 692.8C241.3 657.2 268.6 609.3 303.8 568.3C316.4 553.5 334.7 540 352.8 533.3C387.3 520.3 452.4 526.3 490.8 526.3C506.1 526.3 521.4 526.3 536.8 526.3C541.4 526.3 546.1 526.3 550.8 526.3C553.3 526.3 561.1 526.3 558.5 526.3C555.9 526.3 563.7 526.3 566.2 526.3C570.9 526.3 575.6 526.3 580.2 526.3C595.6 526.3 610.9 526.3 626.2 526.3C664.6 526.3 729.7 520.3 764.2 533.3C782.3 540 800.6 553.5 813.2 568.3C848.4 609.3 875.7 657.2 917.2 692.8C924.9 699.3 950.4 721.8 959.2 721.8C975.2 721.8 1010.9 699.3 1021.2 687.3C1030.1 676.9 1038.9 665.1 1043.7 652.3C1060.9 606.6 1058.2 561.6 1052.2 514.3C1050.9 503.5 1047.1 493 1045.7 482.3C1043.1 460.8 1035.5 439.3 1030.2 418.3C1011.3 342.3 982.2 269.4 954.7 196.3C945.9 172.8 936.4 148.6 925.2 126.3C921.4 118.6 913.5 113.2 909.7 105.8C897.7 81.7 881.6 65.1 858.7 50.8C833.1 34.7 776.9 21 746.7 24.8C732 26.6 724.9 42.7 712.7 44.3C695.7 46.4 657.8 46.4 640.7 44.3C628.3 42.7 575.2 44.3 558.5 44.3Z"></path><circle cx="816" cy="284" r="36" fill="#3e9fd8" stroke="#e3eaf1" stroke-width="3.6"></circle></svg>
+</div>
+<div style="flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); grid-auto-rows: 44px; gap: 8px">
+<button class="pb focus" style="background: #1d445c; height: 44px"><span class="g">A</span></button>
+<button class="pb" style="height: 44px"><span class="g">B</span></button>
+<button class="pb" style="height: 44px"><span class="g">X</span></button>
+<button class="pb" style="height: 44px"><span class="g">Y</span></button>
+<button class="pb" style="height: 44px"><span class="gp">LB</span></button>
+<button class="pb" style="height: 44px"><span class="gp">RB</span></button>
+<button class="pb" style="height: 44px"><span class="gp">LT</span></button>
+<button class="pb" style="height: 44px"><span class="gp">RT</span></button>
+<button class="pb" style="height: 44px"><span class="gp">L3</span></button>
+<button class="pb" style="height: 44px"><span class="gp">R3</span></button>
+<button class="pb" style="height: 44px"><span class="gp">View</span></button>
+<button class="pb" style="height: 44px"><span class="gp">Menu</span></button>
+<button class="pb" style="height: 44px"><span class="gp">Guide</span></button>
+<button class="pb" style="height: 44px"><span class="gp">↑</span></button>
+<button class="pb" style="height: 44px"><span class="gp">↓</span></button>
+<button class="pb" style="height: 44px"><span class="gp">←</span></button>
+<button class="pb" style="height: 44px"><span class="gp">→</span></button>
+<button class="pb" style="height: 44px; background: transparent; box-shadow: inset 0 0 0 2px #2e3844; font-size: 14px; color: #808c99">DS4 pad</button>
+</div>
+</div>
+<div class="mf"><span style="margin-right: auto; color: #b8e2fa">A button · the game sees A</span><span><span class="g">A</span>Use</span><span><span class="gp">LT</span><span class="gp">RT</span>Xbox or DS4</span><span><span class="g">B</span>Back</span></div>
+</div>
+</section>
+
+<section class="panel">
+<span class="lbl">Open a menu · which, and how</span>
+<div class="ms">
+<div class="mh"><span class="g" style="width: 28px; height: 28px; font-size: 14px">A</span><span style="display: flex; flex-direction: column"><span class="e">A button · Press sends</span><span class="t">Open a menu</span></span></div>
+<div class="mb">
+<button class="tl focus" style="background: #1d445c; height: 40px; flex: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#b8e2fa" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle><path d="M12 3v6M12 15v6M3 12h6M15 12h6"></path></svg>Weapon wheel<span style="margin-left: auto; font-weight: 500; color: #b8e2fa">8 slices</span></button>
+<button class="tl" style="height: 40px; flex: none; background: transparent; box-shadow: inset 0 0 0 2px #2e3844; color: #b0bcc8">+ Make a menu on the Menus tab</button>
+<div class="seg"><span style="background: #2e3844; color: #ffffff">Hold</span><span>Open</span><span>Close</span><span>Toggle</span></div>
+<span style="font-size: 15px; color: #808c99">Hold: open while held, let go to pick.</span>
+</div>
+<div class="mf"><span><span class="g">A</span>Use</span><span>◂ ▸ How</span><span><span class="g">B</span>Back</span></div>
+</div>
+</section>
+
+<section class="panel">
+<span class="lbl">Switch mode · mode, then how</span>
+<div class="ms">
+<div class="mh"><span class="g" style="width: 28px; height: 28px; font-size: 14px">A</span><span style="display: flex; flex-direction: column"><span class="e">A button · Press sends</span><span class="t">Switch mode</span></span></div>
+<div class="mb">
+<div style="display: flex; gap: 8px">
+<button class="tl focus" style="background: #262036; height: 40px"><span style="width: 12px; height: 12px; border-radius: 4px; background: #b48cf0"></span>Vehicles</button>
+<button class="tl" style="height: 40px"><span style="width: 12px; height: 12px; border-radius: 4px; background: #5fd3a0"></span>Tactical map</button>
+<button class="tl" style="height: 40px"><span style="width: 12px; height: 12px; border-radius: 4px; background: #f0a05a"></span>Comms</button>
+</div>
+<span style="font-size: 15px; color: #808c99">When A is pressed</span>
+<div class="seg"><span style="background: #2e3844; color: #ffffff">Hold</span><span>Toggle</span><span>Turn on</span><span>Turn off</span></div>
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 10px"><span style="font-size: 15px; color: #808c99">Happens on</span><div class="seg" style="width: 200px"><span style="background: #2e3844; color: #ffffff">Press</span><span>Let go</span></div></div>
+</div>
+<div class="mf"><span><span class="g">A</span>Use</span><span><span class="g">Y</span>Remove</span><span><span class="g">B</span>Back</span></div>
+</div>
+</section>
+
+<section class="panel">
+<span class="lbl">Load a configuration · cover shelf</span>
+<div class="ms">
+<div class="mh"><span class="g" style="width: 28px; height: 28px; font-size: 14px">A</span><span style="display: flex; flex-direction: column"><span class="e">A button · Press sends</span><span class="t">Load a configuration</span></span></div>
+<div class="mb">
+<div style="display: flex; gap: 12px; align-items: center">
+<button class="cv hatch" style="opacity: .55"><span class="s">You’re in it</span><span class="t">Wardogs</span></button>
+<button class="cv hatch focus"><span class="t">Cyberpunk 2077</span></button>
+<button class="cv" style="background: #1f2730"><span style="margin-bottom: auto"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#808c99" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M8 20h8M12 16v4"></path></svg></span><span class="t">Desktop gamepad</span></button>
+<span style="font-size: 20px; color: #808c99">▸</span>
+</div>
+<span style="font-size: 15px; color: #b8e2fa">Switches to Cyberpunk 2077 when you press A</span>
+</div>
+<div class="mf"><span><span class="g">A</span>Use</span><span><span class="g">B</span>Back</span></div>
+</div>
+</section>
+
+<section class="panel" style="grid-column: span 2">
+<span class="lbl">Command · any JoyShockMapper command, typed on the on-screen keyboard</span>
+<div class="ms">
+<div class="mh"><span class="g" style="width: 28px; height: 28px; font-size: 14px">A</span><span style="display: flex; flex-direction: column"><span class="e">A button · Press sends</span><span class="t">Command</span></span></div>
+<div class="mb" style="flex-direction: row; gap: 20px">
+<div style="width: 330px; flex: none; display: flex; flex-direction: column; gap: 8px">
+<div class="seg"><span style="background: #2e3844; color: #ffffff">Command</span><span>Raw binding</span></div>
+<div style="height: 44px; flex: none; border-radius: 12px; background: #0f151b; box-shadow: inset 0 0 0 2px #3e9fd8; display: flex; align-items: center; padding: 0 14px; font-family: 'Geist Mono', monospace; font-size: 18px; color: #e8eef4">GYRO_SENS = 3<span style="width: 2px; height: 22px; margin-left: 2px; background: #7cc4ee"></span></div>
+<div style="display: flex; gap: 6px">
+<span style="height: 30px; padding: 0 10px; border-radius: 15px; background: #2e3844; display: flex; align-items: center; font-family: 'Geist Mono', monospace; font-size: 14px">GYRO_SENS</span>
+<span style="height: 30px; padding: 0 10px; border-radius: 15px; background: #2e3844; display: flex; align-items: center; font-family: 'Geist Mono', monospace; font-size: 14px">GYRO_SPACE</span>
+<span style="height: 30px; padding: 0 10px; border-radius: 15px; background: #2e3844; display: flex; align-items: center; font-family: 'Geist Mono', monospace; font-size: 14px">GYRO_OFF</span>
+</div>
+<span style="font-size: 15px; color: #b8e2fa">Period · A types it, Menu when done</span>
+</div>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; gap: 6px"><span class="vk">1</span><span class="vk">2</span><span class="vk">3</span><span class="vk">4</span><span class="vk">5</span><span class="vk">6</span><span class="vk">7</span><span class="vk">8</span><span class="vk">9</span><span class="vk">0</span></div>
+<div style="display: flex; gap: 6px"><span class="vk">Q</span><span class="vk">W</span><span class="vk">E</span><span class="vk">R</span><span class="vk">T</span><span class="vk">Y</span><span class="vk">U</span><span class="vk">I</span><span class="vk">O</span><span class="vk">P</span></div>
+<div style="display: flex; gap: 6px"><span class="vk">A</span><span class="vk">S</span><span class="vk">D</span><span class="vk">F</span><span class="vk">G</span><span class="vk">H</span><span class="vk">J</span><span class="vk">K</span><span class="vk">L</span><span class="vk">=</span></div>
+<div style="display: flex; gap: 6px"><span class="vk">Z</span><span class="vk">X</span><span class="vk">C</span><span class="vk">V</span><span class="vk">B</span><span class="vk">N</span><span class="vk">M</span><span class="vk">_</span><span class="vk focus" style="background: #1d445c">.</span><span class="vk">"</span></div>
+</div>
+</div>
+<div class="mf"><span><span class="g">A</span>Type</span><span><span class="g">X</span>Backspace</span><span><span class="g">Y</span>Space</span><span><span class="gp">LT</span>Shift</span><span><span class="gp">RT</span>Symbols</span><span><span class="gp">Menu</span>Done</span><span><span class="g">B</span>Cancel</span></div>
+</div>
+</section>
+
+<section class="panel">
+<span class="lbl">Key + modifier combo</span>
+<div class="ms">
+<div class="mh"><span class="g" style="width: 28px; height: 28px; font-size: 14px">A</span><span style="display: flex; flex-direction: column"><span class="e">A button · Press sends</span><span class="t">Key combo</span></span></div>
+<div class="mb">
+<div style="display: flex; gap: 8px">
+<button class="mod focus" style="background: #3e9fd8; color: #07131d; box-shadow: 0 0 0 3px #3e9fd8, 0 0 0 7px rgba(62,159,216,.2)">Ctrl</button>
+<button class="mod">Shift</button>
+<button class="mod">Alt</button>
+<button class="mod">Win</button>
+</div>
+<div style="display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 12px; border-radius: 12px; background: #1f2730; font-size: 15px; font-weight: 600"><span style="color: #b0bcc8; font-weight: 500">Key</span><span style="margin-left: auto">C</span><span style="color: #808c99; font-weight: 500">Change ▸</span></div>
+<svg viewBox="0 0 332 62" width="100%" height="62" fill="none">
+
+<rect x="74" y="6" width="80" height="44" rx="11" fill="#3e9fd8"></rect>
+
+<text x="114" y="34" fill="#07131d" font-size="17" font-weight="700" font-family="Geist, sans-serif" text-anchor="middle">Ctrl</text>
+<path d="M170 28h14M177 21v14" stroke="#808c99" stroke-width="2.4" stroke-linecap="round"></path>
+
+<rect x="198" y="6" width="56" height="44" rx="11" fill="#2e3844" stroke="rgba(255,255,255,.12)"></rect>
+
+<text x="226" y="34" fill="#e8eef4" font-size="17" font-weight="700" font-family="Geist, sans-serif" text-anchor="middle">C</text>
+</svg>
+</div>
+<div class="mf"><span><span class="g">A</span>Toggle</span><span><span class="g">Y</span>Right-hand keys</span><span><span class="g">B</span>Done</span></div>
+</div>
+</section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1240}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

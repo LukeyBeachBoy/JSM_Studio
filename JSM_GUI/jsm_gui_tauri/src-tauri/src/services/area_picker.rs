@@ -105,6 +105,14 @@ fn build(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
         .map_err(|error| format!("Failed to create the mouse area picker: {error}"))
 }
 
+/// Built hidden at startup, like the other overlays, so opening it is only a
+/// move and a show.
+pub fn prepare(app: &AppHandle) {
+    if let Err(error) = ensure(app) {
+        eprintln!("{error}");
+    }
+}
+
 fn ensure(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
     if let Some(window) = app.get_webview_window(AREA_PICKER_LABEL) {
         return Ok(window);

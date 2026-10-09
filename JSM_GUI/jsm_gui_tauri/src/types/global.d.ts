@@ -6,6 +6,7 @@ declare interface Window {
     minimizeTemporarily: () => Promise<void>
     applyProfile?: (profilePath: string, text: string) => Promise<{ restarted: boolean; path?: string; mappingEnabled?: boolean }>
     recalibrateGyro?: () => Promise<{ success: boolean }>
+    getWindowsPointerSpeed?: () => Promise<import('../platform/desktopBridge').WindowsPointerSpeed | null>
     getCalibrationSeconds?: () => Promise<number>
     setCalibrationSeconds?: (seconds: number) => Promise<number>
     onCalibrationStatus?: (callback: (payload: { calibrating: boolean; seconds?: number }) => void) => () => void

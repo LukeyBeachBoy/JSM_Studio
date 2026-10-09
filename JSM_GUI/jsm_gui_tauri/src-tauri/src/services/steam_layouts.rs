@@ -172,7 +172,7 @@ fn layout_title(text: &str) -> Option<String> {
 }
 
 /// The first `"key" "value"` pair for `key`, ignoring case.
-fn first_value(text: &str, key: &str) -> Option<String> {
+pub(crate) fn first_value(text: &str, key: &str) -> Option<String> {
     let needle = format!("\"{}\"", key.to_ascii_lowercase());
     let lower = text.to_ascii_lowercase();
     let mut from = 0;
@@ -191,7 +191,7 @@ fn first_value(text: &str, key: &str) -> Option<String> {
 }
 
 /// Every steamapps folder: the install's own, plus each extra library.
-fn library_folders(root: &Path) -> Vec<PathBuf> {
+pub(crate) fn library_folders(root: &Path) -> Vec<PathBuf> {
     let mut folders = vec![root.join("steamapps")];
     let listing = root.join("steamapps").join("libraryfolders.vdf");
     if let Ok(text) = fs::read_to_string(listing) {
@@ -209,7 +209,7 @@ fn library_folders(root: &Path) -> Vec<PathBuf> {
     folders
 }
 
-fn app_name(libraries: &[PathBuf], app_id: &str) -> Option<String> {
+pub(crate) fn app_name(libraries: &[PathBuf], app_id: &str) -> Option<String> {
     libraries.iter().find_map(|library| {
         let manifest = fs::read_to_string(library.join(format!("appmanifest_{app_id}.acf"))).ok()?;
         first_value(&manifest, "name")

@@ -181,6 +181,67 @@ export const stickKeys = [
   'SCROLL_SENS',
 ] as const
 
+// Console v2 (P4): stick keys the mode Fine-tune groups write that the groups
+// above never listed. Kept out of `stickKeys` so the config serializer's
+// sections (and so the order a saved file is written in) don't change.
+export const stickModeKeys = [
+  'LEFT_STICK_AXIS',
+  'RIGHT_STICK_AXIS',
+  'MOUSELIKE_FACTOR',
+  'RETURN_DEADZONE_ANGLE',
+  'RETURN_DEADZONE_ANGLE_CUTOFF',
+  'RETURN_DEADZONE_IS_ACTIVE',
+  'EDGE_PUSH_IS_ACTIVE',
+  'ANGLE_TO_AXIS_DEADZONE_INNER',
+  'ANGLE_TO_AXIS_DEADZONE_OUTER',
+  'WIND_STICK_RANGE',
+  'WIND_STICK_POWER',
+  'UNWIND_RATE',
+  'ROTATE_SMOOTH_OVERRIDE',
+  'SCREEN_RESOLUTION_X',
+  'SCREEN_RESOLUTION_Y',
+  'FLICK_STICK_OUTPUT',
+  'VIRTUAL_STICK_CALIBRATION',
+  'LEFT_STICK_UNDEADZONE_INNER',
+  'LEFT_STICK_UNDEADZONE_OUTER',
+  'LEFT_STICK_UNPOWER',
+  'LEFT_STICK_VIRTUAL_SCALE',
+  'RIGHT_STICK_UNDEADZONE_INNER',
+  'RIGHT_STICK_UNDEADZONE_OUTER',
+  'RIGHT_STICK_UNPOWER',
+  'RIGHT_STICK_VIRTUAL_SCALE',
+  'REAL_WORLD_CALIBRATION',
+  'IN_GAME_SENS',
+] as const
+
+// Console v2 (P4): every trigger setting, for Show config names and the
+// parity test (tests/console_v2_parity_regression.cjs).
+export const triggerKeys = [
+  'ZL_MODE',
+  'ZR_MODE',
+  'TRIGGER_THRESHOLD',
+  'TRIGGER_HYSTERESIS',
+  'TRIGGER_SKIP_DELAY',
+  'ADAPTIVE_TRIGGER',
+  'LEFT_TRIGGER_EFFECT',
+  'RIGHT_TRIGGER_EFFECT',
+  'LEFT_TRIGGER_OFFSET',
+  'LEFT_TRIGGER_RANGE',
+  'RIGHT_TRIGGER_OFFSET',
+  'RIGHT_TRIGGER_RANGE',
+] as const
+
+// Console v2 (P4): trackpad keys `touchpadKeys` never listed (same reason as
+// stickModeKeys: the serializer's sections stay as they are).
+export const touchpadExtraKeys = [
+  'TOUCHPAD_D_CUTOFF',
+  'TOUCHPAD_MIN_CUTOFF',
+  'TOUCHPAD_SPEED_COEFF',
+] as const
+
+/** The grips' release delays, which gripKeys never listed (Grip sensors sheet). */
+export const gripReleaseKeys = ['LEFT_GRIP_RELEASE_DELAY', 'RIGHT_GRIP_RELEASE_DELAY'] as const
+
 export const gripKeys = [
   'LEFT_GRIP_HAPTICS',
   'RIGHT_GRIP_HAPTICS',

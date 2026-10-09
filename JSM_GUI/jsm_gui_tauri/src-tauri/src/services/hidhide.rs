@@ -42,6 +42,41 @@ pub struct HidHideStatus {
     pub managed_instance_ids: Vec<String>,
     pub whitelist_synced: bool,
     pub requires_elevation: bool,
+    /// HidHide's application list (console v2: "Apps that can still see
+    /// them"). With `inverse` on, these are the apps the controllers are
+    /// hidden from instead.
+    pub app_list: Vec<HidHideApp>,
+}
+
+/// One entry of HidHide's application list.
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HidHideApp {
+    /// The image path as HidHide stores it.
+    pub path: String,
+    /// The executable's file name: "JoyShockMapper.exe".
+    pub name: String,
+    /// JSM Evolved added it (the mapper, the app itself).
+    pub added_for_you: bool,
+    pub steam: bool,
+}
+
+/// The application list as the UI shows it: JSM's own entries first.
+fn app_list(live: &[String], required: &[String]) -> Vec<HidHideApp> {
+    let mut apps: Vec<HidHideApp> = live
+        .iter()
+        .map(|path| {
+            let name = path.rsplit(['\\', '/']).next().unwrap_or(path).to_string();
+            HidHideApp {
+                added_for_you: required.iter().any(|entry| canonicalize_value(entry) == canonicalize_value(path)),
+                steam: canonicalize_value(&name) == "steam.exe",
+                name,
+                path: path.clone(),
+            }
+        })
+        .collect();
+    apps.sort_by_key(|app| (!app.added_for_you, app.name.to_ascii_lowercase()));
+    apps
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -547,6 +582,7 @@ mod imp {
                     managed_instance_ids,
                     whitelist_synced: false,
                     requires_elevation: false,
+                    app_list: Vec::new(),
                 });
             }
             ControlDeviceStatus::AccessDenied => {
@@ -560,6 +596,7 @@ mod imp {
                     managed_instance_ids,
                     whitelist_synced: false,
                     requires_elevation: true,
+                    app_list: Vec::new(),
                 });
             }
             ControlDeviceStatus::Ready => {}
@@ -587,6 +624,7 @@ mod imp {
                 inverse,
             ),
             requires_elevation: false,
+            app_list: app_list(&whitelist, &required_whitelist_entries),
         })
     }
 
@@ -2114,6 +2152,7 @@ mod imp {
             managed_instance_ids: Vec::new(),
             whitelist_synced: false,
             requires_elevation: false,
+            app_list: Vec::new(),
         }
     }
 
@@ -2233,6 +2272,19 @@ mod tests {
             merged,
             vec!["HID\\EXTERNAL".to_string(), "HID\\APP_NEW".to_string()]
         );
+    }
+
+    #[test]
+    fn app_list_names_each_entry_and_puts_jsm_first() {
+        let live = vec![
+            r"\Device\HarddiskVolume3\Program Files (x86)\Steam\steam.exe".to_string(),
+            r"\Device\HarddiskVolume3\JSM\JoyShockMapper.exe".to_string(),
+        ];
+        let required = vec![r"\device\harddiskvolume3\jsm\joyshockmapper.exe".to_string()];
+        let apps = app_list(&live, &required);
+        assert_eq!(apps.iter().map(|app| app.name.as_str()).collect::<Vec<_>>(), vec!["JoyShockMapper.exe", "steam.exe"]);
+        assert!(apps[0].added_for_you && !apps[0].steam);
+        assert!(!apps[1].added_for_you && apps[1].steam);
     }
 
     #[test]

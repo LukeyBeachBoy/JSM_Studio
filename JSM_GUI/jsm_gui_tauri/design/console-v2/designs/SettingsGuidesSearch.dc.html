@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Guides search</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.btn{font-family:inherit;border:0;cursor:pointer}
+.cat{font-family:inherit;border:0;background:transparent;color:#b0bcc8;font-size:19px;font-weight:500;height:56px;padding:0 20px;border-radius:14px;text-align:left;cursor:pointer;display:flex;align-items:center;gap:14px;width:100%}
+.tp{font-family:inherit;border:0;background:transparent;color:#808c99;font-size:17px;font-weight:500;min-height:40px;padding:0 16px;border-radius:12px;text-align:left;cursor:pointer;display:flex;align-items:center;width:100%;box-sizing:border-box}
+.tp.hit{color:#d4dde6}
+.cnt{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:24px;padding:0 8px;box-sizing:border-box;border-radius:12px;background:#4a3320;color:#ffc98f;font-size:14px;font-weight:700}
+.lbl{font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#808c99;font-weight:600}
+.art p{margin:0;font-size:19px;line-height:1.6;color:#d4dde6}
+.m{background:rgba(240,160,90,.28);color:#ffe0bf;border-radius:4px;padding:0 2px}
+.ma{background:#f0a05a;color:#2a1606;border-radius:4px;padding:0 3px;box-shadow:0 0 0 2px rgba(240,160,90,.35)}
+.lk{display:inline-flex;align-items:center;gap:10px;height:44px;padding:0 16px;border-radius:12px;background:#2e3844;color:#e8eef4;font-size:16px;font-weight:600;white-space:nowrap}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="height: 76px; flex: none; display: flex; align-items: center; padding: 0 40px; background: #0d1217">
+<span style="font-size: 22px; font-weight: 700">Settings</span>
+<span style="margin-left: 16px; font-size: 16px; color: #808c99">For every configuration</span>
+</header>
+
+<main style="flex: 1; min-height: 0; display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 40px; padding: 30px 40px 24px">
+<nav style="display: flex; flex-direction: column; gap: 4px">
+<button class="cat">Controller</button>
+<button class="cat">Hold to swap</button>
+<button class="cat">Press timing</button>
+<button class="cat">Hide the real controller</button>
+<button class="cat">Look &amp; language</button>
+<button class="cat">Startup</button>
+<button class="cat">Assistant</button>
+<div style="height: 1px; background: #232c36; margin: 10px 20px"></div>
+<button class="cat" style="font-size: 17px; height: 48px; background: #1f2730; color: #ffffff; font-weight: 650">Guides &amp; reference</button>
+<button class="cat" style="font-size: 17px; height: 48px">Troubleshooting log</button>
+<button class="cat" style="font-size: 17px; height: 48px">About &amp; credits</button>
+</nav>
+
+<section style="display: flex; flex-direction: column; gap: 16px; min-width: 0; min-height: 0">
+<div class="focus" style="background: #1d445c; border-radius: 16px; padding: 12px 16px 12px 20px; display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: center; gap: 14px">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#b8e2fa" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg>
+<span style="font-size: 22px; font-weight: 650">flick</span>
+<span style="font-size: 16px; color: #d4dde6">13 matches in 4 guides</span>
+<span style="margin-left: auto; display: flex; align-items: center; gap: 10px; font-size: 16px; color: #ffffff"><span class="gp">LB</span><span style="font-family: 'Geist Mono', monospace; font-size: 16px">3 of 7</span><span class="gp">RB</span></span>
+<span style="display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; border-radius: 10px; background: #2e3844; font-size: 15px; font-weight: 600"><span class="g" style="width: 24px; height: 24px; font-size: 12px">X</span>Clear</span>
+</div>
+<span style="font-size: 15px; color: #b8e2fa">LB and RB step through matches here. LT and RT jump to the next guide that has one. Y types again.</span>
+</div>
+
+<div style="flex: 1; min-height: 0; display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+<div style="display: flex; align-items: center; gap: 8px; margin: 0 0 8px 16px; font-size: 14px; color: #808c99"><span class="gp">LT</span>Guide<span class="gp">RT</span></div>
+<button class="tp hit">Getting started<span class="cnt">1</span></button>
+<button class="tp">Buttons and presses</button>
+<button class="tp">Triggers</button>
+<button class="tp hit">Gyro<span class="cnt">2</span></button>
+<button class="tp hit" style="background: #1f2730; color: #ffffff; font-weight: 650">Sticks and flick stick<span class="cnt" style="background: #f0a05a; color: #2a1606">7</span></button>
+<button class="tp">Trackpads</button>
+<button class="tp">Modes and While holding…</button>
+<button class="tp">Virtual controller</button>
+<button class="tp hit">Commands and files<span class="cnt">3</span></button>
+<button class="tp">Steam Controller notes</button>
+<button class="tp">Troubleshooting</button>
+<button class="tp">Credits and licence</button>
+</div>
+
+<article class="art" style="background: #1a222b; border-radius: 20px; padding: 26px 36px; display: flex; flex-direction: column; gap: 14px; min-width: 0">
+<span class="lbl">Sticks and flick stick</span>
+<h2 style="margin: 0; font-size: 30px; font-weight: 700; letter-spacing: -0.01em"><span class="m">Flick</span> stick</h2>
+<p><span class="m">Flick</span> stick turns the right stick into a direction you point at. <span class="ma">Flick</span> it and your view snaps to face that way; keep turning the stick to keep turning.</p>
+<svg viewBox="0 0 628 112" width="100%" height="112" fill="none">
+<circle cx="56" cy="56" r="50" fill="#0f151b" stroke="rgba(255,255,255,.08)" stroke-width="1.5"></circle>
+<path d="M56 6A50 50 0 0 1 99.3 81" stroke="#3e9fd8" stroke-width="5" stroke-linecap="round"></path>
+<circle cx="99.3" cy="81" r="5" fill="#e8eef4"></circle>
+<path d="M56 56L86 73" stroke="#e8eef4" stroke-width="3" stroke-linecap="round"></path>
+<text x="132" y="44" fill="#d4dde6" font-size="15" font-weight="600" font-family="Geist, sans-serif">Point the stick</text>
+<text x="132" y="66" fill="#808c99" font-size="14" font-family="Geist, sans-serif">Your view turns to match, in one quick move</text>
+<path d="M440 56H470" stroke="#5b6571" stroke-width="2" stroke-linecap="round"></path>
+<path d="M465 50L471 56L465 62" stroke="#5b6571" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+<circle cx="540" cy="56" r="44" stroke="rgba(255,255,255,.1)" stroke-width="1.5" stroke-dasharray="3 5"></circle>
+<path d="M540 56L540 12" stroke="#5b6571" stroke-width="2" stroke-linecap="round"></path>
+<path d="M540 56L577 79" stroke="#7cc4ee" stroke-width="3" stroke-linecap="round"></path>
+<path d="M540 30A26 26 0 0 1 562.5 69" stroke="#7cc4ee" stroke-width="2" stroke-dasharray="3 4"></path>
+</svg>
+<p>It needs to know how far one full turn is. Set Match a full turn (360°) on Gyro first, and each <span class="m">flick</span> lands where you point.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: auto">
+<span class="lk"><span class="g" style="width: 26px; height: 26px; font-size: 12px">A</span>Open Sticks ▸</span>
+<span class="lk" style="background: transparent; box-shadow: inset 0 0 0 2px #2e3844; color: #7cc4ee">Full manual online ↗</span>
+</div>
+</article>
+</div>
+</section>
+</main>
+
+<footer style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Settings · Guides &amp; reference · Search: flick</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">A</span>Open Sticks</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">X</span>Clear search</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">Y</span>Type again</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">LT</span><span class="gp">RT</span>Guide</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">LB</span><span class="gp">RB</span>Match</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Categories</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

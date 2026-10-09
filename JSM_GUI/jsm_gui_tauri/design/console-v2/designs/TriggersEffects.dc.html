@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Resistance effects sheet</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.panel{background:#1a222b;border-radius:22px;padding:20px 24px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.lbl{font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#808c99;font-weight:600}
+.h{font-size:22px;font-weight:700}
+.sub{font-size:15px;color:#808c99;margin-top:-8px}
+.pic{border-radius:12px;background:#0f151b;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);overflow:hidden}
+.pic svg{display:block}
+.fs{display:flex;flex-direction:column;gap:5px}
+.f{display:flex;align-items:center;gap:10px;height:30px;padding:0 14px;border-radius:10px;background:#1f2730;font-size:16px;color:#d4dde6}
+.f b{margin-left:auto;font-family:'Geist Mono',monospace;font-weight:500;font-size:16px;color:#e8eef4}
+.f i{font-style:normal;font-size:15px;color:#808c99;min-width:58px;text-align:right}
+.col{display:flex;flex-direction:column;gap:24px;min-width:0}
+.rule{display:flex;gap:10px;align-items:flex-start;font-size:15px;line-height:1.45;color:#b0bcc8}
+.rule span:first-child{width:6px;height:6px;border-radius:50%;background:#7cc4ee;flex:none;margin-top:8px}
+</style>
+</helmet>
+<div style="width: 1440px; height: 1240px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; padding: 48px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: start">
+
+
+<section class="panel" style="grid-column: span 3; display: grid; grid-template-columns: 300px minmax(0, 1fr) minmax(0, 1fr); gap: 28px; align-items: center">
+<div style="display: flex; flex-direction: column; gap: 6px"><span class="lbl">Trigger resistance effects</span><span style="font-size: 26px; font-weight: 700; line-height: 1.2">What each card asks for</span></div>
+<span style="font-size: 16px; line-height: 1.5; color: #b0bcc8">Chosen per trigger on a DualSense. Zones split the pull into 9 steps; percentages are of the full pull.</span>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<div class="rule"><span></span><span>End must be past start: Bow, Galloping, Machine.</span></div>
+<div class="rule"><span></span><span>Galloping’s second beat comes after its first.</span></div>
+<div class="rule"><span></span><span>Older effects stay as they are until you pick a card.</span></div>
+</div>
+</section>
+
+<section class="panel">
+<span class="h">Automatic</span><span class="sub">Firm at the half-press point</span>
+<div class="pic"><svg viewBox="0 0 360 70" width="100%" height="70" fill="none">
+<path d="M12 61H348" stroke="rgba(255,255,255,.1)"></path>
+<path d="M137 6V60" stroke="#7cc4ee" stroke-opacity=".5" stroke-dasharray="3 4"></path>
+<path d="M12 60H130C136 60 136 24 144 24H348V60Z" fill="#7cc4ee" fill-opacity=".12"></path>
+<path d="M12 60H130C136 60 136 24 144 24H348" stroke="#7cc4ee" stroke-width="2" stroke-linejoin="round"></path>
+<text x="128" y="20" fill="#b8e2fa" font-size="14" font-family="Geist, sans-serif" text-anchor="end">Half press</text>
+</svg></div>
+<span style="font-size: 15px; line-height: 1.45; color: #808c99">No settings. Follows the half-press point and Calibration.</span>
+</section>
+
+<section class="panel">
+<span class="h">None</span><span class="sub">Free pull, no push-back</span>
+<div class="pic"><svg viewBox="0 0 360 70" width="100%" height="70" fill="none">
+<path d="M12 60H348" stroke="#808c99" stroke-width="2"></path>
+<text x="180" y="40" fill="#808c99" font-size="14" font-family="Geist, sans-serif" text-anchor="middle">Nothing pushes back</text>
+</svg></div>
+<span style="font-size: 15px; line-height: 1.45; color: #808c99">No settings. Turning resistance off for both triggers is a switch on Resistance.</span>
+</section>
+
+<section class="panel">
+<span class="h">Resistance</span><span class="sub">Firm from a point to the end</span>
+<div class="pic"><svg viewBox="0 0 360 70" width="100%" height="70" fill="none">
+<path d="M12 61H348" stroke="rgba(255,255,255,.1)"></path>
+<path d="M86.7 6V60" stroke="#7cc4ee" stroke-opacity=".5" stroke-dasharray="3 4"></path>
+<path d="M12 60H86.7L91 35H348V60Z" fill="#7cc4ee" fill-opacity=".12"></path>
+<path d="M12 60H86.7L91 35H348" stroke="#7cc4ee" stroke-width="2" stroke-linejoin="round"></path>
+</svg></div>
+<div class="fs">
+<div class="f"><span>Starts at</span><b>Zone 2</b><i>0–9</i></div>
+<div class="f"><span>Strength</span><b>4</b><i>0–8</i></div>
+</div>
+</section>
+
+<section class="panel">
+<span class="h">Bow</span><span class="sub">Builds, then snaps free</span>
+<div class="pic"><svg viewBox="0 0 360 70" width="100%" height="70" fill="none">
+<path d="M12 61H348" stroke="rgba(255,255,255,.1)"></path>
+<path d="M86.7 6V60M273.3 6V60" stroke="#7cc4ee" stroke-opacity=".5" stroke-dasharray="3 4"></path>
+<path d="M12 60H86.7L91 38L268 22L274 60H348Z" fill="#7cc4ee" fill-opacity=".12"></path>
+<path d="M12 60H86.7L91 38L268 22L274 60H348" stroke="#7cc4ee" stroke-width="2" stroke-linejoin="round"></path>
+</svg></div>
+<div class="fs">
+<div class="f"><span>Starts at</span><b>Zone 2</b><i>0–8</i></div>
+<div class="f"><span>Snap point</span><b>Zone 7</b><i>0–8</i></div>
+<div class="f"><span>Strength</span><b>4</b><i>0–8</i></div>
+<div class="f"><span>Snap strength</span><b>4</b><i>0–8</i></div>
+</div>
+</section>
+
+<section class="panel">
+<span class="h">Semi-automatic</span><span class="sub">Firm, then gives way</span>
+<div class="pic"><svg viewBox="0 0 360 70" width="100%" height="70" fill="none">
+<path d="M12 61H348" stroke="rgba(255,255,255,.1)"></path>
+<path d="M12 60H96.3L100 35H222.8L227 60H348Z" fill="#7cc4ee" fill-opacity=".12"></path>
+<path d="M12 60H96.3L100 35H222.8L227 60H348" stroke="#7cc4ee" stroke-width="2" stroke-linejoin="round"></path>
+</svg></div>
+<div class="fs">
+<div class="f"><span>Starts at</span><b>25%</b><i>of pull</i></div>
+<div class="f"><span>Ends at</span><b>63%</b><i>of pull</i></div>
+<div class="f"><span>Strength</span><b>50%</b><i>0–100%</i></div>
+</div>
+</section>
+
+<section class="panel">
+<span class="h">Automatic pulses</span><span class="sub">Buzzes from a point while you hold</span>
+<div class="pic"><svg viewBox="0 0 360 70" width="100%" height="70" fill="none">
+<path d="M12 61H348" stroke="rgba(255,255,255,.1)"></path>
+<path d="M96 6V60" stroke="#7cc4ee" stroke-opacity=".5" stroke-dasharray="3 4"></path>
+<path d="M12 60H96Q102 10 108 60Q114 10 120 60Q126 10 132 60Q138 10 144 60Q150 10 156 60Q162 10 168 60Q174 10 180 60Q186 10 192 60Q198 10 204 60Q210 10 216 60Q222 10 228 60Q234 10 240 60Q246 10 252 60Q258 10 264 60Q270 10 276 60Q282 10 288 60Q294 10 300 60Q306 10 312 60Q318 10 324 60Q330 10 336 60Q342 10 348 60" stroke="#7cc4ee" stroke-width="2" stroke-linejoin="round"></path>
+</svg></div>
+<div class="fs">
+<div class="f"><span>Starts at</span><b>25%</b><i>of pull</i></div>
+<div class="f"><span>Strength</span><b>50%</b><i>0–100%</i></div>
+<div class="f"><span>Pulses</span><b>20 Hz</b><i>0–255</i></div>
+</div>
+</section>
+
+<section class="panel">
+<span class="h">Galloping</span><span class="sub">Two-beat pulses between two points</span>
+<div class="pic"><svg viewBox="0 0 360 70" width="100%" height="70" fill="none">
+<path d="M12 61H348" stroke="rgba(255,255,255,.1)"></path>
+<path d="M86.7 6V60M310.7 6V60" stroke="#7cc4ee" stroke-opacity=".5" stroke-dasharray="3 4"></path>
+<path d="M12 60H86.7Q99 6 111.7 60Q120 34 128 60H161.4Q174 6 186.4 60Q195 34 203 60H236Q248.5 6 261 60Q269 34 277 60H348Z" fill="#7cc4ee" fill-opacity=".12"></path>
+<path d="M12 60H86.7Q99 6 111.7 60Q120 34 128 60H161.4Q174 6 186.4 60Q195 34 203 60H236Q248.5 6 261 60Q269 34 277 60H348" stroke="#7cc4ee" stroke-width="2" stroke-linejoin="round"></path>
+</svg></div>
+<div class="fs">
+<div class="f"><span>Starts at</span><b>Zone 2</b><i>0–8</i></div>
+<div class="f"><span>Ends at</span><b>Zone 8</b><i>0–9</i></div>
+<div class="f"><span>First beat</span><b>2</b><i>0–6</i></div>
+<div class="f"><span>Second beat</span><b>5</b><i>0–7</i></div>
+<div class="f"><span>Pulses</span><b>20 Hz</b><i>0–255</i></div>
+</div>
+</section>
+
+<section class="panel">
+<span class="h">Machine</span><span class="sub">Alternates two strengths between two points</span>
+<div class="pic"><svg viewBox="0 0 360 70" width="100%" height="70" fill="none">
+<path d="M12 61H348" stroke="rgba(255,255,255,.1)"></path>
+<path d="M87 6V60M311 6V60" stroke="#7cc4ee" stroke-opacity=".5" stroke-dasharray="3 4"></path>
+<path d="M12 60H87Q94 10 101 60Q108 26 115 60Q122 10 129 60Q136 26 143 60Q150 10 157 60Q164 26 171 60Q178 10 185 60Q192 26 199 60Q206 10 213 60Q220 26 227 60Q234 10 241 60Q248 26 255 60Q262 10 269 60Q276 26 283 60Q290 10 297 60Q304 26 311 60H348" stroke="#7cc4ee" stroke-width="2" stroke-linejoin="round"></path>
+</svg></div>
+<div class="fs">
+<div class="f"><span>Starts at</span><b>Zone 2</b><i>0–9</i></div>
+<div class="f"><span>Ends at</span><b>Zone 8</b><i>0–9</i></div>
+<div class="f"><span>First strength</span><b>4</b><i>0–7</i></div>
+<div class="f"><span>Second strength</span><b>4</b><i>0–7</i></div>
+<div class="f"><span>Pulses</span><b>20 Hz</b><i>0–255</i></div>
+<div class="f"><span>Period</span><b>10</b><i>0–255</i></div>
+</div>
+</section>
+
+<section class="panel">
+<span class="h">Resistance segment</span><span class="sub">Firm in one stretch, free either side</span>
+<div class="pic"><svg viewBox="0 0 360 70" width="100%" height="70" fill="none">
+<path d="M12 61H348" stroke="rgba(255,255,255,.1)"></path>
+<path d="M12 60H96.3V35H222.8V60H348Z" fill="#7cc4ee" fill-opacity=".12"></path>
+<path d="M12 60H96.3V35H222.8V60H348" stroke="#7cc4ee" stroke-width="2" stroke-linejoin="round"></path>
+</svg></div>
+<div class="fs">
+<div class="f"><span>Starts at</span><b>25%</b><i>of pull</i></div>
+<div class="f"><span>Ends at</span><b>63%</b><i>of pull</i></div>
+<div class="f"><span>Strength</span><b>50%</b><i>0–100%</i></div>
+</div>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1240}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

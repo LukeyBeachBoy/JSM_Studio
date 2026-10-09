@@ -23,5 +23,7 @@ export const useShowsKeys = () => useSyncExternalStore(subscribe, read)
 
 /** The key that does what each pad button does, as the hints name it. */
 export const KEY_FOR_BUTTON = {
-  A: 'Enter', B: 'Esc', X: 'X', Y: 'Y', LB: '[', RB: ']', LT: 'PgUp', RT: 'PgDn', VIEW: 'Home', MENU: 'M', DPAD: '↑↓←→',
+  // LB/RB change tabs and LT/RT change sections (console v2, V1), so the keys
+  // follow the job: PgUp/PgDn page, [ / ] step sections.
+  A: 'Enter', B: 'Esc', X: 'X', Y: 'Y', LB: 'PgUp', RB: 'PgDn', LT: '[', RT: ']', VIEW: 'Home', MENU: 'M', DPAD: '↑↓←→',
 } as const

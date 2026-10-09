@@ -1,4 +1,5 @@
 // A dropdown must stay a sensible width, and its help panel must stay on screen.
+// (Console v2, P5: the Gyro tab has no dropdown any more, so the real Select is mounted alone.)
 //
 // Two faults produced one symptom. The popup took `min-width` from the trigger,
 // and these triggers stretch to their settings column -- so a list of words like
@@ -43,18 +44,31 @@ const stub = () => {
         await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
         // The app opens on Home (console refinement 2a); these checks start in the editing shell.
         await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
-        // Narrow windows fold the page tabs into the navigation drawer, so the
-        // page buttons only exist once it is open.
-        const triggersTab = page.getByRole('button', { name: 'Gyro', exact: true });
-        const drawer = page.locator('.page-tabs__drawer-button');
-        if (await drawer.isVisible()) await drawer.click();
-        await triggersTab.first().click();
-        await page.locator('button.summary-row').filter({ hasText: 'Orientation' }).first().click();
-        const trigger = page.getByRole('combobox', { name: /gyro space/i }).first();
+        // The Gyro tab no longer has a dropdown (console v2, P5: its choices are cards and
+        // segments), so the real Select is mounted on its own: the same component, with
+        // a described option list, at the end of a row like the app's other row-end selects.
+        await page.evaluate(async side => {
+          // The app's own React (same ?v= hash), or hooks would see two copies.
+          const find = re => performance.getEntriesByType('resource').map(e => e.name).find(n => re.test(n));
+          const { default: React } = await import(find(/deps\/react\.js/));
+          const { default: ReactDOM } = await import(find(/deps\/react-dom_client\.js/));
+          const { Select } = await import('/src/components/ui/Select.tsx');
+          const host = document.createElement('div');
+          host.id = 'select-harness';
+          Object.assign(host.style, { position: 'fixed', top: '350px', width: '200px', zIndex: '60', left: side === 'left' ? '32px' : side === 'right' ? 'auto' : '48%', right: side === 'right' ? '32px' : 'auto' });
+          document.body.append(host);
+          const options = [
+            { value: 'LOCAL', label: 'Controller', description: 'Default. Turn it to aim sideways, tilt its front to aim up and down.' },
+            { value: 'YAW_PLUS_ROLL', label: 'Turn + lean', description: 'Turning aims sideways and leaning it adds to the turn.' },
+            { value: 'PLAYER_TURN', label: 'Player turn', description: 'Works whatever angle you hold the controller at.' },
+            { value: 'PLAYER_LEAN', label: 'Player lean', description: 'Lean the controller like a wheel to aim sideways.' },
+            { value: 'WORLD_TURN', label: 'World turn', description: 'Turning around the real vertical aims sideways.' },
+            { value: 'WORLD_LEAN', label: 'World lean', description: 'Leaning against gravity aims sideways.' },
+          ];
+          ReactDOM.createRoot(host).render(React.createElement(Select, { ariaLabel: 'Turn using', value: 'LOCAL', options, onValueChange: () => {} }));
+        }, anchor);
+        const trigger = page.getByRole('combobox', { name: /turn using/i }).first();
         await trigger.waitFor();
-        // Force a genuine room-on-the-right case independently of the shell's
-        // current column alignment. Natural layouts are still checked below.
-        if (anchor) await trigger.evaluate((el, side) => { Object.assign(el.style, { position: 'fixed', left: side === 'left' ? '32px' : 'auto', right: side === 'right' ? '32px' : 'auto', top: '350px', width: '200px' }); }, anchor);
         const tbox = await trigger.boundingBox();
         await trigger.click();
         const list = page.getByRole('listbox').first();

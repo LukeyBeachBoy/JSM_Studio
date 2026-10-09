@@ -310,19 +310,25 @@ export function useStickConfig({ configText, readText, setConfigText }: StickArg
     return getKeymapValue(readSource, keyName.ZR_MODE)?.trim().toUpperCase() ?? ''
   }, [readSource])
 
+  // '' removes the line (the default applies). A named NO_FULL is written out:
+  // a base this configuration includes may set the mode, and deleting the line
+  // would hand that mode straight back.
   const handleZlModeChange = useCallback((value: string) => {
     const trimmed = value.trim().toUpperCase()
     setConfigText(prev =>
-      !trimmed || trimmed === 'NO_FULL'
+      !trimmed
         ? removeKeymapEntry(prev, keyName.ZL_MODE)
         : updateKeymapEntry(prev, keyName.ZL_MODE, [trimmed])
     )
   }, [setConfigText])
 
+  // '' removes the line (the default applies). A named NO_FULL is written out:
+  // a base this configuration includes may set the mode, and deleting the line
+  // would hand that mode straight back.
   const handleZrModeChange = useCallback((value: string) => {
     const trimmed = value.trim().toUpperCase()
     setConfigText(prev =>
-      !trimmed || trimmed === 'NO_FULL'
+      !trimmed
         ? removeKeymapEntry(prev, keyName.ZR_MODE)
         : updateKeymapEntry(prev, keyName.ZR_MODE, [trimmed])
     )

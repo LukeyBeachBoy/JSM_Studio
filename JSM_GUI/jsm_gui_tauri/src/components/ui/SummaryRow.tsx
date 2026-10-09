@@ -7,6 +7,7 @@ import { ConfigBaseline } from '../../hooks/configContext'
 import adjustStyles from './SummaryRowAdjust.module.css'
 import { Select, type SelectOption } from './Select'
 import { Dialog } from './Dialog'
+import { ConfigName } from '../ConfigName'
 
 // The summary row (console refinement 1d, §5): label, one line under it, the
 // value on the right and a chevron when it opens something. One focusable
@@ -114,7 +115,7 @@ const fineStepOf = (adjust: Extract<RowAdjust, { kind: 'number' }>) =>
 const TYPED_KEY = /^[0-9.,-]$/
 
 /** The origin line (§4 2c): "Overrides FPS Template", "Changed in the
- *  Vehicles layer" or "From FPS Template". A value the configuration simply
+ *  Vehicles" or "From FPS base". A value the configuration simply
  *  sets, with nothing behind it, says nothing: naming the configuration being
  *  edited tells no one anything. */
 function useOriginLine(setting?: string): { text: string; tone: 'changed' | 'inherited' } | null {
@@ -122,8 +123,9 @@ function useOriginLine(setting?: string): { text: string; tone: 'changed' | 'inh
   const context = useContext(SettingOrigins)
   if (!info || info.kind === 'own') return null
   if (info.kind === 'override') {
-    if (context.layer) return { text: `Changed in the ${context.layer} layer`, tone: 'changed' }
-    return { text: info.sourceName ? `Overrides ${info.sourceName}` : 'Overrides the template', tone: 'changed' }
+    // Console v2 (V8): modes, not layers; a base, not a template.
+    if (context.layer) return { text: `Changed in ${context.layer}`, tone: 'changed' }
+    return { text: info.sourceName ? `Changed from ${info.sourceName}` : 'Changed from the base', tone: 'changed' }
   }
   if (info.kind === 'inherited' && info.sourceName) return { text: `From ${info.sourceName}`, tone: 'inherited' }
   return null
@@ -193,7 +195,7 @@ function ChoiceSummaryRow({ adjust, ...props }: SummaryRowProps & { adjust: Extr
       if (secondary(event.key.toUpperCase())) { event.preventDefault(); event.stopPropagation() }
     }}>
     <div className={adjustStyles.choiceHeading}>
-      <label htmlFor={id} className="summary-row__label">{props.icon}{props.label}</label>
+      <label htmlFor={id} className="summary-row__label">{props.icon}{props.label}{props.setting && <ConfigName name={props.setting} />}</label>
       {props.hint && <span className="summary-row__hint" id={helpId}>{props.hint}</span>}
       {origin && <span className="summary-row__hint" data-tone={origin.tone}>{origin.text}</span>}
     </div>
@@ -415,7 +417,7 @@ function AdjustableSummaryRow(props: SummaryRowProps) {
       >
         {icon && <span className="summary-row__icon" aria-hidden="true">{icon}</span>}
         <span className="summary-row__text">
-          <span className="summary-row__label">{label}</span>
+          <span className="summary-row__label">{label}{setting && <ConfigName name={setting} />}</span>
           {origin
             ? <span className="summary-row__hint" data-tone={origin.tone}>{origin.text}</span>
             : hint && <span className="summary-row__hint">{hint}</span>}

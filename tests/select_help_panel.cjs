@@ -24,13 +24,18 @@ const fs = require('node:fs');
   }};
  });
  await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
+ // A Steam Controller's first connection asks about its power-on sound.
+ await page.addLocatorHandler(page.getByRole('button',{name:'Keep them',exact:true}), async () => { await page.getByRole('button',{name:'Keep them',exact:true}).click() });
  // The app opens on Home (console refinement 2a); these checks start in the editing shell.
  await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
  await page.locator('.profile-chip').filter({hasText:'Desktop'}).waitFor();
- await page.getByRole('button',{name:'Buttons',exact:true}).click();
+ // (Buttons is no longer visited: the kit playground is global.)
 
- // Bindings open in a focused detail panel, so open the input's row first.
- await page.locator('details[data-input-command="N"] > summary').click();
+ // Console v2: the binding sheet's trigger dropdown is gone (When you… tiles), so
+ // the check runs on the kit playground's dropdown (dev/KitPlayground.tsx), a
+ // SummaryRow choice whose options carry help text of very different lengths.
+ await page.evaluate(() => window.dispatchEvent(new Event('jsm:kit')));
+ await page.getByRole('combobox').filter({hasText:/^Press$/}).first().waitFor();
 
  // The press-type dropdown: its options carry help text of very different
  // lengths, which is what used to resize the popup.

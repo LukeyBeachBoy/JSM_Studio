@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Console-feel audit</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#131920}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.s{display:inline-flex;align-items:center;justify-content:center;width:34px;height:28px;border-radius:8px;font-weight:600;font-size:15px}
+.s1{background:#4a1f26;color:#ffb3bd}
+.s2{background:#4a3320;color:#ffc98f}
+.s3{background:#3a3d22;color:#e6e08a}
+.s4{background:#1e3d33;color:#93e6c1}
+.s5{background:#173a52;color:#a8dbfa}
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{text-align:left;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#808c99;font-weight:600;padding:0 12px 12px}
+.tbl td{padding:14px 12px;border-top:1px solid #232c36;vertical-align:top;font-size:15px;color:#b0bcc8}
+</style>
+</helmet>
+<div style="font-family: Geist, system-ui, sans-serif; color: #e8eef4; background: #131920; min-height: 100vh; padding: 72px 24px 120px; box-sizing: border-box">
+<div style="max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 72px">
+
+<header style="display: flex; flex-direction: column; gap: 20px">
+<div style="font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: #7cc4ee; font-weight: 600">UI/UX review · JSM Evolved 0.7.134 · 6 October 2026</div>
+<h1 style="margin: 0; font-size: 64px; line-height: 1.02; font-weight: 700; letter-spacing: -0.02em; max-width: 980px">A tidy desktop app that accepts a controller. Not yet a console app.</h1>
+<p style="margin: 0; font-size: 20px; line-height: 1.55; color: #b0bcc8; max-width: 860px">Reviewed in the mock build at 1440×900, dark theme, every page, driven by keyboard and the scripted pad. The judgement: how much of each screen is designed around a controller in your hands, and how well it lets a player reach a great configuration without thinking like a mapper.</p>
+</header>
+
+<section style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px">
+<div style="background: #1f2730; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 48px; font-weight: 700; color: #ffc98f">2 / 5</div>
+<div style="font-size: 15px; line-height: 1.45; color: #b0bcc8">Console feel, averaged across 12 screens</div>
+</div>
+<div style="background: #1f2730; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 48px; font-weight: 700">24</div>
+<div style="font-size: 15px; line-height: 1.45; color: #b0bcc8">Interactive controls on screen before the first binding on Buttons</div>
+</div>
+<div style="background: #1f2730; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 48px; font-weight: 700">212</div>
+<div style="font-size: 15px; line-height: 1.45; color: #b0bcc8"><span style="font-family: 'Geist Mono', monospace">title=</span> tooltips in the components: hover-only text a pad never sees</div>
+</div>
+<div style="background: #1f2730; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 48px; font-weight: 700">11</div>
+<div style="font-size: 15px; line-height: 1.45; color: #b0bcc8">Studio tabs of equal weight. Debug console sits beside Configurations</div>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 20px">
+<h2 style="margin: 0; font-size: 32px; font-weight: 650">What already works: keep it</h2>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<sc-for list="{{ keeps }}" as="k" hint-placeholder-count="6">
+<div style="display: flex; gap: 14px; align-items: flex-start; background: #182129; border: 1px solid #1e3d33; border-radius: 14px; padding: 18px 20px">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#93e6c1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex: none; margin-top: 2px"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+<div style="font-size: 16px; line-height: 1.5; color: #d4dde6">{{ k }}</div>
+</div>
+</sc-for>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 12px">
+<h2 style="margin: 0; font-size: 32px; font-weight: 650">Scorecard</h2>
+<div style="display: flex; gap: 8px; align-items: center; font-size: 14px; color: #808c99">1 <span class="s s1">1</span><span class="s s2">2</span><span class="s s3">3</span><span class="s s4">4</span><span class="s s5">5</span> great</div>
+</div>
+<div style="background: #182129; border-radius: 18px; padding: 24px 12px 8px; overflow-x: auto">
+<table class="tbl" style="min-width: 980px">
+<thead><tr><th>Screen</th><th>Console feel</th><th>Hierarchy</th><th>Disclosure</th><th>Plain words</th><th>The main problem</th><th>Redesign</th></tr></thead>
+<tbody>
+<sc-for list="{{ scores }}" as="r" hint-placeholder-count="12">
+<tr>
+<td style="color: #e8eef4; font-weight: 600; white-space: nowrap">{{ r.screen }}</td>
+<td><span class="s s{{ r.c }}">{{ r.c }}</span></td>
+<td><span class="s s{{ r.h }}">{{ r.h }}</span></td>
+<td><span class="s s{{ r.d }}">{{ r.d }}</span></td>
+<td><span class="s s{{ r.l }}">{{ r.l }}</span></td>
+<td style="max-width: 420px; line-height: 1.5">{{ r.issue }}</td>
+<td style="white-space: nowrap"><a href="{{ r.href }}">{{ r.board }}</a></td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 20px">
+<h2 style="margin: 0; font-size: 32px; font-weight: 650">Findings, worst first</h2>
+<div style="display: flex; flex-direction: column; gap: 12px">
+<sc-for list="{{ findings }}" as="f" hint-placeholder-count="16">
+<article style="display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 20px; background: #1f2730; border-radius: 16px; padding: 24px">
+<div style="font-family: 'Geist Mono', monospace; font-size: 22px; color: #7cc4ee; font-weight: 500">{{ f.n }}</div>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<h3 style="margin: 0; font-size: 21px; line-height: 1.35; font-weight: 650">{{ f.title }}</h3>
+<p style="margin: 0; font-size: 16px; line-height: 1.6; color: #b0bcc8">{{ f.evidence }}</p>
+<p style="margin: 0; font-size: 16px; line-height: 1.6; color: #e8eef4"><span style="color: #93e6c1; font-weight: 600">Fix · </span>{{ f.fix }}</p>
+</div>
+</article>
+</sc-for>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 20px">
+<h2 style="margin: 0; font-size: 32px; font-weight: 650">Say it like a player</h2>
+<p style="margin: 0; font-size: 17px; line-height: 1.6; color: #b0bcc8; max-width: 820px">The app shows JoyShockMapper's own vocabulary. The config file can keep its names; the screen should use the words a player already has. Proposed renames, used in every redesign on this canvas:</p>
+<div style="background: #182129; border-radius: 18px; padding: 20px 12px 4px; overflow-x: auto">
+<table class="tbl" style="min-width: 720px">
+<thead><tr><th>Today</th><th>Proposed</th><th>Why</th></tr></thead>
+<tbody>
+<sc-for list="{{ renames }}" as="w" hint-placeholder-count="12">
+<tr>
+<td style="font-family: 'Geist Mono', monospace; color: #ffb3bd">{{ w.from }}</td>
+<td style="color: #e8eef4; font-weight: 600">{{ w.to }}</td>
+<td style="line-height: 1.5">{{ w.why }}</td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 20px">
+<h2 style="margin: 0; font-size: 32px; font-weight: 650">Seven rules for the redesign</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px">
+<sc-for list="{{ rules }}" as="r" hint-placeholder-count="7">
+<div style="background: #1f2730; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 10px">
+<div style="font-family: 'Geist Mono', monospace; font-size: 14px; color: #7cc4ee">{{ r.n }}</div>
+<div style="font-size: 21px; font-weight: 650">{{ r.title }}</div>
+<div style="font-size: 16px; line-height: 1.55; color: #b0bcc8">{{ r.body }}</div>
+</div>
+</sc-for>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 20px">
+<h2 style="margin: 0; font-size: 32px; font-weight: 650">The redesigns</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 12px">
+<sc-for list="{{ boards }}" as="b" hint-placeholder-count="13">
+<a href="{{ b.href }}" style="display: flex; flex-direction: column; gap: 6px; background: #1f2730; border-radius: 16px; padding: 20px 22px; text-decoration: none; color: #e8eef4; border: 1px solid #2e3844">
+<span style="font-size: 18px; font-weight: 650">{{ b.title }}</span>
+<span style="font-size: 15px; line-height: 1.5; color: #b0bcc8">{{ b.body }}</span>
+</a>
+</sc-for>
+</div>
+</section>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3600}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      keeps: [
+        'A hint capsule on every screen, glyph-aware, one hint per button, in a fixed order.',
+        'View returns Home from anywhere and Menu opens the Configuration menu: a real console contract.',
+        'Studio pauses the applied mapping and reads the pad itself, so navigating never fires game keys.',
+        'Live telemetry in place: the stick dot, trigger bar, gyro speed and trackpad touch point.',
+        'Home has one primary action, Continue editing, with Test one step away.',
+        'The trackpad region preview (select a region on the picture to bind it) is the most console-like screen in the app.'
+      ],
+      scores: [
+        { screen: 'Shell: title bar, tabs, hints', c: 2, h: 2, d: 2, l: 3, issue: '24 controls before the first binding; hints float over content; triggers and bumpers swapped against console convention.', board: '02, 03, 13', href: 'Layout.dc.html' },
+        { screen: 'Home', c: 3, h: 2, d: 3, l: 4, issue: 'Eleven equal Studio tiles outweigh the game itself. No art, no sense of what to do next.', board: '01 Home', href: 'Home.dc.html' },
+        { screen: 'Overview', c: 2, h: 1, d: 1, l: 3, issue: 'Densest screen: 4 filter chips, 3 checkboxes, search, legend, 10 rows, 5 cards and a gyro panel at once.', board: '02 Layout', href: 'Layout.dc.html' },
+        { screen: 'Buttons, D-Pad, Triggers', c: 3, h: 2, d: 3, l: 2, issue: 'Spreadsheet columns; unbound rows lead with “Unbound”; 8 px PRESS labels.', board: '03 Buttons', href: 'ButtonList.dc.html' },
+        { screen: 'Binding card, expanded', c: 2, h: 2, d: 2, l: 1, issue: 'Six focus stops per command, an inline text field, alarm-red “Modeshifts”.', board: '04, 05', href: 'BindingSheet.dc.html' },
+        { screen: 'Joysticks, Trackpads', c: 3, h: 3, d: 3, l: 3, issue: 'Mode, the decision that matters most, is a small dropdown.', board: '06 Sticks', href: 'Sticks.dc.html' },
+        { screen: 'Gyro', c: 2, h: 2, d: 1, l: 2, issue: 'About 25 controls in one scroll; calibration comes before speed; an empty value pill.', board: '07 Gyro', href: 'Gyro.dc.html' },
+        { screen: 'Layers', c: 2, h: 3, d: 2, l: 1, issue: 'Stack order, overrides, “Suppresses holds”: the mapper’s model, not the player’s.', board: '08 Modes', href: 'Modes.dc.html' },
+        { screen: 'Virtual menus', c: 2, h: 3, d: 2, l: 3, issue: 'Empty state is one sentence and a button on a blank 1440 px page.', board: '13 Kit', href: 'Kit.dc.html' },
+        { screen: 'Configurations', c: 2, h: 2, d: 2, l: 3, issue: 'List plus detail with nine actions, no art; the hint bar covers Delete.', board: '09 Library', href: 'Library.dc.html' },
+        { screen: 'Studio pages', c: 2, h: 2, d: 3, l: 3, issue: 'Eleven tabs; Credits and Debug console weigh the same as Configurations.', board: '11 Settings', href: 'Settings.dc.html' },
+        { screen: 'AI assistant', c: 1, h: 1, d: 1, l: 2, issue: 'Leads with API key, model and base URL; the request comes last, below the fold.', board: '12 Assistant', href: 'Assistant.dc.html' }
+      ],
+      findings: [
+        { n: '01', title: 'Pad navigation is keyboard emulation, so the mouse layout decides the pad experience.', evidence: 'useControllerNavigation turns the stick into synthetic arrow-key events over a DOM built for a pointer. Every icon button, dropdown and inline field becomes a stop. An expanded Y-button card holds a gear, Details, a PRESS dropdown, a name field, another gear, Add command and Capture a key.', fix: 'Design focus targets first. One stop per row; A does the obvious thing, X and Y carry the next two, the rest lives in a sheet. The footer always says what A, X and Y will do.' },
+        { n: '02', title: 'The hint capsule floats over the content it describes.', evidence: 'It covers the L5 row on Buttons, the summary cards on Overview, Edit source and Delete on Configurations, and the empty-state copy on AI assistant. No scroll area reserves room for it.', fix: 'Dock a full-width footer bar. Reserve its height in every scroll area so nothing can sit underneath.' },
+        { n: '03', title: 'Bumpers and triggers are swapped against console convention.', evidence: 'LT/RT walk pages and LB/RB walk sections. Xbox, PlayStation and Steam Big Picture all put top-level tabs on the bumpers, so every console player reaches for the wrong pair first.', fix: 'LB/RB change tabs. LT/RT jump between sections or scroll a page at a time.' },
+        { n: '04', title: 'Too much chrome before the content: 24 controls before the first binding.', evidence: 'Buttons page: 6 in the title bar (Home, configuration, editing layer, mapping status, Changes, Applied), 9 tabs, 6 rail items, the Editing-for dropdown, Use regular gamepad and a help button. Changes and Applied say one thing twice.', fix: 'One header row: the game chip (configuration, controller, live state), the tabs, and nothing else. Layer editing moves into the Modes tab and the sheet.' },
+        { n: '05', title: 'The “Editing for” bar repeats on eight pages in implementation language.', evidence: '84 px tall, the first focus stop on every page, saying “Inherited layout · your first edit creates a controller variant”. On Overview its “Use regular gamepad” label is clipped behind the search field.', fix: 'Show controller scope once, inside the game chip. Only call it out when a controller-only layout actually exists.' },
+        { n: '06', title: 'Progressive disclosure runs backwards on the tuning pages.', evidence: 'Gyro opens with Activation, Activation input, Activation conditions, Output, Counter OS mouse speed and Real world calibration, all before you reach speed. The Real world calibration value pill is empty.', fix: 'Answer the three questions players ask (when is it on, how fast, does it feel right) and fold everything else into Fine-tune.' },
+        { n: '07', title: 'The biggest decisions get the smallest controls.', evidence: 'Stick mode is a 140 px dropdown reading “Directions”. Trigger behaviour is “No full pull (default)” in a dropdown. You can’t see the options, or what they do, without opening them.', fix: 'Large mode cards with a moving preview and one plain sentence, chosen with left and right.' },
+        { n: '08', title: 'Unbound rows put the wrong thing first.', evidence: '“Unbound” becomes the row title and the input name drops to a grey subtitle, so Menu buttons reads “Unbound, Unbound, Unbound”. Players scan for the button, not the state.', fix: 'The input name always comes first. “Not set” is the value, dimmed, on the right.' },
+        { n: '09', title: 'Table chrome borrowed from the web.', evidence: 'EXTRAS and OUTPUT headers float over each group; output chips carry an 8 px uppercase PRESS label; empty placeholder rectangles sit at the right of Overview rows.', fix: 'No columns. Show the action in plain words, with a Hold or Double line only when one is set.' },
+        { n: '10', title: 'Mapper vocabulary everywhere, and red for a normal feature.', evidence: 'Modeshift, Override, Chord, Soft pull, Suppresses holds, Inherited layout, Counter OS mouse speed, Applied. Modeshifts are drawn in alarm red although nothing is wrong.', fix: 'Use the renames below. Red is reserved for destructive actions and errors.' },
+        { n: '11', title: 'Information hides behind hover and truncation.', evidence: '212 title= tooltips. Truncated text with no pad way to read it: “Pi…” on Overview, “Keyboard and mouse only · imports FPS Tem…” on Configurations, “Its firmware recalibrates the gyro whenever the c…” in Preferences.', fix: 'Focus reveals: the focused row grows to show its full text and a line of help. Never hover-only.' },
+        { n: '12', title: 'Typing where choosing would do.', evidence: '41 text inputs. Every command shows a “Name this action” field inline; Overview offers search before anything else; the assistant asks for three text fields before it can help.', fix: 'Naming moves to the sheet’s Y menu, search moves behind Y, and the on-screen keyboard appears only when typing is the task.' },
+        { n: '13', title: 'No fixed frame: pages jump sideways.', evidence: 'The content edge sits at 73 px (Overview, Virtual menus), 193 px (Trackpads, Studio pages) and 301 px (Buttons, Gyro, Layers). Paging through tabs makes the whole page lurch.', fix: 'One frame: header, optional section rail, content column, docked footer. Same left edge on every tab.' },
+        { n: '14', title: 'Studio is eleven equal tabs.', evidence: 'Debug console, Credits and Documentation weigh the same as Configurations, both on Home’s grid and in the tab strip. Reaching Preferences from Configurations takes seven page presses.', fix: 'Two places: Library (configurations, launch-with-game) and Settings, with everything else as Settings categories.' },
+        { n: '15', title: 'Type is sized for a desk.', evidence: 'Hints 13 px, eyebrows 11 px, PRESS labels 8 px. A couch two or three metres from the screen needs roughly 18–20 px body text.', fix: 'A 10-foot scale (40 / 26 / 20 / 16) and a Couch or Desk density setting.' },
+        { n: '16', title: 'Nothing helps a player start.', evidence: 'New configuration opens an empty editor. The only scaffolding is importing an existing file or a Steam layout.', fix: 'Start from a game and a play style (Shooter with gyro aim, Third-person, Racing, Strategy with trackpad mouse), test it immediately, then tweak.' }
+      ],
+      renames: [
+        { from: 'Modeshift', to: 'While holding…', why: 'Says exactly what it is: this input does something else while another is held.' },
+        { from: 'Layer', to: 'Mode', why: 'Players already think “vehicle mode”, “map mode”. Steam uses action layers; mode is shorter.' },
+        { from: 'Override (in a layer)', to: 'Changed in this mode', why: 'Describes the effect, not the data model.' },
+        { from: 'Global chord', to: 'Hold to swap', why: 'Says what happens: hold the button(s) and the whole configuration swaps until you let go. Not “combo”, which players read as a sequence or a simultaneous press.' },
+        { from: 'Soft pull / Full pull', to: 'Half press / Full press', why: 'Matches camera shutters and DualSense marketing.' },
+        { from: 'Changes · Applied', to: 'Unsaved · Live', why: 'One status chip with two states instead of two buttons.' },
+        { from: 'Inherited layout · controller variant', to: 'Shared layout · Only for this controller', why: 'Implementation detail removed.' },
+        { from: 'Counter OS mouse speed', to: 'Ignore Windows pointer speed', why: 'Names the thing it fixes.' },
+        { from: 'Real world calibration', to: 'Match a full turn (360°)', why: 'Says what you do and what you get.' },
+        { from: 'Activation conditions', to: 'When gyro is on', why: 'A question a player would ask.' },
+        { from: 'Associations / AutoLoad', to: 'Launch with game', why: 'The outcome, not the mechanism.' },
+        { from: 'Device visibility', to: 'Hide the real controller from games', why: 'The current subtitle already says this; promote it.' }
+      ],
+      rules: [
+        { n: 'RULE 1', title: 'One stop per row', body: 'A does the obvious thing; X and Y do the next two; everything else lives in the sheet. A row is never a toolbar.' },
+        { n: 'RULE 2', title: 'Choose before you tune', body: 'Presets and pictures first. Numbers sit behind Fine-tune, and every number has a live preview beside it.' },
+        { n: 'RULE 3', title: 'Say it like a player', body: 'Game words on screen, JoyShockMapper words in the file and in an optional “show config names” setting.' },
+        { n: 'RULE 4', title: 'The footer is sacred', body: 'Hints dock in a reserved bar. Nothing scrolls under it, and it always says what A, X, Y and B will do right now.' },
+        { n: 'RULE 5', title: 'One frame', body: 'Same header, same left edge on every tab. Bumpers move between tabs, triggers between sections.' },
+        { n: 'RULE 6', title: 'Read from the couch', body: '16 px floor, 20 px body. The focused element is the brightest thing on screen and scales up slightly.' },
+        { n: 'RULE 7', title: 'Nothing on hover only', body: 'Focus reveals full text and a line of help. Tooltips become focus captions.' }
+      ],
+      boards: [
+        { title: '01 Home: game-first', body: 'Game art, live state, one next step. Studio shrinks to two doors.', href: 'Home.dc.html' },
+        { title: '02 Layout: the controller is the menu', body: 'Replaces Overview. Move across the controller; callouts show what each input does.', href: 'Layout.dc.html' },
+        { title: '03 Buttons: one stop per row', body: 'Input name first, action as a plain value, focus expands the row.', href: 'ButtonList.dc.html' },
+        { title: '04 Binding sheet: pick, don’t type', body: 'When you press, hold, double-tap; each a tile. “While holding…” replaces Modeshifts.', href: 'BindingSheet.dc.html' },
+        { title: '05 Key picker', body: 'An on-screen keyboard with the keys games use most up front.', href: 'KeyPicker.dc.html' },
+        { title: '06 Sticks & pads: mode cards', body: 'Pick behaviour from cards with a preview; three sliders; the rest folded.', href: 'Sticks.dc.html' },
+        { title: '07 Gyro: three questions', body: 'When is it on, how fast, does it feel right. Everything else in Fine-tune.', href: 'Gyro.dc.html' },
+        { title: '08 Modes (was Layers)', body: 'Each mode is a card: how you enter it and what changes.', href: 'Modes.dc.html' },
+        { title: '09 Library', body: 'Configurations as a shelf of game covers. A plays, X edits, Y more.', href: 'Library.dc.html' },
+        { title: '10 New configuration', body: 'Pick the game, pick a play style, test right away.', href: 'NewConfig.dc.html' },
+        { title: '11 Settings', body: 'Eleven Studio tabs become one settings screen with categories.', href: 'Settings.dc.html' },
+        { title: '12 Assistant', body: 'Suggestion chips and the request first; API setup only when needed.', href: 'Assistant.dc.html' },
+        { title: '13 Console component kit', body: 'Focus, the docked footer, sliders, toggles, focus captions, empty states.', href: 'Kit.dc.html' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

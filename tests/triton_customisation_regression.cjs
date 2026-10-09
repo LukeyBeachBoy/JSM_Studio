@@ -76,11 +76,19 @@ assert.match(runtime, /boot_sound_level\.clamp\(-1, 2\)/)
 
 // --- the Preferences page ---------------------------------------------------
 const prefs = read('JSM_GUI/jsm_gui_tauri/src/components/ControllerPreferences.tsx')
-assert.match(prefs, /'trackpads'/)
-assert.match(prefs, /left: PAD_CANT\.left, right: PAD_CANT\.right/)
-assert.match(prefs, /PAD_CANT = \{ left: 10\.7, right: -10\.5 \}/)
-assert.match(prefs, /JingleLevel/)
-assert.match(read('JSM_GUI/jsm_gui_tauri/src/App.tsx'), /<ControllerPreferences part="trackpads" \/>/)
+// Settings ▸ Controller (console v2): the default rotation is a Mounted / Level choice
+// with an Advanced angle per pad; the jingle level has its own row.
+assert.match(prefs, /PAD_CANT = { left: 10.7, right: -10.5 }/)
+assert.match(prefs, /leftPadRotation: PAD_CANT.left, rightPadRotation: PAD_CANT.right/)
+assert.match(prefs, /export function TrackpadRotation/)
+assert.match(prefs, /JingleLevel|bootSoundLevel/)
+// Controller light & sounds (this configuration): the same rotation per configuration, both keys, same cant.
+const light = read('JSM_GUI/jsm_gui_tauri/src/components/light/LightSounds.tsx')
+assert.match(light, /PAD_CANT = { left: 10.7, right: -10.5 }/)
+assert.match(light, /'LEFT_TOUCHPAD_ROTATION'/)
+assert.match(light, /'RIGHT_TOUCHPAD_ROTATION'/)
+assert.match(light, /bootSoundLevel/)
+assert.match(read('JSM_GUI/jsm_gui_tauri/src/App.tsx'), /<LightSounds open={lightSoundsOpen}/)
 const bridge = read('JSM_GUI/jsm_gui_tauri/src/platform/desktopBridge.ts')
 for (const field of ['leftPadRotation', 'rightPadRotation', 'bootSoundLevel']) assert.match(bridge, new RegExp(`${field}\\??: number`), `${field} in the bridge types`)
 
@@ -122,6 +130,7 @@ assert.match(sdl, /SettingsManager::get<SoundActuators>\(SettingID::SOUND_ACTUAT
 assert.ok(runtime.includes('SOUND_ACTUATORS = {}'), 'SOUND_ACTUATORS in studio_defaults_text')
 assert.match(runtime, /pub sound_actuators: String,/)
 assert.match(runtime, /state\.sound_actuators = validated_sound_actuators\(/)
-assert.match(prefs, /aria-label="Play sounds on"/)
+assert.match(prefs, /label="Your sounds play on" setting="SOUND_ACTUATORS"/)
+assert.match(read("JSM_GUI/jsm_gui_tauri/src/components/sounds/SoundLibraryPage.tsx"), /Plays on/)
 assert.match(read('JSM_GUI/jsm_gui_tauri/src/utils/controllerPreferences.ts'), /soundActuators: state\?\.soundActuators \?\? defaults\.soundActuators/)
 console.log('triton customisation: C++ tests, mapper wiring, Studio defaults, Preferences page and sound actuators checked')

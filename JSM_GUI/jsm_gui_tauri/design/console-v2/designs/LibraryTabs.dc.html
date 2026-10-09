@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Launch with game</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.tab{font-family:inherit;border:0;background:transparent;color:#b0bcc8;font-size:18px;font-weight:600;height:44px;padding:0 18px;border-radius:12px;cursor:pointer}
+.hatch{background-color:#1a2530;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+.lbl{font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#808c99;font-weight:600}
+.app{font-family:inherit;border:0;cursor:pointer;width:100%;display:grid;grid-template-columns:44px minmax(0,1fr) 260px 56px;align-items:center;gap:16px;min-height:64px;padding:10px 18px;box-sizing:border-box;border-radius:14px;background:#1f2730;color:#e8eef4;text-align:left}
+.app .n{font-family:'Geist Mono',monospace;font-size:17px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.app .s{font-size:14px;color:#808c99;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ai{width:44px;height:44px;border-radius:10px;flex:none}
+.ld{display:flex;align-items:center;gap:10px;font-size:15px;color:#808c99;white-space:nowrap}
+.cf{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 12px;border-radius:10px;background:#0f151b;color:#e8eef4;font-size:16px;font-weight:600;white-space:nowrap}
+.sw{width:56px;height:32px;border-radius:16px;background:#2e3844;position:relative;flex:none}
+.sw span{position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:50%;background:#808c99}
+.sw.y{background:#3e9fd8}
+.sw.y span{left:28px;background:#ffffff}
+.ra{display:flex;align-items:center;gap:12px;min-height:50px;padding:6px 14px;border-radius:12px;background:#1f2730;font-size:16px}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="height: 76px; flex: none; display: flex; align-items: center; gap: 24px; padding: 0 32px; background: #0d1217">
+<span style="font-size: 22px; font-weight: 700; width: 220px">Library</span>
+<nav style="display: flex; align-items: center; gap: 4px; flex: 1; justify-content: center">
+<span class="gp" style="margin-right: 8px">LB</span>
+<button class="tab">Games</button>
+<button class="tab">Bases</button>
+<button class="tab" style="background: #1d445c; color: #ffffff">Launch with game</button>
+<span class="gp" style="margin-left: 8px">RB</span>
+</nav>
+<span style="width: 220px; text-align: right; font-size: 16px; color: #808c99">4 apps</span>
+</header>
+
+<main style="flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 32px; padding: 30px 48px 24px">
+
+<section style="display: flex; flex-direction: column; gap: 8px; min-width: 0">
+<div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px">
+<h1 style="margin: 0; font-size: 32px; font-weight: 700">Launch with game</h1>
+<p style="margin: 0; font-size: 17px; color: #b0bcc8">When a game comes to the front, its configuration goes live.</p>
+</div>
+
+<div style="display: flex; align-items: center; gap: 16px; min-height: 64px; padding: 10px 18px; box-sizing: border-box; border-radius: 14px; background: #1a222b">
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 18px; font-weight: 650">Switch configurations automatically</span><span style="font-size: 14px; color: #808c99">Off: the one you make live stays until you change it</span></span>
+<span class="sw y" style="margin-left: auto"><span></span></span>
+</div>
+
+<span class="lbl" style="margin-top: 8px">Apps</span>
+<div class="focus" style="background: #1d445c; border-radius: 14px; display: flex; flex-direction: column">
+<div class="app" style="background: transparent">
+<span class="ai hatch" style="box-shadow: inset 0 0 0 1px rgba(255,255,255,.08)"></span>
+<span style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><span class="n">Wardogs.exe</span><span class="s" style="color: #93e6c1">In front now · live</span></span>
+<span class="ld">loads<span class="cf"><span style="width: 12px; height: 12px; border-radius: 4px; background: #a43fd6"></span>Wardogs</span></span>
+<span class="sw y"><span></span></span>
+</div>
+<span style="padding: 0 18px 12px 78px; font-size: 15px; color: #b8e2fa">Goes live whenever it comes to the front. A picks a different configuration.</span>
+</div>
+<button class="app"><span class="ai hatch"></span><span style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><span class="n">Cyberpunk2077.exe</span><span class="s">Last matched 2 days ago</span></span><span class="ld">loads<span class="cf"><span style="width: 12px; height: 12px; border-radius: 4px; background: #e8d36a"></span>Cyberpunk 2077</span></span><span class="sw y"><span></span></span></button>
+<button class="app"><span class="ai hatch" style="opacity: .6"></span><span style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><span class="n" style="color: #b0bcc8">DeepRockGalactic.exe</span><span class="s">Art only · not launched automatically</span></span><span class="ld">loads<span class="cf" style="color: #b0bcc8"><span style="width: 12px; height: 12px; border-radius: 4px; background: #5b6571"></span>Deep Rock Galactic</span></span><span class="sw"><span></span></span></button>
+<button class="app"><span class="ai" style="background: #2e3844; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7l5 5-5 5M12 17h7"></path></svg></span><span style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><span class="n">obs64.exe</span><span class="s">Runs its own commands</span></span><span class="ld">loads<span class="cf" style="font-weight: 500; color: #b0bcc8">Custom</span></span><span class="sw y"><span></span></span></button>
+<button class="app" style="background: transparent; box-shadow: inset 0 0 0 2px #2e3844; grid-template-columns: 44px minmax(0, 1fr)"><span class="ai" style="display: flex; align-items: center; justify-content: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 18px; font-weight: 650">Add app</span><span class="s">Pick one that’s running, or browse for an .exe</span></span></button>
+
+<span class="lbl" style="margin-top: 8px">When nothing matches</span>
+<button class="app"><span class="ai" style="background: #2e3844; display: flex; align-items: center; justify-content: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M8 20h8M12 16v4"></path></svg></span><span style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><span style="font-size: 17px; font-weight: 600">Desktop and other apps</span><span class="s">Used when no app above is in front</span></span><span class="ld">loads<span class="cf"><span style="width: 12px; height: 12px; border-radius: 4px; background: #808c99"></span>Desktop gamepad</span></span><span class="sw y"><span></span></span></button>
+</section>
+
+<aside style="background: #1a222b; border-radius: 20px; padding: 22px; display: flex; flex-direction: column; gap: 12px; min-width: 0">
+<span class="lbl">Right now</span>
+<svg viewBox="0 0 356 190" width="100%" height="190" fill="none" style="flex: none">
+<rect x="10" y="28" width="140" height="104" rx="10" fill="#1f2730" stroke="rgba(255,255,255,.12)"></rect>
+<rect x="18" y="46" width="124" height="78" rx="5" fill="#0f151b" stroke="rgba(255,255,255,.06)"></rect>
+<circle cx="22" cy="37" r="2.5" fill="#808c99"></circle><circle cx="31" cy="37" r="2.5" fill="#808c99"></circle><circle cx="40" cy="37" r="2.5" fill="#808c99"></circle>
+<path d="M66 132v18M50 152h60" stroke="#5b6571" stroke-width="3" stroke-linecap="round"></path>
+<text x="80" y="90" fill="#b0bcc8" font-family="Geist Mono, monospace" font-size="14" text-anchor="middle">Wardogs.exe</text>
+<path d="M156 80H226" stroke="#3e9fd8" stroke-width="2.5" stroke-linecap="round"></path>
+<path d="M220 73l8 7-8 7" stroke="#3e9fd8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+<rect x="238" y="34" width="112" height="96" rx="14" fill="#1f2730" stroke="#5fd3a0" stroke-width="2"></rect>
+<rect x="252" y="48" width="30" height="30" rx="8" fill="#a43fd6"></rect>
+<text x="252" y="100" fill="#e8eef4" font-family="Geist, sans-serif" font-size="15" font-weight="700">Wardogs</text>
+<circle cx="256" cy="115" r="3.5" fill="#5fd3a0"></circle>
+<text x="264" y="119" fill="#93e6c1" font-family="Geist, sans-serif" font-size="14" font-weight="600">Live</text>
+</svg>
+<span style="font-size: 16px; line-height: 1.5; color: #b0bcc8"><span style="color: #e8eef4; font-weight: 600">Wardogs.exe</span> is in front, so Wardogs is live.</span>
+
+<div style="height: 1px; background: #232c36; margin: 6px 0"></div>
+<span class="lbl">Running now</span>
+<div class="ra"><span class="ai hatch" style="width: 32px; height: 32px; border-radius: 8px"></span><span style="font-family: 'Geist Mono', monospace">Helldivers2.exe</span><span style="margin-left: auto; color: #7cc4ee; font-weight: 600">+ Add</span></div>
+<div class="ra"><span class="ai" style="width: 32px; height: 32px; border-radius: 8px; background: #2e3844"></span><span style="font-family: 'Geist Mono', monospace">Discord.exe</span><span style="margin-left: auto; color: #7cc4ee; font-weight: 600">+ Add</span></div>
+<div class="ra"><span class="ai hatch" style="width: 32px; height: 32px; border-radius: 8px"></span><span style="font-family: 'Geist Mono', monospace; color: #808c99">Wardogs.exe</span><span style="margin-left: auto; color: #808c99">Already added</span></div>
+<div class="ra" style="background: transparent; box-shadow: inset 0 0 0 2px #2e3844"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg><span>Browse for an .exe…</span></div>
+</aside>
+</main>
+
+<footer style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Library · Launch with game · Wardogs.exe</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">A</span>What it loads</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">X</span>On · off</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">Y</span>More</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">LB</span><span class="gp">RB</span>Tabs</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Home</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

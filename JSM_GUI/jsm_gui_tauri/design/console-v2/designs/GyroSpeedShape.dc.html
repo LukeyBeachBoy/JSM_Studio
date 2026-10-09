@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Speed curve shape</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.row{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;align-items:center;gap:16px;min-height:64px;padding:12px 22px;box-sizing:border-box;border-radius:16px;background:#1f2730;color:#e8eef4;text-align:left}
+.row .t{font-size:19px;font-weight:650}
+.row .s{font-size:15px;color:#808c99}
+.val{margin-left:auto;font-family:'Geist Mono',monospace;font-size:19px;font-weight:500;color:#d4dde6;white-space:nowrap}
+.tag{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:13px;background:#2e3844;color:#b0bcc8;font-size:14px;font-weight:600}
+.seg{display:flex;gap:4px;background:#0f151b;border-radius:12px;padding:4px}
+.seg span{height:32px;padding:0 12px;border-radius:9px;display:flex;align-items:center;font-size:15px;font-weight:600;color:#b0bcc8}
+.cv{font-family:inherit;border:0;cursor:pointer;border-radius:14px;background:#1f2730;color:#b0bcc8;padding:10px 8px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
+.cv svg{display:block}
+.cv span{font-size:15px;font-weight:600}
+.part{font-family:inherit;border:0;cursor:pointer;border-radius:14px;background:transparent;color:#b0bcc8;padding:12px 14px;display:flex;flex-direction:column;gap:3px;text-align:left;min-width:0;box-shadow:inset 0 0 0 2px #232c36}
+.part .t{font-size:17px;font-weight:650}
+.part .s{font-size:14px;color:#808c99}
+.kept{display:flex;align-items:baseline;gap:12px;font-size:15px;color:#b0bcc8}
+.kept b{font-weight:600;color:#d4dde6;width:96px;flex:none}
+.kept .m{margin-left:auto;font-family:'Geist Mono',monospace;color:#b0bcc8;white-space:nowrap}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="height: 76px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 40px; background: #0d1217">
+<span style="font-size: 18px; color: #808c99">Wardogs · Gyro</span>
+<span style="font-size: 18px; color: #5b6571">▸</span>
+<span style="font-size: 18px; color: #808c99">Fine-tune</span>
+<span style="font-size: 18px; color: #5b6571">▸</span>
+<span style="font-size: 18px; color: #808c99">Speed</span>
+<span style="font-size: 18px; color: #5b6571">▸</span>
+<span style="font-size: 22px; font-weight: 700">Advanced</span>
+<span style="margin-left: auto; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 20px; background: #4a3320; color: #ffc98f; font-size: 16px; font-weight: 600"><span style="width: 9px; height: 9px; border-radius: 50%; background: #f0a05a"></span>Unsaved · ☰ to save</span>
+</header>
+
+<main style="flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 500px; gap: 28px; padding: 28px 32px 24px">
+
+<section style="background: #1a222b; border-radius: 20px; padding: 22px; display: flex; flex-direction: column; gap: 14px; min-width: 0">
+<div style="display: flex; align-items: center; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 22px; font-weight: 700">Speed-up curve</span>
+<span style="font-size: 15px; color: #808c99">Sigmoid: eases in, then out, around a midpoint</span>
+</div>
+<span style="margin-left: auto; font-family: 'Geist Mono', monospace; font-size: 13px; color: #93e6c1">● live 22 °/s → 2.81×</span>
+<div class="seg"><span style="background: #2e3844; color: #ffffff">Fit</span><span>Full range</span></div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px">
+<button class="cv"><svg viewBox="0 0 84 36" width="84" height="34" fill="none"><path d="M4 18H80" stroke="#808c99" stroke-width="2" stroke-linecap="round"></path></svg><span>Off</span></button>
+<button class="cv"><svg viewBox="0 0 84 36" width="84" height="34" fill="none"><path d="M4 32H12L60 4H80" stroke="#808c99" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>Linear</span></button>
+<button class="cv"><svg viewBox="0 0 84 36" width="84" height="34" fill="none"><path d="M4 32 L8 31.7 L12 26.6 L16 22.5 L20 19.1 L24 16.3 L28 14.1 L32 12.2 L36 10.7 L40 9.5 L44 8.5 L48 7.7 L52 7 L56 6.4 L60 6 L64 5.6 L68 5.3 L72 5.1 L76 4.9 L80 4.7" stroke="#808c99" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>Natural</span></button>
+<button class="cv"><svg viewBox="0 0 84 36" width="84" height="34" fill="none"><path d="M4 32 L8 30.1 L12 23.5 L16 20.1 L20 17.5 L24 15.3 L28 13.4 L32 11.6 L36 10 L40 8.5 L44 7.1 L48 5.7 L52 4.4 L56 4 L80 4" stroke="#808c99" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>Power</span></button>
+<button class="cv"><svg viewBox="0 0 84 36" width="84" height="34" fill="none"><path d="M4 32 L8 32 L12 31.8 L16 31.3 L20 30.5 L24 29.4 L28 28 L32 26.2 L36 24.1 L40 21.7 L44 19 L48 16 L52 12.7 L56 9 L60 5 L64 4 L80 4" stroke="#808c99" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>Quadratic</span></button>
+<button class="cv" style="background: #24323f; box-shadow: inset 0 0 0 2px #3e9fd8; color: #ffffff"><svg viewBox="0 0 84 36" width="84" height="34" fill="none"><path d="M4 32 L12 31.9 L20 31.6 L24 31.1 L28 30.1 L32 28.3 L36 25.2 L40 20.6 L44 15.4 L48 10.8 L52 7.7 L56 5.9 L60 4.9 L64 4.4 L72 4.1 L80 4" stroke="#7cc4ee" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>Sigmoid</span></button>
+<button class="cv"><svg viewBox="0 0 84 36" width="84" height="34" fill="none"><path d="M4 32H40C45 32 43 4 48 4H80" stroke="#808c99" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>Jump</span></button>
+</div>
+
+<svg viewBox="0 0 820 440" width="100%" height="400" fill="none">
+<rect x="0" y="0" width="820" height="440" rx="16" fill="#0f151b"></rect>
+<g stroke="rgba(255,255,255,.05)"><path d="M70 30H790M70 102H790M70 174H790M70 246H790M70 318H790"></path><path d="M250 30V390M430 30V390M610 30V390M790 30V390"></path></g>
+<rect x="223" y="30" width="144" height="360" fill="rgba(124,196,238,.06)"></rect>
+<path d="M223 30V390M367 30V390" stroke="rgba(124,196,238,.3)" stroke-dasharray="2 5"></path>
+<path d="M70 390H790M70 390V30" stroke="#2e3844" stroke-width="1.5"></path>
+<g fill="#808c99" font-size="13" font-family="Geist Mono, monospace" text-anchor="end">
+<text x="58" y="34">5×</text><text x="58" y="178">3×</text><text x="58" y="250">2×</text><text x="58" y="322">1×</text>
+</g>
+<text x="58" y="106" fill="#b8e2fa" font-size="13" font-weight="600" font-family="Geist Mono, monospace" text-anchor="end">4×</text>
+<g fill="#808c99" font-size="13" font-family="Geist Mono, monospace" text-anchor="middle">
+<text x="70" y="410">0</text><text x="250" y="410">20</text><text x="430" y="410">40</text><text x="610" y="410">60</text><text x="780" y="410">80 °/s</text>
+</g>
+<text x="430" y="432" fill="#808c99" font-size="13" font-family="Geist, sans-serif" text-anchor="middle">How fast you turn the controller →</text>
+<text x="20" y="210" fill="#808c99" font-size="13" font-family="Geist, sans-serif" text-anchor="middle" transform="rotate(-90 20 210)">Aim speed →</text>
+
+<path d="M70 224.4 L142 223.1 L214 219.8 L286 216.6 L358 213.5 L430 210.4 L502 207.5 L574 204.6 L646 201.8 L718 199 L790 196.4" stroke="#808c99" stroke-width="1.6" stroke-dasharray="5 6" opacity=".55"></path>
+<text x="784" y="188" fill="#808c99" font-size="13" font-family="Geist, sans-serif" text-anchor="end">Natural, for comparison</text>
+<path d="M70 102H790" stroke="rgba(124,196,238,.55)" stroke-width="1.4" stroke-dasharray="6 6"></path>
+<text x="700" y="92" fill="#b8e2fa" font-size="13" font-weight="600" font-family="Geist, sans-serif" text-anchor="end">Max 4.0×</text>
+
+<path d="M70 224.4 L115 224.4 L133 223.6 L151 223 L169 221.9 L187 220.2 L205 217.2 L223 212.4 L241 205 L259 194.1 L277 179.8 L295 163.2 L313 146.6 L331 132.3 L349 121.4 L367 114 L385 109.2 L403 106.2 L421 104.5 L439 103.4 L457 102.8 L475 102.5 L511 102.2 L547 102.1 L790 102 V390 H70 Z" fill="rgba(62,159,216,.12)"></path>
+<path d="M70 224.4 L115 224.4 L133 223.6 L151 223 L169 221.9 L187 220.2 L205 217.2 L223 212.4 L241 205 L259 194.1 L277 179.8 L295 163.2 L313 146.6 L331 132.3 L349 121.4 L367 114 L385 109.2 L403 106.2 L421 104.5 L439 103.4 L457 102.8 L475 102.5 L511 102.2 L547 102.1 L790 102" stroke="#3e9fd8" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path>
+
+<circle cx="196" cy="218.9" r="3" fill="#a6d65a" opacity=".25"></circle>
+<circle cx="223" cy="212.4" r="3.4" fill="#a6d65a" opacity=".4"></circle>
+<circle cx="241" cy="205" r="3.8" fill="#a6d65a" opacity=".6"></circle>
+<circle cx="268" cy="187.3" r="5.5" fill="#a6d65a"></circle>
+<text x="268" y="224" fill="#a6d65a" font-size="13" font-family="Geist Mono, monospace" text-anchor="middle">22 °/s</text>
+
+<circle cx="115" cy="224.4" r="10" fill="#ffffff" stroke="#3e9fd8" stroke-width="2.5"></circle>
+<rect x="100" y="244" width="112" height="28" rx="14" fill="#1f2730" stroke="rgba(255,255,255,.1)"></rect>
+<text x="156" y="263" fill="#d4dde6" font-size="14" font-weight="600" font-family="Geist, sans-serif" text-anchor="middle">Slow · 5 °/s</text>
+
+<circle cx="746" cy="102" r="10" fill="#ffffff" stroke="#3e9fd8" stroke-width="2.5"></circle>
+<path d="M746 80l-5 6h10zM746 124l-5 -6h10z" fill="#808c99"></path>
+
+<path d="M295 70V390" stroke="#7cc4ee" stroke-width="1.5" stroke-dasharray="4 5"></path>
+
+<circle cx="295" cy="163.2" r="11" fill="#3e9fd8" stroke="#ffffff" stroke-width="2"></circle>
+<path d="M265 163.2l6 -5v10zM325 163.2l-6 -5v10z" fill="#b8e2fa"></path>
+<rect x="223" y="40" width="144" height="30" rx="15" fill="#3e9fd8"></rect>
+<text x="295" y="60" fill="#07131d" font-size="15" font-weight="700" font-family="Geist, sans-serif" text-anchor="middle">Midpoint · 25 °/s</text>
+<text x="295" y="380" fill="#7cc4ee" font-size="13" font-family="Geist, sans-serif" text-anchor="middle">Width ±8 °/s</text>
+</svg>
+
+<div style="display: flex; align-items: center; gap: 22px; font-size: 15px; color: #808c99">
+<span style="display: flex; align-items: center; gap: 8px"><span style="width: 14px; height: 14px; border-radius: 50%; background: #ffffff; box-shadow: 0 0 0 2px #3e9fd8"></span>Drag a point with the right stick</span>
+<span style="display: flex; align-items: center; gap: 8px"><span style="width: 18px; height: 10px; border-radius: 3px; background: rgba(124,196,238,.2)"></span>Where most of the rise happens</span>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 10px; min-width: 0">
+<div style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #808c99"><span class="gp">LT</span>Part<span class="gp">RT</span></div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 6px">
+<button class="part"><span class="t">Speeds</span><span class="s">2.3× to 4.0×</span></button>
+<button class="part" style="background: #1f2730; box-shadow: none; color: #ffffff"><span class="t">Shape</span><span class="s" style="color: #7cc4ee">Sigmoid · own</span></button>
+<button class="part"><span class="t">Game &amp; lean</span><span class="s">All default</span></button>
+</div>
+
+<button class="row"><span style="display: flex; flex-direction: column; gap: 3px"><span class="t">Curve source</span><span class="s">Gyro and trackpads can share one shape</span></span><span style="margin-left: auto; display: flex; align-items: center; gap: 12px; font-size: 17px; font-weight: 600; white-space: nowrap"><span style="color: #7cc4ee">◂</span>Each has its own<span style="color: #7cc4ee">▸</span></span></button>
+
+<div class="focus" style="background: #1d445c; border-radius: 16px; padding: 16px 22px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><span style="font-size: 19px; font-weight: 650">Midpoint</span><span style="font-size: 28px; font-weight: 700">20 <span style="font-size: 17px; font-weight: 600; color: #b8e2fa">°/s</span></span></div>
+<div style="position: relative; height: 8px; border-radius: 4px; background: #0f151b"><span style="position: absolute; left: 0; top: 0; height: 8px; width: 25%; border-radius: 4px; background: #3e9fd8"></span><span style="position: absolute; left: 25%; top: -8px; width: 24px; height: 24px; margin-left: -12px; border-radius: 50%; background: #ffffff; box-shadow: 0 0 0 5px rgba(62,159,216,.3)"></span></div>
+<span style="font-size: 15px; line-height: 1.45; color: #b8e2fa">Counted from the slow speed, so the S is centred on 25 °/s. ◂ ▸ steps 1 °/s.</span>
+</div>
+
+<button class="row"><span style="display: flex; flex-direction: column; gap: 3px"><span class="t">Width</span><span class="s">How gradual the S is; wider is gentler</span></span><span class="val">8 °/s</span><span class="tag">Default</span></button>
+
+<div style="background: #1a222b; border-radius: 16px; padding: 16px 20px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 17px; font-weight: 650">Kept for the other curves</span><span style="font-size: 14px; color: #808c99">Pick that curve on the left to change them</span></div>
+<div class="kept"><b>Natural</b><span>Half-way speed</span><span class="m">200 °/s</span></div>
+<div class="kept"><b>Power</b><span>Start speed · bend</span><span class="m">0.01 · 0.5</span></div>
+<div class="kept"><b>Jump</b><span>Smoothness</span><span class="m">1.5</span></div>
+<div class="kept"><b>Linear</b><span>Nothing to shape, also Quadratic</span></div>
+</div>
+</section>
+</main>
+
+<footer style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Wardogs · Gyro · Speed · Advanced · Shape</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px">◂ ▸ Adjust</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">X</span>Try it</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">Y</span>Type · reset</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">LT</span><span class="gp">RT</span>Part</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Back to Speed</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

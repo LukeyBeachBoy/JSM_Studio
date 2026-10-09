@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Home, game-first</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;height:26px;padding:0 9px;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.btn{font-family:inherit;border:0;cursor:pointer}
+.hatch{background-color:#1a2530;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="height: 76px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217">
+<div style="display: flex; align-items: center; gap: 14px">
+<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#3e9fd8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M8 12h8M12 8v8"></path></svg>
+<span style="font-size: 20px; font-weight: 650">JSM Evolved</span>
+</div>
+<div style="display: flex; align-items: center; gap: 22px; font-size: 17px; color: #b0bcc8">
+<span style="display: flex; align-items: center; gap: 10px"><span style="width: 10px; height: 10px; border-radius: 50%; background: #5fd3a0"></span>Steam Controller</span>
+<span style="display: flex; align-items: center; gap: 8px"><svg width="26" height="14" viewBox="0 0 26 14" fill="none" stroke="#b0bcc8" stroke-width="1.6"><rect x="1" y="1" width="21" height="12" rx="3"></rect><rect x="3.5" y="3.5" width="14" height="7" rx="1.5" fill="#b0bcc8" stroke="none"></rect><path d="M24 5v4"></path></svg>82%</span>
+<span>21:40</span>
+</div>
+</header>
+
+<main style="flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 32px; padding: 32px 40px 24px">
+
+<section style="display: flex; flex-direction: column; gap: 20px; min-width: 0">
+<div class="hatch" style="position: relative; height: 380px; border-radius: 22px; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; padding: 36px">
+<div style="position: absolute; top: 24px; right: 28px; font-family: 'Geist Mono', monospace; font-size: 13px; color: #808c99">[ GAME HERO ART · from Steam library cache ]</div>
+<div style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px">
+<span style="display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 14px; border-radius: 16px; background: #1e3d33; color: #93e6c1; font-size: 15px; font-weight: 600"><span style="width: 8px; height: 8px; border-radius: 50%; background: #5fd3a0"></span>Live</span>
+<span style="font-size: 16px; color: #b0bcc8">Launches with Wardogs.exe</span>
+</div>
+<h1 style="margin: 0; font-size: 64px; line-height: 1; font-weight: 700; letter-spacing: -0.02em">Wardogs</h1>
+<p style="margin: 14px 0 0; font-size: 19px; color: #b0bcc8">Shooter · gyro aim on right grip · trackpad menus · 3 modes</p>
+</div>
+
+<div style="display: flex; gap: 16px">
+<button class="btn focus" style="flex: 1; height: 76px; border-radius: 18px; background: #3e9fd8; color: #07131d; font-size: 22px; font-weight: 650; display: flex; align-items: center; justify-content: center; gap: 14px"><span class="g" style="background: #07131d; color: #e8eef4">A</span>Edit layout</button>
+<button class="btn" style="width: 220px; height: 76px; border-radius: 18px; background: #2e3844; color: #e8eef4; font-size: 20px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 12px"><span class="g">X</span>Test it</button>
+<button class="btn" style="width: 240px; height: 76px; border-radius: 18px; background: #2e3844; color: #e8eef4; font-size: 20px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 12px"><span class="g">Y</span>Switch game</button>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+<div style="font-size: 15px; letter-spacing: .08em; text-transform: uppercase; color: #808c99; font-weight: 600">Quick tune · changes apply live</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px">
+<button class="btn" style="text-align: left; background: #1f2730; color: #e8eef4; border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 16px; color: #b0bcc8">Gyro speed</span>
+<span style="display: flex; align-items: center; justify-content: space-between; width: 100%"><span style="font-size: 30px; font-weight: 650">2.3×</span><span style="font-size: 15px; color: #808c99">◂ ▸ to adjust</span></span>
+<span style="display: block; width: 100%; height: 6px; border-radius: 3px; background: #0f151b"><span style="display: block; width: 38%; height: 6px; border-radius: 3px; background: #3e9fd8"></span></span>
+</button>
+<button class="btn" style="text-align: left; background: #1f2730; color: #e8eef4; border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 16px; color: #b0bcc8">Gyro is on</span>
+<span style="font-size: 24px; font-weight: 650">While holding right grip</span>
+</button>
+<button class="btn" style="text-align: left; background: #1f2730; color: #e8eef4; border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 16px; color: #b0bcc8">Right trackpad</span>
+<span style="font-size: 24px; font-weight: 650">Mouse, 4 click zones</span>
+</button>
+</div>
+</div>
+</section>
+
+<aside style="display: flex; flex-direction: column; gap: 18px; min-width: 0">
+<div style="display: flex; align-items: baseline; justify-content: space-between">
+<h2 style="margin: 0; font-size: 22px; font-weight: 650">Your games</h2>
+<span style="font-size: 15px; color: #808c99">3 configurations</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px">
+<button class="btn hatch" style="height: 150px; border-radius: 16px; color: #e8eef4; text-align: left; padding: 16px; display: flex; flex-direction: column; justify-content: flex-end; gap: 4px">
+<span style="font-size: 19px; font-weight: 650">Cyberpunk 2077</span>
+<span style="font-size: 14px; color: #b0bcc8">Launches with game</span>
+</button>
+<button class="btn" style="height: 150px; border-radius: 16px; background: #1f2730; color: #e8eef4; text-align: left; padding: 16px; display: flex; flex-direction: column; justify-content: flex-end; gap: 4px">
+<span style="font-size: 19px; font-weight: 650">Desktop gamepad</span>
+<span style="font-size: 14px; color: #b0bcc8">When no game matches</span>
+</button>
+<button class="btn" style="height: 150px; border-radius: 16px; background: transparent; border: 2px dashed #2e3844; color: #b0bcc8; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px">
+<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+<span style="font-size: 17px; font-weight: 600">New for a game</span>
+</button>
+<button class="btn" style="height: 150px; border-radius: 16px; background: #1f2730; color: #e8eef4; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px">
+<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#e8eef4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="7" rx="1.5"></rect><rect x="14" y="4" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>
+<span style="font-size: 17px; font-weight: 600">Library</span>
+</button>
+</div>
+
+<div style="margin-top: auto; display: flex; flex-direction: column; gap: 10px">
+<button class="btn" style="height: 64px; border-radius: 16px; background: #1f2730; color: #e8eef4; display: flex; align-items: center; gap: 16px; padding: 0 20px; font-size: 18px; font-weight: 600">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e8eef4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>
+Settings
+<span style="margin-left: auto; font-size: 15px; color: #808c99; font-weight: 500">Hold to swap, timing, devices, help</span>
+</button>
+<button class="btn" style="height: 64px; border-radius: 16px; background: #1f2730; color: #e8eef4; display: flex; align-items: center; gap: 16px; padding: 0 20px; font-size: 18px; font-weight: 600">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e8eef4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path></svg>
+Ask the assistant
+<span style="margin-left: auto; font-size: 15px; color: #808c99; font-weight: 500">“Make jumping easier”</span>
+</button>
+</div>
+</aside>
+</main>
+
+<footer style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Home</span>
+<div style="display: flex; align-items: center; gap: 26px">
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">A</span>Edit layout</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">X</span>Test</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">Y</span>Switch game</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">☰</span>Options</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

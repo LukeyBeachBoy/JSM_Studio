@@ -46,26 +46,50 @@ const ARTIFACTS = path.resolve(__dirname, '../tmp/turbo-binding');
     fs.mkdirSync(ARTIFACTS, { recursive: true });
 
     const save = async () => { await page.keyboard.press('Control+s'); await page.waitForTimeout(400); return page.evaluate(() => window.__lastSaved); };
+    // Console v2: Turbo is one of More's ways of pressing; each turbo command's
+    // repeat speed is its own (Fine-tune ▸ Turbo, and More's ◂ ▸ Repeat speed).
     const card = page.locator('details[data-input-command="N"]').first();
     await card.locator(':scope > summary').click();
-    const open = page.locator('details[data-input-command="N"][open]');
-    const rows = open.locator('[data-command-row]');
-    await rows.first().waitFor();
-    assert.equal(await rows.count(), 2);
-    await rows.first().getByRole('button',{name:'Command settings',exact:true}).click();
-    let sheet=page.getByRole('dialog').last();
-    const field=sheet.getByRole('textbox',{name:'Turbo interval',exact:true});
-    assert.equal(await field.inputValue(),'60');
-    await field.fill('125');await field.press('Enter');
-    let saved=await save();assert.match(saved,/SPACE\+\{125\} J\+\{200\}/);
-    await sheet.screenshot({path:path.join(ARTIFACTS,'turbo-settings.png')});
-    await sheet.getByRole('button',{name:'Use configuration timing',exact:true}).click();
-    saved=await save();assert.match(saved,/SPACE\+ J\+\{200\}/);
+    const sheet = page.locator('details[data-input-command="N"][open] [data-binding-sheet]');
+    await sheet.waitFor();
+    await sheet.locator('[data-when="more"]').click();
+    const set = sheet.locator('[aria-label="Set on this button"] [data-rare-command]').filter({ hasText: /Turbo/ });
+    assert.equal(await set.count(), 2, 'both turbo commands are listed under More');
+    assert.match(await set.nth(0).innerText(), /every 60 ms/);
+    assert.match(await set.nth(1).innerText(), /every 200 ms/);
+    await set.nth(0).click();
+    const chips = sheet.locator('[data-chip-command]');
+    assert.equal(await chips.count(), 2, 'Turbo sends Space and J');
+    const speedOf = async () => {
+      const ft = page.locator('[data-fine-tune]');
+      await ft.waitFor();
+      return ft.locator('[role="slider"]').filter({ hasText: 'Repeat speed' }).first();
+    };
+    // The first command: type 125 on the on-screen keyboard (A on the row).
+    await sheet.locator('[data-fold="fine-tune"]').click();
+    let speed = await speedOf();
+    assert.equal(await speed.getAttribute('aria-valuenow'), '60');
+    await speed.focus();
+    await page.keyboard.press('Enter');
+    const typing = page.getByRole('dialog', { name: /^Type: / });
+    await typing.waitFor();
+    await page.keyboard.press('Backspace'); await page.keyboard.press('Backspace');
+    await page.keyboard.type('125'); await page.keyboard.press('Enter');
+    await typing.waitFor({ state: 'detached' });
+    let saved = await save(); assert.match(saved, /SPACE\+\{125\} J\+\{200\}/);
+    await page.locator('[data-fine-tune]').screenshot({ path: path.join(ARTIFACTS, 'turbo-settings.png') });
+    // Y on the row is Use Default: the configuration's timing.
+    await speed.focus();
+    await page.keyboard.press('y');
+    saved = await save(); assert.match(saved, /SPACE\+ J\+\{200\}/);
     await page.keyboard.press('Escape');
-    await rows.nth(1).getByRole('button',{name:'Command settings',exact:true}).click();
-    sheet=page.getByRole('dialog').last();
-    assert.equal(await sheet.getByRole('textbox',{name:'Turbo interval',exact:true}).inputValue(),'200');
+    await page.locator('[data-fine-tune]').waitFor({ state: 'detached' });
+    // The second command keeps its own speed (Y on its chip fine-tunes it).
+    await chips.nth(1).focus();
+    await page.keyboard.press('y');
+    speed = await speedOf();
+    assert.equal(await speed.getAttribute('aria-valuenow'), '200');
     assert.deepEqual(errors,[]);
-    console.log('PASS: turbo interval sheet, independent editing, save and reset without affecting sibling');
+    console.log('PASS: turbo repeat speed per command, independent editing, save and reset without affecting sibling');
   } finally {await browser.close();}
 })().catch(error=>{console.error(error);process.exit(1);});

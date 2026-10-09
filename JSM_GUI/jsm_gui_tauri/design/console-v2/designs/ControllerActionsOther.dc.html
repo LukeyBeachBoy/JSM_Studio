@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Controller action, Other</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.btn{font-family:inherit;border:0;cursor:pointer}
+.tab{font-family:inherit;border:0;background:transparent;color:#b0bcc8;font-size:18px;font-weight:600;height:44px;padding:0 16px;border-radius:12px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.tab i{font-style:normal;font-size:14px;font-weight:600;color:#b0bcc8;background:#2e3844;border-radius:10px;padding:2px 8px}
+.lbl{font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#808c99;font-weight:600}
+.ot{font-family:inherit;border:0;cursor:pointer;border-radius:20px;background:#1f2730;color:#e8eef4;padding:16px;display:flex;flex-direction:column;gap:12px;box-sizing:border-box;text-align:left;min-width:0}
+.ot .pic{height:116px;border-radius:14px;background:#0f151b;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);overflow:hidden;display:flex;align-items:center;justify-content:center}
+.ot .pic.on{background:#0f151b;box-shadow:inset 0 0 0 1px rgba(124,196,238,.25)}
+.ot .pic svg{display:block}
+.ot .t{font-size:20px;font-weight:650}
+.ot .s{font-size:15px;color:#808c99;line-height:1.35;margin-top:-6px}
+.chip{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px;border-radius:12px;background:#2e3844;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);font-size:16px;font-weight:650}
+.chip i{font-style:normal;font-family:'Geist Mono',monospace;font-size:14px;color:#808c99}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="flex: none; display: flex; align-items: center; gap: 20px; padding: 32px 48px 20px">
+<span style="display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 50%; background: #e8eef4; color: #0d1217; font-weight: 700; font-size: 20px">A</span>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 16px; color: #808c99">A button · Press sends</span>
+<span style="font-size: 32px; font-weight: 700">Controller action</span>
+</div>
+<div style="margin-left: auto; display: flex; align-items: center; gap: 12px; background: #1f2730; border-radius: 16px; padding: 14px 20px; font-size: 17px; color: #d4dde6">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7cc4ee" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg>
+Search every action
+<span class="g" style="margin-left: 6px">Y</span>
+</div>
+</header>
+
+<nav style="flex: none; display: flex; align-items: center; gap: 6px; padding: 0 48px 20px">
+<span class="gp" style="margin-right: 8px">LT</span>
+<button class="tab">Gyro<i>10</i></button>
+<button class="tab">Calibrate<i>7</i></button>
+<button class="tab">Rumble &amp; sound<i>16+</i></button>
+<button class="tab">Light<i>3</i></button>
+<button class="tab" style="background: #1d445c; color: #ffffff">Other<i style="background: #3e9fd8; color: #07131d">5</i></button>
+<span class="gp" style="margin-left: 8px">RT</span>
+</nav>
+
+<main style="flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 28px; padding: 4px 48px 24px">
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: auto auto; align-content: start; gap: 16px; min-width: 0">
+
+<button class="ot">
+<span class="pic"><svg viewBox="0 0 220 116" width="220" height="116" fill="none">
+<g transform="translate(26 26)">
+<rect x="0" y="0" width="168" height="66" rx="12" fill="#2e3844" stroke="rgba(255,255,255,.1)"></rect>
+<g fill="#3a4757"><rect x="10" y="10" width="18" height="14" rx="4"></rect><rect x="32" y="10" width="18" height="14" rx="4"></rect><rect x="54" y="10" width="18" height="14" rx="4"></rect><rect x="76" y="10" width="18" height="14" rx="4"></rect><rect x="98" y="10" width="18" height="14" rx="4"></rect><rect x="120" y="10" width="18" height="14" rx="4"></rect><rect x="142" y="10" width="16" height="14" rx="4"></rect><rect x="16" y="28" width="18" height="14" rx="4"></rect><rect x="38" y="28" width="18" height="14" rx="4"></rect><rect x="60" y="28" width="18" height="14" rx="4"></rect><rect x="82" y="28" width="18" height="14" rx="4"></rect><rect x="104" y="28" width="18" height="14" rx="4"></rect><rect x="126" y="28" width="32" height="14" rx="4"></rect><rect x="40" y="46" width="88" height="12" rx="4"></rect></g>
+</g>
+</svg></span>
+<span class="t">Open keyboard</span><span class="s">Shows or hides the on-screen keyboard</span>
+</button>
+
+<button class="ot">
+<span class="pic"><svg viewBox="0 0 220 116" width="220" height="116" fill="none">
+<circle cx="110" cy="58" r="34" fill="#2e3844" stroke="rgba(255,255,255,.12)" stroke-width="1.5"></circle>
+<rect x="97" y="42" width="9" height="32" rx="3" fill="#d4dde6"></rect>
+<rect x="114" y="42" width="9" height="32" rx="3" fill="#d4dde6"></rect>
+<path d="M58 58a52 52 0 0 1 20-41M162 58a52 52 0 0 1-20 41" stroke="#5b6571" stroke-width="2" stroke-linecap="round"></path>
+<path d="M74 14l5 4-6 3M146 102l-5-4 6-3" stroke="#5b6571" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg></span>
+<span class="t">Pause / resume mapping</span><span class="s">The controller acts as itself until pressed again</span>
+</button>
+
+<button class="ot focus" style="background: #1d445c">
+<span class="pic on"><svg viewBox="0 0 220 116" width="220" height="116" fill="none">
+<path d="M48 88C70 108 150 108 172 88" stroke="#7cc4ee" stroke-width="2" stroke-dasharray="4 5" stroke-linecap="round"></path>
+<path d="M54 82l-6 6 8 3" stroke="#7cc4ee" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+
+<rect x="24" y="36" width="44" height="40" rx="11" fill="#3e9fd8"></rect>
+
+<text x="46" y="63" fill="#07131d" font-size="17" font-weight="700" font-family="Geist, sans-serif" text-anchor="middle">1</text>
+<path d="M76 56h10M83 52l4 4-4 4" stroke="#b0bcc8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+<rect x="88" y="36" width="44" height="40" rx="11" fill="#2e3844" stroke="rgba(255,255,255,.12)"></rect>
+<text x="110" y="63" fill="#d4dde6" font-size="17" font-weight="700" font-family="Geist, sans-serif" text-anchor="middle">2</text>
+<path d="M140 56h10M147 52l4 4-4 4" stroke="#b0bcc8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+<rect x="152" y="36" width="44" height="40" rx="11" fill="#2e3844" stroke="rgba(255,255,255,.12)"></rect>
+<text x="174" y="63" fill="#d4dde6" font-size="17" font-weight="700" font-family="Geist, sans-serif" text-anchor="middle">3</text>
+</svg></span>
+<span class="t">Cycle through keys</span><span class="s" style="color: #b8e2fa">Next one each press · A to use</span>
+</button>
+
+<button class="ot">
+<span class="pic"><svg viewBox="0 0 220 116" width="220" height="116" fill="none">
+<circle cx="110" cy="58" r="34" fill="#2e3844" stroke="rgba(255,255,255,.12)" stroke-width="1.5"></circle>
+<path d="M98 44a20 20 0 1 0 24 0" stroke="#d4dde6" stroke-width="3.5" stroke-linecap="round"></path>
+<path d="M110 36v22" stroke="#d4dde6" stroke-width="3.5" stroke-linecap="round"></path>
+</svg></span>
+<span class="t">Turn off controller</span><span class="s">Steam Controller (2026) only</span>
+</button>
+
+<button class="ot">
+<span class="pic"><svg viewBox="0 0 220 116" width="220" height="116" fill="none">
+
+<circle cx="110" cy="58" r="40" fill="#0e1419" stroke="#aebbc8" stroke-width="1.5"></circle>
+
+<circle cx="110" cy="58" r="17" fill="#212a34" stroke="#e3eaf1" stroke-width="2"></circle>
+<circle cx="110" cy="58" r="10" stroke="#aebbc8" stroke-width="1.5"></circle>
+<path d="M162 40l12 18-12 18M58 40L46 58l12 18" stroke="#808c99" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg></span>
+<span class="t">Change a stick while held</span><span class="s">A stick takes another mode while you hold A</span>
+</button>
+</div>
+
+<aside style="background: #1a222b; border-radius: 22px; padding: 24px; display: flex; flex-direction: column; gap: 14px; box-sizing: border-box; min-width: 0">
+<span class="lbl">Selected</span>
+<div style="height: 190px; flex: none; border-radius: 16px; background: #0f151b; overflow: hidden">
+<svg viewBox="0 0 332 190" width="100%" height="190" fill="none">
+
+<ellipse cx="166" cy="98" rx="120" ry="58" stroke="rgba(255,255,255,.07)" stroke-width="10"></ellipse>
+<path d="M46 98A120 58 0 0 1 286 98" stroke="#3e9fd8" stroke-width="3" stroke-linecap="round"></path>
+<path d="M278 88l8 10 6-12" stroke="#b8e2fa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+
+<rect x="138" y="22" width="56" height="50" rx="14" fill="#3e9fd8"></rect>
+
+<text x="166" y="55" fill="#07131d" font-size="20" font-weight="700" font-family="Geist, sans-serif" text-anchor="middle">1</text>
+<rect x="246" y="96" width="48" height="42" rx="12" fill="#2e3844" stroke="rgba(255,255,255,.12)"></rect>
+<text x="270" y="123" fill="#d4dde6" font-size="18" font-weight="700" font-family="Geist, sans-serif" text-anchor="middle">2</text>
+<rect x="38" y="96" width="48" height="42" rx="12" fill="#2e3844" stroke="rgba(255,255,255,.12)"></rect>
+<text x="62" y="123" fill="#d4dde6" font-size="18" font-weight="700" font-family="Geist, sans-serif" text-anchor="middle">3</text>
+<text x="166" y="170" fill="#808c99" font-size="14" font-family="Geist, sans-serif" text-anchor="middle">press · press · press · starts over</text>
+</svg>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 26px; font-weight: 700">Cycle through keys</span>
+<span style="font-size: 16px; color: #b0bcc8">2 to 32 steps</span>
+</div>
+<span style="font-size: 16px; line-height: 1.5; color: #b0bcc8">Each press of A sends the next key once, then it starts over. Keys, mouse buttons or gamepad buttons.</span>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 15px; color: #808c99">Starts with · change the steps in Fine-tune</span>
+<div style="display: flex; align-items: center; gap: 8px"><span class="chip"><i>1</i>1</span><span style="color: #5b6571">›</span><span class="chip"><i>2</i>2</span><span style="color: #5b6571">›</span><span class="chip"><i>3</i>3</span></div>
+</div>
+</aside>
+</main>
+
+<footer style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Wardogs · A button · Press · Controller action</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">A</span>Use Cycle through keys</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">Y</span>Search</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">LT</span><span class="gp">RT</span>Group</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Back</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

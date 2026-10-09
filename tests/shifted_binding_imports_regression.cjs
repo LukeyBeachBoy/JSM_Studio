@@ -68,41 +68,57 @@ const PROFILE = [
     await page.waitForFunction(() => (window.__reads || []).length > 0);
     assert.deepEqual(await page.evaluate(() => window.__reads), ['profiles-library/FPS Template.txt']);
 
-    // A shift is a row in the input's Modeshifts lane; its cog opens the
-    // shift's sheet with its commands as ordinary rows (3c).
-    await page.locator('details[data-input-command="S"] > summary').first().click();
-    await page.locator('details[data-input-command="S"][open] [data-modeshift-row="RSR"]').getByRole('button', { name: 'Modeshift settings' }).click();
-    const shifted = page.locator('[data-input-command="RSR,S"]').first();
-    const keycap = shifted.locator('[data-command-row]').first().getByRole('button', { name: /^Choose action/ });
-    await keycap.waitFor();
-    const pickKey = async key => {
-      await keycap.click();
-      await page.getByRole('dialog', { name: 'Choose an action' }).locator('button.key-cap').filter({ hasText: new RegExp(`^${key}$`) }).click();
+    // A shift is a row of the input's While holding page; "Every way of
+    // pressing, while held" opens its sheet, the same one the input has (console v2).
+    const eff = (text, key) => {
+      const lines = text.split('\n');
+      const own = lines.filter(line => line.startsWith(`# @controller type-24 ${key} = `)).pop();
+      const shared = lines.filter(line => line.startsWith(`${key} = `)).pop();
+      const line = own ? own.slice('# @controller type-24 '.length) : shared;
+      return line ? line.slice(key.length + 3).trim() : undefined;
     };
-    assert.match(await keycap.innerText(), /Hyphen|^-$/, 'the shifted binding did not load');
+    await page.locator('details[data-input-command="S"] > summary').first().click();
+    await page.locator('details[data-input-command="S"][open] [data-fold="while-holding"]').click();
+    await page.locator('[data-modeshift-row="RSR"]').click();
+    await page.getByRole('button', { name: /Every way of pressing/ }).click();
+    const shifted = page.locator('[data-input-command="RSR,S"]').first();
+    const chip = shifted.locator('[data-chip-command]').first();
+    await chip.waitFor();
+    const label = async () => (await chip.getAttribute('aria-label')).replace(/^Choose action: /, '');
+    const pickKey = async key => {
+      await chip.click();
+      // The key picker (console v2): Tab is on Common in games.
+      const picker = page.locator('[data-picker="key"]');
+      await picker.waitFor();
+      await picker.locator('[data-category="common"]').click();
+      await picker.locator(`button.key-cap[data-token="${key.toUpperCase()}"]`).click();
+      await picker.waitFor({ state: 'detached' });
+    };
+    assert.match(await label(), /Hyphen|^-$/, 'the shifted binding did not load');
 
-    // --- the action picker ----------------------------------------------------
+    // --- the key picker -------------------------------------------------------
     await pickKey('Tab');
     await page.waitForTimeout(400);
-    assert.equal(await keycap.innerText(), 'Tab', 'the edit snapped back: the card read a different line than it wrote');
+    assert.equal(await label(), 'Tab', 'the edit snapped back: the sheet read a different line than it wrote');
 
-    // --- capture --------------------------------------------------------------
-    // X on an existing command captures into it. The lane's Capture button
-    // adds a new command, so it cannot verify editing this command's output.
-    await keycap.focus();
+    // --- listen for a key ------------------------------------------------------
+    // The key picker's X listens into the command it was opened on (Also send adds a new one).
+    await chip.click();
+    await page.locator('[data-picker="key"]').waitFor();
     await page.keyboard.press('x');
-    await shifted.locator('[data-command-row][data-capturing="true"]').waitFor();
+    await page.waitForFunction(() => document.body.dataset.bindingCapture === 'true');
     await page.keyboard.press('KeyJ');
     await page.waitForTimeout(400);
-    assert.equal(await keycap.innerText(), 'J', 'capture did not reach the shifted binding');
+    assert.equal(await label(), 'J', 'capture did not reach the shifted binding');
 
     // --- and it is the shifted line that changed ------------------------------
     await page.keyboard.press('Control+s');
     await page.waitForFunction(() => /RSR,S/.test(window.__lastSaved || ''));
     const saved = await page.evaluate(() => window.__lastSaved);
-    assert.match(saved, /^RSR,S = J$/m, `the shifted line was not written:\n${saved}`);
+    assert.equal(eff(saved, 'RSR,S'), 'J', `the shifted line was not written:\n${saved}`);
     assert.match(saved, /^S = SPACE/m, `the unshifted binding was changed instead:\n${saved}`);
-    assert.match(saved, /^RSR,W = U$/m, `another shifted binding was disturbed:\n${saved}`);
+    assert.equal(eff(saved, 'RSR,W'), 'U', `another shifted binding was disturbed:\n${saved}`);
+
     assert.match(saved, /^profiles-library\/FPS Template\.txt$/m, 'the import line was lost');
     // The template's own text must never be written into the profile.
     assert.ok(!/^E = LCONTROL$/m.test(saved), `the import was inlined into the profile:\n${saved}`);

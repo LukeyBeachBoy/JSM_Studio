@@ -1,4 +1,4 @@
-/* Change icon and the icon modal (binding card refresh 3d, 1g). */
+/* Change icon and the full-screen icon picker (console v2, IconPicker.dc.html). */
 
 .glyph {
   width: 18px;
@@ -7,104 +7,108 @@
   flex: 0 0 auto;
 }
 
-/* The modal: 840 × 580, radius 14; header 68 · tabs 52 · grid · footer 56. */
-.modal { border-radius: 14px; box-shadow: var(--shadow-menu); }
-.modal :global(.dialog__header) { height: 68px; padding: 0 24px; }
-.modal :global(.dialog__title) { font-size: 17px; line-height: 22px; }
-
-.preview {
-  width: 40px;
-  height: 40px;
+/* The header's lead: the current icon in a 52px square. */
+.lead {
+  width: 52px;
+  height: 52px;
   display: inline-grid;
-  flex: none;
   place-items: center;
-  border-radius: var(--r-row);
-  background: var(--surface-sunken);
+  border-radius: 16px;
+  background: var(--surface-control);
+  box-shadow: inset 0 0 0 1px var(--line-2);
   color: var(--text-1);
 }
 
 .search {
-  width: 240px;
-  height: 36px;
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  gap: 8px;
-  padding: 0 12px;
-  border-radius: var(--r-md);
-  background: var(--surface-sunken);
-  color: var(--text-3);
-}
-.search input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--text-1); font: inherit; font-size: var(--fs-hint); outline: none; }
-
-.tabs {
-  height: 52px;
   display: flex;
-  flex: none;
   align-items: center;
-  gap: 6px;
-  padding: 0 24px;
-  box-shadow: inset 0 -1px 0 var(--line-1);
+  gap: var(--sp-3);
+  height: 52px;
+  padding: 0 var(--sp-4) 0 var(--sp-5);
+  border-radius: 16px;
+  background: var(--surface-row);
+  color: var(--accent);
+  max-width: 520px;
 }
-.tab {
-  height: 32px;
-  padding: 0 14px;
-  border: 0;
-  border-radius: var(--r-pill);
-  background: transparent;
-  color: var(--text-2);
-  font: inherit;
-  font-size: var(--fs-hint);
-  font-weight: var(--fw-semibold);
-  cursor: pointer;
-}
-.tab:hover { background: var(--surface-control); }
-.tab[aria-pressed='true'] { background: var(--accent); color: var(--text-on-accent); }
+.search:focus-within { box-shadow: inset 0 0 0 2px var(--accent-strong); }
+.search input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--text-1); font: inherit; font-size: 17px; outline: none; }
 
-/* 56 tiles, left-aligned: a short row starts at the left, not the middle.
-   The grid is the dialog's scrolling body. */
+/* 8 labelled tiles a row, 100px tall. */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, 56px);
-  grid-auto-rows: 56px;
-  justify-content: start;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  grid-auto-rows: 100px;
+  gap: 12px;
   align-content: start;
-  gap: 10px;
-  min-height: 0;
-  padding: 20px 24px;
-  overflow-y: auto;
+  outline: none;
 }
+@media (max-width: 1280px) { .grid { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
 .tile {
   position: relative;
-  width: 56px;
-  height: 56px;
-  display: grid;
-  place-items: center;
-  padding: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 6px;
   border: 0;
-  border-radius: var(--r-row);
-  background: var(--surface-sunken);
+  border-radius: 16px;
+  background: var(--surface-row);
   color: var(--text-1);
+  font: inherit;
   cursor: pointer;
 }
 .tile:hover { background: var(--surface-row-hover); }
-/* The current icon is filled and badged; the ring belongs to focus alone, so
-   a pad user can tell the one they are on from the one they have. */
-.tile[aria-pressed='true'] { background: var(--surface-selected); }
+:global(body[data-input-source='controller']) .tile:focus { background: var(--surface-selected); }
+.tile[aria-pressed='true'] { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 55%, transparent); }
+.tileGlyph { width: 40px; height: 40px; fill: currentColor; flex: none; }
+.tileLabel { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; color: var(--text-3); }
+.tile:focus .tileLabel, .tile[aria-pressed='true'] .tileLabel { color: var(--accent); }
 .tileCheck {
   position: absolute;
-  right: 4px;
-  bottom: 4px;
-  width: 16px;
-  height: 16px;
+  top: 8px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
   display: inline-grid;
   place-items: center;
   border-radius: 50%;
-  background: var(--accent);
+  background: var(--ok);
   color: var(--text-on-accent);
 }
-.tileGlyph { width: 24px; height: 24px; fill: currentColor; }
-/* "Show more": one full row under the tiles. */
-.more { grid-column: 1 / -1; justify-self: start; }
+/* "Show 160 more": a full row under the tiles. */
+.more {
+  grid-column: 1 / -1;
+  height: 52px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  box-shadow: inset 0 0 0 2px var(--surface-control);
+  color: var(--text-2);
+  font: inherit;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+}
+:global(body[data-input-source='controller']) .more:focus { background: var(--surface-selected); color: var(--text-1); }
+.status { grid-column: 1 / -1; margin: 0; color: var(--text-3); font-size: 16px; }
+.empty { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 6px; padding: var(--sp-6); border-radius: 18px; background: var(--surface-nav); }
+.empty b { font-size: 20px; }
+.empty span { color: var(--text-2); font-size: 16px; }
 
-.status { grid-column: 1 / -1; margin: 0; color: var(--text-3); font-size: var(--fs-hint); }
+/* ---- The aside: "On the menu" */
+.lbl { font-size: 14px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-3); font-weight: 600; }
+.previewWell { height: 240px; flex: none; border-radius: 16px; background: var(--surface-sunken); display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 6px; }
+.previewWell > div { margin: 0 !important; }
+.previewFallback { display: grid; place-items: center; width: 140px; height: 140px; border-radius: 50%; background: var(--accent-strong); color: var(--text-on-accent); }
+.focusedName { display: flex; flex-direction: column; gap: 4px; }
+.focusedName b { font-size: 24px; font-weight: 700; }
+.focusedName span { font-size: 16px; color: var(--text-2); }
+.nowCard { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; background: var(--surface-row); }
+.nowIcon { display: inline-flex; color: var(--text-1); }
+.nowText { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.nowText span { font-size: 15px; color: var(--text-3); }
+.nowText b { font-size: 17px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nowClear { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; border: 0; background: transparent; color: var(--text-3); font: inherit; font-size: 15px; cursor: pointer; white-space: nowrap; }
+.note { margin-top: auto; font-size: 15px; line-height: 1.4; color: var(--text-3); }

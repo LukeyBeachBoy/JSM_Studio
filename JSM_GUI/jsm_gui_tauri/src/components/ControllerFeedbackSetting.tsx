@@ -20,7 +20,7 @@ export function ControllerFeedbackSetting({ className = '' }: { className?: stri
 
   return (
     <div className={`${styles.row} ${className}`.trim()} data-hints="MOVE:Choose;A:Select;B:Back"
-      title="Haptic ticks as you move, select, and step sections and pages. Controllers without haptics get a short rumble for selections and steps.">
+      data-caption="Haptic ticks as you move, select, and step sections and pages. Controllers without haptics get a short rumble for selections and steps.">
       <span className={styles.text}>Controller feedback</span>
       <div className="segmented" role="radiogroup" aria-label="Controller feedback">
         {OPTIONS.map(option => (

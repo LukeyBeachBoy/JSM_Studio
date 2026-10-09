@@ -49,36 +49,41 @@ const PROFILE = [
       } };
     }, PROFILE);
     await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
+    // A Steam Controller's first connection asks about its power-on sound.
+    await page.addLocatorHandler(page.getByRole('button',{name:'Keep them',exact:true}), async () => { await page.getByRole('button',{name:'Keep them',exact:true}).click() });
     // The app opens on Home (console refinement 2a); these checks start in the editing shell.
     await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
     await page.locator('.profile-chip').filter({ hasText: 'Lines' }).waitFor();
     await page.locator('[data-overview-input="RSR"]').waitFor();
 
-    // A callout is two fixed lines (2a, 2g): the name, then chips -- a layer
-    // it drives, the inputs it shifts. The full account is the inspector's
+    // A callout is one fixed line (console v2, Layout.dc.html): the glyph,
+    // what it does, a short output. The full account is the focus card's
     // (and the callout's accessible name), never inline, so holding or
     // editing nothing makes a callout grow.
     const row = input => page.locator(`[data-overview-input="${input}"]`).evaluate(el => ({
-      chips: [...el.querySelectorAll('[class*=chip]')].map(s => ({ concept: s.dataset.concept, text: s.innerText.trim(), icon: Boolean(s.querySelector('svg')) })),
+      text: el.innerText.replace(/\s+/g, ' ').trim(),
+      tinted: el.dataset.tinted === 'true',
       label: el.getAttribute('aria-label'),
       height: el.getBoundingClientRect().height,
     }));
 
-    // A layer action is a layer chip, with the layer mark.
+    // A mode switch reads as one, in its mode's colour: "Comms mode · hold".
     const hold = await row('RSR');
-    assert.deepEqual(hold.chips.filter(chip => chip.concept === 'layer'), [{ concept: 'layer', text: 'Comms', icon: true }],
-      `a layer action must be shown as a layer chip: ${JSON.stringify(hold)}`);
-    assert.match(hold.label, /Hold Comms/, 'the inspector still says what it does');
+    assert.match(hold.text, /Comms layer hold/, `a layer switch must say which layer and how: ${JSON.stringify(hold)}`);
+    assert.ok(hold.tinted, 'and is tinted in the mode colour');
+    assert.match(hold.label, /Hold Comms/, 'the accessible name still says what it does');
 
     // A modifier is a "Shifts …" chip naming the one input it changes (a
     // count for more); what it changes it to is the inspector's.
     // Input names follow the connected controller; wait for its telemetry.
     await page.waitForFunction(() => /While held: Menu/.test(document.querySelector('[data-overview-input="LSL"]')?.getAttribute('aria-label') ?? ''));
     const single = await row('LSL');
-    assert.deepEqual(single.chips.filter(chip => chip.concept === 'shift').map(chip => chip.text), ['Shifts Menu']);
+    assert.match(single.text, /Changes Menu while held/, 'a modifier names the input it changes, while held');
     assert.match(single.label, /While held: Menu \u2192 Load Wardogs Menu/,
       `a single modeshift must say what it changes it to: ${JSON.stringify(single)}`);
-    assert.ok(!/While held/.test(await page.locator('[data-overview-input="LSL"]').innerText()), 'relation prose is still inline');
+    assert.ok(!/While held:/.test(single.text), 'relation prose is still inline');
+    await page.locator('[data-overview-input="LSL"]').focus();
+    assert.match(await page.locator('[data-focus-card]').innerText(), /While held: Menu/, 'the focus card gives the full account');
 
     // Several: name the first few, count the rest. A pad cell is the pad it
     // belongs to (Right trackpad), not a raw "RT1" or a title-cased "Rt1".
@@ -87,7 +92,7 @@ const PROFILE = [
       `a crowded modifier names what it can: ${JSON.stringify(many)}`);
     assert.ok(/Right trackpad/.test(many.label), `a pad cell counts as its pad: ${many.label}`);
     assert.ok(!/R[Tt]\d/.test(many.label), `and is not named by its key: ${many.label}`);
-    for (const callout of [hold, single, many]) assert.equal(Math.round(callout.height), 56, 'callouts are a fixed 56 high');
+    for (const callout of [hold, single, many]) assert.equal(Math.round(callout.height), 50, 'callouts are a fixed 50 high');
 
     // The old wording is gone everywhere, not just on these rows.
     const body = await page.locator('body').innerText();
@@ -95,7 +100,7 @@ const PROFILE = [
     assert.ok(!/changed inputs \/ settings/.test(body), 'nor its counted half');
 
     assert.deepEqual(errors, [], `page errors: ${errors.join(', ')}`);
-    console.log('PASS: callouts are two fixed lines of name and chips; what a modifier changes is the inspector\'s');
+    console.log('PASS: callouts are one fixed line; mode switches are tinted; what a modifier changes is the focus card\'s');
   } finally {
     await browser.close();
   }

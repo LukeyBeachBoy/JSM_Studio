@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Gyro stick settings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.grp{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;flex-direction:column;gap:4px;padding:14px 20px;box-sizing:border-box;border-radius:14px;background:transparent;color:#b0bcc8;text-align:left}
+.grp .t{font-size:19px;font-weight:600}
+.grp .s{font-size:15px;color:#808c99}
+.grp .c{font-size:14px;line-height:1.4;color:#808c99}
+.row{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;align-items:center;gap:16px;min-height:76px;padding:14px 22px;box-sizing:border-box;border-radius:16px;background:#1f2730;color:#e8eef4;text-align:left}
+.val{margin-left:auto;font-family:'Geist Mono',monospace;font-size:19px;font-weight:500;color:#d4dde6;white-space:nowrap}
+.tag{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:13px;background:#2e3844;color:#b0bcc8;font-size:14px;font-weight:600}
+.sw{width:52px;height:30px;border-radius:15px;background:#2e3844;position:relative;flex:none;margin-left:auto}
+.sw span{position:absolute;top:4px;left:4px;width:22px;height:22px;border-radius:50%;background:#808c99}
+.sw.y{background:#3e9fd8}
+.sw.y span{left:26px;background:#ffffff}
+.stage{flex:1;display:flex;flex-direction:column;gap:2px;padding:10px;border-radius:12px;background:#0f151b;min-width:0}
+.stage .t{font-size:14px;font-weight:600;color:#b0bcc8;white-space:nowrap}
+.stage .s{font-size:14px;color:#808c99}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="height: 76px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 40px; background: #0d1217">
+<span style="font-size: 18px; color: #808c99">Wardogs · Gyro</span>
+<span style="font-size: 18px; color: #5b6571">▸</span>
+<span style="font-size: 18px; color: #808c99">Fine-tune</span>
+<span style="font-size: 18px; color: #5b6571">▸</span>
+<span style="font-size: 18px; color: #808c99">Direction</span>
+<span style="font-size: 18px; color: #5b6571">▸</span>
+<span style="font-size: 22px; font-weight: 700">Right stick settings</span>
+<span style="margin-left: auto; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 20px; background: #4a3320; color: #ffc98f; font-size: 16px; font-weight: 600"><span style="width: 9px; height: 9px; border-radius: 50%; background: #f0a05a"></span>Unsaved · ☰ to save</span>
+</header>
+
+<main style="flex: 1; min-height: 0; display: grid; grid-template-columns: 280px minmax(0, 1fr) 500px; gap: 28px; padding: 32px 40px 24px">
+
+<nav style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: center; gap: 8px; margin: 0 0 10px 20px; font-size: 14px; color: #808c99"><span class="gp">LT</span>Part<span class="gp">RT</span></div>
+<button class="grp"><span class="t">Setup</span><span class="s">Xbox 360 pad · camera speed</span><span class="c">Virtual pad, camera speed or hold the angle, game turn rate, real stick mix</span></button>
+<button class="grp" style="background: #1f2730; color: #ffffff"><span class="t">Deadzone &amp; curve</span><span class="s" style="color: #7cc4ee">Changed: skip deadzone 18%</span><span class="c">Skip the game’s deadzone, full speed sooner, undo its curve, test signal</span></button>
+</nav>
+
+<section style="display: flex; flex-direction: column; gap: 12px; min-width: 0">
+<div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px">
+<h1 style="margin: 0; font-size: 32px; font-weight: 700">Deadzone &amp; curve</h1>
+<p style="margin: 0; font-size: 17px; color: #b0bcc8">Undo the game’s own stick handling, so small turns aren’t lost.</p>
+</div>
+
+<div class="focus" style="background: #1d445c; border-radius: 16px; padding: 18px 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px"><span style="font-size: 20px; font-weight: 650">Skip the game’s deadzone</span><span style="font-size: 30px; font-weight: 700">18%</span></div>
+<div style="position: relative; height: 8px; border-radius: 4px; background: #0f151b"><span style="position: absolute; left: 0; top: 0; height: 8px; width: 18%; border-radius: 4px; background: #3e9fd8"></span><span style="position: absolute; left: 18%; top: -8px; width: 24px; height: 24px; margin-left: -12px; border-radius: 50%; background: #ffffff; box-shadow: 0 0 0 5px rgba(62,159,216,.3)"></span></div>
+<span style="font-size: 15px; line-height: 1.45; color: #b8e2fa">With the test signal on, raise it until the camera just starts to creep, then back off a touch.</span>
+</div>
+
+<button class="row"><span style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 20px; font-weight: 650">Deadzone test signal</span><span style="font-size: 15px; color: #808c99">Holds the stick at that edge; turn off when done</span></span><span class="sw y"><span></span></span></button>
+
+<button class="row"><span style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 20px; font-weight: 650">Full speed sooner</span><span style="font-size: 15px; color: #808c99">If the game maxes out before the edge</span></span><span class="val">0%</span><span class="tag">Default</span></button>
+
+<button class="row"><span style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 20px; font-weight: 650">Undo the game’s curve</span><span style="font-size: 15px; color: #808c99">0 or 1 is straight; 2 undoes a squared curve</span></span><span class="val">0</span><span class="tag">Default</span></button>
+</section>
+
+<div style="background: #1a222b; border-radius: 20px; padding: 22px; display: flex; flex-direction: column; gap: 14px; min-width: 0">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 17px; font-weight: 600">Your virtual right stick</span><span style="font-family: 'Geist Mono', monospace; font-size: 13px; color: #ffc98f">● test signal on</span></div>
+<svg viewBox="0 0 456 260" width="100%" height="260" fill="none">
+<defs>
+<pattern id="vst3" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><path d="M0 0V6" stroke="#f0a05a" stroke-opacity=".45" stroke-width="2"></path></pattern>
+</defs>
+<circle cx="112" cy="128" r="104" stroke="#e3eaf1" stroke-width="2"></circle>
+<circle cx="112" cy="128" r="101" fill="#0e1419"></circle>
+<g stroke="rgba(255,255,255,.09)" stroke-width="1.4" stroke-linecap="round" transform="translate(112 128)"><path d="M0 -96v5M0 96v-5M-96 0h5M96 0h-5M67.9 -67.9l-3.5 3.5M-67.9 67.9l3.5 -3.5M67.9 67.9l-3.5 -3.5M-67.9 -67.9l3.5 3.5"></path></g>
+<path d="M112 32v192M16 128h192" stroke="rgba(255,255,255,.04)"></path>
+<circle cx="112" cy="128" r="90" stroke="#5b6571" stroke-width="1.4" stroke-dasharray="2 5"></circle>
+<circle cx="112" cy="128" r="22" fill="url(#vst3)"></circle>
+<circle cx="112" cy="128" r="22" stroke="#7cc4ee" stroke-width="1.6" stroke-dasharray="3 3"></circle>
+<circle cx="127.6" cy="112.4" r="15" fill="#212a34" stroke="#aebbc8" stroke-width="1.5"></circle>
+<circle cx="127.6" cy="112.4" r="5" fill="#a6d65a" stroke="#e3eaf1" stroke-width="2"></circle>
+<text x="112" y="250" fill="#ffc98f" font-size="13" font-family="Geist, sans-serif" text-anchor="middle">Game ignores the striped middle</text>
+
+<g stroke="rgba(255,255,255,.05)"><path d="M250 30H446M250 93H446M250 157H446"></path><path d="M299 30V220M348 30V220M397 30V220"></path></g>
+<path d="M250 220H446M250 220V30" stroke="#2e3844" stroke-width="1.5"></path>
+<path d="M250 220L446 30" stroke="#808c99" stroke-width="1.6" stroke-dasharray="5 6" opacity=".7"></path>
+<path d="M250 220V185.8L446 30" stroke="#3e9fd8" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path>
+<circle cx="250" cy="185.8" r="4.5" fill="#ffffff"></circle>
+<text x="290" y="212" fill="#b8e2fa" font-size="13" font-weight="600" font-family="Geist, sans-serif">jumps to 18%</text>
+<text x="348" y="240" fill="#808c99" font-size="13" font-family="Geist, sans-serif" text-anchor="middle">Camera speed you ask for →</text>
+<text x="258" y="22" fill="#808c99" font-size="13" font-family="Geist, sans-serif">Stick sent ↑</text>
+</svg>
+<div style="display: flex; gap: 12px">
+<div style="flex: 1; background: #0f151b; border-radius: 14px; padding: 12px 16px; display: flex; flex-direction: column; gap: 4px; min-width: 0"><span style="font-size: 14px; color: #808c99">Virtual pad</span><span style="font-size: 20px; font-weight: 700">Xbox 360</span></div>
+<div style="flex: 1; background: #0f151b; border-radius: 14px; padding: 12px 16px; display: flex; flex-direction: column; gap: 4px; min-width: 0"><span style="font-size: 14px; color: #808c99">Game turn rate</span><span style="font-size: 20px; font-weight: 700">360 °/s</span></div>
+<div style="flex: 1; background: #0f151b; border-radius: 14px; padding: 12px 16px; display: flex; flex-direction: column; gap: 4px; min-width: 0"><span style="font-size: 14px; color: #808c99">Stick now</span><span style="font-family: 'Geist Mono', monospace; font-size: 18px; font-weight: 500; color: #93e6c1">0.13, 0.12</span></div>
+</div>
+<span style="font-size: 15px; line-height: 1.5; color: #808c99">Dashed is the game without the fix. The live dot is what the game receives.</span>
+</div>
+
+</main>
+
+<footer style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Wardogs · Gyro · Direction · Right stick</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px">◂ ▸ Adjust</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">X</span>Try it</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">Y</span>Type · reset</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">LT</span><span class="gp">RT</span>Part</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Back to Direction</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -29,6 +29,5 @@
 .tile[aria-checked='true'] { background: var(--surface-selected); color: var(--text-1); box-shadow: inset 0 0 0 2px var(--accent); }
 .tile:disabled { opacity: var(--disabled-opacity); cursor: default; }
 :global(body[data-input-source='controller']) .tile:focus {
-  box-shadow: 0 0 0 var(--focus-controller-width) var(--focus-controller), var(--shadow-lift);
-  transform: translateY(-1px);
+  box-shadow: var(--focus-ring-pad);
 }

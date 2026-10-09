@@ -26,10 +26,10 @@ export class ErrorBoundary extends Component<Props, State> {
         <div className="boot-card error-card">
           <div className="boot-copy">
             <div className="boot-title">JSM Evolved hit a problem</div>
-            <div className="boot-subtitle">The interface stopped drawing. The mapper is still running with the last applied configuration.</div>
+            <div className="boot-subtitle">The interface stopped drawing. The mapper is still running with the configuration that was live.</div>
             <pre className="error-card__detail">{error.message}</pre>
             <div className="error-card__actions">
-              <button type="button" className="button button--primary" onClick={() => window.location.reload()}>Reload Studio</button>
+              <button type="button" className="button button--primary" onClick={() => window.location.reload()}>Reload the app</button>
             </div>
           </div>
         </div>

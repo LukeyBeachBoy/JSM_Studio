@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Startup</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.btn{font-family:inherit;border:0;cursor:pointer}
+.cat{font-family:inherit;border:0;background:transparent;color:#b0bcc8;font-size:19px;font-weight:500;height:56px;padding:0 20px;border-radius:14px;text-align:left;cursor:pointer;display:flex;align-items:center;gap:14px;width:100%}
+.set{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;align-items:center;gap:16px;min-height:68px;padding:12px 22px;box-sizing:border-box;border-radius:14px;background:#1f2730;color:#e8eef4;text-align:left}
+.set .t{font-size:19px;font-weight:600}
+.set .s{font-size:15px;color:#808c99}
+.sw{width:56px;height:32px;border-radius:16px;background:#2e3844;position:relative;flex:none;margin-left:auto}
+.sw span{position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:50%;background:#808c99}
+.sw.y{background:#3e9fd8}
+.sw.y span{left:28px;background:#ffffff}
+.lbl{font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#808c99;font-weight:600}
+.hatch{background:#1a2530;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+.cv{position:relative;min-height:112px;border-radius:14px;padding:12px 14px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-end;gap:2px;min-width:0}
+.cv .t{font-size:16px;font-weight:650}
+.cv .s{font-size:14px;color:#b0bcc8}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="height: 76px; flex: none; display: flex; align-items: center; padding: 0 40px; background: #0d1217">
+<span style="font-size: 22px; font-weight: 700">Settings</span>
+<span style="margin-left: 16px; font-size: 16px; color: #808c99">For every configuration</span>
+</header>
+
+<main style="flex: 1; min-height: 0; display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 40px; padding: 30px 40px 24px">
+<nav style="display: flex; flex-direction: column; gap: 4px">
+<button class="cat">Controller</button>
+<button class="cat">Hold to swap</button>
+<button class="cat">Press timing</button>
+<button class="cat">Hide the real controller</button>
+<button class="cat">Look &amp; language</button>
+<button class="cat" style="background: #1f2730; color: #ffffff; font-weight: 650">Startup</button>
+<button class="cat">Assistant</button>
+<div style="height: 1px; background: #232c36; margin: 10px 20px"></div>
+<button class="cat" style="font-size: 17px; height: 48px">Guides &amp; reference</button>
+<button class="cat" style="font-size: 17px; height: 48px">Troubleshooting log</button>
+<button class="cat" style="font-size: 17px; height: 48px">About &amp; credits</button>
+</nav>
+
+<section style="display: flex; flex-direction: column; gap: 16px; min-width: 0">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<h1 style="margin: 0; font-size: 32px; font-weight: 700">Startup</h1>
+<p style="margin: 0; font-size: 17px; color: #b0bcc8">What happens when Windows starts, and keeping JSM Evolved up to date.</p>
+</div>
+
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 392px; gap: 28px; min-height: 0">
+<div style="display: flex; flex-direction: column; gap: 10px; min-width: 0">
+<button class="set"><span style="display: flex; flex-direction: column; gap: 3px"><span class="t">Start with Windows</span><span class="s">No permission prompt each time you sign in</span></span><span class="sw y"><span></span></span></button>
+<button class="set"><span style="display: flex; flex-direction: column; gap: 3px"><span class="t">Start in the tray</span><span class="s">Mapping runs; the window stays out of the way</span></span><span class="sw y"><span></span></span></button>
+
+<div style="border-radius: 14px; background: #1f2730; padding: 14px 22px 18px; display: flex; flex-direction: column; gap: 12px">
+<span style="display: flex; flex-direction: column; gap: 3px"><span style="font-size: 19px; font-weight: 600">What loads first</span><span style="font-size: 15px; color: #808c99">Until a game with its own configuration comes to the front</span></span>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+<div class="cv hatch">
+<span style="position: absolute; top: 12px; left: 14px; width: 30px; height: 30px; border-radius: 8px; background: #a43fd6"></span>
+<span class="t">Last one live</span><span class="s">Wardogs, today</span>
+</div>
+<div class="cv" style="background: #24323f; box-shadow: inset 0 0 0 2px #3e9fd8">
+<span style="position: absolute; top: 12px; left: 14px"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#7cc4ee" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M8 20h8M12 16v4"></path></svg></span>
+<span style="position: absolute; top: 12px; right: 12px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7cc4ee" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span>
+<span class="t">Desktop gamepad</span><span class="s">For Windows itself</span>
+</div>
+<div class="cv" style="background: transparent; box-shadow: inset 0 0 0 2px #2e3844">
+<span style="position: absolute; top: 12px; left: 14px"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#808c99" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"></path></svg></span>
+<span class="t" style="color: #d4dde6">Pick another</span><span class="s" style="color: #808c99">From your library</span>
+</div>
+</div>
+</div>
+
+<button class="set"><span style="display: flex; flex-direction: column; gap: 3px"><span class="t" style="display: flex; align-items: center; gap: 10px">Updates<span style="display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: 13px; background: #1e3d33; color: #93e6c1; font-size: 14px; font-weight: 600"><span style="width: 7px; height: 7px; border-radius: 50%; background: #5fd3a0"></span>Up to date</span></span><span class="s">Version 0.7.134 · checked when JSM Evolved started</span></span><span style="margin-left: auto; font-size: 17px; color: #7cc4ee; font-weight: 600; white-space: nowrap">Check now ▸</span></button>
+<span style="font-size: 15px; color: #808c99; margin: 0 6px; line-height: 1.45">When there’s a new version, a line under the header offers to install it and restart.</span>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 16px; min-width: 0">
+<div style="background: #1a222b; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 10px">
+<span class="lbl">When Windows starts</span>
+<svg viewBox="0 0 352 236" width="100%" height="236" fill="none">
+<path d="M24 30V206" stroke="#3e9fd8" stroke-opacity=".5" stroke-width="3" stroke-linecap="round"></path>
+<circle cx="24" cy="24" r="17" fill="#1d445c" stroke="rgba(124,196,238,.5)" stroke-width="1.2"></circle>
+<path d="M17 21h14v9H17zM21 18h6" stroke="#b8e2fa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+<text x="56" y="20" fill="#e8eef4" font-size="15" font-weight="650" font-family="Geist, sans-serif">You sign in to Windows</text>
+<text x="56" y="39" fill="#808c99" font-size="14" font-family="Geist, sans-serif">Start with Windows is on</text>
+<circle cx="24" cy="84" r="17" fill="#1d445c" stroke="rgba(124,196,238,.5)" stroke-width="1.2"></circle>
+<path d="M15 89h18M18 89v-9h12v9" stroke="#b8e2fa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+<circle cx="24" cy="80" r="2.4" fill="#b8e2fa"></circle>
+<text x="56" y="80" fill="#e8eef4" font-size="15" font-weight="650" font-family="Geist, sans-serif">JSM Evolved waits in the tray</text>
+<text x="56" y="99" fill="#808c99" font-size="14" font-family="Geist, sans-serif">Your controller already works</text>
+<circle cx="24" cy="144" r="17" fill="#1d445c" stroke="#7cc4ee" stroke-width="1.6"></circle>
+<rect x="15" y="137" width="18" height="12" rx="2" stroke="#ffffff" stroke-width="1.8"></rect>
+<path d="M20 153h8" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"></path>
+<text x="56" y="140" fill="#b8e2fa" font-size="15" font-weight="650" font-family="Geist, sans-serif">Desktop gamepad goes live</text>
+<text x="56" y="159" fill="#808c99" font-size="14" font-family="Geist, sans-serif">What loads first</text>
+<circle cx="24" cy="204" r="17" fill="#212a34" stroke="rgba(255,255,255,.12)" stroke-width="1.2"></circle>
+<rect x="16" y="196" width="16" height="16" rx="4" fill="#a43fd6"></rect>
+<text x="56" y="200" fill="#e8eef4" font-size="15" font-weight="650" font-family="Geist, sans-serif">You open Wardogs</text>
+<text x="56" y="219" fill="#808c99" font-size="14" font-family="Geist, sans-serif">Its configuration takes over</text>
+</svg>
+</div>
+
+<div style="border-radius: 18px; background: #1f2730; box-shadow: inset 0 0 0 2px #4a1f26; padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 12px">
+<span style="display: flex; align-items: center; gap: 10px; font-size: 19px; font-weight: 650; color: #ffb3bd"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e5484d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v5h5"></path></svg>Reset everything to defaults?</span>
+<span style="font-size: 15px; line-height: 1.45; color: #d4dde6">Startup, controller settings, shortcuts, look and language go back to how they came. Quick tools returns to the Steam and ··· buttons. Your configurations stay in your library.</span>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<button class="btn focus" style="height: 52px; border-radius: 14px; background: #1d445c; color: #ffffff; font-size: 18px; font-weight: 650">Cancel</button>
+<button class="btn" style="height: 52px; border-radius: 14px; background: #4a1f26; color: #ffb3bd; font-size: 18px; font-weight: 650">Reset everything</button>
+</div>
+<span style="font-size: 15px; color: #b8e2fa">Cancel comes first, so a stray press changes nothing.</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+
+<footer style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Settings · Startup · Reset everything</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">A</span>Cancel</span>
+<span style="display: flex; align-items: center; gap: 10px">◂ ▸ Choose</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Cancel</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

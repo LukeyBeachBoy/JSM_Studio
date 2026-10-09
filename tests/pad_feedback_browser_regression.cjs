@@ -35,73 +35,80 @@ const PROFILE = ['RESET_MAPPINGS', 'LEFT_TOUCHPAD_MODE = MOUSE', 'RIGHT_TOUCHPAD
 
 
 
+    // Console v2 (P4, TrackpadsFeel): Trackpads ▸ Fine-tune ▸ Feel. Each pad can
+    // have its own feel; Touch, Click and Release each pick a strength and effect.
     await page.getByRole('button', { name: 'Trackpads', exact: true }).click();
     const open = async side => {
-      await row(page.locator(`#trackpad-${side}`), /^Feedback$/).first().click();
-      const sheet = page.getByRole('dialog', { name: `${side === 'left' ? 'Left' : 'Right'} pad · Feedback`, exact: true });
-      await sheet.waitFor(); return sheet;
+      await page.locator('.section-item').filter({ hasText: side === 'left' ? 'Left pad' : 'Right pad' }).click();
+      await page.locator(`#trackpad-${side} [data-trackpad-fine-tune]`).click();
+      const sub = page.locator('[data-subpage]');
+      await sub.locator('[data-group="feel"]').click();
+      await sub.locator('[data-feel="touch"]').waitFor();
+      return sub;
     };
-    const adjust = async (choice, direction, count = 1) => {
-      await choice.focus(); await page.keyboard.press('Enter');
-      assert.equal(await choice.getAttribute('data-adjusting'), 'true');
-      for (let i = 0; i < count; i++) await page.keyboard.press(direction);
-      await page.keyboard.press('Enter');
-    };
+    const close = async sub => { await sub.locator('[data-modal-close]').evaluate(button => button.click()); await sub.waitFor({ state: 'detached' }); };
+    const own = (sub, name) => row(sub, new RegExp(`^${name} has its own feel`));
+    const segment = (sub, column, label) => sub.locator(`[data-feel="${column}"] [role="radiogroup"][aria-label="${label}"]`);
+    const chosen = async (sub, column, label) => (await segment(sub, column, label).locator('[data-current="true"]').innerText()).trim();
+    const step = async (target, key, count = 1) => { await target.focus(); for (let i = 0; i < count; i++) await page.keyboard.press(key); };
+    // A switch row (SummaryRow toggle): A adjusts, ◂ ▸ choose Off / On, A keeps.
+    const isOn = async target => (await target.locator('.summary-row__value').innerText()).trim() === 'On';
+    const flip = async target => { const on = await isOn(target); await target.focus(); await page.keyboard.press('Enter'); await page.keyboard.press(on ? 'ArrowLeft' : 'ArrowRight'); await page.keyboard.press('Enter'); };
     let sheet = await open('left');
-    assert.equal(await row(sheet, /^Separate feedback$/).getAttribute('aria-pressed'), 'false');
-    await row(sheet, /^Separate feedback$/).click();
-    const movement = sheet.locator('.row-group').filter({ has: page.getByText('Movement ticks', { exact: true }) });
-    assert.equal(await row(movement, /^Strength$/).locator('.summary-row__value').innerText(), '25%');
-    await adjust(row(movement, /^Strength$/), 'ArrowRight', 2);
-    await adjust(row(movement, /^Tick spacing$/), 'ArrowRight', 2);
-    await page.keyboard.press('Escape'); await sheet.waitFor({ state: 'detached' });
+    assert.equal(await isOn(own(sheet, 'Left pad')), false);
+    await flip(own(sheet, 'Left pad'));
+    assert.equal(await chosen(sheet, 'touch', 'Strength'), 'Light', 'its own feel starts from the shared 25%');
+    await step(segment(sheet, 'touch', 'Strength'), 'ArrowRight');
+    await step(sheet.locator('[data-feel="touch"] [role="slider"]').filter({ hasText: 'Tick every' }), 'ArrowRight', 2);
+    await close(sheet);
     sheet = await open('right');
-    await row(sheet, /^Separate feedback$/).click();
-    assert.equal(await sheet.getByText('Movement ticks', { exact: true }).count(), 0, 'menu mode hides mouse-only movement feedback');
-    await row(sheet, /^On click$/).click();
-    const strength = row(sheet, /^Strength$/); // only this event is expanded
-    await adjust(strength, 'ArrowRight', 8);
-    assert.equal(await strength.locator('.summary-row__value').innerText(), '40%');
-    assert.equal(await row(sheet, /^Effect$/).locator('.summary-row__value').innerText(), 'Sweep');
+    await flip(own(sheet, 'Right pad'));
+    assert.match(await sheet.locator('[data-feel="touch"]').innerText(), /Only while the pad moves the mouse/, 'a menu pad is told movement ticks are for mouse mode');
+    await step(segment(sheet, 'click', 'Strength'), 'ArrowRight', 2);
+    assert.equal(await chosen(sheet, 'click', 'Strength'), 'Medium');
+    assert.equal(await chosen(sheet, 'click', 'Effect'), 'Sweep');
     await sheet.screenshot({ path: 'C:/Users/luker/code/JSM_Studio/tmp/parity-verification/pad-feedback-right.png' });
-    await row(sheet, /^On click$/).click(); // collapse the nested editor before backing out of the sheet
-
-    await page.keyboard.press('Escape'); await sheet.waitFor({ state: 'detached' });
+    await close(sheet);
     await page.keyboard.press('Control+s');
-    await page.waitForFunction(() => /RIGHT_TOUCHPAD_CLICK_HAPTIC_INTENSITY = 40/.test(window.__lastSaved));
+    await page.waitForFunction(() => /RIGHT_TOUCHPAD_CLICK_HAPTIC_INTENSITY = 50/.test(window.__lastSaved));
     let saved = await page.evaluate(() => window.__lastSaved);
-    assert.match(saved, /^LEFT_TOUCHPAD_HAPTIC_INTENSITY = 35$/m);
-    assert.match(saved, /^LEFT_TOUCHPAD_HAPTIC_INTERVAL = 300$/m);
-    assert.match(saved, /^RIGHT_TOUCHPAD_HAPTIC_INTENSITY = 25$/m);
-    assert.match(saved, /^TOUCHPAD_HAPTIC_INTENSITY = 25$/m);
-    assert.match(saved, /^UNKNOWN_FEEDBACK = exact$/m);
-    // Same controls in a held-input pad, with native chorded values.
-    const shift = page.locator('#trackpad-left details[data-modeshift="MISC5"]');
-    await shift.locator(':scope > summary').click();
-    await row(shift, /^Feedback$/).click();
-    sheet = page.getByRole('dialog', { name: 'Left pad · Feedback', exact: true });
-    await sheet.waitFor();
-    assert.equal(await row(sheet, /^Separate feedback$/).getAttribute('aria-pressed'), 'false');
-    await row(sheet, /^Separate feedback$/).click();
-    await adjust(row(sheet, /^Strength$/), 'ArrowLeft');
-    await page.keyboard.press('Escape'); await sheet.waitFor({ state: 'detached' });
+    assert.match(saved, /^(?:# @controller type-\d+ )?LEFT_TOUCHPAD_HAPTIC_INTENSITY = 50$/m);
+    assert.match(saved, /^(?:# @controller type-\d+ )?LEFT_TOUCHPAD_HAPTIC_INTERVAL = 260$/m);
+    assert.match(saved, /^(?:# @controller type-\d+ )?RIGHT_TOUCHPAD_HAPTIC_INTENSITY = 25$/m);
+    assert.match(saved, /^(?:# @controller type-\d+ )?TOUCHPAD_HAPTIC_INTENSITY = 25$/m);
+    assert.match(saved, /^(?:# @controller type-\d+ )?UNKNOWN_FEEDBACK = exact$/m);
+    // Same controls in a held-input pad, with native chorded values (While holding…).
+    await page.locator('.section-item').filter({ hasText: 'Left pad' }).click();
+    await page.locator('#trackpad-left [role="radio"]').first().focus();
+    await page.keyboard.press('y');
+    await page.locator('[data-more-item="holding"]').click();
+    // Each shift is a row in the "while holding" list that opens its own editor page.
+    await page.locator('[data-subpage] [data-modeshift-list] [data-modeshift="MISC5"]').click();
+    const shift = page.locator('[data-modeshift-editor="MISC5"]');
+    await row(shift, /^Feedback/).click();
+    const shiftSheet = page.getByRole('dialog', { name: /^Left (pad|trackpad) · Feedback$/ });
+    await shiftSheet.waitFor();
+    assert.equal(await isOn(row(shiftSheet, /^Separate feedback/)), false);
+    await flip(row(shiftSheet, /^Separate feedback/));
+    await row(shiftSheet, /^Strength/).focus(); await page.keyboard.press('Enter'); await page.keyboard.press('ArrowLeft'); await page.keyboard.press('Enter');
+    await page.keyboard.press('Escape'); await shiftSheet.waitFor({ state: 'detached' });
     await page.keyboard.press('Control+s');
-    await page.waitForFunction(() => /MISC5,LEFT_TOUCHPAD_HAPTIC_INTENSITY = 30/.test(window.__lastSaved));
+    await page.waitForFunction(() => /MISC5,LEFT_TOUCHPAD_HAPTIC_INTENSITY = 45/.test(window.__lastSaved));
     saved = await page.evaluate(() => window.__lastSaved);
-    assert.match(saved, /^LEFT_TOUCHPAD_HAPTIC_INTENSITY = 35$/m);
+    assert.match(saved, /^(?:# @controller type-\d+ )?LEFT_TOUCHPAD_HAPTIC_INTENSITY = 50$/m);
     await page.reload();
     await page.getByRole('button', { name: 'Keep them', exact: true }).click({ timeout: 5000 }).catch(() => {});
     await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {});
     await page.getByRole('button', { name: 'Trackpads', exact: true }).click();
     sheet = await open('left');
-    await row(sheet, /^Strength$/).locator('.summary-row__value').filter({ hasText: /^35%$/ }).waitFor();
-    await row(sheet, /^Separate feedback$/).click();
-    await page.keyboard.press('Escape'); await sheet.waitFor({ state: 'detached' });
+    assert.equal(await chosen(sheet, 'touch', 'Strength'), 'Medium');
+    await flip(own(sheet, 'Left pad'));
+    await close(sheet);
     await page.keyboard.press('Control+s');
     await page.waitForFunction(() => /LEFT_TOUCHPAD_HAPTICS = OFF/.test(window.__lastSaved));
     saved = await page.evaluate(() => window.__lastSaved);
-    assert.match(saved, /^LEFT_TOUCHPAD_HAPTIC_INTENSITY = 35$/m, 'turning custom feedback off retains latent tuning');
-    assert.match(saved, /^RIGHT_TOUCHPAD_HAPTICS = ON$/m);
+    assert.match(saved, /^(?:# @controller type-\d+ )?LEFT_TOUCHPAD_HAPTIC_INTENSITY = 50$/m, 'turning custom feedback off retains latent tuning');
+    assert.match(saved, /^(?:# @controller type-\d+ )?RIGHT_TOUCHPAD_HAPTICS = ON$/m);
     assert.deepEqual(errors, []);
     console.log('PASS: independent pad feedback, shared opt-in defaults, mode-specific controls, keyboard adjustment, held-input edits, saved native settings and reload');
   } finally { await browser.close(); }

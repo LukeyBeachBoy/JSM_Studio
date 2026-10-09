@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Trackpad Feel</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.btn{font-family:inherit;border:0;cursor:pointer}
+.grp{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;flex-direction:column;gap:4px;padding:14px 20px;box-sizing:border-box;border-radius:14px;background:transparent;color:#b0bcc8;text-align:left}
+.grp .t{font-size:20px;font-weight:600}
+.grp .s{font-size:15px;color:#808c99;line-height:1.35}
+.row{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;align-items:center;gap:16px;min-height:72px;padding:12px 22px;box-sizing:border-box;border-radius:16px;background:#1f2730;color:#e8eef4;text-align:left}
+.sw{width:56px;height:32px;border-radius:16px;background:#2e3844;position:relative;flex:none;margin-left:auto}
+.sw span{position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:50%;background:#808c99}
+.sw.y{background:#3e9fd8}
+.sw.y span{left:28px;background:#ffffff}
+.fx{background:#1a222b;border-radius:20px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.fx .wave{height:100px;border-radius:12px;background:#0f151b;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);overflow:hidden}
+.fx .wave svg{display:block}
+.mini{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;align-items:center;gap:12px;min-height:54px;padding:10px 16px;box-sizing:border-box;border-radius:12px;background:#1f2730;color:#e8eef4;text-align:left;font-size:17px}
+.mini .v{margin-left:auto;font-weight:600;white-space:nowrap}
+.seg{display:flex;gap:3px;background:#0f151b;border-radius:11px;padding:4px}
+.seg span{flex:1 1 auto;height:38px;padding:0 4px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:#b0bcc8}
+.try{font-family:inherit;border:0;cursor:pointer;margin-top:auto;display:flex;align-items:center;justify-content:center;gap:10px;height:46px;border-radius:12px;background:#2e3844;color:#e8eef4;font-size:17px;font-weight:600}
+.ico{width:40px;height:40px;border-radius:12px;background:#24303c;display:flex;align-items:center;justify-content:center;flex:none}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="height: 76px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 40px; background: #0d1217">
+<span style="font-size: 18px; color: #808c99">Wardogs · Trackpads · Right pad</span>
+<span style="font-size: 18px; color: #5b6571">▸</span>
+<span style="font-size: 22px; font-weight: 700">Fine-tune</span>
+<span style="margin-left: auto; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 20px; background: #4a3320; color: #ffc98f; font-size: 16px; font-weight: 600"><span style="width: 9px; height: 9px; border-radius: 50%; background: #f0a05a"></span>Unsaved · ☰ to save</span>
+</header>
+
+<main style="flex: 1; min-height: 0; display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 36px; padding: 32px 40px 24px">
+
+<nav style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: center; gap: 8px; margin: 0 0 10px 20px; font-size: 14px; color: #808c99"><span class="gp">LT</span>Group<span class="gp">RT</span></div>
+<button class="grp"><span class="t">Speed &amp; curve</span><span class="s">Default speed · no speed-up</span></button>
+<button class="grp"><span class="t">Glide</span><span class="s">Stops when you lift · smoothing Default</span></button>
+<button class="grp"><span class="t">Zones</span><span class="s">4 click zones · touch and click</span></button>
+<button class="grp"><span class="t">Click</span><span class="s">Damping off · lift guard 150 px/s</span></button>
+<button class="grp" style="background: #1f2730; color: #ffffff"><span class="t">Feel</span><span class="s" style="color: #7cc4ee">Changed: its own feel · click Medium · release Light</span></button>
+</nav>
+
+<section style="display: flex; flex-direction: column; gap: 16px; min-width: 0">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<h1 style="margin: 0; font-size: 32px; font-weight: 700">Feel</h1>
+<p style="margin: 0; font-size: 17px; color: #b0bcc8">What the right pad’s own motor plays as you touch it, press it and let go.</p>
+</div>
+
+<button class="row">
+<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#7cc4ee" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="8" height="8" rx="2"></rect><rect x="14" y="6" width="8" height="8" rx="2"></rect><path d="M6 18h12"></path></svg>
+<span style="display: flex; flex-direction: column; gap: 3px"><span style="font-size: 19px; font-weight: 650">Right pad has its own feel</span><span style="font-size: 15px; color: #808c99">The left pad keeps the shared feel</span></span>
+<span class="sw y"><span></span></span>
+</button>
+
+<div style="flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px">
+
+<div class="fx">
+<div style="display: flex; align-items: center; gap: 12px">
+<span class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18c3-1 6-6 9-9s5-3 7-3"></path><circle cx="20" cy="6" r="1.6"></circle></svg></span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 20px; font-weight: 650">Touch</span><span style="font-size: 15px; color: #808c99">Ticks as your thumb moves</span></span>
+</div>
+<div class="wave"><svg viewBox="0 0 294 100" width="100%" height="100" fill="none" preserveAspectRatio="none">
+<path d="M0 50H294" stroke="#2e3844" stroke-width="1.5"></path>
+<g stroke="#5b6571" stroke-width="2" stroke-linecap="round"><path d="M30 50V38M74 50V38M118 50V38M162 50V38M206 50V38M250 50V38"></path></g>
+<g stroke="#5b6571" stroke-width="1" stroke-dasharray="2 3"><path d="M30 70H74"></path></g>
+<path d="M30 66V74M74 66V74" stroke="#5b6571" stroke-width="1"></path>
+</svg></div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 15px; color: #808c99">Strength</span>
+<div class="seg"><span style="background: #2e3844; color: #ffffff">Off</span><span>Light</span><span>Medium</span><span>Strong</span></div>
+</div>
+<button class="mini" style="opacity: .45">Effect<span class="v">Tick</span></button>
+<button class="mini" style="opacity: .45">Tick every<span class="v">250 px of travel</span></button>
+<span style="font-size: 15px; color: #808c99">Only while the pad moves the mouse</span>
+<button class="try"><span class="g" style="width: 26px; height: 26px; font-size: 12px">X</span>Try it</button>
+</div>
+
+<div class="fx">
+<div style="display: flex; align-items: center; gap: 12px">
+<span class="ico" style="background: #1d445c"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#b8e2fa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 3v3M12 18v3M3 12h3M18 12h3"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 20px; font-weight: 650">Click</span><span style="font-size: 15px; color: #808c99">One pulse as the pad goes in</span></span>
+</div>
+<div class="wave"><svg viewBox="0 0 294 100" width="100%" height="100" fill="none">
+
+<g stroke="rgba(255,255,255,.05)"><path d="M49 10V90M98 10V90M147 10V90M196 10V90M245 10V90"></path></g>
+<path d="M0 50H294" stroke="#2e3844" stroke-width="1.5"></path>
+<path d="M98 50C98 30 100 14 104 14C114 14 140 40 200 46S260 50 294 50" stroke="#7cc4ee" stroke-opacity=".45" stroke-dasharray="3 4"></path>
+<path d="M98 50C98 70 100 86 104 86C114 86 140 60 200 54S260 50 294 50" stroke="#7cc4ee" stroke-opacity=".45" stroke-dasharray="3 4"></path>
+
+<path d="M98 50L101 16L106 84L112 22L118 76L124 32L131 66L138 41L145 58L152 46L160 53L168 48L176 51L186 50" fill="#3e9fd8" fill-opacity="0.12"></path>
+<path d="M0 50H98L101 16L106 84L112 22L118 76L124 32L131 66L138 41L145 58L152 46L160 53L168 48L176 51L186 50H294" stroke="#e8eef4" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path>
+</svg></div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 15px; color: #808c99">Strength</span>
+<div class="seg"><span>Off</span><span>Light</span><span style="background: #2e3844; color: #ffffff">Medium</span><span>Strong</span></div>
+</div>
+<div class="focus" style="background: #1d445c; border-radius: 12px; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; font-size: 17px"><span>Effect</span><span style="margin-left: auto; font-size: 19px; font-weight: 700; white-space: nowrap"><span style="color: #7cc4ee">◂</span> Click <span style="color: #7cc4ee">▸</span></span></div>
+<span style="font-size: 15px; line-height: 1.45; color: #b8e2fa">Each one plays on the right pad as you go: Tick, Click, Tone, Rumble, Sweep, Pulse, Tap.</span>
+</div>
+<button class="try"><span class="g" style="width: 26px; height: 26px; font-size: 12px">X</span>Try it</button>
+</div>
+
+<div class="fx">
+<div style="display: flex; align-items: center; gap: 12px">
+<span class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="14" r="4"></circle><path d="M12 8V3M9 5.5L12 2.5L15 5.5"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 20px; font-weight: 650">Release</span><span style="font-size: 15px; color: #808c99">One pulse as it comes back up</span></span>
+</div>
+<div class="wave"><svg viewBox="0 0 294 100" width="100%" height="100" fill="none">
+
+<g stroke="rgba(255,255,255,.05)"><path d="M49 10V90M98 10V90M147 10V90M196 10V90M245 10V90"></path></g>
+<path d="M0 50H294" stroke="#2e3844" stroke-width="1.5"></path>
+
+<path d="M0 50H126L129 32L133 66L137 41L141 56L145 47L150 51L156 50H294" stroke="#b8e2fa" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path>
+</svg></div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 15px; color: #808c99">Strength</span>
+<div class="seg"><span>Off</span><span style="background: #2e3844; color: #ffffff">Light</span><span>Medium</span><span>Strong</span></div>
+</div>
+<button class="mini">Effect<span class="v">◂ Tick ▸</span></button>
+<span style="font-size: 15px; line-height: 1.45; color: #808c99">A lighter Tick on release than on the click reads as one press and let go.</span>
+<button class="try"><span class="g" style="width: 26px; height: 26px; font-size: 12px">X</span>Try it</button>
+</div>
+</div>
+</section>
+</main>
+
+<footer style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Wardogs · Trackpads · Right pad · Fine-tune · Feel</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px">◂ ▸ Change</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">X</span>Try it</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">Y</span>Reset</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">LT</span><span class="gp">RT</span>Group</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Back to Trackpads</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

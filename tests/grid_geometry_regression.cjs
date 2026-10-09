@@ -49,12 +49,11 @@ const CONFIG = [
     await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
 
     // Drive the config editor the way a person would, so this exercises the
-    // real render path rather than a hand-built DOM. "Edit source" lives on
-    // the Studio configurations page's detail panel: Home chip, then the
-    // Configurations tile (the app mark is no longer a button).
-    await page.locator('.home-chip').click();
-    await page.getByRole('button', { name: /^Configurations/ }).first().click();
-    await page.getByRole('button', { name: 'Edit source', exact: true }).click();
+    // real render path rather than a hand-built DOM. Console v2: the source
+    // editor is Y ▸ "Edit the file directly" on a game in Library ▸ Games.
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('jsm:navigate-page', { detail: 'configurations' })));
+    await page.getByRole('button', { name: /Duplicate, rename, file/ }).first().click();
+    await page.getByRole('button', { name: /Edit the file directly/ }).click();
     const editor = page.locator('textarea').first();
     await editor.waitFor();
     await editor.fill(CONFIG);

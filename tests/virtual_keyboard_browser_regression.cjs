@@ -47,20 +47,25 @@ const {chromium}=require('C:/Users/luker/.cache/codex-runtimes/codex-primary-run
   await page.setViewportSize({width:1440,height:1000});
   await page.goto('http://127.0.0.1:1420/?mock');
   const onboarding=page.getByRole('dialog',{name:'Controller power-on sound'});if(await onboarding.waitFor({state:'visible',timeout:2500}).then(()=>true).catch(()=>false))await onboarding.getByRole('button',{name:'Keep them',exact:true}).click();
-  await page.getByRole('button',{name:/^Preferences/}).first().click();
+  // Console v2: Settings ▸ Controller ▸ On-screen keyboard.
+  await page.evaluate(()=>window.dispatchEvent(new CustomEvent('jsm:navigate-page',{detail:'settings'})));
   await page.locator('.keyboard-settings').waitFor();
   await page.locator('.keyboard-settings').scrollIntoViewIfNeeded();
   assert.equal(await page.locator('.keyboard-settings .vk-shell').count(),1);
   await page.evaluate(()=>document.documentElement.dataset.theme='light');
-  const card=await page.locator('.keyboard-settings').evaluate(e=>getComputedStyle(e).backgroundColor);const row=await page.locator('.keyboard-settings').evaluate(e=>getComputedStyle(e).getPropertyValue('--surface-row').trim());console.log({card,row});assert.equal(card,'rgb(255, 255, 255)');
-  await page.locator('.keyboard-settings summary',{hasText:'Controller shortcuts'}).click();
-  assert.equal(await page.locator('.keyboard-settings-shortcuts:not(.keyboard-settings-haptics) .keyboard-settings-row').count(),10);
+  // The preview sits on the page's own sunken well, which follows the theme.
+  const well=await page.locator('.keyboard-settings-preview').evaluate(e=>getComputedStyle(e).backgroundColor);assert.equal(well,'rgb(228, 233, 238)');
+  // The controller shortcuts are ten rows, each one stop.
+  const legend=page.locator('.keyboard-settings').getByRole('group',{name:'Controller shortcuts'});
+  assert.equal(await legend.getByRole('button').count(),10);
   await page.screenshot({path:path.join(__dirname,'../tmp/keyboard-preferences.png'),fullPage:true});
-  await require('./controller_input_focus_helper.cjs')(page,page.locator('.keyboard-settings summary',{hasText:'Controller shortcuts'}),'keyboard shortcut disclosure');
-  await page.getByRole('combobox',{name:'Keyboard layout',exact:true}).click();await page.getByRole('option',{name:'Daisywheel',exact:true}).click();
-  await page.getByRole('combobox',{name:'Daisywheel character grouping',exact:true}).click();await page.getByRole('option',{name:'Input Labs tweaked',exact:true}).click();
-  await page.getByRole('checkbox',{name:'Right stick as D-pad',exact:true}).check();
-  assert.ok(await page.getByRole('checkbox',{name:'Right stick as D-pad',exact:true}).isChecked());
+  await page.locator('.keyboard-settings').getByRole('radio',{name:/^Daisywheel/}).click();
+  const grouping=page.getByRole('radiogroup',{name:'Character grouping'});await grouping.waitFor();
+  await grouping.focus();await page.keyboard.press('ArrowRight');
+  await page.waitForFunction(async()=>(await(await import('/src/keyboard/bridge.ts')).keyboard.getPreferences()).daisywheelVariant==='inputlabs');
+  const rightStick=page.getByRole('switch',{name:/^Right stick as D-pad/});
+  await rightStick.click();
+  assert.equal(await rightStick.getAttribute('aria-checked'),'true');
   assert.deepEqual(await page.locator('.vk-char-3').evaluateAll(es=>es.map(e=>e.lastChild.textContent)),['a','e','o','w','u','q','i',',']);
   const wheel=await page.locator('.keyboard-settings .vk-wheel').boundingBox();assert.ok(Math.abs(wheel.width-wheel.height)<1);
   await page.screenshot({path:path.join(__dirname,'../tmp/keyboard-inputlabs-preferences.png'),fullPage:true});

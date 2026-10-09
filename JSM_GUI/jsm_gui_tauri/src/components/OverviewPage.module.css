@@ -1,489 +1,298 @@
-/* Overview (Overview.dc.html): search on the page header's right, filter
-   chips, the controller as hero between two callout columns, a band of cards
-   for sticks, pads and buttons, and quick settings last. */
-.page { position: relative; display: flex; flex-direction: column; gap: var(--sp-6); }
+/* Layout (console v2, Layout.dc.html): the mode strip, then the controller
+   between two 330px columns of one-line callouts, with the focused input's
+   card under the art. The quick menu (QuickMenu.dc.html) is a 560px sheet. */
+.page { position: relative; display: flex; flex-direction: column; gap: var(--sp-4); min-height: 100%; }
 
-/* ---- Search: 320 wide on the header row. The header is the shell's, so the
-   field is lifted over it: the header's bottom margin plus its own height. */
-.search {
+/* The design has no page header on Layout: the strip sits under the tabs. The
+   shell's header stays in the document (its title names the page for screen
+   readers and the tests) but takes no room. */
+:global(.shell-page:has([data-layout-page])) > :global(.page-header) {
   position: absolute;
-  top: calc(-1 * (var(--sp-7) + var(--control-h)));
-  right: 0;
-  width: 320px;
-  max-width: 100%;
-  height: var(--control-h);
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---- Mode strip: 64 high, LT · Showing mode · pills · RT. */
+.modeStrip {
+  min-height: 64px;
   display: flex;
   align-items: center;
-  gap: var(--sp-2);
-  padding: 0 var(--sp-2) 0 var(--sp-3);
-  border-radius: var(--r-md);
-  background: var(--surface-sunken);
-  box-shadow: inset 0 0 0 1px var(--line-1);
-  color: var(--text-3);
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: var(--sp-2) 0;
+  border-bottom: 1px solid var(--line-1);
 }
-.search:focus-within { box-shadow: inset 0 0 0 1px var(--focus-keyboard); }
-/* The pad's focus glide rings the input itself (TODO-48): no second ring on the field. */
-:global(body[data-focus-glide]) .search:focus-within { box-shadow: inset 0 0 0 1px var(--line-1); }
-.search input {
+.modeStrip > svg { flex: none; color: var(--text-1); }
+.modeStripLabel { margin: 0 var(--sp-2) 0 4px; color: var(--text-3); font-size: var(--fs-label); white-space: nowrap; }
+.modePill {
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex: none;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 20px;
+  background: var(--surface-row);
+  color: var(--text-1);
+  font: inherit;
+  font-size: var(--fs-label);
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+  transition: background var(--dur-1) var(--ease-standard);
+}
+.modePill:hover { background: var(--surface-row-hover); }
+.modePill[aria-pressed='true'] { background: var(--text-1); color: var(--surface-frame); }
+.modePill[aria-pressed='true'] .modeActivation { color: color-mix(in srgb, var(--surface-frame) 65%, transparent); }
+.modePill[aria-disabled='true'] { opacity: var(--disabled-opacity, .5); cursor: default; }
+.modePill:focus-visible { box-shadow: var(--focus-ring-pad); outline: 0; }
+.modeSwatch { width: 10px; height: 10px; flex: none; border-radius: 3px; }
+.modeActivation { color: var(--text-3); font-weight: var(--fw-medium); white-space: nowrap; }
+.modeNone { color: var(--text-3); font-size: var(--fs-hint); }
+/* What the quick menu is filtering, when it is: quiet, at the strip's end. */
+.filterNote { margin-left: auto; display: inline-flex; align-items: center; gap: var(--sp-3); color: var(--text-2); font-size: var(--fs-hint); }
+.filterClear {
+  height: 32px;
+  padding: 0 var(--sp-3);
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--surface-control);
+  color: var(--text-1);
+  font: inherit;
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+}
+.filterClear:hover { background: var(--surface-control-hover); }
+.filterClear:focus-visible { box-shadow: var(--focus-ring-pad); outline: 0; }
+
+/* ---- Hero: 330 | art + focus card | 330. */
+.hero {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 330px minmax(0, 1fr) 330px;
+  gap: var(--sp-5);
+  align-items: center;
+}
+.noDiagram .centre { justify-content: center; }
+.column { display: flex; flex-direction: column; justify-content: center; gap: 2px; min-width: 0; }
+.centre { display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: var(--sp-5); min-width: 0; align-self: stretch; }
+.diagram { position: relative; width: 100%; min-width: 0; }
+.diagramStatus { position: absolute; top: 0; right: 0; }
+.empty { margin: 0; color: var(--text-3); text-align: center; }
+
+/* ---- A callout (Layout.dc.html .co): one row, 50 high -- the glyph, what it
+   does, and a short output on the right. Nothing set reads "Not set", dimmed;
+   a mode switch is tinted in its mode's colour. */
+.callout {
+  position: relative;
+  width: 100%;
+  height: 50px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 0 14px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-1);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  transition: background var(--dur-1) var(--ease-standard), box-shadow var(--dur-2) var(--ease-standard);
+}
+.callout:hover { background: var(--surface-row-hover); }
+.callout[data-current='true'] { background: var(--surface-row); }
+.callout:focus-visible,
+:global(body[data-input-source='controller']) .callout:focus {
+  background: var(--surface-selected);
+  box-shadow: var(--focus-ring-pad);
+  outline: 0;
+}
+.callout[data-unset='true'] { opacity: .55; }
+.pill { width: 38px; height: 30px; flex: none; display: grid; place-items: center; }
+.glyph { color: var(--text-1); }
+.faceCluster { display: grid; grid-template-columns: repeat(3, 13px); grid-template-rows: repeat(3, 10px); width: 39px; height: 30px; color: var(--text-1); }
+.faceCluster > :nth-child(1) { grid-column: 2; grid-row: 1; }
+.faceCluster > :nth-child(2) { grid-column: 1; grid-row: 2; }
+.faceCluster > :nth-child(3) { grid-column: 3; grid-row: 2; }
+.faceCluster > :nth-child(4) { grid-column: 2; grid-row: 3; }
+.faceGlyph { display: block; margin-top: -1px; }
+.title {
+  min-width: 0;
+  flex: 1;
+  font-size: var(--fs-label);
+  line-height: var(--lh-label);
+  font-weight: var(--fw-semibold);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.callout[data-tinted='true'] .title { color: color-mix(in oklch, var(--callout-tint) 75%, var(--text-1)); }
+.output {
+  flex: none;
+  max-width: 45%;
+  margin-left: auto;
+  color: var(--text-3);
+  font-size: var(--fs-hint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.callout:focus .output, .callout[data-current='true'] .output { color: var(--text-2); }
+/* A held modeshift swaps the text in place (2g): no reflow, a crimson edge. */
+.callout[data-shifted='true'] { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--shift) 45%, transparent); }
+.callout[data-shifted='true'] .title { color: var(--shift-ink, var(--shift)); }
+.callout[data-holding='true'] .output { color: var(--shift); font-weight: var(--fw-semibold); }
+.swap { animation: callout-swap var(--dur-1) var(--ease-standard); }
+@keyframes callout-swap { from { opacity: 0; } }
+/* A trigger's pull, live: 3px along the bottom, a tick at the half-press point. */
+.triggerMeter { position: absolute; left: 64px; right: 14px; bottom: 5px; height: 3px; border-radius: 2px; background: var(--surface-sunken); overflow: hidden; }
+.triggerMeterFill { position: absolute; inset: 0; transform-origin: left; background: linear-gradient(90deg, var(--telemetry) 88%, transparent); border-radius: 2px; }
+.triggerMeterTick { position: absolute; top: -2px; bottom: -2px; width: 1px; background: var(--text-2); }
+
+/* ---- Live readings: the gyro's speed under the art. */
+.live { width: 100%; max-width: 460px; display: flex; flex-direction: column; gap: 4px; }
+.liveHead { display: flex; justify-content: space-between; align-items: baseline; color: var(--text-3); font-size: var(--fs-micro); }
+.liveHead b { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--telemetry); }
+.sparkline { width: 100%; height: 40px; display: block; }
+.sparklineBase { stroke: var(--line-2); stroke-dasharray: 3 4; }
+.sparkline polyline { fill: none; stroke: var(--telemetry); stroke-width: 2; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+
+/* ---- The focus card: the input, whether modes change it, what it does in
+   words, and A Change · X Try it · Y More. */
+.focusCard {
+  width: 100%;
+  max-width: 620px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: 20px 24px;
+  border-radius: 18px;
+  background: var(--surface-row);
+}
+.focusHead { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.focusPill { flex: none; display: grid; place-items: center; min-width: 44px; height: 34px; color: var(--accent); }
+.focusName { min-width: 0; font-size: var(--fs-section); font-weight: var(--fw-semibold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.focusStatus { margin-left: auto; flex: none; font-size: var(--fs-hint); font-weight: var(--fw-semibold); color: var(--text-3); }
+.focusStatus[data-tone='same'] { color: var(--ok, #5fd3a0); }
+.focusStatus[data-tone='changed'] { color: color-mix(in oklch, var(--status-hue, var(--accent)) 80%, var(--text-1)); }
+.focusText {
+  margin: 0;
+  font-size: var(--fs-label);
+  line-height: 1.45;
+  color: var(--text-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.focusHints { display: flex; flex-wrap: wrap; gap: 22px; }
+.focusHints button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-2);
+  font: inherit;
+  font-size: var(--fs-body);
+  cursor: pointer;
+}
+.focusHints button:hover { color: var(--text-1); }
+.focusHints button[aria-disabled='true'] { opacity: .55; }
+
+/* ---- The quick menu. */
+.quickGroup { margin: var(--sp-3) 0 2px; padding-left: 16px; color: var(--text-3); font-size: var(--fs-eyebrow, 12px); font-weight: var(--fw-semibold); letter-spacing: .08em; text-transform: uppercase; }
+.quickGroup:first-child { margin-top: 0; }
+.quickFor { display: inline-flex; align-items: center; gap: 10px; height: 40px; padding: 0 14px 0 8px; border-radius: 20px; background: var(--surface-row); color: var(--text-1); font-weight: var(--fw-semibold); white-space: nowrap; }
+.find {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 2px 0 6px;
+  padding: 10px 16px 12px;
+  border-radius: 12px;
+  background: var(--surface-row);
+  color: var(--text-1);
+}
+.find:focus-within { background: var(--surface-selected); box-shadow: var(--focus-ring-pad); }
+/* The pad's focus glide rings the field itself (TODO-48): no second ring. */
+:global(body[data-focus-glide]) .find:focus-within { box-shadow: none; }
+.findRow { display: flex; align-items: center; gap: 14px; }
+.findIcon { width: 22px; height: 22px; flex: none; color: var(--text-2); }
+.find input {
   flex: 1;
   min-width: 0;
-  height: 100%;
+  height: 32px;
   border: 0;
   outline: 0;
   background: transparent;
   color: var(--text-1);
   font: inherit;
-  font-size: var(--fs-body);
-}
-.search input::placeholder { color: var(--text-3); }
-/* The Y glyph, or the Y key while the keyboard is in use. */
-.searchKey {
-  flex: none;
-  display: grid;
-  place-items: center;
-}
-
-/* ---- Filter bar: chips, check chips on the right. */
-.filterBar { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
-.filterSpacer { flex: 1; }
-.filterChip {
-  height: var(--control-h-sm);
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 var(--sp-3);
-  border: 0;
-  border-radius: var(--r-pill);
-  background: var(--surface-row);
-  color: var(--text-2);
-  font: inherit;
-  font-size: var(--fs-hint);
-  font-weight: var(--fw-medium);
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background var(--dur-1) var(--ease-standard), color var(--dur-1) var(--ease-standard);
-}
-.filterChip:hover { background: var(--surface-row-hover); color: var(--text-1); }
-.filterChip[aria-pressed='true'],
-.filterChip[data-selected='true'] { background: var(--text-1); color: var(--surface-frame); }
-.chipCount { color: inherit; opacity: .6; }
-.selectChip { padding: 0; }
-.selectChip button[role='combobox'] {
-  min-height: var(--control-h-sm);
-  height: var(--control-h-sm);
-  border-radius: var(--r-pill);
-  background-color: transparent;
-  color: inherit;
-  font-size: var(--fs-hint);
-  font-weight: var(--fw-medium);
-  padding: 0 var(--sp-2) 0 var(--sp-3);
-}
-.selectChip button[role='combobox']:hover:not([data-disabled]) { background-color: transparent; }
-
-/* Check chip: a 16px square mark, filled with the accent and a check when on. */
-.toggleChip {
-  height: var(--control-h-sm);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-2);
-  padding: 0 var(--sp-3) 0 var(--sp-2);
-  border: 0;
-  border-radius: var(--r-pill);
-  background: var(--surface-row);
-  color: var(--text-2);
-  font: inherit;
-  font-size: var(--fs-hint);
-  font-weight: var(--fw-medium);
-  white-space: nowrap;
-  cursor: pointer;
-}
-.toggleChip:hover { background: var(--surface-row-hover); color: var(--text-1); }
-.toggleMark {
-  width: 16px;
-  height: 16px;
-  display: grid;
-  place-items: center;
-  border-radius: var(--r-xs);
-  box-shadow: inset 0 0 0 1.5px var(--text-3);
-}
-.toggleChip[aria-pressed='true'] { color: var(--text-1); }
-.toggleChip[aria-pressed='true'] .toggleMark { background: var(--accent); box-shadow: none; }
-.toggleChip[aria-pressed='true'] .toggleMark::after {
-  content: '';
-  width: 8px;
-  height: 4px;
-  margin-top: -2px;
-  border-left: 2px solid var(--text-on-accent);
-  border-bottom: 2px solid var(--text-on-accent);
-  transform: rotate(-45deg);
-}
-
-/* ---- Layer preview: which layer's bindings the page shows. */
-.layerTabs { display: flex; align-items: center; gap: var(--sp-2); overflow-x: auto; flex-shrink: 0; }
-.layerTabs button {
-  height: var(--control-h-sm);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-2);
-  flex: none;
-  padding: 0 var(--sp-3);
-  border: 0;
-  border-radius: var(--r-pill);
-  background: transparent;
-  color: var(--text-2);
-  font: inherit;
-  font-size: var(--fs-hint);
-  font-weight: var(--fw-medium);
-  cursor: pointer;
-}
-.layerTabs button:hover { background: var(--surface-row-hover); color: var(--text-1); }
-.layerTabs button[aria-pressed='true'] { background: var(--surface-row); color: var(--text-1); box-shadow: inset 0 0 0 1px var(--line-2); }
-.layerTabs svg { display: none; }
-.layerSwatch { width: 8px; height: 8px; border-radius: 2px; }
-
-/* ---- Hero: 320 | controller | 320. */
-.hero {
-  display: grid;
-  grid-template-columns: 320px minmax(0, 1fr) 320px;
-  gap: var(--sp-6);
-  align-items: start;
-}
-.noDiagram { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.calloutColumn { display: flex; flex-direction: column; gap: var(--sp-2); min-width: 0; }
-.diagram { position: relative; min-width: 0; width: 100%; align-self: center; }
-.diagramStatus { position: absolute; top: 0; right: 0; }
-
-.bindingGroup { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.bindingGroup h3,
-.overviewCard h3 {
-  margin: var(--sp-2) 0 var(--sp-1);
-  padding: 0 var(--sp-3);
-  font-size: var(--fs-eyebrow);
-  line-height: var(--lh-eyebrow);
-  letter-spacing: var(--tracking-eyebrow);
+  font-size: var(--fs-label);
   font-weight: var(--fw-semibold);
-  color: var(--text-3);
-  text-transform: uppercase;
 }
-.callouts { display: flex; flex-direction: column; gap: 2px; }
-.inputRow { min-width: 0; }
+.find input::placeholder { color: var(--text-2); }
+.findKeyboard { flex: none; display: inline-flex; align-items: center; gap: var(--sp-2); color: var(--text-2); font-size: var(--fs-hint); }
+.findHelp { padding-left: 36px; color: var(--text-2); font-size: var(--fs-hint); line-height: 1.45; }
 
-/* A callout (48 high): glyph, action and detail, origin dot and output
-   keycap on the right. Hover lifts the fill; the pad's focus is the selected
-   fill + ring + lift, and lights the input's hotspot on the art. */
-.callout {
-  position: relative;
+.qm {
   width: 100%;
-  min-height: 48px;
+  min-height: 52px;
   display: flex;
   align-items: center;
-  gap: var(--sp-3);
-  padding: var(--sp-2) var(--sp-3);
+  gap: 14px;
+  padding: 8px 16px;
+  box-sizing: border-box;
   border: 0;
-  border-radius: var(--r-row);
+  border-radius: 12px;
   background: transparent;
   color: var(--text-1);
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: background var(--dur-1) var(--ease-standard), box-shadow var(--dur-2) var(--ease-standard), transform var(--dur-2) var(--ease-emphasis);
 }
-.glyph { flex: none; color: var(--text-1); }
-.callout:hover { background: var(--surface-row-hover); }
-:global(body[data-input-source='controller']) .callout:focus {
-  background: var(--surface-selected);
-  box-shadow: 0 0 0 var(--focus-controller-width) var(--focus-controller), var(--shadow-lift);
-  transform: translateY(-1px);
-}
-/* Nothing bound: the glyph dims with the title. */
-.calloutAvailable .glyph { opacity: .45; }
-.calloutCompact { min-height: 28px; padding: 4px var(--sp-2); gap: var(--sp-2); }
-.calloutCompact .calloutTitle { font-size: var(--fs-hint); line-height: 16px; font-weight: var(--fw-regular); color: var(--text-2); }
-.calloutCompact .valuePill { min-width: 20px; height: 20px; }
-
-.bindingText { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
-.calloutTitle {
-  font-size: var(--fs-body);
-  line-height: var(--lh-body);
-  font-weight: var(--fw-medium);
-  color: var(--text-1);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.bindingText small, .detailLine {
-  font-size: var(--fs-micro);
-  line-height: 15px;
-  color: var(--text-3);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-/* A layer action is a different kind of thing from a binding: it changes what
-   the whole controller is doing, not what one input emits. */
-.layerLine { font-size: var(--fs-micro); line-height: 15px; color: var(--layer-1); font-weight: var(--fw-semibold); }
-.layerLine svg { width: 12px; height: 12px; vertical-align: -2px; margin-right: 4px; }
-/* A relationship is context about other inputs, not this one. */
-.relationLine { font-size: var(--fs-micro); line-height: 15px; color: var(--text-3); }
-.unbound, .noDevice { color: var(--text-3); font-weight: var(--fw-regular); }
-.noDevice { text-align: center; padding: 3rem 1rem; }
-
-/* The value side: origin dot, keycap, "+n" for further commands. */
-.valueSide { display: flex; align-items: center; gap: 6px; flex: none; }
-.originDot { width: 6px; height: 6px; flex: none; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--origin-inherited); }
-.originDot[data-origin='override'] { background: var(--origin-override); box-shadow: none; }
-.originMark { display: inline-flex; align-items: center; gap: 6px; color: var(--origin-inherited); }
-.originMark[data-origin='override'] { color: var(--origin-override); }
-.more { font-size: var(--fs-micro); color: var(--text-3); }
-
-.valuePill {
-  min-width: 24px;
-  height: 24px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-  max-width: 9rem;
-  padding: 0 var(--sp-2);
-  border-radius: var(--r-xs);
-  background: var(--surface-control);
-  box-shadow: inset 0 -2px 0 var(--line-2);
-  color: var(--text-1);
-  font-family: var(--font-ui);
-  font-size: 12px;
-  font-weight: var(--fw-semibold);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-/* A JSM action rather than a key: accent-tinted, no keycap edge. */
-.valuePillJsm { background: var(--accent-soft); box-shadow: none; color: var(--accent); }
-
-/* Trigger pull, live: 4px, a soft leading edge, a tick at the soft-pull point. */
-.triggerMeter { position: relative; display: block; height: 4px; margin-top: 4px; border-radius: 2px; background: var(--surface-sunken); overflow: hidden; }
-.triggerMeterFill { position: absolute; inset: 0; transform-origin: left; background: linear-gradient(90deg, var(--telemetry) 88%, transparent); border-radius: 2px; }
-.triggerMeterTick { position: absolute; top: -2px; bottom: -2px; width: 1px; background: var(--text-2); }
-
-/* "Inspect uses" under a callout: a console button (no text-only buttons),
-   small, indented to the callout's text. */
-/* Under a compact callout: what the input does to others, as concept tiles
-   (a modeshift or chord in crimson, a layer in its hue). Each opens the
-   uses inspector. Lined up with the callout's text, past its glyph. */
-.relations { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 var(--sp-1) 36px; }
-.relationTile {
-  height: 22px;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  max-width: 100%;
-  padding: 0 8px;
-  border: 0;
-  border-radius: 6px;
-  font: inherit;
-  font-size: var(--fs-micro);
-  font-weight: var(--fw-semibold);
-  white-space: nowrap;
-  cursor: pointer;
-}
-.relationTile span { overflow: hidden; text-overflow: ellipsis; }
-.relationTile svg { flex: none; }
-.relationTile[data-concept='shift'],
-.relationTile[data-concept='chord'] {
-  background: var(--shift-soft);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--shift) 40%, transparent);
-  color: var(--shift-ink);
-}
-.relationTile[data-concept='shift'] svg,
-.relationTile[data-concept='chord'] svg { color: var(--shift); }
-.relationTile[data-concept='layer'] { background: var(--layer-1-soft); color: var(--layer-1); }
-.relationTile[data-concept='layer'][data-layer-slot='2'] { background: var(--layer-2-soft); color: var(--layer-2); }
-.relationTile[data-concept='layer'][data-layer-slot='3'] { background: var(--layer-3-soft); color: var(--layer-3); }
-.relationTile[data-concept='layer'][data-layer-slot='4'] { background: var(--layer-4-soft); color: var(--layer-4); }
-.relationTile[data-concept='layer'][data-layer-slot='5'] { background: var(--layer-5-soft); color: var(--layer-5); }
-.relationTile[data-concept='layer'][data-layer-slot='6'] { background: var(--layer-6-soft); color: var(--layer-6); }
-.relationTile[data-concept='more'] { background: var(--surface-control); color: var(--text-2); cursor: default; }
-button.relationTile:hover { filter: brightness(1.15); }
-
-/* The card's mode line under its eyebrow: "Radial menu · 8 segments". */
-.cardHead { display: flex; flex-direction: column; gap: 2px; padding: 0 var(--sp-2); }
-.cardHead h3 { margin: 0; padding: 0; }
-.mode {
-  align-self: flex-start;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--text-1);
-  text-align: left;
-  font: inherit;
-  font-size: var(--fs-body);
-  font-weight: var(--fw-medium);
-  cursor: pointer;
-}
-span.mode { cursor: default; }
-button.mode:hover { color: var(--accent); }
-
-/* ---- Band: one card per stick, pad and button cluster. */
-.band { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--sp-3); align-items: start; }
-.overviewCard {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-  min-width: 0;
-  padding: var(--sp-4) var(--sp-3) var(--sp-3);
-  border-radius: var(--r-card);
-  background: var(--surface-row);
-}
-.overviewCard .callout:hover { background: var(--surface-row-hover); }
-
-/* ---- Quick settings: gyro (with live speed) and three single-value tiles. */
-.quickSettings { display: grid; grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr)); gap: var(--sp-3); }
-.quickTile {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--sp-2);
-  min-width: 0;
-  padding: var(--sp-4);
-  border: 0;
-  border-radius: var(--r-card);
-  background: var(--surface-row);
-  color: var(--text-1);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition: background var(--dur-1) var(--ease-standard);
-}
-.quickTile:hover:not(:disabled) { background: var(--surface-row-hover); }
-.quickTile:disabled { opacity: var(--disabled-opacity); cursor: default; }
-.quickTile small { display: inline-flex; align-items: center; gap: 6px; color: var(--text-3); font-size: var(--fs-micro); }
-.quickTileGyro { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: var(--sp-4); }
-.quickTileAction { justify-content: space-between; }
-/* The tile's one action, drawn as the button it is. */
-.quickAction {
-  width: 100%;
-  height: var(--control-h);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--r-md);
-  background: var(--surface-control);
-  color: var(--text-1);
-  font-size: var(--fs-body);
-  font-weight: var(--fw-semibold);
-}
-.quickTile:hover:not(:disabled) .quickAction { background: var(--surface-control-hover); }
-.quickMain { display: flex; flex-direction: column; gap: var(--sp-2); min-width: 0; }
-.quickEyebrow { font-size: var(--fs-eyebrow); line-height: var(--lh-eyebrow); letter-spacing: var(--tracking-eyebrow); font-weight: var(--fw-semibold); color: var(--text-3); text-transform: uppercase; }
-.quickValue { font-size: var(--fs-label); line-height: var(--lh-label); font-weight: var(--fw-medium); color: var(--text-1); }
-.quickStats { display: flex; flex-wrap: wrap; gap: var(--sp-4); font-size: var(--fs-hint); color: var(--text-2); }
-.quickStats > span { display: flex; flex-direction: column; }
-.quickStats > span > b { display: inline-flex; align-items: center; gap: 6px; color: var(--text-1); font-weight: var(--fw-semibold); font-variant-numeric: tabular-nums; }
-.quickLive { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.quickLiveHead { display: flex; justify-content: space-between; align-items: baseline; }
-.quickLiveHead b { font-size: var(--fs-micro); font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--telemetry); }
-.quickLiveFoot { display: flex; justify-content: space-between; font-size: var(--fs-micro); font-family: var(--font-mono); color: var(--text-4); }
-.sparkline { width: 100%; height: 48px; display: block; }
-.sparklineBase { stroke: var(--line-2); stroke-dasharray: 3 4; }
-.sparkline polyline { fill: none; stroke: var(--telemetry); stroke-width: 2; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
-
-.otherHardware { color: var(--text-2); font-size: var(--fs-hint); }
-.otherHardware summary { cursor: pointer; }
-
-@media (max-width: 1279px) {
-  .hero { grid-template-columns: 280px minmax(0, 1fr) 280px; gap: var(--sp-4); }
-  .quickSettings { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .quickTileGyro { grid-column: 1 / -1; }
-}
-@media (max-width: 1023px) {
-  .hero { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .diagram { grid-column: 1 / -1; grid-row: 1; max-width: 560px; justify-self: center; }
-  /* No room on the header row: the field leads the page instead. */
-  .search { position: static; width: 100%; }
-}
-@media (max-width: 640px) {
-  .hero, .quickSettings { grid-template-columns: minmax(0, 1fr); }
-  .quickTileGyro { grid-template-columns: minmax(0, 1fr); }
-}
+.qm:hover { background: var(--surface-row-hover); }
+.qm:focus-visible,
+:global(body[data-input-source='controller']) .qm:focus { background: var(--surface-selected); box-shadow: var(--focus-ring-pad); outline: 0; }
+.qm[aria-disabled='true'] { opacity: .55; cursor: default; }
+.qmIcon { width: 22px; height: 22px; flex: none; display: grid; place-items: center; color: var(--text-2); }
+.qmIcon svg { width: 22px; height: 22px; }
+.qmText { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.qmLabel { font-size: var(--fs-label); font-weight: var(--fw-semibold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qmHint { font-size: var(--fs-hint); line-height: 1.35; color: var(--text-3); }
+.qmValue { margin-left: auto; flex: none; max-width: 50%; display: flex; align-items: center; gap: var(--sp-2); color: var(--text-2); font-size: var(--fs-body); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qmSwitch { position: relative; width: 50px; height: 28px; flex: none; margin-left: auto; border-radius: 14px; background: var(--surface-control); }
+.qmValue + .qmSwitch { margin-left: 12px; }
+.qmSwitch span { position: absolute; top: 4px; left: 4px; width: 20px; height: 20px; border-radius: 50%; background: var(--text-3); transition: transform var(--dur-1) var(--ease-standard), background var(--dur-1) var(--ease-standard); }
+.qmSwitch[data-on='true'] { background: var(--accent); }
+.qmSwitch[data-on='true'] span { transform: translateX(22px); background: var(--text-on-accent); }
+.lightDot { width: 22px; height: 22px; border-radius: 50%; background: var(--text-1); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .2); }
+.missingList { display: flex; flex-direction: column; gap: 2px; }
 
 /* System States 17b: the live art cross-fades in after "Connecting to …". */
 .diagram[data-arrived] > * { animation: arrive var(--dur-3, 240ms) ease-out; }
 @keyframes arrive { from { opacity: 0; } to { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .diagram[data-arrived] > * { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .diagram[data-arrived] > *, .swap { animation: none; } }
 
-/* ============ Callouts (binding card refresh 2a, 2g) ============
-   Fixed two lines × 56: the name, then chips; the value pill on the right.
-   Live states swap text in place and never change a callout's size. */
-.callouts { gap: 6px; }
-.callout {
-  height: 56px;
-  min-height: 56px;
-  display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) auto;
-  gap: 12px;
-  padding: 0 12px;
-  background: var(--surface-row);
-  overflow: hidden;
+@media (max-width: 1279px) {
+  .hero { grid-template-columns: 280px minmax(0, 1fr) 280px; gap: var(--sp-4); }
 }
-.callout .bindingText { gap: 3px; font-variant-numeric: tabular-nums; }
-.callout .calloutTitle { font-size: var(--fs-body); font-weight: var(--fw-semibold); }
-.calloutCompact {
-  height: 36px;
-  min-height: 36px;
-  grid-template-columns: 20px minmax(0, 1fr) auto;
-  gap: var(--sp-2);
-  padding: 0 var(--sp-2);
-  background: transparent;
+@media (max-width: 1023px) {
+  .hero { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .centre { grid-column: 1 / -1; grid-row: 1; }
+  .diagram { max-width: 560px; margin: 0 auto; }
 }
-.chips { display: flex; align-items: center; gap: 4px; min-width: 0; overflow: hidden; }
-.chip {
-  height: 18px;
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  gap: 4px;
-  padding: 0 7px;
-  border-radius: var(--r-pill);
-  font-size: 11px;
-  font-weight: var(--fw-semibold);
-  line-height: 1;
-  white-space: nowrap;
+@media (max-width: 640px) {
+  .hero { grid-template-columns: minmax(0, 1fr); }
+  .modeStrip { gap: var(--sp-2); }
 }
-.chip svg { width: 11px; height: 11px; }
-.chip[data-concept='command'] { background: var(--command-soft); color: var(--command); }
-.chip[data-concept='shift'] { background: var(--shift-soft); color: var(--shift); }
-.chip[data-concept='layer'] { background: var(--layer-1-soft); color: var(--layer-1); }
-.chip[data-concept='layer'][data-layer-slot='2'] { background: var(--layer-2-soft); color: var(--layer-2); }
-.chip[data-concept='layer'][data-layer-slot='3'] { background: var(--layer-3-soft); color: var(--layer-3); }
-.chip[data-concept='layer'][data-layer-slot='4'] { background: var(--layer-4-soft); color: var(--layer-4); }
-.chip[data-concept='layer'][data-layer-slot='5'] { background: var(--layer-5-soft); color: var(--layer-5); }
-.chip[data-concept='layer'][data-layer-slot='6'] { background: var(--layer-6-soft); color: var(--layer-6); }
-/* A chord: the input fires together with another. */
-.chip[data-concept='chord'] { background: var(--shift-soft); color: var(--shift); }
-/* Every callout draws its pill, so values line up in one column; one with
-   nothing to say is an empty slot, not a missing one. */
-.callout .valuePill[data-empty='true'] { background: transparent; box-shadow: inset 0 0 0 1px var(--line-1); }
-.chip[data-concept='more'] { background: var(--surface-control); color: var(--text-2); }
-.callout .valuePill {
-  min-width: 56px;
-  height: 26px;
-  max-width: 9rem;
-  padding: 0 10px;
-  border-radius: var(--r-sm);
-  box-shadow: inset 0 -2px 0 var(--line-2);
-  font-size: 12px;
-  font-weight: var(--fw-semibold);
-  font-variant-numeric: tabular-nums;
-}
-.calloutCompact .valuePill { min-width: 20px; height: 20px; }
-.callout[data-shifted='true'] {
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--shift) 40%, transparent), 0 0 18px color-mix(in srgb, var(--shift) 18%, transparent);
-}
-.callout[data-shifted='true'] .calloutTitle { color: var(--shift-ink); }
-.callout .valuePillHeld { background: transparent; box-shadow: none; color: var(--shift); }
-/* A swap is a crossfade in place (90ms), never a reflow. */
-.swap { animation: callout-swap var(--dur-1) var(--ease-standard); }
-@keyframes callout-swap { from { opacity: 0; } }
-.callout .triggerMeter { position: absolute; left: 52px; right: 12px; bottom: 5px; height: 3px; margin: 0; }
-
-.menuReservation { margin: 0; padding: 10px 14px; color: var(--text-2); font-size: 12px; line-height: 1.5; border-left: 3px solid var(--accent); }

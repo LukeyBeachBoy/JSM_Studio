@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>New configuration, pick the game</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.hatch{background-color:#1a2530;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+.step{display:flex;align-items:center;gap:10px;font-size:17px;color:#808c99}
+.dot{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#2e3844;color:#b0bcc8;font-size:14px;font-weight:700}
+.lbl{font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#808c99;font-weight:600}
+.run{font-family:inherit;border:0;cursor:pointer;border-radius:16px;background:#1f2730;color:#e8eef4;padding:14px;display:flex;align-items:center;gap:16px;text-align:left;min-width:0;box-sizing:border-box}
+.run .t{font-size:19px;font-weight:650}
+.run .s{font-family:'Geist Mono',monospace;font-size:14px;color:#808c99}
+.cap{font-family:inherit;border:0;cursor:pointer;border-radius:14px;background:#1f2730;color:#e8eef4;padding:0 0 12px;display:flex;flex-direction:column;gap:10px;text-align:left;min-width:0;overflow:hidden}
+.cap .art{height:104px;position:relative}
+.cap .t{font-size:17px;font-weight:650;padding:0 14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cap .s{font-size:14px;color:#808c99;padding:0 14px;margin-top:-6px}
+.ph{position:absolute;top:10px;left:12px;font-family:'Geist Mono',monospace;font-size:12px;color:#808c99}
+.alt{font-family:inherit;border:0;cursor:pointer;border-radius:16px;background:transparent;box-shadow:inset 0 0 0 2px #2e3844;color:#e8eef4;padding:14px 18px;display:flex;align-items:center;gap:14px;text-align:left;min-height:76px;box-sizing:border-box}
+.alt .t{font-size:18px;font-weight:650}
+.alt .s{font-size:15px;color:#808c99}
+.sw{width:56px;height:32px;border-radius:16px;background:#2e3844;position:relative;flex:none;margin-left:auto}
+.sw span{position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:50%;background:#808c99}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="height: 76px; flex: none; display: flex; align-items: center; gap: 36px; padding: 0 40px; background: #0d1217">
+<span style="font-size: 22px; font-weight: 700">New configuration</span>
+<div style="display: flex; align-items: center; gap: 28px; margin-left: auto">
+<span class="step" style="color: #e8eef4; font-weight: 600"><span class="dot" style="background: #3e9fd8; color: #07131d">1</span>Game</span>
+<span style="width: 40px; height: 2px; background: #2e3844"></span>
+<span class="step"><span class="dot">2</span>How you play</span>
+<span style="width: 40px; height: 2px; background: #2e3844"></span>
+<span class="step"><span class="dot">3</span>Try it</span>
+</div>
+</header>
+
+<main style="flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 28px; padding: 32px 40px 24px">
+
+<section style="display: flex; flex-direction: column; gap: 12px; min-width: 0">
+<div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px">
+<h1 style="margin: 0; font-size: 32px; font-weight: 700">Which game is this for?</h1>
+<p style="margin: 0; font-size: 17px; color: #b0bcc8">Games that are running come first. You can change this later.</p>
+</div>
+
+<span class="lbl">Running now</span>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start">
+<div class="focus" style="border-radius: 16px; background: #1d445c; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; gap: 16px">
+<span class="hatch" style="width: 140px; height: 66px; border-radius: 10px; flex: none; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08)"></span>
+<span style="display: flex; flex-direction: column; gap: 4px; min-width: 0"><span style="font-size: 19px; font-weight: 650">Deep Rock Galactic</span><span style="font-family: 'Geist Mono', monospace; font-size: 14px; color: #b8e2fa">DeepRockGalactic.exe</span></span>
+</div>
+<span style="font-size: 15px; color: #b8e2fa">Its name and art come along. Change either later.</span>
+</div>
+<button class="run"><span class="hatch" style="width: 140px; height: 66px; border-radius: 10px; flex: none"></span><span style="display: flex; flex-direction: column; gap: 4px; min-width: 0"><span class="t">Helldivers 2</span><span class="s">helldivers2.exe</span></span></button>
+</div>
+
+<span class="lbl" style="margin-top: 10px">Recent Steam games</span>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px">
+<button class="cap"><span class="art hatch"><span class="ph">[ HEADER ART ]</span></span><span class="t">Baldur’s Gate 3</span><span class="s">Played yesterday</span></button>
+<button class="cap"><span class="art hatch"><span class="ph">[ HEADER ART ]</span></span><span class="t">Hades II</span><span class="s">Played 3 days ago</span></button>
+<button class="cap"><span class="art hatch"><span class="ph">[ HEADER ART ]</span></span><span class="t">Elden Ring</span><span class="s">Played last week</span></button>
+<button class="cap"><span class="art hatch"><span class="ph">[ HEADER ART ]</span></span><span class="t">Portal 2</span><span class="s">Played last month</span></button>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 10px">
+<button class="alt"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg><span style="display: flex; flex-direction: column; gap: 2px"><span class="t">Browse for an .exe…</span><span class="s">For games outside Steam</span></span></button>
+<button class="alt"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M6 18L18 6"></path></svg><span style="display: flex; flex-direction: column; gap: 2px"><span class="t">No specific game</span><span class="s">Gets a plain icon. Add a game later.</span></span></button>
+</div>
+</section>
+
+<aside style="background: #1a222b; border-radius: 20px; padding: 24px; display: flex; flex-direction: column; gap: 16px">
+<span class="lbl">Your new configuration</span>
+<div class="hatch" style="height: 164px; border-radius: 14px; position: relative; display: flex; align-items: flex-end; padding: 14px 16px; box-sizing: border-box; box-shadow: inset 0 0 0 1px rgba(255,255,255,.06)">
+<span class="ph">[ HEADER ART ]</span>
+<span style="font-size: 24px; font-weight: 700">Deep Rock Galactic</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px; background: #1f2730; border-radius: 14px; padding: 14px 18px">
+<span style="font-size: 14px; color: #808c99">Name</span>
+<span style="font-size: 19px; font-weight: 650">Deep Rock Galactic</span>
+<span style="font-size: 14px; color: #808c99">From the game’s folder · Y to rename</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px; background: #1f2730; border-radius: 14px; padding: 14px 18px">
+<div style="display: flex; align-items: center; gap: 14px"><span style="font-size: 18px; font-weight: 650">Launch with game</span><span class="sw"><span></span></span></div>
+<span style="font-size: 15px; line-height: 1.45; color: #808c99">Off: it only wears the game’s art. On: it goes live whenever the game is in front.</span>
+</div>
+<span style="margin-top: auto; font-size: 16px; line-height: 1.5; color: #b0bcc8">Next, pick how you want to play. Importing from Steam or a file is there too.</span>
+</aside>
+</main>
+
+<footer style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Step 1 of 3</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">A</span>Choose &amp; next</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">X</span>Launch with game</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">Y</span>Rename</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Cancel</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

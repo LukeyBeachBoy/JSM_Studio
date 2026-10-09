@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sticks and pads, mode cards</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.btn{font-family:inherit;border:0;cursor:pointer}
+.tab{font-family:inherit;border:0;background:transparent;color:#b0bcc8;font-size:18px;font-weight:600;height:44px;padding:0 16px;border-radius:12px;cursor:pointer}
+.rail{font-family:inherit;border:0;background:transparent;color:#b0bcc8;font-size:18px;font-weight:500;height:56px;padding:0 18px;border-radius:12px;text-align:left;cursor:pointer;display:flex;flex-direction:column;justify-content:center;gap:2px}
+.mode{font-family:inherit;border:0;cursor:pointer;border-radius:18px;background:#1f2730;color:#e8eef4;padding:16px;display:flex;flex-direction:column;gap:12px;text-align:left;box-sizing:border-box;min-width:0}
+.mode .pic{height:104px;border-radius:12px;background:#0f151b;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.mode .pic.on{background:#0f151b;box-shadow:inset 0 0 0 1px #3e9fd8}
+.mode .pic svg{display:block}
+.mode .t{font-size:19px;font-weight:650}
+.mode .s{font-size:15px;color:#808c99;line-height:1.35}
+.tun{display:flex;flex-direction:column;gap:12px;background:#1f2730;border-radius:16px;padding:18px 22px}
+.bar{height:8px;border-radius:4px;background:#0f151b;position:relative}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="height: 76px; flex: none; display: flex; align-items: center; gap: 24px; padding: 0 32px; background: #0d1217">
+<button class="btn" style="display: flex; align-items: center; gap: 12px; height: 52px; padding: 0 16px 0 8px; border-radius: 14px; background: #1f2730; color: #e8eef4">
+<span style="width: 38px; height: 38px; border-radius: 10px; background: #a43fd6"></span>
+<span style="display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15"><span style="font-size: 17px; font-weight: 650">Wardogs</span><span style="font-size: 13px; color: #808c99">Steam Controller</span></span>
+</button>
+<nav style="display: flex; align-items: center; gap: 4px; flex: 1; justify-content: center">
+<span class="gp" style="margin-right: 8px">LB</span>
+<button class="tab">Layout</button>
+<button class="tab">Buttons</button>
+<button class="tab" style="background: #1d445c; color: #ffffff">Sticks</button>
+<button class="tab">Triggers</button>
+<button class="tab">Trackpads</button>
+<button class="tab">Gyro</button>
+<button class="tab">Menus</button>
+<button class="tab">Modes</button>
+<span class="gp" style="margin-left: 8px">RB</span>
+</nav>
+<span style="display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 20px; background: #1e3d33; color: #93e6c1; font-size: 16px; font-weight: 600"><span style="width: 9px; height: 9px; border-radius: 50%; background: #5fd3a0"></span>Live · saved</span>
+</header>
+
+<main style="flex: 1; min-height: 0; display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 32px; padding: 28px 32px 0">
+<nav style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: center; gap: 8px; margin: 0 0 10px 18px; font-size: 14px; color: #808c99"><span class="gp">LT</span>Stick<span class="gp">RT</span></div>
+<button class="rail" style="background: #1f2730; color: #ffffff"><span style="font-weight: 650">Left stick</span><span style="font-size: 14px; color: #808c99">Move</span></button>
+<button class="rail"><span>Right stick</span><span style="font-size: 14px; color: #5b6571">Radial menu</span></button>
+</nav>
+
+<section style="display: flex; flex-direction: column; gap: 22px; min-width: 0">
+<div style="display: flex; align-items: baseline; gap: 16px">
+<h1 style="margin: 0; font-size: 34px; font-weight: 700">Left stick is for…</h1>
+<span style="font-size: 17px; color: #808c99">◂ ▸ to compare · changes are live while you’re here</span>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px">
+<button class="mode focus" style="background: #1d445c">
+<span class="pic on"><svg viewBox="0 0 140 92" width="100%" height="100" fill="none">
+<rect x="54" y="5" width="32" height="30" rx="8" fill="#3e9fd8"></rect>
+<text x="70" y="26" fill="#07131d" font-size="13" font-weight="700" font-family="Geist, sans-serif" text-anchor="middle">W</text>
+<rect x="18" y="44" width="32" height="30" rx="8" fill="#2e3844" stroke="rgba(255,255,255,.08)"></rect>
+<text x="34" y="64" fill="#b0bcc8" font-size="13" font-weight="600" font-family="Geist, sans-serif" text-anchor="middle">A</text>
+<rect x="54" y="44" width="32" height="30" rx="8" fill="#2e3844" stroke="rgba(255,255,255,.08)"></rect>
+<text x="70" y="64" fill="#b0bcc8" font-size="13" font-weight="600" font-family="Geist, sans-serif" text-anchor="middle">S</text>
+<rect x="90" y="44" width="32" height="30" rx="8" fill="#2e3844" stroke="rgba(255,255,255,.08)"></rect>
+<text x="106" y="64" fill="#b0bcc8" font-size="13" font-weight="600" font-family="Geist, sans-serif" text-anchor="middle">D</text>
+</svg></span>
+<span class="t">Moving</span><span class="s" style="color: #b8e2fa">Sends W A S D</span>
+</button>
+<button class="mode">
+<span class="pic"><svg viewBox="0 0 140 92" width="100%" height="100" fill="none">
+<path d="M16 80 C40 76 50 46 72 38 S94 30 100 28" stroke="#3e9fd8" stroke-width="2" stroke-linecap="round"></path>
+<circle cx="102" cy="27" r="9" stroke="#e8eef4" stroke-width="1.6"></circle>
+<path d="M102 13v6M102 35v6M88 27h6M110 27h6" stroke="#e8eef4" stroke-width="1.6" stroke-linecap="round"></path>
+<circle cx="102" cy="27" r="2" fill="#7cc4ee"></circle>
+</svg></span>
+<span class="t">Looking around</span><span class="s">Moves the mouse</span>
+</button>
+<button class="mode">
+<span class="pic"><svg viewBox="0 0 140 92" width="100%" height="100" fill="none">
+<circle cx="70" cy="46" r="30" stroke="rgba(255,255,255,.06)" stroke-width="7"></circle>
+<path d="M104 46L108 46M99.4 63L102.9 65M87 75.4L89 78.9M70 80L70 84M53 75.4L51 78.9M40.6 63L37.1 65M36 46L32 46M40.6 29L37.1 27M53 16.6L51 13.1M70 12L70 8M87 16.6L89 13.1M99.4 29L102.9 27" stroke="#5b6571" stroke-width="1.4" stroke-linecap="round"></path>
+<path d="M70 16A30 30 0 0 1 93 65.3" stroke="#7cc4ee" stroke-width="5" stroke-linecap="round"></path>
+<circle cx="93" cy="65.3" r="3.6" fill="#e8eef4"></circle>
+<path d="M70 37L77 53L70 49.5L63 53Z" fill="#e8eef4" opacity=".16"></path>
+<g transform="rotate(130 70 46)"><path d="M70 36L78 54L70 50L62 54Z" fill="#e8eef4"></path></g>
+</svg></span>
+<span class="t">Flick to turn</span><span class="s">Point to face that way</span>
+</button>
+<button class="mode">
+<span class="pic"><svg viewBox="0 0 140 92" width="100%" height="100" fill="none">
+<g fill="#131a21" stroke="rgba(255,255,255,.08)">
+<path d="M56.8 10.4A38 38 0 0 1 83.2 10.4L75.9 30.1A17 17 0 0 0 64.1 30.1Z"></path>
+<path d="M105.6 32.8A38 38 0 0 1 105.6 59.2L85.9 51.9A17 17 0 0 0 85.9 40.1Z"></path>
+<path d="M104.5 61.9A38 38 0 0 1 85.9 80.5L77.1 61.4A17 17 0 0 0 85.4 53.1Z"></path>
+<path d="M83.2 81.6A38 38 0 0 1 56.8 81.6L64.1 61.9A17 17 0 0 0 75.9 61.9Z"></path>
+<path d="M54.1 80.5A38 38 0 0 1 35.5 61.9L54.6 53.1A17 17 0 0 0 62.9 61.4Z"></path>
+<path d="M34.4 59.2A38 38 0 0 1 34.4 32.8L54.1 40.1A17 17 0 0 0 54.1 51.9Z"></path>
+<path d="M35.5 30.1A38 38 0 0 1 54.1 11.5L62.9 30.6A17 17 0 0 0 54.6 38.9Z"></path>
+</g>
+<path d="M85.9 11.5A38 38 0 0 1 104.5 30.1L85.4 38.9A17 17 0 0 0 77.1 30.6Z" fill="#3e9fd8"></path>
+<circle cx="90.5" cy="25.5" r="2.4" fill="#07131d"></circle>
+<circle cx="70" cy="46" r="12" fill="#0f141a" stroke="rgba(255,255,255,.08)" stroke-width="1"></circle>
+</svg></span>
+<span class="t">Picking from a wheel</span><span class="s">Up to 8 slices</span>
+</button>
+<button class="mode">
+<span class="pic"><svg viewBox="0 0 140 92" width="100%" height="100" fill="none">
+<circle cx="70" cy="46" r="36" fill="#0e1419" stroke="rgba(255,255,255,.08)" stroke-width="1.5"></circle>
+<circle cx="70" cy="46" r="30" stroke="rgba(124,196,238,.18)" stroke-dasharray="2 4"></circle>
+<path d="M70 46L82 36" stroke="#3e9fd8" stroke-width="2" stroke-linecap="round"></path>
+<circle cx="82" cy="36" r="17" fill="#212a34" stroke="#e3eaf1" stroke-width="2"></circle>
+<circle cx="82" cy="36" r="10" fill="none" stroke="#aebbc8" stroke-width="1.5"></circle>
+</svg></span>
+<span class="t">Gamepad stick</span><span class="s">For games with pad support</span>
+</button>
+<button class="mode" style="background: transparent; box-shadow: inset 0 0 0 2px #2e3844">
+<span class="pic" style="background: transparent; box-shadow: none"><svg viewBox="0 0 140 92" width="100%" height="100" fill="none">
+<rect x="56" y="10" width="60" height="46" rx="10" fill="#1c2631" stroke="rgba(255,255,255,.06)" opacity=".45"></rect>
+<rect x="44" y="20" width="60" height="46" rx="10" fill="#1f2a35" stroke="rgba(255,255,255,.07)" opacity=".75"></rect>
+<rect x="32" y="30" width="60" height="46" rx="10" fill="#232f3b" stroke="rgba(255,255,255,.1)"></rect>
+<circle cx="62" cy="53" r="13" stroke="#b0bcc8" stroke-width="2"></circle>
+<circle cx="62" cy="53" r="3.5" fill="#b0bcc8"></circle>
+<path d="M62 56.5V66M58.8 51.5L50.5 47M65.2 51.5L73.5 47" stroke="#b0bcc8" stroke-width="2" stroke-linecap="round"></path>
+<rect x="94" y="62" width="34" height="22" rx="11" fill="#2e3844"></rect>
+<text x="111" y="77" fill="#e8eef4" font-size="12" font-weight="700" font-family="Geist, sans-serif" text-anchor="middle">+10</text>
+</svg></span>
+<span class="t">More</span><span class="s">Mouse area, mouse ring, scroll wheel, walk/run rings, aim + flick, flick only, turn only, angle to axis, steering</span>
+</button>
+</div>
+
+<div style="display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 22px; min-height: 0">
+<div style="background: #1a222b; border-radius: 18px; padding: 18px; display: flex; flex-direction: column; align-items: center; gap: 12px">
+<svg width="230" height="230" viewBox="0 0 230 230" fill="none">
+<circle cx="115" cy="115" r="108" stroke="#aebbc8" stroke-width="2"></circle>
+<circle cx="115" cy="115" r="105" fill="#0e1419"></circle>
+<g stroke="rgba(255,255,255,.09)" stroke-width="1.4" stroke-linecap="round" transform="translate(115 115)">
+<path d="M0 -100v5M0 100v-5M-100 0h5M100 0h-5M70.7 -70.7l-3.5 3.5M-70.7 70.7l3.5 -3.5M70.7 70.7l-3.5 -3.5M-70.7 -70.7l3.5 3.5"></path>
+</g>
+<path d="M115 30v170M30 115h170" stroke="rgba(255,255,255,.035)"></path>
+<circle cx="115" cy="115" r="90" stroke="#7cc4ee" stroke-width="1.6" stroke-dasharray="3 6" stroke-linecap="round"></circle>
+<circle cx="115" cy="115" r="18" fill="rgba(62,159,216,.14)" stroke="rgba(124,196,238,.7)" stroke-width="1.4"></circle>
+<path d="M115 115L150 80" stroke="#a6d65a" stroke-width="2" stroke-linecap="round"></path>
+<circle cx="150" cy="80" r="26" fill="#212a34" stroke="#e3eaf1" stroke-width="2"></circle>
+<circle cx="150" cy="80" r="15" fill="none" stroke="#aebbc8" stroke-width="1.5"></circle>
+<circle cx="150" cy="80" r="6.2" fill="#a6d65a" stroke="#e3eaf1" stroke-width="2"></circle>
+</svg>
+<div style="display: flex; gap: 18px; font-size: 14px; color: #808c99"><span>Inner ring · ignored</span><span>Dashed · full speed</span></div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px; min-width: 0">
+<div class="tun">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 19px; font-weight: 650">Ignore small movement</span><span style="font-size: 22px; font-weight: 650">15%</span></div>
+<div class="bar"><span style="position: absolute; left: 0; top: 0; height: 8px; width: 15%; border-radius: 4px; background: #3e9fd8"></span></div>
+<div style="font-size: 15px; color: #808c99">Raise it if your character drifts when you let go.</div>
+</div>
+<div class="tun" style="flex-direction: row; align-items: center; justify-content: space-between">
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 19px; font-weight: 650">Push in (L3)</span><span style="font-size: 15px; color: #808c99">What clicking the stick does</span></span>
+<span style="font-size: 20px; font-weight: 600">Sprint · Shift</span>
+</div>
+<div class="tun" style="flex-direction: row; align-items: center; justify-content: space-between">
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 19px; font-weight: 650">Fine-tune</span><span style="font-size: 15px; color: #808c99">Walk on a light push, outer edge, diagonals, touch</span></span>
+<span style="font-size: 18px; color: #808c99">Default ▸</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+
+<footer style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Wardogs · Sticks · Left stick</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">A</span>Use Moving</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">Y</span>Change keys</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">LT</span><span class="gp">RT</span>Other stick</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Back</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

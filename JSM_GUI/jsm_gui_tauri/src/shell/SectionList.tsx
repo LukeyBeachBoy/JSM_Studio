@@ -1,19 +1,33 @@
 import { useEffect, useState } from 'react'
 import { scrollHostTo } from '../nav/scroller'
+import { ButtonGlyph } from '../components/glyphs/ButtonGlyph'
 
-export type ShellSection = { id: string; label: string; active: boolean; onSelect: () => void }
+export type ShellSection = {
+  id: string
+  label: string
+  active: boolean
+  onSelect: () => void
+  /** Console v2: the line under the label ("Move", "Aim · right mouse"). */
+  status?: string
+  /** Console v2 (ButtonList): how many are set, "4" or "1 of 4". */
+  count?: string
+  /** A rule above this item (Settings: Guides, the log and credits sit apart). */
+  divider?: boolean
+}
 
 type SectionListProps = {
   sections: ShellSection[]
   ariaLabel: string
+  /** What LT/RT step here: "Section", or "Category" on the Settings rail. */
+  stepLabel?: string
 }
 
 /**
  * The in-page section list (HANDOFF.md, "Shell decisions"): 216px (184 below
- * 1280), 40px items, stepped by LB/RB. The current section carries the row
+ * 1280), 40px items, stepped by LT/RT (console v2, V1). The current section carries the row
  * fill; there is no second highlight for focus, the ring does that.
  */
-export function SectionList({ sections, ariaLabel }: SectionListProps) {
+export function SectionList({ sections, ariaLabel, stepLabel = 'Section' }: SectionListProps) {
   // Pages discover their sections after they mount, often after focus has
   // already landed; the capsule only offers LB/RB Section once the list is
   // there, so tell it when that changes.
@@ -21,10 +35,12 @@ export function SectionList({ sections, ariaLabel }: SectionListProps) {
   useEffect(() => { window.dispatchEvent(new Event('jsm:interaction-hint')) }, [count])
   return (
     <nav className="section-list" data-focus-scope="sections" aria-label={ariaLabel}>
+      <span className="section-list__keys" aria-hidden="true"><ButtonGlyph button="LT" size={20} /><span>{stepLabel}</span><ButtonGlyph button="RT" size={20} /></span>
       {sections.map(section => (
-        <button key={section.id} type="button" className="section-item" data-state={section.active ? 'current' : undefined}
+        <button key={section.id} type="button" className="section-item" data-state={section.active ? 'current' : undefined} data-divider={section.divider ? 'true' : undefined}
           aria-current={section.active ? 'true' : undefined} onClick={section.onSelect}>
-          {section.label}
+          <span className="section-item__label">{section.label}{section.count && <span className="section-item__count">{section.count}</span>}</span>
+          {section.status && <span className="section-item__status">{section.status}</span>}
         </button>
       ))}
     </nav>

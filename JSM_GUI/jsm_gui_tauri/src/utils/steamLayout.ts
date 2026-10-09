@@ -126,11 +126,17 @@ export type ReportItem = {
   scope?: string
   /** The action set whose configuration it belongs to. */
   set: string
+  /** The input it is about, as a JSM command for its glyph ("RIGHT_PAD",
+   *  "LSL"), or "GYRO" / "ALL" for the gyro and settings for every button. */
+  input?: string
 }
 
 export type ConvertedSet = {
-  /** The configuration's name in the library. */
+  /** The configuration's file name in the library: "Wardogs Steam - Vehicle". */
   name: string
+  /** How the review names it (console v2): "Wardogs Steam · Vehicle". The
+   *  file keeps " - ", which every code page the mapper reads paths in has. */
+  displayName: string
   /** Steam's name for the action set. */
   setTitle: string
   isDefault: boolean
@@ -202,6 +208,20 @@ const SOURCE_NAMES: Record<string, string> = {
 }
 const sourceName = (source: string) => SOURCE_NAMES[source] ?? source.replace(/_/g, ' ')
 
+// Steam's names for inputs (the report's "where") -> the JSM command whose
+// glyph stands for it in the review. Longest name first.
+const WHERE_INPUTS: [string, string][] = ([
+  ['Left trackpad', 'LEFT_PAD'], ['Right trackpad', 'RIGHT_PAD'], ['Touchpad', 'CAPTURE'],
+  ['Left stick', 'LEFT_STICK'], ['Right stick', 'RIGHT_STICK'], ['Left trigger', 'ZL'], ['Right trigger', 'ZR'],
+  ['Gyro', 'GYRO'], ['D-pad', 'UP'], ['Face buttons', 'S'],
+  ['A button', 'S'], ['B button', 'E'], ['X button', 'W'], ['Y button', 'N'],
+  ['Menu button', '+'], ['View button', '-'], ['Left bumper', 'L'], ['Right bumper', 'R'],
+  ['L4', 'LSL'], ['R4', 'RSR'], ['L5', 'LSR'], ['R5', 'RSL'],
+  ['Quick Access button', 'MISC1'], ['Left grip', 'MISC6'], ['Right grip', 'MISC5'],
+  ['Long press', 'ALL'], ['Double-tap', 'ALL'],
+] as [string, string][]).sort((a, b) => b[0].length - a[0].length)
+export const reportInput = (where: string) => WHERE_INPUTS.find(([name]) => where.toLowerCase().startsWith(name.toLowerCase()))?.[1]
+
 // The face, bumper, menu and back buttons: Steam input name -> Studio command.
 const SWITCH_INPUTS: Record<string, { command: string; name: string }> = {
   button_escape: { command: '+', name: 'Menu button' },
@@ -249,7 +269,7 @@ export function translateBinding(binding: string): Translated | null {
     }
     case 'mouse_button': {
       const token = MOUSE_BUTTONS[arg.toUpperCase()]
-      return token ? withLabel({ kind: 'token', token }) : { kind: 'skip', reason: `mouse button ${arg} has no equivalent` }
+      return token ? withLabel({ kind: 'token', token }) : { kind: 'skip', reason: `mouse button ${arg} has no match here` }
     }
     case 'mouse_wheel': {
       const token = MOUSE_WHEEL[arg.toUpperCase()]
@@ -257,7 +277,7 @@ export function translateBinding(binding: string): Translated | null {
     }
     case 'xinput_button': {
       const token = XINPUT[arg.toUpperCase()]
-      return token ? withLabel({ kind: 'token', token, xinput: true }) : { kind: 'skip', reason: `gamepad button ${arg} has no equivalent` }
+      return token ? withLabel({ kind: 'token', token, xinput: true }) : { kind: 'skip', reason: `gamepad button ${arg} has no match here` }
     }
     case 'mode_shift':
       return { kind: 'modeshift', source: arg, group: args[1] ?? '' }
@@ -357,7 +377,7 @@ function writeInput(writer: Writer, command: string, where: string, input: VdfVa
             : activator.type === 'double_press' ? 'double'
               : activator.type === 'chord' ? 'chord' : null
     if (!kind) {
-      if (activator.bindings.length) ctx.report('skipped', where, `the ${activator.type.replace(/_/g, ' ')} activator has no equivalent`)
+      if (activator.bindings.length) ctx.report('skipped', where, `the ${activator.type.replace(/_/g, ' ')} activator has no match here`)
       continue
     }
     const settings = activator.settings
@@ -389,14 +409,14 @@ function writeInput(writer: Writer, command: string, where: string, input: VdfVa
       }
       if (translated.kind === 'layer') {
         const layer = ctx.resolveLayer(translated.preset)
-        if (!layer) { ctx.report('skipped', where, `its layer action points at a layer this layout does not have`); continue }
+        if (!layer) { ctx.report('skipped', where, `it turns on a mode this layout doesn't have`); continue }
         if (writer.prefix || kind === 'chord' || kind === 'double') {
-          ctx.report('skipped', where, `a layer action inside a mode shift, chord or double press has no equivalent`)
+          ctx.report('skipped', where, `turning a layer on inside a mode shift, chord or double-tap has no match here`)
           continue
         }
         writer.base.layerActions.push({ input: command, verb: translated.verb, layerId: layer.id })
-        if (kind !== 'full') ctx.report('approximated', where, `${translated.verb} layer "${layer.name}" now happens on a normal press rather than a ${activator.type.replace(/_/g, ' ')}`)
-        else ctx.report('converted', where, `${translated.verb === 'apply' ? 'Applies' : translated.verb === 'remove' ? 'Removes' : 'Holds'} layer "${layer.name}"`)
+        if (kind !== 'full') ctx.report('approximated', where, `${translated.verb === 'apply' ? 'Turning on' : translated.verb === 'remove' ? 'Turning off' : 'Holding'} mode "${layer.name}" now happens on a normal press rather than a ${activator.type.replace(/_/g, ' ')}`)
+        else ctx.report('converted', where, `${translated.verb === 'apply' ? 'Turns on' : translated.verb === 'remove' ? 'Turns off' : 'Holds'} mode "${layer.name}"`)
         wrote = true
         continue
       }
@@ -417,7 +437,7 @@ function writeInput(writer: Writer, command: string, where: string, input: VdfVa
       const chordWith = (vdfString(settings, 'chord_button') ?? '').toLowerCase()
       const modifier = CHORD_INPUTS[chordWith]
       if (!modifier || writer.prefix) {
-        ctx.report('skipped', where, `its chord binding (${tokens.join(' ')}) could not be converted${modifier ? ' inside a mode shift' : `: Studio does not know chord button "${chordWith || 'unset'}"`}`)
+        ctx.report('skipped', where, `its chord binding (${tokens.join(' ')}) could not be converted${modifier ? ' inside a mode shift' : `: JSM Evolved doesn't know chord button "${chordWith || 'unset'}"`}`)
         continue
       }
       if (writer.set(`${modifier},${command}`, formatTokens(tokens), where)) {
@@ -438,9 +458,9 @@ function writeInput(writer: Writer, command: string, where: string, input: VdfVa
     }
   }
   if (groups.double.length) {
-    if (writer.prefix) ctx.report('skipped', where, `a double press inside a mode shift has no equivalent`)
+    if (writer.prefix) ctx.report('skipped', where, `a double-tap inside a mode shift has no match here`)
     else if (writer.set(`${command},${command}`, formatTokens(groups.double), where)) {
-      ctx.report('converted', where, `Double press: ${groups.double.join(' ')}`)
+      ctx.report('converted', where, `Double-tap: ${groups.double.join(' ')}`)
       wrote = true
     }
   }
@@ -476,7 +496,7 @@ const reportUnused = (writer: Writer, where: string, inputs: GroupInputs, used: 
   for (const [name, value] of inputs) {
     if (used.has(name.toLowerCase())) continue
     if (!readActivators(value).some(a => a.bindings.length)) continue
-    writer.ctx.report('skipped', `${where} ${name.replace(/_/g, ' ')}`, 'this input has no equivalent in this mode')
+    writer.ctx.report('skipped', `${where} ${name.replace(/_/g, ' ')}`, 'this input has no match here in this mode')
   }
 }
 
@@ -558,7 +578,7 @@ function writeStick(writer: Writer, source: string, group: VdfNode) {
       break
     case 'mouse_region':
       stickMode('MOUSE_AREA')
-      ctx.report('approximated', where, `Mouse Region became mouse area; check its size on the Joysticks page`)
+      ctx.report('approximated', where, `Mouse Region became mouse area; check its size on Sticks`)
       break
     case 'dpad':
     case 'four_buttons':
@@ -590,7 +610,7 @@ function writeStick(writer: Writer, source: string, group: VdfNode) {
     case '':
       break
     default:
-      ctx.report('skipped', where, `the "${mode.replace(/_/g, ' ')}" stick mode has no equivalent`)
+      ctx.report('skipped', where, `the "${mode.replace(/_/g, ' ')}" stick mode has no match here`)
   }
   writeClick(writer, where, inputs, used, `${p}3`)
   const edge = inputs.find(([name]) => name.toLowerCase() === 'edge')
@@ -631,7 +651,7 @@ function writeTrackpad(writer: Writer, source: string, group: VdfNode) {
     case 'trackball':
       set(`${pad.key}TOUCHPAD_MODE`, 'MOUSE')
       ctx.report('converted', where, 'Moves the mouse')
-      if (vdfString(settings, 'sensitivity')) ctx.report('approximated', where, `Steam's trackpad sensitivity is not carried over; tune it on the Trackpads page`)
+      if (vdfString(settings, 'sensitivity')) ctx.report('approximated', where, `Steam's trackpad sensitivity is not carried over; tune it on Trackpads`)
       break
     case 'joystick_move':
     case 'joystick_camera':
@@ -694,7 +714,7 @@ function writeTrackpad(writer: Writer, source: string, group: VdfNode) {
     case '':
       break
     default:
-      ctx.report('skipped', where, `the "${mode.replace(/_/g, ' ')}" trackpad mode has no equivalent`)
+      ctx.report('skipped', where, `the "${mode.replace(/_/g, ' ')}" trackpad mode has no match here`)
   }
   writeClick(writer, where, inputs, used, pad.click)
   reportUnused(writer, where, inputs, used)
@@ -712,7 +732,7 @@ function writeTrigger(writer: Writer, source: string, group: VdfNode) {
   const analog = output === '1' ? 'X_LT' : output === '2' ? 'X_RT' : null
 
   if (mode !== 'trigger' && mode !== 'single_button' && mode !== '') {
-    ctx.report('skipped', where, `the "${mode.replace(/_/g, ' ')}" trigger mode has no equivalent`)
+    ctx.report('skipped', where, `the "${mode.replace(/_/g, ' ')}" trigger mode has no match here`)
   }
   if (analog) {
     write(writer, `${command}_MODE`, analog, where)
@@ -763,13 +783,13 @@ function writeGyro(writer: Writer, group: VdfNode) {
       ctx.usesXinput()
       break
     default:
-      ctx.report('skipped', where, `the "${mode.replace(/_/g, ' ')}" gyro mode has no equivalent`)
+      ctx.report('skipped', where, `the "${mode.replace(/_/g, ' ')}" gyro mode has no match here`)
       return
   }
   write(writer, 'GYRO_SENS', String(sens), where)
-  ctx.report('approximated', where, `Gyro ${mode.includes('joystick') ? 'to the virtual right stick' : 'to mouse'} at a starting speed of ${sens}; Steam measures speed differently, so tune it on the Gyro page`)
+  ctx.report('approximated', where, `Gyro ${mode.includes('joystick') ? 'to the virtual right stick' : 'to mouse'} at a starting speed of ${sens}; Steam measures speed differently, so tune it on Gyro`)
   const button = vdfString(settings, 'gyro_button')
-  if (button && button !== '0') ctx.report('skipped', `${where} activation`, `Steam's gyro enable button could not be read, so gyro is always on; choose an enable button on the Gyro page`)
+  if (button && button !== '0') ctx.report('skipped', `${where} activation`, `Steam's gyro enable button could not be read, so gyro is always on; choose when it's on in Gyro`)
 }
 
 function writeSource(writer: Writer, source: string, group: VdfNode) {
@@ -784,7 +804,7 @@ function writeSource(writer: Writer, source: string, group: VdfNode) {
       } else writeButtons(writer, where, inputs, FACE_INPUTS)
       return
     case 'dpad': {
-      if (mode !== 'dpad' && mode !== 'four_buttons') { writer.ctx.report('skipped', where, `the "${mode.replace(/_/g, ' ')}" d-pad mode has no equivalent`); return }
+      if (mode !== 'dpad' && mode !== 'four_buttons') { writer.ctx.report('skipped', where, `the "${mode.replace(/_/g, ' ')}" d-pad mode has no match here`); return }
       const used = writeDirections(writer, where, inputs, ['UP', 'RIGHT', 'DOWN', 'LEFT'], ['up', 'right', 'down', 'left'])
       reportUnused(writer, where, inputs, used)
       return
@@ -810,21 +830,21 @@ function writeSource(writer: Writer, source: string, group: VdfNode) {
       writeGyro(writer, group)
       return
     default:
-      writer.ctx.report('skipped', where, 'this input source has no equivalent')
+      writer.ctx.report('skipped', where, 'this input source has no match here')
   }
 }
 
 function writeModeshift(writer: Writer, trigger: string, where: string, source: string, groupId: string) {
   const ctx = writer.ctx
   const group = ctx.groups.get(groupId)
-  if (writer.prefix) { ctx.report('skipped', where, 'a mode shift inside another mode shift has no equivalent'); return }
+  if (writer.prefix) { ctx.report('skipped', where, 'a mode shift inside another has no match here'); return }
   if (!group) { ctx.report('skipped', where, `its mode shift points at a group this layout does not have`); return }
   if (source === 'switch' || source === 'gyro') {
-    ctx.report('skipped', where, `mode shifting the ${sourceName(source).toLowerCase()} has no equivalent`)
+    ctx.report('skipped', where, `changing the ${sourceName(source).toLowerCase()} while holding a button has no match here`)
     return
   }
   writeSource(writer.shifted(trigger), source, group)
-  ctx.report('converted', where, `Mode shift: ${sourceName(source)} while held`)
+  ctx.report('converted', where, `Mode shift: ${sourceName(source)}`)
 }
 
 // --- Presets ---------------------------------------------------------------
@@ -924,7 +944,7 @@ export function convertSteamLayout(text: string, options: ConvertOptions = {}): 
     let xinput = false
     let currentScope = scope
     const ctx: Context = {
-      report: (status, where, detail) => report.push({ status, where, detail, set: set.title, ...(currentScope ? { scope: currentScope } : {}) }),
+      report: (status, where, detail) => report.push({ status, where, detail, set: set.title, input: reportInput(where), ...(currentScope ? { scope: currentScope } : {}) }),
       resolveSet: n => { const p = findPreset(n); return p && sets.includes(p) ? setName(p) : null },
       resolveLayer: n => { const p = findPreset(n); return p && setLayers.includes(p) ? layerRefs.get(p) ?? null : null },
       groups, localize, usesXinput: () => { xinput = true }, timing,
@@ -944,7 +964,7 @@ export function convertSteamLayout(text: string, options: ConvertOptions = {}): 
     const layerLines: string[] = []
     for (const layerPreset of setLayers) {
       const ref = layerRefs.get(layerPreset)!
-      currentScope = `Layer: ${ref.name}`
+      currentScope = `Mode: ${ref.name}`
       const layerWriter = new Writer(ctx)
       writeSet(layerWriter, layerPreset)
       main.layerActions.push(...layerWriter.layerActions)
@@ -954,7 +974,7 @@ export function convertSteamLayout(text: string, options: ConvertOptions = {}): 
 
     const lines: string[] = [
       `# Imported from the Steam Input layout "${title}"${set === sets[0] ? '' : `, action set "${set.title}"`}${options.fileName ? ` (${options.fileName})` : ''}`,
-      ...(options.date ? [`# Converted by JSM Studio on ${options.date}.`] : []),
+      ...(options.date ? [`# Converted by JSM Evolved on ${options.date}.`] : []),
       'RESET_MAPPINGS',
     ]
     if (xinput) lines.push('VIRTUAL_CONTROLLER = XBOX')
@@ -964,8 +984,8 @@ export function convertSteamLayout(text: string, options: ConvertOptions = {}): 
       const double = consistent(timing.double)
       if (hold) lines.push(`HOLD_PRESS_TIME = ${hold}`)
       if (double) lines.push(`DBL_PRESS_WINDOW = ${double}`)
-      if (set === sets[0] && timing.hold.length && !hold) report.push({ status: 'approximated', set: set.title, where: 'Long press', detail: 'Steam had a different long-press time per button; Studio uses one time for every button' })
-      if (set === sets[0] && timing.double.length && !double) report.push({ status: 'approximated', set: set.title, where: 'Double press', detail: 'Steam had a different double-press time per button; Studio uses one window for every button' })
+      if (set === sets[0] && timing.hold.length && !hold) report.push({ status: 'approximated', set: set.title, where: 'Long press', input: 'ALL', detail: 'Steam had a hold time per button; one time is used for every button' })
+      if (set === sets[0] && timing.double.length && !double) report.push({ status: 'approximated', set: set.title, where: 'Double-tap', input: 'ALL', detail: 'Steam had a double-tap time per button; one time is used for every button' })
     }
     for (const [key, value] of main.entries) lines.push(`${key} = ${value}`)
     for (const [command, label] of main.labels) lines.push(`# @label ${command} = ${label.replace(/[\r\n#]/g, '').trim()}`)
@@ -980,7 +1000,7 @@ export function convertSteamLayout(text: string, options: ConvertOptions = {}): 
       lines.push(`# @layer-action ${action.input} = ${verb} ${action.layerId}`)
     }
 
-    converted.push({ name: setName(set), setTitle: set.title, isDefault: set === sets[0], text: '', layers: setLayers.map(p => layerRefs.get(p)!.name) })
+    converted.push({ name: setName(set), displayName: set === sets[0] ? title : `${title} · ${set.title}`, setTitle: set.title, isDefault: set === sets[0], text: '', layers: setLayers.map(p => layerRefs.get(p)!.name) })
     bodies.push(lines)
   }
 
@@ -990,7 +1010,7 @@ export function convertSteamLayout(text: string, options: ConvertOptions = {}): 
   converted.forEach((entry, index) => {
     const misses = report.filter(item => item.status !== 'converted' && item.set === entry.setTitle)
     const notes = misses.length
-      ? ['# Not carried over exactly from Steam:', ...misses.map(item => `# - ${item.status === 'skipped' ? 'Not converted' : 'Approximated'}: ${item.where}${item.scope?.startsWith('Layer:') ? ` (${item.scope})` : ''}: ${item.detail}`.replace(/[\r\n]/g, ' '))]
+      ? ['# Not brought over exactly from Steam:', ...misses.map(item => `# - ${item.status === 'skipped' ? 'Not brought over' : 'Close enough'}: ${item.where}${item.scope?.startsWith('Mode:') ? ` (${item.scope})` : ''}: ${item.detail}`.replace(/[\r\n]/g, ' '))]
       : []
     const body = bodies[index]
     const header = body.findIndex(line => !line.startsWith('#'))

@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mode changes</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.lbl{font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#808c99;font-weight:600}
+.ib{display:inline-flex;align-items:center;justify-content:center;min-width:38px;height:28px;padding:0 6px;box-sizing:border-box;border-radius:8px;background:#2e3844;color:#e8eef4;font-weight:700;font-size:13px;flex:none}
+.ov{font-family:inherit;border:0;cursor:pointer;width:100%;display:grid;grid-template-columns:200px minmax(0,1fr) auto;align-items:center;gap:16px;min-height:64px;padding:8px 20px;box-sizing:border-box;border-radius:14px;background:#1f2730;color:#e8eef4;text-align:left}
+.ov .w{display:flex;align-items:center;gap:12px;font-size:18px;font-weight:650;white-space:nowrap}
+.ov .d{display:flex;flex-direction:column;gap:2px;min-width:0}
+.ov .a{font-size:18px;font-weight:600;color:#e8eef4}
+.ov .b{font-size:14px;color:#808c99}
+.ov .r{font-size:15px;color:#b0bcc8;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.row{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;align-items:center;gap:16px;min-height:72px;padding:10px 20px;box-sizing:border-box;border-radius:16px;background:#1f2730;color:#e8eef4;text-align:left}
+.row .t{font-size:19px;font-weight:650}
+.row .s{font-size:15px;color:#808c99;line-height:1.35}
+.row .v{margin-left:auto;font-size:17px;color:#d4dde6;white-space:nowrap}
+.sw{width:56px;height:32px;border-radius:16px;background:#2e3844;position:relative;flex:none;margin-left:auto}
+.sw span{position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:50%;background:#808c99}
+.mi{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;align-items:center;gap:14px;min-height:52px;padding:8px 16px;box-sizing:border-box;border-radius:12px;background:transparent;color:#e8eef4;text-align:left}
+.mi .t{font-size:18px;font-weight:600}
+.mi .v{margin-left:auto;font-size:15px;color:#b0bcc8;white-space:nowrap}
+.ic{width:22px;height:22px;flex:none}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="height: 76px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 40px; background: #0d1217">
+<span style="font-size: 18px; color: #808c99">Wardogs · Modes · Vehicles</span>
+<span style="font-size: 18px; color: #808c99">▸</span>
+<span style="font-size: 22px; font-weight: 700">What changes in this mode</span>
+<span style="margin-left: auto; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 20px; background: #1e3d33; color: #93e6c1; font-size: 16px; font-weight: 600"><span style="width: 9px; height: 9px; border-radius: 50%; background: #5fd3a0"></span>Live · saved</span>
+</header>
+
+<main style="flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 470px; gap: 32px; padding: 26px 40px 24px">
+
+<section style="display: flex; flex-direction: column; gap: 10px; min-width: 0">
+<div style="display: flex; align-items: center; gap: 16px; margin-bottom: 6px">
+<span style="width: 22px; height: 22px; border-radius: 7px; background: #b48cf0"></span>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<h1 style="margin: 0; font-size: 32px; font-weight: 700">Vehicles</h1>
+<span style="font-size: 16px; color: #b0bcc8">On while you hold L4. Everything not listed comes from Default.</span>
+</div>
+</div>
+
+<span class="lbl">Changed in this mode · 3</span>
+<button class="ov"><span class="w"><span class="g">A</span>A button</span><span class="d"><span class="a">Handbrake · X</span><span class="b">Default: Jump · Space</span></span><span class="r">Use Default</span></button>
+<button class="ov"><span class="w"><span class="ib">RB</span>Right bumper</span><span class="d"><span class="a">Horn · H</span><span class="b">Default: Ping · Middle mouse</span></span><span class="r">Use Default</span></button>
+<button class="ov"><span class="w"><span class="ib">LS</span>Left stick</span><span class="d"><span class="a">Steer · A D</span><span class="b">Default: Move · W A S D</span></span><span class="r">Use Default</span></button>
+
+<span class="lbl" style="margin-top: 14px">Advanced</span>
+<button class="row"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V8M8 12l4-4 4 4M5 4h14"></path></svg><span style="display: flex; flex-direction: column; gap: 2px"><span class="t">Act when you let go</span><span class="s">On while L4 is up, off while you hold it</span></span><span class="sw"><span></span></span></button>
+<button class="row"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg><span style="display: flex; flex-direction: column; gap: 2px"><span class="t">More buttons</span><span class="s">Any number of buttons can turn it on or off</span></span><span class="v" style="display: flex; align-items: center; gap: 8px"><span class="ib" style="background: #b48cf0; color: #1a1030">L4</span>+ Add</span></button>
+<button class="row"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h11l-3-3M20 17H9l3 3"></path></svg><span style="display: flex; flex-direction: column; gap: 2px"><span class="t">Bring in old “While holding” changes</span><span class="s">For older files: moves them here, then that button holds Vehicles</span></span><span class="v">From ◂ L4 ▸ · 2</span></button>
+</section>
+
+<aside style="align-self: start; background: #181f27; border-radius: 20px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); padding: 18px 16px 16px; display: flex; flex-direction: column; gap: 2px">
+<div style="display: flex; align-items: center; gap: 12px; padding: 2px 16px 12px">
+<span style="width: 16px; height: 16px; border-radius: 5px; background: #b48cf0"></span>
+<span style="font-size: 22px; font-weight: 700">Vehicles</span>
+<span style="margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 15px; color: #808c99"><span class="g" style="width: 26px; height: 26px; font-size: 12px">Y</span>More</span>
+</div>
+<button class="mi"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"></path><path d="M13 7l4 4"></path></svg><span class="t">Rename</span><span class="v">Opens the keyboard</span></button>
+<button class="mi"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5z"></path><path d="M3 13l9 5 9-5"></path></svg><span class="t">How it turns on and off</span><span class="v">Hold L4 ▸</span></button>
+<button class="mi"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7l4-4 4 4M8 17l4 4 4-4M12 3v18"></path></svg><span class="t">Move in order</span><span class="v">1st of 3</span></button>
+<div style="height: 1px; background: #2a333e; margin: 6px 16px"></div>
+<div style="border-radius: 14px; background: #4a1f26; padding: 16px; display: flex; flex-direction: column; gap: 12px; margin-top: 4px">
+<div style="display: flex; align-items: center; gap: 14px">
+<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#ffb3bd" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"></path></svg>
+<span style="font-size: 20px; font-weight: 700; color: #ffd6dc">Delete Vehicles?</span>
+</div>
+<span style="font-size: 16px; line-height: 1.5; color: #ffd6dc">Its 3 changes go with it. L4 keeps its other actions. Nothing leaves the file until you save.</span>
+<div class="focus" style="border-radius: 12px; background: #1d445c; padding: 12px 16px; display: flex; flex-direction: column; gap: 4px">
+<span style="display: flex; align-items: center; gap: 12px; font-size: 18px; font-weight: 650"><span class="g">B</span>Keep it</span>
+<span style="font-size: 15px; color: #b8e2fa; padding-left: 42px">Nothing changes.</span>
+</div>
+<button class="mi" style="background: #e5484d; color: #ffffff"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"></path></svg><span class="t" style="font-weight: 650">Delete Vehicles</span></button>
+</div>
+</aside>
+</main>
+
+<footer style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Wardogs · Modes · Vehicles · Delete</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">A</span>Choose</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Keep it</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

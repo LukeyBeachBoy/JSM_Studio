@@ -46,55 +46,79 @@ const ARTIFACTS = path.resolve(__dirname, '../tmp/feedback-binding-polish');
     fs.mkdirSync(ARTIFACTS, { recursive: true });
 
 
-    await page.getByRole('button', { name: 'Overview', exact: true }).click();
-    await page.getByRole('button', { name: /Controller light/ }).click();
-    const light = page.getByRole('dialog', { name: 'Controller light', exact: true });
+    // Layout ▸ Y quick menu ▸ Controller light & sounds (QuickMenu.dc.html), not
+    // a row on the page itself.
+    await page.getByRole('button', { name: 'Layout', exact: true }).click();
+    assert.equal(await page.locator('.main-pane').getByRole('button', { name: /^Controller light/ }).count(), 0, 'no light row on the Layout page itself');
+    await page.locator('[data-overview-slot]').first().focus();
+    await page.keyboard.press('y');
+    await page.getByRole('button', { name: /^Controller light & sounds/ }).click();
+    const light = page.getByRole('dialog', { name: /Controller light/ }).last();
     await light.waitFor();
-    await light.locator('[data-modal-close]').click();
+    await page.keyboard.press('Escape');
+    await light.waitFor({ state: 'detached' }).catch(() => {});
     await page.getByRole('button', { name: 'Buttons', exact: true }).click();
-    assert.equal(await page.getByRole('button', { name: /Controller light/ }).count(), 0);
+    assert.equal(await page.getByRole('button', { name: /^Controller light/ }).count(), 0);
     const bump = page.locator('details[data-input-command="L"] > summary');
     await bump.scrollIntoViewIfNeeded();
-    const cap = bump.locator('[class*=keycapKey]');
+    const cap = bump.locator('[data-row-output]').first();
     assert.ok(await cap.evaluate(el => el.scrollWidth <= el.clientWidth), 'bumper output fits without ellipsis');
     const rowBox = await bump.boundingBox();
     const capBox = await cap.locator('..').boundingBox();
     assert.ok(Math.abs((capBox.y + capBox.height / 2) - (rowBox.y + rowBox.height / 2)) < 2, 'output is vertically centered');
     await page.screenshot({ path: path.join(ARTIFACTS, 'bumpers.png') });
-    for (const tabName of ['Triggers', 'Trackpads']) {
+    // Console v2 (P4): Triggers and Trackpads show one hand at a time, picked on the rail.
+    for (const [tabName, page_, left, right] of [['Triggers', 'trigger', 'Left trigger', 'Right trigger'], ['Trackpads', 'trackpad', 'Left pad', 'Right pad']]) {
       await page.getByRole('button', { name: tabName, exact: true }).click();
-      const split = page.locator('[class*="_split_"]').first();
-      await split.waitFor();
-      const positions = await split.locator(':scope > section').evaluateAll(els => els.map(el => ({ x: el.getBoundingClientRect().x, y: el.getBoundingClientRect().y })));
-      assert.ok(positions.length >= 2 && positions[0].x === positions[1].x && positions[1].y > positions[0].y, tabName + ' stacks hands');
+      const items = page.locator('.section-item');
+      await items.first().waitFor();
+      assert.deepEqual(await items.evaluateAll(els => els.map(el => el.querySelector('.section-item__label').textContent.trim())), [left, right], tabName + ' rail lists each hand');
+      await page.locator(`#${page_}-left`).waitFor();
+      assert.equal(await page.locator(`#${page_}-right`).count(), 0, tabName + ' draws one hand at a time');
+      await items.nth(1).click();
+      await page.locator(`#${page_}-right`).waitFor();
+      assert.equal(await page.locator(`#${page_}-left`).count(), 0, tabName + ' swaps hands on the rail');
     }
     await page.getByRole('button', { name: 'Layers', exact: true }).click();
-    await page.locator('.layer-row').filter({ hasText: 'Aim' }).click();
-    const overrides = page.locator('#layers-overrides');
-    assert.equal(await overrides.locator('.layer-override').count(), 1, 'names are merged, not separate overrides');
-    assert.match(await overrides.innerText(), /Driving light: Change LED color to/);
-    assert.equal(await overrides.locator('[role="img"]').count(), 1, 'color preview');
-    assert.ok(!(await overrides.innerText()).includes('x34c759'), 'raw binding syntax is hidden');
-    assert.equal(await page.locator('.layer-migration').count(), 0, 'migration is hidden without existing modeshifts');
-    await page.evaluate(() => document.activeElement?.blur());
-    await overrides.locator('.layer-override').evaluate(el => el.scrollIntoView({block: 'center'}));
+    // Modes (console v2): Y on a mode's card opens what it changes.
+    await page.locator('[data-mode-id]').filter({ hasText: 'Aim' }).focus();
+    await page.keyboard.press('y');
+    const overrides = page.getByRole('dialog', { name: /What changes in this layer/ });
+    await overrides.waitFor();
+    assert.equal(await overrides.locator('[data-change-key]').count(), 1, 'names are merged, not separate overrides');
+    assert.match(await overrides.innerText(), /Driving light · Light #34c759/i);
+    assert.equal(await overrides.locator('[data-change-key] [role="img"]').count(), 1, 'color preview');
+    assert.ok(!(await overrides.innerText()).toLowerCase().includes('x34c759'), 'raw binding syntax is hidden');
+    assert.equal(await overrides.locator('[role="group"]').filter({ hasText: 'Bring in chords' }).getAttribute('aria-disabled'), 'true', 'bringing in old changes is unavailable without existing modeshifts');
     await overrides.screenshot({ path: path.join(ARTIFACTS, 'layer-readable.png') });
+    await page.keyboard.press('Escape');
     await page.getByRole('button', { name: 'Buttons', exact: true }).click();
     const inherited = page.locator('details[data-input-command="L"] > summary');
-    const dot = await inherited.locator('.origin-marker__dot').boundingBox();
-    const originText = await inherited.locator('.origin-marker small').boundingBox();
-    assert.ok(dot && originText && Math.abs(dot.y + dot.height / 2 - originText.y - originText.height / 2) < 2, 'origin dot and text centers match');
+    // An origin marker only shows while a mode is being edited or an import is behind
+    // the value (Modes' Y no longer selects the mode, console v2); where there is
+    // one, its dot and text line up.
+    for (const marker of await inherited.locator('.origin-marker').all()) {
+      const dot = await marker.locator('.origin-marker__dot').boundingBox();
+      const originText = await marker.locator('small').boundingBox();
+      assert.ok(dot && originText && Math.abs(dot.y + dot.height / 2 - originText.y - originText.height / 2) < 2, 'origin dot and text centers match');
+    }
     await page.locator('details[data-input-command="N"] > summary').click();
-    await page.locator('details[data-input-command="N"][open]').getByRole('button', { name: 'Add command' }).click();
-    const picker = page.getByRole('dialog', { name: 'Choose an action' });
-    await picker.locator('.action-tab').filter({ hasText: 'Layers' }).click();
-    await picker.getByRole('button', { name: /^Aim/ }).focus();
-    const detail = picker.locator('.picker-detail');
-    assert.ok(await detail.evaluate(el => el.scrollWidth <= el.clientWidth), 'layer preview does not overflow');
+    // The Switch mode and Controller action pickers (console v2): a long mode
+    // name and a long description must not overflow the aside.
+    const sheet = page.locator('details[data-input-command="N"][open]');
+    await sheet.locator('[data-kind="mode"]').first().click();
+    const modePicker = page.locator('[data-picker="mode"]');
+    await modePicker.waitFor();
+    await modePicker.locator('[data-layer]').first().focus();
+    assert.ok(await modePicker.evaluate(el => el.scrollWidth <= el.clientWidth), 'mode picker does not overflow');
     await page.screenshot({ path: path.join(ARTIFACTS, 'layer-picker.png') });
-    await picker.locator('.action-tab').filter({ hasText: 'JSM' }).click();
-    await picker.getByRole('button', { name: 'Gyro control', exact: true }).click();
-    await picker.getByRole('button', { name: 'Disable gyro (all)', exact: true }).focus();
+    await page.keyboard.press('Escape');
+    await modePicker.waitFor({ state: 'detached' });
+    await sheet.locator('[data-kind="controller"]').first().click();
+    const picker = page.locator('[data-picker="controller"]');
+    await picker.waitFor();
+    await picker.locator('[data-action="GYRO_OFF_ALL"]').focus();
+    const detail = picker.locator('aside');
     assert.ok(await detail.evaluate(el => el.scrollWidth <= el.clientWidth), 'long command description does not overflow');
     await page.screenshot({ path: path.join(ARTIFACTS, 'jsm-picker.png') });
     assert.deepEqual(errors, []);

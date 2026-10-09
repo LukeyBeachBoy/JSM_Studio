@@ -23,45 +23,44 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  });
  await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
  // The app opens on Home (console refinement 2a); these checks start in the editing shell.
+ // A Steam Controller's first connection asks about its power-on sound.
+ await page.getByRole('button', { name: 'Keep them', exact: true }).click({ timeout: 5000 }).catch(() => {});
  await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
  await page.locator('.profile-chip').filter({hasText:'Desktop'}).waitFor();
  await page.getByRole('button',{name:'Buttons',exact:true}).click();
  // Bindings open in a focused detail panel now, so the card exists only once
  // its input row is opened.
- await page.locator('details[data-input-command="N"] > summary').click();
- const open = page.locator('details[data-input-command="N"][open]');
- const card = open.locator('[data-command-row]').first();
- await card.waitFor();
-
+ // Console v2 (ButtonList): Copy and Paste are in the row's Y menu.
+ const summary = page.locator('details[data-input-command="N"] > summary');
+ await summary.waitFor();
  const bar = page.locator('[class*=clipboardBar]');
  assert.equal(await bar.count(), 0, 'the clipboard bar shows with an empty clipboard');
 
- // Copy one binding from its row's settings sheet (the cog, 3c).
+ const menu = async () => { await summary.focus(); await page.keyboard.press('y'); await page.getByRole('menuitem').first().waitFor(); };
  const copyOne = async () => {
-   await card.getByRole('button',{name:'Command settings'}).click();
-   await page.getByRole('dialog').getByRole('button',{name:'Copy binding'}).click();
+   await menu();
+   await page.getByRole('menuitem',{name:/^Copy/}).click();
    await bar.waitFor();
  };
  await copyOne();
 
- // Paste is on the card's own cog (3c); a closed row carries no text-only button.
- const pasteItem = async () => {
-   await open.getByRole('button',{name:'Binding settings'}).click();
+ const pasteDisabled = async () => {
+   await menu();
    const item = page.getByRole('menuitem',{name:/^Paste/});
    const disabled = (await item.getAttribute('data-disabled')) !== null;
    await page.keyboard.press('Escape');
+   await page.getByRole('menuitem').first().waitFor({state:'detached'});
    return disabled;
  };
- assert.equal(await pasteItem(), false, 'the open card offers the clipboard');
+ assert.equal(await pasteDisabled(), false, 'the row offers the clipboard');
  assert.equal(await page.locator('summary .link-btn').count(), 0, 'a closed row still carries a text-only paste');
 
- // Clearing puts the clipboard down, and paste with it.
  await bar.getByRole('button',{name:'Clear'}).click();
  await bar.waitFor({state:'detached'});
- assert.equal(await pasteItem(), true, 'paste survived Clear');
+ assert.equal(await pasteDisabled(), true, 'paste survived Clear');
 
- // Escape does the same, so it can be dismissed without aiming at anything.
  await copyOne();
+ await summary.focus();
  await page.keyboard.press('Escape');
  await bar.waitFor({state:'detached'});
 

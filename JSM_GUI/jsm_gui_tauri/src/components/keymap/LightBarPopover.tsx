@@ -106,7 +106,7 @@ export function LightBarPopover({ anchor, color, onChange, onClose }: Props) {
     requestClose()
   }
 
-  const title = t('keymap.lightBarCustomTitle', 'Custom color')
+  const title = t('keymap.lightBarCustomTitle', 'Custom colour')
   return createPortal(
     <div
       ref={ref}

@@ -163,13 +163,13 @@ export function InputUsageInspector() {
   )
 
   return (
-    <Sheet open={command !== null} onClose={close} width={560} eyebrow={`Overview · ${config ?? 'Configuration'}`}
+    <Sheet open={command !== null} onClose={close} width={560} eyebrow={`Layout · ${config ?? 'Configuration'}`}
       title={t('overview.usesTitle', 'Where {{name}} is used', { name })}
       description={t('overview.usesDescription', 'What holding it changes, and what it takes part in. Select a row to edit it.')}
       hints={[{ button: 'A', label: 'Open' }, { button: 'B', label: 'Close' }]}>
       {own.map(section => renderSection(section))}
       {inLayers.map(entry => entry.sections.map(section => renderSection({ ...section, title: `${entry.layer.name} layer · ${section.title}` }, entry.layer.id)))}
-      {!own.length && !inLayers.length && <p className={styles.empty}>{t('overview.usesNone', 'Nothing else depends on {{name}}: no modeshifts, chords, layers or settings.', { name })}</p>}
+      {!own.length && !inLayers.length && <p className={styles.empty}>{t('overview.usesNone', 'Nothing else depends on {{name}}: no chords, mode shifts, presses together, layers or settings.', { name })}</p>}
     </Sheet>
   )
 }

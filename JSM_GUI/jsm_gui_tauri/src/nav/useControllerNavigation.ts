@@ -7,7 +7,11 @@ import { NAV_SKIP_SELECTOR, pageEntryTarget } from '../hooks/useKeyboardNav'
 import { isStudioNavigationProfile } from '../utils/appliedProfile'
 import { restingAnchor } from './navAnchor'
 import { activeScrollHost, cancelScroll, ensureVisible, watchManualScroll } from './scroller'
-import { padFeedback } from './feedback'
+import { padFeedback as feelPad } from './feedback'
+import { PAD_HELD_EVENT, requestTextEntry } from './textEntry'
+
+// Held buttons, by JSM command, as the on-screen keyboard names them.
+const HELD_NAMES: Record<string, string> = { S: 'A', E: 'B', W: 'X', N: 'Y', L: 'LB', R: 'RB', ZL: 'LT', ZR: 'RT', L3: 'L3', R3: 'R3', '-': 'VIEW', '+': 'MENU' }
 
 // Studio reads the pad itself while its window has focus: the navigation
 // profile maps nothing to keys, so the applied configuration is paused and
@@ -26,6 +30,18 @@ import { padFeedback } from './feedback'
 export type PadEventDetail = { button: PadButton }
 export const PAD_EVENT = 'jsm:pad'
 
+/**
+ * A pad press made with the mouse: the footer's hints are buttons, and a
+ * click on one does exactly what that button on the pad does (dispatch this
+ * on window with { button }, or { exitTest: true } for View + Menu). Unlike
+ * the pad itself it neither claims the input source nor rumbles.
+ */
+export type VirtualPadDetail = { button: PadButton } | { exitTest: true }
+/** Leave Test mode now, whatever asked (the banner's button, the status chip). */
+export const requestExitTest = () => pressPadButton({ exitTest: true })
+export const VIRTUAL_PAD_EVENT = 'jsm:pad-press'
+export const pressPadButton = (detail: VirtualPadDetail) => { window.dispatchEvent(new CustomEvent<VirtualPadDetail>(VIRTUAL_PAD_EVENT, { detail })) }
+
 type Options = {
   /** Studio has the controller: mapping, AutoLoad and the navigation rule are on. */
   enabled: boolean
@@ -39,6 +55,8 @@ type Options = {
   onHome: () => void
   /** Menu: the Configuration menu, where there is a configuration to act on. */
   onMenu: () => boolean | void
+  /** Menu tapped: save (what the title bar's status chip does). */
+  onSave: () => boolean | void
 }
 
 export type InputSource = 'controller' | 'keyboard' | 'mouse'
@@ -123,6 +141,10 @@ export function useControllerNavigation(options: Options) {
 
   useEffect(() => {
     const navigator = new PadNavigator()
+    // A press from the footer (VIRTUAL_PAD_EVENT): no rumble, and the input in
+    // use stays the mouse.
+    let virtual = false
+    const padFeedback: typeof feelPad = (...args) => { if (!virtual) feelPad(...args) }
 
     const enterPage = () => {
       const page = document.querySelector('.main-pane') ?? document.querySelector('.shell-scroll')
@@ -140,6 +162,9 @@ export function useControllerNavigation(options: Options) {
         else enterPage()
         return
       }
+      // A on one of the app's text fields opens the on-screen keyboard
+      // (console v2); the physical keyboard still types into it directly.
+      if (requestTextEntry(active)) return
       if (sendKey('Enter', active)) return
       if (active.matches(CLICKABLE)) active.click()
     }
@@ -190,16 +215,28 @@ export function useControllerNavigation(options: Options) {
 
     const perform = (action: NavAction) => {
       const { onPageStep, onSectionStep, onExitTest, testing } = latest.current
-      if (action.kind === 'exitTest') { if (testing) onExitTest(); return }
+      if (action.kind === 'exitTest') {
+        // The New configuration wizard's Try it reads the pad itself (hold A /
+        // X / B): a B tap there is a test press, and the wizard ends the test.
+        if (action.button === 'B' && document.body.dataset.testCapture === 'true') return
+        if (testing) onExitTest()
+        return
+      }
       if (action.kind === 'scroll') { setInputSource('controller'); scroll(action.dx, action.dy); return }
       // A capture is waiting for a key: nothing but the hold-B escape may
       // reach it, or A would be captured as Enter.
       if (document.body.dataset.bindingCapture === 'true' && action.kind !== 'hold') return
-      setInputSource('controller')
+      // "Press it now" (nav/usePressToFind.ts) is waiting for any button.
+      if (document.body.dataset.padListening === 'true') return
+      if (!virtual) setInputSource('controller')
       if (action.kind === 'move') {
         const before = snapshot()
         moveFocus(action.direction)
         padFeedback(changedSince(before) ? 'move' : 'edge')
+        return
+      }
+      if (action.kind === 'hold' && action.button === 'MENU') {
+        padFeedback(latest.current.onMenu() === false ? 'edge' : 'titleBar', 'right')
         return
       }
       if (action.kind === 'hold') {
@@ -217,7 +254,8 @@ export function useControllerNavigation(options: Options) {
         }
         case 'B': {
           const before = snapshot()
-          if (sendKey('Escape') || changedSince(before)) padFeedback('back')
+          // Nothing to go back from (Home): the dull edge, not silence.
+          padFeedback(sendKey('Escape') || changedSince(before) ? 'back' : 'edge')
           return
         }
         case 'X':
@@ -230,17 +268,21 @@ export function useControllerNavigation(options: Options) {
         case 'LB':
         case 'RB': {
           const side = action.button === 'LB' ? 'left' : 'right'
-          // An open picker or dialog steps its own categories; it hears LB/RB
-          // as a pad event. Otherwise they step the page's sections.
+          // Console convention (console v2, V1): the bumpers change tabs. An
+          // open picker or dialog steps its own categories; it hears LB/RB as
+          // a pad event instead.
           if (overlayOpen()) { if (sendPad(action.button)) padFeedback('section', side) }
-          else padFeedback(onSectionStep(action.button === 'LB' ? -1 : 1) === false ? 'edge' : 'section', side)
+          else padFeedback(onPageStep(action.button === 'LB' ? -1 : 1) === false ? 'edge' : 'page', side)
           return
         }
         case 'LT':
         case 'RT': {
-          if (overlayOpen()) return
+          // The triggers step the page's sections (the rail). An open picker
+          // or dialog hears them as a pad event instead (the action picker's
+          // groups), as it does the bumpers.
           const side = action.button === 'LT' ? 'left' : 'right'
-          padFeedback(onPageStep(action.button === 'LT' ? -1 : 1) === false ? 'edge' : 'page', side)
+          if (overlayOpen()) { if (sendPad(action.button)) padFeedback('section', side); return }
+          padFeedback(onSectionStep(action.button === 'LT' ? -1 : 1) === false ? 'edge' : 'section', side)
           return
         }
         case 'VIEW':
@@ -248,8 +290,10 @@ export function useControllerNavigation(options: Options) {
           void goHome()
           return
         case 'MENU': {
-          if (overlayOpen()) return
-          padFeedback(latest.current.onMenu() === false ? 'edge' : 'titleBar', 'right')
+          // A tap saves, from anywhere -- a sub-page can still claim Menu for
+          // itself first (Review changes: ☰ Save). Holding it opens the menu.
+          if (overlayOpen() && sendPad('MENU')) { padFeedback('select'); return }
+          padFeedback(latest.current.onSave() === false ? 'edge' : 'select', 'right')
           return
         }
       }
@@ -260,6 +304,9 @@ export function useControllerNavigation(options: Options) {
       const active = document.activeElement as HTMLElement | null
       const resting = restingAnchor()
       if ((!active || active === document.body) && !resting) { enterPage(); return }
+      // Console v2 rows whose value Left / Right change directly (ui/console
+      // ValueRow, SegmentedRow): those two arrows are theirs; Up / Down move on.
+      if (active?.matches('[data-arrows="horizontal"]') && (key === 'ArrowLeft' || key === 'ArrowRight')) { sendKey(key); return }
       const picker = document.querySelector('[data-radix-popper-content-wrapper]')
       // Moving on from a hovered control or a field left with B, or out of
       // a control that would otherwise eat the arrow (Up on a value field
@@ -291,7 +338,20 @@ export function useControllerNavigation(options: Options) {
     // Configuration menu as Menu does. Enter, Esc, the arrows and PgUp/PgDn
     // already were keys. Only keys nothing else took, and never while typing.
     const TYPED = 'input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="range"]), textarea, select, [contenteditable="true"]'
+    // M is the keyboard's Menu: a tap (released before the key repeats) saves,
+    // holding it opens the Configuration menu.
+    let mDown = false, mHeld = false
+    const onKeyUp = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() !== 'm' || !mDown) return
+      mDown = false
+      if (!mHeld) latest.current.onSave()
+    }
     const onKey = (event: KeyboardEvent) => {
+      if (event.isTrusted && event.repeat && mDown && event.key.toLowerCase() === 'm') {
+        event.preventDefault()
+        if (!mHeld) { mHeld = true; latest.current.onMenu() }
+        return
+      }
       if (!event.isTrusted || event.defaultPrevented || event.repeat || event.ctrlKey || event.altKey || event.metaKey) return
       if (document.body.dataset.bindingCapture === 'true') return
       const target = event.target instanceof Element ? event.target : null
@@ -301,19 +361,46 @@ export function useControllerNavigation(options: Options) {
         if (padButton(key === 'x' ? 'X' : 'Y')) event.preventDefault()
         return
       }
+      // Console v2 (V1): [ and ] are LT/RT, PgUp/PgDn LB/RB. Inside a dialog
+      // they reach it as those buttons; [ and ] fall back to LB/RB where the
+      // dialog only steps with the bumpers (the action picker's categories).
       if (key === '[' || key === ']') {
-        const button = key === '[' ? 'LB' : 'RB'
-        if (overlayOpen()) { if (sendPad(button)) event.preventDefault(); return }
+        if (overlayOpen()) {
+          if (sendPad(key === '[' ? 'LT' : 'RT') || sendPad(key === '[' ? 'LB' : 'RB')) event.preventDefault()
+          return
+        }
         event.preventDefault()
-        latest.current.onSectionStep(button === 'LB' ? -1 : 1)
+        latest.current.onSectionStep(key === '[' ? -1 : 1)
         return
       }
-      if (overlayOpen()) return
+      if ((key === 'PageUp' || key === 'PageDown') && overlayOpen()) {
+        if (sendPad(key === 'PageUp' ? 'LB' : 'RB')) event.preventDefault()
+        return
+      }
+      if (overlayOpen()) {
+        // A sub-page or dialog can claim Menu (Review changes: ☰ Save); otherwise
+        // M still saves from inside it, as the pad's Menu does.
+        if (key === 'm' && sendPad('MENU')) { event.preventDefault(); return }
+        if (key !== 'm') return
+      }
       if (key === 'Home') { event.preventDefault(); latest.current.onHome(); return }
-      if (key === 'm') { if (latest.current.onMenu() !== false) event.preventDefault() }
+      if (key === 'm') { event.preventDefault(); mDown = true; mHeld = false }
     }
     window.addEventListener('keydown', onKey)
+    window.addEventListener('keyup', onKeyUp)
 
+    const onVirtual = (event: Event) => {
+      const detail = (event as CustomEvent<VirtualPadDetail>).detail
+      if (!detail) return
+      virtual = true
+      try {
+        if ('exitTest' in detail) perform({ kind: 'exitTest' })
+        else perform({ kind: 'press', button: detail.button })
+      } finally { virtual = false }
+    }
+    window.addEventListener(VIRTUAL_PAD_EVENT, onVirtual)
+
+    let heldKey = ''
     const dispose = desktopBridge.onTelemetrySample(payload => {
       const { enabled, testing } = latest.current
       const sample = payload as TelemetrySample | null
@@ -351,9 +438,19 @@ export function useControllerNavigation(options: Options) {
         triggers: status.triggers,
       }, performance.now(), testing)
       for (const action of actions) perform(action)
+      // What is held, for an overlay that reads a hold rather than a press
+      // (the on-screen keyboard: LT for a capital, L3 caps, R3 move, RB resize).
+      if (!testing && overlayOpen()) {
+        const down = getPressedControllerCommandSet(device)
+        const held = Object.entries(HELD_NAMES).filter(([command]) => down.has(command)).map(([, name]) => name)
+        if (status.triggers.left > 0.48 && !held.includes('LT')) held.push('LT')
+        if (status.triggers.right > 0.48 && !held.includes('RT')) held.push('RT')
+        const key = held.sort().join(',')
+        if (key !== heldKey) { heldKey = key; window.dispatchEvent(new CustomEvent(PAD_HELD_EVENT, { detail: { held } })) }
+      } else heldKey = ''
     })
     const host = document.querySelector<HTMLElement>('.shell-scroll')
     const unwatch = host ? watchManualScroll(host) : undefined
-    return () => { window.removeEventListener('keydown', onKey); dispose?.(); unwatch?.() }
+    return () => { window.removeEventListener('keydown', onKey); window.removeEventListener('keyup', onKeyUp); window.removeEventListener(VIRTUAL_PAD_EVENT, onVirtual); dispose?.(); unwatch?.() }
   }, [])
 }

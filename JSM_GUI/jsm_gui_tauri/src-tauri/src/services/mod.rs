@@ -1,4 +1,8 @@
 pub mod ai;
+pub mod ai_chatgpt;
+pub mod bases;
+pub mod credentials;
+pub mod steam_library;
 pub mod app_icon;
 pub mod area_picker;
 pub mod appearance;
@@ -27,3 +31,5 @@ pub mod layer_activation;
 pub mod tray_menu;
 
 pub mod controller_layouts;
+pub mod updates;
+pub mod console_history;

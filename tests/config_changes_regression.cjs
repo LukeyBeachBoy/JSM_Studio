@@ -29,4 +29,25 @@ const removed=revertConfigChange(added,baseline,configChanges(baseline,added).fi
 assert.equal(readLayers(removed).some(l=>l.id==='new'),false);assert.equal(readLayerActions(removed).length,0);
 const duplicates='N = SPACE\nN = F\nW = TAB';
 assert.equal(layerEntries(revertConfigChange(duplicates,'N = E\nW = TAB',configChanges('N = E\nW = TAB',duplicates)[0])).N,'E');
-console.log('PASS: selective reverts isolate bindings, modeshifts, labels, layer settings and names; layer lifecycle restores actions; order and whitespace ignored');
+// Console v2 (P6): menus read per menu and slice, a reordered mode list is a change, and a controller's own layout lines are named.
+{
+  const {createVirtualMenu,writeVirtualMenus}=load('JSM_GUI/jsm_gui_tauri/src/utils/virtualMenus.ts');
+  const {describeChange}=load('JSM_GUI/jsm_gui_tauri/src/utils/configChanges.ts');
+  const m=createVirtualMenu('menu1');m.attachments=[{source:'RIGHT',activation:'COMMAND',input:'NONE',selection:'ACTIVATION_RELEASE',confirm:'NONE',cancel:'NONE'}];
+  const base=writeLayers(writeVirtualMenus('N = SPACE\n',[m]),[{id:'a',name:'A',overrides:{}},{id:'b',name:'B',overrides:{}}]);
+  const m2={...m,name:'Guns',actions:m.actions.map((x,i)=>i===2?{...x,binding:'G',label:'Grenade'}:x)};
+  let edited=writeVirtualMenus(base,[m2]);edited=writeLayers(edited,[readLayers(edited)[1],readLayers(edited)[0]]);
+  edited+='\n# @controller type-5 N = H\n# @controller-pad type-5 left\n';
+  const all=configChanges(base,edited);
+  assert.ok(all.some(c=>c.kind==='menu'&&c.menuField==='name'&&c.before==='Weapon Wheel'&&c.after==='Guns'),'menu rename read by name, not as a HEX blob');
+  assert.ok(all.some(c=>c.kind==='menu'&&c.menuField==='slot:2'&&c.binding.after==='G'&&c.after==='Grenade'),'one slice');
+  assert.ok(!all.some(c=>/^VIRTUAL_MENUS/i.test(c.key)),'the catalogue is never one opaque row');
+  assert.ok(all.some(c=>c.kind==='order'&&c.before==='A · B'&&c.after==='B · A'),'reordering modes is a change');
+  assert.ok(all.some(c=>c.kind==='controller'&&c.model==='type-5'&&c.key==='N'),'a controller variant line is named for its controller');
+  assert.ok(all.some(c=>c.kind==='controller'&&c.key==='pad'));
+  assert.equal(all.length,5);
+  let undone=edited;for(const c of all) undone=revertConfigChange(undone,base,c);
+  assert.equal(countChanges(base,undone),0,'every kind reverts');
+  assert.match(describeChange(base,edited),/more$/);
+}
+console.log('PASS: menu, mode order and controller layout changes read by name and revert; selective reverts isolate bindings, modeshifts, labels, layer settings and names; layer lifecycle restores actions; order and whitespace ignored');

@@ -11,6 +11,9 @@ fn valid(key: &str, value: &str) -> bool {
         "jsm-theme" => matches!(value, "dark" | "light" | "system"),
         "jsm-accent" => matches!(value, "cyan" | "teal" | "amber" | "violet"),
         "jsm-language" => matches!(value, "en" | "zh-CN"),
+        // Console v2: screen distance (V10) and config names beside labels (V12).
+        "jsm-density" => matches!(value, "couch" | "desk"),
+        "jsm-config-names" => matches!(value, "on" | "off"),
         _ => false,
     }
 }

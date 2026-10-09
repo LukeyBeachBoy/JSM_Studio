@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Trigger resistance</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.grp{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;flex-direction:column;gap:4px;padding:16px 20px;box-sizing:border-box;border-radius:14px;background:transparent;color:#b0bcc8;text-align:left}
+.grp .t{font-size:20px;font-weight:600}
+.grp .s{font-size:15px;color:#808c99}
+.row{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;align-items:center;gap:16px;min-height:64px;padding:10px 22px;box-sizing:border-box;border-radius:16px;background:#1f2730;color:#e8eef4;text-align:left}
+.seg{display:flex;gap:4px;background:#0f151b;border-radius:12px;padding:4px}
+.seg span{height:38px;padding:0 16px;border-radius:9px;display:flex;align-items:center;font-size:16px;font-weight:600;color:#b0bcc8}
+.sw{width:56px;height:32px;border-radius:16px;background:#2e3844;position:relative;flex:none;margin-left:auto}
+.sw span{position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:50%;background:#808c99}
+.sw.y{background:#3e9fd8}
+.sw.y span{left:28px;background:#ffffff}
+.fx{font-family:inherit;border:0;cursor:pointer;border-radius:16px;background:#1f2730;color:#e8eef4;padding:12px;display:flex;flex-direction:column;gap:8px;text-align:left;box-sizing:border-box;min-width:0}
+.fx .pic{height:48px;border-radius:10px;background:#0f151b;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);overflow:hidden}
+.fx .pic svg{display:block}
+.fx .t{font-size:16px;font-weight:650;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fx .s{font-size:15px;color:#808c99;line-height:1.3;margin-top:-4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.art{--art-line:#e3eaf1;--art-detail:#aebbc8;--art-body:#1c242d;--art-well:#0e1419;--art-cap:#212a34;--art-rim:rgba(255,255,255,.10)}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="height: 76px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 40px; background: #0d1217">
+<span style="font-size: 18px; color: #808c99">Wardogs · Triggers · Right trigger</span>
+<span style="font-size: 18px; color: #808c99">▸</span>
+<span style="font-size: 22px; font-weight: 700">Fine-tune</span>
+<span style="margin-left: auto; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 20px; background: #4a3320; color: #ffc98f; font-size: 16px; font-weight: 600"><span style="width: 9px; height: 9px; border-radius: 50%; background: #f0a05a"></span>Unsaved · ☰ to save</span>
+</header>
+
+<main style="flex: 1; min-height: 0; display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 36px; padding: 32px 40px 24px">
+
+<nav style="display: flex; flex-direction: column; gap: 6px; min-height: 0">
+<div style="display: flex; align-items: center; gap: 8px; margin: 0 0 10px 20px; font-size: 14px; color: #808c99"><span class="gp">LT</span>Group<span class="gp">RT</span></div>
+<button class="grp"><span class="t">Press points</span><span class="s">Default · first touch</span></button>
+<button class="grp" style="background: #1f2730; color: #ffffff"><span class="t">Resistance</span><span class="s" style="color: #7cc4ee">Changed: right · Semi-automatic</span></button>
+<button class="grp"><span class="t">Calibration</span><span class="s">Default start and travel</span></button>
+<div style="margin-top: auto; background: #1e3d33; border-radius: 14px; padding: 14px 18px; display: flex; gap: 12px; align-items: flex-start">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#93e6c1" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex: none; margin-top: 2px"><path d="M5 12.5L10 17L19 7"></path></svg>
+<span style="font-size: 15px; line-height: 1.45; color: #93e6c1">DualSense connected. Each trigger has its own effect.</span>
+</div>
+</nav>
+
+<section style="display: flex; flex-direction: column; gap: 12px; min-width: 0; min-height: 0">
+<div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 24px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<h1 style="margin: 0; font-size: 32px; font-weight: 700">Resistance</h1>
+<p style="margin: 0; font-size: 17px; color: #b0bcc8">How the trigger pushes back against your finger.</p>
+</div>
+<div class="seg"><span>Left trigger</span><span style="background: #2e3844; color: #ffffff">Right trigger</span></div>
+</div>
+
+<button class="row"><span style="display: flex; flex-direction: column; gap: 3px"><span style="font-size: 19px; font-weight: 650">Push back on the triggers</span><span style="font-size: 15px; color: #808c99">Both triggers. While on, a hair trigger fires at 0% instead.</span></span><span class="sw y"><span></span></span></button>
+
+<div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px">
+
+<button class="fx"><span class="pic"><svg viewBox="0 0 180 48" width="100%" height="48" fill="none" preserveAspectRatio="none">
+<path d="M6 41H174" stroke="rgba(255,255,255,.1)"></path>
+<path d="M6 40H72C76 40 76 14 82 14H174V40Z" fill="#7cc4ee" fill-opacity=".12"></path>
+<path d="M6 40H72C76 40 76 14 82 14H174" stroke="#7cc4ee" stroke-width="2" stroke-linejoin="round"></path>
+</svg></span><span class="t">Automatic</span><span class="s">Firm at half press</span></button>
+
+<button class="fx"><span class="pic"><svg viewBox="0 0 180 48" width="100%" height="48" fill="none" preserveAspectRatio="none">
+<path d="M6 40H174" stroke="#808c99" stroke-width="2"></path>
+</svg></span><span class="t">None</span><span class="s">Free pull</span></button>
+
+<button class="fx"><span class="pic"><svg viewBox="0 0 180 48" width="100%" height="48" fill="none" preserveAspectRatio="none">
+<path d="M6 41H174" stroke="rgba(255,255,255,.1)"></path>
+<path d="M6 40H50L54 18H174V40Z" fill="#7cc4ee" fill-opacity=".12"></path>
+<path d="M6 40H50L54 18H174" stroke="#7cc4ee" stroke-width="2" stroke-linejoin="round"></path>
+</svg></span><span class="t">Resistance</span><span class="s">Firm from a point</span></button>
+
+<button class="fx"><span class="pic"><svg viewBox="0 0 180 48" width="100%" height="48" fill="none" preserveAspectRatio="none">
+<path d="M6 41H174" stroke="rgba(255,255,255,.1)"></path>
+<path d="M6 40H40L136 10L142 40H174Z" fill="#7cc4ee" fill-opacity=".12"></path>
+<path d="M6 40H40L136 10L142 40H174" stroke="#7cc4ee" stroke-width="2" stroke-linejoin="round"></path>
+</svg></span><span class="t">Bow</span><span class="s">Builds, then snaps</span></button>
+
+<button class="fx"><span class="pic"><svg viewBox="0 0 180 48" width="100%" height="48" fill="none" preserveAspectRatio="none">
+<path d="M6 41H174" stroke="rgba(255,255,255,.1)"></path>
+<path d="M6 40H40Q49 14 58 40Q64 26 70 40H76Q85 14 94 40Q100 26 106 40H112Q121 14 130 40Q136 26 142 40H174Z" fill="#7cc4ee" fill-opacity=".12"></path>
+<path d="M6 40H40Q49 14 58 40Q64 26 70 40H76Q85 14 94 40Q100 26 106 40H112Q121 14 130 40Q136 26 142 40H174" stroke="#7cc4ee" stroke-width="2" stroke-linejoin="round"></path>
+</svg></span><span class="t">Galloping</span><span class="s">Two-beat pulses</span></button>
+
+<button class="fx" style="background: #24323f; box-shadow: inset 0 0 0 2px #3e9fd8"><span class="pic" style="background:#0f151b; box-shadow: inset 0 0 0 1px #3e9fd8"><svg viewBox="0 0 180 48" width="100%" height="48" fill="none" preserveAspectRatio="none">
+<path d="M6 41H174" stroke="rgba(255,255,255,.12)"></path>
+<path d="M6 40H48L52 14H110L114 40H174Z" fill="#7cc4ee" fill-opacity=".2"></path>
+<path d="M6 40H48L52 14H110L114 40H174" stroke="#b8e2fa" stroke-width="2" stroke-linejoin="round"></path>
+</svg></span><span class="t">Semi-automatic</span><span class="s" style="color: #b8e2fa">Firm, then gives way</span></button>
+
+<button class="fx"><span class="pic"><svg viewBox="0 0 180 48" width="100%" height="48" fill="none" preserveAspectRatio="none">
+<path d="M6 41H174" stroke="rgba(255,255,255,.1)"></path>
+<path d="M6 40H40Q44 18 48 40Q52 18 56 40Q60 18 64 40Q68 18 72 40Q76 18 80 40Q84 18 88 40Q92 18 96 40Q100 18 104 40Q108 18 112 40Q116 18 120 40Q124 18 128 40Q132 18 136 40Q140 18 144 40Q148 18 152 40Q156 18 160 40Q164 18 168 40H174" stroke="#7cc4ee" stroke-width="2" stroke-linejoin="round"></path>
+</svg></span><span class="t">Automatic pulses</span><span class="s">Buzzes as you hold</span></button>
+
+<button class="fx"><span class="pic"><svg viewBox="0 0 180 48" width="100%" height="48" fill="none" preserveAspectRatio="none">
+<path d="M6 41H174" stroke="rgba(255,255,255,.1)"></path>
+<path d="M6 40H40Q44 8 48 40Q52 26 56 40Q60 8 64 40Q68 26 72 40Q76 8 80 40Q84 26 88 40Q92 8 96 40Q100 26 104 40Q108 8 112 40Q116 26 120 40Q124 8 128 40Q132 26 136 40Q140 8 144 40Q148 26 152 40H174" stroke="#7cc4ee" stroke-width="2" stroke-linejoin="round"></path>
+</svg></span><span class="t">Machine</span><span class="s">Uneven pulses</span></button>
+
+<button class="fx"><span class="pic"><svg viewBox="0 0 180 48" width="100%" height="48" fill="none" preserveAspectRatio="none">
+<path d="M6 41H174" stroke="rgba(255,255,255,.1)"></path>
+<path d="M6 40H62V22H130V40H174Z" fill="#7cc4ee" fill-opacity=".12"></path>
+<path d="M6 40H62V22H130V40H174" stroke="#7cc4ee" stroke-width="2" stroke-linejoin="round"></path>
+</svg></span><span class="t">Resistance segment</span><span class="s">Firm in one stretch</span></button>
+
+<div style="border-radius: 16px; box-shadow: inset 0 0 0 2px #232c36; padding: 12px 14px; display: flex; flex-direction: column; justify-content: center; gap: 4px">
+<span style="font-size: 15px; color: #808c99; line-height: 1.4">Effects from older files are kept as they are.</span>
+</div>
+</div>
+
+<div style="flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 470px; gap: 24px">
+<div style="display: flex; flex-direction: column; gap: 8px; min-width: 0">
+<div class="focus" style="background: #1d445c; border-radius: 16px; padding: 16px 22px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px"><span style="font-size: 20px; font-weight: 650">Starts at</span><span style="display: flex; align-items: baseline; gap: 10px"><span style="font-size: 15px; color: #b8e2fa">Default</span><span style="font-size: 28px; font-weight: 700">25%</span></span></div>
+<div style="position: relative; height: 8px; border-radius: 4px; background: #0f151b"><span style="position: absolute; left: 0; top: 0; height: 8px; width: 25%; border-radius: 4px; background: #3e9fd8"></span><span style="position: absolute; left: 25%; top: -8px; width: 24px; height: 24px; margin-left: -12px; border-radius: 50%; background: #ffffff; box-shadow: 0 0 0 5px rgba(62,159,216,.3)"></span></div>
+<span style="font-size: 15px; color: #b8e2fa">Where the push-back begins. 0% is fully released.</span>
+</div>
+<button class="row"><span style="display: flex; flex-direction: column; gap: 3px"><span style="font-size: 19px; font-weight: 650">Ends at</span><span style="font-size: 15px; color: #808c99">Where it gives way</span></span><span style="margin-left: auto; display: flex; align-items: baseline; gap: 10px"><span style="font-size: 15px; color: #808c99">Default</span><span style="font-size: 20px; font-weight: 650">63%</span></span></button>
+<button class="row"><span style="display: flex; flex-direction: column; gap: 3px"><span style="font-size: 19px; font-weight: 650">Strength</span><span style="font-size: 15px; color: #808c99">How hard it pushes back</span></span><span style="margin-left: auto; display: flex; align-items: baseline; gap: 10px"><span style="font-size: 15px; color: #808c99">Default</span><span style="font-size: 20px; font-weight: 650">50%</span></span></button>
+</div>
+
+<div style="background: #1a222b; border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; min-height: 0">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 17px; font-weight: 600">Right trigger, Semi-automatic</span><span style="font-family: 'Geist Mono', monospace; font-size: 14px; color: #93e6c1">● live 41%</span></div>
+<svg viewBox="0 0 440 220" width="100%" height="205" fill="none">
+<g stroke="rgba(255,255,255,.05)"><path d="M40 65H420M40 100H420M40 135H420"></path><path d="M135 30V170M230 30V170M325 30V170"></path></g>
+<path d="M40 170H420M40 170V30" stroke="#2e3844" stroke-width="1.5"></path>
+<path d="M40 170H135.4L141 100H278.4L284 170H420Z" fill="#3e9fd8" fill-opacity=".14"></path>
+<path d="M40 170H135.4L141 100H278.4L284 170H420" stroke="#3e9fd8" stroke-width="2" stroke-linejoin="round"></path>
+<path d="M40 100H135" stroke="#808c99" stroke-dasharray="3 4"></path>
+<path d="M135.4 30V170" stroke="#7cc4ee" stroke-width="2"></path>
+<circle cx="135.4" cy="170" r="7" fill="#ffffff"></circle>
+<path d="M278.4 30V170" stroke="#808c99" stroke-dasharray="3 4"></path>
+<circle cx="278.4" cy="170" r="5.5" fill="#d4dde6"></circle>
+<circle cx="195.8" cy="100" r="5.5" fill="#ffffff"></circle>
+<text x="135.4" y="192" fill="#b8e2fa" font-size="16" font-weight="600" font-family="Geist, sans-serif" text-anchor="middle">Starts 25%</text>
+<text x="278.4" y="192" fill="#b0bcc8" font-size="16" font-family="Geist, sans-serif" text-anchor="middle">Ends 63%</text>
+<text x="48" y="92" fill="#b0bcc8" font-size="16" font-family="Geist, sans-serif">50%</text>
+<text x="300" y="150" fill="#808c99" font-size="16" font-family="Geist, sans-serif">gives way</text>
+<text x="230" y="216" fill="#808c99" font-size="16" font-family="Geist, sans-serif" text-anchor="middle">How far you pull →</text>
+<text x="20" y="100" fill="#808c99" font-size="16" font-family="Geist, sans-serif" text-anchor="middle" transform="rotate(-90 20 100)">Push-back</text>
+<svg class="art" x="318" y="4" width="110" height="73.9" viewBox="0 0 1117 750"><defs><linearGradient id="trd-l" x1="0" y1="0" x2="0" y2="1"><stop style="stop-color:#fff;stop-opacity:.09" offset="0"></stop><stop style="stop-color:#fff;stop-opacity:0" offset=".55"></stop></linearGradient><mask id="trd-m"><path d="M558.5 24.8C501.5 24.8 432 25.8 376.3 32.8C359.9 34.8 373.9 44.6 351.3 50.3C331.7 55.1 364.2 36.2 328.8 31.8C307.6 29.2 244.4 29.3 207.3 47.8C160.9 70.9 142.6 129.8 125.8 174.8C84.5 284.7 60.8 407.6 60.8 524.8C60.8 556.3 62.7 629.5 80.8 654.8C93.3 672.4 112.7 677.5 131.3 686.8C145.9 694.1 180.9 722.5 194.8 720.8C211 718.7 224.9 671.5 230.3 657.3C249.2 606.8 265.9 555.6 284.8 505.3C292.4 485 298 456.1 317.8 443.8C325.8 438.7 334.5 436.4 343.8 435.3C365 432.6 403.6 439.5 425.8 442.3C443.5 444.5 462.2 441.1 479.8 443.3C496.8 445.4 514.7 441.6 531.8 443.8C536.9 444.4 542.6 443.8 547.8 443.8C550.4 443.8 553.1 443.8 555.8 443.8C556.7 443.8 559.4 443.8 558.5 443.8C557.6 443.8 560.3 443.8 561.2 443.8C563.9 443.8 566.6 443.8 569.2 443.8C574.4 443.8 580.1 444.4 585.2 443.8C602.3 441.6 620.2 445.4 637.2 443.3C654.8 441.1 673.5 444.5 691.2 442.3C713.4 439.5 752 432.6 773.2 435.3C782.5 436.4 791.2 438.7 799.2 443.8C819 456.1 824.6 485 832.2 505.3C851.1 555.6 867.8 606.8 886.7 657.3C892.1 671.5 906 718.7 922.2 720.8C936.1 722.5 971.1 694.1 985.7 686.8C1004.3 677.5 1023.7 672.4 1036.2 654.8C1054.3 629.5 1056.2 556.3 1056.2 524.8C1056.2 407.6 1032.5 284.7 991.2 174.8C974.4 129.8 956.1 70.9 909.7 47.8C872.6 29.3 809.4 29.2 788.2 31.8C752.8 36.2 785.3 55.1 765.7 50.3C743.1 44.6 757.1 34.8 740.7 32.8C685 25.8 615.5 24.8 558.5 24.8Z" fill="#fff"></path></mask><pattern id="trd-p" width="13" height="13" patternUnits="userSpaceOnUse"><circle style="fill:var(--art-detail,#aebbc8);fill-opacity:.22" cx="6.5" cy="6.5" r="1.9"></circle></pattern></defs><path style="fill:var(--art-body,#1c242d)" d="M558.5 24.8C501.5 24.8 432 25.8 376.3 32.8C359.9 34.8 373.9 44.6 351.3 50.3C331.7 55.1 364.2 36.2 328.8 31.8C307.6 29.2 244.4 29.3 207.3 47.8C160.9 70.9 142.6 129.8 125.8 174.8C84.5 284.7 60.8 407.6 60.8 524.8C60.8 556.3 62.7 629.5 80.8 654.8C93.3 672.4 112.7 677.5 131.3 686.8C145.9 694.1 180.9 722.5 194.8 720.8C211 718.7 224.9 671.5 230.3 657.3C249.2 606.8 265.9 555.6 284.8 505.3C292.4 485 298 456.1 317.8 443.8C325.8 438.7 334.5 436.4 343.8 435.3C365 432.6 403.6 439.5 425.8 442.3C443.5 444.5 462.2 441.1 479.8 443.3C496.8 445.4 514.7 441.6 531.8 443.8C536.9 444.4 542.6 443.8 547.8 443.8C550.4 443.8 553.1 443.8 555.8 443.8C556.7 443.8 559.4 443.8 558.5 443.8C557.6 443.8 560.3 443.8 561.2 443.8C563.9 443.8 566.6 443.8 569.2 443.8C574.4 443.8 580.1 444.4 585.2 443.8C602.3 441.6 620.2 445.4 637.2 443.3C654.8 441.1 673.5 444.5 691.2 442.3C713.4 439.5 752 432.6 773.2 435.3C782.5 436.4 791.2 438.7 799.2 443.8C819 456.1 824.6 485 832.2 505.3C851.1 555.6 867.8 606.8 886.7 657.3C892.1 671.5 906 718.7 922.2 720.8C936.1 722.5 971.1 694.1 985.7 686.8C1004.3 677.5 1023.7 672.4 1036.2 654.8C1054.3 629.5 1056.2 556.3 1056.2 524.8C1056.2 407.6 1032.5 284.7 991.2 174.8C974.4 129.8 956.1 70.9 909.7 47.8C872.6 29.3 809.4 29.2 788.2 31.8C752.8 36.2 785.3 55.1 765.7 50.3C743.1 44.6 757.1 34.8 740.7 32.8C685 25.8 615.5 24.8 558.5 24.8Z"></path><path style="" fill="url(#trd-l)" d="M558.5 24.8C501.5 24.8 432 25.8 376.3 32.8C359.9 34.8 373.9 44.6 351.3 50.3C331.7 55.1 364.2 36.2 328.8 31.8C307.6 29.2 244.4 29.3 207.3 47.8C160.9 70.9 142.6 129.8 125.8 174.8C84.5 284.7 60.8 407.6 60.8 524.8C60.8 556.3 62.7 629.5 80.8 654.8C93.3 672.4 112.7 677.5 131.3 686.8C145.9 694.1 180.9 722.5 194.8 720.8C211 718.7 224.9 671.5 230.3 657.3C249.2 606.8 265.9 555.6 284.8 505.3C292.4 485 298 456.1 317.8 443.8C325.8 438.7 334.5 436.4 343.8 435.3C365 432.6 403.6 439.5 425.8 442.3C443.5 444.5 462.2 441.1 479.8 443.3C496.8 445.4 514.7 441.6 531.8 443.8C536.9 444.4 542.6 443.8 547.8 443.8C550.4 443.8 553.1 443.8 555.8 443.8C556.7 443.8 559.4 443.8 558.5 443.8C557.6 443.8 560.3 443.8 561.2 443.8C563.9 443.8 566.6 443.8 569.2 443.8C574.4 443.8 580.1 444.4 585.2 443.8C602.3 441.6 620.2 445.4 637.2 443.3C654.8 441.1 673.5 444.5 691.2 442.3C713.4 439.5 752 432.6 773.2 435.3C782.5 436.4 791.2 438.7 799.2 443.8C819 456.1 824.6 485 832.2 505.3C851.1 555.6 867.8 606.8 886.7 657.3C892.1 671.5 906 718.7 922.2 720.8C936.1 722.5 971.1 694.1 985.7 686.8C1004.3 677.5 1023.7 672.4 1036.2 654.8C1054.3 629.5 1056.2 556.3 1056.2 524.8C1056.2 407.6 1032.5 284.7 991.2 174.8C974.4 129.8 956.1 70.9 909.7 47.8C872.6 29.3 809.4 29.2 788.2 31.8C752.8 36.2 785.3 55.1 765.7 50.3C743.1 44.6 757.1 34.8 740.7 32.8C685 25.8 615.5 24.8 558.5 24.8Z"></path><path style="fill:none;stroke:var(--art-rim,rgba(255,255,255,.1));stroke-width:5.6" d="M558.5 24.8C501.5 24.8 432 25.8 376.3 32.8C359.9 34.8 373.9 44.6 351.3 50.3C331.7 55.1 364.2 36.2 328.8 31.8C307.6 29.2 244.4 29.3 207.3 47.8C160.9 70.9 142.6 129.8 125.8 174.8C84.5 284.7 60.8 407.6 60.8 524.8C60.8 556.3 62.7 629.5 80.8 654.8C93.3 672.4 112.7 677.5 131.3 686.8C145.9 694.1 180.9 722.5 194.8 720.8C211 718.7 224.9 671.5 230.3 657.3C249.2 606.8 265.9 555.6 284.8 505.3C292.4 485 298 456.1 317.8 443.8C325.8 438.7 334.5 436.4 343.8 435.3C365 432.6 403.6 439.5 425.8 442.3C443.5 444.5 462.2 441.1 479.8 443.3C496.8 445.4 514.7 441.6 531.8 443.8C536.9 444.4 542.6 443.8 547.8 443.8C550.4 443.8 553.1 443.8 555.8 443.8C556.7 443.8 559.4 443.8 558.5 443.8C557.6 443.8 560.3 443.8 561.2 443.8C563.9 443.8 566.6 443.8 569.2 443.8C574.4 443.8 580.1 444.4 585.2 443.8C602.3 441.6 620.2 445.4 637.2 443.3C654.8 441.1 673.5 444.5 691.2 442.3C713.4 439.5 752 432.6 773.2 435.3C782.5 436.4 791.2 438.7 799.2 443.8C819 456.1 824.6 485 832.2 505.3C851.1 555.6 867.8 606.8 886.7 657.3C892.1 671.5 906 718.7 922.2 720.8C936.1 722.5 971.1 694.1 985.7 686.8C1004.3 677.5 1023.7 672.4 1036.2 654.8C1054.3 629.5 1056.2 556.3 1056.2 524.8C1056.2 407.6 1032.5 284.7 991.2 174.8C974.4 129.8 956.1 70.9 909.7 47.8C872.6 29.3 809.4 29.2 788.2 31.8C752.8 36.2 785.3 55.1 765.7 50.3C743.1 44.6 757.1 34.8 740.7 32.8C685 25.8 615.5 24.8 558.5 24.8Z" mask="url(#trd-m)" transform="translate(0 2.8)"></path><path style="fill:none;stroke:var(--art-line,#e3eaf1);stroke-width:3.6;stroke-linecap:round;stroke-linejoin:round" d="M344 50C380 41 450 36 558.5 35"></path><path style="fill:none;stroke:var(--art-line,#e3eaf1);stroke-width:3.6;stroke-linecap:round;stroke-linejoin:round" d="M773 50C737 41 667 36 558.5 35"></path><rect style="fill:var(--art-well,#0e1419);stroke:var(--art-detail,#aebbc8);stroke-width:2.4" x="530.5" y="47" width="56" height="9" rx="4.5"></rect><path style="fill:var(--art-well,#0e1419);stroke:var(--art-detail,#aebbc8);stroke-width:2.4" d="M176 80C178 120 182 165 194 190C206 212 228 217 252 217C280 217 312 213 326 203C336 194 335 165 335 130C335 100 338 70 344 52C320 40 250 40 200 50C186 56 178 66 176 80Z"></path><path style="fill:var(--art-well,#0e1419);stroke:var(--art-detail,#aebbc8);stroke-width:2.4" d="M941 80C939 120 935 165 923 190C911 212 889 217 865 217C837 217 805 213 791 203C781 194 782 165 782 130C782 100 779 70 773 52C797 40 867 40 917 50C931 56 939 66 941 80Z"></path><rect style="fill:var(--art-cap,#212a34);stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linejoin:round" x="210" y="135" width="100" height="62" rx="12"></rect><rect style="fill:var(--art-cap,#212a34);stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linejoin:round" x="807" y="135" width="100" height="62" rx="12"></rect><path style="fill:var(--art-cap,#212a34);stroke:var(--art-line,#e3eaf1);stroke-width:3.6;stroke-linejoin:round" d="M198 72C198 66 202 62 208 62L314 58C320 58 323 61 323 67L323 119C323 125 320 128 314 128L208 128C202 128 198 125 198 119Z"></path><path style="fill:var(--art-cap,#212a34);stroke:var(--art-line,#e3eaf1);stroke-width:3.6;stroke-linejoin:round" d="M919 72C919 66 915 62 909 62L803 58C797 58 794 61 794 67L794 119C794 125 797 128 803 128L909 128C915 128 919 125 919 119Z"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M199 89C240 87 290 86 323 85"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M918 89C877 87 827 86 794 85"></path><path style="fill:var(--art-cap,#212a34);stroke:var(--art-line,#e3eaf1);stroke-width:3.6;stroke-linejoin:round" d="M195 76C194 62 197 52 206 46C232 34 280 30 308 30C317 31 322 36 322 44L322 58C285 63 240 70 195 78Z"></path><path style="fill:var(--art-cap,#212a34);stroke:var(--art-line,#e3eaf1);stroke-width:3.6;stroke-linejoin:round" d="M922 76C923 62 920 52 911 46C885 34 837 30 809 30C800 31 795 36 795 44L795 58C832 63 877 70 922 78Z"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M385 278L447 278"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M454 278L532 278"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M539 278L577 278"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M584 278L636 278"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M643 278L663 278"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M670 278L732 278"></path><rect style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" x="399" y="292" width="18" height="18" rx="4"></rect><rect style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" x="449" y="292" width="18" height="18" rx="4"></rect><rect style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" x="500" y="292" width="18" height="18" rx="4"></rect><rect style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" x="549.5" y="292" width="18" height="18" rx="4"></rect><rect style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" x="599" y="292" width="18" height="18" rx="4"></rect><rect style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" x="650" y="292" width="18" height="18" rx="4"></rect><rect style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" x="700" y="292" width="18" height="18" rx="4"></rect><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M386 327L422 327"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M429 327L499 327"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M506 327L558 327"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M565 327L595 327"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M602 327L650 327"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M657 327L731 327"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M391 339L447 339"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M454 339L516 339"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M523 339L567 339"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M574 339L628 339"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M635 339L667 339"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M674 339L726 339"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M443 356L483 356"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M490 356L570 356"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M577 356L623 356"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M630 356L674 356"></path><circle style="fill:var(--art-well,#0e1419)" cx="494" cy="375.5" r="4.5"></circle><rect style="fill:var(--art-well,#0e1419)" x="532.5" y="403" width="52" height="5" rx="2.5"></rect><path style="fill:none;stroke:var(--art-line,#e3eaf1);stroke-width:5.2;stroke-linejoin:round" d="M558.5 24.8C501.5 24.8 432 25.8 376.3 32.8C359.9 34.8 373.9 44.6 351.3 50.3C331.7 55.1 364.2 36.2 328.8 31.8C307.6 29.2 244.4 29.3 207.3 47.8C160.9 70.9 142.6 129.8 125.8 174.8C84.5 284.7 60.8 407.6 60.8 524.8C60.8 556.3 62.7 629.5 80.8 654.8C93.3 672.4 112.7 677.5 131.3 686.8C145.9 694.1 180.9 722.5 194.8 720.8C211 718.7 224.9 671.5 230.3 657.3C249.2 606.8 265.9 555.6 284.8 505.3C292.4 485 298 456.1 317.8 443.8C325.8 438.7 334.5 436.4 343.8 435.3C365 432.6 403.6 439.5 425.8 442.3C443.5 444.5 462.2 441.1 479.8 443.3C496.8 445.4 514.7 441.6 531.8 443.8C536.9 444.4 542.6 443.8 547.8 443.8C550.4 443.8 553.1 443.8 555.8 443.8C556.7 443.8 559.4 443.8 558.5 443.8C557.6 443.8 560.3 443.8 561.2 443.8C563.9 443.8 566.6 443.8 569.2 443.8C574.4 443.8 580.1 444.4 585.2 443.8C602.3 441.6 620.2 445.4 637.2 443.3C654.8 441.1 673.5 444.5 691.2 442.3C713.4 439.5 752 432.6 773.2 435.3C782.5 436.4 791.2 438.7 799.2 443.8C819 456.1 824.6 485 832.2 505.3C851.1 555.6 867.8 606.8 886.7 657.3C892.1 671.5 906 718.7 922.2 720.8C936.1 722.5 971.1 694.1 985.7 686.8C1004.3 677.5 1023.7 672.4 1036.2 654.8C1054.3 629.5 1056.2 556.3 1056.2 524.8C1056.2 407.6 1032.5 284.7 991.2 174.8C974.4 129.8 956.1 70.9 909.7 47.8C872.6 29.3 809.4 29.2 788.2 31.8C752.8 36.2 785.3 55.1 765.7 50.3C743.1 44.6 757.1 34.8 740.7 32.8C685 25.8 615.5 24.8 558.5 24.8Z"></path><path d="M919 72C919 66 915 62 909 62L803 58C797 58 794 61 794 67L794 119C794 125 797 128 803 128L909 128C915 128 919 125 919 119Z" fill="#3e9fd8" stroke="#e3eaf1" stroke-width="5" stroke-linejoin="round"></path></svg>
+</svg>
+</div>
+</div>
+</section>
+</main>
+
+<footer style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Wardogs · Triggers · Fine-tune · Resistance · Right trigger</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px">◂ ▸ Adjust</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">X</span>Feel it</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">Y</span>Reset</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">LT</span><span class="gp">RT</span>Group</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Back to Triggers</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -3,6 +3,7 @@ import { layerEntries, readableSetting } from '../utils/layers'
 import { DirtyScope } from '../hooks/configContext'
 import { bindingTargetAlias } from '../utils/bindingAliases'
 import { getKeymapValue } from '../utils/keymap'
+import { ConfigName } from './ConfigName'
 
 export const SettingOrigins = createContext<{
   text: string; base: string; own: string; origins: Record<string, string>; layer?: string;
@@ -22,7 +23,7 @@ export function useSettingKey(setting?: string) {
 
 /**
  * The origin marker (Components 13.8): a hollow dot and the source's name when
- * a value is inherited, a solid dot and "Override" when this profile or layer
+ * a value is inherited, a solid dot and "Changed here" when this configuration or mode
  * sets it, and nothing for a plain value with nothing behind it. "Use
  * inherited" removes the override; it is never the same as None.
  */
@@ -41,15 +42,15 @@ export function SettingOrigin({ setting }: { setting?: string }) {
   const resetAvailable = literalOwn && (context.layer || imported || inBase)
   // What the marker says, and the fuller wording a screen reader hears.
   const [kind, shown, spoken] = context.layer
-    ? own ? ['override', `Override · ${context.layer}`, ''] : ['inherited', 'From Default', 'Inherited · ']
+    ? own ? ['override', `Changed in ${context.layer}`, ''] : ['inherited', 'From Default', 'Same as Default · ']
     : own
-      ? resetAvailable ? ['override', 'Override', ''] : ['own', 'This profile', '']
-      : imported ? ['inherited', imported, 'Inherited · '] : ['default', 'App default', '']
+      ? resetAvailable ? ['override', 'Changed here', ''] : ['own', 'This configuration', '']
+      : imported ? ['inherited', `From ${imported}`, ''] : ['default', 'App default', '']
   if (kind === 'default' || kind === 'own') return null
   return <span className="setting-origin origin-marker" data-origin={kind} data-setting-origin={setting}>
     <span className="origin-marker__dot" aria-hidden="true" />
     <small>{spoken && <span className="origin-marker__spoken">{spoken}</span>}{shown}</small>
-    {resetAvailable && context.reset && <button type="button" className="origin-marker__reset" disabled={context.disabled} title={`Restore ${readableSetting(setting)} from ${context.layer ? 'Default' : 'its source'}`} onClick={event => { event.preventDefault(); event.stopPropagation(); context.reset?.(setting) }}>{context.layer ? 'Use Default' : 'Use inherited'}</button>}
+    {resetAvailable && context.reset && <button type="button" className="origin-marker__reset" disabled={context.disabled} data-caption={`Restore ${readableSetting(setting)} from ${context.layer ? 'Default' : 'its source'}`} onClick={event => { event.preventDefault(); event.stopPropagation(); context.reset?.(setting) }}>{context.layer ? 'Use Default' : 'Use the base'}</button>}
   </span>
 }
 
@@ -69,18 +70,18 @@ export function SettingsInventory({ open, onClose, pageLabel }: { open: boolean;
   const inherits = !!context.layer || Object.values(context.origins).some(source => source !== '<editor>')
   return <div className="modal-overlay">
     <section className="modal-card settings-inventory" role="dialog" aria-modal="true" aria-labelledby="settings-inventory-title">
-      <div className="modal-header"><h3 id="settings-inventory-title">Values & inheritance</h3><button type="button" className="button button--ghost button--sm" data-modal-close onClick={onClose}>Close</button></div>
+      <div className="modal-header"><h3 id="settings-inventory-title">Where values come from</h3><button type="button" className="button button--ghost button--sm" data-modal-close onClick={onClose}>Close</button></div>
       <p className="settings-inventory__note">{inherits
-        ? `Where each of the ${values.length} settings and bindings comes from: ${context.layer ? `${context.layer} or Default` : 'this configuration or an import'}.`
-        : `Nothing is inherited: all ${values.length} settings and bindings are set in this configuration.`}</p>
+        ? `Where each of the ${values.length} settings and bindings comes from: ${context.layer ? `${context.layer} or Default` : 'this configuration or its base'}.`
+        : `Nothing comes from a base: all ${values.length} settings and bindings are set in this configuration.`}</p>
       <div className="settings-inventory__filters">
-        <input className="text-field" type="search" aria-label="Find inherited value" placeholder="Find a setting or binding" value={query} onChange={e => setQuery(e.target.value)} />
+        <input className="text-field" type="search" aria-label="Find a value" placeholder="Find a setting or binding" value={query} onChange={e => setQuery(e.target.value)} />
         {scope && scope.source !== '.' && pageLabel && <label className="settings-inventory__scope">
           <input type="checkbox" checked={pageOnly} onChange={e => setPageOnly(e.target.checked)} /> {pageLabel} only
         </label>}
       </div>
       <div className="settings-inventory__rows">
-        {shown.map(([key, value]) => <div className="setting-inventory-row" key={key}><span title={key}>{readableSetting(key)}</span><span>{value}</span><SettingOrigin setting={key} /></div>)}
+        {shown.map(([key, value]) => <div className="setting-inventory-row" key={key}><span data-caption={key}>{readableSetting(key)}<ConfigName name={key} /></span><span>{value}</span><SettingOrigin setting={key} /></div>)}
         {!shown.length && <p className="settings-inventory__empty">No setting or binding matches.</p>}
       </div>
     </section>

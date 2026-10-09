@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Look and language</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.btn{font-family:inherit;border:0;cursor:pointer}
+.cat{font-family:inherit;border:0;background:transparent;color:#b0bcc8;font-size:19px;font-weight:500;height:56px;padding:0 20px;border-radius:14px;text-align:left;cursor:pointer;display:flex;align-items:center;gap:14px;width:100%}
+.set{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;align-items:center;gap:16px;min-height:58px;padding:8px 12px 8px 22px;box-sizing:border-box;border-radius:14px;background:#1f2730;color:#e8eef4;text-align:left}
+.set .t{font-size:19px;font-weight:600}
+.sw{width:56px;height:32px;border-radius:16px;background:#2e3844;position:relative;flex:none;margin-left:auto}
+.sw span{position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:50%;background:#808c99}
+.sw.y{background:#3e9fd8}
+.sw.y span{left:28px;background:#ffffff}
+.seg{margin-left:auto;display:flex;gap:4px;background:#0f151b;border-radius:12px;padding:4px;flex:none}
+.seg span{height:36px;padding:0 16px;border-radius:9px;display:flex;align-items:center;font-size:16px;font-weight:600;color:#b0bcc8}
+.lbl{font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#808c99;font-weight:600}
+.th{font-family:inherit;border:0;cursor:pointer;border-radius:16px;background:#1f2730;color:#e8eef4;padding:10px;display:flex;flex-direction:column;gap:8px;text-align:left;box-sizing:border-box;min-width:0}
+.th svg{display:block;border-radius:10px}
+.th .t{display:flex;align-items:center;gap:8px;padding:0 4px 2px;font-size:17px;font-weight:650}
+.acc{font-family:inherit;border:0;cursor:pointer;border-radius:16px;background:#1f2730;color:#e8eef4;padding:12px 14px;display:flex;flex-direction:column;gap:6px;text-align:left;box-sizing:border-box;min-width:0}
+.acc .t{font-size:16px;font-weight:650}
+.acc .h{font-family:'Geist Mono',monospace;font-size:14px;color:#808c99}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="height: 76px; flex: none; display: flex; align-items: center; padding: 0 40px; background: #0d1217">
+<span style="font-size: 22px; font-weight: 700">Settings</span>
+<span style="margin-left: 16px; font-size: 16px; color: #808c99">For every configuration</span>
+</header>
+
+<main style="flex: 1; min-height: 0; display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 40px; padding: 30px 40px 24px">
+<nav style="display: flex; flex-direction: column; gap: 4px">
+<button class="cat">Controller</button>
+<button class="cat">Hold to swap</button>
+<button class="cat">Press timing</button>
+<button class="cat">Hide the real controller</button>
+<button class="cat" style="background: #1f2730; color: #ffffff; font-weight: 650">Look &amp; language</button>
+<button class="cat">Startup</button>
+<button class="cat">Assistant</button>
+<div style="height: 1px; background: #232c36; margin: 10px 20px"></div>
+<button class="cat" style="font-size: 17px; height: 48px">Guides &amp; reference</button>
+<button class="cat" style="font-size: 17px; height: 48px">Troubleshooting log</button>
+<button class="cat" style="font-size: 17px; height: 48px">About &amp; credits</button>
+</nav>
+
+<section style="display: flex; flex-direction: column; gap: 16px; min-width: 0">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<h1 style="margin: 0; font-size: 32px; font-weight: 700">Look &amp; language</h1>
+<p style="margin: 0; font-size: 17px; color: #b0bcc8">Move across a choice to see it before you pick it.</p>
+</div>
+
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 392px; gap: 28px; min-height: 0">
+<div style="display: flex; flex-direction: column; gap: 12px; min-width: 0">
+<span class="lbl" style="margin-left: 4px">Theme</span>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+<button class="th" style="background: #24323f; box-shadow: inset 0 0 0 2px #3e9fd8">
+<svg viewBox="0 0 160 76" width="100%" height="76" fill="none">
+<rect width="160" height="76" fill="#131920"></rect>
+<rect width="160" height="14" fill="#0d1217"></rect>
+<rect x="8" y="4" width="22" height="6" rx="3" fill="#3a4654"></rect>
+<rect x="62" y="4" width="36" height="6" rx="3" fill="#1d445c"></rect>
+<rect x="8" y="22" width="34" height="46" rx="5" fill="#181f27"></rect>
+<rect x="50" y="22" width="102" height="13" rx="4" fill="#1d445c" stroke="#3e9fd8" stroke-width="1.5"></rect>
+<rect x="50" y="39" width="102" height="13" rx="4" fill="#1f2730"></rect>
+<rect x="50" y="56" width="102" height="13" rx="4" fill="#1f2730"></rect>
+<rect x="132" y="42" width="14" height="8" rx="4" fill="#3e9fd8"></rect>
+</svg>
+<span class="t"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7cc4ee" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>Dark</span>
+</button>
+<button class="th">
+<svg viewBox="0 0 160 76" width="100%" height="76" fill="none">
+<rect width="160" height="76" fill="#eef2f6"></rect>
+<rect width="160" height="14" fill="#ffffff"></rect>
+<rect x="8" y="4" width="22" height="6" rx="3" fill="#c3ccd6"></rect>
+<rect x="62" y="4" width="36" height="6" rx="3" fill="#cfe3f2"></rect>
+<rect x="8" y="22" width="34" height="46" rx="5" fill="#e2e8ee"></rect>
+<rect x="50" y="22" width="102" height="13" rx="4" fill="#d9eaf6" stroke="#175c93" stroke-width="1.5"></rect>
+<rect x="50" y="39" width="102" height="13" rx="4" fill="#ffffff"></rect>
+<rect x="50" y="56" width="102" height="13" rx="4" fill="#ffffff"></rect>
+<rect x="132" y="42" width="14" height="8" rx="4" fill="#175c93"></rect>
+</svg>
+<span class="t" style="color: #d4dde6">Light</span>
+</button>
+<button class="th">
+<svg viewBox="0 0 160 76" width="100%" height="76" fill="none">
+<defs><clipPath id="lks1"><path d="M96 0H160V76H64Z"></path></clipPath></defs>
+<rect width="160" height="76" fill="#131920"></rect>
+<rect width="160" height="14" fill="#0d1217"></rect>
+<rect x="8" y="22" width="34" height="46" rx="5" fill="#181f27"></rect>
+<rect x="50" y="22" width="102" height="13" rx="4" fill="#1d445c"></rect>
+<rect x="50" y="39" width="102" height="13" rx="4" fill="#1f2730"></rect>
+<rect x="50" y="56" width="102" height="13" rx="4" fill="#1f2730"></rect>
+<g clip-path="url(#lks1)">
+<rect width="160" height="76" fill="#eef2f6"></rect>
+<rect width="160" height="14" fill="#ffffff"></rect>
+<rect x="50" y="22" width="102" height="13" rx="4" fill="#d9eaf6"></rect>
+<rect x="50" y="39" width="102" height="13" rx="4" fill="#ffffff"></rect>
+<rect x="50" y="56" width="102" height="13" rx="4" fill="#ffffff"></rect>
+</g>
+<path d="M96 0L64 76" stroke="rgba(255,255,255,.35)" stroke-width="1"></path>
+</svg>
+<span class="t" style="color: #d4dde6">Same as Windows</span>
+</button>
+</div>
+
+<span class="lbl" style="margin: 6px 0 0 4px">Accent</span>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px">
+<button class="acc" style="background: #24323f; box-shadow: inset 0 0 0 2px #3e9fd8">
+<svg width="44" height="44" viewBox="0 0 44 44" fill="none"><ellipse cx="22" cy="22" rx="20" ry="8" transform="rotate(-28 22 22)" stroke="#3e9fd8" stroke-width="2" opacity=".55"></ellipse><circle cx="22" cy="22" r="13" fill="#3e9fd8"></circle><circle cx="22" cy="22" r="5.5" stroke="#07131d" stroke-width="2.2" opacity=".5"></circle><circle cx="39.5" cy="15.5" r="2.8" fill="#b8e2fa"></circle></svg>
+<span class="t">Deep cyan</span><span class="h">#3E9FD8</span>
+</button>
+<button class="acc focus" style="background: #1d445c">
+<svg width="44" height="44" viewBox="0 0 44 44" fill="none"><ellipse cx="22" cy="22" rx="20" ry="8" transform="rotate(-28 22 22)" stroke="#2fd8bb" stroke-width="2" opacity=".6"></ellipse><circle cx="22" cy="22" r="13" fill="#2fd8bb"></circle><circle cx="22" cy="22" r="5.5" stroke="#07131d" stroke-width="2.2" opacity=".5"></circle><circle cx="39.5" cy="15.5" r="2.8" fill="#b6f5e9"></circle></svg>
+<span class="t">Volt teal</span><span class="h" style="color: #b8e2fa">#2FD8BB</span>
+</button>
+<button class="acc">
+<svg width="44" height="44" viewBox="0 0 44 44" fill="none"><ellipse cx="22" cy="22" rx="20" ry="8" transform="rotate(-28 22 22)" stroke="#f5a623" stroke-width="2" opacity=".55"></ellipse><circle cx="22" cy="22" r="13" fill="#f5a623"></circle><circle cx="22" cy="22" r="5.5" stroke="#07131d" stroke-width="2.2" opacity=".5"></circle><circle cx="39.5" cy="15.5" r="2.8" fill="#ffd99a"></circle></svg>
+<span class="t">Solar amber</span><span class="h">#F5A623</span>
+</button>
+<button class="acc">
+<svg width="44" height="44" viewBox="0 0 44 44" fill="none"><ellipse cx="22" cy="22" rx="20" ry="8" transform="rotate(-28 22 22)" stroke="#8b6ff5" stroke-width="2" opacity=".55"></ellipse><circle cx="22" cy="22" r="13" fill="#8b6ff5"></circle><circle cx="22" cy="22" r="5.5" stroke="#07131d" stroke-width="2.2" opacity=".5"></circle><circle cx="39.5" cy="15.5" r="2.8" fill="#cfc2ff"></circle></svg>
+<span class="t">Ultraviolet</span><span class="h">#8B6FF5</span>
+</button>
+</div>
+<span style="font-size: 15px; line-height: 1.45; color: #b8e2fa; margin: 0 4px">Previewing Volt teal, the cyan pushed toward green. A keeps it.</span>
+
+<button class="set" style="margin-top: 4px"><span class="t">Language</span><span class="seg"><span style="background: #2e3844; color: #ffffff">English</span><span>简体中文</span></span></button>
+<button class="set"><span class="t">Screen distance</span><span class="seg"><span style="background: #2e3844; color: #ffffff">Couch</span><span>Desk</span></span></button>
+<button class="set" style="padding-right: 22px"><span style="display: flex; flex-direction: column; gap: 3px"><span class="t">Show config names</span><span style="font-size: 15px; color: #808c99">Shows each setting’s file name, for editing by hand</span></span><span class="sw"><span></span></span></button>
+</div>
+
+<div style="background: #1a222b; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 14px; min-width: 0">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><span class="lbl">Preview</span><span style="font-size: 15px; color: #808c99">Volt teal · dark</span></div>
+<div style="border-radius: 14px; overflow: hidden; background: #131920; box-shadow: 0 0 0 1px rgba(255,255,255,.08)">
+<div style="height: 44px; display: flex; align-items: center; gap: 10px; padding: 0 14px; background: #0d1217">
+<svg width="22" height="22" viewBox="0 0 44 44" fill="none"><ellipse cx="22" cy="22" rx="20" ry="8" transform="rotate(-28 22 22)" stroke="#2fd8bb" stroke-width="3" opacity=".6"></ellipse><circle cx="22" cy="22" r="13" fill="#2fd8bb"></circle></svg>
+<span style="font-size: 15px; font-weight: 650">JSM Evolved</span><span style="font-size: 15px; color: #808c99">/ Wardogs</span>
+<span style="margin-left: auto; display: inline-flex; align-items: center; height: 28px; padding: 0 12px; border-radius: 8px; background: #2fd8bb; color: #07131d; font-size: 14px; font-weight: 700">Save</span>
+</div>
+<div style="display: flex; gap: 4px; padding: 10px 14px 4px">
+<span style="height: 30px; padding: 0 12px; border-radius: 8px; display: flex; align-items: center; font-size: 14px; font-weight: 600; color: #b0bcc8">Buttons</span>
+<span style="height: 30px; padding: 0 12px; border-radius: 8px; display: flex; align-items: center; font-size: 14px; font-weight: 600; background: #17423f; color: #ffffff">Gyro</span>
+<span style="height: 30px; padding: 0 12px; border-radius: 8px; display: flex; align-items: center; font-size: 14px; font-weight: 600; color: #b0bcc8">Modes</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 10px 14px 16px">
+<div style="display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; border-radius: 10px; background: #17423f; box-shadow: 0 0 0 2px #2fd8bb, 0 0 0 6px rgba(47,216,187,.2)">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 15px; font-weight: 650">Turn speed</span><span style="font-size: 17px; font-weight: 700">2.3×</span></div>
+<div style="position: relative; height: 6px; border-radius: 3px; background: #0f151b"><span style="position: absolute; left: 0; top: 0; height: 6px; width: 38%; border-radius: 3px; background: #2fd8bb"></span><span style="position: absolute; left: 38%; top: -5px; width: 16px; height: 16px; margin-left: -8px; border-radius: 50%; background: #ffffff"></span></div>
+</div>
+<div style="display: flex; align-items: center; padding: 10px 14px; border-radius: 10px; background: #1f2730"><span style="font-size: 15px; font-weight: 600">Invert vertical aim</span><span style="margin-left: auto; width: 40px; height: 22px; border-radius: 11px; background: #2fd8bb; position: relative"><span style="position: absolute; top: 3px; left: 21px; width: 16px; height: 16px; border-radius: 50%; background: #ffffff"></span></span></div>
+<div style="display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 10px; background: #1f2730"><span style="font-size: 15px; font-weight: 600">Modes</span><span style="margin-left: auto; width: 12px; height: 12px; border-radius: 4px; background: #b48cf0"></span><span style="width: 12px; height: 12px; border-radius: 4px; background: #7ee08a"></span><span style="width: 12px; height: 12px; border-radius: 4px; background: #f0a05a"></span></div>
+</div>
+</div>
+
+<span class="lbl" style="margin-top: 4px">The app icon follows it</span>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 8px; border-radius: 12px; background: #0f151b">
+<svg width="40" height="40" viewBox="0 0 44 44" fill="none"><ellipse cx="22" cy="22" rx="20" ry="8" transform="rotate(-28 22 22)" stroke="#2fd8bb" stroke-width="2" opacity=".6"></ellipse><circle cx="22" cy="22" r="13" fill="#2fd8bb"></circle><circle cx="22" cy="22" r="5.5" stroke="#07131d" stroke-width="2.2" opacity=".5"></circle><circle cx="39.5" cy="15.5" r="2.8" fill="#b6f5e9"></circle></svg>
+<span style="font-size: 14px; color: #b0bcc8">Window</span>
+</div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 8px; border-radius: 12px; background: #0f151b">
+<span style="width: 40px; height: 40px; border-radius: 8px; background: #232c36; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 -3px 0 #2fd8bb"><svg width="26" height="26" viewBox="0 0 44 44" fill="none"><ellipse cx="22" cy="22" rx="20" ry="8" transform="rotate(-28 22 22)" stroke="#2fd8bb" stroke-width="2.5" opacity=".6"></ellipse><circle cx="22" cy="22" r="13" fill="#2fd8bb"></circle></svg></span>
+<span style="font-size: 14px; color: #b0bcc8">Taskbar</span>
+</div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 8px; border-radius: 12px; background: #0f151b">
+<span style="height: 40px; display: flex; align-items: center; gap: 10px"><svg width="16" height="16" viewBox="0 0 44 44" fill="none"><circle cx="22" cy="22" r="16" fill="#5b6571"></circle></svg><svg width="18" height="18" viewBox="0 0 44 44" fill="none"><ellipse cx="22" cy="22" rx="20" ry="8" transform="rotate(-28 22 22)" stroke="#2fd8bb" stroke-width="4" opacity=".7"></ellipse><circle cx="22" cy="22" r="14" fill="#2fd8bb"></circle></svg><svg width="16" height="16" viewBox="0 0 44 44" fill="none"><rect x="8" y="8" width="28" height="28" rx="6" fill="#5b6571"></rect></svg></span>
+<span style="font-size: 14px; color: #b0bcc8">Tray</span>
+</div>
+</div>
+<span style="font-size: 15px; line-height: 1.45; color: #808c99">The Start menu shortcut keeps the cyan mark until JSM Evolved is reinstalled.</span>
+</div>
+</div>
+</section>
+</main>
+
+<footer style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Settings · Look &amp; language · Accent</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">A</span>Use Volt teal</span>
+<span style="display: flex; align-items: center; gap: 10px">◂ ▸ Compare</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">LT</span><span class="gp">RT</span>Category</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Home</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

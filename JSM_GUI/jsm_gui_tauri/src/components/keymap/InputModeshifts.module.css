@@ -179,3 +179,9 @@
   min-height: var(--control-h);
 }
 .conditionField > :global(.segmented) { width: max-content; }
+
+/* Console v2: the shifts are a plain list of rows; each opens a page of its own. */
+.list { display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; }
+.listHeading { margin: 0; color: var(--text-2); font-size: var(--fs-label); font-weight: var(--fw-semibold); }
+.rowLabel { display: inline-flex; align-items: center; gap: var(--sp-3); }
+.editor { display: flex; flex-direction: column; gap: var(--sp-3); max-width: 1040px; min-width: 0; }

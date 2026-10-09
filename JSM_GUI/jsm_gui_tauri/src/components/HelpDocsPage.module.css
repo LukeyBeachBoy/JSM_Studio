@@ -16,6 +16,14 @@
   min-width: 0;
 }
 
+/* A sticky column taller than the page's visible height (the title bar and the
+   docked footer take 128px) can never be scrolled into view: at 1024x720 the
+   last topics sat under the footer and the pad wrapped round to the first one
+   instead of reaching them. On a short window the topics scroll with the page. */
+@media (max-height: 840px) {
+  .topics { position: static; }
+}
+
 .srOnly {
   position: absolute;
   width: 1px;
@@ -195,3 +203,15 @@
   .topicList { flex-direction: row; flex-wrap: wrap; }
   .article { padding: 20px; }
 }
+
+/* Console v2 (SettingsGuides): Works offline, search behind Y, topic keys, links. */
+.offline { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); padding: 0 var(--sp-2); font-size: var(--fs-label); }
+.badge { padding: 2px 10px; border-radius: var(--r-pill); background: var(--ok-soft); color: var(--ok); font-size: var(--fs-hint); font-weight: var(--fw-semibold); white-space: nowrap; }
+.searchButton { min-height: 52px; display: flex; align-items: center; gap: var(--sp-3); padding: 0 var(--sp-4); border: 0; border-radius: var(--r-row); background: var(--surface-row); color: var(--text-2); font: inherit; font-size: var(--fs-body); text-align: left; cursor: pointer; }
+.searchButton:hover { background: var(--surface-row-hover); }
+.searchButton span:nth-child(2) { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.searchKey { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; background: var(--text-1); color: var(--surface-frame); font-size: var(--fs-hint); font-weight: var(--fw-bold); }
+.findNote { display: block; margin-top: 4px; color: var(--text-3); font-size: var(--fs-hint); line-height: var(--lh-hint); white-space: normal; }
+.findRow { flex-wrap: wrap; }
+.topicKeys { padding: 0 var(--sp-2); color: var(--text-3); font-size: var(--fs-hint); }
+.links { display: flex; flex-wrap: wrap; gap: var(--sp-3); margin-top: var(--sp-6); }

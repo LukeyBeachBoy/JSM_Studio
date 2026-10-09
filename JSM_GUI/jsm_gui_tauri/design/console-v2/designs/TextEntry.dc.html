@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>On-screen keyboard</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.btn{font-family:inherit;border:0;cursor:pointer}
+.kr{display:flex;gap:10px}
+.k{font-family:inherit;border:0;cursor:pointer;flex:1;height:66px;min-width:0;border-radius:14px;background:#2e3844;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);color:#e8eef4;font-size:26px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px}
+.k.f{font-size:19px;font-weight:650;color:#d4dde6;background:#252e38}
+.sug{display:inline-flex;align-items:center;height:44px;padding:0 20px;border-radius:22px;background:#1f2730;font-size:18px;font-weight:600;color:#d4dde6;flex:none}
+</style>
+</helmet>
+<div style="position: relative; width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; overflow: hidden">
+
+<div style="position: absolute; inset: 0; opacity: .3">
+<div style="position: absolute; top: 0; right: 0; bottom: 64px; width: 700px; background: #181f27; padding: 32px 36px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+<div style="width: 260px; height: 48px; border-radius: 24px; background: #2e3844"></div>
+<div style="display: flex; gap: 10px"><div style="flex: 1; height: 74px; border-radius: 14px; background: #1d445c"></div><div style="flex: 1; height: 74px; border-radius: 14px; background: #1f2730"></div><div style="flex: 1; height: 74px; border-radius: 14px; background: #1f2730"></div><div style="flex: 1; height: 74px; border-radius: 14px; background: #1f2730"></div></div>
+<div style="height: 260px; border-radius: 16px; background: #1f2730"></div>
+</div>
+</div>
+<div style="position: absolute; inset: 0; background: rgba(5,9,13,.78)"></div>
+
+<section style="position: absolute; left: 120px; right: 120px; top: 36px; bottom: 92px; background: #181f27; border-radius: 28px; box-shadow: 0 0 0 1px rgba(255,255,255,.08); padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+
+<div style="height: 40px; flex: none; display: flex; align-items: center; gap: 16px">
+<span style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; background: #e8eef4; color: #0d1217; font-weight: 700; font-size: 16px">A</span>
+<span style="font-size: 20px; font-weight: 650">Name this action</span>
+<span style="font-size: 17px; color: #808c99">A button · Press sends Space</span>
+<span style="margin-left: auto; display: flex; align-items: center; gap: 10px; font-size: 16px; color: #b0bcc8"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7cc4ee" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"></rect><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"></path></svg>A real keyboard types here too</span>
+</div>
+
+<div style="height: 76px; flex: none; border-radius: 18px; background: #0f151b; box-shadow: inset 0 0 0 2px #3e9fd8; display: flex; align-items: center; padding: 0 28px; gap: 16px">
+<span style="font-size: 40px; font-weight: 700; letter-spacing: -0.01em">Jump</span><span style="width: 3px; height: 44px; margin-left: -12px; border-radius: 2px; background: #7cc4ee"></span>
+<span style="margin-left: auto; font-size: 16px; color: #808c99">Shown on the Layout tab and the overlay</span>
+</div>
+
+<div style="height: 44px; flex: none; display: flex; align-items: center; gap: 10px">
+<span style="font-size: 15px; letter-spacing: .08em; text-transform: uppercase; color: #808c99; font-weight: 600; margin-right: 8px">Suggestions</span>
+<span class="sug" style="background: #24323f; box-shadow: inset 0 0 0 2px #3e9fd8; color: #ffffff">Jump</span>
+<span class="sug">Jump · vault</span>
+<span class="sug">Mantle</span>
+<span class="sug">Climb</span>
+<span class="sug">Hop</span>
+<span class="sug">Leap</span>
+<span style="margin-left: auto; font-size: 16px; color: #808c99">Move up to choose one</span>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div class="kr"><button class="k">1</button><button class="k">2</button><button class="k">3</button><button class="k">4</button><button class="k">5</button><button class="k">6</button><button class="k">7</button><button class="k">8</button><button class="k">9</button><button class="k">0</button><button class="k">-</button></div>
+<div class="kr"><button class="k">q</button><button class="k">w</button><button class="k">e</button><button class="k">r</button><button class="k">t</button><button class="k">y</button><button class="k">u</button><button class="k">i</button><button class="k">o</button><button class="k focus" style="background: #1d445c; color: #ffffff">p</button><button class="k">'</button></div>
+<div class="kr"><button class="k">a</button><button class="k">s</button><button class="k">d</button><button class="k">f</button><button class="k">g</button><button class="k">h</button><button class="k">j</button><button class="k">k</button><button class="k">l</button><button class="k">,</button><button class="k">.</button></div>
+<div class="kr"><button class="k f" style="flex: 2"><span class="gp">LT</span>⇧ Shift</button><button class="k">z</button><button class="k">x</button><button class="k">c</button><button class="k">v</button><button class="k">b</button><button class="k">n</button><button class="k">m</button><button class="k f" style="flex: 2"><span class="gp">LB</span>&amp;123</button></div>
+<div class="kr"><button class="k f" style="flex: 1.6"><span class="gp">L3</span>⇪ Caps</button><button class="k f" style="flex: 2.4"><span class="g">X</span>⌫ Backspace</button><button class="k f" style="flex: 3.4"><span class="g">Y</span>Space</button><button class="k f" style="flex: 2"><span class="gp">RT</span>↵ Enter</button><button class="k f" style="flex: 1.6; color: #b8e2fa"><span class="gp">Menu</span>Done</button></div>
+</div>
+
+<div style="height: 44px; flex: none; display: flex; align-items: center; gap: 22px; padding: 0 18px; border-radius: 14px; background: #131a21; box-shadow: inset 0 0 0 1px rgba(255,255,255,.04)">
+<span style="font-size: 16px; color: #b8e2fa">A types p · hold LT for a capital · L3 locks caps</span>
+<span style="margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 15px; color: #b0bcc8"><span class="gp">R3</span>Hold to move</span>
+<span style="display: flex; align-items: center; gap: 8px; font-size: 15px; color: #b0bcc8"><span class="gp">RB</span>Hold to resize</span>
+<span style="display: flex; align-items: center; gap: 8px; font-size: 15px; color: #b0bcc8"><span class="gp">LB</span><span style="color: #808c99">+</span><span class="gp">RB</span>Reset size and place</span>
+</div>
+</section>
+
+<footer style="position: absolute; left: 0; right: 0; bottom: 0; height: 64px; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Wardogs · A button · Name</span>
+<div style="display: flex; align-items: center; gap: 20px">
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">A</span>Type</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">X</span>Backspace</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">Y</span>Space</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">LT</span>Shift</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">RT</span>Enter</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">LB</span>Symbols</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">L3</span>Caps</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">Menu</span>Done</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Cancel</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -12,6 +12,12 @@ fn launched_at_autostart<I: IntoIterator<Item = String>>(arguments: I) -> bool {
     arguments.into_iter().any(|argument| argument == "--autostart")
 }
 
+/// Whether the window opens at launch: always for a person opening the app;
+/// for the logon task only when Start in the tray is off.
+fn show_window_at_launch<I: IntoIterator<Item = String>>(arguments: I, start_in_tray: bool) -> bool {
+    !launched_at_autostart(arguments) || !start_in_tray
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default()
@@ -63,6 +69,11 @@ pub fn run() {
                 }
             }
             services::profile_library::start(app.handle().clone());
+            // Settings ▸ Startup ▸ What loads first (console v2, D20): its
+            // configuration becomes the live one before the mapper starts.
+            if let Err(error) = runtime::apply_startup_choice(&app.handle()) {
+                eprintln!("Could not load the startup configuration: {error}");
+            }
             if let Err(error) = sync_hidhide_whitelist_if_available(&app.handle()) {
                 eprintln!(
                     "Failed to sync HidHide whitelist before launching JoyShockMapper: {error}"
@@ -79,18 +90,32 @@ pub fn run() {
             // instead of the app just vanishing with no way back but the taskbar.
             // It is the only icon: the mapper's own is off (services/tray_menu.rs).
             services::tray_menu::install(&app.handle())?;
+            services::area_picker::prepare(&app.handle());
             // ... in the accent chosen last time (services/brand_icon.rs).
             services::brand_icon::restore(&app.handle());
             // The logon task points at the exe by path; refresh it in case the
             // install moved (the JSM Studio -> JSM Evolved rename did that).
             std::thread::spawn(services::autostart::refresh_after_launch);
+            // Updates (console v2, D19): asked once as the app starts; the
+            // update line, About and Startup share the answer.
+            let update_app = app.handle().clone();
+            std::thread::spawn(move || {
+                // After the window and the mapper, not competing with them.
+                std::thread::sleep(std::time::Duration::from_secs(3));
+                tauri::async_runtime::block_on(services::updates::check(&update_app));
+            });
 
             // The window starts hidden (tauri.conf.json) so an autostart launch
             // never flashes it visible before this decides otherwise. Everything
             // that makes the controller usable (JoyShockMapper, telemetry) has
             // already started above regardless of this flag -- only the window's
             // visibility depends on it.
-            if !launched_at_autostart(std::env::args()) {
+            // Settings ▸ Startup ▸ Start in the tray (D20): off shows the window
+            // even when the logon task started the app.
+            let start_in_tray = runtime::read_runtime_mapping_state(&app.handle())
+                .map(|state| state.start_in_tray)
+                .unwrap_or(true);
+            if show_window_at_launch(std::env::args(), start_in_tray) {
                 show_main_window(&app.handle());
             }
 
@@ -144,6 +169,7 @@ pub fn run() {
             commands::app_icon,
             commands::pick_executable,
             commands::recalibrate_gyro,
+            commands::get_windows_pointer_speed,
             commands::get_calibration_seconds,
             commands::set_calibration_seconds,
             commands::set_controller_preferences,
@@ -154,6 +180,7 @@ pub fn run() {
             commands::sound_library_read_audio,
             commands::sound_library_save,
             commands::sound_library_rename,
+            commands::sound_library_set_gain,
             commands::sound_library_delete,
             commands::library_list_profiles,
             commands::library_list_profile_meta,
@@ -189,6 +216,17 @@ pub fn run() {
             commands::get_ai_settings,
             commands::save_ai_settings,
             commands::generate_ai_mapping,
+            services::ai::set_ai_key,
+            services::ai::forget_ai_credentials,
+            services::ai::test_ai_connection,
+            services::ai::detect_local_ai_models,
+            services::ai::chatgpt_sign_in_command,
+            services::ai::chatgpt_cancel_sign_in,
+            services::bases::list_builtin_bases,
+            services::steam_library::list_recent_steam_games,
+            services::steam_library::steam_game_art,
+            services::steam_library::steam_app_for_exe,
+            services::steam_library::list_running_games,
             commands::get_autostart_enabled,
             commands::set_autostart_enabled,
             commands::tray_menu_place,
@@ -196,6 +234,17 @@ pub fn run() {
             commands::tray_show_studio,
             commands::tray_quit,
             commands::set_brand_icon,
+            commands::get_update_status,
+            commands::check_for_updates,
+            commands::install_update,
+            commands::get_startup_preferences,
+            commands::set_startup_preferences,
+            commands::reorder_global_chords,
+            commands::list_recent_console_commands,
+            commands::record_console_command,
+            commands::clear_recent_console_commands,
+            commands::get_foreground_app,
+            commands::restart_mapper,
         ])
         .on_window_event(|window, event| {
             // The tray menu dismisses as a native menu does: on losing focus.
@@ -275,5 +324,15 @@ mod tests {
         // A second launch from the shortcut must still restore the window.
         assert!(!launched_at_autostart(vec![exe.clone()]));
         assert!(!launched_at_autostart(vec![exe, "--autostarted".into()]));
+    }
+
+    #[test]
+    fn start_in_tray_decides_only_the_logon_launch() {
+        use super::show_window_at_launch;
+        let exe = "JSM Evolved.exe".to_string();
+        assert!(!show_window_at_launch(vec![exe.clone(), "--autostart".into()], true));
+        assert!(show_window_at_launch(vec![exe.clone(), "--autostart".into()], false));
+        assert!(show_window_at_launch(vec![exe.clone()], true));
+        assert!(show_window_at_launch(vec![exe], false));
     }
 }

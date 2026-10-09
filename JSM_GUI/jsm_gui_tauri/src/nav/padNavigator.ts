@@ -9,7 +9,7 @@
 //   View / Menu          title bar · page actions
 //   right stick          scroll, or fine adjust while adjusting a value
 //   hold B 1.5 s         guaranteed escape from capture
-//   hold View + Menu     leave Test mode (0.6 s)
+//   hold View + Menu     leave Test mode (0.6 s); a tap of B leaves it too
 //
 // Pure and clock-driven so it can be tested without a browser: feed it a
 // snapshot per telemetry sample, it returns what happened since the last one.
@@ -20,8 +20,10 @@ export type Direction = 'up' | 'down' | 'left' | 'right'
 export type NavAction =
   | { kind: 'move'; direction: Direction; repeat: boolean }
   | { kind: 'press'; button: PadButton }
-  | { kind: 'hold'; button: 'B' }
-  | { kind: 'exitTest' }
+  | { kind: 'hold'; button: 'B' | 'MENU' }
+  /** Leave Test mode: the View + Menu chord, or a tap of B (what the status
+   *  chip promises). `button` says which. */
+  | { kind: 'exitTest'; button?: 'B' }
   | { kind: 'scroll'; dx: number; dy: number }
 
 export type PadSnapshot = {
@@ -50,6 +52,8 @@ export const REPEAT_START_MS = 130
 export const REPEAT_FLOOR_MS = 55
 export const REPEAT_STEP_MS = 12
 export const HOLD_BACK_MS = 1500
+/** Holding Menu this long opens the Configuration menu; a tap saves. */
+export const HOLD_MENU_MS = 450
 export const EXIT_TEST_MS = 600
 
 const STICK_ON = 0.55
@@ -86,6 +90,8 @@ export class PadNavigator {
   private repeat: RepeatState | null = null
   private backSince: number | null = null
   private backFired = false
+  private menuSince: number | null = null
+  private menuFired = false
   private exitSince: number | null = null
   private exitFired = false
   /** View and Menu were down together at some point in this press. */
@@ -139,7 +145,15 @@ export class PadNavigator {
     trigger('LT', pad.triggers.left, 'ZL')
     trigger('RT', pad.triggers.right, 'ZR')
 
-    // ---- Test mode: nothing but the exit chord.
+    // A press that began (and maybe ended) between two snapshots still counts
+    // once: fast taps must never be dropped.
+    const tapped = (button: PadButton) => {
+      const command = button === 'LT' ? 'ZL' : button === 'RT' ? 'ZR' : BUTTONS[button as keyof typeof BUTTONS]
+      return Boolean(command && pad.pressedSince?.has(command))
+    }
+
+    // ---- Test mode: nothing but the exits -- the View + Menu chord, and a
+    // tap of B, which the status chip ("Testing · B to stop") promises.
     const exitChord = down.has('VIEW') && down.has('MENU')
     if (exitChord) this.chordSeen = true
     if (exitChord) {
@@ -153,6 +167,8 @@ export class PadNavigator {
       this.exitFired = false
     }
     if (testing) {
+      const back = !exitChord && ((down.has('B') && !this.held.has('B')) || tapped('B'))
+      if (back && !actions.length) actions.push({ kind: 'exitTest', button: 'B' })
       this.held = down
       this.repeat = null
       this.stickDirection = null
@@ -177,21 +193,26 @@ export class PadNavigator {
 
     // ---- Presses fire on the way down. View and Menu wait for release, so
     // holding both for the exit chord does not also jump to the title bar.
-    // A press that began (and maybe ended) between two snapshots still counts
-    // once: fast taps must never be dropped.
-    const tapped = (button: PadButton) => {
-      const command = button === 'LT' ? 'ZL' : button === 'RT' ? 'ZR' : BUTTONS[button as keyof typeof BUTTONS]
-      return Boolean(command && pad.pressedSince?.has(command))
-    }
     for (const button of ALL_BUTTONS) {
       if (button === 'VIEW' || button === 'MENU') continue
       if ((down.has(button) && !this.held.has(button)) || tapped(button)) actions.push({ kind: 'press', button })
     }
+    // ---- Hold Menu: the Configuration menu. A tap (released before that) is a
+    // press, which saves; a hold never also fires the press on release.
+    if (down.has('MENU') && !down.has('VIEW')) {
+      this.menuSince ??= now
+      if (!this.menuFired && !this.chordSeen && now - this.menuSince >= HOLD_MENU_MS) {
+        this.menuFired = true
+        actions.push({ kind: 'hold', button: 'MENU' })
+      }
+    }
     for (const button of ['VIEW', 'MENU'] as const) {
       const released = this.held.has(button) && !down.has(button)
       const tappedBetween = tapped(button) && !down.has(button) && !this.held.has(button)
-      if ((released || tappedBetween) && !this.chordSeen) actions.push({ kind: 'press', button })
+      const heldPast = button === 'MENU' && this.menuFired
+      if ((released || tappedBetween) && !this.chordSeen && !heldPast) actions.push({ kind: 'press', button })
     }
+    if (!down.has('MENU')) { this.menuSince = null; this.menuFired = false }
     if (!down.has('VIEW') && !down.has('MENU')) this.chordSeen = false
 
     // ---- Hold B: the escape that always works, even from capture.

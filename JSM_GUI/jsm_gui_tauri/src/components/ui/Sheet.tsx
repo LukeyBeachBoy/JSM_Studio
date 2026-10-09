@@ -30,6 +30,15 @@ type SheetProps = {
   hints?: SheetHint[]
   /** 640 for detail sheets; the Configuration menu is its own dialog. */
   width?: number
+  /** Render where it is instead of portalling to the body (console v2, 04):
+   *  a binding row's card opens as a sheet but stays inside its row's
+   *  `<details>`, so everything that finds a card through its row still does. */
+  inPlace?: boolean
+  /** Buttons beside the close mark (a binding's cog and Details). */
+  actions?: ReactNode
+  /** Left of the eyebrow and title: the binding sheet's 48px glyph (console v2,
+   *  BindingSheet). The eyebrow then reads in sentence case, "A button · Default mode". */
+  lead?: ReactNode
   children: ReactNode
 }
 
@@ -42,7 +51,7 @@ const SHEET_HINTS: SheetHint[] = [
 
 const FOOTER_BUTTONS: PadButtonName[] = ['A', 'X', 'Y', 'B']
 
-export function Sheet({ open, onClose, eyebrow, title, description, hints = SHEET_HINTS, width = 640, children }: SheetProps) {
+export function Sheet({ open, onClose, eyebrow, title, description, hints = SHEET_HINTS, width = 640, inPlace = false, actions, lead, children }: SheetProps) {
   const { t } = useTranslation()
   const titleId = useId()
   const sheetRef = useRef<HTMLElement>(null)
@@ -75,13 +84,18 @@ export function Sheet({ open, onClose, eyebrow, title, description, hints = SHEE
   }, [open])
   if (!open) return null
   const footer = focused ?? hints
-  return createPortal(
-    <div className="sheet-layer" data-focus-trap="true" onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}>
+  const layer = (
+    // A click on the scrim closes the sheet. preventDefault keeps the browser
+    // from moving focus to <body> on that press, so focus goes back to the
+    // row that opened the sheet (UX review, B3).
+    <div className="sheet-layer" data-focus-trap="true" onMouseDown={event => { if (event.target === event.currentTarget) { event.preventDefault(); onClose() } }}>
       <aside ref={sheetRef} className="sheet" role="dialog" aria-modal="true" aria-labelledby={titleId} style={{ width }}>
-        <header className="sheet__header">
+        <header className="sheet__header" data-lead={lead ? 'true' : undefined}>
+          {lead && <span className="sheet__lead" aria-hidden="true">{lead}</span>}
           <span className="eyebrow">{eyebrow}</span>
           <h2 id={titleId} className="sheet__title">{title}</h2>
           {description && <p className="sheet__description">{description}</p>}
+          {actions && <div className="sheet__actions">{actions}</div>}
           <button type="button" className="sheet__close" tabIndex={-1} data-nav-skip data-modal-close aria-label={t('common.close', 'Close')} onClick={onClose}>
             <Icon name="close" size={18} />
           </button>
@@ -95,7 +109,7 @@ export function Sheet({ open, onClose, eyebrow, title, description, hints = SHEE
           </footer>
         )}
       </aside>
-    </div>,
-    document.body,
+    </div>
   )
+  return inPlace ? layer : createPortal(layer, document.body)
 }

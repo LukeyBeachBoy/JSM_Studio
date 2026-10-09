@@ -22,8 +22,8 @@ type Props = {
 export function InheritedBadge({ source, onOpenConfigEditor }: Props) {
   const name = includeDisplayName(source)
   const title = onOpenConfigEditor
-    ? `Inherited from ${name}. This profile imports that file and does not set this itself; changing it here writes an override into this profile. Click to open the config editor and see the import.`
-    : `Inherited from ${name}. This profile imports that file and does not set this itself; changing it here writes an override into this profile.`
+    ? `From ${name}, the base this configuration is built on. Changing it here sets it in this configuration instead. Click to open the file and see the base.`
+    : `From ${name}, the base this configuration is built on. Changing it here sets it in this configuration instead.`
   return (
     <button
       type="button"

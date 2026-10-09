@@ -48,38 +48,47 @@ const fixture = name => fs.readFileSync(path.join(__dirname, 'fixtures/steam', n
     const artifacts = path.resolve(__dirname, '../tmp/steam-import'); fs.mkdirSync(artifacts, { recursive: true });
     const shot = name => page.screenshot({ path: path.join(artifacts, name + '.png') });
 
-    await page.getByRole('button', { name: /^Configurations/ }).first().click();
-    await page.getByRole('button', { name: 'Import from Steam' }).click();
+    // Console v2 (SteamImport): Library ▸ Games, the New cover's Import from
+    // Steam, then a full page rather than a modal.
+    await page.waitForFunction(() => document.querySelector('.titlebar'));
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('jsm:navigate-page', { detail: 'configurations' })));
+    await page.getByRole('button', { name: 'Import from Steam', exact: true }).click();
 
     // The list: the person's own layouts, then Valve's templates.
-    const dialog = page.getByRole('dialog', { name: 'Choose a Steam layout' });
+    const dialog = page.getByRole('dialog', { name: /Choose a Steam layout$/ });
     await dialog.waitFor();
     await dialog.getByText('Your layouts · 1').waitFor();
     await dialog.getByText('Steam templates · 1').waitFor();
     const first = dialog.getByRole('button', { name: /Wardogs Steam/ });
     assert.match(await first.innerText(), /Wardogs · Steam Controller/);
+    await page.waitForFunction(() => /Wardogs Steam/.test(document.activeElement?.textContent ?? ''));
     assert.ok(await first.evaluate(el => el === document.activeElement), 'the first layout has focus, for a controller');
     await shot('list');
 
-    // Review, before anything exists.
+    // Review, before anything exists: brought over / close enough / not brought over.
     await first.click();
-    const review = page.getByRole('dialog', { name: 'Wardogs Steam' });
+    const review = page.getByRole('dialog', { name: /Wardogs Steam$/ });
     await review.waitFor();
-    const status = await review.getByRole('status').innerText();
-    assert.match(status, /2 approximated/);
-    assert.match(status, /2 not converted/);
-    await review.getByText('Not converted · 2').waitFor();
+    const status = await review.getByRole('status').first().innerText();
+    assert.match(status, /2 close enough/);
+    assert.match(status, /2 not brought over/);
+    await review.getByText('Not brought over · 2').waitFor();
     await review.getByText(/"Ping" is a Steam Input API game action/).waitFor();
-    assert.match(await review.innerText(), /Wardogs Steam - Menus\.txt/);
-    assert.ok(await review.getByRole('button', { name: 'Import 2 configurations' }).evaluate(el => el === document.activeElement), 'Import has focus once the review is up');
+    // Each line carries its input's glyph; the sets are named "Title · Set".
+    assert.ok(await review.locator('[data-glyph="RSL"]').count(), 'R5 is drawn as its glyph');
+    assert.match(await review.innerText(), /Wardogs Steam · Menus/);
+    // "Wardogs Steam" is taken, so the main set becomes "Wardogs Steam 2": yours is untouched.
+    assert.match(await review.innerText(), /Your own Wardogs Steam is untouched/);
+    const importButton = review.getByRole('button', { name: /^Import 2 configurations/ });
+    assert.ok(await importButton.evaluate(el => el === document.activeElement), 'Import has focus once the review is up');
     assert.equal(await page.evaluate(() => Object.keys(window.__profiles).length), 2, 'reviewing writes nothing');
     await shot('review');
 
     // Back returns to the list without losing it; then import for real.
-    await review.getByRole('button', { name: 'Back' }).click();
-    await page.getByRole('dialog', { name: 'Choose a Steam layout' }).getByRole('button', { name: /Wardogs Steam/ }).click();
-    await page.getByRole('button', { name: 'Import 2 configurations' }).click();
-    await page.getByRole('dialog').waitFor({ state: 'detached' });
+    await review.getByRole('button', { name: /Back to Steam layouts/ }).click();
+    await page.getByRole('dialog', { name: /Choose a Steam layout$/ }).getByRole('button', { name: /Wardogs Steam/ }).click();
+    await page.getByRole('button', { name: /^Import 2 configurations/ }).click();
+    await page.locator('[data-subpage]').waitFor({ state: 'detached' });
     await page.waitForFunction(() => 'Wardogs Steam 2' in window.__profiles);
 
     const profiles = await page.evaluate(() => window.__profiles);
@@ -91,7 +100,7 @@ const fixture = name => fs.readFileSync(path.join(__dirname, 'fixtures/steam', n
     assert.match(menus, /^LSR = "profiles-library\/Wardogs Steam 2\.txt"$/m, 'the set switches back to the renamed configuration');
     assert.match(main, /^TELEMETRY_ENABLED = ON$/m, 'saved through the normal header, so Studio can watch it run');
     assert.match(main, /# @layer \{"id":"vehicle"/);
-    assert.match(main, /# - Not converted: R5:/);
+    assert.match(main, /# - Not brought over: R5:/);
     await shot('imported');
 
     assert.deepEqual(errors, []);

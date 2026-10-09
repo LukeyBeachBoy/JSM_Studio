@@ -34,7 +34,7 @@ export function BatteryIndicator({ percent, state }: BatteryIndicatorProps) {
       : t('controllerStatus.batteryPercent', { percent })
 
   return (
-    <span className={styles.battery} title={label}>
+    <span className={styles.battery} data-caption={label} aria-label={label}>
       <BatteryIcon fillFraction={percent / 100} charging={charging} />
       {label}
     </span>

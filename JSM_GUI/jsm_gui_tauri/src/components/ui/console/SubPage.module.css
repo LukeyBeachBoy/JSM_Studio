@@ -1,0 +1,49 @@
+/* A full-screen sub-page (console v2): header row, body, docked footer. It sits
+   over the shell but under menus, sheets, pickers and dialogs opened from it
+   (z 45: above the drawer, below --z-menu). The body is laid out first in the
+   DOM so the focus trap lands in it, not on the header's status chip. */
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) var(--hintbar-h);
+  grid-template-areas: 'header' 'body' 'footer';
+  background: var(--surface-frame);
+  color: var(--text-1);
+  animation: subpage-in 200ms var(--ease-standard, ease) both;
+}
+@keyframes subpage-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .layer { animation: none; } }
+
+.header {
+  grid-area: header;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: 0 var(--sp-6);
+  border-bottom: 1px solid var(--line-1);
+}
+.crumbs { min-width: 0; display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; color: var(--text-2); font-size: var(--fs-label); }
+.crumb + .crumb::before { content: '·'; margin-right: var(--sp-2); color: var(--text-3); }
+.arrow { color: var(--text-3); }
+.title { color: var(--text-1); font-size: var(--fs-section, 20px); font-weight: var(--fw-semibold); }
+.badge { padding: 4px var(--sp-3); border-radius: var(--r-pill); background: var(--surface-row); color: var(--text-2); font-size: var(--fs-hint); }
+.chip { margin-left: auto; }
+
+.body {
+  grid-area: body;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: var(--page-pad, 32px);
+}
+.footer { grid-area: footer; min-width: 0; }
+.footer :global(.hint-capsule) { height: 100%; }
+
+/* The visible way out for a mouse. */
+.back, .backFloating { flex: none; display: inline-flex; align-items: center; gap: var(--sp-1); height: 40px; padding: 0 var(--sp-4) 0 var(--sp-3); border: 0; border-radius: var(--r-pill); background: var(--surface-row); color: var(--text-1); font: inherit; font-size: var(--fs-label); font-weight: var(--fw-semibold); cursor: pointer; }
+.back:hover, .backFloating:hover { background: var(--surface-row-hover); }
+.back span, .backFloating span { font-size: 22px; line-height: 1; margin-top: -2px; }
+.backFloating { position: absolute; top: 8px; left: 16px; z-index: 2; height: 32px; }

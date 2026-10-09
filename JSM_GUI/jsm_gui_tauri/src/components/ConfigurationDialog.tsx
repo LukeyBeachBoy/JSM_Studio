@@ -22,6 +22,8 @@ export type NewConfigurationDraft = {
   processName?: string
   exePath?: string
   autoApply: boolean
+  /** The whole file, from the New configuration wizard (header, base, game). */
+  text?: string
 }
 
 /** A chosen game: the executable's path when known, always its process stem. */
@@ -41,7 +43,7 @@ const gameFromRule = (rule: AutoloadRule | null | undefined): Game | null =>
   rule ? { processName: rule.processName, exePath: rule.exePath } : null
 
 /** "DOOM Eternal" from "C:\Games\DOOM Eternal\DOOMEternalx64vk.exe": the folder is usually the game's name. */
-const suggestedName = (exePath: string) => {
+export const suggestedName = (exePath: string) => {
   const parts = exePath.split(/[\\/]/).filter(Boolean)
   const folder = parts.length >= 2 ? parts[parts.length - 2] : ''
   const generic = /^(bin|binaries|win64|win32|x64|x86|game|games|program files( \(x86\))?|steamapps|common|retail|shipping)$/i
@@ -129,7 +131,7 @@ export function ConfigurationDialog({ mode, profileName, rule, onClose, onCreate
 
   return (
     <Dialog onClose={onClose} width={560} className={styles.dialog}
-      eyebrow={mode === 'create' ? t('newConfiguration.eyebrow', 'Configurations') : t('newConfiguration.associateEyebrow', 'Associate with a game')}
+      eyebrow={mode === 'create' ? t('newConfiguration.eyebrow', 'Configurations') : t('newConfiguration.associateEyebrow', 'Launch with game')}
       title={title}
       hints={[{ button: 'A', label: t('newConfiguration.select', 'Select') }, { button: 'B', label: t('common.cancel', 'Cancel') }]}
       onKeyDown={event => { if (event.key === 'Enter' && (event.target as HTMLElement).tagName === 'INPUT') { event.preventDefault(); void submit() } }}
@@ -160,7 +162,7 @@ export function ConfigurationDialog({ mode, profileName, rule, onClose, onCreate
                 <span className={styles.chosenPath}>{game.exePath ?? t('newConfiguration.noPath', 'Process name only · Browse to add its icon')}</span>
               </> : <span className={styles.chosenNone}>{t('newConfiguration.none', 'No game chosen. The configuration gets a plain icon.')}</span>}
             </span>
-            {game && <button type="button" className={`icon-button ${styles.clear}`} aria-label={t('newConfiguration.clear', 'Remove game')} title={t('newConfiguration.clear', 'Remove game')} disabled={busy} onClick={() => chooseGame(null)}><Icon name="remove" size={18} /></button>}
+            {game && <button type="button" className={`icon-button ${styles.clear}`} aria-label={t('newConfiguration.clear', 'Remove game')} data-caption={t('newConfiguration.clear', 'Remove game')} disabled={busy} onClick={() => chooseGame(null)}><Icon name="remove" size={18} /></button>}
           </div>
           <div className={styles.pickers}>
             <button type="button" className="button button--secondary" disabled={busy} onClick={() => void browse()}>{t('newConfiguration.browse', 'Browse…')}</button>
@@ -180,10 +182,10 @@ export function ConfigurationDialog({ mode, profileName, rule, onClose, onCreate
 
         <div className={`setting-row setting-row--compact ${styles.autoApplyRow}`} data-disabled={game ? undefined : ''}>
           <span className={styles.autoApplyText}>
-            <span>{t('newConfiguration.autoApply', 'Apply automatically when this game is running')}</span>
-            <small>{t('newConfiguration.autoApplyNote', 'Off, the association only shows the game\u2019s icon on this configuration. On, the configuration loads whenever the game comes to the front (see Associations).')}</small>
+            <span>{t('newConfiguration.autoApply', 'Launch with game')}</span>
+            <small>{t('newConfiguration.autoApplyNote', 'Off: it only wears the game\u2019s art. On: it goes live whenever the game is in front (Library \u25b8 Launch with game).')}</small>
           </span>
-          <Switch on={!!game && autoApply} label={t('newConfiguration.autoApply', 'Apply automatically when this game is running')} disabled={busy || !game} onChange={setAutoApply} />
+          <Switch on={!!game && autoApply} label={t('newConfiguration.autoApply', 'Launch with game')} disabled={busy || !game} onChange={setAutoApply} />
         </div>
       </div>
     </Dialog>

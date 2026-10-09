@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Library detail</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.tab{font-family:inherit;border:0;background:transparent;color:#b0bcc8;font-size:18px;font-weight:600;height:44px;padding:0 18px;border-radius:12px;cursor:pointer}
+.hatch{background-color:#1a2530;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+.lbl{font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#808c99;font-weight:600}
+.cv{font-family:inherit;border:0;cursor:pointer;width:210px;height:140px;flex:none;border-radius:16px;color:#e8eef4;display:flex;flex-direction:column;justify-content:flex-end;padding:14px 16px;box-sizing:border-box;text-align:left;gap:2px}
+.cv .t{font-size:18px;font-weight:700}
+.cv .s{font-size:14px;color:#b0bcc8}
+.fact{display:flex;flex-direction:column;gap:4px}
+.fact .k{font-size:14px;color:#808c99}
+.fact .v{font-size:18px;font-weight:600}
+.lk{display:flex;align-items:center;gap:12px;min-height:48px;padding:6px 14px;box-sizing:border-box;border-radius:12px;background:#1f2730;font-size:17px}
+.ib{display:inline-flex;align-items:center;justify-content:center;min-width:36px;height:26px;padding:0 6px;box-sizing:border-box;border-radius:7px;background:#2e3844;color:#e8eef4;font-weight:700;font-size:12px;flex:none}
+.act{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;align-items:center;gap:12px;min-height:56px;padding:8px 18px;box-sizing:border-box;border-radius:14px;background:#2e3844;color:#e8eef4;font-size:18px;font-weight:600;text-align:left}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="height: 76px; flex: none; display: flex; align-items: center; gap: 24px; padding: 0 32px; background: #0d1217">
+<span style="font-size: 22px; font-weight: 700; width: 220px">Library</span>
+<nav style="display: flex; align-items: center; gap: 4px; flex: 1; justify-content: center">
+<span class="gp" style="margin-right: 8px">LB</span>
+<button class="tab" style="background: #1d445c; color: #ffffff">Games</button>
+<button class="tab">Bases</button>
+<button class="tab">Launch with game</button>
+<span class="gp" style="margin-left: 8px">RB</span>
+</nav>
+<span style="width: 220px; text-align: right; font-size: 16px; color: #808c99">4 configurations</span>
+</header>
+
+<main style="flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 20px; padding: 30px 48px 24px">
+<div style="display: flex; gap: 18px">
+<button class="cv hatch" style="box-shadow: 0 0 0 2px #e8eef4"><span style="align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: 13px; background: #4a3320; color: #ffc98f; font-size: 14px; font-weight: 600; margin-bottom: auto"><span style="width: 7px; height: 7px; border-radius: 50%; background: #f0a05a"></span>Live · older</span><span class="t">Wardogs</span><span class="s">Shooter · gyro</span></button>
+<button class="cv hatch"><span class="t">Cyberpunk 2077</span><span class="s">Launches with game</span></button>
+<button class="cv" style="background: #1f2730"><span class="t">Desktop gamepad</span><span class="s">When no game matches</span></button>
+<button class="cv" style="background: transparent; border: 2px dashed #2e3844; align-items: center; justify-content: center"><span style="font-size: 17px; font-weight: 650; color: #d4dde6">+ New for a game</span></button>
+</div>
+
+<section style="flex: 1; min-height: 0; background: #1a222b; border-radius: 20px; padding: 24px 28px; display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 32px">
+<div style="display: flex; flex-direction: column; gap: 16px; min-width: 0">
+<div style="display: flex; align-items: center; gap: 16px">
+<span style="font-size: 32px; font-weight: 700">Wardogs</span>
+<span style="display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px; border-radius: 17px; background: #4a3320; color: #ffc98f; font-size: 15px; font-weight: 600"><span style="width: 8px; height: 8px; border-radius: 50%; background: #f0a05a"></span>Live (older version)</span>
+<span style="margin-left: auto; font-family: 'Geist Mono', monospace; font-size: 14px; color: #808c99">Wardogs.txt · saved 11 min ago</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px">
+<div class="fact"><span class="k">Controller</span><span class="v">Steam Controller</span></div>
+<div class="fact"><span class="k">Sends</span><span class="v">Keyboard &amp; mouse</span></div>
+<div class="fact"><span class="k">Built on</span><span class="v" style="color: #ffc98f">FPS base · loop</span></div>
+<div class="fact"><span class="k">Launches with</span><span class="v" style="font-family: 'Geist Mono', monospace; font-size: 16px; font-weight: 500">Wardogs.exe</span></div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span class="lbl">Hold to swap · goes to</span>
+<div class="lk"><span style="display: flex; gap: 4px"><span class="ib">View</span><span class="ib">☰</span></span><span style="color: #808c99">→</span><span style="font-weight: 600">Desktop gamepad</span></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span class="lbl">Swapped to from</span>
+<div class="lk"><span style="font-weight: 600">Cyberpunk 2077</span><span style="color: #808c99">·</span><span style="display: flex; gap: 4px"><span class="ib">View</span><span class="ib">☰</span></span></div>
+<div class="lk"><span style="font-weight: 600">Hold to swap</span><span style="font-size: 14px; color: #808c99">built in</span><span style="color: #808c99">·</span><span style="display: flex; gap: 4px"><span class="ib">L4</span><span class="ib">☰</span></span></div>
+</div>
+</div>
+
+<div style="display: flex; gap: 16px; align-items: flex-start; border-radius: 16px; background: #2a2219; box-shadow: inset 0 0 0 1px rgba(240,160,90,.35); padding: 14px 18px">
+<svg width="56" height="56" viewBox="0 0 56 56" fill="none" style="flex: none">
+<path d="M28 9a19 19 0 1 1-18.2 13.6" stroke="#f0a05a" stroke-width="3" stroke-linecap="round"></path>
+<path d="M6 15l3.8 7.6 7.4-4" stroke="#f0a05a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
+<rect x="21" y="21" width="14" height="14" rx="4" fill="#3e9fd8"></rect>
+</svg>
+<div style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+<span style="font-size: 18px; font-weight: 700; color: #ffc98f">FPS base and Wardogs build on each other</span>
+<span style="font-size: 15px; line-height: 1.45; color: #d4dde6">Each was read once and the loop was skipped, so some settings may not be what you expect. Change one of the two bases to fix it.</span>
+</div>
+<span style="margin-left: auto; flex: none; font-size: 16px; font-weight: 600; color: #ffc98f; white-space: nowrap; align-self: center">Change base ▸</span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<button class="act" style="background: #3e9fd8; color: #07131d; font-weight: 650"><span class="g" style="background: #07131d; color: #e8eef4">A</span>Edit</button>
+<div class="focus" style="border-radius: 14px; background: #1d445c; padding: 12px 18px; display: flex; flex-direction: column; gap: 6px">
+<span style="display: flex; align-items: center; gap: 12px; font-size: 18px; font-weight: 650"><span class="g">X</span>Make this version live</span>
+<span style="font-size: 15px; line-height: 1.45; color: #b8e2fa">The live copy is from before your last save.</span>
+</div>
+<button class="act"><span class="g">Y</span>Duplicate, rename, file…</button>
+<span style="margin-top: auto; font-size: 15px; line-height: 1.5; color: #808c99">Hold to swap links are set on the buttons themselves and in <a href="#">Settings ▸ Hold to swap</a>.</span>
+</div>
+</section>
+</main>
+
+<footer style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Library · Games · Wardogs</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">A</span>Edit</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">X</span>Make live</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">Y</span>More</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">LB</span><span class="gp">RB</span>Tabs</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Home</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

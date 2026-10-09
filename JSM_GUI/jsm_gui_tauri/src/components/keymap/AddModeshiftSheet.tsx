@@ -2,11 +2,10 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEve
 import { useTranslation } from 'react-i18next'
 import { Dialog } from '../ui/Dialog'
 import { InputGlyph } from '../glyphs/InputGlyph'
-import { inputDisplayName } from '../../keymap/inputNames'
+import { capLabel } from './binding/inputGroups'
 import { desktopBridge } from '../../platform/desktopBridge'
 import { getPressedControllerCommandSet, type ControllerVisualFamily } from '../../utils/controllerStatus'
 import type { TelemetryDevice } from '../../hooks/useTelemetry'
-import { TriggerCap } from './ConceptTiles'
 import styles from './AddSheets.module.css'
 
 type Option = { value: string; label: string; disabled?: boolean }
@@ -27,26 +26,15 @@ const GROUPS: Array<{ key: string; labelKey: string; label: string; commands: st
 ]
 const OTHER_GROUP = { key: 'other', labelKey: 'keymap.holdGroupOther', label: 'Other' }
 
-// Short words under each cap; anything else takes the words after the dash in
-// its option label ("L4 — primary left back paddle").
-const SUBLABEL_KEYS: Record<string, [string, string]> = {
-  ZL: ['keymap.holdSoftPull', 'Soft pull'], ZR: ['keymap.holdSoftPull', 'Soft pull'],
-  ZLF: ['keymap.holdFullPull', 'Full pull'], ZRF: ['keymap.holdFullPull', 'Full pull'],
-  L3: ['keymap.holdClick', 'Click'], R3: ['keymap.holdClick', 'Click'],
-  LTOUCH: ['keymap.holdTouch', 'Touch'], RTOUCH: ['keymap.holdTouch', 'Touch'], TOUCH: ['keymap.holdTouch', 'Touch'],
-  LRING: ['keymap.holdRing', 'Ring'], RRING: ['keymap.holdRing', 'Ring'],
-  UP: ['keymap.holdUp', 'Up'], DOWN: ['keymap.holdDown', 'Down'], LEFT: ['keymap.holdLeft', 'Left'], RIGHT: ['keymap.holdRight', 'Right'],
+// Each choice is the controller's glyph and its short name ("LT full", "Left
+// pad click"); a paddle also says where it sits, which its name cannot.
+const WHERE_KEYS: Record<string, [string, string]> = {
   // JoyShockMapper's paddle names follow the Joy-Con SL / SR pair on each
   // side, so the right side mirrors the left: L4 = LSL, L5 = LSR, R4 = RSR,
   // R5 = RSL (utils/controllerStatus, and the Steam Controller's own map).
   LSL: ['keymap.holdUpperLeft', 'Upper left'], LSR: ['keymap.holdLowerLeft', 'Lower left'],
   RSR: ['keymap.holdUpperRight', 'Upper right'], RSL: ['keymap.holdLowerRight', 'Lower right'],
-  MISC3: ['keymap.holdPadClick', 'Click'], MISC2: ['keymap.holdPadClick', 'Click'],
 }
-// The cap says the button; the words under it only add what the cap cannot.
-const NO_SUBLABEL = new Set(['S', 'E', 'W', 'N', 'L', 'R', '-', '+', 'HOME', 'CAPTURE'])
-const ARROWS: Record<string, string> = { UP: '↑', DOWN: '↓', LEFT: '←', RIGHT: '→', LRING: 'LS', RRING: 'RS' }
-const ROUND = new Set(['S', 'E', 'W', 'N', 'L3', 'R3', 'LTOUCH', 'RTOUCH', 'LRING', 'RRING'])
 // The pad's own navigation buttons move and choose in this sheet, so pressing
 // them cannot also pick them.
 const NAV_BUTTONS = new Set(['S', 'E', 'W', 'N', 'UP', 'DOWN', 'LEFT', 'RIGHT', 'L', 'R', '-', '+'])
@@ -113,16 +101,18 @@ export function AddModeshiftSheet({ inputName, command, family, modifiers, taken
     return [...grouped, { ...OTHER_GROUP, commands: other.map(option => option.value), items: other }].filter(group => group.items.length > 0)
   }, [modifiers, supported, self])
 
-  // A round cap holds one short name ("LS" of "LS Touch"); the d-pad is arrows.
-  const capLabel = (value: string) => ARROWS[value] ?? (ROUND.has(value) ? inputDisplayName(value, family).split(' ')[0] : inputDisplayName(value, family))
+  // What fits no group (pad regions, stick-menu segments) takes the words
+  // after the dash in its option label ("T1 — left pad grid region 1").
+  const name = (option: Option, other: boolean) => {
+    const value = option.value.toUpperCase()
+    const words = other ? option.label.split(' — ')[1] : undefined
+    return words ? words.charAt(0).toUpperCase() + words.slice(1) : capLabel(value, family)
+  }
   const sublabel = (option: Option) => {
     const value = option.value.toUpperCase()
     if (value === self) return t('keymap.holdThisInput', 'This input')
-    const known = SUBLABEL_KEYS[value]
-    if (known) return t(known[0], known[1])
-    if (NO_SUBLABEL.has(value)) return ''
-    const words = option.label.split(' — ')[1]
-    return words ? words.charAt(0).toUpperCase() + words.slice(1) : ''
+    const where = WHERE_KEYS[value]
+    return where ? t(where[0], where[1]) : ''
   }
 
   // A click from the keyboard or pad (A) chooses and moves on; the mouse selects.
@@ -136,11 +126,11 @@ export function AddModeshiftSheet({ inputName, command, family, modifiers, taken
 
   return (
     <Dialog onClose={onClose} width={900} tone="shift"
-      eyebrow={eyebrow ?? t('keymap.newModeshiftStep1', 'New modeshift · Step 1 of 2')}
+      eyebrow={eyebrow ?? t('keymap.newModeshiftStep1', 'Mode shift · Step 1 of 2')}
       title={t('keymap.holdWhichButton', 'Hold which button to change what {{input}} does?', { input: inputName })}
       aside={
         <span className={styles.chain} aria-hidden="true">
-          {selected ? <TriggerCap label={inputDisplayName(selected, family)} size="md" /> : <span className={styles.unknownCap}>?</span>}
+          {selected ? <InputGlyph command={selected} family={family} size={30} /> : <span className={styles.unknownCap}>?</span>}
           <span className={styles.chainPlus}>+</span>
           <InputGlyph command={command} family={family} size={30} />
         </span>
@@ -166,10 +156,11 @@ export function AddModeshiftSheet({ inputName, command, family, modifiers, taken
                 return (
                   // A taken input cannot be the selection, so it never reads as pressed.
                   <button key={value} type="button" className={styles.holdItem} data-hold-input={value}
-                    aria-pressed={!disabled && selected === value} disabled={disabled} title={option.label}
-                    data-hints="MOVE:Move;A:Next;B:Cancel" onClick={choose(value)}>
-                    <span className={styles.holdCap} data-round={ROUND.has(value) ? 'true' : undefined}>{capLabel(value)}</span>
-                    <span className={styles.holdSub}>{sublabel(option)}</span>
+                    aria-pressed={!disabled && selected === value} aria-disabled={disabled ? 'true' : undefined} data-reason={disabled ? (value === self ? 'This is the input being changed' : 'Already has a change while this is held') : undefined} data-caption={option.label}
+                    data-hints="MOVE:Move;A:Next;B:Cancel" onClick={event => { if (!disabled) choose(value)(event) }}>
+                    <InputGlyph command={value} family={family} size={28} className={styles.holdGlyph} />
+                    <span className={styles.holdName}>{name(option, group.key === OTHER_GROUP.key)}</span>
+                    {sublabel(option) && <span className={styles.holdSub}>{sublabel(option)}</span>}
                   </button>
                 )
               })}

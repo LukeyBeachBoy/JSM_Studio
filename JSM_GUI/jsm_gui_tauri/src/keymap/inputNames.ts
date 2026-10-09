@@ -1,6 +1,6 @@
 import type { TFunction } from 'i18next'
 import { controllerButtonLabel, type ControllerVisualFamily } from '../utils/controllerStatus'
-import { getButtonDescription, FACE_BUTTONS, DPAD_BUTTONS, BUMPER_BUTTONS, TRIGGER_BUTTONS, CENTER_BUTTONS, PADDLE_BUTTONS, MINI_BUTTONS, TOUCH_BUTTONS, TOUCH_STICK_BUTTONS, LEFT_STICK_BUTTONS, RIGHT_STICK_BUTTONS, MISC_BUTTONS, type ButtonDefinition } from './schema'
+import { getButtonDescription, FACE_BUTTONS, DPAD_BUTTONS, BUMPER_BUTTONS, TRIGGER_BUTTONS, CENTER_BUTTONS, PADDLE_BUTTONS, MINI_BUTTONS, TOUCH_BUTTONS, TOUCH_STICK_BUTTONS, LEFT_STICK_BUTTONS, RIGHT_STICK_BUTTONS, MISC_BUTTONS, MOTION_BUTTONS, type ButtonDefinition } from './schema'
 
 // The long, spoken name of an input for a binding row's subtitle (Buttons
 // Content, Configuration Pages 15a/15d): "A button", "Left bumper", "D-pad
@@ -11,8 +11,8 @@ import { getButtonDescription, FACE_BUTTONS, DPAD_BUTTONS, BUMPER_BUTTONS, TRIGG
 const FIXED_NAMES: Record<string, string> = {
   UP: 'D-pad up', RIGHT: 'D-pad right', DOWN: 'D-pad down', LEFT: 'D-pad left',
   L: 'Left bumper', R: 'Right bumper',
-  ZL: 'Left trigger soft pull', ZLF: 'Left trigger full pull',
-  ZR: 'Right trigger soft pull', ZRF: 'Right trigger full pull',
+  ZL: 'Left trigger half press', ZLF: 'Left trigger full press',
+  ZR: 'Right trigger half press', ZRF: 'Right trigger full press',
   L3: 'Left stick click', R3: 'Right stick click',
   LUP: 'Left stick up', LDOWN: 'Left stick down', LLEFT: 'Left stick left', LRIGHT: 'Left stick right',
   RUP: 'Right stick up', RDOWN: 'Right stick down', RLEFT: 'Right stick left', RRIGHT: 'Right stick right',
@@ -21,7 +21,18 @@ const FIXED_NAMES: Record<string, string> = {
   TUP: 'Touch stick up', TDOWN: 'Touch stick down', TLEFT: 'Touch stick left', TRIGHT: 'Touch stick right', TRING: 'Touch stick ring',
   TOUCH: 'Touch contact', CAPTURE: 'Touchpad click',
   MIC: 'Microphone button',
+  MUP: 'Tilt up', MDOWN: 'Tilt down', MLEFT: 'Tilt left', MRIGHT: 'Tilt right', MRING: 'Tilt ring', LEAN_LEFT: 'Lean left', LEAN_RIGHT: 'Lean right',
 }
+
+/** Short names for the inputs whose schema label is a code rather than a word
+ *  (UX review 2026-10-09, L11): what a cap, a chip or "… uses it" says. */
+const SHORT_NAMES: Record<string, string> = {
+  MUP: 'Tilt up', MDOWN: 'Tilt down', MLEFT: 'Tilt left', MRIGHT: 'Tilt right', MRING: 'Tilt ring', LEAN_LEFT: 'Lean left', LEAN_RIGHT: 'Lean right',
+  TUP: 'Touch stick up', TDOWN: 'Touch stick down', TLEFT: 'Touch stick left', TRIGHT: 'Touch stick right', TRING: 'Touch stick ring',
+  LRING: 'LS ring', RRING: 'RS ring', LTOUCH: 'LS touch', RTOUCH: 'RS touch',
+  CAPTURE: 'Pad click', TOUCH: 'Pad touch', MISC1: 'Quick Access',
+}
+const STEAM_SHORT_NAMES: Record<string, string> = { TOUCH: 'Right pad touch', MISC4: 'Left pad touch', MISC2: 'Right pad click', MISC3: 'Left pad click', MISC5: 'Right grip', MISC6: 'Left grip' }
 
 const STEAM_NAMES: Record<string, string> = {
   '+': 'Menu button', '-': 'View button', HOME: 'Steam button', MISC1: 'Quick Access button',
@@ -56,7 +67,18 @@ export function inputShortName(button: ButtonDefinition, family: ControllerVisua
   const region = command.match(/^(LT|RT|T|LM|RM)(\d+)$/)
   if (region) return command
   if (PADDLES.has(command) && button.steam) return button.steam
+  if (family === 'steam' && STEAM_SHORT_NAMES[command]) return STEAM_SHORT_NAMES[command]
+  if (SHORT_NAMES[command]) return SHORT_NAMES[command]
   return controllerButtonLabel(button, family).split(' · ')[0]
+}
+
+/** A pad zone or stick-menu slice in words ("Left pad zone 3"), where the
+ *  glyph badge keeps the short code (LT3). */
+const regionName = (command: string): string | null => {
+  const region = command.match(/^(LT|RT|T|LM|RM)(\d+)$/)
+  if (!region) return null
+  const [, prefix, index] = region
+  return `${prefix === 'LT' ? 'Left pad zone' : prefix === 'RT' ? 'Right pad zone' : prefix === 'LM' ? 'Left stick slice' : prefix === 'RM' ? 'Right stick slice' : 'Pad zone'} ${index}`
 }
 
 const ALL_INPUTS = [...FACE_BUTTONS, ...DPAD_BUTTONS, ...BUMPER_BUTTONS, ...TRIGGER_BUTTONS, ...CENTER_BUTTONS, ...PADDLE_BUTTONS, ...MINI_BUTTONS, ...TOUCH_BUTTONS, ...TOUCH_STICK_BUTTONS, ...LEFT_STICK_BUTTONS, ...RIGHT_STICK_BUTTONS, ...MISC_BUTTONS]
@@ -74,6 +96,12 @@ export function inputDisplayName(command: string, family: ControllerVisualFamily
   const chord = raw.length > 1 ? raw.match(/^(.+?)\+(.+)$/) : null
   if (chord) return `${inputDisplayName(chord[1], family)} + ${inputDisplayName(chord[2], family)}`
   const upper = raw.toUpperCase()
+  const region = regionName(upper)
+  if (region) return region
   const button = ALL_INPUTS.find(b => b.command === upper)
-  return button ? inputShortName(button, family) : raw
+  if (button) return inputShortName(button, family)
+  if (upper === 'LEFT_PAD') return 'Left pad'
+  if (upper === 'RIGHT_PAD') return 'Right pad'
+  const motion = MOTION_BUTTONS.find(b => b.command === upper)
+  return motion ? inputShortName(motion, family) : raw
 }

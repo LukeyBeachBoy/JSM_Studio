@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Triggers, behaviour cards</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.btn{font-family:inherit;border:0;cursor:pointer}
+.tab{font-family:inherit;border:0;background:transparent;color:#b0bcc8;font-size:18px;font-weight:600;height:44px;padding:0 16px;border-radius:12px;cursor:pointer}
+.rail{font-family:inherit;border:0;background:transparent;color:#b0bcc8;font-size:18px;font-weight:500;height:56px;padding:0 18px;border-radius:12px;text-align:left;cursor:pointer;display:flex;flex-direction:column;justify-content:center;gap:2px}
+.mode{font-family:inherit;border:0;cursor:pointer;border-radius:18px;background:#1f2730;color:#e8eef4;padding:14px;display:flex;flex-direction:column;gap:10px;text-align:left;box-sizing:border-box;min-width:0}
+.mode .pic{height:64px;flex:none;border-radius:12px;background:#0f151b;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.mode .pic.on{background:#0f151b;box-shadow:inset 0 0 0 1px #3e9fd8}
+.mode .pic svg{display:block}
+.mode .t{font-size:17px;font-weight:650;line-height:1.25}
+.mode .s{font-size:15px;color:#808c99;line-height:1.35;margin-top:-4px}
+.row{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;align-items:center;gap:16px;min-height:72px;padding:12px 20px;box-sizing:border-box;border-radius:16px;background:#1f2730;color:#e8eef4;text-align:left}
+.key{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 14px;border-radius:10px;background:#2e3844;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);font-size:17px;font-weight:600;color:#e8eef4;white-space:nowrap}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="height: 76px; flex: none; display: flex; align-items: center; gap: 24px; padding: 0 32px; background: #0d1217">
+<button class="btn" style="display: flex; align-items: center; gap: 12px; height: 52px; padding: 0 16px 0 8px; border-radius: 14px; background: #1f2730; color: #e8eef4">
+<span style="width: 38px; height: 38px; border-radius: 10px; background: #a43fd6"></span>
+<span style="display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15"><span style="font-size: 17px; font-weight: 650">Wardogs</span><span style="font-size: 13px; color: #808c99">Steam Controller</span></span>
+</button>
+<nav style="display: flex; align-items: center; gap: 4px; flex: 1; justify-content: center">
+<span class="gp" style="margin-right: 8px">LB</span>
+<button class="tab">Layout</button>
+<button class="tab">Buttons</button>
+<button class="tab">Sticks</button>
+<button class="tab" style="background: #1d445c; color: #ffffff">Triggers</button>
+<button class="tab">Trackpads</button>
+<button class="tab">Gyro</button>
+<button class="tab">Menus</button>
+<button class="tab">Modes</button>
+<span class="gp" style="margin-left: 8px">RB</span>
+</nav>
+<span style="display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 20px; background: #1e3d33; color: #93e6c1; font-size: 16px; font-weight: 600"><span style="width: 9px; height: 9px; border-radius: 50%; background: #5fd3a0"></span>Live · saved</span>
+</header>
+
+<main style="flex: 1; min-height: 0; display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 32px; padding: 28px 32px 24px">
+<nav style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: center; gap: 8px; margin: 0 0 10px 18px; font-size: 14px; color: #808c99"><span class="gp">LT</span>Trigger<span class="gp">RT</span></div>
+<button class="rail" style="background: #1f2730; color: #ffffff"><span style="font-weight: 650">Left trigger</span><span style="font-size: 14px; color: #b0bcc8">Aim · right mouse</span></button>
+<button class="rail"><span>Right trigger</span><span style="font-size: 14px; color: #808c99">Fire · left mouse</span></button>
+</nav>
+
+<section style="display: flex; flex-direction: column; gap: 18px; min-width: 0; min-height: 0">
+<div style="display: flex; align-items: baseline; gap: 16px">
+<h1 style="margin: 0; font-size: 34px; font-weight: 700">Left trigger works as…</h1>
+<span style="font-size: 17px; color: #808c99">◂ ▸ to compare · changes are live while you’re here</span>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 14px">
+
+<button class="mode focus" style="background: #1d445c">
+<span class="pic on"><svg viewBox="0 0 240 64" width="100%" height="64" fill="none">
+<rect x="12" y="6" width="36" height="9" rx="4.5" fill="#0e1419"></rect>
+<path d="M15 13H45C47.5 13 49 15 48.6 17.5L45.5 42C44.5 51 38.5 57 30 58L22 59C18.5 59.4 16 57 16 53.5Z" fill="#3e9fd8" stroke="#e3eaf1" stroke-width="1.5"></path>
+<rect x="66" y="29" width="162" height="6" rx="3" fill="#0e1419" stroke="rgba(255,255,255,.06)"></rect>
+<path d="M82 41v3M98 41v3M114 41v3M130 41v3M146 41v3M162 41v3M178 41v3M194 41v3M210 41v3" stroke="rgba(255,255,255,.14)" stroke-linecap="round"></path>
+<rect x="66" y="29" width="72" height="6" rx="3" fill="#3e9fd8"></rect>
+<circle cx="138" cy="32" r="6" fill="#ffffff"></circle>
+</svg></span>
+<span class="t">One press</span><span class="s" style="color: #b8e2fa">One action, no full press</span>
+</button>
+
+<button class="mode">
+<span class="pic"><svg viewBox="0 0 240 64" width="100%" height="64" fill="none">
+<rect x="12" y="6" width="36" height="9" rx="4.5" fill="#0e1419"></rect>
+<path d="M15 13H45C47.5 13 49 15 48.6 17.5L45.5 42C44.5 51 38.5 57 30 58L22 59C18.5 59.4 16 57 16 53.5Z" fill="#212a34" stroke="#aebbc8" stroke-width="1.5"></path>
+<rect x="66" y="29" width="162" height="6" rx="3" fill="#0e1419" stroke="rgba(255,255,255,.06)"></rect>
+<path d="M82 41v3M98 41v3M114 41v3M130 41v3M146 41v3M162 41v3M178 41v3M194 41v3M210 41v3" stroke="rgba(255,255,255,.14)" stroke-linecap="round"></path>
+<rect x="66" y="29" width="156" height="6" rx="3" fill="#7cc4ee" fill-opacity=".4"></rect>
+<path d="M141 21Q180 6 219 21" stroke="#7cc4ee" stroke-width="1.6" stroke-dasharray="3 4" stroke-linecap="round"></path>
+<circle cx="138" cy="32" r="5.5" fill="#7cc4ee"></circle>
+<circle cx="222" cy="32" r="6" fill="#e8eef4"></circle>
+</svg></span>
+<span class="t">Half then full press</span><span class="s">Full adds on top</span>
+</button>
+
+<button class="mode">
+<span class="pic"><svg viewBox="0 0 240 64" width="100%" height="64" fill="none">
+<rect x="12" y="6" width="36" height="9" rx="4.5" fill="#0e1419"></rect>
+<path d="M15 13H45C47.5 13 49 15 48.6 17.5L45.5 42C44.5 51 38.5 57 30 58L22 59C18.5 59.4 16 57 16 53.5Z" fill="#212a34" stroke="#aebbc8" stroke-width="1.5"></path>
+<rect x="66" y="29" width="162" height="6" rx="3" fill="#0e1419" stroke="rgba(255,255,255,.06)"></rect>
+<path d="M82 41v3M98 41v3M114 41v3M130 41v3M146 41v3M162 41v3M178 41v3M194 41v3M210 41v3" stroke="rgba(255,255,255,.14)" stroke-linecap="round"></path>
+<rect x="66" y="29" width="156" height="6" rx="3" fill="#7cc4ee" fill-opacity=".4"></rect>
+<path d="M142 20Q180 6 212 18" stroke="#7cc4ee" stroke-width="1.6" stroke-linecap="round"></path>
+<path d="M216 20.5L208.5 21.8L211.2 14.6Z" fill="#7cc4ee"></path>
+<circle cx="138" cy="32" r="5.5" fill="#0f151b" stroke="#808c99" stroke-width="2"></circle>
+<circle cx="222" cy="32" r="6" fill="#e8eef4"></circle>
+</svg></span>
+<span class="t">Full press replaces half</span><span class="s">Half lets go at full</span>
+</button>
+
+<button class="mode">
+<span class="pic"><svg viewBox="0 0 240 64" width="100%" height="64" fill="none">
+<rect x="12" y="6" width="36" height="9" rx="4.5" fill="#0e1419"></rect>
+<path d="M15 13H45C47.5 13 49 15 48.6 17.5L45.5 42C44.5 51 38.5 57 30 58L22 59C18.5 59.4 16 57 16 53.5Z" fill="#212a34" stroke="#aebbc8" stroke-width="1.5"></path>
+<rect x="66" y="29" width="162" height="6" rx="3" fill="#0e1419" stroke="rgba(255,255,255,.06)"></rect>
+<path d="M82 41v3M98 41v3M114 41v3M130 41v3M146 41v3M162 41v3M178 41v3M194 41v3M210 41v3" stroke="rgba(255,255,255,.14)" stroke-linecap="round"></path>
+<path d="M70 25C104 5 180 3 212 19" stroke="#3e9fd8" stroke-width="2" stroke-linecap="round"></path>
+<path d="M217 22L208.6 22.4L212.6 15.4Z" fill="#b8e2fa"></path>
+<circle cx="138" cy="32" r="5.5" fill="#0f151b" stroke="#5b6571" stroke-width="2"></circle>
+<path d="M132 38L144 26" stroke="#808c99" stroke-width="2" stroke-linecap="round"></path>
+<circle cx="222" cy="32" r="6" fill="#e8eef4"></circle>
+</svg></span>
+<span class="t">Quick full press skips half</span><span class="s">Slow pull: half only</span>
+</button>
+
+<button class="mode">
+<span class="pic"><svg viewBox="0 0 240 64" width="100%" height="64" fill="none">
+<rect x="12" y="6" width="36" height="9" rx="4.5" fill="#0e1419"></rect>
+<path d="M15 13H45C47.5 13 49 15 48.6 17.5L45.5 42C44.5 51 38.5 57 30 58L22 59C18.5 59.4 16 57 16 53.5Z" fill="#212a34" stroke="#aebbc8" stroke-width="1.5"></path>
+<rect x="66" y="29" width="162" height="6" rx="3" fill="#0e1419" stroke="rgba(255,255,255,.06)"></rect>
+<path d="M82 41v3M98 41v3M114 41v3M130 41v3M146 41v3M162 41v3M178 41v3M194 41v3M210 41v3" stroke="rgba(255,255,255,.14)" stroke-linecap="round"></path>
+<path d="M70 25C104 5 180 3 212 19" stroke="#3e9fd8" stroke-width="2" stroke-linecap="round" stroke-dasharray="6 6"></path>
+<path d="M217 22L208.6 22.4L212.6 15.4Z" fill="#b8e2fa"></path>
+<circle cx="138" cy="32" r="5.5" fill="#7cc4ee"></circle>
+<circle cx="222" cy="32" r="6" fill="#e8eef4"></circle>
+</svg></span>
+<span class="t">Quick full press may skip half</span><span class="s">Slow pull: half, then both</span>
+</button>
+
+<button class="mode">
+<span class="pic"><svg viewBox="0 0 240 64" width="100%" height="64" fill="none">
+<rect x="12" y="6" width="36" height="9" rx="4.5" fill="#0e1419"></rect>
+<path d="M15 13H45C47.5 13 49 15 48.6 17.5L45.5 42C44.5 51 38.5 57 30 58L22 59C18.5 59.4 16 57 16 53.5Z" fill="#212a34" stroke="#aebbc8" stroke-width="1.5"></path>
+<rect x="66" y="29" width="162" height="6" rx="3" fill="#0e1419" stroke="rgba(255,255,255,.06)"></rect>
+<path d="M82 41v3M98 41v3M114 41v3M130 41v3M146 41v3M162 41v3M178 41v3M194 41v3M210 41v3" stroke="rgba(255,255,255,.14)" stroke-linecap="round"></path>
+<path d="M70 25C104 5 180 3 212 19" stroke="#3e9fd8" stroke-width="2" stroke-linecap="round"></path>
+<path d="M217 22L208.6 22.4L212.6 15.4Z" fill="#b8e2fa"></path>
+<circle cx="138" cy="32" r="11" stroke="#7cc4ee" stroke-opacity=".5" stroke-width="1.4"></circle>
+<circle cx="138" cy="32" r="5.5" fill="#7cc4ee"></circle>
+<path d="M132 38L144 26" stroke="#0f151b" stroke-width="2" stroke-linecap="round"></path>
+<circle cx="222" cy="32" r="6" fill="#e8eef4"></circle>
+</svg></span>
+<span class="t">Responsive skip</span><span class="s">Half fires at once</span>
+</button>
+
+<button class="mode">
+<span class="pic"><svg viewBox="0 0 240 64" width="100%" height="64" fill="none">
+<rect x="12" y="6" width="36" height="9" rx="4.5" fill="#0e1419"></rect>
+<path d="M15 13H45C47.5 13 49 15 48.6 17.5L45.5 42C44.5 51 38.5 57 30 58L22 59C18.5 59.4 16 57 16 53.5Z" fill="#212a34" stroke="#aebbc8" stroke-width="1.5"></path>
+<rect x="66" y="29" width="162" height="6" rx="3" fill="#0e1419" stroke="rgba(255,255,255,.06)"></rect>
+<path d="M82 41v3M98 41v3M114 41v3M130 41v3M146 41v3M162 41v3M178 41v3M194 41v3M210 41v3" stroke="rgba(255,255,255,.14)" stroke-linecap="round"></path>
+<path d="M70 25C104 5 180 3 212 19" stroke="#3e9fd8" stroke-width="2" stroke-linecap="round" stroke-dasharray="6 6"></path>
+<path d="M217 22L208.6 22.4L212.6 15.4Z" fill="#b8e2fa"></path>
+<circle cx="138" cy="32" r="11" stroke="#7cc4ee" stroke-opacity=".5" stroke-width="1.4"></circle>
+<circle cx="138" cy="32" r="5.5" fill="#7cc4ee"></circle>
+<circle cx="222" cy="32" r="6" fill="#e8eef4"></circle>
+</svg></span>
+<span class="t">Responsive may skip</span><span class="s">Half at once, full adds on</span>
+</button>
+
+<button class="mode">
+<span class="pic"><svg viewBox="0 0 240 64" width="100%" height="64" fill="none">
+<rect x="12" y="6" width="36" height="9" rx="4.5" fill="#0e1419"></rect>
+<path d="M15 13H45C47.5 13 49 15 48.6 17.5L45.5 42C44.5 51 38.5 57 30 58L22 59C18.5 59.4 16 57 16 53.5Z" fill="#212a34" stroke="#aebbc8" stroke-width="1.5"></path>
+<path d="M66 54H228" stroke="rgba(255,255,255,.1)"></path>
+<g fill="#7cc4ee" fill-opacity=".5">
+<rect x="68" y="50" width="7" height="4" rx="2"></rect>
+<rect x="80" y="48" width="7" height="6" rx="2"></rect>
+<rect x="92" y="46" width="7" height="8" rx="2"></rect>
+<rect x="104" y="43" width="7" height="11" rx="2"></rect>
+<rect x="116" y="40" width="7" height="14" rx="2"></rect>
+<rect x="128" y="37" width="7" height="17" rx="2"></rect>
+<rect x="140" y="33" width="7" height="21" rx="2"></rect>
+<rect x="152" y="30" width="7" height="24" rx="2"></rect>
+<rect x="164" y="26" width="7" height="28" rx="2"></rect>
+<rect x="176" y="22" width="7" height="32" rx="2"></rect>
+<rect x="188" y="19" width="7" height="35" rx="2"></rect>
+<rect x="200" y="15" width="7" height="39" rx="2"></rect>
+<rect x="212" y="12" width="7" height="42" rx="2"></rect>
+</g>
+<path d="M68 49C110 46 160 32 220 9" stroke="#7cc4ee" stroke-width="2.5" stroke-linecap="round"></path>
+</svg></span>
+<span class="t">Gamepad trigger</span><span class="s">Analog · sends as left pad trigger</span>
+</button>
+</div>
+
+<div style="flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 540px; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 10px; min-width: 0">
+<button class="row">
+<svg width="34" height="34" viewBox="0 0 34 34" fill="none" style="flex: none"><rect x="3" y="15" width="28" height="4" rx="2" fill="#0f151b"></rect><rect x="3" y="15" width="13" height="4" rx="2" fill="#3e9fd8"></rect><circle cx="16" cy="17" r="4.5" fill="#ffffff"></circle></svg>
+<span style="display: flex; flex-direction: column; gap: 3px"><span style="font-size: 19px; font-weight: 650">Half press</span><span style="font-size: 15px; color: #808c99">Aim</span></span>
+<span class="key" style="margin-left: auto"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="1.8" stroke-linecap="round"><rect x="6" y="3" width="12" height="18" rx="6"></rect><path d="M12 3v7M12 10h6"></path></svg>Right mouse</span>
+</button>
+<button class="row" style="background: transparent; box-shadow: inset 0 0 0 2px #2e3844">
+<svg width="34" height="34" viewBox="0 0 34 34" fill="none" style="flex: none"><rect x="3" y="15" width="28" height="4" rx="2" fill="#0f151b"></rect><circle cx="29" cy="17" r="4.5" stroke="#808c99" stroke-width="1.6" fill="#131920"></circle></svg>
+<span style="display: flex; flex-direction: column; gap: 3px"><span style="font-size: 19px; font-weight: 650; color: #b0bcc8">Full press</span><span style="font-size: 15px; color: #808c99">One press has no full press</span></span>
+<span style="margin-left: auto; font-size: 16px; color: #808c99; white-space: nowrap">Pick a two-step card</span>
+</button>
+<button class="row" style="min-height: 64px">
+<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="1.8" stroke-linecap="round" style="flex: none"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"></path><circle cx="16" cy="6" r="2"></circle><circle cx="10" cy="12" r="2"></circle><circle cx="18" cy="18" r="2"></circle></svg>
+<span style="display: flex; flex-direction: column; gap: 3px"><span style="font-size: 19px; font-weight: 650">Fine-tune</span><span style="font-size: 15px; color: #808c99">Press points, resistance, calibration</span></span>
+<span style="margin-left: auto; font-size: 17px; color: #808c99">Default ▸</span>
+</button>
+</div>
+
+<div style="background: #1a222b; border-radius: 18px; padding: 16px 20px; display: flex; flex-direction: column; gap: 8px; min-height: 0">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 17px; font-weight: 600">Left trigger, live</span><span style="font-family: 'Geist Mono', monospace; font-size: 14px; color: #93e6c1">● 41% · 13434 / 32767</span></div>
+<svg viewBox="0 0 520 150" width="100%" height="150" fill="none">
+<rect x="30" y="58" width="470" height="26" rx="13" fill="#0e1419" stroke="rgba(255,255,255,.08)"></rect>
+<rect x="30" y="58" width="193" height="26" rx="13" fill="#3e9fd8"></rect>
+<g stroke="rgba(255,255,255,.16)" stroke-linecap="round"><path d="M77 92v6M124 92v6M171 92v6M218 92v6M312 92v6M359 92v6M406 92v6M453 92v6"></path><path d="M265 92v9" stroke="rgba(255,255,255,.28)"></path></g>
+<path d="M500 48V94" stroke="#e8eef4" stroke-width="3" stroke-linecap="round"></path>
+<text x="500" y="36" fill="#d4dde6" font-size="15" font-weight="600" font-family="Geist, sans-serif" text-anchor="end">Full press</text>
+<text x="500" y="118" fill="#808c99" font-size="15" font-family="'Geist Mono', monospace" text-anchor="end">100%</text>
+<text x="265" y="118" fill="#808c99" font-size="15" font-family="'Geist Mono', monospace" text-anchor="middle">50%</text>
+<path d="M30 40V96" stroke="#7cc4ee" stroke-width="2.5" stroke-linecap="round"></path>
+<circle cx="30" cy="40" r="5" fill="#7cc4ee"></circle>
+<text x="40" y="36" fill="#b8e2fa" font-size="15" font-weight="600" font-family="Geist, sans-serif">Half press</text>
+<text x="30" y="118" fill="#808c99" font-size="15" font-family="Geist, sans-serif">Default · first touch</text>
+<rect x="216" y="50" width="14" height="42" rx="7" fill="#ffffff"></rect>
+<text x="223" y="142" fill="#e8eef4" font-size="15" font-weight="600" font-family="Geist, sans-serif" text-anchor="middle">Aim is on</text>
+</svg>
+</div>
+</div>
+</section>
+</main>
+
+<footer style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Wardogs · Triggers · Left trigger</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">A</span>Use One press</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">X</span>Try it in Test</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">LT</span><span class="gp">RT</span>Other trigger</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">LB</span><span class="gp">RB</span>Tabs</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Back</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Touch stick</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.grp{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;flex-direction:column;gap:4px;padding:14px 20px;box-sizing:border-box;border-radius:14px;background:transparent;color:#b0bcc8;text-align:left}
+.grp .t{font-size:20px;font-weight:600}
+.grp .s{font-size:15px;color:#808c99;line-height:1.35}
+.row{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;align-items:center;gap:16px;min-height:64px;padding:10px 22px;box-sizing:border-box;border-radius:16px;background:#1f2730;color:#e8eef4;text-align:left}
+.row .t{font-size:19px;font-weight:650}
+.row .s{font-size:15px;color:#808c99}
+.part{font-family:inherit;border:0;cursor:pointer;flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;padding:10px 16px;border-radius:11px;background:transparent;color:#b0bcc8;text-align:left}
+.part .t{font-size:17px;font-weight:650}
+.part .s{font-size:15px;color:#808c99;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mode{font-family:inherit;border:0;cursor:pointer;border-radius:16px;background:#1f2730;color:#e8eef4;padding:10px;display:flex;flex-direction:column;gap:8px;text-align:left;box-sizing:border-box;min-width:0}
+.mode .pic{height:56px;border-radius:10px;background:#0f151b;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center}
+.mode .pic.on{background:#0f151b;box-shadow:inset 0 0 0 1px rgba(62,159,216,.55)}
+.mode .pic svg{display:block}
+.mode .t{font-size:16px;font-weight:650;line-height:1.25}
+.seg{display:flex;gap:4px;background:#0f151b;border-radius:12px;padding:4px;margin-left:auto}
+.seg span{height:36px;padding:0 14px;border-radius:9px;display:flex;align-items:center;font-size:16px;font-weight:600;color:#b0bcc8}
+.lbl{font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:#808c99;font-weight:600}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="height: 76px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 40px; background: #0d1217">
+<span style="font-size: 18px; color: #808c99">Wardogs · Trackpads · Left pad</span>
+<span style="font-size: 18px; color: #5b6571">▸</span>
+<span style="font-size: 22px; font-weight: 700">Fine-tune</span>
+<span style="margin-left: auto; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 20px; background: #4a3320; color: #ffc98f; font-size: 16px; font-weight: 600"><span style="width: 9px; height: 9px; border-radius: 50%; background: #f0a05a"></span>Unsaved · ☰ to save</span>
+</header>
+
+<main style="flex: 1; min-height: 0; display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 36px; padding: 32px 40px 24px">
+
+<nav style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: center; gap: 8px; margin: 0 0 10px 20px; font-size: 14px; color: #808c99"><span class="gp">LT</span>Group<span class="gp">RT</span></div>
+<button class="grp"><span class="t">Speed &amp; curve</span><span class="s">Used when this pad is a mouse</span></button>
+<button class="grp"><span class="t">Glide</span><span class="s">No coasting · Balanced smoothing</span></button>
+<button class="grp" style="background: #1f2730; color: #ffffff"><span class="t">Zones</span><span class="s" style="color: #7cc4ee">Changed: touch stick sends directions</span></button>
+<button class="grp"><span class="t">Click</span><span class="s">Damping off · lift guard 150 px/s</span></button>
+<button class="grp"><span class="t">Feel</span><span class="s">Shared · touch, click and release off</span></button>
+</nav>
+
+<section style="display: flex; flex-direction: column; gap: 16px; min-width: 0">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<h1 style="margin: 0; font-size: 32px; font-weight: 700">Zones</h1>
+<p style="margin: 0; font-size: 17px; color: #b0bcc8">Drag from wherever you land and the pad also works like a stick.</p>
+</div>
+
+<div style="display: flex; align-items: center; gap: 10px">
+<span class="gp">LB</span>
+<div style="flex: 1; display: flex; gap: 4px; background: #0f151b; border-radius: 14px; padding: 4px">
+<button class="part"><span class="t">Layout</span><span class="s">4-way · dead zone 20%</span></button>
+<button class="part"><span class="t">Touch and click</span><span class="s">Touch and click both fire</span></button>
+<button class="part" style="background: #2e3844; color: #ffffff"><span class="t">Touch stick</span><span class="s" style="color: #b0bcc8">Directions you bind</span></button>
+</div>
+<span class="gp">RB</span>
+</div>
+
+<div style="flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 28px">
+
+<div style="display: flex; flex-direction: column; gap: 10px; min-width: 0">
+<span class="lbl">Dragging acts as</span>
+<div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px">
+<button class="mode">
+<span class="pic"><svg viewBox="0 0 100 56" width="100%" height="56" fill="none"><rect x="31" y="6" width="38" height="44" rx="10" fill="#0e1419" stroke="#5b6571" stroke-width="1.5"></rect><path d="M38 42L62 14" stroke="#808c99" stroke-width="2.2" stroke-linecap="round"></path></svg></span>
+<span class="t">Off</span>
+</button>
+<button class="mode" style="background: #24323f; box-shadow: inset 0 0 0 2px #3e9fd8">
+<span class="pic on"><svg viewBox="0 0 100 56" width="100%" height="56" fill="none">
+<path d="M50 6L58 16H42Z" fill="#3e9fd8"></path>
+<path d="M50 50L58 40H42Z M28 28L38 20V36Z M72 28L62 20V36Z" fill="#212a34" stroke="#aebbc8" stroke-width="1.2" stroke-linejoin="round"></path>
+<circle cx="50" cy="28" r="6" fill="#0f141a" stroke="#3e9fd8" stroke-width="1.5"></circle>
+</svg></span>
+<span class="t">Directions you bind</span>
+</button>
+<button class="mode">
+<span class="pic"><svg viewBox="0 0 100 56" width="100%" height="56" fill="none"><path d="M18 46C34 44 40 24 60 20" stroke="#808c99" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="1 4"></path><circle cx="66" cy="19" r="9" stroke="#e8eef4" stroke-width="1.6"></circle><path d="M66 6v6M66 26v6M53 19h6M73 19h6" stroke="#e8eef4" stroke-width="1.6" stroke-linecap="round"></path></svg></span>
+<span class="t">Looking around</span>
+</button>
+<button class="mode">
+<span class="pic"><svg viewBox="0 0 100 56" width="100%" height="56" fill="none"><circle cx="50" cy="28" r="20" stroke="rgba(255,255,255,.08)" stroke-width="5"></circle><path d="M50 8A20 20 0 0 1 68 36" stroke="#b0bcc8" stroke-width="3" stroke-linecap="round"></path><circle cx="68" cy="36" r="3" fill="#e8eef4"></circle></svg></span>
+<span class="t">Flick to turn</span>
+</button>
+<button class="mode" style="background: transparent; box-shadow: inset 0 0 0 2px #2e3844">
+<span class="pic" style="background: transparent; box-shadow: none"><svg viewBox="0 0 100 56" width="100%" height="56" fill="none"><rect x="36" y="6" width="40" height="30" rx="8" fill="#1c2631" opacity=".6"></rect><rect x="28" y="14" width="40" height="30" rx="8" fill="#232f3b" stroke="rgba(255,255,255,.1)"></rect><path d="M48 22v14M41 29h14" stroke="#b0bcc8" stroke-width="2" stroke-linecap="round"></path></svg></span>
+<span class="t">More</span>
+</button>
+</div>
+<span style="font-size: 15px; color: #808c99; margin-top: -2px">More: mouse ring, mouse area, scroll wheel, gamepad sticks</span>
+
+<div class="focus" style="background: #1d445c; border-radius: 16px; padding: 16px 22px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><span style="font-size: 20px; font-weight: 650">Stick size</span><span style="font-size: 26px; font-weight: 700">Default</span></div>
+<div style="position: relative; height: 8px; border-radius: 4px; background: #0f151b"><span style="position: absolute; left: 0; top: 0; height: 8px; width: 40%; border-radius: 4px; background: #3e9fd8"></span><span style="position: absolute; left: 40%; top: -8px; width: 24px; height: 24px; margin-left: -12px; border-radius: 50%; background: #ffffff; box-shadow: 0 0 0 5px rgba(62,159,216,.3)"></span></div>
+<span style="font-size: 15px; color: #b8e2fa">How far you drag for a full push. The dashed circle grows with it.</span>
+</div>
+
+<button class="row"><span style="display: flex; flex-direction: column; gap: 3px"><span class="t">Ignore small drags</span><span class="s">The middle that sends nothing</span></span><span style="margin-left: auto; font-size: 18px; font-weight: 600; white-space: nowrap">◂ Default ▸</span></button>
+<button class="row"><span style="display: flex; flex-direction: column; gap: 3px"><span class="t">Ring</span><span class="s">When the ring binding is held</span></span><span class="seg"><span style="background: #2e3844; color: #ffffff">Default</span><span>Inner</span><span>Outer</span></span></button>
+<button class="row"><span style="display: flex; flex-direction: column; gap: 3px"><span class="t">Direction</span><span class="s">Flip up and down or left and right</span></span><span style="margin-left: auto; font-size: 18px; font-weight: 600; white-space: nowrap">◂ Normal ▸</span></button>
+</div>
+
+<div style="background: #1a222b; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 12px; align-self: start">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 17px; font-weight: 600">Left pad as a stick</span><span style="font-family: 'Geist Mono', monospace; font-size: 14px; color: #a6d65a">● dragging</span></div>
+<svg viewBox="0 0 360 330" width="100%" height="320" fill="none">
+<defs><clipPath id="ts2h"><rect x="44" y="30" width="272" height="272" rx="14"></rect></clipPath></defs>
+<rect x="40" y="26" width="280" height="280" rx="18" fill="rgba(8,12,18,.72)" stroke="rgba(255,255,255,.16)"></rect>
+<g clip-path="url(#ts2h)">
+<rect x="44" y="30" width="272" height="272" fill="rgba(255,255,255,.05)"></rect>
+<path d="M44 30L316 302M316 30L44 302" stroke="rgba(8,12,18,.9)" stroke-width="2"></path>
+<circle cx="150" cy="190" r="96" fill="rgba(62,159,216,.1)" stroke="#3e9fd8" stroke-width="2" stroke-dasharray="4 6"></circle>
+<circle cx="150" cy="190" r="22" fill="#0f141a" stroke="#aebbc8" stroke-width="1.5"></circle>
+<path d="M150 104V118M150 262V276M64 190H78M222 190H236" stroke="#808c99" stroke-width="1.6" stroke-linecap="round"></path>
+</g>
+<path d="M150 190L210 136" stroke="#a6d65a" stroke-width="2" stroke-linecap="round" stroke-opacity=".7"></path>
+<circle cx="150" cy="190" r="4" fill="#808c99"></circle>
+<circle cx="214" cy="132" r="7" fill="#a6d65a" stroke="#e3eaf1" stroke-width="2"></circle>
+<text x="150" y="234" fill="#808c99" font-size="15" font-family="Geist, sans-serif" text-anchor="middle">landed here</text>
+<text x="250" y="292" fill="#3e9fd8" font-size="15" font-family="Geist, sans-serif" text-anchor="middle">full push</text>
+</svg>
+<div style="display: flex; align-items: center; gap: 14px; background: #0f151b; border-radius: 12px; padding: 10px 14px">
+<svg width="44" height="44" viewBox="0 0 44 44" fill="none"><circle cx="22" cy="22" r="20" fill="#0e1419" stroke="#aebbc8" stroke-width="1.5"></circle><circle cx="29" cy="15" r="9" fill="#212a34" stroke="#aebbc8" stroke-width="1.5"></circle><circle cx="29" cy="15" r="3" fill="#a6d65a" stroke="#e3eaf1" stroke-width="1.5"></circle></svg>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 16px; font-weight: 600">Up and right</span><span style="font-size: 15px; color: #808c99">Sends your up and right bindings</span></span>
+<span style="margin-left: auto; font-family: 'Geist Mono', monospace; font-size: 15px; color: #b8e2fa">76%</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+
+<footer style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Wardogs · Trackpads · Left pad · Fine-tune · Zones · Touch stick</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px">◂ ▸ Adjust</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">Y</span>Bind directions</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">LT</span><span class="gp">RT</span>Group</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">LB</span><span class="gp">RB</span>Part</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Back</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

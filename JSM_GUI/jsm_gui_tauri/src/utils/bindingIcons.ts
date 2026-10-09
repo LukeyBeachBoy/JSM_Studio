@@ -39,19 +39,22 @@ export function setBindingIcon(text: string, command: string, icon: string): str
   if (!key) return text
   const clean = icon.trim().toLowerCase()
   const lines = text.split(/\r?\n/)
-  const index = lines.findIndex(line => {
+  // The last line for an input wins; see setBindingLabel.
+  const matches = lines.flatMap((line, at) => {
     const match = ICON_LINE.exec(line)
-    return Boolean(match && match[1].trim().toUpperCase() === key)
+    return match && match[1].trim().toUpperCase() === key ? [at] : []
   })
+  const index = matches.length ? matches[matches.length - 1] : -1
 
   if (!clean || !VALID_NAME.test(clean)) {
-    if (index >= 0) lines.splice(index, 1)
+    for (const at of [...matches].reverse()) lines.splice(at, 1)
     return lines.join('\n')
   }
 
   const next = `# @icon ${key} = ${clean}`
   if (index >= 0) {
     lines[index] = next
+    for (const at of matches.slice(0, -1).reverse()) lines.splice(at, 1)
     return lines.join('\n')
   }
 

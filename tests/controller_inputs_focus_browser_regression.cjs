@@ -11,15 +11,16 @@ const expectControllerInputRing = require('./controller_input_focus_helper.cjs')
     await page.goto(`${process.env.JSM_TEST_URL || 'http://127.0.0.1:1421'}/?mock`)
     await page.getByRole('button', { name: 'Keep them', exact: true }).click({ timeout: 5000 }).catch(() => {})
     await page.locator('[data-home-continue]').click()
-    const controls = ['Overview', 'Buttons', 'D-Pad', 'Triggers', 'Joysticks', 'Trackpads', 'Gyro', 'Layers', 'Virtual menus']
-    const studio = ['Configurations', 'Associations', 'Global chords', 'Press timing & polling', 'AI assistant', 'Device visibility', 'Appearance', 'Preferences', 'Documentation', 'Debug console']
+    const controls = ['Layout', 'Buttons', 'Sticks', 'Triggers', 'Trackpads', 'Gyro', 'Menus', 'Layers']
+    const studio = ['Games', 'Bases', 'Launch with game', 'Hold to swap', 'Press timing', 'Assistant', 'Hide the real controller', 'Look & language', 'Controller', 'Startup', 'Guides & reference', 'Troubleshooting log']
+    const STUDIO_IDS = { 'Games': 'configurations', 'Bases': 'bases', 'Launch with game': 'associations', 'Hold to swap': 'globalChords', 'Press timing': 'timing', 'Assistant': 'ai', 'Hide the real controller': 'deviceVisibility', 'Look & language': 'appearance', 'Controller': 'settings', 'Startup': 'startup', 'Guides & reference': 'help', 'About & credits': 'credits', 'Troubleshooting log': 'debugConsole' }
     let checked = 0
     for (const name of [...controls, ...studio]) {
       await page.getByRole('button', { name: 'Home', exact: true }).first().click()
       if (controls.includes(name)) {
         await page.locator('[data-home-continue]').click()
         await page.getByRole('button', { name, exact: true }).first().click()
-      } else await page.getByRole('button', { name: new RegExp(`^${name}`) }).first().click()
+      } else await page.evaluate(id => window.dispatchEvent(new CustomEvent('jsm:navigate-page', { detail: id })), STUDIO_IDS[name])
       await page.getByText('Loading...', { exact: true }).waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {})
       await page.waitForTimeout(300)
       const fields = page.locator('input:not([disabled]):not([type="hidden"]):not([type="file"]), textarea:not([disabled])')
@@ -31,19 +32,26 @@ const expectControllerInputRing = require('./controller_input_focus_helper.cjs')
         count++; checked++
       }
       console.log(`${name}: ${count} inputs checked`)
-      if (name === 'Preferences') {
+      if (name === 'Controller') {
+        // Settings ▸ Controller ▸ Light colour opens its sub-page (console v2).
+        await page.getByRole('button', { name: /^Light colour when a configuration/ }).click()
         await page.getByRole('radiogroup', { name: 'Light bar color' }).first().getByRole('radio', { name: 'Custom', exact: true }).click()
-        const customColor = page.getByRole('dialog', { name: 'Custom color', exact: true })
+        const customColor = page.getByRole('dialog', { name: 'Custom colour', exact: true })
         await customColor.waitFor()
         const colorInputs = customColor.locator('input')
         for (let index = 0; index < await colorInputs.count(); index++) {
-          await expectControllerInputRing(page, colorInputs.nth(index), `Custom color: ${index}`)
+          await expectControllerInputRing(page, colorInputs.nth(index), `Custom colour: ${index}`)
           checked++
         }
         await customColor.getByRole('button', { name: 'Done', exact: true }).click()
+        await page.keyboard.press('Escape')
+        await page.locator('[data-subpage]').waitFor({ state: 'detached' })
       }
     }
-    assert.ok(checked > 10, 'audit reaches real input controls')
+    // Console v2 replaced most typing with choices and the on-screen keyboard
+    // ("Typing where choosing would do"); the fields left are the assistant's,
+    // the log's command line and the custom light colour.
+    assert.ok(checked > 3, `audit reaches real input controls (${checked})`)
     assert.deepEqual(errors, [])
     console.log(`PASS: ${checked} inputs across ${controls.length + studio.length} pages have one controller ring`)
   } finally { await browser.close() }

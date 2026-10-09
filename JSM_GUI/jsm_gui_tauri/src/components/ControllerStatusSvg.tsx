@@ -1,5 +1,5 @@
 import { useEffect, useRef, type CSSProperties } from 'react'
-import { ModelControllerSvg } from './ModelControllerSvg'
+import { ModelControllerSvg, modelBackInput } from './ModelControllerSvg'
 import { controllerArtworkModel } from '../utils/controllerArtwork'
 import { STEAM_BACK_ART, STEAM_FRONT_ART } from './controllerArt'
 import type { TelemetryDevice } from '../hooks/useTelemetry'
@@ -27,6 +27,26 @@ type ControllerStatusSvgProps = {
    * feedback that shows where your thumb is stays on either way.
    */
   showRawTelemetry?: boolean
+  /**
+   * 'always' (default): the back view sits beside the front all the time, with
+   * its legend. 'focus' (console v2 Layout): the front is captioned "Front" and
+   * the back appears beside it only while an input that lives there is the
+   * selected one, captioned with its name ("Back · right grip").
+   */
+  backView?: 'always' | 'focus'
+  /** The back view's caption in 'focus' mode. */
+  backCaption?: string
+}
+
+// What a Steam Controller shows only on its back: the paddles, the grips, and
+// the triggers (the front art has no triggers; they are drawn on the back).
+const STEAM_BACK_INPUTS = new Set(['LSL', 'LSR', 'RSR', 'RSL', 'MISC5', 'MISC6', 'GRIP_L', 'GRIP_R', 'ZL', 'ZR', 'ZLF', 'ZRF'])
+
+/** Whether an input is drawn on the controller's back view (Layout's "Back · …"). */
+export function isBackInput(device: TelemetryDevice | undefined, command: string | null | undefined) {
+  if (!device || !command) return false
+  if (controllerArtworkModel(device)) return modelBackInput(device, command)
+  return controllerVisualFamily(device.type) === 'steam' && STEAM_BACK_INPUTS.has(command)
 }
 
 type SharedControlProps = {
@@ -592,7 +612,9 @@ const BACK_SHOULDERS = [
 // Below this a resting trigger's noise would flicker the fill on and off.
 const TRIGGER_PULL_FLOOR = 0.02
 
-function SteamBackView({ pressed, boundCommands, selectedCommand, onSelectCommand, bindingLabels, triggers, triggerLabels, showRawTelemetry = false }: {
+function SteamBackView({ pressed, boundCommands, selectedCommand, onSelectCommand, bindingLabels, triggers, triggerLabels, showRawTelemetry = false, caption }: {
+  /** Layout's focus mode: a caption ("Back · right grip") in place of the legend. */
+  caption?: string
   pressed: Set<string>; boundCommands?: Set<string>; selectedCommand?: string | null
   onSelectCommand?: (command: string) => void; bindingLabels?: Record<string, string>
   /** Analog pull of each trigger, 0..1. */
@@ -604,7 +626,7 @@ function SteamBackView({ pressed, boundCommands, selectedCommand, onSelectComman
   const isSelected = (command: string) => selectedCommand === command || (command === 'MISC6' && selectedCommand === 'GRIP_L') || (command === 'MISC5' && selectedCommand === 'GRIP_R')
   const legend = BACK_HOTSPOTS.filter(spot => isPressed(spot.command) || boundCommands?.has(spot.command)).slice(0, 4)
   return (
-    <div className={styles.backView}>
+    <div className={join(styles.backView, caption !== undefined && styles.backViewFocus)}>
       <svg className={styles.backArt} viewBox="0 0 428 319" role="img" aria-label="Steam Controller back, mirrored">
         <g transform="translate(428 0) scale(-1 1)" dangerouslySetInnerHTML={{ __html: STEAM_BACK_ART }} />
         {/* Bumpers and triggers, filling the art's own outlines: in the same
@@ -635,7 +657,7 @@ function SteamBackView({ pressed, boundCommands, selectedCommand, onSelectComman
           </ellipse>
         ))}
       </svg>
-      <div className={join(styles.backLegend, showRawTelemetry && styles.backLegendDetailed)}>
+      {caption !== undefined ? <span className={styles.viewCaption}>{caption}</span> : <div className={join(styles.backLegend, showRawTelemetry && styles.backLegendDetailed)}>
         <span className={styles.backLegendTitle}>Back · mirrored</span>
         {legend.map(spot => (
           <span key={spot.command} className={styles.backLegendItem}>
@@ -649,7 +671,7 @@ function SteamBackView({ pressed, boundCommands, selectedCommand, onSelectComman
             {triggerLabels[side]} {triggerReadout(clamp(triggers[side], 0, 1))}
           </span>
         ))}
-      </div>
+      </div>}
     </div>
   )
 }
@@ -688,7 +710,11 @@ export function ControllerStatusSvg({ bindingLabels,
   selectedCommand,
   onSelectCommand,
   showRawTelemetry = false,
+  backView = 'always',
+  backCaption,
 }: ControllerStatusSvgProps) {
+  const focusView = backView === 'focus'
+  const showBack = !focusView || isBackInput(device, selectedCommand)
   const family = controllerVisualFamily(device.type)
   const isSteam = family === 'steam'
   const pressed = getPressedControllerCommandSet(device)
@@ -730,13 +756,14 @@ export function ControllerStatusSvg({ bindingLabels,
   const visiblePaddleCommandSet = new Set(visiblePaddleCommands)
 
   if (controllerArtworkModel(device)) {
-    return <ModelControllerSvg device={device} bindingLabels={bindingLabels} boundCommands={boundCommands} selectedCommand={selectedCommand} onSelectCommand={onSelectCommand} showRawTelemetry={showRawTelemetry} />
+    return <ModelControllerSvg device={device} bindingLabels={bindingLabels} boundCommands={boundCommands} selectedCommand={selectedCommand} onSelectCommand={onSelectCommand} showRawTelemetry={showRawTelemetry} backView={backView} backCaption={backCaption} />
   }
 
   if (isSteam) {
       // --- Steam Controller 2026 layout ---
       return (
-        <div className={join(styles.visualizer, styles.steamLayout)}>
+        <div className={join(styles.visualizer, styles.steamLayout, focusView && styles.steamFocusLayout)}>
+          <div className={styles.frontView}>
           <svg className={join(styles.controllerSvg, styles.steamLive, showRawTelemetry && styles.showDetails)} viewBox="0 0 1117 750" role="img" aria-label="Steam Controller live status">
             <title>Steam Controller live status</title>
             {/* The approved tonal rendering (Controller Art 9c), themed by --art-*. */}
@@ -796,7 +823,9 @@ export function ControllerStatusSvg({ bindingLabels,
             <PathButton d={STEAM_FRONT_BUMPER_PATHS.right} transform={STEAM_FRONT_ART_TRANSFORM} labelX={STEAM_FRONT_BUMPER_LABELS.right.x} labelY={STEAM_FRONT_BUMPER_LABELS.right.y} compact label={controllerButtonGlyph(device.type, 'R')} pressed={pressed.has('R')} muted={!hasRightSide} bound={boundCommands?.has('R')} selected={selectedCommand === 'R'} onSelect={hasRightSide ? () => onSelectCommand?.('R') : undefined} title="Right bumper" />
 
           </svg>
-          <SteamBackView pressed={pressed} boundCommands={boundCommands} selectedCommand={selectedCommand} onSelectCommand={onSelectCommand} bindingLabels={bindingLabels} triggers={{ left: leftTrigger, right: rightTrigger }} triggerLabels={{ left: leftTriggerLabel, right: rightTriggerLabel }} showRawTelemetry={showRawTelemetry} />
+          {focusView && <span className={styles.viewCaption}>Front</span>}
+          </div>
+          {showBack && <SteamBackView pressed={pressed} boundCommands={boundCommands} selectedCommand={selectedCommand} onSelectCommand={onSelectCommand} bindingLabels={bindingLabels} triggers={{ left: leftTrigger, right: rightTrigger }} triggerLabels={{ left: leftTriggerLabel, right: rightTriggerLabel }} showRawTelemetry={showRawTelemetry} caption={focusView ? backCaption ?? 'Back' : undefined} />}
         </div>
       )
   }

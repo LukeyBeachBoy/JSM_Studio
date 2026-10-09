@@ -61,7 +61,8 @@ check('the last declaration of a button wins', () => {
 });
 check('hints read in the fixed order whatever order they were declared in', () => {
   const hints = parseHints('B:Back;LB/RB:Category;Y:Search;X:Capture;A:Choose;MOVE:Move');
-  assert.deepEqual(hints.map(h => h.button), ['MOVE', 'A', 'X', 'Y', 'B', 'LB/RB']);
+  // Console v2 Kit: A, X, Y, triggers, bumpers, B.
+  assert.deepEqual(hints.map(h => h.button), ['MOVE', 'A', 'X', 'Y', 'LB/RB', 'B']);
   assert.deepEqual([...hints.map(h => h.button)].sort((a, b) => HINT_ORDER.indexOf(a) - HINT_ORDER.indexOf(b)), hints.map(h => h.button));
 });
 check('X that repeats A is dropped, X that differs stays', () => {
@@ -131,7 +132,9 @@ check('the tokens define every hue the helper can hand out, in both themes', () 
   }
 });
 check('every surface that enumerates layer slots covers all of them', () => {
-  const files = ['src/components/keymap/ConceptTiles.module.css', 'src/components/OverviewPage.module.css', 'src/components/ui/Menu.module.css', 'src/styles/console.css'];
+  // Console v2: the Layout page no longer styles per-mode hues in its own CSS
+  // (modes wear their colour inline), so OverviewPage.module.css left this list.
+  const files = ['src/components/keymap/ConceptTiles.module.css', 'src/components/ui/Menu.module.css', 'src/styles/console.css'];
   for (const file of files) {
     const css = fs.readFileSync(path.join(SRC_ROOT, file), 'utf8');
     for (let slot = 2; slot <= LAYER_HUES; slot++) assert.ok(css.includes(`--layer-${slot}-soft`), `${file} has no rule for layer ${slot}`);

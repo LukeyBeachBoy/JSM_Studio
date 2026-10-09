@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Binding sheet, pick don't type</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.btn{font-family:inherit;border:0;cursor:pointer}
+.when{font-family:inherit;border:0;cursor:pointer;flex:1;border-radius:14px;background:#1f2730;color:#e8eef4;padding:14px 16px;text-align:left;display:flex;flex-direction:column;gap:6px;min-width:0}
+.when .k{font-size:15px;color:#b0bcc8;font-weight:600}
+.when .v{font-size:19px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kind{font-family:inherit;border:0;cursor:pointer;border-radius:16px;background:#1f2730;color:#e8eef4;padding:14px 16px;display:flex;flex-direction:column;gap:8px;text-align:left;min-height:116px;box-sizing:border-box;min-width:0}
+.kind .t{font-size:18px;font-weight:650;line-height:1.25}
+.kind .s{font-size:15px;color:#808c99;line-height:1.35}
+.fold{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;align-items:center;gap:16px;height:68px;padding:0 20px;box-sizing:border-box;border-radius:14px;background:#1f2730;color:#e8eef4;text-align:left}
+</style>
+</helmet>
+<div style="position: relative; width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; overflow: hidden">
+
+<div style="position: absolute; inset: 0; padding: 120px 0 0 320px; display: flex; flex-direction: column; gap: 10px; opacity: .35">
+<div style="width: 760px; height: 72px; border-radius: 16px; background: #1d445c"></div>
+<div style="width: 760px; height: 64px; border-radius: 14px; background: #1f2730"></div>
+<div style="width: 760px; height: 64px; border-radius: 14px; background: #1f2730"></div>
+<div style="width: 760px; height: 64px; border-radius: 14px; background: #1f2730"></div>
+</div>
+<div style="position: absolute; inset: 0; background: rgba(5,9,13,.62)"></div>
+
+<aside style="position: absolute; top: 0; right: 0; bottom: 64px; width: 700px; background: #181f27; box-shadow: -30px 0 60px rgba(0,0,0,.45); display: flex; flex-direction: column; gap: 22px; padding: 32px 36px; box-sizing: border-box">
+
+<div style="display: flex; align-items: center; gap: 16px">
+<span style="display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 50%; background: #e8eef4; color: #0d1217; font-weight: 700; font-size: 20px">A</span>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 15px; color: #808c99">A button · Default mode</span>
+<span style="font-size: 30px; font-weight: 700; letter-spacing: -0.01em">Jump</span>
+</div>
+<span style="margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 15px; color: #808c99"><span class="g" style="width: 26px; height: 26px; font-size: 12px">Y</span>Rename</span>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="font-size: 15px; letter-spacing: .08em; text-transform: uppercase; color: #808c99; font-weight: 600">When you…</div>
+<div style="display: flex; gap: 10px">
+<button class="when focus" style="background: #1d445c"><span class="k" style="color: #b8e2fa">Press</span><span class="v">Space</span></button>
+<button class="when"><span class="k">Tap</span><span class="v" style="color: #808c99; font-weight: 500">+ Add</span></button>
+<button class="when"><span class="k">Hold</span><span class="v" style="color: #808c99; font-weight: 500">+ Add</span></button>
+<button class="when"><span class="k">Double-tap</span><span class="v" style="color: #808c99; font-weight: 500">+ Add</span></button>
+<button class="when" style="flex: 0 0 auto; background: transparent; box-shadow: inset 0 0 0 2px #2e3844"><span class="k">More</span><span class="v" style="color: #b0bcc8; font-weight: 500">4 ▸</span></button>
+</div>
+<div style="font-size: 15px; color: #808c99">More: Let go · Turbo (repeat while held) · Press together with… · Stick diagonal</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="font-size: 15px; letter-spacing: .08em; text-transform: uppercase; color: #808c99; font-weight: 600">Press sends</div>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px">
+<button class="kind" style="background: #24323f; box-shadow: inset 0 0 0 2px #3e9fd8">
+<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#7cc4ee" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"></rect><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"></path></svg>
+<span class="t">Keyboard key</span><span class="s">Space</span>
+</button>
+<button class="kind">
+<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="3" width="12" height="18" rx="6"></rect><path d="M12 7v4"></path></svg>
+<span class="t">Mouse</span><span class="s">Clicks and wheel</span>
+</button>
+<button class="kind">
+<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12a4 4 0 0 1 4 4v1a4 4 0 0 1-7 2.6L14 15h-4l-1 .6A4 4 0 0 1 2 13v-1a4 4 0 0 1 4-4z"></path><path d="M7 11v3M5.5 12.5h3M16 12h.01M18 14h.01"></path></svg>
+<span class="t">Gamepad button</span><span class="s">For pad games</span>
+</button>
+<button class="kind">
+<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 3v9l6.4 6.4M12 12L5.6 18.4"></path></svg>
+<span class="t">Open a menu</span><span class="s">Wheel, grid or hotbar</span>
+</button>
+<button class="kind">
+<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5z"></path><path d="M3 13l9 5 9-5"></path></svg>
+<span class="t">Switch mode</span><span class="s">Vehicles, map, comms…</span>
+</button>
+<button class="kind">
+<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3"></path></svg>
+<span class="t">Controller action</span><span class="s">Gyro, rumble, light</span>
+</button>
+<button class="kind">
+<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h10l6 6v10H4z"></path><path d="M14 4v6h6"></path></svg>
+<span class="t">Load a config</span><span class="s">Another layout</span>
+</button>
+<button class="kind">
+<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7l5 5-5 5M12 17h7"></path></svg>
+<span class="t">Command</span><span class="s">Any JSM command</span>
+</button>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<button class="fold">
+<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v8M16 13v8M4 7h8M12 17h8"></path></svg>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 18px; font-weight: 650">While holding another button…</span><span style="font-size: 15px; color: #808c99">A does something else. Example: hold LB, A drops a marker.</span></span>
+<span style="margin-left: auto; font-size: 17px; color: #808c99">None</span>
+</button>
+<button class="fold">
+<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"></path><circle cx="16" cy="6" r="2"></circle><circle cx="10" cy="12" r="2"></circle><circle cx="18" cy="18" r="2"></circle></svg>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 18px; font-weight: 650">Fine-tune</span><span style="font-size: 15px; color: #808c99">Send once · toggle · only on release · light while held</span></span>
+<span style="margin-left: auto; font-size: 17px; color: #808c99">Default</span>
+</button>
+</div>
+</aside>
+
+<footer style="position: absolute; left: 0; right: 0; bottom: 0; height: 64px; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Wardogs · Buttons · A button</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">A</span>Choose key</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">X</span>Clear</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">Y</span>Rename</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Done</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

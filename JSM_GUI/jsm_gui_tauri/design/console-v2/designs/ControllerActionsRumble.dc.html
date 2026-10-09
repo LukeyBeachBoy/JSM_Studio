@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Controller action, Rumble and sound</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.btn{font-family:inherit;border:0;cursor:pointer}
+.tab{font-family:inherit;border:0;background:transparent;color:#b0bcc8;font-size:18px;font-weight:600;height:44px;padding:0 16px;border-radius:12px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.tab i{font-style:normal;font-size:14px;font-weight:600;color:#b0bcc8;background:#2e3844;border-radius:10px;padding:2px 8px}
+.lbl{font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#808c99;font-weight:600}
+.fe{font-family:inherit;border:0;cursor:pointer;height:120px;border-radius:18px;background:#1f2730;color:#e8eef4;padding:16px;display:flex;align-items:center;gap:16px;box-sizing:border-box;text-align:left;min-width:0}
+.fe svg{display:block;overflow:visible;flex:none}
+.fe .t{font-size:19px;font-weight:650}
+.fe .s{font-size:15px;color:#808c99;line-height:1.35}
+.tu{font-family:inherit;border:0;cursor:pointer;min-height:104px;border-radius:16px;background:#1f2730;color:#e8eef4;padding:12px;display:flex;flex-direction:column;align-items:flex-start;gap:8px;box-sizing:border-box;text-align:left;min-width:0}
+.tu svg{display:block;border-radius:8px;background:#0f151b}
+.tu .t{font-size:15px;font-weight:650;line-height:1.2}
+.chip{display:inline-flex;align-items:center;height:34px;padding:0 14px;border-radius:17px;background:#2e3844;font-size:15px;font-weight:600;color:#d4dde6}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="flex: none; display: flex; align-items: center; gap: 20px; padding: 32px 48px 20px">
+<span style="display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 50%; background: #e8eef4; color: #0d1217; font-weight: 700; font-size: 20px">A</span>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 16px; color: #808c99">A button · Press sends</span>
+<span style="font-size: 32px; font-weight: 700">Controller action</span>
+</div>
+<div style="margin-left: auto; display: flex; align-items: center; gap: 12px; background: #1f2730; border-radius: 16px; padding: 14px 20px; font-size: 17px; color: #d4dde6">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7cc4ee" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg>
+Search every action
+<span class="g" style="margin-left: 6px">Y</span>
+</div>
+</header>
+
+<nav style="flex: none; display: flex; align-items: center; gap: 6px; padding: 0 48px 20px">
+<span class="gp" style="margin-right: 8px">LT</span>
+<button class="tab">Gyro<i>10</i></button>
+<button class="tab">Calibrate<i>7</i></button>
+<button class="tab" style="background: #1d445c; color: #ffffff">Rumble &amp; sound<i style="background: #3e9fd8; color: #07131d">16+</i></button>
+<button class="tab">Light<i>3</i></button>
+<button class="tab">Other<i>5</i></button>
+<span class="gp" style="margin-left: 8px">RT</span>
+</nav>
+
+<main style="flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 28px; padding: 4px 48px 24px">
+
+<div style="display: flex; flex-direction: column; gap: 10px; min-width: 0">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><span class="lbl">Feel it</span><span style="font-size: 15px; color: #808c99">Pattern and strength are set in Fine-tune</span></div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px">
+
+<button class="fe">
+<svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+<rect x="2" y="1" width="52" height="52" rx="16" fill="#2e3844" stroke="rgba(255,255,255,.08)"></rect>
+
+<path d="M10 27h9l3-10 5 20 4-14 3 7 2-3h10" stroke="#d4dde6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span style="display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1"><span class="t">Haptic pulse</span><span class="s">Seven patterns, on either grip or both</span></span>
+<svg width="120" height="56" viewBox="0 0 120 56" fill="none">
+<rect width="120" height="56" rx="10" fill="#0f151b"></rect>
+<path d="M8 28h14l2-12 3 24 3-12h12l2-8 2 16 2-8h12q4-14 8 0t8 0t8 0t8 0h14" stroke="#808c99" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+
+<button class="fe">
+<svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+<rect x="2" y="1" width="52" height="52" rx="16" fill="#2e3844" stroke="rgba(255,255,255,.08)"></rect>
+
+<g stroke="#d4dde6" stroke-width="2" stroke-linecap="round"><circle cx="20" cy="30" r="6"></circle><circle cx="36" cy="27" r="9"></circle><path d="M20 30l3-4M36 27l5-6"></path></g>
+</svg>
+<span style="display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1"><span class="t">Rumble motors</span><span class="s">Small and big motor strength, for pads with rumble</span></span>
+<svg width="120" height="56" viewBox="0 0 120 56" fill="none">
+<rect width="120" height="56" rx="10" fill="#0f151b"></rect>
+<circle cx="38" cy="28" r="12" fill="#212a34" stroke="#aebbc8" stroke-width="1.5"></circle>
+<path d="M38 28l6-7" stroke="#e3eaf1" stroke-width="2" stroke-linecap="round"></path>
+<circle cx="82" cy="28" r="18" fill="#212a34" stroke="#aebbc8" stroke-width="1.5"></circle>
+<path d="M82 28l9-11" stroke="#e3eaf1" stroke-width="2" stroke-linecap="round"></path>
+<path d="M60 10a26 26 0 0 1 10 6" stroke="#808c99" stroke-width="1.6" stroke-linecap="round"></path>
+</svg>
+</button>
+</div>
+
+<div style="display: flex; align-items: baseline; justify-content: space-between; margin-top: 10px"><span class="lbl">Built-in tunes · 14</span><span style="font-size: 15px; color: #808c99">Played on the grip motors</span></div>
+<div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 12px">
+<button class="tu"><svg width="99" height="40" viewBox="0 0 100 40" fill="none"><path d="M0 9.5H100M0 19.5H100M0 29.5H100" stroke="rgba(255,255,255,.05)"></path><g fill="#808c99"><rect x="2" y="28" width="12" height="5" rx="2.5"></rect><rect x="16" y="22" width="10" height="5" rx="2.5"></rect><rect x="28" y="16" width="12" height="5" rx="2.5"></rect><rect x="42" y="22" width="8" height="5" rx="2.5"></rect><rect x="52" y="10" width="18" height="5" rx="2.5"></rect><rect x="72" y="16" width="10" height="5" rx="2.5"></rect><rect x="84" y="8" width="14" height="5" rx="2.5"></rect></g></svg><span class="t">Warm and Happy</span></button>
+<button class="tu"><svg width="99" height="40" viewBox="0 0 100 40" fill="none"><path d="M0 9.5H100M0 19.5H100M0 29.5H100" stroke="rgba(255,255,255,.05)"></path><g fill="#808c99"><rect x="2" y="10" width="8" height="5" rx="2.5"></rect><rect x="12" y="26" width="8" height="5" rx="2.5"></rect><rect x="22" y="10" width="8" height="5" rx="2.5"></rect><rect x="32" y="26" width="8" height="5" rx="2.5"></rect><rect x="44" y="18" width="14" height="5" rx="2.5"></rect><rect x="60" y="30" width="10" height="5" rx="2.5"></rect><rect x="72" y="30" width="10" height="5" rx="2.5"></rect><rect x="84" y="14" width="14" height="5" rx="2.5"></rect></g></svg><span class="t">Invader</span></button>
+<button class="tu"><svg width="99" height="40" viewBox="0 0 100 40" fill="none"><path d="M0 9.5H100M0 19.5H100M0 29.5H100" stroke="rgba(255,255,255,.05)"></path><g fill="#808c99"><rect x="2" y="26" width="10" height="5" rx="2.5"></rect><rect x="14" y="18" width="10" height="5" rx="2.5"></rect><rect x="26" y="10" width="24" height="5" rx="2.5"></rect><rect x="52" y="18" width="8" height="5" rx="2.5"></rect><rect x="62" y="6" width="30" height="5" rx="2.5"></rect></g></svg><span class="t">Controller Confirmed</span></button>
+<button class="tu focus" style="background: #1d445c"><svg width="99" height="40" viewBox="0 0 100 40" fill="none"><path d="M0 9.5H100M0 19.5H100M0 29.5H100" stroke="rgba(255,255,255,.05)"></path><g fill="#3e9fd8"><rect x="2" y="24" width="8" height="5" rx="2.5"></rect><rect x="12" y="24" width="8" height="5" rx="2.5"></rect><rect x="22" y="24" width="8" height="5" rx="2.5"></rect><rect x="32" y="12" width="22" height="5" rx="2.5"></rect><rect x="56" y="18" width="10" height="5" rx="2.5"></rect><rect x="68" y="8" width="30" height="5" rx="2.5"></rect></g></svg><span class="t">Victory!</span></button>
+<button class="tu"><svg width="99" height="40" viewBox="0 0 100 40" fill="none"><path d="M0 9.5H100M0 19.5H100M0 29.5H100" stroke="rgba(255,255,255,.05)"></path><g fill="#808c99"><rect x="2" y="32" width="10" height="5" rx="2.5"></rect><rect x="14" y="26" width="10" height="5" rx="2.5"></rect><rect x="26" y="20" width="10" height="5" rx="2.5"></rect><rect x="38" y="14" width="10" height="5" rx="2.5"></rect><rect x="50" y="8" width="10" height="5" rx="2.5"></rect><rect x="62" y="4" width="30" height="5" rx="2.5"></rect></g></svg><span class="t">Rise and Shine</span></button>
+<button class="tu"><svg width="99" height="40" viewBox="0 0 100 40" fill="none"><path d="M0 9.5H100M0 19.5H100M0 29.5H100" stroke="rgba(255,255,255,.05)"></path><g fill="#808c99"><rect x="10" y="18" width="14" height="5" rx="2.5"></rect><rect x="30" y="10" width="14" height="5" rx="2.5"></rect><rect x="50" y="18" width="14" height="5" rx="2.5"></rect></g></svg><span class="t">Shorty</span></button>
+<button class="tu"><svg width="99" height="40" viewBox="0 0 100 40" fill="none"><path d="M0 9.5H100M0 19.5H100M0 29.5H100" stroke="rgba(255,255,255,.05)"></path><g fill="#808c99"><rect x="2" y="30" width="30" height="5" rx="2.5"></rect><rect x="34" y="22" width="14" height="5" rx="2.5"></rect><rect x="50" y="14" width="22" height="5" rx="2.5"></rect><rect x="74" y="20" width="22" height="5" rx="2.5"></rect></g></svg><span class="t">Warm Boot</span></button>
+<button class="tu"><svg width="99" height="40" viewBox="0 0 100 40" fill="none"><path d="M0 9.5H100M0 19.5H100M0 29.5H100" stroke="rgba(255,255,255,.05)"></path><g fill="#808c99"><rect x="2" y="26" width="10" height="5" rx="2.5"></rect><rect x="14" y="20" width="10" height="5" rx="2.5"></rect><rect x="26" y="14" width="10" height="5" rx="2.5"></rect><rect x="40" y="26" width="10" height="5" rx="2.5"></rect><rect x="52" y="20" width="10" height="5" rx="2.5"></rect><rect x="64" y="8" width="30" height="5" rx="2.5"></rect></g></svg><span class="t">Next Level</span></button>
+<button class="tu"><svg width="99" height="40" viewBox="0 0 100 40" fill="none"><path d="M0 9.5H100M0 19.5H100M0 29.5H100" stroke="rgba(255,255,255,.05)"></path><g fill="#808c99"><rect x="2" y="14" width="6" height="5" rx="2.5"></rect><rect x="10" y="22" width="6" height="5" rx="2.5"></rect><rect x="18" y="14" width="6" height="5" rx="2.5"></rect><rect x="26" y="22" width="6" height="5" rx="2.5"></rect><rect x="34" y="14" width="6" height="5" rx="2.5"></rect><rect x="42" y="22" width="6" height="5" rx="2.5"></rect><rect x="52" y="10" width="20" height="5" rx="2.5"></rect><rect x="76" y="18" width="20" height="5" rx="2.5"></rect></g></svg><span class="t">Shake It Off</span></button>
+<button class="tu"><svg width="99" height="40" viewBox="0 0 100 40" fill="none"><path d="M0 9.5H100M0 19.5H100M0 29.5H100" stroke="rgba(255,255,255,.05)"></path><g fill="#808c99"><rect x="2" y="10" width="24" height="5" rx="2.5"></rect><rect x="30" y="22" width="28" height="5" rx="2.5"></rect><rect x="62" y="32" width="34" height="5" rx="2.5"></rect></g></svg><span class="t">Access Denied</span></button>
+<button class="tu"><svg width="99" height="40" viewBox="0 0 100 40" fill="none"><path d="M0 9.5H100M0 19.5H100M0 29.5H100" stroke="rgba(255,255,255,.05)"></path><g fill="#808c99"><rect x="2" y="6" width="14" height="5" rx="2.5"></rect><rect x="18" y="14" width="14" height="5" rx="2.5"></rect><rect x="34" y="22" width="14" height="5" rx="2.5"></rect><rect x="50" y="30" width="44" height="5" rx="2.5"></rect></g></svg><span class="t">Deactivate</span></button>
+<button class="tu"><svg width="99" height="40" viewBox="0 0 100 40" fill="none"><path d="M0 9.5H100M0 19.5H100M0 29.5H100" stroke="rgba(255,255,255,.05)"></path><g fill="#808c99"><rect x="2" y="24" width="10" height="5" rx="2.5"></rect><rect x="14" y="12" width="10" height="5" rx="2.5"></rect><rect x="26" y="30" width="10" height="5" rx="2.5"></rect><rect x="38" y="8" width="18" height="5" rx="2.5"></rect><rect x="58" y="16" width="12" height="5" rx="2.5"></rect><rect x="72" y="8" width="24" height="5" rx="2.5"></rect></g></svg><span class="t">Discovery</span></button>
+<button class="tu"><svg width="99" height="40" viewBox="0 0 100 40" fill="none"><path d="M0 9.5H100M0 19.5H100M0 29.5H100" stroke="rgba(255,255,255,.05)"></path><g fill="#808c99"><rect x="2" y="22" width="14" height="5" rx="2.5"></rect><rect x="18" y="22" width="6" height="5" rx="2.5"></rect><rect x="26" y="14" width="14" height="5" rx="2.5"></rect><rect x="42" y="14" width="6" height="5" rx="2.5"></rect><rect x="50" y="6" width="44" height="5" rx="2.5"></rect></g></svg><span class="t">Triumph</span></button>
+<button class="tu"><svg width="99" height="40" viewBox="0 0 100 40" fill="none"><path d="M0 9.5H100M0 19.5H100M0 29.5H100" stroke="rgba(255,255,255,.05)"></path><g fill="#808c99"><rect x="2" y="20" width="8" height="5" rx="2.5"></rect><rect x="12" y="12" width="8" height="5" rx="2.5"></rect><rect x="22" y="20" width="8" height="5" rx="2.5"></rect><rect x="32" y="28" width="8" height="5" rx="2.5"></rect><rect x="42" y="20" width="16" height="5" rx="2.5"></rect><rect x="60" y="12" width="8" height="5" rx="2.5"></rect><rect x="70" y="20" width="26" height="5" rx="2.5"></rect></g></svg><span class="t">The Mann</span></button>
+</div>
+
+<div style="display: flex; align-items: baseline; justify-content: space-between; margin-top: 10px"><span class="lbl">Your sounds</span><span style="font-size: 15px; color: #808c99">None yet</span></div>
+<div style="display: flex; gap: 12px">
+<button class="fe" style="height: 72px; background: transparent; box-shadow: inset 0 0 0 2px #2e3844; padding: 0 20px">
+<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 17px; font-weight: 650; color: #d4dde6">+ Make one from a MIDI file</span><span class="s">Opens the sound library · pick a track and an octave</span></span>
+</button>
+</div>
+</div>
+
+<aside style="background: #1a222b; border-radius: 22px; padding: 24px; display: flex; flex-direction: column; gap: 14px; box-sizing: border-box; min-width: 0">
+<span class="lbl">Selected</span>
+<div style="height: 180px; flex: none; border-radius: 16px; background: #0f151b; overflow: hidden">
+<svg viewBox="0 0 332 180" width="100%" height="180" fill="none">
+
+<g fill="#aebbc8" stroke="#0f151b"><rect x="0" y="10" width="34" height="20"></rect><rect x="0" y="30" width="34" height="20"></rect><rect x="0" y="50" width="34" height="20"></rect><rect x="0" y="70" width="34" height="20"></rect><rect x="0" y="90" width="34" height="20"></rect><rect x="0" y="110" width="34" height="20"></rect><rect x="0" y="130" width="34" height="20"></rect><rect x="0" y="150" width="34" height="20"></rect></g>
+<g fill="#141a21"><rect x="0" y="24" width="20" height="12"></rect><rect x="0" y="44" width="20" height="12"></rect><rect x="0" y="84" width="20" height="12"></rect><rect x="0" y="104" width="20" height="12"></rect><rect x="0" y="124" width="20" height="12"></rect></g>
+<path d="M34 30H332M34 50H332M34 70H332M34 90H332M34 110H332M34 130H332M34 150H332" stroke="rgba(255,255,255,.05)"></path>
+<path d="M90 10V170M146 10V170M202 10V170M258 10V170" stroke="rgba(255,255,255,.04)"></path>
+
+<g fill="#3e9fd8"><rect x="44" y="114" width="22" height="12" rx="6"></rect><rect x="72" y="114" width="22" height="12" rx="6"></rect><rect x="100" y="114" width="22" height="12" rx="6"></rect><rect x="128" y="74" width="60" height="12" rx="6"></rect><rect x="196" y="94" width="28" height="12" rx="6"></rect><rect x="230" y="40" width="86" height="12" rx="6"></rect></g>
+<path d="M150 10V170" stroke="#e8eef4" stroke-width="1.5" opacity=".6"></path>
+<path d="M145 10h10l-5 7z" fill="#e8eef4"></path>
+</svg>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 26px; font-weight: 700">Victory!</span>
+<span style="font-size: 16px; color: #b0bcc8">Built-in tune, from Steam</span>
+</div>
+<span style="font-size: 16px; line-height: 1.5; color: #b0bcc8">Plays through the grip motors when you press A. Volume is set in Fine-tune and starts as recorded.</span>
+<div style="display: flex; align-items: center; gap: 12px; height: 52px; padding: 0 16px; border-radius: 14px; background: #1f2730; font-size: 17px; font-weight: 600"><span class="g">X</span>Hear it on the controller</div>
+<span style="margin-top: auto; font-size: 15px; line-height: 1.4; color: #808c99">Notes are moved into the range the motors play clearly.</span>
+</aside>
+</main>
+
+<footer style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Wardogs · A button · Press · Controller action</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">A</span>Use Victory!</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">X</span>Hear it</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">Y</span>Search</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">LT</span><span class="gp">RT</span>Group</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Back</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,10 +1,11 @@
 import type { TelemetryDevice } from '../hooks/useTelemetry'
 import { controllerDisplayName, controllerSupportsInput } from './controllerStatus'
 import { commandKey, stripComment } from './configIncludes'
-import { layerEntries, readLayers, writeLayers, inputDefinitions } from './layers'
+import { layerEntries, readLayers, writeLayers, readLayerActions, inputDefinitions } from './layers'
 import { applyGamepadPassthrough } from './quickBind'
 import { updateKeymapEntry } from './keymap'
 import { readVirtualMenus, writeVirtualMenus } from './virtualMenus'
+import { sameValue } from './inheritedOverrides'
 
 export const controllerModelKey = (device?: Pick<TelemetryDevice, 'type' | 'vid' | 'pid'>) =>
   !device?.type ? '' : device.type === 5 && device.vid === 0x054c && device.pid === 0x0df2 ? 'type-5-edge' : `type-${device.type}`
@@ -81,14 +82,66 @@ function editableLines(text: string) {
   return result
 }
 
-/** Fold only the changed assignments/metadata into the model's saved override. */
-export function foldController(text: string, model: string, before: string, after: string) {
+// "# @overlay LEFT at 0.2 0.75 size 280 …" has no "=", so identity() cannot key
+// it and a per-controller override never saw an on-screen menu's position,
+// size or text size change: the edit was dropped. A menu's place on screen is
+// the screen's, not the controller's, so these lines stay in the shared text.
+const overlayKey = (line: string) => line.match(/^\s*#\s*@overlay\s+((?:LEFT|RIGHT|LSTICK|RSTICK)(?::[A-Z0-9_,+]+)?)\s+at\s/i)?.[1].toUpperCase() ?? null
+const overlayLines = (text: string) => {
+  const result = new Map<string, string>()
+  for (const line of text.split(/\r?\n/)) { const key = overlayKey(line); if (key) result.set(key, line.trim()) }
+  return result
+}
+function foldSharedOverlays(lines: string[], before: string, after: string) {
+  const old = overlayLines(before), next = overlayLines(after)
+  for (const key of new Set([...old.keys(), ...next.keys()])) {
+    if (old.get(key) === next.get(key)) continue
+    const index = lines.findIndex(line => overlayKey(line) === key)
+    const replacement = next.get(key)
+    if (replacement === undefined) lines = lines.filter(line => overlayKey(line) !== key)
+    else if (index < 0) lines = [...lines.filter((line, at) => at < lines.length - 1 || line.trim()), replacement]
+    else lines = lines.flatMap((line, at) => at === index ? [replacement] : overlayKey(line) === key ? [] : [line])
+  }
+  return lines
+}
+
+/** What this controller would show with none of its own overrides: the shared
+ *  layout (imports resolved) adapted for the model. foldController compares an
+ *  edit with it, so a value set back to what everyone else gets stops being an
+ *  override. */
+export function sharedController(text: string, model: string, effectiveBase = controllerBase(text)) {
+  if (!model) return text
+  return projectController(text.split(/\r?\n/).filter(line => line.match(row)?.[1] !== model).join('\n'), model, effectiveBase)
+}
+
+// The same assignment to JoyShockMapper: spacing does not matter, numbers compare
+// by value (75 = 75.0) and words ignore case, as for imports (inheritedOverrides).
+// App notes riding on comment lines (a label, an icon) must match exactly.
+function sameAssignment(a: string | undefined, b: string | undefined) {
+  if (a === undefined || b === undefined) return false
+  if (a === b) return true
+  const at = a.indexOf('='), bt = b.indexOf('=')
+  if (at < 0 || bt < 0 || a.startsWith('#') || b.startsWith('#')) return a.replace(/\s*=\s*/, ' = ').replace(/\s+/g, ' ') === b.replace(/\s*=\s*/, ' = ').replace(/\s+/g, ' ')
+  return a.slice(0, at).replace(/\s+/g, '').toUpperCase() === b.slice(0, bt).replace(/\s+/g, '').toUpperCase() && sameValue(a.slice(at + 1), b.slice(bt + 1))
+}
+
+/** Fold only the changed assignments/metadata into the model's saved override.
+ *  With `shared` (sharedController), an edit that lands on the shared layout's
+ *  own value is dropped instead of saved as an override, and removing something
+ *  the shared layout never had removes the override instead of writing NONE. */
+export function foldController(text: string, model: string, before: string, after: string, shared?: string) {
   if (!model) return after
   const old = editableLines(before), next = editableLines(after)
   const overrides = editableLines(controllerOverrides(text, model).join('\n'))
+  const base = shared === undefined ? null : editableLines(shared)
   for (const key of new Set([...old.keys(), ...next.keys()])) {
     if (old.get(key) === next.get(key)) continue
-    if (next.has(key)) overrides.set(key, next.get(key)!)
+    // A mode (a layer) is merged by id, not line by line: it keeps the old path.
+    const lineKey = base !== null && !key.startsWith('@layer:')
+    if (next.has(key)) {
+      if (lineKey && sameAssignment(base.get(key), next.get(key))) overrides.delete(key)
+      else overrides.set(key, next.get(key)!)
+    } else if (lineKey && !base.has(key)) overrides.delete(key)
     else if (key.startsWith('@layer:')) {
       const previous = JSON.parse(old.get(key)!.replace(/^#\s*@layer\s+/, ''))
       overrides.set(key, `# @layer ${JSON.stringify({ ...previous, overrides: {}, deleted: true })}`)
@@ -96,7 +149,7 @@ export function foldController(text: string, model: string, before: string, afte
     else if (/^@(label|icon):/.test(key)) overrides.set(key, old.get(key)!.split('=')[0].trimEnd() + ' =')
     else overrides.delete(key)
   }
-  const kept = text.split(/\r?\n/).filter(line => line.match(row)?.[1] !== model)
+  const kept = foldSharedOverlays(text.split(/\r?\n/).filter(line => line.match(row)?.[1] !== model), before, after)
   return [...kept.filter((line, index, all) => index < all.length - 1 || line.trim()), ...[...overrides.values()].map(line => `# @controller ${model} ${line}`)].join('\n') + '\n'
 }
 export function setControllerPadSource(text: string, model: string, source: 'left' | 'right') {
@@ -105,25 +158,91 @@ export function setControllerPadSource(text: string, model: string, source: 'lef
 export function resetControllerVariant(text: string, model: string) {
   return text.split(/\r?\n/).filter(line => line.match(row)?.[1] !== model && line.match(pad)?.[1] !== model).join('\n')
 }
-export type UnavailableInput = { input: string; assignment: string; value: string }
+/** An assignment the shared layout keeps that this controller has no input for
+ *  (ControllerVariant.dc.html "DualSense doesn't have · 5"). `kind` says what
+ *  it is: a binding or setting line, a mode's activation (`# @layer-action`),
+ *  or a virtual menu's opener or pad; `layerId` / `menuId` name its owner. */
+export type UnavailableInput = { input: string; assignment: string; value: string; kind?: 'binding' | 'setting' | 'mode' | 'menu'; layerId?: string; menuId?: string; attachment?: number; field?: 'source' | 'input' | 'confirm' | 'cancel' }
 export function unavailableControllerInputs(text: string, device?: TelemetryDevice): UnavailableInput[] {
   if (!device?.type) return []
   const model = controllerModelKey(device), side = controllerPadSource(text, model)
   const single = singlePadModel(model)
-  const entries: Record<string, string> = Object.assign({}, layerEntries(controllerBase(text)), ...readLayers(controllerBase(text)).map(layer => layer.overrides))
-  return Object.entries(entries).flatMap(([assignment, raw]) => {
+  const missing = (input: string) => {
+    if (/^(LEFT|RIGHT)_(TOUCH|GRID)/.test(input)) return device.type !== 24 && !(single && input.startsWith(side.toUpperCase()))
+    if (single && translateControllerToken(input, side) !== input) return false
+    if (/^(TOUCH|T\d|TUP|TDOWN|TLEFT|TRIGHT|TRING)/.test(input)) return ![4, 5, 24].includes(device.type)
+    if (/^(LT|RT)\d+|^MISC[1-6]$|^[LR]MINI$|^[LR]S[LR]$|^[LR]TOUCH$/.test(input)) return !controllerSupportsInput(device, input)
+    return false
+  }
+  const base = controllerBase(text)
+  const layers = readLayers(base)
+  const owned: [string, string, string | undefined][] = [
+    ...Object.entries(layerEntries(base)).map(([key, value]) => [key, value, undefined] as [string, string, undefined]),
+    ...layers.flatMap(layer => Object.entries(layer.overrides).map(([key, value]) => [key, value, layer.id] as [string, string, string])),
+  ]
+  const result: UnavailableInput[] = owned.flatMap(([assignment, raw, layerId]) => {
+    if (assignment.startsWith('#')) return []
     const value = stripComment(raw).trim()
     if (!value || value === 'NONE') return []
     const tokens = assignment.split(/[,+*]/).map(token => token.replace(/^!/, ''))
-    if (/^(GYRO|TILT)_(ON|OFF)$/.test(tokens[tokens.length - 1])) tokens.push(...value.split(/\s+/))
-    return tokens.filter(input => {
-      if (/^(LEFT|RIGHT)_(TOUCH|GRID)/.test(input)) return device.type !== 24 && !(single && input.startsWith(side.toUpperCase()))
-      if (single && translateControllerToken(input, side) !== input) return false
-      if (/^(TOUCH|T\d|TUP|TDOWN|TLEFT|TRIGHT|TRING)/.test(input)) return ![4, 5, 24].includes(device.type)
-      if (/^(LT|RT)\d+|^MISC[1-6]$|^[LR]MINI$|^[LR]S[LR]$|^[LR]TOUCH$/.test(input)) return !controllerSupportsInput(device, input)
-      return false
-    }).map(input => ({ input, assignment, value }))
+    const setting = /^(GYRO|TILT)_(ON|OFF)$/.test(tokens[tokens.length - 1])
+    if (setting) tokens.push(...value.split(/\s+/))
+    return tokens.filter(missing).map(input => ({ input, assignment, value, kind: setting ? 'setting' as const : 'binding' as const, ...(layerId ? { layerId } : {}) }))
   })
+  // What turns a mode on: "# @layer-action L4 = hold veh" is an annotation the
+  // entries above skip, and the mode it holds is lost with it.
+  for (const action of readLayerActions(base, layers)) {
+    const input = action.input.replace(/^!/, '')
+    if (missing(input)) result.push({ input, assignment: `# @layer-action ${action.input}`, value: `${action.verb} ${action.layerId}`, kind: 'mode', layerId: action.layerId })
+  }
+  // A virtual menu's pad, and the buttons that open, confirm or cancel it.
+  const menus = readVirtualMenus(base)
+  if (!menus.problem) for (const menu of menus.menus) menu.attachments.forEach((attachment, index) => {
+    if (attachment.source === 'LEFT' && (device.type !== 24 && !(single && side === 'left'))) result.push({ input: 'LEFT_PAD', assignment: `VIRTUAL_MENUS ${menu.id}`, value: menu.name, kind: 'menu', menuId: menu.id, attachment: index, field: 'source' })
+    for (const field of ['input', 'confirm', 'cancel'] as const) {
+      const input = attachment[field].replace(/^!/, '')
+      if (input && input !== 'NONE' && missing(input)) result.push({ input, assignment: `VIRTUAL_MENUS ${menu.id}`, value: menu.name, kind: 'menu', menuId: menu.id, attachment: index, field })
+    }
+  })
+  return result
+}
+
+/** "Pick a button" (ControllerVariant): moves one unavailable assignment to an
+ *  input this controller has, written into this controller's own layout only. */
+export function rebindForController(text: string, effectiveText: string, model: string, entry: UnavailableInput, to: string) {
+  const before = projectController(text, model, effectiveText)
+  const swap = (token: string) => token.replace(/^!/, '') === entry.input ? token.replace(entry.input, to) : token
+  const rename = (key: string) => key.replace(/[^,+*]+/g, swap)
+  let after = before
+  if (entry.kind === 'mode') {
+    const actions = readLayerActions(before).map(action => action.input.replace(/^!/, '') === entry.input && action.layerId === entry.layerId ? { ...action, input: swap(action.input) } : action)
+    after = writeLayers(before, readLayers(before), actions)
+  } else if (entry.kind === 'menu' && entry.menuId !== undefined) {
+    const catalog = readVirtualMenus(before)
+    if (catalog.problem) return text
+    after = writeVirtualMenus(before, catalog.menus.map(menu => menu.id !== entry.menuId ? menu : { ...menu, attachments: menu.attachments.map((attachment, index) => {
+      if (index !== entry.attachment) return attachment
+      if (entry.field === 'source') return { ...attachment, source: to as typeof attachment.source }
+      const field = entry.field ?? 'input'
+      return { ...attachment, [field]: swap(attachment[field]) }
+    }) }))
+  } else if (entry.layerId) {
+    const layers = readLayers(before).map(layer => {
+      if (layer.id !== entry.layerId) return layer
+      const overrides: Record<string, string> = {}
+      for (const [key, value] of Object.entries(layer.overrides)) {
+        if (key !== entry.assignment) { overrides[key] = value; continue }
+        overrides[entry.kind === 'setting' ? key : rename(key)] = entry.kind === 'setting' ? value.split(/\s+/).map(swap).join(' ') : value
+      }
+      return { ...layer, overrides }
+    })
+    after = writeLayers(before, layers)
+  } else if (entry.kind === 'setting') {
+    after = updateKeymapEntry(before, entry.assignment, entry.value.split(/\s+/).map(swap))
+  } else {
+    after = updateKeymapEntry(before, rename(entry.assignment), entry.value.split(/\s+/))
+  }
+  return foldController(text, model, before, after)
 }
 export const controllerVariantLabel = (device?: TelemetryDevice) => device ? controllerDisplayName(device.type) + (controllerModelKey(device).endsWith('-edge') ? ' Edge' : '') : 'Shared base'
 

@@ -4,7 +4,7 @@ import * as Dialog from '@radix-ui/react-dialog'
 /** Shared, keyboard-accessible progressive help. Radix restores focus on close. */
 export function HelpButton({ title, children }: { title: string; children: ReactNode }) {
   return <Dialog.Root>
-    <Dialog.Trigger asChild><button type="button" className="help-button" aria-label={`Help: ${title}`} title={`Help: ${title}`}>?</button></Dialog.Trigger>
+    <Dialog.Trigger asChild><button type="button" className="help-button" aria-label={`Help: ${title}`} data-caption={`Help · ${title}`}>?</button></Dialog.Trigger>
     <Dialog.Portal>
       <Dialog.Overlay className="help-overlay" />
       <Dialog.Content className="help-dialog">

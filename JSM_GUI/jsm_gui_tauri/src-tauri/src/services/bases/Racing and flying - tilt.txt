@@ -1,0 +1,40 @@
+# @base {"preset":"racing","title":"Racing & flying","short":"Racing · tilt","blurb":"Triggers as throttle and brake, steering on the stick or by tilting.","families":["steam","playstation","nintendo"],"needs":["gyro"],"order":4}
+# Racing and flying, with tilt steering for controllers that sense motion.
+# Games see a virtual Xbox controller. Tilt past 10 degrees to steer; held
+# level, the stick steers alone. It ships with JSM Evolved, so it can't be
+# changed in place: duplicate it to make your own.
+VIRTUAL_CONTROLLER = XBOX
+
+# Steering on the left stick and by tilting; the camera on the right stick
+LEFT_STICK_MODE = LEFT_STICK
+RIGHT_STICK_MODE = RIGHT_STICK
+MOTION_STICK_MODE = LEFT_STEER_X
+MOTION_DEADZONE_INNER = 10
+MOTION_DEADZONE_OUTER = 135
+
+# Analog throttle and brake
+ZR_MODE = X_RT
+ZL_MODE = X_LT
+
+# Every button as it is on an Xbox pad
+S = X_A
+E = X_B
+W = X_X
+N = X_Y
+L = X_LB
+R = X_RB
++ = X_START
+- = X_BACK
+L3 = X_LS
+R3 = X_RS
+UP = X_UP
+DOWN = X_DOWN
+LEFT = X_LEFT
+RIGHT = X_RIGHT
+
+# @label ZR = Throttle
+# @label ZL = Brake
+# @label S = Handbrake
+# @label E = Look back
+# @label L = Shift down
+# @label R = Shift up

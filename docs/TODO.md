@@ -2021,6 +2021,246 @@ reference. Wireless has packet loss (pops), per that project's README.
 
 ---
 
+### TODO-56 — Console v2: controller-first redesign
+
+**Status:** in progress · raised 2026-10-07
+
+**Context** — a UI/UX review (2026-10-06) judged the app a desktop app with
+controller support bolted on. The v2 designs answer it: about 100 artboards on
+the review canvas (https://claude.ai/artifact/Bf4mVN64EPKSGpseWbEgPm), copied
+to `JSM_GUI/jsm_gui_tauri/design/console-v2/` together with the handoff README
+(decisions V1–V13 and phases P1–P7) and `STYLE-FLAT.md`.
+
+**Why** — Luke wants the app to be a joy with a controller and with a mouse,
+and to help people build a great configuration without feeling like tinkerers.
+
+**Done when** all seven phases in the handoff README ship and every value in
+`Parity.dc.html` is reachable in the app, presented as Front → Fine-tune →
+Advanced and drawn in the app's flat art.
+
+**Notes**
+- Non-negotiables: no configuration value is dropped; flat art only
+  (STYLE-FLAT.md); controller glyph art, never button names as text; global
+  chords are called "Hold to swap", never "combo".
+- V1 reverses console refinement D10: LB/RB now change tabs and LT/RT change
+  sections.
+- Backup before starting: `refs/backup/pre-console-v2-2026-10-07` (repo and
+  JoyShockMapper submodule).
+- 2026-10-07 **P1 foundations done (uncommitted):**
+  - **V1 button map:** LB/RB step tabs and LT/RT step sections
+    (`nav/useControllerNavigation.ts`). The keys follow the job: PgUp/PgDn
+    for pages, `[` / `]` for sections (`nav/inputSource.ts` `KEY_FOR_BUTTON`).
+    The bumper glyphs sit beside the tabs, and the rail has an LT/RT
+    "Section" head.
+  - **V2 docked hint bar:** `.hint-capsule` is now a full-width
+    `--hintbar-h` grid row under the content. It says where you are on the
+    left and shows the stepping hints on every page. The capsule clearances
+    are gone: `.page` 120px, Home 96px, Layers 80px, and
+    `scroller.ts CLEAR_BOTTOM`.
+  - **V9 flat focus ring:** the `--focus-ring-pad` / `--focus-ring-pad-gap`
+    tokens, with no lift. The footer shows the focused element's
+    `data-caption` or `title`.
+  - **V10 Screen distance:** `html[data-density]`, couch tokens.
+  - **V12 Show config names:** `html[data-config-names]` plus
+    `components/ConfigName.tsx`. Both settings are on Appearance and
+    persisted through `appearanceStorage` and the Rust whitelist
+    (`jsm-density`, `jsm-config-names`).
+  - **Tests updated:** `shell_regression` (bumper glyphs `L`/`R`) and
+    `pad_navigation_browser_regression` (RB/LB page, RT section).
+  - **Already failing on an untouched HEAD worktree, before v2:**
+    - `shell_regression`: there is no "Motion" section any more.
+    - `toolbar_regression`: Review changes is in the config menu.
+    - `todo48_focus_ring`: the Documentation search draws two rings.
+    - `keyboard_hints`, `pad_navigation_browser`, `feedback_browser`: they
+      wait for a "Desktop" profile chip that `?mock` no longer opens on.
+  - The header and status-chip merge (V3/V4) moved to P2.
+- 2026-10-07 **P2 information architecture done (uncommitted):**
+  - **V5 tabs:** the ids are kept and only the names changed:
+    - Order: Layout · Buttons · Sticks · Triggers · Trackpads · Gyro ·
+      Menus · Modes.
+    - D-Pad is a section of Buttons. `DPAD_PAGE` keeps the `dpad` route,
+      the `jsm:navigate-page` 'dpad' event goes to Buttons, and
+      `inputPage()` sends D-pad inputs to Buttons.
+  - **V6 Studio split:** `PageMeta.hub` divides it in two.
+    - Library (`LIBRARY_PAGES`, LB/RB tabs): Games, Launch with game.
+    - Settings (`SETTINGS_PAGES`, no tab strip): its rail of nine categories
+      is built in App's `shellSections`. LT/RT step the categories.
+    - The title bar shows Library or Settings, and the labels are renamed in
+      en and zh-CN.
+  - **Home v2:** the configuration card has A Continue, X Test and Y Switch
+    game (X and Y work anywhere on Home through `jsm:pad`). Your games covers
+    other configurations, then New for a game and Library, plus two doors:
+    Settings and Ask the assistant. The 11 Studio tiles are gone.
+  - **V3 status chip:** the state button reads Live · saved, Apply N
+    changes, Make X live, or Testing · Return, with a dot. The title bar's
+    Changes button is gone (Review changes is on ☰). The mapping plate stays
+    for now.
+  - **V4 Controller layout sheet:** the "Editing for" bar on every page
+    became a Controller layout sheet, opened from the configuration menu,
+    which names the current scope.
+  - **Kept for later phases:** the title bar's editing-layer dropdown (P6
+    adds the mode strip).
+  - **Tests renamed** across 25+ files. `credits`, `ui_ux_audit`,
+    `controller_inputs_focus` and `controller_layouts` pass. Tests waiting on
+    the Desktop chip still fail as before (a spawned task covers that).
+- 2026-10-07 **P3 Layout and bindings done (uncommitted):**
+  - **Buttons list (03):** every row starts with the input. An unset row
+    reads "Not set", and a plain Press is not labelled on the keycap. The
+    column headers are gone.
+  - **Binding sheet (04):** A on a row opens its card as a `Sheet` from
+    the right (`inPlace`, so it stays inside the row's `<details>`).
+    - The sheet header holds the cog (Copy / Paste / Reset) and Details,
+      in `Sheet`'s new `actions` slot.
+    - The **When you…** strip (Press · Tap · Hold · Double press) comes
+      first and has the focus (`data-autofocus`). A filled tile jumps to
+      its command; an empty one adds a command of that kind
+      (`onAddCommand`, `addingKind` in ButtonBindingsCard). The picker's
+      eyebrow names the kind.
+  - **Action picker, two levels:** LB/RB step the families (Keyboard ·
+    Mouse · Gamepad · Controller · Modes · Menus · Configurations · Custom).
+    LT/RT step the groups inside one, shown as a second strip:
+    - Keyboard: Common in games · Full keyboard · Numpad · System & media.
+    - Controller: Actions (JSM's) · Sounds.
+
+    This is the `FAMILIES` table in ActionPicker. **Common in games** holds
+    23 keys, each with what games use it for and "B button uses it" when the
+    key is already bound. A new action or a common key opens on it. Search
+    shows each token once.
+  - **On-screen keyboard:** `TextEntryOverlay` opens when A is pressed
+    on any app text field (`nav/textEntry.ts`). X is backspace, Y is
+    space and LB/RB switch to symbols.
+  - **Layout quick menu:** the Find & filter sheet became a Quick menu of
+    SummaryRows: Find · Show (inputs shown, unused, changed while holding)
+    · Picture (on/off, Actions or Live readings) · Controller (Only for
+    this controller opens the Controller layout sheet; Controller light
+    focuses the light row). LT/RT step the shown mode.
+  - **Pad and keyboard in dialogs:** the pad's LT/RT used to be dropped
+    while any dialog was open; they now reach it as pad events, as LB/RB
+    do. In a dialog, PgUp/PgDn send LB/RB, and [ / ] send LT/RT, falling
+    back to LB/RB.
+    `action_picker_focus` was rewritten for families and groups,
+    including trigger pulls.
+    - About 20 picker tests were updated: JSM → Controller, Layers → Modes,
+      Virtual menus → Menus, and key caps are reached through Keyboard →
+      Full keyboard.
+  - **Not done:** per-input Copy/Paste in the quick menu (it's in the
+    binding sheet's cog); "press a real button to jump to its row".
+  - **Picker and binding tests:** the only change against the baseline
+    worktree was `action_picker_focus`, now fixed. Every other failure
+    fails the same way on the baseline.
+- 2026-10-08 **Console v2 built end to end (uncommitted).** Luke: "finish
+  implementing the entire project, don't skip anything". Everything below is
+  detailed in `design/console-v2/IMPLEMENTATION.md` and `notes/<AREA>.md`.
+  - **Built, by area:**
+    - **SHELL:** the one-row header and status chip, footer order and labels,
+      focus and Couch/Desk type, Show config names, every Settings page, Startup,
+      Home, and the update check, tray start, HidHide allow-list, foreground app,
+      Hold to swap reorder and recent commands backend.
+    - **BIND:** the Buttons list, binding sheet (When you… / sends grid / More /
+      While holding / Fine-tune / Details).
+    - **PICK:** the eight kind pickers, the Controller action picker, the icon
+      picker and the on-screen keyboard.
+    - **LAYOUT:** the Layout page, the quick menu and the mode strip.
+    - **P4:** Sticks, Triggers, Trackpads and the grip sheet.
+    - **GYRO:** Gyro front, Fine-tune, Advanced, Tilt, While holding, Match a full
+      turn and Recalibrate.
+    - **MODES:** Modes, Review changes, Menus, Controller light & sounds, Sound
+      library and Controller variant.
+    - **LIBRARY:** Games, Bases, Launch with game, the New configuration wizard,
+      Steam import review, the assistant (Claude by key, local models,
+      OpenAI-compatible, ChatGPT sign-in behind a client id) and 8 shipped preset
+      bases.
+  - **Not possible without a mapper change:** stopping a gyro calibration and
+    "drift so far"; trigger-calibration progress; an input-scoped Try it; a grip
+    proximity meter (telemetry has one bit per grip).
+  - **Needs something outside this repo:** ChatGPT sign-in needs a client id from
+    OpenAI; the update check is untested against a real release; speech input is
+    untested in a real WebView2.
+  - **Untested on real hardware or a real Steam install:** every pad-driven flow
+    was checked with the mock pad only; Steam art, the credential store, tray
+    start, Hold to swap capture and Test mode.
+  - **Controller variants, fixed 2026-10-08:** with a controller connected, edits
+    still fold into that controller's variant (`# @controller type-N …`): the
+    per-model layout adaptation depends on it. But a value set back to what the
+    shared layout says (compared by value: 75 = 75.0, spacing and case ignored)
+    now removes the variant line instead of leaving a copy behind, removing
+    something the shared layout never had removes the override instead of
+    writing `= NONE`, and a name or icon set back to the template's works
+    (`setBindingLabel` / `setBindingIcon` used to rewrite the first of two
+    lines, so the controller's own name kept winning). Removing a While holding
+    shift that exists only on a controller layout also leaves nothing behind now.
+    `foldController` takes the shared layout (`sharedController`) as a fifth
+    argument; `useKeymapConfig` and `App.setControllerDocument` pass it.
+    Tests: `controller_layouts_regression` (units) and
+    `template_override_roundtrip_regression` (run with
+    `JSM_TEST_CONTROLLER=1` for the connected-controller claims).
+  - **Mouse paths, 2026-10-08** (Luke: "any interactable item … should be
+    clickable with mouse"): `SubPage` has a visible ‹ Back; `ValueRow` types on
+    a click of the value and sets on a click or drag of the bar; `ContextActions`
+    (mounted in `App`) gives every row with X / Y hints a hover "…" and a
+    right-click menu; ◂ ▸ on menu step rows, the mode order / verb / bring-in
+    rows, sound track and the light-mode chip are clickable, and the sound
+    timeline's markers can be dragged. Test: `mouse_paths_browser_regression`.
+    Still pad-only by nature: Hold-to-swap capture, press-to-pick listening (the
+    list below it is clickable).
+  - **Light is a command, 2026-10-08** (Luke: "when A is held, press space and set
+    the LED to red … if they want it to stay that colour that should be a
+    different output"): Fine-tune no longer has a "Light while held" card with a
+    While held / Keep after press switch. Controller action ▸ Light has two
+    commands, each choosing its colour on its own page (`LightPage` in
+    `ControllerActionPicker`): **Light while held** (colour and brightness, goes
+    back on let-go) and **Change light colour** (stays). A held light shows in the
+    Sends list as "Light while held" with a colour swatch, next to what the button
+    sends. The stored lines are unchanged (`A,LIGHT_BAR = x…`).
+  - **Known leftovers:** about 97 files still have English-only literals in
+    labels; `AutoloadManager.tsx`, `constants/fpsTemplate.ts`,
+    `HapticOutputPicker.tsx` and some `gyroPage.*` strings are unused.
+  - **Build-out start (kept for the record):**
+  - **Six audits** found that P1–P3 were less complete than marked:
+    - P1/P2: the one-row header, footer labels, captions, V12, Settings pages,
+      Bases and Startup are missing.
+    - P3: the binding sheet's sends grid, More, While holding, Fine-tune and
+      Details, the 8 pickers, the icon picker, and the Layout callouts and focus
+      card are missing.
+    - The audits are in the session scratchpad `audit/`.
+  - **Shared kit** in `components/ui/console`: SubPage, FineTune,
+    AdvancedParts, ModeCards, ValueRow, SegmentedRow, OpenRow.
+  - **Shell plumbing:**
+    - `ShellContext` and the `StatusChip` export;
+    - HintCapsule `extraHints` and Kit ordering;
+    - rail `status`/`count`;
+    - `requestValueEntry`;
+    - `data-arrows="horizontal"` for direct ◂ ▸;
+    - the `pickers/KindPicker` contract;
+    - the dev `KitPlayground` (`jsm:kit`).
+  - **Conventions and decisions D1–D24:**
+    `design/console-v2/IMPLEMENTATION.md`.
+  - **Eight areas built in parallel:** BIND, PICK, LAYOUT, P4, GYRO, MODES,
+    LIBRARY and SHELL, each writing `design/console-v2/notes/<AREA>.md`.
+  - **P3 extras done here:**
+    - press a real button to jump to its row (`nav/usePressToFind.ts`,
+      PressToFind);
+    - the quick menu's This input Copy/Paste, through the shared clipboard
+      store `utils/bindingClipboard.ts`.
+- 2026-10-08 **Steam Input names for the big features (uncommitted).** Luke's
+  call: short titles, one-line subtitles.
+  - **Layers** (was "Modes"): the tab, cards, Switch layer, the layer strip,
+    Review changes, the title chip and footer.
+  - **Chords** (was a button's "While holding another button…"): the binding
+    sheet's fold row and page; rows read "With LB held · sends …".
+  - **Mode shift** (was "While holding…" on sticks, triggers, pads, gyro and
+    tilt): the Y-menu entry and sub-page; rows "LB held", editor "Mode shift · LB".
+  - **Hold to swap** is unchanged.
+  - The Chords page lost its "a stick becomes…" step. A stick change while a
+    button is held is that stick's Mode shift (the same `X,*_STICK_MODE` lines).
+    The Chords page shows "Also shifts: Right stick · Flick ▸" instead.
+  - Stick mode shift chips on a binding sheet, and Controller action's
+    Left/Right stick mode shift tiles, open Sticks ▸ Mode shift for that button
+    (`requestModeshift` in `components/sticks/inputSide.ts`).
+  - Code identifiers and file names keep "mode" and "modeshift".
+
+---
+
 ## Done
 
 ### Trackpad mouse area, drawn on the screen — 2026-10-01

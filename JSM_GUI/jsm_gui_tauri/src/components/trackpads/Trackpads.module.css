@@ -1,0 +1,19 @@
+/* Trackpads (console v2). */
+.cards [role='radio'] > span:first-child, .cards button > span:first-child { aspect-ratio: 16 / 9; }
+.padVisual { display: flex; flex-direction: column; align-items: center; gap: var(--sp-3); padding: var(--sp-5); border-radius: var(--r-card, 16px); background: var(--surface-row); min-width: 0; }
+.padArt { width: 100%; max-width: 360px; display: flex; flex-direction: column; align-items: center; gap: var(--sp-2); }
+.padArt p, .padLive { margin: 0; color: var(--text-2); font-size: var(--fs-hint); }
+.surface { width: 100%; max-width: 300px; height: auto; }
+.zoneRow { min-width: 0; }
+.parts { display: flex; flex-direction: column; gap: var(--sp-3); }
+.partStrip { display: flex; align-items: stretch; gap: var(--sp-2); padding: var(--sp-1); border-radius: var(--r-row); background: rgba(255, 255, 255, .03); }
+.partKey { align-self: center; padding: 2px 6px; border-radius: 6px; background: #e8eef4; color: #0d1217; font-size: 11px; font-weight: 700; }
+.part { flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: var(--sp-2) var(--sp-3); border: 0; border-radius: 10px; background: transparent; color: var(--text-2); font: inherit; text-align: left; cursor: pointer; }
+.part b { color: var(--text-1); font-size: var(--fs-label); }
+.part span { font-size: var(--fs-hint); }
+.part[data-current='true'] { background: var(--surface-row-hover); }
+.feelColumns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-3); }
+@media (max-width: 1279px) { .feelColumns { grid-template-columns: minmax(0, 1fr); } }
+.feelColumn { display: flex; flex-direction: column; gap: var(--sp-2); padding: var(--sp-4); border-radius: var(--r-card, 16px); background: rgba(255, 255, 255, .03); }
+.feelColumn > span { color: var(--text-2); font-size: var(--fs-hint); }
+.feelNote { color: var(--text-3); font-size: var(--fs-hint); }

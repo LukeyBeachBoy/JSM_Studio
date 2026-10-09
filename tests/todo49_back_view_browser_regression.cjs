@@ -1,4 +1,4 @@
-// TODO-49: the mirrored back view beside the front art on Home keeps its
+// TODO-49: the mirrored back view beside the front art (now the Buttons page aside) keeps its
 // drawing still while its legend gains rows ("Left grip held", "L5"...). The
 // block is centred beside the front art, so the legend reserves the space its
 // rows can take up front; before the fix the drawing slid up 39px as three
@@ -21,6 +21,11 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
       await firstConnect.getByRole('button', { name: 'Keep them' }).click()
       await firstConnect.waitFor({ state: 'hidden' })
     }
+    // Console v2: the mirrored back view with its legend is the Buttons page's
+    // "Where it is on your controller" aside (Layout draws the back with a fixed
+    // caption instead, so it has no legend to grow).
+    await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('jsm:navigate-page', { detail: 'buttons' })))
     const back = page.getByRole('img', { name: 'Steam Controller back, mirrored' })
     await back.waitFor()
     const measure = () => page.evaluate(() => {

@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Calibrate triggers</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.step{display:flex;align-items:center;gap:16px;min-height:68px;padding:10px 20px;box-sizing:border-box;border-radius:16px;background:#1f2730}
+.step .n{width:34px;height:34px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-family:'Geist Mono',monospace;font-size:16px;font-weight:500}
+.step .t{font-size:19px;font-weight:650}
+.step .s{font-size:15px;color:#808c99}
+.seg6{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+.seg6 span{height:8px;border-radius:4px;background:#2e3844;position:relative;overflow:hidden}
+.art{--art-line:#e3eaf1;--art-detail:#aebbc8;--art-body:#1c242d;--art-well:#0e1419;--art-cap:#212a34;--art-rim:rgba(255,255,255,.10)}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="height: 76px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 40px; background: #0d1217">
+<span style="font-size: 18px; color: #808c99">Wardogs · Triggers</span>
+<span style="font-size: 18px; color: #808c99">▸</span>
+<span style="font-size: 22px; font-weight: 700">Calibrate</span>
+<span style="margin-left: auto; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 20px; background: #173a52; color: #a8dbfa; font-size: 16px; font-weight: 600"><span style="width: 9px; height: 9px; border-radius: 50%; background: #3e9fd8"></span>Calibrating · DualSense</span>
+</header>
+
+<main style="flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 540px; gap: 32px; padding: 28px 40px 24px">
+
+<section style="background: #1a222b; border-radius: 24px; padding: 24px 28px; display: flex; flex-direction: column; gap: 12px; min-width: 0; min-height: 0">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 18px; font-weight: 650">Right trigger</span><span style="font-family: 'Geist Mono', monospace; font-size: 14px; color: #93e6c1">● live 64%</span></div>
+
+<svg viewBox="0 0 600 480" width="100%" height="480" fill="none">
+<path d="M430.2 238.8A362 362 0 0 1 141.6 430.6" stroke="#7cc4ee" stroke-opacity=".3" stroke-width="10" stroke-dasharray="2 7"></path>
+<path d="M429.5 186.3A340 340 0 0 1 139.6 408.7" stroke="rgba(255,255,255,.07)" stroke-width="24" stroke-linecap="round"></path>
+<path d="M429.5 186.3A340 340 0 0 1 139.6 408.7" stroke="#0e1419" stroke-width="18" stroke-linecap="round"></path>
+<path d="M429.5 186.3A340 340 0 0 1 271.7 369.1" stroke="#3e9fd8" stroke-width="13" stroke-linecap="round"></path>
+<path d="M408.8 178.8L420.1 182.9M394.6 211.9L405.3 217.2M376.7 243.2L386.8 249.7M355.4 272.3L364.6 279.9M330.9 298.7L339.3 307.4M303.6 322.3L310.9 331.8M273.8 342.6L279.9 352.9M241.9 359.4L246.9 370.3M208.3 372.4L212 383.9M173.4 381.6L175.8 393.4M137.7 386.8L138.8 398.7" stroke="rgba(255,255,255,.14)" stroke-width="1.6" stroke-linecap="round"></path>
+<g transform="rotate(20 110 70)"><path d="M128 48L380 54C402 55 414 63 414 70C414 77 402 85 380 86L128 92C122 92 118 87 118 81V59C118 53 122 48 128 48Z" stroke="rgba(255,255,255,.14)" stroke-dasharray="5 6"></path></g>
+<g transform="rotate(61.6 110 70)">
+<path d="M128 48L380 54C402 55 414 63 414 70C414 77 402 85 380 86L128 92C122 92 118 87 118 81V59C118 53 122 48 128 48Z" fill="#3e9fd8" stroke="#e3eaf1" stroke-width="2"></path>
+</g>
+<circle cx="110" cy="70" r="40" fill="#212a34" stroke="#e3eaf1" stroke-width="2"></circle>
+<circle cx="110" cy="70" r="14" fill="#0e1419"></circle>
+<circle cx="410.8" cy="228.6" r="13" fill="#1e3d33" stroke="#5fd3a0" stroke-width="2"></circle>
+<path d="M404.8 228.8L409 233L416.8 224.6" stroke="#93e6c1" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path>
+<text x="448" y="226" fill="#93e6c1" font-size="16" font-weight="600" font-family="Geist, sans-serif">Pushes back</text>
+<text x="448" y="246" fill="#93e6c1" font-size="16" font-weight="600" font-family="Geist, sans-serif">here · 12%</text>
+<circle cx="271.7" cy="369.1" r="10" fill="#ffffff"></circle>
+<circle cx="139.6" cy="408.7" r="7" fill="#e8eef4"></circle>
+<text x="172" y="444" fill="#e8eef4" font-size="17" font-weight="600" font-family="Geist, sans-serif">Full press</text>
+<text x="172" y="466" fill="#808c99" font-size="16" font-family="Geist, sans-serif">Follow it to here</text>
+<svg class="art" x="444" y="8" width="148" height="99.4" viewBox="0 0 1117 750"><defs><linearGradient id="tcd-l" x1="0" y1="0" x2="0" y2="1"><stop style="stop-color:#fff;stop-opacity:.09" offset="0"></stop><stop style="stop-color:#fff;stop-opacity:0" offset=".55"></stop></linearGradient><mask id="tcd-m"><path d="M558.5 24.8C501.5 24.8 432 25.8 376.3 32.8C359.9 34.8 373.9 44.6 351.3 50.3C331.7 55.1 364.2 36.2 328.8 31.8C307.6 29.2 244.4 29.3 207.3 47.8C160.9 70.9 142.6 129.8 125.8 174.8C84.5 284.7 60.8 407.6 60.8 524.8C60.8 556.3 62.7 629.5 80.8 654.8C93.3 672.4 112.7 677.5 131.3 686.8C145.9 694.1 180.9 722.5 194.8 720.8C211 718.7 224.9 671.5 230.3 657.3C249.2 606.8 265.9 555.6 284.8 505.3C292.4 485 298 456.1 317.8 443.8C325.8 438.7 334.5 436.4 343.8 435.3C365 432.6 403.6 439.5 425.8 442.3C443.5 444.5 462.2 441.1 479.8 443.3C496.8 445.4 514.7 441.6 531.8 443.8C536.9 444.4 542.6 443.8 547.8 443.8C550.4 443.8 553.1 443.8 555.8 443.8C556.7 443.8 559.4 443.8 558.5 443.8C557.6 443.8 560.3 443.8 561.2 443.8C563.9 443.8 566.6 443.8 569.2 443.8C574.4 443.8 580.1 444.4 585.2 443.8C602.3 441.6 620.2 445.4 637.2 443.3C654.8 441.1 673.5 444.5 691.2 442.3C713.4 439.5 752 432.6 773.2 435.3C782.5 436.4 791.2 438.7 799.2 443.8C819 456.1 824.6 485 832.2 505.3C851.1 555.6 867.8 606.8 886.7 657.3C892.1 671.5 906 718.7 922.2 720.8C936.1 722.5 971.1 694.1 985.7 686.8C1004.3 677.5 1023.7 672.4 1036.2 654.8C1054.3 629.5 1056.2 556.3 1056.2 524.8C1056.2 407.6 1032.5 284.7 991.2 174.8C974.4 129.8 956.1 70.9 909.7 47.8C872.6 29.3 809.4 29.2 788.2 31.8C752.8 36.2 785.3 55.1 765.7 50.3C743.1 44.6 757.1 34.8 740.7 32.8C685 25.8 615.5 24.8 558.5 24.8Z" fill="#fff"></path></mask><pattern id="tcd-p" width="13" height="13" patternUnits="userSpaceOnUse"><circle style="fill:var(--art-detail,#aebbc8);fill-opacity:.22" cx="6.5" cy="6.5" r="1.9"></circle></pattern></defs><path style="fill:var(--art-body,#1c242d)" d="M558.5 24.8C501.5 24.8 432 25.8 376.3 32.8C359.9 34.8 373.9 44.6 351.3 50.3C331.7 55.1 364.2 36.2 328.8 31.8C307.6 29.2 244.4 29.3 207.3 47.8C160.9 70.9 142.6 129.8 125.8 174.8C84.5 284.7 60.8 407.6 60.8 524.8C60.8 556.3 62.7 629.5 80.8 654.8C93.3 672.4 112.7 677.5 131.3 686.8C145.9 694.1 180.9 722.5 194.8 720.8C211 718.7 224.9 671.5 230.3 657.3C249.2 606.8 265.9 555.6 284.8 505.3C292.4 485 298 456.1 317.8 443.8C325.8 438.7 334.5 436.4 343.8 435.3C365 432.6 403.6 439.5 425.8 442.3C443.5 444.5 462.2 441.1 479.8 443.3C496.8 445.4 514.7 441.6 531.8 443.8C536.9 444.4 542.6 443.8 547.8 443.8C550.4 443.8 553.1 443.8 555.8 443.8C556.7 443.8 559.4 443.8 558.5 443.8C557.6 443.8 560.3 443.8 561.2 443.8C563.9 443.8 566.6 443.8 569.2 443.8C574.4 443.8 580.1 444.4 585.2 443.8C602.3 441.6 620.2 445.4 637.2 443.3C654.8 441.1 673.5 444.5 691.2 442.3C713.4 439.5 752 432.6 773.2 435.3C782.5 436.4 791.2 438.7 799.2 443.8C819 456.1 824.6 485 832.2 505.3C851.1 555.6 867.8 606.8 886.7 657.3C892.1 671.5 906 718.7 922.2 720.8C936.1 722.5 971.1 694.1 985.7 686.8C1004.3 677.5 1023.7 672.4 1036.2 654.8C1054.3 629.5 1056.2 556.3 1056.2 524.8C1056.2 407.6 1032.5 284.7 991.2 174.8C974.4 129.8 956.1 70.9 909.7 47.8C872.6 29.3 809.4 29.2 788.2 31.8C752.8 36.2 785.3 55.1 765.7 50.3C743.1 44.6 757.1 34.8 740.7 32.8C685 25.8 615.5 24.8 558.5 24.8Z"></path><path style="" fill="url(#tcd-l)" d="M558.5 24.8C501.5 24.8 432 25.8 376.3 32.8C359.9 34.8 373.9 44.6 351.3 50.3C331.7 55.1 364.2 36.2 328.8 31.8C307.6 29.2 244.4 29.3 207.3 47.8C160.9 70.9 142.6 129.8 125.8 174.8C84.5 284.7 60.8 407.6 60.8 524.8C60.8 556.3 62.7 629.5 80.8 654.8C93.3 672.4 112.7 677.5 131.3 686.8C145.9 694.1 180.9 722.5 194.8 720.8C211 718.7 224.9 671.5 230.3 657.3C249.2 606.8 265.9 555.6 284.8 505.3C292.4 485 298 456.1 317.8 443.8C325.8 438.7 334.5 436.4 343.8 435.3C365 432.6 403.6 439.5 425.8 442.3C443.5 444.5 462.2 441.1 479.8 443.3C496.8 445.4 514.7 441.6 531.8 443.8C536.9 444.4 542.6 443.8 547.8 443.8C550.4 443.8 553.1 443.8 555.8 443.8C556.7 443.8 559.4 443.8 558.5 443.8C557.6 443.8 560.3 443.8 561.2 443.8C563.9 443.8 566.6 443.8 569.2 443.8C574.4 443.8 580.1 444.4 585.2 443.8C602.3 441.6 620.2 445.4 637.2 443.3C654.8 441.1 673.5 444.5 691.2 442.3C713.4 439.5 752 432.6 773.2 435.3C782.5 436.4 791.2 438.7 799.2 443.8C819 456.1 824.6 485 832.2 505.3C851.1 555.6 867.8 606.8 886.7 657.3C892.1 671.5 906 718.7 922.2 720.8C936.1 722.5 971.1 694.1 985.7 686.8C1004.3 677.5 1023.7 672.4 1036.2 654.8C1054.3 629.5 1056.2 556.3 1056.2 524.8C1056.2 407.6 1032.5 284.7 991.2 174.8C974.4 129.8 956.1 70.9 909.7 47.8C872.6 29.3 809.4 29.2 788.2 31.8C752.8 36.2 785.3 55.1 765.7 50.3C743.1 44.6 757.1 34.8 740.7 32.8C685 25.8 615.5 24.8 558.5 24.8Z"></path><path style="fill:none;stroke:var(--art-rim,rgba(255,255,255,.1));stroke-width:5.6" d="M558.5 24.8C501.5 24.8 432 25.8 376.3 32.8C359.9 34.8 373.9 44.6 351.3 50.3C331.7 55.1 364.2 36.2 328.8 31.8C307.6 29.2 244.4 29.3 207.3 47.8C160.9 70.9 142.6 129.8 125.8 174.8C84.5 284.7 60.8 407.6 60.8 524.8C60.8 556.3 62.7 629.5 80.8 654.8C93.3 672.4 112.7 677.5 131.3 686.8C145.9 694.1 180.9 722.5 194.8 720.8C211 718.7 224.9 671.5 230.3 657.3C249.2 606.8 265.9 555.6 284.8 505.3C292.4 485 298 456.1 317.8 443.8C325.8 438.7 334.5 436.4 343.8 435.3C365 432.6 403.6 439.5 425.8 442.3C443.5 444.5 462.2 441.1 479.8 443.3C496.8 445.4 514.7 441.6 531.8 443.8C536.9 444.4 542.6 443.8 547.8 443.8C550.4 443.8 553.1 443.8 555.8 443.8C556.7 443.8 559.4 443.8 558.5 443.8C557.6 443.8 560.3 443.8 561.2 443.8C563.9 443.8 566.6 443.8 569.2 443.8C574.4 443.8 580.1 444.4 585.2 443.8C602.3 441.6 620.2 445.4 637.2 443.3C654.8 441.1 673.5 444.5 691.2 442.3C713.4 439.5 752 432.6 773.2 435.3C782.5 436.4 791.2 438.7 799.2 443.8C819 456.1 824.6 485 832.2 505.3C851.1 555.6 867.8 606.8 886.7 657.3C892.1 671.5 906 718.7 922.2 720.8C936.1 722.5 971.1 694.1 985.7 686.8C1004.3 677.5 1023.7 672.4 1036.2 654.8C1054.3 629.5 1056.2 556.3 1056.2 524.8C1056.2 407.6 1032.5 284.7 991.2 174.8C974.4 129.8 956.1 70.9 909.7 47.8C872.6 29.3 809.4 29.2 788.2 31.8C752.8 36.2 785.3 55.1 765.7 50.3C743.1 44.6 757.1 34.8 740.7 32.8C685 25.8 615.5 24.8 558.5 24.8Z" mask="url(#tcd-m)" transform="translate(0 2.8)"></path><path style="fill:none;stroke:var(--art-line,#e3eaf1);stroke-width:3.6;stroke-linecap:round;stroke-linejoin:round" d="M344 50C380 41 450 36 558.5 35"></path><path style="fill:none;stroke:var(--art-line,#e3eaf1);stroke-width:3.6;stroke-linecap:round;stroke-linejoin:round" d="M773 50C737 41 667 36 558.5 35"></path><rect style="fill:var(--art-well,#0e1419);stroke:var(--art-detail,#aebbc8);stroke-width:2.4" x="530.5" y="47" width="56" height="9" rx="4.5"></rect><path style="fill:var(--art-well,#0e1419);stroke:var(--art-detail,#aebbc8);stroke-width:2.4" d="M176 80C178 120 182 165 194 190C206 212 228 217 252 217C280 217 312 213 326 203C336 194 335 165 335 130C335 100 338 70 344 52C320 40 250 40 200 50C186 56 178 66 176 80Z"></path><path style="fill:var(--art-well,#0e1419);stroke:var(--art-detail,#aebbc8);stroke-width:2.4" d="M941 80C939 120 935 165 923 190C911 212 889 217 865 217C837 217 805 213 791 203C781 194 782 165 782 130C782 100 779 70 773 52C797 40 867 40 917 50C931 56 939 66 941 80Z"></path><rect style="fill:var(--art-cap,#212a34);stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linejoin:round" x="210" y="135" width="100" height="62" rx="12"></rect><rect style="fill:var(--art-cap,#212a34);stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linejoin:round" x="807" y="135" width="100" height="62" rx="12"></rect><path style="fill:var(--art-cap,#212a34);stroke:var(--art-line,#e3eaf1);stroke-width:3.6;stroke-linejoin:round" d="M198 72C198 66 202 62 208 62L314 58C320 58 323 61 323 67L323 119C323 125 320 128 314 128L208 128C202 128 198 125 198 119Z"></path><path style="fill:var(--art-cap,#212a34);stroke:var(--art-line,#e3eaf1);stroke-width:3.6;stroke-linejoin:round" d="M919 72C919 66 915 62 909 62L803 58C797 58 794 61 794 67L794 119C794 125 797 128 803 128L909 128C915 128 919 125 919 119Z"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M199 89C240 87 290 86 323 85"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M918 89C877 87 827 86 794 85"></path><path style="fill:var(--art-cap,#212a34);stroke:var(--art-line,#e3eaf1);stroke-width:3.6;stroke-linejoin:round" d="M195 76C194 62 197 52 206 46C232 34 280 30 308 30C317 31 322 36 322 44L322 58C285 63 240 70 195 78Z"></path><path style="fill:var(--art-cap,#212a34);stroke:var(--art-line,#e3eaf1);stroke-width:3.6;stroke-linejoin:round" d="M922 76C923 62 920 52 911 46C885 34 837 30 809 30C800 31 795 36 795 44L795 58C832 63 877 70 922 78Z"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M385 278L447 278"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M454 278L532 278"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M539 278L577 278"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M584 278L636 278"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M643 278L663 278"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M670 278L732 278"></path><rect style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" x="399" y="292" width="18" height="18" rx="4"></rect><rect style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" x="449" y="292" width="18" height="18" rx="4"></rect><rect style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" x="500" y="292" width="18" height="18" rx="4"></rect><rect style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" x="549.5" y="292" width="18" height="18" rx="4"></rect><rect style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" x="599" y="292" width="18" height="18" rx="4"></rect><rect style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" x="650" y="292" width="18" height="18" rx="4"></rect><rect style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" x="700" y="292" width="18" height="18" rx="4"></rect><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M386 327L422 327"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M429 327L499 327"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M506 327L558 327"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M565 327L595 327"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M602 327L650 327"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M657 327L731 327"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M391 339L447 339"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M454 339L516 339"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M523 339L567 339"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M574 339L628 339"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M635 339L667 339"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M674 339L726 339"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M443 356L483 356"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M490 356L570 356"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M577 356L623 356"></path><path style="fill:none;stroke:var(--art-detail,#aebbc8);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" d="M630 356L674 356"></path><circle style="fill:var(--art-well,#0e1419)" cx="494" cy="375.5" r="4.5"></circle><rect style="fill:var(--art-well,#0e1419)" x="532.5" y="403" width="52" height="5" rx="2.5"></rect><path style="fill:none;stroke:var(--art-line,#e3eaf1);stroke-width:5.2;stroke-linejoin:round" d="M558.5 24.8C501.5 24.8 432 25.8 376.3 32.8C359.9 34.8 373.9 44.6 351.3 50.3C331.7 55.1 364.2 36.2 328.8 31.8C307.6 29.2 244.4 29.3 207.3 47.8C160.9 70.9 142.6 129.8 125.8 174.8C84.5 284.7 60.8 407.6 60.8 524.8C60.8 556.3 62.7 629.5 80.8 654.8C93.3 672.4 112.7 677.5 131.3 686.8C145.9 694.1 180.9 722.5 194.8 720.8C211 718.7 224.9 671.5 230.3 657.3C249.2 606.8 265.9 555.6 284.8 505.3C292.4 485 298 456.1 317.8 443.8C325.8 438.7 334.5 436.4 343.8 435.3C365 432.6 403.6 439.5 425.8 442.3C443.5 444.5 462.2 441.1 479.8 443.3C496.8 445.4 514.7 441.6 531.8 443.8C536.9 444.4 542.6 443.8 547.8 443.8C550.4 443.8 553.1 443.8 555.8 443.8C556.7 443.8 559.4 443.8 558.5 443.8C557.6 443.8 560.3 443.8 561.2 443.8C563.9 443.8 566.6 443.8 569.2 443.8C574.4 443.8 580.1 444.4 585.2 443.8C602.3 441.6 620.2 445.4 637.2 443.3C654.8 441.1 673.5 444.5 691.2 442.3C713.4 439.5 752 432.6 773.2 435.3C782.5 436.4 791.2 438.7 799.2 443.8C819 456.1 824.6 485 832.2 505.3C851.1 555.6 867.8 606.8 886.7 657.3C892.1 671.5 906 718.7 922.2 720.8C936.1 722.5 971.1 694.1 985.7 686.8C1004.3 677.5 1023.7 672.4 1036.2 654.8C1054.3 629.5 1056.2 556.3 1056.2 524.8C1056.2 407.6 1032.5 284.7 991.2 174.8C974.4 129.8 956.1 70.9 909.7 47.8C872.6 29.3 809.4 29.2 788.2 31.8C752.8 36.2 785.3 55.1 765.7 50.3C743.1 44.6 757.1 34.8 740.7 32.8C685 25.8 615.5 24.8 558.5 24.8Z"></path><path d="M919 72C919 66 915 62 909 62L803 58C797 58 794 61 794 67L794 119C794 125 797 128 803 128L909 128C915 128 919 125 919 119Z" fill="#3e9fd8" stroke="#e3eaf1" stroke-width="5" stroke-linejoin="round"></path></svg>
+</svg>
+
+<div style="display: flex; flex-direction: column; gap: 10px; margin-top: auto">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><span style="font-size: 18px; color: #b0bcc8">Following it down</span><span style="font-size: 36px; font-weight: 700">64%</span></div>
+<div style="position: relative; height: 10px; border-radius: 5px; background: #0f151b"><span style="position: absolute; left: 0; top: 0; height: 10px; width: 64%; border-radius: 5px; background: #3e9fd8"></span></div>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 12px; min-width: 0; min-height: 0">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 15px; color: #808c99"><span style="color: #d4dde6; font-weight: 600">Right trigger</span><span>Left trigger</span></div>
+<div class="seg6">
+<span style="background: #5fd3a0"></span>
+<span><span style="position: absolute; left: 0; top: 0; bottom: 0; width: 64%; background: #3e9fd8"></span></span>
+<span></span>
+<span></span>
+<span></span>
+<span></span>
+</div>
+</div>
+
+<span style="font-size: 15px; letter-spacing: .08em; text-transform: uppercase; color: #7cc4ee; font-weight: 600">Right trigger · step 2 of 3</span>
+<h1 style="margin: 0; font-size: 36px; font-weight: 700; line-height: 1.2; letter-spacing: -0.01em">Keep a gentle pull all the way down</h1>
+<p style="margin: 0; font-size: 19px; line-height: 1.5; color: #b0bcc8">The trigger slowly gives way. Follow it with a light finger until it stops.</p>
+
+<div class="step">
+<span class="n" style="background: #1e3d33"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M4 9.2L7.6 12.6L14 5.6" stroke="#93e6c1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 3px; min-width: 0"><span class="t" style="color: #b0bcc8">Squeeze until it pushes back</span><span class="s">Found at 12%</span></span>
+<span style="margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 15px; color: #808c99; white-space: nowrap"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M8 2H14V8H20V14H14V20H8V14H2V8H8Z" fill="#2e3844" stroke="#808c99" stroke-linejoin="round"></path><path d="M8.5 14.5H13.5V19.5H8.5Z" fill="#e8eef4"></path></svg>Pressed</span>
+</div>
+
+<div class="focus" style="background: #1d445c; border-radius: 16px; padding: 16px 20px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: center; gap: 16px">
+<span style="width: 34px; height: 34px; border-radius: 50%; flex: none; display: flex; align-items: center; justify-content: center; background: #3e9fd8; color: #07131d; font-family: 'Geist Mono', monospace; font-size: 16px; font-weight: 500">2</span>
+<span style="display: flex; flex-direction: column; gap: 3px"><span style="font-size: 19px; font-weight: 650">Pull fully</span><span style="font-size: 15px; color: #b8e2fa">Light touch, all the way to the stop</span></span>
+<span style="margin-left: auto; font-size: 20px; font-weight: 700">64%</span>
+</div>
+<div style="position: relative; height: 6px; border-radius: 3px; background: #0f151b"><span style="position: absolute; left: 0; top: 0; height: 6px; width: 64%; border-radius: 3px; background: #7cc4ee"></span></div>
+<span style="font-size: 15px; line-height: 1.45; color: #b8e2fa">Pressing hard spoils the reading. If it slips, stop and start again.</span>
+</div>
+
+<div class="step">
+<span class="n" style="box-shadow: inset 0 0 0 2px #2e3844; color: #b0bcc8">3</span>
+<span style="display: flex; flex-direction: column; gap: 3px"><span class="t">Let go</span><span class="s">Then the same three steps on the left trigger</span></span>
+</div>
+
+<div class="step" style="background: transparent; box-shadow: inset 0 0 0 2px #2e3844">
+<svg width="34" height="34" viewBox="0 0 34 34" fill="none" style="flex: none"><path d="M10 6H24C26 6 27.5 7.5 27.2 9.5L25 24C24.3 28.5 20.5 31 16 31H13C10.5 31 9 29 9 26.5V7.5C9 6.7 9.4 6 10 6Z" stroke="#808c99" stroke-width="1.8"></path></svg>
+<span style="display: flex; flex-direction: column; gap: 3px"><span class="t" style="color: #b0bcc8">Left trigger</span><span class="s">Confirm the push-back with ✕</span></span>
+<span style="margin-left: auto; font-size: 16px; color: #808c99">Next</span>
+</div>
+
+<span style="margin-top: auto; font-size: 15px; line-height: 1.5; color: #808c99">Saved to Wardogs when both triggers are done.</span>
+</section>
+</main>
+
+<footer style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Wardogs · Triggers · Calibrate · Right trigger</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">PS</span>Stop, keep old values</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Key picker</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.btn{font-family:inherit;border:0;cursor:pointer}
+.tab{font-family:inherit;border:0;background:transparent;color:#b0bcc8;font-size:18px;font-weight:600;height:44px;padding:0 18px;border-radius:12px;cursor:pointer}
+.key{font-family:inherit;border:0;cursor:pointer;height:112px;border-radius:16px;background:#1f2730;color:#e8eef4;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;padding:14px 16px;box-sizing:border-box;text-align:left}
+.key .k{font-size:28px;font-weight:650}
+.key .u{font-size:15px;color:#808c99}
+.used{font-size:13px;color:#ffc98f}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="flex: none; display: flex; align-items: center; gap: 20px; padding: 32px 48px 20px">
+<span style="display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 50%; background: #e8eef4; color: #0d1217; font-weight: 700; font-size: 20px">A</span>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 16px; color: #808c99">A button · Press sends</span>
+<span style="font-size: 32px; font-weight: 700">Pick a key</span>
+</div>
+<div style="margin-left: auto; display: flex; align-items: center; gap: 12px; background: #1f2730; border-radius: 16px; padding: 14px 20px; font-size: 17px; color: #d4dde6">
+<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#7cc4ee" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"></rect><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"></path></svg>
+Or press it on a real keyboard
+<span class="g" style="margin-left: 6px">X</span>
+</div>
+</header>
+
+<nav style="flex: none; display: flex; align-items: center; gap: 6px; padding: 0 48px 20px">
+<span class="gp" style="margin-right: 8px">LT</span>
+<button class="tab" style="background: #1d445c; color: #ffffff">Common in games</button>
+<button class="tab">Letters</button>
+<button class="tab">Numbers</button>
+<button class="tab">F-keys &amp; system</button>
+<button class="tab">Arrows &amp; numpad</button>
+<button class="tab">Media</button>
+<span class="gp" style="margin-left: 8px">RT</span>
+</nav>
+
+<main style="flex: 1; min-height: 0; padding: 4px 48px 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); grid-auto-rows: 112px; gap: 14px">
+<button class="key focus" style="background: #1d445c"><span class="k">Space</span><span class="u" style="color: #b8e2fa">Jump · current</span></button>
+<button class="key"><span class="k">Shift</span><span class="u">Sprint</span></button>
+<button class="key"><span class="k">Ctrl</span><span class="u">Crouch, slide</span></button>
+<button class="key"><span class="k">E</span><span class="u">Interact</span></button>
+<button class="key"><span class="k">F</span><span class="u">Use</span><span class="used">Y button uses it</span></button>
+<button class="key"><span class="k">R</span><span class="u">Reload</span><span class="used">X button uses it</span></button>
+<button class="key"><span class="k">Q</span><span class="u">Ability, lean</span></button>
+<button class="key"><span class="k">G</span><span class="u">Grenade</span><span class="used">LB uses it</span></button>
+<button class="key"><span class="k">C</span><span class="u">Crouch</span><span class="used">B button uses it</span></button>
+<button class="key"><span class="k">V</span><span class="u">Melee</span></button>
+<button class="key"><span class="k">Tab</span><span class="u">Inventory, scoreboard</span></button>
+<button class="key"><span class="k">Esc</span><span class="u">Pause</span></button>
+<button class="key"><span class="k">1</span><span class="u">Weapon 1</span></button>
+<button class="key"><span class="k">2</span><span class="u">Weapon 2</span></button>
+<button class="key"><span class="k">3</span><span class="u">Weapon 3</span></button>
+<button class="key"><span class="k">M</span><span class="u">Map</span></button>
+<button class="key"><span class="k">Alt</span><span class="u">Free look</span></button>
+<button class="key"><span class="k">Enter</span><span class="u">Chat, confirm</span></button>
+<button class="key"><span class="k">Z</span><span class="u">Prone, sights</span></button>
+<button class="key"><span class="k">X</span><span class="u">Holster</span></button>
+<button class="key"><span class="k">B</span><span class="u">Buy, fire mode</span></button>
+<button class="key"><span class="k">T</span><span class="u">Push to talk</span></button>
+<button class="key"><span class="k">I</span><span class="u">Inventory</span></button>
+<button class="key" style="background: transparent; box-shadow: inset 0 0 0 2px #2e3844"><span class="k" style="font-size: 20px">With Ctrl, Shift…</span><span class="u">Ctrl + C, Shift + 1</span></button>
+</main>
+
+<footer style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Wardogs · A button · Press</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">A</span>Use Space</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">X</span>Listen for a key</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">LT</span><span class="gp">RT</span>Group</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Back</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

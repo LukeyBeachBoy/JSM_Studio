@@ -1,294 +1,140 @@
-// Isolated renderer checks; mocks never invoke a physical controller or runtime.
+// Modes (console v2, P6: Modes, ModeHow, ModeChanges). Isolated renderer checks:
+// the mocks never reach a controller or the mapper. Proves what the old Layers
+// page and Manage layers dialog did, on the new screens: create, rename, delete
+// (confirmed in place, Keep it first), suppress holds, override "Use Default",
+// bringing old modeshifts into a mode, plus what the redesign adds: the verb
+// and buttons edited from the mode's side, reordering, the "Default: …" column,
+// and Review changes reading the reorder.
 const assert = require('node:assert/strict');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
-const path = require('node:path');
-const fs = require('node:fs');
 (async () => {
- const browser = await chromium.launch({channel:'msedge',headless:true});
+ const browser = await chromium.launch({ channel: 'msedge', headless: true });
  try {
- const page = await browser.newPage({viewport:{width:1440,height:1000}});
- const errors=[]; page.on('pageerror',e=>errors.push(e.message));
- await page.addInitScript(() => {
-  const profiles={Desktop:'RESET_MAPPINGS\nprofiles-library/Template.txt\nRSR,N = J\nRSR,W = U\nN = SPACE\nLEFT_TOUCHPAD_MODE = GRID_AND_STICK\nLEFT_GRID_SIZE = 2 2\nLT1 = ENTER\nLT3 = TAB\nRIGHT_TOUCHPAD_MODE = MOUSE\n', Game:'RESET_MAPPINGS\nN = ENTER\n'};
-  window.__calls=[]; window.__lastApplied=''; window.__lastSaved='';
-  window.electronAPI={
-   getActiveProfile:async()=>({name:'Desktop',path:'profiles-library/Desktop.txt',content:profiles.Desktop}),
-   readConfigFile:async()=> 'E = C\nLEFT_TOUCHPAD_SENS = 1.7\n',
-   listLibraryProfiles:async()=>Object.keys(profiles),
-   loadLibraryProfile:async name=>({name,content:profiles[name]}),
-   saveLibraryProfile:async(name,content)=>{window.__lastSaved=content;window.__calls.push('save');if(window.__delaySave) await new Promise(resolve=>window.__finishSave=resolve);profiles[name]=content;window.__saved=true;return {name}},
-   applyProfile:async(path,text)=>{window.__lastApplied=text;window.__calls.push('apply');return {path,mappingEnabled:true}},
+  const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+  const errors = []; page.on('pageerror', e => errors.push(e.message));
+  await page.addInitScript(() => {
+   const profiles = { Desktop: 'RESET_MAPPINGS\nN = SPACE\nE = C\nRSR,N = J\nRSR,W = U\n# @layer {"id":"veh","name":"Vehicles","overrides":{"N":"H","LIGHT_BAR":"x34C759"}}\n# @layer {"id":"map","name":"Map","overrides":{}}\n# @layer-action LSL = hold veh\n' };
+   window.__saved = '';
+   window.electronAPI = {
+    getActiveProfile: async () => ({ name: 'Desktop', path: 'profiles-library/Desktop.txt', content: profiles.Desktop }),
+    listLibraryProfiles: async () => Object.keys(profiles),
+    loadLibraryProfile: async name => ({ name, content: profiles[name] }),
+    saveLibraryProfile: async (name, content) => { window.__saved = content; profiles[name] = content; return { name } },
+    applyProfile: async (path) => ({ path, mappingEnabled: true }),
+   };
+   // No controller: edits go to the shared layout, and capture offers the list.
+   window.telemetry = { onSample: cb => { const emit = () => cb({ console: 'Mapper ready', activeProfile: 'profiles-library/Desktop.txt', devices: [] }); emit(); const timer = setInterval(emit, 200); return () => clearInterval(timer) } };
+  });
+  await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
+  await page.getByRole('button', { name: 'Keep them', exact: true }).click({ timeout: 5000 }).catch(() => {})
+  await page.locator('.app-shell').waitFor({ timeout: 30000 });
+  await page.waitForTimeout(1500);
+  const go = tab => page.evaluate(detail => window.dispatchEvent(new CustomEvent('jsm:navigate-page', { detail })), tab);
+  const save = async () => { await page.evaluate(() => { window.__saved = '' }); await page.keyboard.press('Control+s'); await page.waitForFunction(() => window.__saved.length > 0) ; return page.evaluate(() => window.__saved) };
+  const layersOf = text => text.split(/\r?\n/).filter(line => line.startsWith('# @layer {')).map(line => JSON.parse(line.slice(9)));
+  const card = name => page.locator('[data-modes-page] [data-mode-id]').filter({ hasText: name }).first();
+  const typeName = async value => {
+   const keyboard = page.locator('[data-text-entry] [role="dialog"]');
+   await keyboard.waitFor();
+   for (let i = 0; i < 24; i++) await page.keyboard.press('Backspace');
+   await page.keyboard.type(value);
+   await page.keyboard.press('Enter');
+   await keyboard.waitFor({ state: 'detached' });
   };
-  window.telemetry={onSample:cb=>{
-   const emit=()=>cb({console:'Mapper ready\nProfile loaded',activeProfile:'profiles-library/Desktop.txt',devices:[{handle:1,type:24,supportedButtons:8589934591,status:{buttons:0,leftStick:{x:0,y:0},rightStick:{x:0,y:0},triggers:{left:0,right:0},gyro:{x:0,y:0,z:0},leftPad:{x:0,y:0,touched:false},rightPad:{x:0,y:0,touched:true,pressure:0.02,speed:420}}}]});
-   emit();const timer=setInterval(emit,100);return()=>clearInterval(timer);
-  }};
- });
- await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
- // A Steam Controller's first connection asks about its power-on sound.
- await page.getByRole('button',{name:'Keep them',exact:true}).click({timeout:5000}).catch(()=>{});
- // The app opens on Home (console refinement 2a); these checks start in the editing shell.
- await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
 
+  await go('layers');
+  await page.locator('[data-modes-page]').waitFor();
+  // The cards: Default first, then each mode with what turns it on and what it changes.
+  const cards = await page.locator('[data-modes-page] [data-mode-id]').evaluateAll(els => els.map(el => el.querySelector('b')?.textContent));
+  assert.deepEqual(cards.slice(0, 3), ['Default', 'Vehicles', 'Map']);
+  assert.match(await card('Vehicles').innerText(), /On while held/);
+  assert.match(await page.locator('[data-modes-page]').innerText(), /Only Default is on|not running/i, 'the live stack, or why there is none');
+  assert.match(await page.locator('.page-header').innerText(), /The last one turned on wins/);
 
- // The editing layer is the title bar's Layer segment; its menu switches it.
- const picker=page.locator('.context-segment--layer');
- const pickerName=async()=>(await picker.locator('b').innerText()).trim();
- const layerItem=name=>page.getByRole('menuitem').filter({has:page.locator('[class*=itemLabel]').getByText(name,{exact:true})});
- // Activation belongs to the input, so it is bound from the input, not from
- // the layer panel. Group is the Buttons-page section the input lives in.
- // Activation belongs to the input, so it is bound from the input rather than
- // from the layer panel. The Buttons page lists every input, so no group
- // navigation is needed to reach one.
- // Activation belongs to the input, so it is bound from the input rather than
- // from the layer panel. The Buttons page lists every input, so no group
- // navigation is needed to reach one.
- // Manage layers is the last row of the title bar's Layer menu.
- const openManageLayers=async()=>{
-  if(await page.locator('#layer-management').count()) return;
-  await page.getByRole('button',{name:/^Editing layer:/}).click();
-  await page.getByRole('menuitem',{name:'Manage layers…'}).click();
- };
- // Anything modal covers the page behind it, so close whatever is open before
- // touching the app itself. One at a time, since closing one can reveal another.
- const closeManageLayers=async()=>{
-  for(let attempt=0;attempt<4;attempt++){
-   if(!await page.locator('.modal-overlay').count()) return;
-   const close=page.locator('.modal-overlay [data-modal-close]').first();
-   if(await close.count()) await close.click().catch(()=>{});
-   else await page.keyboard.press('Escape');
-   await page.waitForTimeout(150);
-  }
-  const left=await page.locator('.modal-overlay').count();
-  if(left) throw new Error(`${left} modal overlay(s) would not close: `+await page.locator('.modal-overlay').first().innerText());
- };
- const bindLayerAction=async(command,verb,layerName)=>{
-  await closeManageLayers();
-  await page.getByRole('button',{name:'Buttons',exact:true}).click();
-  const card=page.locator(`details[data-input-command="${command}"]`).first();
-  await card.waitFor();
-  if(await card.getAttribute('open')===null) await card.locator('summary').first().click();
-  // A layer action is a command (TODO-55): the Add command picker's Layers
-  // tab adds a Hold on the layer and opens the row's sheet, where "When it is
-  // pressed" is changed. The UI says Turn on / Turn off for apply / remove;
-  // the file keeps the JSM words.
-  await card.getByRole('button',{name:'Add command'}).click();
-  const picker=page.getByRole('dialog',{name:'Choose an action'});
-  await picker.locator('.action-picker__tabs .action-tab').filter({hasText:'Layers'}).click();
-  await picker.getByRole('button',{name:new RegExp('^'+layerName)}).click();
-  await picker.waitFor({state:'detached'});
-  const sheet=page.getByRole('dialog',{name:new RegExp(layerName+'$')});
-  await sheet.waitFor();
-  await sheet.getByRole('radio',{name:{'Hold layer':'Hold','Toggle layer':'Toggle','Apply layer':'Turn on','Remove layer':'Turn off'}[verb]??verb,exact:true}).click();
-  await sheet.locator('[data-modal-close]').click();
-  await sheet.waitFor({state:'detached'});
- };
- const chooseLayer=async name=>{await closeManageLayers();await picker.click();await layerItem(name).click();};
- await page.locator('.profile-chip').filter({hasText:'Desktop'}).waitFor();
- await openManageLayers();
- await page.getByRole('textbox',{name:'New layer name',exact:true}).fill('Comms');
- await page.getByRole('button',{name:'Create layer',exact:true}).click();
- // Creating a layer binds nothing: moving an input's modeshifts into it is a
- // separate, explicit act, and so is binding something to turn it on.
- await page.getByText('Convert existing modeshifts to a layer', { exact: true }).click();
- await page.getByRole('combobox',{name:'Move modeshifts from',exact:true}).click();
- // RSR, named as players name the paddle.
- await page.getByRole('option',{name:'R4',exact:true}).click();
- await page.getByRole('button',{name:/^Move \d+ assignment/}).click();
- assert.equal(await pickerName(),'Comms','creation selects the new layer');
- await chooseLayer('Comms');
- await page.getByRole('button',{name:'Trackpads',exact:true}).click();
- const right=page.locator('#trackpad-right');
- // A pad's values are summary rows (console refinement 2b): Sensitivity opens
- // a sheet, and a value is stepped in its row -- Enter, an arrow, Enter.
- const sens=right.locator('button.summary-row').filter({has:page.locator('.summary-row__label').getByText('Sensitivity',{exact:true})});
- const sensValue=async()=>(await sens.locator('.summary-row__value').innerText()).trim();
- await sens.click();
- const horizontal=page.locator('.sheet button.summary-row').filter({has:page.locator('.summary-row__label').getByText('Horizontal sensitivity',{exact:true})});
- await horizontal.focus(); await page.keyboard.press('Enter');
- await page.waitForFunction(()=>document.activeElement?.getAttribute('data-adjusting')==='true');
- await page.keyboard.press('ArrowRight'); await page.keyboard.press('Enter');
- // The origin line names the layer the value now lives in.
- assert.equal(await horizontal.locator('.summary-row__hint').innerText(),'Changed in the Comms layer');
- await page.keyboard.press('Escape');
- await page.locator('.sheet').waitFor({state:'detached'});
- assert.equal(await sensValue(),'1.05×');
- await page.keyboard.press('Control+s');
- await page.waitForFunction(()=>window.__lastSaved.includes('@layer'));
- let saved=await page.evaluate(()=>window.__lastSaved);
- let layer=JSON.parse(saved.split('\n').find(l=>l.startsWith('# @layer ')).slice(9));
- assert.equal(layer.overrides.RIGHT_TOUCHPAD_SENS,'1.05');
- assert.equal(layer.overrides.N,'J','existing shifts migrated together');
- assert.equal(layer.overrides.W,'U');
- assert.equal(layer.overrides.E,undefined,'unmodified imported binding must stay inherited');
- assert.ok(saved.includes('profiles-library/Template.txt'),'keep imports as imports');
- assert.ok(!/^E = C/m.test(saved),'do not inline imported bindings when saving a layer');
- // The state button owns unsaved state now (1e): nothing left to save.
- assert.doesNotMatch(await page.locator('.state-button').innerText(),/^Apply d+ change/,'saved layer should be clean even with imports');
- assert.ok(!/^RIGHT_TOUCHPAD_SENS = 1.05/m.test(saved),'layer edit leaked into base');
- await bindLayerAction('LSR','Apply layer','Comms');
- await bindLayerAction('RSL','Remove layer','Comms');
- await page.getByRole('button',{name:'Trackpads',exact:true}).click();
- await page.keyboard.press('Control+s');
- await page.waitForFunction(()=>/# @layer-action RSL = remove /.test(window.__lastSaved));
- const activation=(await page.evaluate(()=>window.__lastSaved)).split('\n').filter(l=>l.startsWith('# @layer-action '));
- assert.ok(activation.some(l=>/LSR = apply /.test(l)),`apply is bound to the input: ${activation}`);
- assert.ok(activation.some(l=>/RSL = remove /.test(l)),`remove is bound to the input: ${activation}`);
- assert.ok(activation.some(l=>/RSR = hold /.test(l)), `migration retains the original hold input: ${activation}`);
- assert.equal(activation.length,3,`one migrated hold plus the explicitly added apply/remove inputs: ${activation}`);
- await chooseLayer('Default');
- assert.equal(await sensValue(),'1.00×');
- await chooseLayer('Comms');
- assert.equal(await sensValue(),'1.05×');
- // Switching on Buttons must edit the chosen layer and keep Default intact.
- await openManageLayers();
- await closeManageLayers();
- await page.getByRole('button',{name:'Buttons',exact:true}).click();
- const north=page.locator('details[data-input-command="N"]').first();
- const northOutput=north.locator('summary kbd').first();
- // The keycap prints its activation over the key (3b); the key is its last line.
- // Open, the card's first command names it on its keycap (3c).
- const northText=async()=>await north.evaluate(e=>e.open)
-   ? north.locator('[data-command-row]').first().getByRole('button',{name:/^Choose action/}).innerText()
-   : (await northOutput.innerText()).split('\n').pop();
- assert.equal(await northText(),'J');
- await north.locator('summary').first().click();
- // The output is chosen in the action picker, from the row's keycap (3c).
- await north.locator('[data-command-row]').first().getByRole('button',{name:/^Choose action/}).click();
- await page.getByRole('dialog',{name:'Choose an action'}).locator('button.key-cap').filter({hasText:/^K$/}).click();
- // A pointer switch must commit any focused input before projecting the next layer.
- await chooseLayer('Default');
- assert.equal(await northText(),'Space');
- await chooseLayer('Comms');
- assert.equal(await pickerName(),'Comms');
- assert.equal(await northText(),'K','unsaved layer edit survives switching');
- await chooseLayer('Default');
- assert.equal(await northText(),'Space');
- // Keyboard: the menu opens on the current layer; End reaches the last layer.
- await picker.focus(); await page.keyboard.press('Enter'); // Down walks to the page tabs now (focus model); Enter / A opens.
- await layerItem('Comms').waitFor();
- await page.waitForFunction(()=>document.activeElement?.getAttribute('role')==='menuitem');
- await page.keyboard.press('End');
- // Radix moves roving focus on a timer, so let End land before the next key.
- await page.waitForFunction(()=>document.activeElement?.textContent.startsWith('Manage layers'));
- await page.keyboard.press('ArrowUp');
- await page.waitForFunction(()=>document.activeElement?.textContent.startsWith('Comms'));
- await page.keyboard.press('Enter');
- await page.waitForFunction(()=>document.querySelector('.context-segment--layer b')?.textContent==='Comms');
- assert.equal(await pickerName(),'Comms','keyboard layer selection');
- assert.equal(await northText(),'K');
- await page.keyboard.press('Control+s');
- await page.waitForFunction(()=>window.__lastSaved.includes('"N":"K"'));
- assert.match(await page.evaluate(()=>window.__lastSaved),/^N = SPACE/m);
- assert.deepEqual(await page.evaluate(()=>window.__calls.filter(c=>c==='apply')),[],'editor layer selection must not activate a runtime layer');
- // Badges and outputs must share the value column, without forcing the chevron onto a second line.
- // Compared closed: an open row is a 64px card header by design (Binding Editor).
- if(await north.getAttribute('open')!==null){ await north.locator('summary').first().click(); await page.waitForFunction(()=>!document.querySelector('details[data-input-command="N"]')?.open); }
- // The header shrinks back to a row over 160ms (2f); measure the settled row.
- await page.waitForFunction(()=>document.getAnimations().every(animation=>animation.playState!=='running'));
- const northSummary=await north.locator('summary').first().boundingBox();
- const inheritedSummary=await page.locator('details[data-input-command="E"] > summary').first().boundingBox();
- assert.equal(northSummary.height,inheritedSummary.height,'override and inherited rows keep the same height');
- assert.ok(northSummary.height<70,'layer badges must not create extra grid rows');
- const fixedY=(await picker.boundingBox()).y;
- await page.locator('.shell-scroll').evaluate(el=>{el.scrollTop=el.scrollHeight});
- assert.equal((await picker.boundingBox()).y,fixedY,'picker stays fixed when input page scrolls');
- await page.getByRole('button',{name:'Triggers',exact:true}).click();
- assert.equal(await pickerName(),'Comms','layer is retained across input pages');
- await closeManageLayers();
- await page.getByRole('button',{name:'Buttons',exact:true}).click();
- const artifacts=path.resolve(__dirname,'../tmp/layers-review'); fs.mkdirSync(artifacts,{recursive:true});
- await page.locator('.shell-scroll').evaluate(el=>{el.scrollTop=0});
- await page.screenshot({path:path.join(artifacts,'buttons-layer-picker.png'),fullPage:true});
- await page.setViewportSize({width:900,height:700});
- await page.evaluate(()=>window.scrollTo(0,document.body.scrollHeight));
- const compactPicker=await picker.boundingBox();
- assert.ok(compactPicker.y>=0 && compactPicker.y+compactPicker.height<700,'picker stays visible in compact layout');
- await chooseLayer('Default');
- assert.equal(await pickerName(),'Default');
- await chooseLayer('Comms');
- await page.screenshot({path:path.join(artifacts,'buttons-layer-picker-compact.png')});
- await page.setViewportSize({width:1440,height:1000});
- await page.evaluate(()=>window.scrollTo(0,0));
- // A layer action is not an output. It needs a layer as well as an action, one
- // input can carry several, and it coexists with that input’s ordinary binding,
- // so it is edited in its own section under the card. The output list used to
- // offer "Hold layer" / "Apply layer" / "Remove layer" too, which set nothing:
- // it dispatched an event, snapped back to its previous value, and left you
- // looking at the dropdown. The output list offers outputs.
- const northCard = page.locator('details[data-input-command="N"]').first();
- if (await northCard.getAttribute('open') === null) await northCard.locator('summary').first().click();
- // A command's settings hold no output list at all now (3c): outputs are
- // chosen in the picker, and a layer from its Layers tab (TODO-55).
- await northCard.locator('[data-command-row]').first().getByRole('button',{name:'Command settings'}).click();
- const settings = page.getByRole('dialog').last();
- assert.equal(await settings.getByRole('combobox',{name:'Output'}).count(), 0, 'the output kind select survived');
- assert.equal(await settings.getByText(/^(Hold|Apply|Remove) layer$/).count(), 0, 'the settings offer layer verbs as outputs');
- await page.keyboard.press('Escape');
- await settings.waitFor({state:'detached'});
- // ...and the picker that does the job lists the layers on the same card.
- await northCard.getByRole('button',{name:'Add command'}).click();
- const addPicker=page.getByRole('dialog',{name:'Choose an action'});
- await addPicker.locator('.action-picker__tabs .action-tab').filter({hasText:'Layers'}).click();
- await addPicker.getByRole('button',{name:/^Comms/}).waitFor();
- assert.equal(await northCard.locator('section[data-concept="layer"]').count(), 0, 'the Layer actions lane is still on the card');
- await addPicker.locator('[data-modal-close]').click();
- await addPicker.waitFor({state:'detached'});
+  // + Build: an empty mode in the next colour.
+  await page.getByRole('button', { name: 'Build', exact: true }).click();
+  await card('Build').waitFor();
+  assert.deepEqual(layersOf(await save()).map(layer => layer.name), ['Vehicles', 'Map', 'Build']);
 
- await page.getByRole('button',{name:'Overview',exact:true}).click();
- // Comms is already applied by L5 and removed by R5; a hold on R4 as well is
- // three inputs driving one layer, which the old one-field-per-layer model
- // could not express at all.
- await bindLayerAction('RSR','Hold layer','Comms');
- await page.getByRole('button',{name:'Overview',exact:true}).click();
- // Each is a Comms layer chip on its callout (2a); what it does is the inspector's.
- for (const [input, verb] of [['RSR','Hold'],['LSR','Turn on'],['RSL','Turn off']]) {
-   await page.locator(`[data-overview-input="${input}"][aria-label*="${verb} Comms"]`).waitFor();
-   assert.match(await page.locator(`[data-overview-input="${input}"] [data-concept="layer"]`).first().innerText(), /Comms/);
- }
- await page.screenshot({path:path.join(artifacts,'overview.png'),fullPage:true});
- // One state button applies (1e): it saves first when there are unsaved edits.
- await page.locator('.state-button').click();
- await page.waitForFunction(()=>window.__calls.includes('apply'));
- assert.ok((await page.evaluate(()=>window.__lastApplied)).includes('@layer'));
- await openManageLayers();
- const layerName=page.getByRole('textbox',{name:'Layer name',exact:true});
- await layerName.fill('Radio'); await layerName.press('Tab');
- assert.equal(await pickerName(),'Radio');
- await bindLayerAction('LSL','Hold layer','Radio');
- await page.getByRole('button',{name:'Overview',exact:true}).click();
- await openManageLayers();
- assert.equal(await pickerName(),'Radio');
- await page.getByText(/overrides · Restore inheritance/).click();
- await page.locator('.layer-override').filter({hasText:'Right pad sensitivity'}).getByRole('button',{name:'Use Default',exact:true}).click();
- await page.keyboard.press('Control+s');
- await page.waitForFunction(()=>window.__lastSaved.includes('Radio'));
- let renamed=JSON.parse((await page.evaluate(()=>window.__lastSaved)).split('\n').find(l=>l.startsWith('# @layer ')).slice(9));
- assert.equal(renamed.trigger,undefined,'a saved layer carries no activation of its own');
- assert.ok((await page.evaluate(()=>window.__lastSaved)).includes('# @layer-action LSL = hold '),'it is on the input instead');
- assert.equal(renamed.overrides.RIGHT_TOUCHPAD_SENS,undefined);
- await page.getByRole('button',{name:'Delete layer',exact:true}).click();
- // Deleting asks first (System States 17g): Cancel is focused, Delete confirms.
- await page.locator('.modal-overlay--over').getByRole('button',{name:'Delete',exact:true}).click();
- assert.equal(await pickerName(),'Default');
- await page.keyboard.press('Control+s');
- await page.waitForFunction(()=>!window.__lastSaved.includes('@layer'));
- assert.ok(/^N = SPACE/m.test(await page.evaluate(()=>window.__lastSaved)),'delete keeps Default');
- // A layer can use only persistent actions, with no hold button.
- await page.getByRole('textbox',{name:'New layer name',exact:true}).fill('Vehicles');
- // Nothing to clear: a new layer has no activation of its own.
- await page.getByRole('button',{name:'Create layer',exact:true}).click();
- await chooseLayer('Vehicles');
- await bindLayerAction('RSR','Apply layer','Vehicles');
- await bindLayerAction('LSL','Remove layer','Vehicles');
- await page.getByRole('button',{name:'Overview',exact:true}).click();
- await page.keyboard.press('Control+s');
- await page.waitForFunction(()=>window.__lastSaved.includes('Vehicles') && /# @layer-action LSL = remove /.test(window.__lastSaved));
- const bound=(await page.evaluate(()=>window.__lastSaved)).split('\n').filter(l=>l.startsWith('# @layer-action '));
- assert.ok(bound.some(l=>/RSR = apply /.test(l))&&bound.some(l=>/LSL = remove /.test(l)),`a layer with no hold at all: ${bound}`);
- assert.equal(await pickerName(),'Vehicles');
- await page.screenshot({path:path.join(artifacts,'persistent-layer-actions.png'),fullPage:true});
- assert.deepEqual(errors,[]);
- console.log('PASS: layer actions are edited in their own section and not offered as outputs, fixed Buttons layer picker, keyboard/arrows, compact scrolling, scoped binding edits, create/select layer, scoped trackpad edit, save/apply document, Default inheritance, Overview action badges, persistent-only creation, Apply/Remove assignments');
- } finally {await browser.close();}
-})().catch(error=>{console.error(error);process.exit(1)});
+  // X on a card: how it turns on and off, edited from the mode's side.
+  await card('Vehicles').focus();
+  await page.keyboard.press('x');
+  const how = page.getByRole('dialog', { name: /How it turns on and off/ });
+  await how.waitFor();
+  await how.getByRole('radio', { name: /Tap to toggle/ }).click();
+  // Another button turns it off: picked from the list (no controller to press).
+  await how.locator('[data-off-tile]').click();
+  const capture = page.getByRole('dialog', { name: /Turned off by/ });
+  await capture.waitFor();
+  await capture.locator('[role="option"]:has(svg[data-glyph="-"])').click();
+  await capture.waitFor({ state: 'detached' });
+  assert.match(await how.innerText(), /turns it off/);
+  await how.getByRole('switch', { name: /Pause holds/ }).click();
+  // LT moves it up the order (its colour follows its place).
+  await how.getByRole('radio', { name: /Tap to toggle/ }).focus();
+  await page.keyboard.press('[');
+  await page.waitForFunction(() => document.querySelector('[aria-label="Layers, last on top"] [data-current="true"]')?.textContent?.includes('2 · Vehicles'));
+  let text = await save();
+  assert.match(text, /^# @layer-action LSL = toggle veh$/m, 'Tap to toggle rewrites the action');
+  assert.match(text, /^# @layer-action - = remove veh$/m, 'Another button turns it off');
+  assert.equal(layersOf(text).find(layer => layer.id === 'veh').suppressHolds, true);
+  assert.deepEqual(layersOf(text).map(layer => layer.name), ['Map', 'Vehicles', 'Build'], 'reordered');
+
+  // Y: the mode's menu beside what it changes, Default's value alongside.
+  await how.getByRole('radio', { name: /Holding/ }).focus();
+  await page.keyboard.press('y');
+  const changes = page.getByRole('dialog', { name: /What changes in this layer/ });
+  await changes.waitFor();
+  assert.match(await changes.innerText(), /Changed in this layer · 2/i);
+  assert.match(await changes.innerText(), /Default: Space/);
+  assert.match(await changes.innerText(), /Light #34c759/i);
+  assert.ok(!(await changes.innerText()).includes('x34C759'), 'raw binding syntax is hidden');
+  // X uses Default on a change.
+  await changes.locator('[data-change-key="N"]').focus();
+  await page.keyboard.press('x');
+  await page.waitForFunction(() => /Changed in this layer · 1/i.test(document.body.innerText));
+  // Bring in old While holding changes: RSR's two move into the mode, RSR holds it.
+  const bring = changes.locator('[role="group"]').filter({ hasText: 'Bring in chords' });
+  assert.match(await bring.innerText(), /· 2/);
+  await bring.focus(); await page.keyboard.press('Enter');
+  await page.waitForFunction(() => /Changed in this layer · 3/i.test(document.body.innerText));
+  // Rename on the on-screen keyboard; a taken name is refused.
+  await changes.getByRole('button', { name: /Rename/ }).click();
+  await typeName('Driving');
+  await page.waitForFunction(() => document.body.innerText.includes('Driving'));
+  text = await save();
+  const driving = layersOf(text).find(layer => layer.id === 'veh');
+  assert.equal(driving.name, 'Driving');
+  assert.deepEqual(Object.keys(driving.overrides).sort(), ['LIGHT_BAR', 'N', 'W']);
+  assert.equal(driving.overrides.N, 'J');
+  assert.doesNotMatch(text, /^RSR,/m, 'the old modeshifts moved');
+  assert.match(text, /^# @layer-action RSR = hold veh$/m);
+  await page.keyboard.press('Escape');
+  await changes.waitFor({ state: 'detached' });
+
+  // Delete is confirmed in place, Keep it focused; nothing else changes.
+  await card('Map').focus();
+  await page.keyboard.press('y');
+  await changes.waitFor();
+  await changes.getByRole('button', { name: 'Delete Map' }).click();
+  await page.waitForFunction(() => document.activeElement?.hasAttribute('data-keep'));
+  await page.keyboard.press('Escape');
+  await changes.getByRole('button', { name: 'Delete Map' }).click();
+  await changes.getByRole('alertdialog').getByRole('button', { name: 'Delete Map' }).click();
+  await changes.waitFor({ state: 'detached' });
+  assert.equal(await card('Map').count(), 0);
+
+  // Review changes names the reorder and the mode edits in words.
+  await page.keyboard.down('m'); await page.keyboard.down('m'); await page.keyboard.up('m');
+  await page.getByRole('button', { name: /^Review changes/ }).click();
+  const review = page.getByRole('dialog', { name: /Review changes/ });
+  await review.waitFor();
+  assert.match(await review.innerText(), /Map layer[\s\S]*In the file[\s\S]*Deleted/);
+  await review.getByRole('button', { name: 'Revert Map layer' }).click();
+  await review.getByRole('heading', { name: 'No pending changes' }).waitFor();
+  await page.keyboard.press('Escape');
+  await card('Map').waitFor();
+  assert.deepEqual(errors, []);
+  console.log('PASS: modes are created, ordered, renamed, deleted in place; activation, suppress holds, Use Default and old modeshifts edited from the mode');
+ } finally { await browser.close() }
+})().catch(error => { console.error(error); process.exit(1) });

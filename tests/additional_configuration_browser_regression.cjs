@@ -46,72 +46,104 @@ const ARTIFACTS = path.resolve(__dirname, '../tmp/additional-configuration');
     fs.mkdirSync(ARTIFACTS, { recursive: true });
 
     const save = async () => { await page.keyboard.press('Control+s'); await page.waitForTimeout(400); return page.evaluate(() => window.__lastSaved); };
-    const card = page.locator('details[data-input-command="N"]').first();
-    await card.locator(':scope > summary').click();
-    const open = page.locator('details[data-input-command="N"][open]');
-    const rows = open.locator('[data-command-row]');
-    await rows.first().waitFor();
-    assert.equal(await rows.count(), 2);
-    await rows.first().getByRole('button',{name:'Command settings',exact:true}).click();
-    let sheet=page.getByRole('dialog').last();
-    let field=sheet.getByRole('textbox',{name:'Small motor strength',exact:true});
-    assert.equal(await field.inputValue(),'50.2');
-    await field.fill('100');await field.press('Enter');
-    field=sheet.getByRole('textbox',{name:'Big motor strength',exact:true});
-    await field.fill('25');await field.press('Enter');
-    let saved=await save();assert.match(saved,/R40FF\+\{60\} J\+\{200\}/);
-    await sheet.screenshot({path:path.join(ARTIFACTS,'rumble-settings.png')});
-    await page.keyboard.press('Escape');
-    const show=async input=>{
+    // Console v2: a row's card is a sheet over the list; B / Escape closes it
+    // (after closing whatever it opened) before another row can be reached.
+    const closeSheets=async()=>{ for(let i=0;i<5&&await page.locator('details[data-input-command][open], [data-subpage]').count();i++){ await page.keyboard.press('Escape'); await page.waitForTimeout(150); } };
+    const sheetOf = input => page.locator(`details[data-input-command="${input}"][open] [data-binding-sheet]`);
+    const fineTune = async input => {
+      await closeSheets();
       await page.locator(`details[data-input-command="${input}"] > summary`).first().click();
-      await page.locator(`details[data-input-command="${input}"][open]`).getByRole('button',{name:'Command settings',exact:true}).first().click();
-      return page.getByRole('dialog').last();
+      await sheetOf(input).locator('[data-fold="fine-tune"]').click();
+      const ft = page.locator('[data-fine-tune]');
+      await ft.waitFor();
+      return ft;
     };
-    sheet=await show('S');
-    assert.match(await sheet.getByRole('combobox',{name:'Effect',exact:true}).innerText(),/imported/);
-    await sheet.getByRole('combobox',{name:'Actuator',exact:true}).click();
-    await page.getByRole('option',{name:'Left grip',exact:true}).click();
-    await sheet.getByRole('combobox',{name:'Effect',exact:true}).click();
-    await page.getByRole('option',{name:'Tone',exact:true}).click();
-    field=sheet.getByRole('textbox',{name:/Gain/});
-    await field.fill('-12');await field.press('Enter');
+    // A value row takes its number on the on-screen keyboard (A on the row).
+    const typeValue = async (row, text) => {
+      await row.focus();
+      await page.keyboard.press('Enter');
+      const typing = page.getByRole('dialog', { name: /^Type: / });
+      await typing.waitFor();
+      for (let i = 0; i < 6; i++) await page.keyboard.press('Backspace');
+      await page.keyboard.type(text);
+      await page.keyboard.press('Enter');
+      await typing.waitFor({ state: 'detached' });
+    };
+    const segment = (ft, label, text) => ft.locator('[role="radiogroup"]').filter({ hasText: label }).locator('button', { hasText: text }).first().click();
+
+    // N = SMALL_RUMBLE+{60} J+{200}: two turbo commands; Y on the first one's
+    // chip fine-tunes it, and its Rumble card holds the motor strengths.
+    await page.locator('details[data-input-command="N"] > summary').first().click();
+    const north = sheetOf('N');
+    await north.locator('[data-when="more"]').click();
+    await north.locator('[aria-label="Set on this button"] [data-rare-command]').first().click();
+    const chips = north.locator('[data-chip-command]');
+    assert.equal(await chips.count(), 2);
+    await chips.first().focus();
+    await page.keyboard.press('y');
+    let ft = page.locator('[data-fine-tune]');
+    await ft.waitFor();
+    const small = ft.locator('[role="slider"]').filter({ hasText: 'Small motor strength' });
+    const big = ft.locator('[role="slider"]').filter({ hasText: 'Big motor strength' });
+    assert.equal(await small.getAttribute('aria-valuenow'), '50');
+    await typeValue(small, '100');
+    await typeValue(big, '25');
+    let saved=await save();assert.match(saved,/R40FF\+\{60\} J\+\{200\}/);
+    await ft.screenshot({path:path.join(ARTIFACTS,'rumble-settings.png')});
+
+    // S = HAPTIC_BOTH_SCRIPT_N6: an imported effect stays visible; grip, pattern and strength change.
+    ft = await fineTune('S');
+    assert.match(await ft.locator('[role="radiogroup"]').filter({ hasText: 'Pattern' }).innerText(), /imported/);
+    await segment(ft, 'Grip', 'Left');
+    await segment(ft, 'Pattern', 'Tone');
+    await typeValue(ft.locator('[role="slider"]').filter({ hasText: 'Strength' }), '-12');
     saved=await save();assert.match(saved,/HAPTIC_L_TONE_N12/);
-    await page.keyboard.press('Escape');
-    sheet=await show('E');
-    await sheet.getByRole('combobox',{name:'Configuration',exact:true}).click();
-    await page.getByRole('option',{name:'Other',exact:true}).click();
+
+    // E = a configuration: Fine-tune ▸ Load a configuration.
+    ft = await fineTune('E');
+    // Many values, so the row shows the one name with ◂ ▸ (Right steps to the next configuration).
+    const configRow = ft.locator('[role="radiogroup"]').filter({ hasText: 'Configuration' });
+    await configRow.focus();
+    await page.keyboard.press('ArrowRight');
+    await page.waitForFunction(() => /Other/.test(document.querySelector('[data-fine-tune] [aria-label="Configuration"]')?.textContent ?? ''));
     saved=await save();assert.match(saved,/profiles-library\/Other.txt/);
-    await page.keyboard.press('Escape');
-    sheet=await show('W');
-    await sheet.getByRole('button',{name:'Edit action',exact:true}).click();
-    let picker=page.getByRole('dialog',{name:'Choose an action'});
-    field=picker.getByRole('textbox',{name:'Console command',exact:true});
-    await field.fill('CUSTOM_ACTION 24');await picker.getByRole('button',{name:'Use',exact:true}).click();
+    // The Command picker (console v2): a console command typed on its own
+    // keyboard -- a real keyboard types there too; Enter is Done.
+    await closeSheets();
+    await page.locator('details[data-input-command="W"] > summary').first().click();
+    const wSheet=page.locator('details[data-input-command="W"][open]');
+    await wSheet.locator('[data-kind="command"]').first().click();
+    let picker=page.locator('[data-picker="command"]');
+    await picker.waitFor();
+    await page.keyboard.type('CUSTOM_ACTION 24');
+    await page.keyboard.press('Enter');
+    await picker.waitFor({state:'detached'});
     saved=await save();assert.match(saved,/CUSTOM_ACTION 24/);
-    // Replacing an existing output now immediately opens its required fields.
-    const customRow=page.locator('details[data-input-command="W"][open] [data-command-row]').first();
-    await customRow.getByRole('button',{name:/Choose action/}).click();
-    picker=page.getByRole('dialog',{name:'Choose an action'});
-    await picker.locator('.action-picker__tabs .action-tab').filter({hasText:'JSM'}).click();
-    await picker.getByRole('button',{name:'Change LED colour',exact:true}).click();
-    sheet=page.getByRole('dialog').last();
-    await sheet.locator('[data-parameter="led-color"]').waitFor();
-    await page.keyboard.press('Escape');
-    await page.getByRole('button',{name:'Virtual menus',exact:true}).click();
-    await page.getByRole('button',{name:'Create virtual menu',exact:true}).click();
-    await page.locator('[data-virtual-menus-page] [data-nav-skip][role="button"]').first().press('Enter');
+
+    // Replacing an existing output with a light change writes the light command.
+    await wSheet.locator('[data-kind="controller"]').first().click();
+    picker=page.locator('[data-picker="controller"]');
+    await picker.waitFor();
+    await picker.locator('[data-category="light"]').click();
+    await picker.locator('[data-action="LIGHT_BAR"]').click(); await page.locator('[data-picker="light"] [data-light-use]').click();
+    await picker.waitFor({state:'detached'});
+    saved=await save();assert.match(saved,/LIGHT_BAR = x[0-9a-f]{6}/);
+    await closeSheets();
+    // Menus (console v2): a slice's action is edited on the binding sheet (A on the preview).
+    await page.evaluate(()=>window.dispatchEvent(new CustomEvent('jsm:navigate-page',{detail:'virtualMenus'})));
+    await page.locator('[data-virtual-menus-page]').getByRole('radio',{name:/Start empty/}).click();
+    await page.locator('[data-virtual-menus-page] [data-menu-preview]').press('Enter');
     const item=page.getByRole('dialog').last();
-    await item.locator('button.summary-row').filter({has:page.locator('.summary-row__label').getByText('Add command',{exact:true})}).click();
-    picker=page.getByRole('dialog',{name:'Choose an action'});
-    await picker.locator('.action-picker__tabs .action-tab').filter({hasText:'JSM'}).click();
-    await picker.getByRole('button',{name:'Change LED colour',exact:true}).click();
-    sheet=page.getByRole('dialog').last();
-    await sheet.locator('[data-parameter="led-color"]').waitFor();
-    await sheet.locator('[data-parameter="led-color"]').getByRole('radio',{name:'Green',exact:true}).click();
+    await item.locator('[data-kind="controller"]').click();
+    picker=page.locator('[data-picker="controller"]');
+    await picker.waitFor();
+    await picker.locator('[data-category="light"]').click();
+    await picker.locator('[data-action="LIGHT_BAR"]').click(); await page.locator('[data-picker="light"] [data-light-use]').click();
+    await picker.waitFor({state:'detached'});
     saved=await save();
-    assert.match(Buffer.from(/VIRTUAL_MENUS\s*=\s*HEX:([a-f0-9]+)/.exec(saved)[1],'hex').toString('utf8'),/LIGHT_BAR = x34c759/);
+    assert.match(Buffer.from(/VIRTUAL_MENUS\s*=\s*HEX:([a-f0-9]+)/.exec(saved)[1],'hex').toString('utf8'),/LIGHT_BAR = x[0-9a-f]{6}/);
     assert.deepEqual(errors,[]);
-    console.log('PASS: rumble/haptic/configuration/custom settings, sibling preservation, and replacement and menu-item addition open LED parameters, imported effects remain visible');
+    console.log('PASS: rumble/haptic/configuration/custom settings, sibling preservation, and replacement opens LED parameters and a menu slice takes a controller action, imported effects remain visible');
   } finally {await browser.close();}
 })().catch(error=>{console.error(error);process.exit(1);});
 

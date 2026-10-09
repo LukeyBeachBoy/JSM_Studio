@@ -361,6 +361,17 @@
 .center .label, .center .binding { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .center .icon { width: 1.5em; height: 1.5em; }
 
+/* The app's light theme: the editor's previews wear the app's own tokens
+   rather than the overlay's dark ink. The in-game overlay window sets no
+   data-theme, so it keeps the look above whatever the app is wearing. */
+:global(:root[data-theme='light']) .pad { background: var(--surface-sunken); box-shadow: inset 0 0 0 1px var(--line-2); }
+:global(:root[data-theme='light']) .region { background: var(--surface-row); color: var(--text-1); text-shadow: none; box-shadow: inset 0 0 0 1px var(--line-2); }
+:global(:root[data-theme='light']) .region[data-bound='false'] { background: var(--surface-sunken); }
+:global(:root[data-theme='light']) .region[data-selected='true'] { background: var(--accent); color: var(--text-on-accent, #0d1217); }
+:global(:root[data-theme='light']) .binding { background: var(--surface-sunken); color: var(--text-1); box-shadow: inset 0 0 0 1px var(--line-2); }
+:global(:root[data-theme='light']) .region[data-selected='true'] .binding { background: rgba(255, 255, 255, .35); color: var(--text-on-accent, #0d1217); }
+:global(:root[data-theme='light']) .radial { --menu-divider: var(--line-2); }
+
 /* Only editor regions are clickable; keep the gameplay overlay unchanged. */
 .region[role='button'] { cursor: pointer; }
 .region[role='button']:focus { outline: none; box-shadow: none; }

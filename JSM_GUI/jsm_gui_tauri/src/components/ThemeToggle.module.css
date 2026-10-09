@@ -17,7 +17,7 @@
 .row:hover { background: var(--surface-row-hover); }
 :global(body[data-input-source='controller']) .row:focus-within {
   background: var(--surface-selected);
-  box-shadow: 0 0 0 var(--focus-controller-width) var(--focus-controller), var(--shadow-lift);
+  box-shadow: var(--focus-ring-pad);
 }
 .row.compact { padding: var(--sp-2); }
 

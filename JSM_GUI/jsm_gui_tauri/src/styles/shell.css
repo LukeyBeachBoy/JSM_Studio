@@ -6,7 +6,9 @@
   height: 100vh;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: var(--titlebar-h) auto var(--page-tabs-h) minmax(0, 1fr);
+  /* Console v2 (V3): one header row (game chip, tabs, status chip), the
+     test banner, the page, the docked footer. */
+  grid-template-rows: var(--titlebar-h) auto minmax(0, 1fr) var(--hintbar-h);
   background: var(--surface-canvas);
   overflow: hidden;
 }
@@ -200,6 +202,11 @@ body[data-input-source='controller'] .titlebar :is(button, [role='button']):focu
 .test-banner b { font-weight: var(--fw-semibold); }
 .test-banner__text { color: var(--text-2); }
 .test-banner__exit { display: flex; align-items: center; gap: var(--sp-2); margin-left: auto; color: var(--text-2); }
+/* The one way out, as a real button for the mouse (UX review 2026-10-09, B1). */
+.test-banner__stop { display: inline-flex; align-items: center; gap: var(--sp-2); height: 30px; padding: 0 12px 0 8px; border: 0; border-radius: var(--r-pill); background: var(--surface-row); color: var(--text-1); font: inherit; font-weight: var(--fw-semibold); cursor: pointer; }
+.test-banner__stop:hover { background: var(--surface-row-hover); }
+body[data-input-source='controller'] .test-banner__stop:focus { box-shadow: 0 0 0 2px var(--surface-frame), var(--focus-ring-pad-gap); }
+.test-banner__also { display: inline-flex; align-items: center; gap: var(--sp-1); }
 
 /* ============ Page tabs ============ */
 .page-tabs {
@@ -322,6 +329,9 @@ body[data-input-source='controller'] .titlebar :is(button, [role='button']):focu
   font-size: var(--fs-body);
 }
 .shell-body[data-width='compact'] .section-list { padding: 88px var(--sp-2) var(--sp-4) var(--sp-4); }
+/* LT / RT step the sections (console v2, V1); the rail says so at its head. */
+.section-list__keys { display: flex; align-items: center; gap: var(--sp-2); margin: -36px 0 var(--sp-3) var(--sp-3); color: var(--text-3); font-size: var(--fs-hint); }
+.section-list__keys .button-glyph, .section-list__keys .hint-key { color: var(--text-1); flex: none; }
 
 .section-item {
   min-height: 40px;
@@ -371,7 +381,7 @@ body[data-input-source='controller'] .titlebar :is(button, [role='button']):focu
   width: 100%;
   max-width: calc(var(--content-max) + 2 * var(--page-pad));
   margin: 0 auto;
-  padding: var(--page-pad) var(--page-pad) 120px;
+  padding: var(--page-pad);
 }
 .page--wide { max-width: var(--content-max-overview); }
 /* Studio's list pages read in a 960 column (Tuning and Studio Pages 16f-16h). */
@@ -412,28 +422,56 @@ body[data-input-source='controller'] .titlebar :is(button, [role='button']):focu
 .shell-scroll .tuning-anchor { scroll-margin-top: var(--sp-6); }
 
 /* ============ Hint capsule ============ */
+/* Console v2 (V2): docked full-width under the content, never over it. The
+   left side says where you are (or the focused element's caption); the hints
+   sit on the right. */
 .hint-capsule {
-  position: absolute;
-  left: 50%;
-  bottom: var(--sp-4);
+  position: relative;
   z-index: var(--z-sticky);
-  transform: translateX(-50%);
-  height: var(--capsule-h);
+  min-width: 0;
+  height: var(--hintbar-h);
   display: flex;
   align-items: center;
-  gap: var(--sp-5);
-  padding: 0 var(--sp-5) 0 var(--sp-3);
-  border-radius: var(--r-pill);
-  background: var(--surface-raised);
-  box-shadow: var(--shadow-capsule);
+  gap: var(--sp-6);
+  padding: 0 var(--sp-8);
+  border-top: 1px solid var(--line-1);
+  background: var(--surface-frame);
   color: var(--text-2);
-  font-size: var(--fs-hint);
+  font-size: var(--fs-label);
   white-space: nowrap;
   pointer-events: none;
 }
-.shell-body[data-width='compact'] .hint-capsule { gap: var(--sp-4); padding: 0 var(--sp-4) 0 var(--sp-3); }
+.app-shell[data-width='compact'] .hint-capsule,
+.app-shell[data-width='narrow'] .hint-capsule { gap: var(--sp-4); padding: 0 var(--sp-5); }
+.hint-capsule__where { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--text-2); }
+/* Focus caption (V9): the full label on the first line, one line of help under it. */
+.hint-capsule__where--caption { display: flex; flex-direction: column; justify-content: center; gap: 2px; color: var(--text-1); line-height: var(--lh-hint); font-size: var(--fs-hint); }
+.hint-capsule__caption-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: var(--fw-semibold); font-size: var(--fs-body); line-height: var(--lh-body); }
+.hint-capsule__caption-help { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); }
+.hint-capsule__caption-help:only-child { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; color: var(--text-1); }
 .hint-capsule__item { display: flex; align-items: center; gap: var(--sp-2); }
 .hint-capsule__item > b + b { margin-left: -4px; }
+/* The shortcuts are buttons too: a click does what the button does. The
+   capsule itself stays click-through; only the hints take the pointer. */
+.hint-capsule__press {
+  pointer-events: auto;
+  margin: 0 calc(-1 * var(--sp-2));
+  padding: 4px var(--sp-2);
+  border: 0;
+  border-radius: var(--r-row);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--dur-1) var(--ease-standard), color var(--dur-1) var(--ease-standard);
+}
+.hint-capsule__press:hover { background: var(--surface-row-hover); color: var(--text-1); }
+.hint-capsule__press:active { background: var(--surface-selected, var(--surface-row-hover)); }
+.hint-capsule__item--pair { gap: 0; }
+.hint-capsule__item--pair > span { margin-left: var(--sp-2); }
+.hint-capsule__half { display: grid; place-items: center; margin: 0; padding: 4px; }
+.hint-capsule__half + .hint-capsule__half { margin-left: 2px; }
 .hint-capsule__rule { width: 1px; height: 18px; background: var(--line-2); }
 /* A message ("Press a key… Esc to cancel") has a fixed box like the status
    slot (2g): a longer translation ellipsises rather than widening the capsule. */
@@ -601,3 +639,82 @@ body[data-input-source='controller'] .titlebar :is(button, [role='button']):focu
    reachable and scroll the selected one into view on page changes. */
 .page-tabs--studio .page-tabs__list { overflow-x: auto; scrollbar-width: none; }
 .page-tabs--studio .page-tab { flex-shrink: 0; }
+
+/* Console v2: a section's status line and count (Sticks "Left stick · Move", Buttons "Menu buttons · 1 of 4"). */
+.section-item__label { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-2); width: 100%; }
+.section-item__count { color: var(--text-3); font-size: var(--fs-hint); font-weight: var(--fw-medium); }
+.section-item__status { display: block; color: var(--text-2); font-size: var(--fs-hint); font-weight: var(--fw-regular, 400); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.section-item:has(.section-item__status) { height: auto; min-height: 56px; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; padding-top: var(--sp-2); padding-bottom: var(--sp-2); }
+
+/* ============ Console v2 (V3): the one header row ============ */
+/* Game chip · tabs · status chip in one row; the tabs sit inside the title bar. */
+.titlebar { height: var(--titlebar-h); gap: var(--sp-4); }
+/* The strip takes whatever the chips either side leave (never more, so it can
+   never run under them) and centres its tabs in it; its empty ends drag the
+   window. LB / RB stay at the ends of the tabs themselves. */
+.titlebar .page-tabs { height: 100%; flex: 1 1 0; min-width: 0; justify-content: center; margin: 0; padding: 0; background: none; border: 0; box-shadow: none; }
+.titlebar .page-tabs--drawer { flex: none; justify-content: flex-start; }
+/* Where even that is too little (the drawer's one button below 1024), the
+   game's name gives way rather than anything running under anything. */
+.titlebar .game-chip.context-segment { flex: 0 1 auto; min-width: 96px; }
+.titlebar .page-tabs:not(.page-tabs--drawer) + .titlebar__drag { flex: 0 0 0; min-width: 0; }
+.titlebar .page-tab { height: var(--bar-control-h); }
+.titlebar .titlebar__drag { min-width: var(--sp-2); }
+/* The game chip: art, the configuration, the controller under it. */
+.game-chip.context-segment { height: calc(var(--bar-control-h) + 12px); max-width: 320px; padding: 0 var(--sp-3) 0 6px; gap: var(--sp-3); background: var(--surface-row); border-radius: var(--r-card); }
+.game-chip__art { width: 36px; height: 36px; flex: none; display: grid; place-items: center; overflow: hidden; border-radius: var(--r-row); background: var(--accent-soft); color: var(--accent); font-size: var(--fs-label); font-weight: var(--fw-bold); }
+.game-chip__art img { width: 30px; height: 30px; }
+.game-chip__text { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; line-height: 1.2; }
+.game-chip__text b { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.game-chip__controller { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-3); font-size: var(--fs-hint); }
+.game-chip .unsaved-dot { display: inline-block; margin-left: var(--sp-2); vertical-align: middle; }
+.game-chip__mode { display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 2px; vertical-align: 1px; }
+.game-chip__controller[data-mapping='off'],
+.game-chip__controller[data-mapping='disconnected'] { color: var(--warn); }
+/* ☰ beside the status chip: the configuration menu for a mouse. */
+.menu-chip { flex: none; width: var(--bar-control-h); height: var(--bar-control-h); display: grid; place-items: center; border: 0; border-radius: var(--r-row); background: var(--surface-row); color: var(--text-1); cursor: pointer; }
+.menu-chip:hover { background: var(--surface-row-hover); }
+body[data-input-source='controller'] .menu-chip:focus { box-shadow: 0 0 0 2px var(--surface-frame), var(--focus-ring-pad-gap); }
+.titlebar__clock { flex: none; color: var(--text-2); font-size: var(--fs-body); font-variant-numeric: tabular-nums; }
+.state-button { border-radius: var(--r-pill); }
+.state-button[data-state='paused'] .state-button__dot { background: var(--text-3); }
+.app-shell[data-width='compact'] .game-chip__text b,
+.app-shell[data-width='compact'] .game-chip__controller { max-width: 140px; }
+/* The Settings rail: a divider before Guides, the log and credits. */
+.section-item[data-divider='true'] { margin-top: var(--sp-5); position: relative; }
+.section-item[data-divider='true']::before { content: ''; position: absolute; left: var(--sp-3); right: var(--sp-3); top: calc(-1 * var(--sp-3)); height: 1px; background: var(--line-2); }
+.section-list__subtitle { margin: -28px 0 var(--sp-4) var(--sp-3); color: var(--text-3); font-size: var(--fs-hint); }
+
+/* The mode being edited stays beside the caption (LAYOUT note, P6). */
+.hint-capsule__mode { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 var(--sp-3); border-radius: var(--r-pill); background: var(--surface-row); color: var(--text-2); font-size: var(--fs-hint); white-space: nowrap; }
+.hint-capsule__mode-dot { width: 8px; height: 8px; border-radius: 2px; background: var(--accent); }
+
+/* The header's tabs share the row with the game chip and the status chip, so
+   they take the caption size (14 on Desk, 16 on Couch) and never get cut. */
+.titlebar .page-tab { font-size: var(--fs-hint); padding: 0 12px; }
+/* The strip's fit (PageTabs: labels, icons, tight, squeeze), chosen by
+   measuring, so a tab is a whole name or a whole icon and never cut. */
+.titlebar .page-tabs:not(.page-tabs--drawer) { overflow: hidden; }
+.titlebar .page-tabs:not(.page-tabs--drawer) .page-tabs__list { flex: 0 1 auto; min-width: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+.titlebar .page-tabs__list::-webkit-scrollbar { display: none; }
+.page-tab { flex: none; }
+.page-tab__icon { flex: none; }
+.page-tabs .page-tab__icon,
+.page-tabs[data-fit='icons'] .page-tab[aria-current='page'] .page-tab__icon { display: none; }
+.page-tabs[data-fit='icons'] .page-tab__icon,
+.page-tabs:is([data-fit='tight'], [data-fit='squeeze']) .page-tab__icon { display: block; }
+.page-tabs[data-fit='icons'] .page-tab:not([aria-current='page']) .page-tab__label,
+.page-tabs:is([data-fit='tight'], [data-fit='squeeze']) .page-tab__label { display: none; }
+.titlebar .page-tabs[data-fit='icons'] .page-tab:not([aria-current='page']),
+.titlebar .page-tabs:is([data-fit='tight'], [data-fit='squeeze']) .page-tab { padding: 0 10px; }
+.titlebar .page-tabs:is([data-fit='tight'], [data-fit='squeeze']) .page-tabs__list { gap: 0; }
+.titlebar .page-tabs:is([data-fit='tight'], [data-fit='squeeze']) .trigger-mark { margin: 0 2px; }
+/* Squeeze: the bar's own chips give way as well. The Home chip keeps its
+   mark (and View, or its key); the game's name and controller shorten. */
+.titlebar[data-squeeze] { gap: var(--sp-2); }
+.titlebar[data-squeeze] .home-chip > span:not([class]) { display: none; }
+.titlebar[data-squeeze] .home-chip { gap: 6px; padding: 0 10px; }
+.titlebar[data-squeeze] .game-chip__text b,
+.titlebar[data-squeeze] .game-chip__controller { max-width: 110px; }
+:root[data-density='couch'] .titlebar { gap: var(--sp-3); }
+:root[data-density='couch'] .game-chip.context-segment { max-width: 260px; }

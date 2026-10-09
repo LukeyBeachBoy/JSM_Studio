@@ -180,7 +180,7 @@ export function NumberField({
               label would only repeat it; a row with no description yet wears
               the frame's help dot instead, and Y opens the documentation. */}
           {!help && <button type="button" className={styles.helpDot} data-nav-skip
-            title="Open documentation" aria-label={`${typeof label === 'string' ? label : 'Setting'} documentation`}
+            data-caption="Open documentation" aria-label={`${typeof label === 'string' ? label : 'Setting'} documentation`}
             onClick={() => window.dispatchEvent(new CustomEvent('jsm:open-docs', { detail: { setting } }))}>?</button>}
         </span>
         {/* Fine / coarse sits with the value, so showing it on hover moves
@@ -196,7 +196,7 @@ export function NumberField({
           className={`${styles.stepToggle} ${coarse ? styles.stepToggleCoarse : ''}`}
           onClick={() => setCoarse(prev => !prev)}
           disabled={disabled}
-          title={coarse ? t('numberField.coarseTitle', { step: big }) : t('numberField.fineTitle', { step: fine })}
+          data-caption={coarse ? t('numberField.coarseTitle', { step: big }) : t('numberField.fineTitle', { step: fine })}
           aria-pressed={coarse}
         >
           {coarse ? t('numberField.coarse') : t('numberField.fine')}

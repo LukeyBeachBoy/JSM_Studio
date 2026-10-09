@@ -27,57 +27,35 @@ const fs = require('node:fs');
  // The app opens on Home (console refinement 2a); these checks start in the editing shell.
  await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
 
- await page.locator('.profile-chip').filter({hasText:'Desktop'}).waitFor();
- assert.equal(await page.getByRole('button',{name:'Controller status',exact:true}).count(),0);
- await page.getByRole('button',{name:'Trackpads',exact:true}).click();
- const right=page.locator('#trackpad-right'), left=page.locator('#trackpad-left');
- await right.waitFor();
- // Trackpads (console refinement 2b): each pad is a column of summary rows. A
- // value is adjusted in its row -- Enter to adjust, arrows to step, Enter to
- // keep, Escape to put it back -- and a row whose value is not Default says
- // where it comes from on its second line instead of the hint.
- const sheet=page.locator('.sheet');
- const row=(scope,label)=>scope.locator('button.summary-row').filter({has:page.locator('.summary-row__label').getByText(label,{exact:true})}).first();
- const rowValue=async r=>(await r.locator('.summary-row__value').innerText()).trim();
- const rowLine=r=>r.locator('.summary-row__hint');
- const stateButton=page.locator('.state-button');
- const padSens=row(right,'Sensitivity');
- const leftBefore=await left.innerText();
- assert.equal(await rowValue(padSens),'1.00×');
- assert.equal(await rowLine(padSens).getAttribute('data-tone'),null,'an unset sensitivity shows its hint, not an origin');
- // Sensitivity opens its own sheet, with a row per axis.
- await padSens.click();
- await sheet.getByRole('heading',{name:'Right pad · Sensitivity'}).waitFor();
- const sens=row(sheet,'Horizontal sensitivity');
- const adjustSens=async(steps,finish='Enter')=>{
-  await sens.focus(); await page.keyboard.press('Enter');
-  await page.waitForFunction(()=>document.activeElement?.getAttribute('data-adjusting')==='true');
-  for(let i=0;i<Math.abs(steps);i++) await page.keyboard.press(steps>0?'ArrowRight':'ArrowLeft');
-  await page.keyboard.press(finish);
-  await page.waitForFunction(()=>document.activeElement?.getAttribute('data-adjusting')!=='true');
- };
- await adjustSens(1);
- assert.equal(await rowValue(sens),'1.05×');
- assert.equal(await sens.locator('.summary-row__hint[data-tone]').count(),0,'a value the configuration sets with nothing behind it names no origin: the configuration is the one being edited');
- await page.keyboard.press('Escape');
- await sheet.waitFor({state:'detached'});
- // The edit shows on its own pad's row and nowhere else.
- assert.equal(await rowValue(padSens),'1.05×');
- assert.equal(await padSens.locator('.summary-row__hint[data-tone]').count(),0);
- assert.equal(await left.innerText(),leftBefore,'unrelated pad changed');
- // One state button says what it will do (1e).
- await page.waitForFunction(()=>document.querySelector('.state-button')?.textContent==='Apply 1 change');
- await page.getByRole('button',{name:'Review 1 changes',exact:true}).click();
- const review=page.getByRole('dialog',{name:'Review changes',exact:true});await review.waitFor();
- assert.match(await review.innerText(),/Right pad sensitivity/);
- await review.getByRole('button',{name:'Revert Right pad sensitivity',exact:true}).click();
+ await page.locator('.app-shell').waitFor();
+ await page.getByRole('button',{name:'Keep them',exact:true}).click({timeout:5000}).catch(()=>{});
+ await page.waitForTimeout(800);
+ const go=tab=>page.evaluate(detail=>window.dispatchEvent(new CustomEvent('jsm:navigate-page',{detail})),tab);
+ // An edit in the editor: a new mode (console v2, Modes).
+ await go('layers');
+ await page.getByRole('button',{name:'Photo',exact:true}).click();
+ await page.locator('[data-mode-id]').filter({hasText:'Photo'}).waitFor();
+ // ☰ ▸ Review changes: the full page (console v2, ReviewChanges), its status chip "Unsaved".
+ await page.locator('[data-mode-id]').first().focus();
+ await page.keyboard.down('m'); await page.keyboard.down('m'); await page.keyboard.up('m'); // hold M: the Configuration menu
+ await page.getByRole('button',{name:/^Review changes/}).click();
+ const review=page.getByRole('dialog',{name:/Review changes$/});await review.waitFor();
+ assert.match(await review.innerText(),/1 change/);
+ assert.match(await review.innerText(),/Photo layer/);
+ assert.match(await review.innerText(),/Unsaved/);
+ await review.getByRole('button',{name:'Revert Photo layer',exact:true}).click();
  await review.getByRole('heading',{name:'No pending changes',exact:true}).waitFor();
- await review.getByRole('button',{name:/^Undo/}).click();assert.match(await review.innerText(),/1 change/);
- await review.getByRole('button',{name:'Save and apply',exact:true}).click();
+ await review.getByRole('button',{name:'Undo',exact:true}).click();assert.match(await review.innerText(),/1 change/);
+ // Save and make live: saves, applies, and the page empties against the new baseline.
+ await review.getByRole('button',{name:/Save and make live/}).click();
  await page.waitForFunction(()=>window.__calls.includes('save')&&window.__calls.includes('apply'));
- await page.getByRole('button',{name:'Review 0 changes',exact:true}).click();
+ assert.match(await page.evaluate(()=>window.__lastSaved),/"name":"Photo"/);
+ await page.locator('[data-mode-id]').first().focus();
+ await page.keyboard.down('m'); await page.keyboard.down('m'); await page.keyboard.up('m'); // hold M: the Configuration menu
+ await page.getByRole('button',{name:/^Review changes/}).click();
  await page.getByRole('heading',{name:'No pending changes',exact:true}).waitFor();
+ assert.match(await page.getByRole('dialog',{name:/Review changes$/}).innerText(),/since you last saved/);
  assert.deepEqual(errors,[]);
- console.log('PASS: editor integration, pending sensitivity review, selective revert undo, save/apply baseline reset');
+ console.log('PASS: editor integration, review page from the configuration menu, selective revert undo, save and make live resets the baseline');
  }finally{await browser.close()}
 })().catch(error=>{console.error(error);process.exit(1)});

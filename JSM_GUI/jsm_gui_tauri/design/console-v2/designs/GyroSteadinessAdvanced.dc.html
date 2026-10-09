@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Steadiness Advanced</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.grp{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;flex-direction:column;gap:4px;padding:14px 20px;box-sizing:border-box;border-radius:14px;background:transparent;color:#b0bcc8;text-align:left}
+.grp .t{font-size:19px;font-weight:600}
+.grp .s{font-size:15px;color:#808c99}
+.grp .c{font-size:14px;line-height:1.4;color:#808c99}
+.row{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;align-items:center;gap:16px;min-height:76px;padding:14px 22px;box-sizing:border-box;border-radius:16px;background:#1f2730;color:#e8eef4;text-align:left}
+.val{margin-left:auto;font-family:'Geist Mono',monospace;font-size:19px;font-weight:500;color:#d4dde6;white-space:nowrap}
+.tag{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:13px;background:#2e3844;color:#b0bcc8;font-size:14px;font-weight:600}
+.sw{width:52px;height:30px;border-radius:15px;background:#2e3844;position:relative;flex:none;margin-left:auto}
+.sw span{position:absolute;top:4px;left:4px;width:22px;height:22px;border-radius:50%;background:#808c99}
+.sw.y{background:#3e9fd8}
+.sw.y span{left:26px;background:#ffffff}
+.stage{flex:1;display:flex;flex-direction:column;gap:2px;padding:10px;border-radius:12px;background:#0f151b;min-width:0}
+.stage .t{font-size:14px;font-weight:600;color:#b0bcc8;white-space:nowrap}
+.stage .s{font-size:14px;color:#808c99}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="height: 76px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 40px; background: #0d1217">
+<span style="font-size: 18px; color: #808c99">Wardogs · Gyro</span>
+<span style="font-size: 18px; color: #5b6571">▸</span>
+<span style="font-size: 18px; color: #808c99">Fine-tune</span>
+<span style="font-size: 18px; color: #5b6571">▸</span>
+<span style="font-size: 18px; color: #808c99">Steadiness</span>
+<span style="font-size: 18px; color: #5b6571">▸</span>
+<span style="font-size: 22px; font-weight: 700">Advanced</span>
+<span style="margin-left: auto; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 20px; background: #4a3320; color: #ffc98f; font-size: 16px; font-weight: 600"><span style="width: 9px; height: 9px; border-radius: 50%; background: #f0a05a"></span>Unsaved · ☰ to save</span>
+</header>
+
+<main style="flex: 1; min-height: 0; display: grid; grid-template-columns: 280px minmax(0, 1fr) 500px; gap: 28px; padding: 32px 40px 24px">
+
+<nav style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: center; gap: 8px; margin: 0 0 10px 20px; font-size: 14px; color: #808c99"><span class="gp">LT</span>Part<span class="gp">RT</span></div>
+<button class="grp"><span class="t">Ignore jitter</span><span class="s">Off</span><span class="c">Cutoff speed, fade back in, keep-moving floor</span></button>
+<button class="grp" style="background: #1f2730; color: #ffffff"><span class="t">Smoothing</span><span class="s" style="color: #7cc4ee">Changed: smooth below 8 °/s</span><span class="c">Speed, time, continuous</span></button>
+<button class="grp"><span class="t">Adaptive filter</span><span class="s">Off</span><span class="c">On or off, smoothing at rest, how fast it lets go</span></button>
+<button class="grp"><span class="t">Snap &amp; brake</span><span class="s">All off</span><span class="c">Snap angle and ease, brake after flicks, steady while clicking, coast slowdown</span></button>
+</nav>
+
+<section style="display: flex; flex-direction: column; gap: 12px; min-width: 0">
+<div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px">
+<h1 style="margin: 0; font-size: 32px; font-weight: 700">Smoothing</h1>
+<p style="margin: 0; font-size: 17px; color: #b0bcc8">Averages out slow movement. Fast turns pass straight through.</p>
+</div>
+
+<div class="focus" style="background: #1d445c; border-radius: 16px; padding: 18px 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px"><span style="font-size: 20px; font-weight: 650">Smooth below this speed</span><span style="font-size: 30px; font-weight: 700">8 <span style="font-size: 18px; font-weight: 600; color: #b8e2fa">°/s</span></span></div>
+<div style="position: relative; height: 8px; border-radius: 4px; background: #0f151b"><span style="position: absolute; left: 0; top: 0; height: 8px; width: 22%; border-radius: 4px; background: #3e9fd8"></span><span style="position: absolute; left: 22%; top: -8px; width: 24px; height: 24px; margin-left: -12px; border-radius: 50%; background: #ffffff; box-shadow: 0 0 0 5px rgba(62,159,216,.3)"></span></div>
+<div style="display: flex; justify-content: space-between; font-size: 15px; color: #b0bcc8"><span>0 · smoothing off</span><span>Default 0</span></div>
+<span style="font-size: 15px; line-height: 1.45; color: #b8e2fa">Turns slower than this are smoothed, faster ones go straight through. Set it just above how fast your hands shake.</span>
+</div>
+
+<button class="row"><span style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 20px; font-weight: 650">Smoothing time</span><span style="font-size: 15px; color: #808c99">Longer is calmer but adds a little delay</span></span><span class="val">0.125 s</span><span class="tag">Default</span></button>
+
+<button class="row"><span style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 20px; font-weight: 650">Continuous smoothing</span><span style="font-size: 15px; color: #808c99">Same feel whatever the update rate</span></span><span class="sw"><span></span></span></button>
+</section>
+
+<div style="background: #1a222b; border-radius: 20px; padding: 22px; display: flex; flex-direction: column; gap: 14px; min-width: 0">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 17px; font-weight: 600">How much is smoothed, by speed</span><span style="font-family: 'Geist Mono', monospace; font-size: 13px; color: #93e6c1">● live 2.1 °/s</span></div>
+<svg viewBox="0 0 456 320" width="100%" height="320" fill="none">
+<g stroke="rgba(255,255,255,.05)"><path d="M50 40H440M50 97.5H440M50 155H440M50 212.5H440"></path><path d="M115 30V270M180 30V270M245 30V270M310 30V270M375 30V270"></path></g>
+<path d="M50 270H440M50 270V30" stroke="#2e3844" stroke-width="1.5"></path>
+<path d="M50 40H115L180 270H440V270H50Z" fill="rgba(62,159,216,.12)"></path>
+<path d="M50 40H115L180 270H440" stroke="#3e9fd8" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path>
+<path d="M180 30V270" stroke="#7cc4ee" stroke-width="1.5" stroke-dasharray="4 5"></path>
+<rect x="150" y="282" width="60" height="26" rx="13" fill="#3e9fd8"></rect>
+<text x="180" y="300" fill="#07131d" font-size="14" font-weight="700" font-family="Geist, sans-serif" text-anchor="middle">8 °/s</text>
+<circle cx="84" cy="40" r="6" fill="#a6d65a"></circle>
+<text x="60" y="66" fill="#b8e2fa" font-size="14" font-weight="600" font-family="Geist, sans-serif">Fully smoothed</text>
+<text x="98" y="156" fill="#b0bcc8" font-size="14" font-family="Geist, sans-serif">Blend</text>
+<text x="430" y="256" fill="#b0bcc8" font-size="14" font-family="Geist, sans-serif" text-anchor="end">Straight through</text>
+<text x="50" y="300" fill="#808c99" font-size="13" font-family="Geist Mono, monospace">0</text>
+<text x="440" y="300" fill="#808c99" font-size="13" font-family="Geist Mono, monospace" text-anchor="end">24 °/s</text>
+<text x="26" y="150" fill="#808c99" font-size="13" font-family="Geist, sans-serif" text-anchor="middle" transform="rotate(-90 26 150)">Smoothed →</text>
+</svg>
+<div style="display: flex; align-items: center; gap: 4px">
+<div class="stage"><span class="t">Jitter</span><span class="s">Off</span></div>
+<span style="color: #5b6571; font-size: 14px">›</span>
+<div class="stage" style="background: #1d445c; box-shadow: inset 0 0 0 1px rgba(124,196,238,.4)"><span class="t" style="color: #ffffff">Smooth</span><span class="s" style="color: #b8e2fa">Below 8 °/s</span></div>
+<span style="color: #5b6571; font-size: 14px">›</span>
+<div class="stage"><span class="t">Adaptive</span><span class="s">Off</span></div>
+<span style="color: #5b6571; font-size: 14px">›</span>
+<div class="stage"><span class="t">Snap/brake</span><span class="s">Off</span></div>
+</div>
+<span style="font-size: 15px; line-height: 1.5; color: #808c99">Your movement passes through these in order. At 0.125 s, slow aim lags by about 60 ms.</span>
+</div>
+</main>
+
+<footer style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Wardogs · Gyro · Steadiness · Advanced</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px">◂ ▸ Adjust</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">X</span>Try it</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">Y</span>Type · reset</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">LT</span><span class="gp">RT</span>Part</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Back to Steadiness</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

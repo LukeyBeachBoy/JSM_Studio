@@ -8,6 +8,8 @@ From the repository root, double-click **build-installer.cmd**, or run:
 
 The window stays open so you can read the result or any error. The script works
 regardless of your current directory. No administrator terminal is needed.
+If an elevated app is running from this checkout's build outputs, Windows may
+show a UAC prompt so the cleanup helper can close it before building.
 
 For a terminal command that exits without waiting for a key:
 
@@ -69,12 +71,13 @@ The installer and checksum are written to:
 
 ```text
 JSM_GUI/jsm_gui_tauri/src-tauri/target/release/bundle/nsis/
-  JSM Studio_<version>_x64-setup.exe
-  JSM Studio_<version>_x64-setup.exe.sha256
+  JSM Evolved_<version>_x64-setup.exe
+  JSM Evolved_<version>_x64-setup.exe.sha256
 ```
 
-By default the current version is kept; rebuilding the same version replaces its
-installer and checksum. To assign a new version:
+By default the patch version is bumped. Failed bumped builds restore the previous
+version. Use `--no-bump` to rebuild the current version and replace its installer
+and checksum. To assign an exact version:
 
 ```powershell
 .\build-installer.cmd --version 0.7.77
@@ -111,8 +114,11 @@ Run without the option after changes to either npm package file.
   code. Fix the reported source error and rerun; an older installer is not a
   successful result of that attempt.
 - **Cannot stop an installer blocker:** the script reports its name and PID and
-  stops before version edits. Close that process manually (an elevated process
-  may require an administrator terminal), then rerun.
+  stops before version edits. For elevated build outputs, accept the cleanup
+  helper's UAC prompt or close this checkout's app manually, then rerun.
+- **Tauri build script reports `os error 32`:** a bundled file is locked by a
+  running process. The launcher detects elevated build outputs even when Windows
+  hides their paths from CIM. Close any app reopened during the build and rerun.
 
 The wrapper normalizes Windows environment variable casing to avoid MSBuild's
 duplicate `Path`/`PATH` error and includes the standard Windows PowerShell modules

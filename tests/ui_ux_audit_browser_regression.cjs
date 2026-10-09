@@ -18,8 +18,10 @@ fs.mkdirSync(out, { recursive: true })
     await page.locator('[data-home-continue]').waitFor()
     await page.screenshot({ path: path.join(out, 'home.png') })
     await page.locator('[data-home-continue]').click()
-    const controls = ['Overview', 'Buttons', 'D-Pad', 'Triggers', 'Joysticks', 'Trackpads', 'Virtual menus', 'Gyro', 'Layers']
-    const studio = ['Configurations', 'Associations', 'Global chords', 'Press timing & polling', 'AI assistant', 'Device visibility', 'Appearance', 'Preferences', 'Documentation', 'Credits', 'Debug console']
+    // Console v2 (V5/V6): the configuration tabs, then the Library and Settings pages by id.
+    const controls = ['Layout', 'Buttons', 'Sticks', 'Triggers', 'Trackpads', 'Gyro', 'Menus', 'Layers']
+    const STUDIO_IDS = { 'Games': 'configurations', 'Bases': 'bases', 'Launch with game': 'associations', 'Hold to swap': 'globalChords', 'Press timing': 'timing', 'Assistant': 'ai', 'Hide the real controller': 'deviceVisibility', 'Look & language': 'appearance', 'Controller': 'settings', 'Startup': 'startup', 'Guides & reference': 'help', 'About & credits': 'credits', 'Troubleshooting log': 'debugConsole' }
+    const studio = ['Games', 'Bases', 'Launch with game', 'Hold to swap', 'Press timing', 'Assistant', 'Hide the real controller', 'Look & language', 'Controller', 'Startup', 'Guides & reference', 'About & credits', 'Troubleshooting log']
     const report = []
     for (const width of [1440, 1024, 760]) {
       await page.setViewportSize({ width, height: 900 })
@@ -34,7 +36,7 @@ fs.mkdirSync(out, { recursive: true })
             await page.locator('.shell-drawer').getByRole('button', { name, exact: true }).first().click()
           }
         } else {
-          await page.getByRole('button', { name: new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`) }).first().click()
+          await page.evaluate(id => window.dispatchEvent(new CustomEvent('jsm:navigate-page', { detail: id })), STUDIO_IDS[name])
         }
         await page.getByText('Loading...', { exact: true }).waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {})
         await page.waitForTimeout(300)

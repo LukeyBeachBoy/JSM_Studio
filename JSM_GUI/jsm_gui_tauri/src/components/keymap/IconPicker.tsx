@@ -1,13 +1,19 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { useContext, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { listIcons, resolveIcon, resolveIcons, type IconData } from '../../utils/iconLibrary'
 import { Icon } from '../icons/Icon'
-import { Dialog } from '../ui/Dialog'
 import { ButtonGlyph } from '../glyphs/ButtonGlyph'
 import type { ControllerVisualFamily } from '../../utils/controllerStatus'
+import { PickerPage } from './pickers/PickerPage'
+import { MenuPreview } from './MenuPreview'
+import { LayerUsageContext } from '../LayerBar'
+import { useShell } from '../../shell/ShellContext'
+import { readVirtualMenus } from '../../utils/virtualMenus'
+import { namedMenuOverlay } from '../../utils/namedMenuOverlay'
+import { resolveOverlayMenus, type OverlayMenu } from '../../utils/overlayLayout'
 import styles from './IconPicker.module.css'
 
-/** How many icons a page of the grid shows; "Show more" adds another. */
+/** How many icons a page of the grid shows; "Show 160 more" adds another. */
 const PAGE = 160
 
 /** A menu item's icon as drawn on the menu, or the menu mark when it has none. */
@@ -23,9 +29,9 @@ export function BindingIconArt({ value, size = 22 }: { value?: string; size?: nu
   return <svg width={size} height={size} viewBox={`0 0 ${art.width} ${art.height}`} fill="currentColor" aria-hidden="true" dangerouslySetInnerHTML={{ __html: art.body }} />
 }
 
-// The tabs of the icon modal (1g). General and Game are the two bundled sets;
-// Media and Navigation are hand-picked from the general set; Custom is where
-// imported icons will go, and is empty until importing exists.
+// The categories (console v2, IconPicker): General and Game are the two bundled
+// sets; Media and Navigation are hand-picked from the general set; Custom is
+// where your own icons will go.
 type Tab = 'general' | 'game' | 'media' | 'navigation' | 'custom'
 const TABS: Array<{ id: Tab; labelKey: string; label: string }> = [
   { id: 'general', labelKey: 'keymap.iconSetLucide', label: 'General' },
@@ -40,23 +46,33 @@ const CURATED: Partial<Record<Tab, string[]>> = {
 }
 const SET_FOR: Partial<Record<Tab, string>> = { general: 'lucide', game: 'game-icons' }
 
+/** "game-icons:wooden-crate" reads "Wooden crate". */
+export const iconName = (value: string) => {
+  const words = (value.split(':').pop() ?? value).replace(/[-_]+/g, ' ').trim()
+  return words ? words[0].toUpperCase() + words.slice(1) : value
+}
+
 type Props = {
   /** Iconify name currently assigned, or '' for none. */
   value: string
   onChange: (icon: string) => void
-  /** The menu item's label, for "Icon for “Home”". */
+  /** The menu item's label, for the eyebrow and "Shown above “Supply crate”". */
   label?: string
-  /** Whose LB / RB are drawn beside the tabs. */
+  /** Whose glyphs are drawn. */
   family?: ControllerVisualFamily
+  /** The item's command on its menu: a pad region ("LT4") or a named menu's
+   *  "<id>:<index>". Finds the menu for the live preview; without it the
+   *  picker looks for a region carrying `label`. */
+  item?: string
+  /** The menu's name, when the caller knows it better ("Build menu"). */
+  menuName?: string
 }
 
 /**
- * Change icon (3d) and the icon picker it opens (1g): a centred modal over a
- * scrim, never placed relative to its button. LB / RB step the tabs, Y
- * searches, A uses the focused icon, X clears it, B cancels. A set is
- * megabytes of JSON; it is only read once the modal opens.
+ * Change icon (3d): a console button carrying the icon it changes. It opens
+ * the full-screen icon picker (console v2, IconPicker.dc.html).
  */
-export function IconPicker({ value, onChange, label, family }: Props) {
+export function IconPicker({ value, onChange, label, item, menuName }: Props) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [current, setCurrent] = useState<IconData | null>(null)
@@ -68,35 +84,71 @@ export function IconPicker({ value, onChange, label, family }: Props) {
   }, [value])
   return (
     <>
-      {/* "Change icon" (3d): a console button carrying the icon it changes. */}
       <button type="button" className="console-btn console-btn--lg" onClick={() => setOpen(true)} aria-haspopup="dialog"
-        title={value || t('keymap.iconNone', 'No icon')} data-hints="A:Change icon;B:Back">
+        data-caption={value ? t('pickers.iconCaption', 'Icon · {{name}}', { name: iconName(value) }) : t('keymap.iconNone', 'No icon')} data-hints="A:Change icon;B:Back">
         {current
           ? <svg className={styles.glyph} viewBox={`0 0 ${current.width} ${current.height}`} aria-hidden="true" dangerouslySetInnerHTML={{ __html: current.body }} />
           : <Icon name="overview" size={18} />}
         {t('keymap.changeIcon', 'Change icon')}
       </button>
-      {open && <IconModal value={value} label={label} family={family} onClose={() => setOpen(false)} onChange={icon => { onChange(icon); setOpen(false) }} />}
+      {open && <IconPickerPage value={value} itemLabel={label} item={item} menuName={menuName} onClose={() => setOpen(false)} onChange={icon => { onChange(icon); setOpen(false) }} />}
     </>
   )
 }
 
-function IconModal({ value, label, family, onChange, onClose }: { value: string; label?: string; family?: ControllerVisualFamily; onChange: (icon: string) => void; onClose: () => void }) {
+/** The menu this item sits on, as the overlay draws it. */
+function useItemMenu(item: string | undefined, label: string | undefined): { menu: OverlayMenu; command: string; name: string } | null {
+  const { text = '' } = useContext(LayerUsageContext)
+  return useMemo(() => {
+    const named = readVirtualMenus(text).menus
+    const virtual = item ? /^([A-Za-z][\w-]*):(\d+)$/.exec(item) : null
+    if (virtual) {
+      const menu = named.find(entry => entry.id === virtual[1])
+      if (menu) return { menu: namedMenuOverlay(menu), command: item!, name: menu.name }
+    }
+    const pads = resolveOverlayMenus(text)
+    const padName = (key: string) => ({ LEFT: 'Left trackpad', RIGHT: 'Right trackpad', LSTICK: 'Left stick wheel', RSTICK: 'Right stick wheel' } as Record<string, string>)[key.split(':')[0]] ?? 'Menu'
+    if (item) {
+      for (const [key, menu] of Object.entries(pads)) if (menu.regions.some(region => region.command === item)) return { menu, command: item, name: padName(key) }
+    }
+    if (label) {
+      for (const menu of named) {
+        const index = menu.actions.findIndex(action => action.label === label)
+        if (index >= 0) return { menu: namedMenuOverlay(menu), command: `${menu.id}:${index}`, name: menu.name }
+      }
+      for (const [key, menu] of Object.entries(pads)) {
+        const region = menu.regions.find(entry => entry.label === label)
+        if (region) return { menu, command: region.command, name: padName(key) }
+      }
+    }
+    return null
+  }, [text, item, label])
+}
+
+/**
+ * Pick an icon (console v2, IconPicker.dc.html): a full-screen page. Categories
+ * on LT / RT, labelled tiles, "Show 160 more"; the aside shows the menu with the
+ * focused icon in this item's slot. A uses the focused icon, X sets none, Y
+ * searches, B cancels.
+ */
+export function IconPickerPage({ value, itemLabel, item, menuName, onChange, onClose }: { value: string; itemLabel?: string; item?: string; menuName?: string; onChange: (icon: string) => void; onClose: () => void }) {
   const { t } = useTranslation()
+  const { family, configName } = useShell()
+  const glyphFamily = family === 'generic' ? undefined : family
   const [tab, setTab] = useState<Tab>(() => value.startsWith('game-icons:') ? 'game' : 'general')
   const [query, setQuery] = useState('')
   const [names, setNames] = useState<string[]>([])
   const [art, setArt] = useState<Record<string, IconData>>({})
   const [loading, setLoading] = useState(false)
-  // A bundled set has thousands of icons; the grid shows a page and says
-  // when there are more, rather than stopping at 160 in silence.
   const [limit, setLimit] = useState(PAGE)
   const [more, setMore] = useState(false)
-  const tabsRef = useRef<HTMLElement>(null)
+  const [focused, setFocused] = useState<string>(value)
   const gridRef = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
   const opening = useRef(true)
-  const glyphFamily = family === 'generic' ? undefined : family
+  const found = useItemMenu(item, itemLabel)
+  const menuLabel = menuName ?? found?.name ?? t('pickers.iconMenu', 'Menu')
+  const itemName = itemLabel || t('pickers.iconThisItem', 'This item')
 
   useEffect(() => { setLimit(PAGE) }, [tab, query])
   useEffect(() => {
@@ -107,118 +159,117 @@ function IconModal({ value, label, family, onChange, onClose }: { value: string;
       const needle = query.trim().toLowerCase()
       const set = SET_FOR[tab]
       // One past the page: that one says whether "Show more" is needed.
-      const found = set
+      const list = set
         ? await listIcons(set, query, limit + 1)
         : (CURATED[tab] ?? []).filter(name => !needle || name.includes(needle)).map(name => `lucide:${name}`)
       if (cancelled) return
-      setMore(found.length > limit)
-      const page = found.slice(0, limit)
+      setMore(list.length > limit)
+      const page = list.slice(0, limit)
       setNames(page)
       const next = await resolveIcons(page)
       if (!cancelled) { setArt(previous => ({ ...previous, ...next })); setLoading(false) }
     }, 120)
     return () => { cancelled = true; clearTimeout(timer) }
   }, [tab, query, limit])
+  // The current icon's art, for the "Now" card, whatever category is open.
+  useEffect(() => { if (value && !art[value]) resolveIcon(value).then(next => { if (next) setArt(previous => ({ ...previous, [value]: next })) }) }, [value, art])
 
   // The pad starts on the current icon, else the first one -- not in search.
   useEffect(() => {
     if (!opening.current || loading || !names.length) return
     opening.current = false
-    queueMicrotask(() => {
+    requestAnimationFrame(() => {
       const grid = gridRef.current
       ;(grid?.querySelector<HTMLElement>('[aria-pressed="true"]') ?? grid?.querySelector<HTMLElement>('button'))?.focus()
     })
   }, [loading, names])
 
-  const focusTab = (next: Tab) => tabsRef.current?.querySelector<HTMLButtonElement>(`[data-icon-tab="${next}"]`)?.focus({ preventScroll: true })
-  const step = (by: number) => {
-    const next = TABS[(TABS.findIndex(item => item.id === tab) + by + TABS.length) % TABS.length].id
-    // The focused icon tile is removed when the new category loads. Keep the
-    // pad's event target inside the dialog by landing on its persistent tab.
-    focusTab(next)
+  const step = (to: Tab) => {
     setQuery('')
-    setTab(next)
+    setTab(to)
+    // The old tiles go; land on the new category's first tile once it loads.
+    opening.current = true
+    gridRef.current?.focus({ preventScroll: true })
   }
   const clear = () => onChange('')
-  const onPad = (button: string) => {
-    if (button === 'LB' || button === 'RB') { step(button === 'RB' ? 1 : -1); return true }
-    if (button === 'X') { clear(); return true }
-    if (button === 'Y') { searchRef.current?.focus(); return true }
-    return false
-  }
-  // The same buttons from the keyboard, when not typing.
-  const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
-    if ((event.target as HTMLElement).matches('input')) return
-    const key = event.key.toLowerCase()
-    if (key === 'x') { event.preventDefault(); clear() }
-    if (key === 'y') { event.preventDefault(); searchRef.current?.focus() }
-    if (key === '[' || key === ']') { event.preventDefault(); step(key === ']' ? 1 : -1) }
-  }
-  const title = label ? t('keymap.iconFor', 'Icon for “{{label}}”', { label }) : t('keymap.iconForItem', 'Icon for this item')
+  const preview = useMemo(() => {
+    if (!found) return null
+    const icon = focused ?? ''
+    const swap = (region: OverlayMenu['regions'][number]) => region.command === found.command ? { ...region, icon } : region
+    return { ...found.menu, regions: found.menu.regions.map(swap), ...(found.menu.centerRegion ? { centerRegion: swap(found.menu.centerRegion) } : {}) }
+  }, [found, focused])
+  const total = tab === 'game' ? t('pickers.iconCountGame', 'Thousands of game icons') : tab === 'general' ? t('pickers.iconCountGeneral', 'Over a thousand everyday icons') : tab === 'custom' ? t('pickers.iconCountCustom', 'Your own icons') : t('pickers.iconCountCurated', '{{count}} hand-picked icons', { count: (CURATED[tab] ?? []).length })
+  const hints = (name: string) => `A:${t('pickers.iconUseNamed', 'Use {{name}}', { name })};X:${t('keymap.iconClear', 'No icon')};Y:${t('pickers.iconSearchShort', 'Search')}`
 
   return (
-    <Dialog onClose={onClose} width={840} height={580} scrim={0.72} className={styles.modal} onPad={onPad} onKeyDown={onKeyDown}
-      lead={<span className={styles.preview} aria-hidden="true"><BindingIconArt value={value} size={22} /></span>}
-      title={title}
-      subtitle={t('keymap.iconShownAbove', 'Shown above the label on the menu')}
-      aside={
-        <>
-          <label className={styles.search}>
-            <Icon name="search" size={16} />
-            <input ref={searchRef} type="search" value={query} placeholder={t('keymap.iconSearch', 'Search icons')} aria-label={t('keymap.iconSearch', 'Search icons')}
-              onChange={event => setQuery(event.target.value)}
-              onKeyDown={event => { if (event.key === 'ArrowDown' || (event.key === 'Enter' && names.length)) { event.preventDefault(); gridRef.current?.querySelector<HTMLElement>('button')?.focus() } }} />
-          </label>
-          <button type="button" className="console-btn" disabled title={t('keymap.iconImportLater', 'Importing your own icons is coming later')}>
-            {t('keymap.iconImportButton', '+ Import')}
-          </button>
-        </>
-      }
-      toolbar={
-        <nav ref={tabsRef} className={styles.tabs} aria-label={t('keymap.iconCategories', 'Icon categories')}>
-          <ButtonGlyph button="LB" size={22} family={glyphFamily} />
-          {TABS.map(item => (
-            <button key={item.id} type="button" className={styles.tab} data-icon-tab={item.id} aria-pressed={tab === item.id} onClick={() => { focusTab(item.id); setQuery(''); setTab(item.id) }}>
-              {t(item.labelKey, item.label)}
-            </button>
-          ))}
-          <ButtonGlyph button="RB" size={22} family={glyphFamily} />
-        </nav>
-      }
-      footerNote={t('keymap.iconBundled', 'Bundled with the configuration')}
-      hints={[
-        { button: 'X', label: t('keymap.iconClear', 'No icon') },
-        { button: 'A', label: t('keymap.iconUse', 'Use icon') },
-        { button: 'B', label: t('common.cancel', 'Cancel') },
-      ]}
-      actions={
-        <>
-          <button type="button" className="console-btn" onClick={clear} disabled={!value}>{t('keymap.iconClear', 'No icon')}</button>
-          <button type="button" className="console-btn" onClick={onClose}>{t('common.cancel', 'Cancel')}</button>
-        </>
-      }>
-      <div ref={gridRef} className={styles.grid} aria-label={title}>
-        {tab === 'custom' && <p className={styles.status}>{t('keymap.iconCustomEmpty', 'Your own icons will live here. Importing them is coming later.')}</p>}
+    <PickerPage kind="icon" onClose={onClose} backLabel={t('common.cancel', 'Cancel')} asideWidth={340}
+      lead={<span className={styles.lead}><BindingIconArt value={value} size={30} /></span>}
+      eyebrow={`${menuLabel} · ${itemName}`} title={t('pickers.iconTitle', 'Pick an icon')}
+      where={[configName ?? t('pickers.configuration', 'Configuration'), t('app.nav.virtualMenus', 'Menus'), menuLabel, itemName].join(' · ')}
+      groups={TABS.map(item => ({ id: item.id, label: t(item.labelKey, item.label) }))} group={tab} onGroup={id => step(id as Tab)}
+      stepLabel={t('pickers.iconCategory', 'Category')}
+      groupNote={tab === 'custom' ? total : t('pickers.iconShowing', '{{total}} · showing the first {{count}}', { total, count: names.length })}
+      hints={[{ button: 'X', label: t('keymap.iconClear', 'No icon') }, { button: 'Y', label: t('pickers.iconSearchShort', 'Search') }]}
+      onPad={button => {
+        if (button === 'X') { clear(); return true }
+        if (button === 'Y') { searchRef.current?.focus(); return true }
+        return false
+      }}
+      aside={<>
+        <span className={styles.lbl}>{t('pickers.iconOnTheMenu', 'On the menu')}</span>
+        <div className={styles.previewWell} data-icon-preview>
+          {preview
+            ? <MenuPreview menu={preview} aspect={preview.displayAspect ?? 1} fill hotCommand={found!.command} maxHeight={230} />
+            : <span className={styles.previewFallback}><BindingIconArt value={focused} size={72} /></span>}
+        </div>
+        <div className={styles.focusedName}>
+          <b>{focused ? iconName(focused) : t('keymap.iconNone', 'No icon')}</b>
+          <span>{t('pickers.iconShownAboveNamed', 'Shown above “{{label}}” on the menu', { label: itemName })}</span>
+        </div>
+        <div className={styles.nowCard}>
+          <span className={styles.nowIcon}><BindingIconArt value={value} size={28} /></span>
+          <span className={styles.nowText}><span>{t('pickers.iconNow', 'Now')}</span><b>{value ? iconName(value) : t('keymap.iconNone', 'No icon')}</b></span>
+          <button type="button" className={styles.nowClear} tabIndex={-1} onClick={clear}><ButtonGlyph button="X" size={24} family={glyphFamily} />{t('keymap.iconClear', 'No icon')}</button>
+        </div>
+        <span className={styles.note}>{t('pickers.iconTravel', 'Icons travel with the configuration. Your own icons will go under Custom.')}</span>
+      </>}>
+      <label className={styles.search}>
+        <Icon name="search" size={18} />
+        <input ref={searchRef} type="search" tabIndex={-1} value={query} placeholder={t('keymap.iconSearch', 'Search icons')} aria-label={t('keymap.iconSearch', 'Search icons')}
+          onChange={event => setQuery(event.target.value)}
+          onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => { if (event.key === 'ArrowDown' || (event.key === 'Enter' && names.length)) { event.preventDefault(); gridRef.current?.querySelector<HTMLElement>('button')?.focus() } }} />
+        <ButtonGlyph button="Y" size={24} family={glyphFamily} />
+      </label>
+      <div ref={gridRef} className={styles.grid} tabIndex={-1} aria-label={t('pickers.iconTitle', 'Pick an icon')} data-icon-grid>
+        {tab === 'custom' && (
+          <div className={styles.empty}>
+            <b>{t('pickers.iconCustomTitle', 'Nothing here yet')}</b>
+            <span>{t('pickers.iconCustomEmpty', 'Your own icons will go under Custom. Until then, General and Game have thousands to choose from.')}</span>
+          </div>
+        )}
         {tab !== 'custom' && loading && names.length === 0 && <p className={styles.status}>{t('common.loading', 'Loading…')}</p>}
         {tab !== 'custom' && !loading && names.length === 0 && <p className={styles.status}>{t('keymap.iconNoResults', 'Nothing matched')}</p>}
         {names.map(name => {
           const icon = art[name]
-          const current = name === value
+          const isCurrent = name === value
+          const label = iconName(name)
           return (
-            // The current icon wears a check badge; the focus ring is focus's alone.
-            <button key={name} type="button" className={styles.tile} aria-pressed={current} title={name.split(':')[1]} aria-label={name.split(':')[1]}
-              data-hints="A:Use icon;X:No icon;Y:Search;LB/RB:Category;B:Cancel" onClick={() => onChange(name)}>
+            <button key={name} type="button" className={styles.tile} aria-pressed={isCurrent} aria-label={label} data-icon={name}
+              data-caption={isCurrent ? t('pickers.iconCurrentCaption', '{{name}} · on the menu now', { name: label }) : label}
+              data-hints={hints(label)} onFocus={() => setFocused(name)} onMouseEnter={() => { if (document.body.dataset.inputSource === 'mouse') setFocused(name) }} onClick={() => onChange(name)}>
               {icon && <svg className={styles.tileGlyph} viewBox={`0 0 ${icon.width} ${icon.height}`} aria-hidden="true" dangerouslySetInnerHTML={{ __html: icon.body }} />}
-              {current && <span className={styles.tileCheck} aria-hidden="true"><Icon name="success" size={12} /></span>}
+              <span className={styles.tileLabel}>{isCurrent ? t('pickers.iconCurrentLabel', '{{name}} (current)', { name: label }) : label}</span>
+              {isCurrent && <span className={styles.tileCheck} aria-hidden="true"><Icon name="success" size={12} /></span>}
             </button>
           )
         })}
         {more && !loading && (
-          <button type="button" className={`console-btn ${styles.more}`} data-hints="A:Show more;X:No icon;Y:Search;LB/RB:Category;B:Cancel" onClick={() => setLimit(current => current + PAGE)}>
-            {t('keymap.iconShowMore', 'Show more')}
+          <button type="button" className={styles.more} data-hints={`A:${t('pickers.iconShowMore', 'Show {{count}} more', { count: PAGE })};X:${t('keymap.iconClear', 'No icon')};Y:${t('pickers.iconSearchShort', 'Search')}`}
+            onClick={() => setLimit(current => current + PAGE)}>
+            {t('pickers.iconShowMore', 'Show {{count}} more', { count: PAGE })} ▾
           </button>
         )}
       </div>
-    </Dialog>
+    </PickerPage>
   )
 }

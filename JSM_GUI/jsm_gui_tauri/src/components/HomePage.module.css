@@ -1,183 +1,169 @@
-/* Home (console refinement 2a): the configuration card on the left at 1.2fr,
-   Studio's tiles on the right at 1fr, 32px apart, 32/40px from the edges and
-   96px clear of the capsule. */
+/* Home (console v2, Home.dc.html): the game on the left (hero, three actions,
+   Quick tune), Your games and two doors in a 420px column on the right. 32/40px
+   from the edges; the hint bar docks below. */
 .home {
   height: 100%;
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-  gap: var(--sp-7);
-  padding: var(--sp-7) var(--sp-8) 96px;
   min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 420px;
+  gap: var(--sp-7);
+  padding: var(--sp-7) var(--sp-8) var(--sp-6);
 }
+@media (max-width: 1279px) { .home { grid-template-columns: minmax(0, 1fr) 340px; gap: var(--sp-6); padding: var(--sp-6); } }
 
-.column { display: flex; flex-direction: column; gap: var(--sp-3); min-height: 0; min-width: 0; }
-.caption { display: flex; align-items: baseline; gap: 10px; }
-.captionNote { font-size: var(--fs-hint); color: var(--text-3); }
+.main { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: var(--sp-5); }
 
-/* ---- This configuration */
-.card {
-  flex: 1;
+/* ---- The hero: the game's art (Steam library cache) or a flat two-tone cover. */
+.hero {
+  position: relative;
+  flex: 1 1 380px;
+  min-height: 240px;
+  max-height: 420px;
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  border-radius: 18px;
-  background: var(--surface-nav);
-  box-shadow: inset 0 0 0 1px var(--line-2);
+  justify-content: flex-end;
   overflow: hidden;
+  padding: 36px;
+  border-radius: 22px;
+  background-color: var(--surface-row);
+  background-size: cover;
+  background-position: center;
+  box-shadow: inset 0 0 0 1px var(--line-1);
 }
-.cardHeader { display: flex; align-items: center; gap: var(--sp-4); padding: var(--sp-5) var(--sp-6); }
-.cardTitle { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-.nameLine { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.heroShade { position: absolute; inset: 0; background: linear-gradient(180deg, transparent 30%, rgba(7, 12, 17, .82) 100%); pointer-events: none; }
+.hero[data-art='flat'] .heroShade { background: linear-gradient(180deg, transparent 40%, rgba(7, 12, 17, .45) 100%); }
+.heroText { position: relative; min-width: 0; color: #e8eef4; }
+.heroMeta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); margin-bottom: 14px; }
+.livePill, .pausedPill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 16px;
+  font-size: var(--fs-label);
+  font-weight: var(--fw-semibold);
+}
+.livePill { background: #1e3d33; color: #93e6c1; }
+.liveDot { width: 8px; height: 8px; border-radius: 50%; background: #5fd3a0; }
+.pausedPill { background: rgba(232, 238, 244, .14); color: #e8eef4; }
+.launches { font-size: var(--fs-body); color: #c9d3dc; }
 .name {
   margin: 0;
-  font-size: var(--fs-page);
-  line-height: var(--lh-page);
-  font-weight: var(--fw-semibold);
-  letter-spacing: -.015em;
   overflow: hidden;
+  font-size: calc(var(--fs-page) * 2.2);
+  line-height: 1;
+  font-weight: var(--fw-bold);
+  letter-spacing: -.02em;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.appliedPill {
-  flex: none;
-  height: 22px;
-  display: grid;
-  place-items: center;
-  padding: 0 8px;
-  border-radius: var(--r-pill);
-  background: var(--ok-soft);
-  color: var(--ok);
-  font-size: 12px;
-  font-weight: var(--fw-semibold);
-}
-.subLine { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-body); color: var(--text-2); }
-.layerPill {
-  height: 24px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 10px;
-  border-radius: var(--r-pill);
-  color: var(--text-1);
-  font-size: var(--fs-hint);
-  font-weight: var(--fw-medium);
-}
-.layerDot { width: 8px; height: 8px; border-radius: 50%; }
+.summary { margin: 14px 0 0; font-size: calc(var(--fs-body) + 3px); line-height: 1.35; color: #c9d3dc; }
 
-.switchButton {
-  flex: none;
-  height: var(--control-h-lg);
+/* ---- A Edit layout · X Test it · Y Switch game */
+.actions { display: flex; gap: var(--sp-4); }
+.primary, .secondary {
+  height: 76px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 var(--sp-4);
+  justify-content: center;
+  gap: 14px;
   border: 0;
-  border-radius: var(--r-row);
-  background: var(--surface-row);
-  color: var(--text-1);
+  border-radius: 18px;
   font: inherit;
-  font-size: var(--fs-body);
-  font-weight: var(--fw-semibold);
   cursor: pointer;
 }
-.switchButton:hover { background: var(--surface-row-hover); }
+.primary { flex: 1; background: var(--accent-strong); color: var(--text-on-accent); font-size: calc(var(--fs-label) + 7px); font-weight: var(--fw-semibold); }
+.primary:hover { background: var(--accent); }
+.secondary { flex: 0 1 240px; background: var(--surface-control); color: var(--text-1); font-size: calc(var(--fs-label) + 5px); font-weight: var(--fw-semibold); }
+.secondary:hover { background: var(--surface-control-hover); }
+.secondary[aria-disabled='true'] { color: var(--text-3); cursor: default; }
+.primaryGlyph { color: var(--text-on-accent); }
+.primary { --glyph-ink: var(--accent-strong); }
+.primary:hover { --glyph-ink: var(--accent); }
+.actionGlyph { color: var(--text-1); }
 
-.art {
-  flex: 1;
-  min-height: 160px;
-  display: grid;
-  place-items: center;
-  margin: 0 var(--sp-6);
-  padding: var(--sp-3);
-  border-radius: 12px;
-  background: var(--surface-sunken);
-  overflow: hidden;
-}
-.art > * { max-width: 100%; max-height: 100%; }
-.art svg { max-height: 100%; }
-.artOffline { display: flex; flex-direction: column; align-items: center; gap: var(--sp-3); color: var(--text-3); font-size: var(--fs-hint); }
-.artOffline img { width: min(360px, 80%); opacity: .35; }
-
-.actions { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-3); padding: var(--sp-4) var(--sp-6) 0; }
-.continueButton,
-.testButton {
-  height: 56px;
-  display: flex;
-  align-items: center;
-  gap: var(--sp-3);
-  border: 0;
-  border-radius: 12px;
-  font: inherit;
-  font-weight: var(--fw-semibold);
-  cursor: pointer;
-}
-.continueButton { padding: 0 var(--sp-5) 0 14px; background: var(--accent); color: var(--text-on-accent); font-size: 16px; }
-.continueButton:hover { background: var(--accent-strong); }
-.continueGlyph { flex: none; color: var(--text-1); }
-.testButton { padding: 0 var(--sp-5); background: var(--surface-row); color: var(--text-1); font-size: var(--fs-label); }
-.testButton:hover:not([aria-disabled='true']) { background: var(--surface-row-hover); }
-.testButton[aria-disabled='true'] { color: var(--text-3); cursor: default; }
-
-.tune { display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-5) var(--sp-6) var(--sp-6); }
-.tuneGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-3); }
+/* ---- Quick tune · changes apply live */
+.tune { display: flex; flex-direction: column; gap: var(--sp-3); }
+.tuneGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 .tuneTile {
-  height: 84px;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: flex-start;
-  gap: 4px;
-  padding: 0 18px;
+  gap: 10px;
+  padding: 18px 20px;
   border: 0;
-  border-radius: 12px;
+  border-radius: 16px;
   background: var(--surface-row);
   color: var(--text-1);
   font: inherit;
   text-align: left;
   cursor: pointer;
 }
-.tuneTile:hover,
-.studioTile:hover { background: var(--surface-row-hover); }
-.tileLabel { display: flex; align-items: center; gap: 10px; font-size: var(--fs-label); font-weight: var(--fw-semibold); }
-.tileNote {
-  max-width: 100%;
-  font-size: var(--fs-hint);
-  color: var(--text-2);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+.tuneTile:hover { background: var(--surface-row-hover); }
+.tuneTile[aria-disabled='true'] { cursor: pointer; }
+.tuneLabel { font-size: var(--fs-label); color: var(--text-2); }
+.tuneValueLine { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-2); width: 100%; }
+.tuneValue { font-size: calc(var(--fs-page) + 2px); font-weight: var(--fw-semibold); font-variant-numeric: tabular-nums; }
+.tuneHint { font-size: var(--fs-hint); color: var(--text-3); white-space: nowrap; }
+.tuneWords { font-size: calc(var(--fs-label) + 6px); line-height: 1.25; font-weight: var(--fw-semibold); }
+.bar { display: block; width: 100%; height: 6px; border-radius: 3px; background: var(--surface-sunken); overflow: hidden; }
+.bar > span { display: block; height: 100%; border-radius: 3px; background: var(--accent); }
 
-/* ---- Studio */
-.studioGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); align-content: start; }
-.studioTile {
-  height: 76px;
+/* ---- Your games */
+.side { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 18px; }
+.sideHead { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-3); }
+.sideTitle { margin: 0; font-size: var(--fs-section); line-height: var(--lh-section); font-weight: var(--fw-semibold); }
+.sideNote { font-size: var(--fs-hint); color: var(--text-3); }
+.shelf { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.cover, .tile {
+  position: relative;
+  height: 150px;
   min-width: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 16px;
+  color: var(--text-1);
+  font: inherit;
+  cursor: pointer;
+}
+.cover {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 16px;
+  background-color: var(--surface-row);
+  background-size: cover;
+  background-position: center;
+  text-align: left;
+}
+.cover::before { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 35%, rgba(7, 12, 17, .78) 100%); }
+.coverIcon { position: absolute; top: 14px; left: 14px; }
+.coverText { position: relative; display: flex; flex-direction: column; gap: 4px; min-width: 0; color: #e8eef4; }
+.coverName { overflow: hidden; font-size: calc(var(--fs-label) + 4px); font-weight: var(--fw-semibold); text-overflow: ellipsis; white-space: nowrap; }
+.coverNote { font-size: var(--fs-hint); color: #c9d3dc; }
+.tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: var(--surface-row); font-size: calc(var(--fs-label) + 2px); }
+.tile:hover { background: var(--surface-row-hover); }
+.tile b { font-weight: var(--fw-semibold); }
+.tileNew { background: transparent; box-shadow: inset 0 0 0 2px var(--surface-control); color: var(--text-2); }
+.tileNew:hover { background: var(--surface-row-hover); }
+
+.doors { display: flex; flex-direction: column; gap: var(--sp-3); margin-top: auto; }
+.door {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 0 18px;
+  gap: var(--sp-4);
+  padding: 18px 20px;
   border: 0;
-  border-radius: 12px;
+  border-radius: 16px;
   background: var(--surface-row);
   color: var(--text-1);
   font: inherit;
   text-align: left;
   cursor: pointer;
 }
-.studioIcon { display: grid; flex: none; color: var(--text-2); }
-.studioText { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-
-/* The pad's focus: the selected fill under the shared ring. */
-:global(body[data-input-source='controller']) :is(.tuneTile, .studioTile, .switchButton, .testButton):focus { background: var(--surface-selected); }
-
-/* Two columns hold down to the drawer width; below it they stack, and the
-   art (which only scales with the column width) steps aside for the rows. */
-@media (max-width: 959px) {
-  .home { grid-template-columns: minmax(0, 1fr); height: auto; }
-  .art { display: none; }
-}
-
-/* The associated game's icon before the title (TODO-46). */
-.gameIcon { flex: none; align-self: center; }
+.door:hover { background: var(--surface-row-hover); }
+.doorText { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.doorText b { font-size: calc(var(--fs-label) + 2px); font-weight: var(--fw-semibold); }
+.doorText span { font-size: var(--fs-hint); color: var(--text-3); }

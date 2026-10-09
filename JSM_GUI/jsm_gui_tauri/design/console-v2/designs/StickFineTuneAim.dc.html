@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Stick Fine-tune, aim</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.grp{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;flex-direction:column;gap:4px;padding:16px 20px;box-sizing:border-box;border-radius:14px;background:transparent;color:#b0bcc8;text-align:left}
+.grp .t{font-size:20px;font-weight:600}
+.grp .s{font-size:15px;color:#808c99}
+.row{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;align-items:center;gap:16px;min-height:76px;padding:14px 22px;box-sizing:border-box;border-radius:16px;background:#1f2730;color:#e8eef4;text-align:left}
+.seg{display:flex;gap:4px;background:#0f151b;border-radius:12px;padding:4px}
+.seg span{height:38px;padding:0 16px;border-radius:9px;display:flex;align-items:center;font-size:16px;font-weight:600;color:#b0bcc8}
+.lg{display:flex;align-items:center;gap:12px}
+.lg .k{display:flex;flex-direction:column;gap:2px}
+.lg .k b{font-size:16px;font-weight:600;color:#d4dde6}
+.lg .k i{font-style:normal;font-size:15px;color:#808c99}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="height: 76px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 40px; background: #0d1217">
+<span style="font-size: 18px; color: #808c99">Wardogs · Sticks · Right stick</span>
+<span style="font-size: 18px; color: #808c99">▸</span>
+<span style="font-size: 22px; font-weight: 700">Fine-tune</span>
+<span style="display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px; border-radius: 17px; background: #2a2238; color: #d9c6fa; font-size: 15px; font-weight: 600"><span style="width: 12px; height: 12px; border-radius: 4px; background: #b48cf0"></span>Vehicles · Changed in this mode</span>
+<span style="margin-left: auto; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 20px; background: #1e3d33; color: #93e6c1; font-size: 16px; font-weight: 600"><span style="width: 9px; height: 9px; border-radius: 50%; background: #5fd3a0"></span>Live · saved</span>
+</header>
+
+<main style="flex: 1; min-height: 0; display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 36px; padding: 32px 40px 24px">
+
+<nav style="display: flex; flex-direction: column; gap: 6px; min-height: 0">
+<div style="display: flex; align-items: center; gap: 8px; margin: 0 0 10px 20px; font-size: 14px; color: #808c99"><span class="gp">LT</span>Group<span class="gp">RT</span></div>
+<button class="grp" style="background: #1f2730; color: #ffffff"><span class="t">Speed</span><span class="s" style="color: #b0bcc8">Default · 360°/s</span></button>
+<button class="grp"><span class="t">Speed-up</span><span class="s">Off</span></button>
+<button class="grp"><span class="t">Dead zone &amp; edge</span><span class="s">Ignore 15% · full past 90%</span></button>
+<button class="grp"><span class="t">Mouse-like feel</span><span class="s">Off · plain stick aim</span></button>
+<button class="grp"><span class="t">Direction</span><span class="s">Normal up, down, left, right</span></button>
+<div style="margin-top: auto; background: #181f27; border-radius: 14px; padding: 14px 18px; display: flex; gap: 12px; align-items: flex-start">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#808c99" stroke-width="1.8" stroke-linecap="round" style="flex: none; margin-top: 2px"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v6M12 7.5v.01"></path></svg>
+<span style="font-size: 15px; line-height: 1.45; color: #808c99">Speed and speed-up are shared by both sticks and the trackpad sticks.</span>
+</div>
+</nav>
+
+<section style="display: grid; grid-template-columns: minmax(0, 1fr) 470px; gap: 28px; min-width: 0; min-height: 0">
+
+<div style="display: flex; flex-direction: column; gap: 12px; min-width: 0">
+<div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px">
+<h1 style="margin: 0; font-size: 32px; font-weight: 700">Speed</h1>
+<p style="margin: 0; font-size: 17px; color: #b0bcc8">How fast the view turns, and how a push becomes speed.</p>
+</div>
+
+<div class="focus" style="background: #1d445c; border-radius: 16px; padding: 18px 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px"><span style="font-size: 20px; font-weight: 650">Turn speed</span><span style="display: flex; align-items: baseline; gap: 10px"><span style="font-size: 15px; color: #b8e2fa">Default</span><span style="font-size: 30px; font-weight: 700">360°/s</span></span></div>
+<div style="position: relative; height: 8px; border-radius: 4px; background: #0f151b"><span style="position: absolute; left: 0; top: 0; height: 8px; width: 30%; border-radius: 4px; background: #3e9fd8"></span><span style="position: absolute; left: 30%; top: -8px; width: 24px; height: 24px; margin-left: -12px; border-radius: 50%; background: #ffffff; box-shadow: 0 0 0 5px rgba(62,159,216,.3)"></span></div>
+<span style="font-size: 15px; color: #b8e2fa">A full push turns you 360° every second. ◂ ▸ steps of 30, hold LB for 1.</span>
+</div>
+
+<div class="row" style="flex-direction: column; align-items: stretch; gap: 12px">
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 20px; font-weight: 650">How a push becomes speed</span><span style="font-size: 15px; color: #808c99">Precise centre slows small pushes so fine aim is easier.</span></span>
+<div class="seg"><span>Quick start</span><span style="background: #2e3844; color: #ffffff">Even</span><span>Precise centre</span><span>Custom</span></div>
+</div>
+
+<button class="row"><span style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 20px; font-weight: 650">Up and down speed</span><span style="font-size: 15px; color: #808c99">Give it its own speed</span></span><span style="margin-left: auto; font-size: 17px; color: #d4dde6; white-space: nowrap">Same as left/right ▸</span></button>
+
+<button class="row" style="background: transparent; box-shadow: inset 0 0 0 2px #2e3844; min-height: 64px"><span style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 18px; font-weight: 600">Advanced</span><span style="font-size: 15px; color: #808c99">Exact curve number, Match a full turn (360°)</span></span><span style="margin-left: auto; font-size: 17px; color: #808c99">▸</span></button>
+</div>
+
+<div style="background: #1a222b; border-radius: 20px; padding: 22px; display: flex; flex-direction: column; gap: 14px; min-height: 0">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 17px; font-weight: 600">How a push becomes turning</span><span style="font-family: 'Geist Mono', monospace; font-size: 14px; color: #93e6c1">● live 226 °/s</span></div>
+
+<div style="display: flex; align-items: center; gap: 18px">
+<svg width="200" height="200" viewBox="0 0 220 220" fill="none" style="flex: none">
+<circle cx="110" cy="110" r="104" stroke="#aebbc8" stroke-width="2"></circle>
+<circle cx="110" cy="110" r="101" fill="#0e1419"></circle>
+<g stroke="rgba(255,255,255,.09)" stroke-width="1.4" stroke-linecap="round" transform="translate(110 110)"><path d="M0 -96v5M0 96v-5M-96 0h5M96 0h-5M67.9 -67.9l-3.5 3.5M-67.9 67.9l3.5 -3.5M67.9 67.9l-3.5 -3.5M-67.9 -67.9l3.5 3.5"></path></g>
+<path d="M110 22v176M22 110h176" stroke="rgba(255,255,255,.035)"></path>
+<circle cx="110" cy="110" r="86.4" stroke="#7cc4ee" stroke-width="1.6" stroke-dasharray="3 6" stroke-linecap="round"></circle>
+<circle cx="110" cy="110" r="14.4" fill="rgba(62,159,216,.14)" stroke="rgba(124,196,238,.7)" stroke-width="1.4" stroke-dasharray="2 3"></circle>
+<path d="M110 110L152.1 67.9" stroke="#a6d65a" stroke-width="2" stroke-linecap="round"></path>
+<circle cx="152.1" cy="67.9" r="24" fill="#212a34" stroke="#e3eaf1" stroke-width="2"></circle>
+<circle cx="152.1" cy="67.9" r="13.5" fill="none" stroke="#aebbc8" stroke-width="1.5"></circle>
+<circle cx="152.1" cy="67.9" r="5.8" fill="#a6d65a" stroke="#e3eaf1" stroke-width="2"></circle>
+</svg>
+<div style="display: flex; flex-direction: column; gap: 16px; min-width: 0">
+<div class="lg"><svg width="26" height="26" viewBox="0 0 26 26" fill="none" style="flex: none"><circle cx="13" cy="13" r="9" fill="rgba(62,159,216,.14)" stroke="#7cc4ee" stroke-width="1.4" stroke-dasharray="2 3"></circle></svg><span class="k"><b>Inner ring</b><i>Ignored · 15%</i></span></div>
+<div class="lg"><svg width="26" height="26" viewBox="0 0 26 26" fill="none" style="flex: none"><circle cx="13" cy="13" r="10" stroke="#7cc4ee" stroke-width="1.6" stroke-dasharray="3 4"></circle></svg><span class="k"><b>Outer ring</b><i>Full speed past 90%</i></span></div>
+<div class="lg"><svg width="26" height="26" viewBox="0 0 26 26" fill="none" style="flex: none"><circle cx="13" cy="13" r="9" fill="#212a34" stroke="#e3eaf1" stroke-width="1.5"></circle><circle cx="13" cy="13" r="3.5" fill="#a6d65a"></circle></svg><span class="k"><b>Your stick now</b><i>62% push</i></span></div>
+</div>
+</div>
+
+<svg viewBox="0 0 420 250" width="100%" height="250" fill="none">
+<defs>
+<pattern id="sa2h" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><path d="M0 0V8" stroke="#808c99" stroke-opacity=".25" stroke-width="3"></path></pattern>
+</defs>
+<rect x="40" y="30" width="55.5" height="190" fill="url(#sa2h)"></rect>
+<rect x="373" y="30" width="37" height="190" fill="rgba(62,159,216,.07)"></rect>
+<g stroke="rgba(255,255,255,.05)"><path d="M40 50H410M40 106.7H410M40 163.3H410"></path><path d="M132.5 30V220M225 30V220M317.5 30V220"></path></g>
+<path d="M40 220H410M40 220V30" stroke="#2e3844" stroke-width="1.5"></path>
+<path d="M95.5 220 Q95.5 135 373 50" stroke="#808c99" stroke-width="2" stroke-dasharray="5 6" opacity=".7"></path>
+<text x="150" y="104" fill="#808c99" font-size="14" font-family="Geist, sans-serif">Quick start</text>
+<path d="M95.5 220 Q234.25 220 373 50" stroke="#808c99" stroke-width="2" stroke-dasharray="2 5" opacity=".7"></path>
+<text x="300" y="178" fill="#808c99" font-size="14" font-family="Geist, sans-serif">Precise centre</text>
+<path d="M95.5 220L373 50H410V220Z" fill="#3e9fd8" fill-opacity=".12"></path>
+<path d="M40 220H95.5L373 50H410" stroke="#3e9fd8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M269.4 113.5V220" stroke="#7cc4ee" stroke-opacity=".35" stroke-dasharray="3 4"></path>
+<circle cx="269.4" cy="113.5" r="5.5" fill="#ffffff"></circle>
+<text x="48" y="208" fill="#808c99" font-size="14" font-family="Geist, sans-serif">Ignored</text>
+<text x="404" y="44" fill="#b8e2fa" font-size="14" font-weight="600" font-family="Geist, sans-serif" text-anchor="end">Even · 360°/s</text>
+<text x="225" y="244" fill="#808c99" font-size="14" font-family="Geist, sans-serif" text-anchor="middle">How far you push the stick →</text>
+<text x="24" y="125" fill="#808c99" font-size="14" font-family="Geist, sans-serif" text-anchor="middle" transform="rotate(-90 24 125)">Turn speed →</text>
+</svg>
+<span style="font-size: 15px; line-height: 1.5; color: #808c99">Move to Quick start or Precise centre to see the curve before you pick it.</span>
+</div>
+</section>
+</main>
+
+<footer style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Wardogs · Sticks · Right stick · Fine-tune · Speed</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px">◂ ▸ Adjust</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">X</span>Try it</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">Y</span>Reset</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">LT</span><span class="gp">RT</span>Group</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Back to Sticks</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

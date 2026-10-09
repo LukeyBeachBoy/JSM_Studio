@@ -14,47 +14,62 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.cache
   window.telemetry={onSample:cb=>{const emit=()=>cb({activeProfile:'profiles-library/Dense.txt',devices:[{handle:1,type:window.__type,supportedButtons:8589934591,status:{buttons:0,leftStick:{x:0,y:0},rightStick:{x:0,y:0},triggers:{left:0,right:0},leftPad:{x:0,y:0,touched:false},rightPad:{x:0,y:0,touched:false}}}]});emit();const timer=setInterval(emit,100);return()=>clearInterval(timer)}};
  });
  await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
+ // The Steam Controller's first-connection "Controller power-on sound" dialog would steal focus: keep the controller's own sounds.
+ await page.addLocatorHandler(page.getByRole('button',{name:'Keep them',exact:true}),async()=>{await page.getByRole('button',{name:'Keep them',exact:true}).click()});
  // The app opens on Home (console refinement 2a); these checks start in the editing shell.
  await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
  await page.locator('.profile-chip').filter({hasText:'Dense'}).waitFor();
  const north=()=>page.locator('details[data-input-command="N"]').first();
- // Overview.dc.html: the grip row is named, with the activation as its pill ("Enables gyro").
- assert.match(await page.locator('[data-overview-input="MISC5"]').innerText(),/Enables gyro/);
+ // Layout.dc.html: the grip row says what it turns on ("Gyro aim on · while held"), from the imported template.
+ assert.match(await page.locator('[data-overview-input="MISC5"]').innerText(),/Gyro aim on\s*while held/);
  assert.match(await page.locator('[data-overview-input="ZL"]').innerText(),/Analog left trigger/);
- // X on a callout opens where the input is used (MISC5, named as the pad names it).
- await page.locator('[data-overview-input="MISC5"]').focus();await page.keyboard.press('x');
+ // Y ▸ Every use opens where the input is used (MISC5, named as the pad names it).
+ await page.locator('[data-overview-input="MISC5"]').focus();await page.keyboard.press('y');
+ await page.getByRole('button',{name:/^Every use/}).click();
  const dialog=page.getByRole('dialog',{name:'Where Right grip is used'});
  await dialog.waitFor();assert.ok(await dialog.evaluate(e=>e.contains(document.activeElement)));
  await page.keyboard.press('Escape');await dialog.waitFor({state:'hidden'});
- await page.getByRole('toolbar',{name:'Filter bindings'}).getByRole('button',{name:/^Available/}).click();
+ // Only free inputs: Find "not set" in the quick menu. A 3×3 right pad with one zone set counts its zones.
+ await page.locator('[data-overview-input="MISC5"]').focus();await page.keyboard.press('y');
+ await page.getByRole('searchbox',{name:'Find an input or action'}).fill('not set');
  assert.equal(await page.locator('[data-overview-input="MISC5"]').count(),0);
  assert.equal(await page.locator('[data-overview-input="ZL"]').count(),0);
- assert.equal(await page.locator('[data-overview-input="RT9"]').count(),1);
- await page.getByRole('toolbar',{name:'Filter bindings'}).getByRole('button',{name:'All bindings',exact:true}).click();
- const overviewNorth=page.locator('[data-overview-input="N"]');await overviewNorth.click();
- await north().waitFor();await page.keyboard.press('Escape');await page.keyboard.press('Escape');
+ assert.ok(await page.locator('[data-overview-slot][data-unset="true"]').count()>0,'free inputs are listed');
+ await page.getByRole('searchbox',{name:'Find an input or action'}).fill('');
+ await page.keyboard.press('Escape');
+ assert.match(await page.locator('[data-overview-slot="right-pad"]').innerText(),/1 zone\b/);
+ const overviewNorth=page.locator('[data-overview-slot="face"]');await overviewNorth.click();
+ // B closes the input's sheet if one opened, then returns to Layout (where B would go Home).
+ await north().waitFor();await page.keyboard.press('Escape');await page.waitForTimeout(300);if(!(await overviewNorth.isVisible()))await page.keyboard.press('Escape');
  await overviewNorth.waitFor();assert.equal(await overviewNorth.evaluate(e=>e===document.activeElement),true,'Back restores originating input focus');
- await overviewNorth.click();
- // Output/value fields fold behind the advanced-settings gear now.
- // The output is chosen in the action picker, from the row's keycap (3c).
- await north().locator('[data-command-row]').first().getByRole('button',{name:/^Choose action/}).click();
- await page.getByRole('dialog',{name:'Choose an action'}).locator('button.key-cap').filter({hasText:/^P$/}).click();
+ // The face slot opens the first face button's sheet; close it and open the N (Y button) row's own sheet.
+ await overviewNorth.click();await page.locator('details[data-input-command][open] [data-binding-sheet]').first().waitFor();await page.keyboard.press('Escape');await page.waitForTimeout(300);
+ await north().locator('summary').first().click();await north().locator('[data-binding-sheet]').waitFor();
+ // The output is chosen in the action picker, from the sheet's "Sends" chip.
+ await north().locator('[data-chip-command]').first().click();
+ // The key picker (console v2): P is on Letters.
+ await page.locator('[data-picker="key"] [data-category="letters"]').click(); await page.locator('[data-picker="key"] button.key-cap[data-token="P"]').click();
  // The library entry, not the "Applied · Running now" shortcut above the list (which also names Dense).
  const choose=async name=>{await page.locator('.profile-chip').click();await page.getByRole('menuitem').filter({has:page.locator('[class*=itemLabel]').getByText(name,{exact:true})}).filter({hasNotText:/Running now/}).click()};
  const closeLibrary=async()=>{const close=page.locator('.profile-modal [data-modal-close]');if(await close.count())await close.click()};
  await choose('Other');await page.getByRole('alertdialog').getByRole('button',{name:/Discard/i}).click();await page.locator('.profile-chip').filter({hasText:'Other'}).waitFor();await closeLibrary();
  await choose('Dense');await page.locator('.profile-chip').filter({hasText:'Dense'}).waitFor();await closeLibrary();
- assert.equal(await north().locator('[data-command-row]').first().getByRole('button',{name:/^Choose action/}).innerText(),'F','discarded output must not return from draft cache');
- await page.getByRole('button',{name:/^Editing layer:/}).click();await page.getByRole('menuitem').filter({has:page.locator('[class*=itemLabel]').getByText('Comms',{exact:true})}).click();
+ assert.equal((await north().locator('summary [data-row-output]').first().innerText()).trim(),'F','discarded output must not return from draft cache');
+ // The mode to edit is chosen on Layout's mode strip (console v2, P6).
+ await page.getByRole('button',{name:'Layout',exact:true}).click();await page.getByRole('group',{name:'Showing layer'}).getByRole('button',{name:'Comms',exact:true}).click();
+ await page.getByRole('button',{name:'Buttons',exact:true}).click();await north().waitFor();
  if(await north().getAttribute('open')===null)await north().locator('summary').first().click();
- const origin=north().locator('[data-setting-origin="N"]').first();assert.match(await origin.innerText(),/Override/);
- // The per-binding reset is on the card's cog now (3c).
- await north().getByRole('button',{name:'Binding settings',exact:true}).click();
- await page.getByRole('menuitem',{name:'Reset to inherited',exact:true}).click();
- assert.equal(await north().locator('[data-command-row]').first().getByRole('button',{name:/^Choose action/}).innerText(),'F','per-binding reset restores Default');
+ const origin=north().locator('[data-setting-origin="N"]').first();assert.match(await origin.innerText(),/Changed in Comms/);
+ // The per-binding reset is the sheet's "Use Default" button now (it was the card's cog).
+ await north().getByRole('button',{name:/^Use Default/}).first().click();
+ assert.equal((await north().locator('summary [data-row-output]').first().innerText()).trim(),'F','per-binding reset restores Default');
  await page.keyboard.press('Control+s');await page.waitForFunction(()=>window.__saved.includes('@layer'));
- const layer=JSON.parse((await page.evaluate(()=>window.__saved)).split('\n').find(l=>l.startsWith('# @layer ')).slice(9));assert.equal(layer.overrides.N,undefined);
- await page.getByRole('button',{name:'Overview',exact:true}).click();
+ // With a controller connected, edits are written for that controller (`# @controller type-24 …`), so the Comms mode this
+ // controller uses is the controller's own layer line when there is one, else the shared one.
+ const layerLines=(await page.evaluate(()=>window.__saved)).split('\n').filter(l=>/^(# @controller type-24 )?# @layer /.test(l));
+ const effective=new Map();for(const line of layerLines.sort((a,b)=>Number(a.startsWith('# @controller'))-Number(b.startsWith('# @controller')))){const layer=JSON.parse(line.slice(line.indexOf('# @layer ')+9));effective.set(layer.id,layer)}
+ assert.equal(effective.get('comms').overrides.N,undefined,'the reset leaves Comms without an N override for this controller');
+ await page.getByRole('button',{name:'Layout',exact:true}).click();
  const artifacts=path.resolve('tmp/ui-fixes-2026-09-17');fs.mkdirSync(artifacts,{recursive:true});
  for(const [type,name] of [[6,'xbox'],[3,'nintendo'],[5,'playstation'],[24,'steam']]){
   await page.evaluate(type=>window.__type=type,type);await page.waitForTimeout(180);

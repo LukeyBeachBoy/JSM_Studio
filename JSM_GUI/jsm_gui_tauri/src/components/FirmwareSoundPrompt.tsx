@@ -23,6 +23,6 @@ export function FirmwareSoundPrompt({ onOpenPreferences }: { onOpenPreferences: 
       <button type="button" className="button button--primary" disabled={busy} onClick={() => void choose(true)}>Silence the controller's sounds</button></>}>
     <p>The Steam Controller plays its own start-up jingle first, then JSM Evolved plays its connect sound. Silence the controller's own jingles so the JSM Evolved sounds play alone?</p>
     <p className="prefs-note">This also silences the controller's lost-connection and low-battery cues. You can change it later.</p>
-    <button type="button" className="button button--secondary" onClick={() => { void choose(false).then(onOpenPreferences) }}>Open Preferences → Controller sounds</button>
+    <button type="button" className="button button--secondary" onClick={() => { void choose(false).then(onOpenPreferences) }}>Open Settings ▸ Controller sounds</button>
   </Dialog>
 }

@@ -24,8 +24,11 @@ export const SOUND_GAIN_MIN_DB = -30
  * with the gain after it when it is not "as recorded" (0 dB), so a binding
  * that never set one keeps the spelling it had.
  */
-export const playSoundToken = (sound: number | string, gain?: number) => {
+export const playSoundToken = (sound: number | string, requested?: number) => {
   const target = typeof sound === 'number' ? `${sound}` : soundFilePath(sound)
+  // A library sound bound with no level of its own starts at its "Volume on a
+  // button" (console v2, D15); a binding's own level always wins.
+  const gain = requested === undefined && typeof sound === 'string' ? libraryGains.get(sound) : requested
   const level = gain !== undefined && Number.isFinite(gain) && Math.round(gain) !== 0 ? ` ${Math.round(gain)}` : ''
   return `PLAY_SOUND ${target}${level}`
 }
@@ -59,9 +62,14 @@ export const parsePlaySound = (value: string): PlaySound | null => {
 // Library names, remembered from the last listing (hooks/useSoundLibrary) so a
 // binding row can say "Play sound · Victory riff" without asking the disk.
 const libraryNames = new Map<string, string>()
-export const rememberSoundNames = (entries: { id: string; name: string }[]) => {
+const libraryGains = new Map<string, number>()
+export const rememberSoundNames = (entries: { id: string; name: string; defaultGainDb?: number }[]) => {
   libraryNames.clear()
-  for (const entry of entries) libraryNames.set(entry.id, entry.name)
+  libraryGains.clear()
+  for (const entry of entries) {
+    libraryNames.set(entry.id, entry.name)
+    if (entry.defaultGainDb !== undefined) libraryGains.set(entry.id, entry.defaultGainDb)
+  }
 }
 export const librarySoundName = (id: string) => libraryNames.get(id)
 

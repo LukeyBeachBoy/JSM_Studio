@@ -25,56 +25,60 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
   }};
  });
  await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
+ // A Steam Controller's first connection asks about its power-on sound.
+ await page.getByRole('button', { name: 'Keep them', exact: true }).click({ timeout: 5000 }).catch(() => {});
  await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {});
  await page.locator('.profile-chip').filter({hasText:'Desktop'}).waitFor();
  await page.locator('.page-tabs').getByRole('button',{name:'Trackpads',exact:true}).click();
- await page.locator('button.summary-row[data-input-command="LT1"]').first().click();
+ await page.locator('details[data-input-command="LT1"] > summary').first().click();
  const card = page.locator('details[data-input-command="LT1"][open]');
  await card.waitFor();
- const head = card.locator(':scope > summary');
+ const header = card.locator('.sheet__header');
 
- // The header: the icon, the menu label as title, where it is, and the cog.
- assert.equal(await head.locator('[class*=iconWell] svg').count(), 1, 'the icon is not in the header well');
- assert.match((await head.innerText()).replace(/\s+/g,' '), /^Home Region 1/, 'the menu label titles the card, over where it is');
- assert.equal(await head.getByRole('button',{name:'Binding settings'}).count(), 1);
+ // The binding sheet's header (console v2): the item's icon where an input's
+ // glyph goes, the label on the menu as the title, Rename beside it, no cog.
+ assert.equal(await header.locator('.sheet__lead svg').count(), 1, 'the icon is not in the header');
+ assert.equal((await header.locator('.sheet__title').innerText()).trim(), 'Home', 'the menu label titles the sheet');
+ assert.equal(await card.getByRole('button',{name:'Binding settings'}).count(), 0, 'the old cog survived');
+ assert.equal(await header.getByRole('button',{name:'Rename'}).count(), 1);
 
- // Change icon and the label on the menu, side by side.
+ // Change icon at the top of the sheet; what it sends below, nothing else:
+ // a menu item has no While holding of its own.
  await card.getByRole('button',{name:'Change icon'}).waitFor();
- const labelField = card.getByPlaceholder('Label on the menu');
- assert.equal(await labelField.inputValue(), 'Home');
+ const sheet = card.locator('[data-binding-sheet]');
+ assert.equal(await sheet.locator('[data-fold="while-holding"]').count(), 0);
+ assert.equal(await sheet.locator('[data-chip-command]').count(), 1);
+ assert.match(await sheet.locator('[data-chip-command]').getAttribute('aria-label'), /Choose action: Home/);
 
- // Commands only: no modeshift or layer lanes, no input glyph on the row.
- assert.deepEqual(await card.locator('section[aria-label]').evaluateAll(es => es.map(e => e.getAttribute('aria-label'))), ['Commands']);
- const row = card.locator('[data-command-row]');
- assert.equal(await row.count(), 1);
- assert.equal(await row.getAttribute('data-kind'), 'command-bare');
- assert.equal(await row.getByRole('button',{name:/^Choose action/}).innerText(), 'Home');
-
- // Change icon opens the icon modal (1g): centred, titled for the item,
- // tabs stepped by LB / RB, a left-aligned grid; choosing writes the icon.
+ // Change icon opens Pick an icon (console v2, IconPicker): a full-screen page
+ // for "<menu> · Home", categories on LT / RT, labelled tiles, the menu itself
+ // as the preview; choosing writes the icon.
  await card.getByRole('button',{name:'Change icon'}).click();
- const modal = page.getByRole('dialog',{name:'Icon for “Home”'});
+ const modal = page.locator('[data-picker="icon"]');
  await modal.waitFor();
- const box = await modal.boundingBox();
- const viewport = page.viewportSize();
- assert.ok(Math.abs(box.x + box.width / 2 - viewport.width / 2) < 2 && Math.abs(box.y + box.height / 2 - viewport.height / 2) < 2, 'the icon modal is not centred');
- await modal.getByRole('button',{name:'Media',exact:true}).click();
- const first = modal.getByRole('button',{name:'play',exact:true});
+ assert.equal(await modal.locator('h2').innerText(), 'Pick an icon');
+ assert.match(await modal.innerText(), / · Home/, 'the eyebrow names the item');
+ assert.ok(await modal.locator('[data-icon-preview]').count(), 'the aside shows the item on its menu');
+ await modal.locator('[data-category="media"]').click();
+ const first = modal.locator('[data-icon="lucide:play"]');
  await first.waitFor();
- const grid = await first.evaluate(tile => { const g = tile.parentElement; return { tile: tile.getBoundingClientRect().left, grid: g.getBoundingClientRect().left + parseFloat(getComputedStyle(g).paddingLeft), justify: getComputedStyle(g).justifyContent } });
- assert.equal(grid.justify, 'start', 'the icon grid is not left-aligned');
- assert.ok(Math.abs(grid.tile - grid.grid) < 1, 'the first icon does not start at the left edge');
+ assert.match(await first.innerText(), /Play/, 'tiles carry their names');
  await first.click();
  await modal.waitFor({state:'detached'});
 
- // The label field writes the menu's label.
- await labelField.fill('Go home');
- await labelField.press('Enter');
+ // Rename writes the menu's label (the on-screen keyboard).
+ await header.getByRole('button',{name:'Rename'}).click();
+ const typing = page.getByRole('dialog',{name:/^Type: /});
+ await typing.waitFor();
+ for (let i = 0; i < 4; i++) await page.keyboard.press('Backspace');
+ await page.keyboard.type('Go home');
+ await page.keyboard.press('Enter');
+ await typing.waitFor({state:'detached'});
  await page.keyboard.press('Control+s');
  await page.waitForFunction(() => /# @label LT1 = Go home/.test(window.__lastSaved));
  assert.match(await page.evaluate(() => window.__lastSaved), /# @icon LT1 = lucide:play/);
 
  assert.deepEqual(errors,[]);
- console.log('PASS: a menu item card has its icon, its label, and a Commands lane only');
+ console.log('PASS: a menu item sheet has its icon, its label and what it sends, and no While holding');
  } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exit(1); });

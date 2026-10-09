@@ -1,0 +1,48 @@
+/* Picture cards and compare cards (console v2). Flat: a well for the art, the
+   label under it; the current card outlined in the accent. */
+.wrap { display: flex; flex-direction: column; gap: var(--sp-3); }
+.heading { display: flex; align-items: baseline; gap: var(--sp-4); flex-wrap: wrap; }
+.heading h2 { margin: 0; font-size: var(--fs-section, 26px); font-weight: var(--fw-semibold); }
+.note { color: var(--text-3); font-size: var(--fs-hint); }
+
+.grid { display: grid; grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr)); gap: var(--sp-3); }
+/* Below 1280 a row of five or six cards wraps evenly (3 + 3, 3 + 2) rather than leaving orphans (4 + 2). */
+@media (max-width: 1279px) {
+  .grid { grid-template-columns: repeat(min(var(--cols, 4), 4), minmax(0, 1fr)); }
+  .grid[data-wide='true'] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+.card {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  border: 0;
+  border-radius: var(--r-card, 16px);
+  background: var(--surface-row);
+  color: var(--text-1);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.card:hover { background: var(--surface-row-hover); }
+.card[data-current='true'] { box-shadow: inset 0 0 0 2px var(--accent); }
+.card[aria-disabled='true'] { opacity: .55; cursor: default; }
+.art { display: grid; place-items: center; aspect-ratio: 4 / 3; border-radius: 12px; background: #0f151b; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06); overflow: hidden; }
+.art :global(svg) { width: 100%; height: 100%; }
+.text { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.label { font-size: var(--fs-body); font-weight: var(--fw-semibold); }
+.caption { color: var(--text-2); font-size: var(--fs-hint); }
+.currentDot { position: absolute; top: var(--sp-3); right: var(--sp-3); width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+
+.more { justify-content: flex-start; }
+.moreCount { display: grid; place-items: center; aspect-ratio: 4 / 3; border-radius: 12px; background: #0f151b; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06); color: var(--text-2); font-size: 28px; font-weight: var(--fw-semibold); }
+
+/* Compare cards: a sentence each, no art. */
+.card[data-variant='compare'] { min-height: 132px; padding: var(--sp-4) var(--sp-5); }
+.card[data-variant='compare'] .label { font-size: var(--fs-section, 20px); }
+.card[data-variant='compare'] .caption { font-size: var(--fs-body); line-height: var(--lh-body); }
+.currentTag { margin-top: var(--sp-2); color: var(--accent); font-size: var(--fs-hint); font-weight: var(--fw-semibold); }

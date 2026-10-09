@@ -1,0 +1,28 @@
+/* The mouse's way to a row's X / Y actions: a right-click menu. Above the shell, below toasts. */
+.menu {
+  position: fixed;
+  z-index: 69;
+  min-width: 240px;
+  display: flex;
+  flex-direction: column;
+  padding: var(--sp-2);
+  border-radius: 14px;
+  background: var(--surface-raised, #1b2530);
+  box-shadow: 0 0 0 1px var(--line-2, rgba(255, 255, 255, .16));
+}
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-height: 44px;
+  padding: 0 var(--sp-3);
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-1);
+  font: inherit;
+  font-size: var(--fs-body);
+  text-align: left;
+  cursor: pointer;
+}
+.item:hover, .item:focus-visible { background: var(--surface-row-hover); }

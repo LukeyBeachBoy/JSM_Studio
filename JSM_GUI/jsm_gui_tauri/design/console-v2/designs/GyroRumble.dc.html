@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Gyro Rumble</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.grp{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;flex-direction:column;gap:4px;padding:16px 20px;box-sizing:border-box;border-radius:14px;background:transparent;color:#b0bcc8;text-align:left}
+.grp .t{font-size:20px;font-weight:600}
+.grp .s{font-size:15px;color:#808c99}
+.row{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;align-items:center;gap:16px;min-height:68px;padding:12px 22px;box-sizing:border-box;border-radius:16px;background:#1f2730;color:#e8eef4;text-align:left}
+.seg{display:flex;gap:4px;background:#0f151b;border-radius:12px;padding:4px}
+.seg span{height:38px;padding:0 14px;border-radius:9px;display:flex;align-items:center;font-size:16px;font-weight:600;color:#b0bcc8}
+.seg.full span{flex:1;justify-content:center;padding:0 8px}
+.lbl{font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:#808c99;font-weight:600}
+.fx{font-family:inherit;border:0;cursor:pointer;border-radius:14px;background:#1f2730;color:#b0bcc8;padding:10px 10px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
+.fx .w{width:100%;height:38px;border-radius:9px;background:#0f151b;display:flex;align-items:center;justify-content:center}
+.fx .w svg{display:block}
+.fx span.t{font-size:15px;font-weight:600}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="height: 76px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 40px; background: #0d1217">
+<span style="font-size: 18px; color: #808c99">Wardogs · Gyro</span>
+<span style="font-size: 18px; color: #5b6571">▸</span>
+<span style="font-size: 22px; font-weight: 700">Fine-tune</span>
+<span style="margin-left: auto; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 20px; background: #1e3d33; color: #93e6c1; font-size: 16px; font-weight: 600"><span style="width: 9px; height: 9px; border-radius: 50%; background: #5fd3a0"></span>Live · saved</span>
+</header>
+
+<main style="flex: 1; min-height: 0; display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 36px; padding: 32px 40px 24px">
+
+<nav style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: center; gap: 8px; margin: 0 0 10px 20px; font-size: 14px; color: #808c99"><span class="gp">LT</span>Group<span class="gp">RT</span></div>
+<button class="grp"><span class="t">Speed</span><span class="s" style="color: #7cc4ee">Changed: turn speed</span></button>
+<button class="grp"><span class="t">Steadiness</span><span class="s">All default</span></button>
+<button class="grp"><span class="t">Direction</span><span class="s">Mouse · normal axes</span></button>
+<button class="grp" style="background: #1f2730; color: #ffffff"><span class="t">Rumble</span><span class="s">Off</span></button>
+</nav>
+
+<section style="display: grid; grid-template-columns: minmax(0, 1fr) 470px; gap: 28px; min-width: 0">
+
+<div style="display: flex; flex-direction: column; gap: 12px; min-width: 0">
+<div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 4px">
+<h1 style="margin: 0; font-size: 32px; font-weight: 700">Rumble</h1>
+<p style="margin: 0; font-size: 17px; color: #b0bcc8">Feel a click as you turn, like the notches on a dial.</p>
+</div>
+
+<div class="focus" style="background: #1d445c; border-radius: 16px; padding: 18px 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px"><span style="font-size: 20px; font-weight: 650">Rumble while aiming</span><span style="font-size: 16px; font-weight: 600; color: #b8e2fa">Previewing Medium · 50%</span></div>
+<div class="seg full"><span style="background: #2e3844; color: #ffffff">Off</span><span>Light</span><span style="color: #e8eef4; box-shadow: inset 0 0 0 2px #7cc4ee">Medium</span><span>Strong</span><span>Custom</span></div>
+<span style="font-size: 15px; line-height: 1.45; color: #b8e2fa">Off is live. ◂ ▸ previews each strength; X plays it, A keeps it.</span>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span class="lbl">Feels like</span>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px">
+<button class="fx" style="background: #24323f; box-shadow: inset 0 0 0 2px #3e9fd8; color: #ffffff"><span class="w"><svg viewBox="0 0 100 34" width="100" height="34" fill="none"><path d="M4 17H40L44 5L48 29L52 13L56 21L60 17H96" stroke="#7cc4ee" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path></svg></span><span class="t">Tick</span></button>
+<button class="fx"><span class="w"><svg viewBox="0 0 100 34" width="100" height="34" fill="none"><path d="M4 17H32L35 4L38 30L41 17H56L59 8L62 26L65 17H96" stroke="#808c99" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path></svg></span><span class="t">Click</span></button>
+<button class="fx"><span class="w"><svg viewBox="0 0 100 34" width="100" height="34" fill="none"><path d="M4 17Q10 5 16 17T28 17T40 17T52 17T64 17T76 17T88 17H96" stroke="#808c99" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path></svg></span><span class="t">Tone</span></button>
+<button class="fx"><span class="w"><svg viewBox="0 0 100 34" width="100" height="34" fill="none"><path d="M4 17L8 11L12 23L16 9L20 25L24 12L28 22L32 8L36 26L40 13L44 21L48 10L52 24L56 12L60 22L64 9L68 25L72 13L76 21L80 11L84 23L88 14L92 20L96 17" stroke="#808c99" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"></path></svg></span><span class="t">Rumble</span></button>
+<button class="fx"><span class="w"><svg viewBox="0 0 100 34" width="100" height="34" fill="none"><path d="M4 17C9 4 15 4 20 17C24 30 30 30 34 17C37 6 41 6 44 17C46 27 50 27 52 17C54 9 56 9 58 17C59 24 61 24 62 17C63 11 64 11 65 17C66 22 67 22 68 17C69 13 70 13 71 17H96" stroke="#808c99" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path></svg></span><span class="t">Sweep</span></button>
+<button class="fx"><span class="w"><svg viewBox="0 0 100 34" width="100" height="34" fill="none"><path d="M4 17H30C34 17 34 6 40 6H60C66 6 66 17 70 17H96" stroke="#808c99" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path></svg></span><span class="t">Pulse</span></button>
+<button class="fx"><span class="w"><svg viewBox="0 0 100 34" width="100" height="34" fill="none"><path d="M4 17H22L25 5L28 29L31 17H46C50 17 50 8 55 8H70C75 8 75 17 79 17H96" stroke="#808c99" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path></svg></span><span class="t">Tap</span></button>
+<button class="fx"><span class="w"><svg viewBox="0 0 100 34" width="100" height="34" fill="none"><path d="M4 17H96" stroke="#5b6571" stroke-width="2" stroke-dasharray="3 5" stroke-linecap="round"></path></svg></span><span class="t">Silent</span></button>
+</div>
+<span style="font-size: 15px; color: #808c99">Rumble uses the back motor. Pulse and Tap play at a fixed strength.</span>
+</div>
+
+<button class="row"><span style="display: flex; flex-direction: column; gap: 3px"><span style="font-size: 19px; font-weight: 650">Pulse every</span><span style="font-size: 15px; color: #808c99">How far you turn between clicks</span></span><span style="margin-left: auto; display: flex; align-items: center; gap: 14px; font-size: 19px; font-weight: 600"><span style="color: #7cc4ee">◂</span><span style="font-family: 'Geist Mono', monospace; font-weight: 500">15°</span><span style="color: #7cc4ee">▸</span></span></button>
+
+<button class="row"><span style="display: flex; flex-direction: column; gap: 3px"><span style="font-size: 19px; font-weight: 650">Which side</span><span style="font-size: 15px; color: #808c99">Under which thumb</span></span><span class="seg" style="margin-left: auto"><span>Left pad</span><span>Right pad</span><span style="background: #2e3844; color: #ffffff">Both</span></span></button>
+</div>
+
+<div style="background: #1a222b; border-radius: 20px; padding: 22px; display: flex; flex-direction: column; gap: 14px; min-width: 0">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 17px; font-weight: 600">What you’ll feel</span><span style="font-family: 'Geist Mono', monospace; font-size: 13px; color: #93e6c1">● live · turned 68°</span></div>
+<svg viewBox="0 0 426 256" width="100%" height="256" fill="none">
+<rect x="0" y="0" width="426" height="256" rx="16" fill="#0f151b"></rect>
+<path d="M53 236A160 160 0 0 1 373 236" stroke="rgba(255,255,255,.06)" stroke-width="12" stroke-linecap="round"></path>
+<path d="M53 236A160 160 0 0 1 153.1 87.7" stroke="#3e9fd8" stroke-width="6" stroke-linecap="round"></path>
+<path d="M37.7 220.7L29.7 220M39.7 205.4L31.8 204M47.6 175.8L40.1 173.1M53.5 161.6L46.2 158.2M68.8 135.1L62.3 130.5M78.2 122.9L72 117.7M99.9 101.2L94.7 95M112.1 91.8L107.5 85.3M138.6 76.5L135.2 69.2M152.8 70.6L150.1 63.1M182.4 62.7L181 54.8M197.7 60.7L197 52.7M228.3 60.7L229 52.7M243.6 62.7L245 54.8M273.2 70.6L275.9 63.1M287.4 76.5L290.8 69.2M313.9 91.8L318.5 85.3M326.1 101.2L331.3 95M347.8 122.9L354 117.7M357.2 135.1L363.7 130.5M372.5 161.6L379.8 158.2M378.4 175.8L385.9 173.1M386.3 205.4L394.2 204M388.3 220.7L396.3 220" stroke="rgba(255,255,255,.12)" stroke-width="1.2" stroke-linecap="round"></path>
+<path d="M169.5 73.7L164.9 56.3M213 68L213 50M256.5 73.7L261.1 56.3M297 90.5L306 74.9M331.8 117.2L344.5 104.5M358.5 152L374.1 143M375.3 192.5L392.7 187.9M381 236L399 236" stroke="#5b6571" stroke-width="2.4" stroke-linecap="round"></path>
+<path d="M45 236L27 236M50.7 192.5L33.3 187.9M67.5 152L51.9 143M94.2 117.2L81.5 104.5M129 90.5L120 74.9" stroke="#b8e2fa" stroke-width="3" stroke-linecap="round"></path>
+<circle cx="115" cy="66.3" r="4" fill="#ffffff"></circle>
+<circle cx="74.4" cy="97.4" r="3" fill="#7cc4ee" opacity=".6"></circle>
+<circle cx="43.3" cy="138" r="2.6" fill="#7cc4ee" opacity=".4"></circle>
+<circle cx="23.7" cy="185.3" r="2.2" fill="#7cc4ee" opacity=".3"></circle>
+<path d="M213 236L156.8 96.9" stroke="#e8eef4" stroke-width="3.5" stroke-linecap="round"></path>
+<circle cx="213" cy="236" r="16" fill="#212a34" stroke="#aebbc8" stroke-width="1.5"></circle>
+<circle cx="213" cy="236" r="5" fill="#0f151b"></circle>
+<text x="290" y="196" fill="#e8eef4" font-size="34" font-weight="700" font-family="Geist, sans-serif" text-anchor="middle">15°</text>
+<text x="290" y="220" fill="#808c99" font-size="14" font-family="Geist, sans-serif" text-anchor="middle">between clicks</text>
+</svg>
+<svg viewBox="0 0 426 64" width="100%" height="64" fill="none">
+<rect x="0" y="0" width="426" height="64" rx="12" fill="#0f151b"></rect>
+<path d="M12 34H426" stroke="rgba(255,255,255,.06)"></path>
+<path d="M12 34H34L38 20L42 48L46 28L50 38L54 34H104L108 20L112 48L116 28L120 38L124 34H174L178 20L182 48L186 28L190 38L194 34H244L248 20L252 48L256 28L260 38L264 34H314" stroke="#7cc4ee" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity=".55"></path>
+<path d="M314 34L318 12L322 56L326 24L330 42L334 34" stroke="#3e9fd8" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path>
+<path d="M334 34H384L388 20L392 48L396 28L400 38L404 34H414" stroke="#5b6571" stroke-width="1.6" stroke-dasharray="3 4" stroke-linejoin="round"></path>
+<text x="12" y="18" fill="#808c99" font-size="13" font-family="Geist, sans-serif">One Tick every 15° · both pads</text>
+</svg>
+<button style="font-family: inherit; border: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px; height: 56px; border-radius: 14px; background: #2e3844; color: #e8eef4; font-size: 18px; font-weight: 650"><span class="g">X</span>Feel it on the controller</button>
+</div>
+</section>
+</main>
+
+<footer style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Wardogs · Gyro · Fine-tune · Rumble</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px">◂ ▸ Compare</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">A</span>Keep Medium</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">X</span>Feel it</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">Y</span>Reset</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">LT</span><span class="gp">RT</span>Group</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Back to Gyro</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

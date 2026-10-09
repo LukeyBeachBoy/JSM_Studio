@@ -106,7 +106,9 @@ pub fn start(app: AppHandle, state: AppState) {
 
 fn global_profile(chords: &[runtime::GlobalChord], devices: Option<&Vec<Value>>, enabled: bool) -> Option<String> {
     if !enabled { return None; }
-    chords.iter().filter(|c|!c.id.starts_with("builtin-")).chain(chords.iter().filter(|c|c.id.starts_with("builtin-"))).find(|chord| devices.map(|devices|
+    // The higher card wins (Settings ▸ Hold to swap's order); unordered lists
+    // keep your own chords ahead of the built-in ones.
+    runtime::chords_in_priority_order(chords).into_iter().find(|chord| devices.map(|devices|
         devices.iter().any(|device| chord_matches(chord,device))
     ).unwrap_or(false)).map(|chord| chord.profile_path.clone())
 }
@@ -126,6 +128,10 @@ const BEGIN_ACK_WAIT: Duration = Duration::from_millis(400);
 /// layer composition or the applied-preview scratch file is Studio's own.
 fn binding_chose_profile(active: Option<&str>, held_global: Option<&str>, live: &str, before_chord: &str) -> bool {
     active.is_some() && active == held_global && live != before_chord
+        // The chord's own file is the chord answering (the mapper reports it as
+        // the controller's live configuration), not a binding's choice. Taking it
+        // for one dropped the chord without ending it: let go, and it stayed.
+        && !active.is_some_and(|chord| chord.eq_ignore_ascii_case(live))
         && live.starts_with("profiles-library/") && !live.starts_with("profiles-library/.layers/")
         && !live.eq_ignore_ascii_case(runtime::APPLIED_PREVIEW_RELATIVE)
 }
@@ -229,7 +235,7 @@ mod tests {
     fn model_chords_route_to_one_physical_controller() {
         let ds = json!({"handle":1,"type":5,"status":{"buttons":1u64<<5}});
         let xbox = json!({"handle":2,"type":6,"status":{"buttons":1u64<<5}});
-        let chord = runtime::GlobalChord {id:"create".into(),controller_model:Some("type-5".into()),buttons:vec!["-".into()],trigger_groups:vec![],profile_path:"dual.txt".into()};
+        let chord = runtime::GlobalChord {id:"create".into(),controller_model:Some("type-5".into()),buttons:vec!["-".into()],trigger_groups:vec![],profile_path:"dual.txt".into(),rank:None};
         assert!(chord_matches(&chord,&ds)); assert!(!chord_matches(&chord,&xbox));
         assert_eq!(global_profile(&[chord.clone()],Some(&vec![ds]),true).as_deref(),Some("dual.txt"));
         assert!(global_profile(&[chord],Some(&vec![xbox]),true).is_none());
@@ -251,7 +257,7 @@ mod tests {
     }
     #[test]
     fn global_chords_keep_priority_and_release_on_disconnect_or_disable() {
-        let chord = runtime::GlobalChord { controller_model:None, id: "quick".into(), trigger_groups:vec![], buttons: vec!["MISC1".into()], profile_path: "quick.txt".into() };
+        let chord = runtime::GlobalChord { controller_model:None, id: "quick".into(), trigger_groups:vec![], buttons: vec!["MISC1".into()], profile_path: "quick.txt".into(),rank:None};
         let devices = vec![json!({"status": {"buttons": 1u64 << 27}})];
         assert_eq!(global_profile(&[chord.clone()], Some(&devices), true).as_deref(), Some("quick.txt"));
         assert_eq!(global_profile(&[chord.clone()], Some(&devices), false), None);
@@ -268,13 +274,13 @@ mod tests {
     #[test]
     fn builtin_triggers_are_alternatives_and_personal_chords_take_priority() {
         let path="profiles-library/Default Global Chords.txt";
-        let guide=runtime::GlobalChord {controller_model:None,id:"builtin-guide".into(),trigger_groups:vec![],buttons:vec!["HOME".into()],profile_path:path.into()};
-        let quick=runtime::GlobalChord {controller_model:None,id:"builtin-quick-access".into(),trigger_groups:vec![],buttons:vec!["MISC1".into()],profile_path:path.into()};
+        let guide=runtime::GlobalChord {controller_model:None,id:"builtin-guide".into(),trigger_groups:vec![],buttons:vec!["HOME".into()],profile_path:path.into(),rank:None};
+        let quick=runtime::GlobalChord {controller_model:None,id:"builtin-quick-access".into(),trigger_groups:vec![],buttons:vec!["MISC1".into()],profile_path:path.into(),rank:None};
         for bit in [16,27] {
             let devices=vec![json!({"status":{"buttons":1u64<<bit}})];
             assert_eq!(global_profile(&[guide.clone(),quick.clone()],Some(&devices),true).as_deref(),Some(path));
         }
-        let personal=runtime::GlobalChord {controller_model:None,id:"personal".into(),trigger_groups:vec![],buttons:vec!["HOME".into()],profile_path:"personal.txt".into()};
+        let personal=runtime::GlobalChord {controller_model:None,id:"personal".into(),trigger_groups:vec![],buttons:vec!["HOME".into()],profile_path:"personal.txt".into(),rank:None};
         let devices=vec![json!({"status":{"buttons":1u64<<16}})];
         assert_eq!(global_profile(&[guide,quick,personal],Some(&devices),true).as_deref(),Some("personal.txt"));
     }
@@ -294,6 +300,8 @@ mod tests {
         assert!(binding_chose_profile(quick, quick, "profiles-library/Gamepad.txt", before));
         // Back to what the chord was held over: refused or undone, not chosen.
         assert!(!binding_chose_profile(quick, quick, before, before));
+        // The mapper reporting the chord itself as live: the chord is on, nothing was chosen.
+        assert!(!binding_chose_profile(quick, quick, quick.unwrap(), before));
         // The chord's trigger is already up: an ordinary switch.
         assert!(!binding_chose_profile(quick, None, "profiles-library/Gamepad.txt", before));
         // A composed layer, not a global chord.

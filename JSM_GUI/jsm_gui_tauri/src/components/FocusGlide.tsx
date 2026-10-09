@@ -26,7 +26,7 @@ import { ringTarget } from '../nav/navBox'
 
 const SCOPE = '[data-radix-popper-content-wrapper], [data-focus-scope], [role="dialog"], [role="alertdialog"], main, .shell-scroll'
 const PILL = '.button, .icon-button, .back-chip, .segmented > *'
-const CLIP = '.sheet__body, .shell-scroll, [role="listbox"], [role="menu"], .modal-card, [data-focus-scope]'
+const CLIP = '.sheet__body, [data-subpage] > main, .shell-scroll,[role="listbox"], [role="menu"], .modal-card, [data-focus-scope]'
 
 const GLIDE_MS = 150
 const REVEAL_WAIT_MS = 400

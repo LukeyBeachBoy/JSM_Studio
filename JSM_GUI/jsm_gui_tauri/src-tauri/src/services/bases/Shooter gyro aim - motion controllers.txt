@@ -1,0 +1,55 @@
+# @base {"preset":"shooter-gyro","title":"Shooter, gyro aim","short":"Shooter · gyro","blurb":"Stick moves, gyro aims while you aim down sights, the touchpad turns.","families":["playstation","nintendo"],"needs":["gyro"],"order":1}
+# Shooter, gyro aim, for controllers with gyro and no grips (DualSense,
+# DualShock 4, Switch Pro, Joy-Cons). It ships with JSM Evolved, so it can't
+# be changed in place: duplicate it to make your own.
+
+# Face buttons, bumpers, triggers
+S = SPACE
+E = LCONTROL
+W = R
+N = F
+L = Q
+R = G
+ZL = RMOUSE
+ZR = LMOUSE
+ZL_MODE = NO_FULL
+ZR_MODE = NO_FULL
++ = ESC
+- = TAB
+
+# The left stick moves; the right stick aims
+LEFT_STICK_MODE = NO_MOUSE
+LUP = W
+LDOWN = S
+LLEFT = A
+LRIGHT = D
+L3 = LSHIFT
+RIGHT_STICK_MODE = AIM
+R3 = V
+
+# The D-pad picks equipment
+UP = 1
+RIGHT = 2
+DOWN = 3
+LEFT = 4
+
+# The touchpad (where there is one) turns like a mouse; its click is the map
+TOUCHPAD_MODE = MOUSE
+CAPTURE = M
+
+# Gyro aims while the left trigger is held, the way you aim down sights
+GYRO_ON = ZL
+GYRO_SPACE = PLAYER_TURN
+GYRO_SMOOTH_THRESHOLD = 5
+GYRO_CUTOFF_SPEED = 0.5
+
+# @label S = Jump
+# @label E = Crouch
+# @label W = Reload
+# @label N = Use
+# @label ZL = Aim
+# @label ZR = Fire
+# @label L = Ability
+# @label R = Grenade
+# @label L3 = Sprint
+# @label R3 = Melee

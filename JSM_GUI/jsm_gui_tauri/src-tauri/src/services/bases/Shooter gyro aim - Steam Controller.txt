@@ -1,0 +1,65 @@
+# @base {"preset":"shooter-gyro","title":"Shooter, gyro aim","short":"Shooter · gyro","blurb":"Stick moves, gyro aims while you hold a grip, trackpad for big turns.","families":["steam"],"needs":["gyro"],"order":1}
+# Shooter, gyro aim, for the Steam Controller. It ships with JSM Evolved, so it
+# can't be changed in place and improves with each update: duplicate it to
+# make your own. A game built on it only sets what it does differently.
+
+# Face buttons, bumpers, triggers
+S = SPACE
+E = LCONTROL
+W = R
+N = F
+L = Q
+R = G
+ZL = RMOUSE
+ZR = LMOUSE
+ZL_MODE = NO_FULL
+ZR_MODE = NO_FULL
++ = ESC
+- = TAB
+
+# Back buttons: L4, L5, R4, R5
+LSL = LSHIFT
+LSR = V
+RSR = E
+RSL = X
+
+# The left stick moves; the right stick aims
+LEFT_STICK_MODE = NO_MOUSE
+LUP = W
+LDOWN = S
+LLEFT = A
+LRIGHT = D
+L3 = LSHIFT
+RIGHT_STICK_MODE = AIM
+R3 = Z
+
+# The right pad turns like a mouse; the left pad is a four-way menu
+RIGHT_TOUCHPAD_MODE = MOUSE
+MISC2 = MMOUSE
+LEFT_TOUCHPAD_MODE = GRID_AND_STICK
+LEFT_GRID_SHAPE = FOUR_WAY
+LT1 = 1
+LT2 = 2
+LT3 = 3
+LT4 = 4
+MISC3 = M
+
+# Gyro aims while the right grip is held
+GYRO_ON = MISC5
+GYRO_SPACE = PLAYER_TURN
+GYRO_SMOOTH_THRESHOLD = 5
+GYRO_CUTOFF_SPEED = 0.5
+
+# @label S = Jump
+# @label E = Crouch
+# @label W = Reload
+# @label N = Use
+# @label ZL = Aim
+# @label ZR = Fire
+# @label L = Ability
+# @label R = Grenade
+# @label LSL = Sprint
+# @label LSR = Melee
+# @label RSR = Interact
+# @label RSL = Swap weapon
+# @label MISC5 = Aim with gyro

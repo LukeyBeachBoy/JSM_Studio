@@ -16,5 +16,8 @@ int main() {
  auto fallback=ControllerCompatibility::fallback({"RIGHT_TOUCHPAD_MODE = MOUSE","RT1 = J","LEFT_TOUCHPAD_MODE = GRID_AND_STICK","TOUCHPAD_SENS = 2"},false);
  assert(fallback.size()==2);assert(fallback[0].find("TOUCHPAD_MODE") == 0);assert(fallback[1].find("T1") == 0);
  assert(ControllerCompatibility::translateKey("MISC3,LEFT_GRID_REQUIRES_CLICK",true)=="CAPTURE,TOUCHPAD_GRID_REQUIRES_CLICK");
+ // Pad rotation stays global: a one-pad controller has no TOUCHPAD_ROTATION to translate it to.
+ assert(ControllerCompatibility::fallback({"LEFT_TOUCHPAD_ROTATION = -4","RIGHT_TOUCHPAD_ROTATION = 4"},false).empty());
+ assert(ControllerCompatibility::fallback({"LEFT_TOUCHPAD_ROTATION = -4","RIGHT_TOUCHPAD_ROTATION = 4"},true,true).empty());
  std::cout << "PASS: native model/device isolation, chord masking, reset/release, and pad fallback\n";
 }

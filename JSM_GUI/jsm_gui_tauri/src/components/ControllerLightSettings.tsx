@@ -17,7 +17,7 @@ export function ControllerLightSettings({ text, onChange }: { text: string; onCh
   const level = getKeymapValue(text, 'LED_BRIGHTNESS')
   const brightness = level === undefined ? runtime?.ledBrightness ?? 100 : Number(level)
   return <>
-    <SummaryRow label="Controller light" setting="LIGHT_BAR" hint="Color and brightness for this configuration."
+    <SummaryRow id="controller-light-row" label="Controller light" setting="LIGHT_BAR" hint="Color and brightness for this configuration."
       value={<span className={styles.lightBarSummary}><span className={styles.lightBarPreview} style={{ background: shown }} role="img" aria-label={`LED color ${shown}`} />{brightness}%</span>}
       onActivate={() => setOpen(true)} />
     <Sheet open={open} onClose={() => setOpen(false)} eyebrow="Configuration" title="Controller light" description="Unset values use the defaults from App settings."

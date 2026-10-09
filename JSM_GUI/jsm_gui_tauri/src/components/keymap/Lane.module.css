@@ -127,7 +127,7 @@
 .row[data-kind='layer'] { grid-template-columns: 30px 16px auto minmax(0, 1fr) 40px; }
 :global(body[data-input-source='controller']) .row:focus-within {
   background: var(--surface-selected);
-  box-shadow: 0 0 0 var(--focus-controller-width) var(--focus-controller);
+  box-shadow: var(--focus-ring-pad);
 }
 /* The keyboard gets the same row highlight, on the row rather than the
    browser's outline on whichever button inside it has focus. */

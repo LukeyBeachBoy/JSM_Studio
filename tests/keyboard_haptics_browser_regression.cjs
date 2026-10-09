@@ -1,3 +1,8 @@
+// Settings ▸ Controller ▸ On-screen keyboard (console v2, SettingsControllerMore):
+// the feedback type in Advanced, Haptics as a value row that ◂ ▸ change
+// directly (write-through, D1), serialized saves that never let an older
+// answer land last, Off making the row unavailable-with-reason, and the
+// layout as picture cards.
 const assert = require('node:assert/strict')
 const { chromium } = require('C:/Users/luker/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright')
 ;(async () => {
@@ -8,32 +13,33 @@ const { chromium } = require('C:/Users/luker/.cache/codex-runtimes/codex-primary
   await page.goto('http://127.0.0.1:1420/?mock')
   const onboarding = page.getByRole('dialog', { name: 'Controller power-on sound' })
   if (await onboarding.waitFor({state:'visible',timeout:2500}).then(()=>true).catch(()=>false)) await onboarding.getByRole('button',{name:'Keep them',exact:true}).click()
-  await page.getByRole('button', { name: /^Preferences/ }).first().click()
+  await page.evaluate(() => window.dispatchEvent(new CustomEvent('jsm:navigate-page', { detail: 'settings' })))
   const section = page.locator('.keyboard-settings')
   await section.waitFor()
-  assert.ok(await section.evaluate(el => Boolean(el.querySelector('.keyboard-settings-preview').compareDocumentPosition(el.querySelector('.keyboard-settings-haptics')) & Node.DOCUMENT_POSITION_FOLLOWING)), 'Haptics follows the preview')
-  await section.locator('.keyboard-settings-haptics summary').click()
-  const type = section.getByRole('combobox', { name: 'Keyboard haptic feedback type' })
-  await type.click()
+  const prefs = () => page.evaluate(async () => (await import('/src/keyboard/bridge.ts')).keyboard.getPreferences())
+  assert.ok(await section.evaluate(el => Boolean(el.querySelector('.keyboard-settings-preview')?.compareDocumentPosition(el.querySelector('.keyboard-settings-legend')) & Node.DOCUMENT_POSITION_FOLLOWING)), 'the shortcut legend follows the preview')
+  // Advanced holds the feedback type: every shared effect, one at a time.
+  await section.getByRole('button', { name: /^Advanced/ }).click()
+  const types = page.getByRole('radiogroup', { name: 'Keyboard haptic feedback type' })
+  await types.waitFor()
   for (const name of ['Tick', 'Click', 'Tone', 'Rumble (back motor)', 'Sweep', 'Pulse (Steam, fixed strength)', 'Tap (Steam click + pulse)']) {
-   await page.getByRole('option', {name,exact:true}).click()
-   await type.getByText(name,{exact:true}).waitFor()
-   await type.click()
+   await types.getByRole('radio', { name: new RegExp(`^${name.replace(/[()+]/g, '\\$&')}`) }).click()
+   await types.getByRole('radio', { name: new RegExp(`^${name.replace(/[()+]/g, '\\$&')}`) }).and(page.locator('[aria-checked="true"]')).waitFor()
   }
-  await page.getByRole('option', {name:'Tick',exact:true}).click()
-  const intensity = section.getByRole('textbox', {name:'Haptic intensity',exact:true})
-  await intensity.fill('70'); await intensity.press('Enter')
-  await page.waitForFunction(async () => (await (await import('/src/keyboard/bridge.ts')).keyboard.getPreferences()).hapticIntensity === 70)
-  await type.click(); await page.getByRole('option',{name:'Off (stop)',exact:true}).click()
-  await page.waitForFunction(() => document.querySelector('input[aria-label="Haptic intensity"]').disabled)
-  await type.click(); await page.getByRole('option',{name:'Rumble (back motor)',exact:true}).click()
-  await page.waitForFunction(() => !document.querySelector('input[aria-label="Haptic intensity"]').disabled)
-  await section.getByRole('combobox',{name:'Keyboard layout',exact:true}).click()
-  await page.getByRole('option',{name:'Daisywheel',exact:true}).click()
-  await type.getByText('Rumble (back motor)',{exact:true}).waitFor()
-  await intensity.focus(); await intensity.press('ArrowUp'); await intensity.press('Enter')
-  // Slow native preference writes must not disable a focused controller slider,
-  // leave adjust mode, or let a stale response restore an earlier value.
+  await types.getByRole('radio', { name: /^Off/ }).click()
+  await page.waitForFunction(async () => (await (await import('/src/keyboard/bridge.ts')).keyboard.getPreferences()).hapticType === 'off')
+  await page.keyboard.press('Escape')
+  await page.locator('[data-subpage]').waitFor({ state: 'detached' })
+  const haptics = section.locator('[data-keyboard-row="haptics"]')
+  assert.equal(await haptics.getAttribute('aria-disabled'), 'true', 'Off makes Haptics unavailable')
+  assert.match(await haptics.getAttribute('data-reason'), /Feedback is off/)
+  await section.getByRole('button', { name: /^Advanced/ }).click()
+  await types.getByRole('radio', { name: /^Rumble/ }).click()
+  await page.keyboard.press('Escape')
+  await page.locator('[data-subpage]').waitFor({ state: 'detached' })
+  assert.equal(await haptics.getAttribute('aria-disabled'), null)
+  // Slow native writes: each ◂ ▸ step shows at once, writes run one at a
+  // time, and an older answer never restores an earlier value.
   await page.evaluate(async () => {
    const { keyboard } = await import('/src/keyboard/bridge.ts')
    const save = keyboard.savePreferences
@@ -45,28 +51,29 @@ const { chromium } = require('C:/Users/luker/.cache/codex-runtimes/codex-primary
     finally { state.active--; state.completed++ }
    }
   })
-  const slider = section.getByRole('slider', {name:'Haptic intensity',exact:true})
-  const original = Number(await slider.getAttribute('aria-valuenow'))
-  await slider.focus(); await slider.press('Enter')
+  const original = Number(await haptics.getAttribute('aria-valuenow'))
+  await haptics.focus()
   for (let i = 1; i <= 4; i++) {
-   await slider.press('ArrowRight')
-   assert.equal(await slider.getAttribute('aria-valuenow'), String(original + i))
-   assert.ok(await slider.evaluate(el => document.activeElement === el && el.closest('[data-adjusting="true"]') && !el.hasAttribute('data-disabled')), 'slider retains focus and adjust mode during each save')
+   await page.keyboard.press('ArrowRight')
+   assert.equal(await haptics.getAttribute('aria-valuenow'), String(original + 5 * i))
+   assert.ok(await haptics.evaluate(el => document.activeElement === el), 'the row keeps focus during each save')
   }
   await page.waitForFunction(() => window.keyboardWrites.completed === 4)
-  assert.equal(await slider.getAttribute('aria-valuenow'), String(original + 4), 'older responses do not restore an earlier value')
-  await slider.press('Escape')
-  await page.waitForFunction(async original => (await (await import('/src/keyboard/bridge.ts')).keyboard.getPreferences()).hapticIntensity === original, original)
-  assert.equal(await slider.getAttribute('aria-valuenow'), String(original), 'B/Escape reverts all nudges')
-  await slider.press('Enter'); await slider.press('ArrowRight'); await slider.press('Enter')
-  await page.waitForFunction(async original => (await (await import('/src/keyboard/bridge.ts')).keyboard.getPreferences()).hapticIntensity === original + 1, original)
+  assert.equal(await haptics.getAttribute('aria-valuenow'), String(original + 20), 'older responses do not restore an earlier value')
+  assert.equal((await prefs()).hapticIntensity, original + 20)
   assert.equal(await page.evaluate(() => window.keyboardWrites.maxActive), 1, 'preference writes run in order')
-  await slider.press('ArrowDown')
-  assert.ok(await slider.evaluate(el => document.activeElement !== el), 'D-pad resumes focus navigation after commit')
-  await section.locator('.keyboard-settings-haptics').scrollIntoViewIfNeeded()
+  // Shift+arrow is the fine step; Y puts it back.
+  await page.keyboard.press('Shift+ArrowLeft')
+  await page.waitForFunction(o => document.querySelector('[data-keyboard-row="haptics"]').getAttribute('aria-valuenow') === String(o + 19), original)
+  await page.keyboard.press('y')
+  await page.waitForFunction(async () => (await (await import('/src/keyboard/bridge.ts')).keyboard.getPreferences()).hapticIntensity === 35)
+  // Layout: picture cards; Daisywheel keeps the feedback choice.
+  await section.getByRole('radio', { name: /^Daisywheel/ }).click()
+  await page.waitForFunction(async () => (await (await import('/src/keyboard/bridge.ts')).keyboard.getPreferences()).layout === 'daisywheel')
+  assert.equal((await prefs()).hapticType, 'rumble')
   await page.screenshot({path:'tmp/keyboard-haptics.png'})
   assert.deepEqual(errors,[])
   assert.equal(await page.locator('vite-error-overlay').count(),0)
-  console.log('PASS: shared effects, accordion placement, delayed-save repeated D-pad adjustment, focus retention, serialized writes, commit/revert and no browser errors')
+  console.log('PASS: shared effects in Advanced, write-through Haptics with serialized saves, fine step and reset, Off unavailable-with-reason, layout cards, no browser errors')
  } finally {await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1})

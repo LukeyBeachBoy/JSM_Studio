@@ -24,6 +24,8 @@ const fs = require('node:fs');
   }};
  });
  await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
+ await page.addLocatorHandler(page.getByRole('button',{name:'Keep them',exact:true}),async()=>{ await page.getByRole('button',{name:'Keep them',exact:true}).click() })
+ await page.getByRole('button', { name: 'Keep them', exact: true }).click({ timeout: 5000 }).catch(() => {})
  // The app opens on Home (console refinement 2a); these checks start in the editing shell.
  await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {})
 
@@ -36,34 +38,43 @@ const fs = require('node:fs');
  const normal = page.locator('details[data-input-command="N"]');
  assert.equal(await normal.getAttribute('open'),null);
  await normal.locator(':scope > summary').click();
- await normal.getByRole('combobox',{name:'Trigger',exact:true}).waitFor();
+ // Console v2: a row opens its binding sheet in place ("When you…" and what each way of pressing sends).
+ await normal.locator('[data-binding-sheet]').waitFor();
  assert.equal(await normal.getByRole('button',{name:/icon/i}).count(),0,'ordinary inputs cannot assign menu icons');
  await page.screenshot({path:path.join(__dirname,'../tmp/redesign-bindings.png'),fullPage:true});
  await page.getByRole('button',{name:'Trackpads',exact:true}).click();
  const left = page.locator('#trackpad-left');
- // The touch stick's mode is a summary row adjusted in place (§5): step it to
- // a mode and back to none, and nothing is left behind in the file.
- const drag = left.locator('.summary-row').filter({has:page.locator('.summary-row__label',{hasText:/What the drag acts as/i})});
- const dragValue = () => drag.locator('.summary-row__value').innerText();
- const before = await dragValue();
- await drag.focus(); await page.keyboard.press('Enter'); await page.keyboard.press('ArrowRight'); await page.keyboard.press('Enter');
- assert.notEqual(await dragValue(), before, 'stepping the touch stick mode should pick a mode');
- await page.keyboard.press('Enter'); await page.keyboard.press('ArrowLeft'); await page.keyboard.press('Enter');
- assert.equal(await dragValue(), before);
+ // Console v2 (P4): the touch stick is a card on the pad's front ("Touch
+ // stick": the pad as one zone with a stick on it). Choose it and back to
+ // "Zones you bind", and nothing is left behind in the file.
+ const card = value => left.locator(`[role="radio"][data-value="${value}"]`);
+ await card('ZONES').waitFor();
+ assert.equal(await left.locator('[role="radio"][data-current="true"]').getAttribute('data-value'),'ZONES');
+ await card('TOUCH_STICK').click();
+ assert.equal(await left.locator('[role="radio"][data-current="true"]').getAttribute('data-value'),'TOUCH_STICK','the card writes a one-zone pad with a touch stick on it');
  await page.keyboard.press('Control+s');
- assert.ok(!/LEFT_TOUCH_STICK_MODE\s*=\s*\S/.test(await page.evaluate(()=>window.__lastSaved)));
+ await page.waitForFunction(()=>/LEFT_TOUCH_STICK_MODE = NO_MOUSE/.test(window.__lastSaved));
+ await card('ZONES').click();
+ assert.equal(await left.locator('[role="radio"][data-current="true"]').getAttribute('data-value'),'ZONES');
+ await page.keyboard.press('Control+s');
+ await page.waitForFunction(()=>!/LEFT_TOUCH_STICK_MODE\s*=\s*\S/.test(window.__lastSaved));
+ assert.match(await page.evaluate(()=>window.__lastSaved),/LEFT_GRID_SIZE = 2 2/);
  // A menu's look and where it sits on screen are one place now (2d): the
  // pad's On-screen menu row opens the On-screen menus view with this pad's
  // menu selected, and B (Escape) hands focus back to the row.
- const row = (scope,label)=>scope.locator('.summary-row').filter({has:page.locator('.summary-row__label',{hasText:label})});
+ const menuRowIn = scope => scope.locator('button').filter({has:page.locator('[class*="label"]',{hasText:/^On-screen menu$/})});
  assert.equal(await left.getByRole('button',{name:'Menu appearance',exact:true}).count(),0,'the Menu appearance disclosure is gone');
- assert.equal(await row(page.locator('#trackpad-right'),/^On-screen menu$/).count(),0,'a mouse pad has no On-screen menu row');
- const menuRow = row(left,/^On-screen menu$/);
- assert.match(await menuRow.locator('.summary-row__value').innerText(),/Arrange/);
- // The row names its own B ("A:Arrange;B:Back"); SummaryRow adds no second (1h).
+ await page.locator('.section-item').filter({hasText:'Right pad'}).click();
+ await page.locator('#trackpad-right').waitFor();
+ assert.equal(await menuRowIn(page.locator('#trackpad-right')).count(),0,'a mouse pad has no On-screen menu row');
+ await page.locator('.section-item').filter({hasText:'Left pad'}).click();
+ const menuRow = menuRowIn(left);
+ assert.match(await menuRow.innerText(),/Arrange/);
+ // The row names its own B ("A:Arrange;...;B:Back"); nothing adds a second (1h).
  assert.equal((await menuRow.getAttribute('data-hints')).match(/(^|;)B:/g).length,1,'B is declared once on the row');
  await menuRow.click();
- const menus = page.getByRole('dialog',{name:'On-screen menus',exact:true});
+ // The view is a console sub-page now (UX review I5): "Trackpads · Left pad ▸ On-screen menu".
+ const menus = page.getByRole('dialog',{name:/On-screen menu$/});
  await menus.waitFor();
  assert.match(await menus.locator('.menus-chip[data-state="selected"]').innerText(),/Left pad/,'the menu it was opened from is selected');
  assert.equal(await menus.locator('.menus-screen__menu[data-state="selected"]').count(),1);
@@ -77,14 +88,14 @@ const fs = require('node:fs');
  await page.locator('.home-chip').click();
  await page.locator('.titlebar__brand').waitFor();
  assert.equal(await page.locator('.titlebar__brand').evaluate(el=>el.matches('button, [role=button], a')||!!el.closest('button, a')),false,'Home names the app; the mark is not a button');
- await page.getByRole('button',{name:/^Preferences/}).first().click();
- await page.getByRole('button',{name:'Navigate with controller',exact:true}).waitFor();
+ // Console v2: Settings ▸ Controller; the rows are switches, not toggle buttons.
+ await page.evaluate(() => window.dispatchEvent(new CustomEvent('jsm:navigate-page', { detail: 'settings' })));
+ await page.getByRole('switch',{name:/^Navigate this app with the controller/}).waitFor();
  await page.screenshot({path:path.join(__dirname,'../tmp/redesign-settings.png'),fullPage:true});
  // Polling left Preferences for Studio's Press timing & polling page (2f).
- assert.equal(await page.getByText('Polling interval',{exact:true}).count(),0,'polling is not a Preference any more');
- await page.locator('.home-chip').click();
- await page.getByRole('button',{name:/^Press timing & polling/}).first().click();
- await row(page,/^Polling interval$/).waitFor();
+ assert.equal(await page.getByText('Controller polling',{exact:true}).count(),0,'polling is not on the Controller page');
+ await page.evaluate(() => window.dispatchEvent(new CustomEvent('jsm:navigate-page', { detail: 'timing' })));
+ await page.locator('[data-timing-row="polling"]').waitFor();
  assert.deepEqual(errors,[]);
  console.log('PASS: compact bindings, non-menu icons hidden, clearable modes, on-screen menus from the pad row, settings and polling in Studio');
  } finally { await browser.close(); }

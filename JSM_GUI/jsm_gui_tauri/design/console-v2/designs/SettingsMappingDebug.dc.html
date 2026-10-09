@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>What Windows receives</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.btn{font-family:inherit;border:0;cursor:pointer}
+.lbl{font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#808c99;font-weight:600}
+.ev{display:flex;align-items:center;gap:14px;min-height:42px;padding:0 14px;border-radius:10px;font-size:16px;color:#d4dde6;white-space:nowrap}
+.ev .ts{font-family:'Geist Mono',monospace;font-size:14px;color:#808c99;flex:none}
+.ev .tg{margin-left:auto;display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:13px;font-size:14px;font-weight:600;background:#173a52;color:#a8dbfa}
+.held{display:inline-flex;align-items:center;gap:10px;height:44px;padding:0 16px;border-radius:14px;background:#1f2730;font-size:17px;font-weight:600}
+.seg{display:flex;gap:4px;background:#0f151b;border-radius:12px;padding:4px}
+.seg span{height:34px;padding:0 14px;border-radius:9px;display:flex;align-items:center;font-size:15px;font-weight:600;color:#b0bcc8;white-space:nowrap}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="height: 76px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 40px; background: #0d1217">
+<span style="font-size: 18px; color: #808c99">Settings · Troubleshooting log</span>
+<span style="font-size: 18px; color: #5b6571">▸</span>
+<span style="font-size: 22px; font-weight: 700">What Windows receives</span>
+<span style="margin-left: auto; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 20px; background: #173a52; color: #a8dbfa; font-size: 16px; font-weight: 600"><span style="width: 9px; height: 9px; border-radius: 50%; background: #3e9fd8"></span>Capturing · leaving stops it</span>
+</header>
+
+<main style="flex: 1; min-height: 0; display: grid; grid-template-columns: 760px minmax(0, 1fr); gap: 32px; padding: 28px 40px 24px">
+
+<section style="display: flex; flex-direction: column; gap: 12px; min-width: 0">
+<p style="margin: 0; font-size: 17px; line-height: 1.45; color: #b0bcc8">Every key, click and scroll Windows sees after JSM maps your controller. It can’t see a virtual gamepad or JSM’s own actions.</p>
+
+<div class="focus" style="background: #1d445c; border-radius: 16px; padding: 14px 20px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; gap: 14px">
+<span style="width: 14px; height: 14px; border-radius: 50%; background: #e5484d"></span>
+<span style="font-size: 20px; font-weight: 650">Capturing</span>
+<span style="font-size: 16px; color: #d4dde6">since 16:44:02</span>
+<span style="margin-left: auto; display: inline-flex; align-items: center; height: 40px; padding: 0 16px; border-radius: 12px; background: #e8eef4; color: #0d1217; font-size: 16px; font-weight: 650">Stop capture</span>
+</div>
+<span style="font-size: 15px; color: #b8e2fa">A stops it. X pauses the log; the picture stays live.</span>
+</div>
+
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 14px; background: #2c241c; box-shadow: inset 0 0 0 1px #4a3320; font-size: 15px; color: #ffc98f">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffc98f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex: none"><path d="M12 4l9 16H3z"></path><path d="M12 10v4M12 17h.01"></path></svg>
+Wardogs has changes that aren’t live yet. This shows what the live version sends.
+</div>
+
+<div style="background: #1a222b; border-radius: 20px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><span class="lbl">Live</span><span style="font-family: 'Geist Mono', monospace; font-size: 14px; color: #93e6c1">● 3 held</span></div>
+<svg viewBox="0 0 720 320" width="100%" height="320" fill="none">
+<rect x="10" y="8" width="452" height="306" rx="18" fill="#0f151b" stroke="rgba(255,255,255,.05)"></rect>
+<g font-family="Geist, sans-serif" font-size="15" font-weight="600" text-anchor="middle">
+<rect x="22" y="20" width="52" height="52" rx="10" fill="#2e3844" stroke="rgba(255,255,255,.08)"></rect><text x="48" y="51" fill="#b0bcc8">Esc</text>
+<rect x="82" y="20" width="52" height="52" rx="10" fill="#2e3844" stroke="rgba(255,255,255,.08)"></rect><text x="108" y="51" fill="#b0bcc8">1</text>
+<rect x="142" y="20" width="52" height="52" rx="10" fill="#2e3844" stroke="rgba(255,255,255,.08)"></rect><text x="168" y="51" fill="#b0bcc8">2</text>
+<rect x="202" y="20" width="52" height="52" rx="10" fill="#2e3844" stroke="rgba(255,255,255,.08)"></rect><text x="228" y="51" fill="#b0bcc8">3</text>
+<rect x="262" y="20" width="52" height="52" rx="10" fill="#2e3844" stroke="rgba(255,255,255,.08)"></rect><text x="288" y="51" fill="#b0bcc8">4</text>
+<rect x="322" y="20" width="52" height="52" rx="10" fill="#2e3844" stroke="rgba(255,255,255,.08)"></rect><text x="348" y="51" fill="#b0bcc8">5</text>
+<rect x="382" y="20" width="52" height="52" rx="10" fill="#2e3844" stroke="rgba(255,255,255,.08)"></rect><text x="408" y="51" fill="#b0bcc8">6</text>
+<rect x="22" y="82" width="80" height="52" rx="10" fill="#2e3844" stroke="rgba(255,255,255,.08)"></rect><text x="62" y="113" fill="#b0bcc8">Tab</text>
+<rect x="110" y="82" width="52" height="52" rx="10" fill="#2e3844" stroke="rgba(255,255,255,.08)"></rect><text x="136" y="113" fill="#b0bcc8">Q</text>
+<rect x="170" y="82" width="52" height="52" rx="10" fill="#3e9fd8"></rect><text x="196" y="113" fill="#07131d" font-weight="700">W</text>
+<rect x="230" y="82" width="52" height="52" rx="10" fill="#2e3844" stroke="rgba(255,255,255,.08)"></rect><text x="256" y="113" fill="#b0bcc8">E</text>
+<rect x="290" y="82" width="52" height="52" rx="10" fill="#2e3844" stroke="rgba(255,255,255,.08)"></rect><text x="316" y="113" fill="#b0bcc8">R</text>
+<rect x="350" y="82" width="52" height="52" rx="10" fill="#2e3844" stroke="rgba(255,255,255,.08)"></rect><text x="376" y="113" fill="#b0bcc8">T</text>
+<rect x="22" y="144" width="92" height="52" rx="10" fill="#2e3844" stroke="rgba(255,255,255,.08)"></rect><text x="68" y="175" fill="#b0bcc8">Caps</text>
+<rect x="122" y="144" width="52" height="52" rx="10" fill="#2e3844" stroke="rgba(255,255,255,.08)"></rect><text x="148" y="175" fill="#b0bcc8">A</text>
+<rect x="182" y="144" width="52" height="52" rx="10" fill="#2e3844" stroke="rgba(255,255,255,.08)"></rect><text x="208" y="175" fill="#b0bcc8">S</text>
+<rect x="242" y="144" width="52" height="52" rx="10" fill="#2e3844" stroke="rgba(255,255,255,.08)"></rect><text x="268" y="175" fill="#b0bcc8">D</text>
+<rect x="302" y="144" width="52" height="52" rx="10" fill="#2e3844" stroke="rgba(255,255,255,.08)"></rect><text x="328" y="175" fill="#b0bcc8">F</text>
+<rect x="362" y="144" width="52" height="52" rx="10" fill="#2e3844" stroke="rgba(255,255,255,.08)"></rect><text x="388" y="175" fill="#b0bcc8">G</text>
+<rect x="22" y="206" width="118" height="52" rx="10" fill="#3e9fd8"></rect><text x="81" y="237" fill="#07131d" font-weight="700">Shift</text>
+<rect x="148" y="206" width="52" height="52" rx="10" fill="#2e3844" stroke="rgba(255,255,255,.08)"></rect><text x="174" y="237" fill="#b0bcc8">Z</text>
+<rect x="208" y="206" width="52" height="52" rx="10" fill="#2e3844" stroke="rgba(255,255,255,.08)"></rect><text x="234" y="237" fill="#b0bcc8">X</text>
+<rect x="268" y="206" width="52" height="52" rx="10" fill="#2e3844" stroke="rgba(255,255,255,.08)"></rect><text x="294" y="237" fill="#b0bcc8">C</text>
+<rect x="328" y="206" width="52" height="52" rx="10" fill="#2e3844" stroke="rgba(255,255,255,.08)"></rect><text x="354" y="237" fill="#b0bcc8">V</text>
+<rect x="388" y="206" width="52" height="52" rx="10" fill="#2e3844" stroke="rgba(255,255,255,.08)"></rect><text x="414" y="237" fill="#b0bcc8">B</text>
+<rect x="22" y="270" width="70" height="30" rx="9" fill="#2e3844" stroke="rgba(255,255,255,.08)"></rect><text x="57" y="290" fill="#b0bcc8">Ctrl</text>
+<rect x="100" y="270" width="70" height="30" rx="9" fill="#2e3844" stroke="rgba(255,255,255,.08)"></rect><text x="135" y="290" fill="#b0bcc8">Alt</text>
+<rect x="178" y="270" width="262" height="30" rx="9" fill="#2e3844" stroke="rgba(255,255,255,.08)"></rect><text x="309" y="290" fill="#b0bcc8">Space</text>
+</g>
+<path d="M606 34C556 34 530 74 530 134V220C530 274 560 300 606 300C652 300 682 274 682 220V134C682 74 656 34 606 34Z" fill="#1c242d" stroke="#e3eaf1" stroke-width="2"></path>
+<path d="M606 34C656 34 682 74 682 134H606Z" fill="#3e9fd8"></path>
+<path d="M606 34V134M530 134H682" stroke="#aebbc8" stroke-width="1.5"></path>
+<rect x="597" y="66" width="18" height="40" rx="9" fill="#212a34" stroke="#3e9fd8" stroke-width="2"></rect>
+<path d="M600 74H612M600 82H612M600 90H612M600 98H612" stroke="#7cc4ee" stroke-width="1.5" opacity=".7"></path>
+<path d="M598 22L606 12L614 22" stroke="#7cc4ee" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+<text x="562" y="22" fill="#7cc4ee" font-size="14" font-weight="600" font-family="Geist, sans-serif" text-anchor="end">+120</text>
+<text x="644" y="112" fill="#07131d" font-size="14" font-weight="700" font-family="Geist, sans-serif" text-anchor="middle">Held</text>
+</svg>
+</div>
+
+<div style="display: flex; align-items: center; gap: 10px">
+<span class="lbl" style="margin-right: 4px">Held now</span>
+<span class="held"><span class="gp">W</span>W</span>
+<span class="held"><span class="gp">Shift</span>Shift</span>
+<span class="held"><svg width="18" height="22" viewBox="0 0 18 22" fill="none"><rect x="1" y="1" width="16" height="20" rx="8" stroke="#d4dde6" stroke-width="1.6"></rect><path d="M9 1V9H17A8 8 0 0 0 9 1Z" fill="#7cc4ee"></path></svg>Right mouse</span>
+</div>
+</section>
+
+<section style="background: #1a222b; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 10px; min-width: 0">
+<div style="display: flex; align-items: center; gap: 12px">
+<span style="font-size: 22px; font-weight: 700">Event log</span>
+<span style="font-size: 15px; color: #808c99">24 of the last 100</span>
+<span class="seg" style="margin-left: auto"><span style="background: #2e3844; color: #ffffff">From JSM</span><span>Everything</span></span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<div class="ev" style="background: #1f2730"><span class="ts">16:44:14.020</span>Keyboard G down<span class="tg" style="background: #4a3320; color: #ffc98f">From JSM · lower rights</span></div>
+<div class="ev"><span class="ts">16:44:13.760</span>Keyboard Enter up<span class="tg" style="background: #2e3844; color: #d4dde6">App window</span></div>
+<div class="ev"><span class="ts">16:44:13.700</span>Keyboard Enter down<span class="tg" style="background: #2e3844; color: #d4dde6">App window</span></div>
+<div class="ev"><span class="ts">16:44:13.230</span>Left mouse up<span class="tg">From JSM</span></div>
+<div class="ev"><span class="ts">16:44:13.150</span>Left mouse down<span class="tg">From JSM</span></div>
+<div class="ev"><span class="ts">16:44:12.902</span>Wheel +120 · scroll<span class="tg">From JSM</span></div>
+<div class="ev"><span class="ts">16:44:12.410</span>Right mouse down<span class="tg">From JSM</span></div>
+<div class="ev"><span class="ts">16:44:12.033</span>Keyboard Shift down<span class="tg">From JSM</span></div>
+<div class="ev"><span class="ts">16:44:12.031</span>Keyboard W down<span class="tg">From JSM</span></div>
+<div class="ev"><span class="ts">16:44:11.508</span>Keyboard R up<span class="tg">From JSM</span></div>
+<div class="ev"><span class="ts">16:44:11.402</span>Keyboard R down<span class="tg">From JSM</span></div>
+<div class="ev"><span class="ts">16:44:10.880</span>Middle mouse down<span class="tg">From JSM</span></div>
+</div>
+<span style="margin-top: auto; font-size: 15px; line-height: 1.45; color: #808c99">Newest at the top. “Everything” adds your real keyboard and mouse.</span>
+</section>
+</main>
+
+<footer style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Settings · Troubleshooting log · What Windows receives</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">A</span>Stop capture</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">X</span>Pause the log</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">Y</span>Clear, copy…</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">LB</span><span class="gp">RB</span>From JSM / Everything</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Back</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

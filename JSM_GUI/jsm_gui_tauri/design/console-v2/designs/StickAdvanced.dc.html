@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Stick Advanced</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.part{background:#1a222b;border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:16px;min-width:0;min-height:0}
+.eb{font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#808c99;font-weight:600}
+.row{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;align-items:center;gap:16px;min-height:76px;padding:14px 22px;box-sizing:border-box;border-radius:16px;background:#1f2730;color:#e8eef4;text-align:left}
+.seg{display:flex;gap:4px;background:#0f151b;border-radius:12px;padding:4px}
+.seg span{height:38px;padding:0 16px;border-radius:9px;display:flex;align-items:center;font-size:16px;font-weight:600;color:#b0bcc8}
+.lg{display:flex;align-items:center;gap:10px;font-size:15px;color:#b0bcc8}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="height: 76px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 40px; background: #0d1217">
+<span style="font-size: 18px; color: #808c99">Wardogs · Sticks · Right stick · Fine-tune</span>
+<span style="font-size: 18px; color: #808c99">▸</span>
+<span style="font-size: 22px; font-weight: 700">Advanced</span>
+<span style="margin-left: auto; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 20px; background: #1e3d33; color: #93e6c1; font-size: 16px; font-weight: 600"><span style="width: 9px; height: 9px; border-radius: 50%; background: #5fd3a0"></span>Live · saved</span>
+</header>
+
+<main style="flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; padding: 32px 40px 24px">
+
+<section class="part">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span class="eb">1 · LT · Looking around · Speed</span>
+<h2 style="margin: 0; font-size: 26px; font-weight: 700">Exact curve</h2>
+<p style="margin: 0; font-size: 17px; color: #b0bcc8">Type the curve’s shape instead of picking a preset.</p>
+</div>
+
+<div class="focus" style="background: #1d445c; border-radius: 16px; padding: 16px 22px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 16px"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 20px; font-weight: 650">Curve number</span><span style="font-size: 15px; color: #b8e2fa">Default · Even</span></span><span style="display: flex; align-items: center; gap: 14px; font-size: 28px; font-weight: 700; font-family: 'Geist Mono', monospace; white-space: nowrap"><span style="color: #7cc4ee; font-size: 22px; font-family: Geist, sans-serif">◂</span>1.0<span style="color: #7cc4ee; font-size: 22px; font-family: Geist, sans-serif">▸</span></span></div>
+<span style="font-size: 15px; line-height: 1.45; color: #b8e2fa">1 is even. Higher is gentler near the centre; lower is quicker. ◂ ▸ steps of 0.1.</span>
+</div>
+
+<svg viewBox="0 0 560 230" width="100%" height="230" fill="none">
+<g stroke="rgba(255,255,255,.05)"><path d="M50 72.5H540M50 115H540M50 157.5H540"></path><path d="M172.5 30V200M295 30V200M417.5 30V200"></path></g>
+<path d="M50 200H540M50 200V30" stroke="#2e3844" stroke-width="1.5"></path>
+<path d="M50 200Q50 115 540 30" stroke="#808c99" stroke-width="1.8" stroke-dasharray="5 6" opacity=".75"></path>
+<path d="M50 200Q295 200 540 30" stroke="#808c99" stroke-width="1.8" stroke-dasharray="2 5" opacity=".75"></path>
+<path d="M50 200C213.3 200 376.7 200 540 30" stroke="#808c99" stroke-width="1.8" stroke-dasharray="8 5" opacity=".6"></path>
+<path d="M50 200L540 30V200Z" fill="#3e9fd8" fill-opacity=".12"></path>
+<path d="M50 200L540 30" stroke="#3e9fd8" stroke-width="2" stroke-linecap="round"></path>
+<g font-size="15" font-family="'Geist Mono', monospace">
+<text x="300" y="96" fill="#808c99">0.5</text>
+<text x="300" y="132" fill="#b8e2fa" font-weight="500">1.0</text>
+<text x="340" y="152" fill="#808c99">2.0</text>
+<text x="476" y="118" fill="#808c99">3.0</text>
+</g>
+<text x="295" y="222" fill="#808c99" font-size="15" font-family="Geist, sans-serif" text-anchor="middle">How far you push the stick →</text>
+<text x="26" y="115" fill="#808c99" font-size="15" font-family="Geist, sans-serif" text-anchor="middle" transform="rotate(-90 26 115)">Turn speed →</text>
+</svg>
+
+<button class="row"><span style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 20px; font-weight: 650">Match a full turn (360°)</span><span style="font-size: 15px; color: #808c99">Makes turn speeds true to the game. Also used by flicks and gyro.</span></span><span style="margin-left: auto; font-size: 17px; color: #7cc4ee; font-weight: 600; white-space: nowrap">Start ▸</span></button>
+</section>
+
+<section class="part">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span class="eb">2 · RT · Flick to turn · Flick</span>
+<h2 style="margin: 0; font-size: 26px; font-weight: 700">Smoothing for tiny turns</h2>
+<p style="margin: 0; font-size: 17px; color: #b0bcc8">Hides jitter when you roll the stick only a little.</p>
+</div>
+
+<div class="row" style="flex-direction: column; align-items: stretch; gap: 12px">
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 20px; font-weight: 650">Smoothing</span><span style="font-size: 15px; color: #808c99">Automatic picks the right amount for your controller.</span></span>
+<div class="seg"><span style="background: #2e3844; color: #ffffff">Automatic</span><span>Off</span><span>Custom</span></div>
+</div>
+
+<svg viewBox="0 0 560 230" width="100%" height="230" fill="none">
+<path d="M50 200H540M50 200V30" stroke="#2e3844" stroke-width="1.5"></path>
+<path d="M50 180H90V158H120V166H150V140H185V146H215V118H250V124H280V98H315V104H345V78H380V84H410V60H445V66H475V42H540" stroke="#808c99" stroke-width="2" stroke-linejoin="round" opacity=".8"></path>
+<path d="M50 180C180 165 360 90 540 44" stroke="#3e9fd8" stroke-width="2" stroke-linecap="round"></path>
+<text x="295" y="222" fill="#808c99" font-size="15" font-family="Geist, sans-serif" text-anchor="middle">Time, while you roll the stick slowly →</text>
+<text x="26" y="115" fill="#808c99" font-size="15" font-family="Geist, sans-serif" text-anchor="middle" transform="rotate(-90 26 115)">View turns →</text>
+</svg>
+
+<div style="display: flex; flex-wrap: wrap; gap: 10px 24px">
+<span class="lg"><svg width="22" height="12" viewBox="0 0 22 12" fill="none" style="flex: none"><path d="M1 10H6V6H11V8H16V3H21" stroke="#808c99" stroke-width="2"></path></svg>Off: steps you can feel</span>
+<span class="lg"><svg width="22" height="12" viewBox="0 0 22 12" fill="none" style="flex: none"><path d="M1 10C8 9 14 5 21 2" stroke="#7cc4ee" stroke-width="2.5" stroke-linecap="round"></path></svg>Automatic: smooth</span>
+</div>
+<span style="font-size: 15px; line-height: 1.5; color: #808c99">Bigger turns are never smoothed. Custom lets you type the size of turn that counts as tiny.</span>
+</section>
+</main>
+
+<footer style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Wardogs · Sticks · Right stick · Fine-tune · Advanced</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px">◂ ▸ Adjust</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">X</span>Try it</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">Y</span>Reset</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">LT</span><span class="gp">RT</span>Part</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Back to Fine-tune</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

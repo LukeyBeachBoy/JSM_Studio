@@ -55,7 +55,7 @@ export function BindingLabelLegend({ labels, device, onHoverCommand, onSelectCom
               <InputGlyph command={row.command} family={family} size={16} />
             </span>
             <span className={styles.command}>{row.name}</span>
-            <span className={styles.label} title={row.label}>{row.label}</span>
+            <span className={styles.label} data-caption={row.label}>{row.label}</span>
           </li>
         ))}
       </ul>

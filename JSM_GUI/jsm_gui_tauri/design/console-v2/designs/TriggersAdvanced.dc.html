@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Triggers Advanced</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.part{background:#1a222b;border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:12px;min-width:0;min-height:0}
+.eb{font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#808c99;font-weight:600}
+.row{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;align-items:center;gap:14px;min-height:60px;padding:9px 20px;box-sizing:border-box;border-radius:14px;background:#1f2730;color:#e8eef4;text-align:left}
+.row .t{font-size:18px;font-weight:650}
+.row .s{font-size:15px;color:#808c99}
+.row .v{margin-left:auto;display:flex;align-items:baseline;gap:8px;white-space:nowrap}
+.row .v b{font-size:19px;font-weight:600;font-family:'Geist Mono',monospace}
+.row .v i{font-style:normal;font-size:15px;color:#808c99}
+.seg{display:flex;gap:4px;background:#0f151b;border-radius:12px;padding:4px}
+.seg span{flex:1;justify-content:center;height:38px;padding:0 12px;border-radius:9px;display:flex;align-items:center;font-size:16px;font-weight:600;color:#b0bcc8}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="height: 76px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 40px; background: #0d1217">
+<span style="font-size: 18px; color: #808c99">Wardogs · Triggers · Fine-tune</span>
+<span style="font-size: 18px; color: #808c99">▸</span>
+<span style="font-size: 22px; font-weight: 700">Advanced</span>
+<span style="margin-left: auto; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 20px; background: #1e3d33; color: #93e6c1; font-size: 16px; font-weight: 600"><span style="width: 9px; height: 9px; border-radius: 50%; background: #5fd3a0"></span>Live · saved</span>
+</header>
+
+<main style="flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; padding: 32px 40px 24px">
+
+<section class="part">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span class="eb">1 · Press points</span>
+<h2 style="margin: 0; font-size: 24px; font-weight: 700">Quick full press window</h2>
+<p style="margin: 0; font-size: 16px; line-height: 1.45; color: #b0bcc8">How long the skip cards wait to tell a quick full press from a half press.</p>
+</div>
+
+<div class="focus" style="background: #1d445c; border-radius: 16px; padding: 16px 20px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 19px; font-weight: 650">Window</span><span style="font-size: 15px; color: #b8e2fa">Default</span></span><span style="display: flex; align-items: center; gap: 12px; font-size: 26px; font-weight: 700; white-space: nowrap"><span style="color: #7cc4ee; font-size: 20px">◂</span>150 ms<span style="color: #7cc4ee; font-size: 20px">▸</span></span></div>
+<span style="font-size: 15px; line-height: 1.45; color: #b8e2fa">Reach full press inside this time and the half press is skipped.</span>
+</div>
+
+<svg viewBox="0 0 390 240" width="100%" height="240" fill="none">
+<rect x="30" y="30" width="170" height="160" fill="#3e9fd8" fill-opacity=".12"></rect>
+<path d="M200 30V190" stroke="#7cc4ee" stroke-width="1.6" stroke-dasharray="4 4"></path>
+<text x="115" y="182" fill="#b8e2fa" font-size="15" font-weight="600" font-family="Geist, sans-serif" text-anchor="middle">150 ms</text>
+<path d="M30 190H370M30 190V30" stroke="#2e3844" stroke-width="1.5"></path>
+<path d="M30 160H370" stroke="#808c99" stroke-dasharray="2 4" opacity=".7"></path>
+<text x="366" y="154" fill="#808c99" font-size="14" font-family="Geist, sans-serif" text-anchor="end">Half press</text>
+<path d="M30 40H370" stroke="#808c99" stroke-dasharray="2 4" opacity=".4"></path>
+<path d="M30 190C120 182 250 40 325 40H370" stroke="#808c99" stroke-width="2" stroke-dasharray="5 5"></path>
+<path d="M30 190C70 190 100 40 132 40H370" stroke="#3e9fd8" stroke-width="2" stroke-linecap="round"></path>
+<circle cx="132" cy="40" r="5.5" fill="#ffffff"></circle>
+<text x="142" y="30" fill="#b8e2fa" font-size="14" font-family="Geist, sans-serif">Quick: full press only</text>
+<text x="236" y="112" fill="#b0bcc8" font-size="14" font-family="Geist, sans-serif">Slow: half, then full</text>
+<text x="200" y="214" fill="#808c99" font-size="14" font-family="Geist, sans-serif" text-anchor="middle">Time from first touch →</text>
+</svg>
+<span style="margin-top: auto; font-size: 15px; line-height: 1.45; color: #808c99">Shared by both triggers. Used by the Quick full press and Responsive cards.</span>
+</section>
+
+<section class="part">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span class="eb">2 · Calibration</span>
+<h2 style="margin: 0; font-size: 24px; font-weight: 700">Resistance start and travel</h2>
+<p style="margin: 0; font-size: 16px; line-height: 1.45; color: #b0bcc8">Set by Calibrate, or typed here. DualSense automatic resistance only.</p>
+</div>
+<button class="row"><span class="t">Left · starts at</span><span class="v"><i>Default</i><b>25</b><i>/ 255</i></span></button>
+<button class="row"><span class="t">Left · travel</span><span class="v"><i>Default</i><b>150</b><i>/ 255</i></span></button>
+<button class="row"><span class="t">Right · starts at</span><span class="v"><i>Default</i><b>25</b><i>/ 255</i></span></button>
+<button class="row"><span class="t">Right · travel</span><span class="v"><i>Default</i><b>150</b><i>/ 255</i></span></button>
+
+<svg viewBox="0 0 390 96" width="100%" height="96" fill="none">
+<text x="20" y="18" fill="#b0bcc8" font-size="15" font-weight="600" font-family="Geist, sans-serif">Left trigger</text>
+<rect x="20" y="32" width="350" height="16" rx="8" fill="#0e1419" stroke="rgba(255,255,255,.07)"></rect>
+<rect x="54.3" y="32" width="205.9" height="16" rx="8" fill="#3e9fd8"></rect>
+<path d="M54.3 26V54M260.2 26V54" stroke="#e8eef4" stroke-width="2" stroke-linecap="round"></path>
+<g fill="#808c99" font-size="14" font-family="Geist, sans-serif"><text x="54.3" y="72" text-anchor="middle">starts 25</text><text x="157" y="72" text-anchor="middle">travel 150</text><text x="370" y="72" text-anchor="end">255</text></g>
+<text x="20" y="92" fill="#808c99" font-size="14" font-family="Geist, sans-serif">Resistance is placed along this stretch.</text>
+</svg>
+
+<button class="row" style="margin-top: auto; background: transparent; box-shadow: inset 0 0 0 2px #2e3844"><span style="display: flex; flex-direction: column; gap: 2px"><span class="t">Calibrate triggers</span><span class="s">Measures both values for you</span></span><span style="margin-left: auto; font-size: 17px; color: #7cc4ee; font-weight: 600">Start ▸</span></button>
+</section>
+
+<section class="part">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span class="eb">3 · When Gamepad trigger is chosen</span>
+<h2 style="margin: 0; font-size: 24px; font-weight: 700">Sends as</h2>
+<p style="margin: 0; font-size: 16px; line-height: 1.45; color: #b0bcc8">Which trigger the game sees. The usual choice matches the side.</p>
+</div>
+
+<div style="border-radius: 16px; background: #24323f; box-shadow: inset 0 0 0 2px #3e9fd8; padding: 12px; display: flex; flex-direction: column; gap: 8px">
+<span style="height: 64px; border-radius: 12px; background:#0f151b; box-shadow: inset 0 0 0 1px #3e9fd8; display: block; overflow: hidden"><svg viewBox="0 0 240 64" width="100%" height="64" fill="none" style="display: block">
+<rect x="12" y="6" width="36" height="9" rx="4.5" fill="#0e1419"></rect>
+<path d="M15 13H45C47.5 13 49 15 48.6 17.5L45.5 42C44.5 51 38.5 57 30 58L22 59C18.5 59.4 16 57 16 53.5Z" fill="#3e9fd8" stroke="#e3eaf1" stroke-width="1.5"></path>
+<path d="M66 54H228" stroke="rgba(255,255,255,.12)"></path>
+<g fill="#7cc4ee" fill-opacity=".5">
+<rect x="68" y="50" width="7" height="4" rx="2"></rect>
+<rect x="80" y="48" width="7" height="6" rx="2"></rect>
+<rect x="92" y="46" width="7" height="8" rx="2"></rect>
+<rect x="104" y="43" width="7" height="11" rx="2"></rect>
+<rect x="116" y="40" width="7" height="14" rx="2"></rect>
+<rect x="128" y="37" width="7" height="17" rx="2"></rect>
+<rect x="140" y="33" width="7" height="21" rx="2"></rect>
+<rect x="152" y="30" width="7" height="24" rx="2"></rect>
+<rect x="164" y="26" width="7" height="28" rx="2"></rect>
+<rect x="176" y="22" width="7" height="32" rx="2"></rect>
+<rect x="188" y="19" width="7" height="35" rx="2"></rect>
+<rect x="200" y="15" width="7" height="39" rx="2"></rect>
+<rect x="212" y="12" width="7" height="42" rx="2"></rect>
+</g>
+</svg></span>
+<span style="font-size: 17px; font-weight: 650">Gamepad trigger</span>
+<span style="font-size: 15px; color: #b8e2fa; margin-top: -4px">Left trigger works as this</span>
+</div>
+
+<div class="row" style="flex-direction: column; align-items: stretch; gap: 10px; padding: 14px 18px">
+<span class="t">Sends as</span>
+<div class="seg"><span style="background: #2e3844; color: #ffffff">Left pad trigger</span><span>Right pad trigger</span></div>
+</div>
+
+<div style="background: #4a3320; border-radius: 14px; padding: 12px 16px; display: flex; gap: 12px; align-items: flex-start">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffc98f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex: none; margin-top: 2px"><path d="M12 3L22 20H2Z"></path><path d="M12 10v4M12 17v.01"></path></svg>
+<span style="font-size: 15px; line-height: 1.45; color: #ffc98f">Needs Xbox or PlayStation output, set under Controller output.</span>
+</div>
+<span style="margin-top: auto; font-size: 15px; line-height: 1.45; color: #808c99">Half and full press bindings and press points aren’t used while this card is chosen.</span>
+</section>
+</main>
+
+<footer style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Wardogs · Triggers · Fine-tune · Advanced</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px">◂ ▸ Adjust</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">Y</span>Reset</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">LT</span><span class="gp">RT</span>Part</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Back to Fine-tune</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

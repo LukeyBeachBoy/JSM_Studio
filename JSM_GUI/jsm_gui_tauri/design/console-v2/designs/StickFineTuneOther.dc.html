@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Stick Fine-tune, wheel</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.grp{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;flex-direction:column;gap:4px;padding:16px 20px;box-sizing:border-box;border-radius:14px;background:transparent;color:#b0bcc8;text-align:left}
+.grp .t{font-size:20px;font-weight:600}
+.grp .s{font-size:15px;color:#808c99}
+.mini{display:flex;flex-direction:column;padding:4px 20px;line-height:1.2}
+.mini .t{font-size:16px;font-weight:600;color:#b0bcc8;line-height:20px}
+.mini .s{font-size:15px;color:#808c99;line-height:18px}
+.row{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;align-items:center;gap:16px;min-height:76px;padding:14px 22px;box-sizing:border-box;border-radius:16px;background:#1f2730;color:#e8eef4;text-align:left}
+.lg{display:flex;align-items:center;gap:10px;font-size:15px;color:#b0bcc8}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="height: 76px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 40px; background: #0d1217">
+<span style="font-size: 18px; color: #808c99">Wardogs · Sticks · Right stick</span>
+<span style="font-size: 18px; color: #808c99">▸</span>
+<span style="font-size: 22px; font-weight: 700">Fine-tune</span>
+<span style="margin-left: auto; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 20px; background: #1e3d33; color: #93e6c1; font-size: 16px; font-weight: 600"><span style="width: 9px; height: 9px; border-radius: 50%; background: #5fd3a0"></span>Live · saved</span>
+</header>
+
+<main style="flex: 1; min-height: 0; display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 36px; padding: 32px 40px 24px">
+
+<nav style="display: flex; flex-direction: column; gap: 6px; min-height: 0">
+<div style="display: flex; align-items: center; gap: 8px; margin: 0 0 10px 20px; font-size: 14px; color: #808c99"><span class="gp">LT</span>Group<span class="gp">RT</span></div>
+<button class="grp" style="background: #1f2730; color: #ffffff"><span class="t">Wheel</span><span class="s" style="color: #b0bcc8">8 slices · picks past 35%</span></button>
+<button class="grp"><span class="t">Dead zone &amp; edge</span><span class="s">Ignore 15% · full past 90%</span></button>
+<button class="grp"><span class="t">Direction</span><span class="s">Normal up, down, left, right</span></button>
+<div style="height: 1px; background: #232c36; margin: 4px 20px 2px"></div>
+<div style="display: flex; flex-direction: column; gap: 2px; padding: 0 20px 4px">
+<span style="font-size: 14px; letter-spacing: .08em; text-transform: uppercase; color: #808c99; font-weight: 600">Other modes</span>
+<span style="font-size: 15px; color: #808c99">Tuned here once picked</span>
+</div>
+<div style="display: flex; flex-direction: column">
+<div class="mini"><span class="t">Mouse ring</span><span class="s">Ring size, screen size</span></div>
+<div class="mini"><span class="t">Scroll wheel</span><span class="s">Turn per step</span></div>
+<div class="mini"><span class="t">Walk/run rings</span><span class="s">Which ring, ring action</span></div>
+<div class="mini"><span class="t">Mouse area</span><span class="s">How far it reaches</span></div>
+<div class="mini"><span class="t">Angle to axis</span><span class="s">Centre and end angles</span></div>
+<div class="mini"><span class="t">Steering</span><span class="s">Full lock, return, curve</span></div>
+<div class="mini"><span class="t">Gamepad stick</span><span class="s">Find the game’s dead zone ▸</span></div>
+</div>
+</nav>
+
+<section style="display: grid; grid-template-columns: minmax(0, 1fr) 470px; gap: 28px; min-width: 0; min-height: 0">
+
+<div style="display: flex; flex-direction: column; gap: 12px; min-width: 0">
+<div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px">
+<h1 style="margin: 0; font-size: 32px; font-weight: 700">Wheel</h1>
+<p style="margin: 0; font-size: 17px; color: #b0bcc8">Point the stick at a slice; come back to centre to let go.</p>
+</div>
+
+<button class="row"><span style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 20px; font-weight: 650">Slices</span><span style="font-size: 15px; color: #808c99">Numbered clockwise from the top</span></span><span style="margin-left: auto; display: flex; align-items: center; gap: 14px; font-size: 20px; font-weight: 600"><span style="color: #7cc4ee">◂</span><span style="font-family: 'Geist Mono', monospace">8</span><span style="color: #7cc4ee">▸</span></span></button>
+
+<div class="focus" style="background: #1d445c; border-radius: 16px; padding: 18px 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px"><span style="font-size: 20px; font-weight: 650">Push before a slice is picked</span><span style="display: flex; align-items: baseline; gap: 10px"><span style="font-size: 15px; color: #b8e2fa">Default</span><span style="font-size: 30px; font-weight: 700">35%</span></span></div>
+<div style="position: relative; height: 8px; border-radius: 4px; background: #0f151b"><span style="position: absolute; left: 0; top: 0; height: 8px; width: 35%; border-radius: 4px; background: #3e9fd8"></span><span style="position: absolute; left: 35%; top: -8px; width: 24px; height: 24px; margin-left: -12px; border-radius: 50%; background: #ffffff; box-shadow: 0 0 0 5px rgba(62,159,216,.3)"></span></div>
+<span style="font-size: 15px; line-height: 1.45; color: #b8e2fa">Inside this ring nothing is picked. Raise it if a slice fires as you let go.</span>
+</div>
+
+<button class="row"><span style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 20px; font-weight: 650">What each slice does</span><span style="font-size: 15px; color: #808c99">Names, icons and keys</span></span><span style="margin-left: auto; font-size: 17px; color: #d4dde6; white-space: nowrap">Menus ▸</span></button>
+
+<button class="row"><span style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 20px; font-weight: 650">On-screen wheel</span><span style="font-size: 15px; color: #808c99">Where it shows and how it looks</span></span><span style="margin-left: auto; font-size: 17px; color: #d4dde6; white-space: nowrap">Arrange ▸</span></button>
+
+<button class="row" style="background: transparent; box-shadow: inset 0 0 0 2px #2e3844; min-height: 64px"><span style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 18px; font-weight: 600">Advanced</span><span style="font-size: 15px; color: #808c99">Move this wheel to Menus, keeping its actions and look</span></span><span style="margin-left: auto; font-size: 17px; color: #808c99">▸</span></button>
+</div>
+
+<div style="background: #1a222b; border-radius: 20px; padding: 22px; display: flex; flex-direction: column; gap: 14px; min-height: 0">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 17px; font-weight: 600">Your wheel</span><span style="font-family: 'Geist Mono', monospace; font-size: 14px; color: #93e6c1">● live · slice 2</span></div>
+
+<svg viewBox="0 0 420 400" width="100%" height="400" fill="none">
+<g stroke="rgba(255,255,255,.08)" stroke-width="1">
+<path d="M146.9 35.7A176 176 0 0 1 273.1 35.7L235.8 132.8A72 72 0 0 0 184.2 132.8Z" fill="#131a21"></path>
+<path d="M374.3 136.9A176 176 0 0 1 374.3 263.1L277.2 225.8A72 72 0 0 0 277.2 174.2Z" fill="#131a21"></path>
+<path d="M370.8 271.6A176 176 0 0 1 281.6 360.8L239.3 265.8A72 72 0 0 0 275.8 229.3Z" fill="#0f141a"></path>
+<path d="M273.1 364.3A176 176 0 0 1 146.9 364.3L184.2 267.2A72 72 0 0 0 235.8 267.2Z" fill="#131a21"></path>
+<path d="M138.4 360.8A176 176 0 0 1 49.2 271.6L144.2 229.3A72 72 0 0 0 180.7 265.8Z" fill="#0f141a"></path>
+<path d="M45.7 263.1A176 176 0 0 1 45.7 136.9L142.8 174.2A72 72 0 0 0 142.8 225.8Z" fill="#131a21"></path>
+<path d="M49.2 128.4A176 176 0 0 1 138.4 39.2L180.7 134.2A72 72 0 0 0 144.2 170.7Z" fill="#0f141a"></path>
+</g>
+<path d="M281.6 39.2A176 176 0 0 1 370.8 128.4L275.8 170.7A72 72 0 0 0 239.3 134.2Z" fill="#3e9fd8"></path>
+<g fill="#2b3138">
+<rect x="197" y="39" width="26" height="22" rx="4"></rect>
+<rect x="347" y="189" width="26" height="22" rx="4"></rect>
+<rect x="303.1" y="295.1" width="26" height="22" rx="4"></rect>
+<rect x="197" y="339" width="26" height="22" rx="4"></rect>
+<rect x="90.9" y="295.1" width="26" height="22" rx="4"></rect>
+<rect x="47" y="189" width="26" height="22" rx="4"></rect>
+<rect x="90.9" y="82.9" width="26" height="22" rx="4"></rect>
+</g>
+<g font-family="Geist, sans-serif" font-size="14" font-weight="700" text-anchor="middle" fill="#ffffff">
+<text x="210" y="55">1</text>
+<text x="316.1" y="98.9" fill="#07131d">2</text>
+<text x="360" y="205">3</text>
+<text x="316.1" y="311.1">4</text>
+<text x="210" y="355">5</text>
+<text x="103.9" y="311.1">6</text>
+<text x="60" y="205">7</text>
+<text x="103.9" y="98.9">8</text>
+</g>
+<circle cx="210" cy="200" r="61.6" stroke="#7cc4ee" stroke-width="1.5" stroke-dasharray="3 5" stroke-linecap="round"></circle>
+<circle cx="210" cy="200" r="22" fill="#0f141a" stroke="rgba(255,255,255,.08)" stroke-width="1"></circle>
+<path d="M210 200L280.7 129.3" stroke="#a6d65a" stroke-width="2" stroke-linecap="round"></path>
+<circle cx="280.7" cy="129.3" r="6" fill="#a6d65a" stroke="#e3eaf1" stroke-width="2"></circle>
+</svg>
+
+<div style="display: flex; flex-wrap: wrap; gap: 10px 20px">
+<span class="lg"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" style="flex: none"><circle cx="9" cy="9" r="7" stroke="#7cc4ee" stroke-width="1.6" stroke-dasharray="2.5 3"></circle></svg>Nothing picked inside</span>
+<span class="lg"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" style="flex: none"><path d="M3 15L9 3L15 15Z" fill="#3e9fd8"></path></svg>Lit slice · where you point</span>
+</div>
+<span style="font-size: 15px; line-height: 1.5; color: #808c99">Push the stick to try it. The slice you point at lights up here and in game.</span>
+</div>
+</section>
+</main>
+
+<footer style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Wardogs · Sticks · Right stick · Fine-tune · Wheel</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px">◂ ▸ Adjust</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">X</span>Test a slice</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">Y</span>Reset</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">LT</span><span class="gp">RT</span>Group</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Back to Sticks</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

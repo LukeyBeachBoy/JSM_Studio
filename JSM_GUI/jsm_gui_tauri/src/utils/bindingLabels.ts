@@ -52,19 +52,26 @@ export function setBindingLabel(text: string, command: string, label: string, op
   // start another comment is stripped rather than corrupting the file.
   const clean = label.replace(/[\r\n#]/g, '').trim()
   const lines = text.split(/\r?\n/)
-  const index = lines.findIndex(line => {
+  // The last line for an input wins, so that is the one to change. A resolved
+  // text (a template's name, then this controller's own) can hold several: one
+  // line is left, or setting a name back to the template's would rewrite the
+  // template's copy and leave the controller's own name winning.
+  const matches = lines.flatMap((line, at) => {
     const match = LABEL_LINE.exec(line)
-    return Boolean(match && match[1].trim().toUpperCase() === key)
+    return match && match[1].trim().toUpperCase() === key ? [at] : []
   })
+  const index = matches.length ? matches[matches.length - 1] : -1
+  const dropEarlier = () => { for (const at of matches.slice(0, -1).reverse()) lines.splice(at, 1) }
 
   if (!clean && !options.keepEmpty) {
-    if (index >= 0) lines.splice(index, 1)
+    for (const at of [...matches].reverse()) lines.splice(at, 1)
     return lines.join('\n')
   }
 
   const nextLine = `# @label ${key} =${clean ? ` ${clean}` : ''}`
   if (index >= 0) {
     lines[index] = nextLine
+    dropEarlier()
     return lines.join('\n')
   }
 

@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Gyro Steadiness</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.grp{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;flex-direction:column;gap:4px;padding:16px 20px;box-sizing:border-box;border-radius:14px;background:transparent;color:#b0bcc8;text-align:left}
+.grp .t{font-size:20px;font-weight:600}
+.grp .s{font-size:15px;color:#808c99}
+.row{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;align-items:center;gap:16px;min-height:76px;padding:14px 22px;box-sizing:border-box;border-radius:16px;background:#1f2730;color:#e8eef4;text-align:left}
+.seg{display:flex;gap:4px;background:#0f151b;border-radius:12px;padding:4px}
+.seg span{height:38px;padding:0 16px;border-radius:9px;display:flex;align-items:center;font-size:16px;font-weight:600;color:#b0bcc8}
+.seg.full span{flex:1;justify-content:center;padding:0 8px}
+.sw{width:52px;height:30px;border-radius:15px;background:#2e3844;position:relative;flex:none;margin-left:auto}
+.sw span{position:absolute;top:4px;left:4px;width:22px;height:22px;border-radius:50%;background:#808c99}
+.sw.y{background:#3e9fd8}
+.sw.y span{left:26px;background:#ffffff}
+.stat{flex:1;background:#0f151b;border-radius:14px;padding:12px 16px;display:flex;flex-direction:column;gap:4px;min-width:0}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="height: 76px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 40px; background: #0d1217">
+<span style="font-size: 18px; color: #808c99">Wardogs · Gyro</span>
+<span style="font-size: 18px; color: #5b6571">▸</span>
+<span style="font-size: 22px; font-weight: 700">Fine-tune</span>
+<span style="margin-left: auto; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 20px; background: #1e3d33; color: #93e6c1; font-size: 16px; font-weight: 600"><span style="width: 9px; height: 9px; border-radius: 50%; background: #5fd3a0"></span>Live · saved</span>
+</header>
+
+<main style="flex: 1; min-height: 0; display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 36px; padding: 32px 40px 24px">
+
+<nav style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: center; gap: 8px; margin: 0 0 10px 20px; font-size: 14px; color: #808c99"><span class="gp">LT</span>Group<span class="gp">RT</span></div>
+<button class="grp"><span class="t">Speed</span><span class="s" style="color: #7cc4ee">Changed: turn speed</span></button>
+<button class="grp" style="background: #1f2730; color: #ffffff"><span class="t">Steadiness</span><span class="s">All default</span></button>
+<button class="grp"><span class="t">Direction</span><span class="s">Mouse · normal axes</span></button>
+<button class="grp"><span class="t">Rumble</span><span class="s">Off</span></button>
+</nav>
+
+<section style="display: grid; grid-template-columns: minmax(0, 1fr) 470px; gap: 28px; min-width: 0">
+
+<div style="display: flex; flex-direction: column; gap: 12px; min-width: 0">
+<div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px">
+<h1 style="margin: 0; font-size: 32px; font-weight: 700">Steadiness</h1>
+<p style="margin: 0; font-size: 17px; color: #b0bcc8">Calm small wobbles without slowing real turns.</p>
+</div>
+
+<div class="focus" style="background: #1d445c; border-radius: 16px; padding: 18px 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px"><span style="font-size: 20px; font-weight: 650">Steady small movements</span><span style="font-size: 16px; font-weight: 600; color: #b8e2fa">Previewing Medium</span></div>
+<div class="seg full"><span style="background: #2e3844; color: #ffffff">Off</span><span>Light</span><span style="color: #e8eef4; box-shadow: inset 0 0 0 2px #7cc4ee">Medium</span><span>Heavy</span><span>Custom</span></div>
+<span style="font-size: 15px; line-height: 1.45; color: #b8e2fa">Off is live. ◂ ▸ previews each level on the right; A keeps it.</span>
+</div>
+
+<button class="row"><span style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 20px; font-weight: 650">Steady while clicking</span><span style="font-size: 15px; color: #808c99">Pressing a trackpad won’t nudge your aim</span></span><span class="sw"><span></span></span></button>
+
+<button class="row"><span style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 20px; font-weight: 650">Snap to straight lines</span><span style="font-size: 15px; color: #808c99">Nearly level sweeps come out perfectly level</span></span><span class="sw"><span></span></span></button>
+
+<button class="row" style="background: transparent; box-shadow: inset 0 0 0 2px #2e3844; min-height: 64px"><span style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 18px; font-weight: 600">Advanced</span><span style="font-size: 15px; line-height: 1.4; color: #808c99">Ignore jitter, smoothing, adaptive filter, snap and brake</span></span><span style="margin-left: auto; font-size: 17px; color: #808c99">▸</span></button>
+</div>
+
+<div style="background: #1a222b; border-radius: 20px; padding: 22px; display: flex; flex-direction: column; gap: 14px; min-width: 0">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 17px; font-weight: 600">Your aim, up close</span><span style="font-family: 'Geist Mono', monospace; font-size: 13px; color: #93e6c1">● live 0.6 °/s</span></div>
+<svg viewBox="0 0 420 300" width="100%" height="300" fill="none">
+<rect x="0" y="0" width="420" height="300" rx="16" fill="#0f151b"></rect>
+<rect x=".5" y=".5" width="419" height="299" rx="15.5" stroke="rgba(255,255,255,.06)"></rect>
+<g transform="translate(0 -10)">
+<circle cx="360" cy="128" r="44" stroke="rgba(255,255,255,.05)"></circle>
+<circle cx="360" cy="128" r="26" stroke="rgba(255,255,255,.07)" stroke-dasharray="2 4"></circle>
+<path d="M36 266.1 L46.1 253.2 L57.3 255.3 L61.6 255.8 L72.5 250.3 L79.3 249.1 L87.6 241.1 L91.2 245.2 L100.8 233.7 L107.6 237 L116.3 239.2 L116.9 232.8 L129.6 232.8 L134.1 228.9 L142.5 231 L144.8 221 L154.5 218.7 L155.5 215.9 L163.6 213.6 L173.3 214.8 L177.6 216.7 L178.4 206.6 L187.7 207.4 L192.3 201.1 L201.2 197.2 L202.7 198.7 L210 203.8 L214.1 192.1 L218.4 191.5 L223.1 191.1 L227.7 190.3 L234.4 184.6 L241 185.2 L245.3 185.3 L248.2 181.9 L251.7 181.9 L258.9 176.5 L261.6 172.8 L264.8 172.1 L267.2 170.7 L274.1 174.4 L273.5 171.9 L277 165.4 L281.2 159.9 L290 159.8 L291.2 157.3 L293.4 160.7 L294.7 162.7 L302.5 160.7 L305.6 159.3 L307.8 151 L306.2 149.3 L309.4 145.2 L315.4 146.4 L318.8 147.8 L321 143.9 L324.6 142.6 L324.1 148.3 L324.9 143 L326.5 146.2 L332.2 145.2 L330.8 144 L333.7 143.7 L337.7 139.9 L337.9 134.6 L339.3 137.1 L340.1 138.4 L345.2 137.1 L345.6 130 L344.9 137.8 L346.4 135 L351.6 128.4 L352.7 135.6 L354.4 136 L354.2 130.7 L352.5 133.1 L356.6 129.9 L354.1 129.7 L358.1 130.8 L356.1 131.2 L358.6 128.5 L359.1 129.2 L357 128.2 L361.1 133.9 L359.8 132.8 L361.4 127.2 L360.3 126.7 L359.8 130.2 L361.2 133.4 L359.9 127.4 L359.8 127.4" stroke="#808c99" stroke-width="1.4" stroke-linejoin="round" opacity=".75"></path>
+<path d="M48.4 260 L58.1 255.9 L70.5 250.3 L85.2 244.8 L99.8 240.5 L113.7 235.6 L126.7 230.6 L139.9 226 L151.9 221.2 L164 216 L175.6 210.1 L186.9 206.2 L198.1 201.9 L208.2 196.8 L219.1 192.8 L228.8 189.7 L238.6 184.8 L247.6 181.1 L256.4 177.9 L264 173.9 L271.9 169.4 L279 166.2 L286.4 163.9 L293 159.8 L299.8 155.7 L306 153.1 L311.8 150.6 L316.8 147.5 L321.3 145.6 L326.4 144.6 L330.3 142.6 L333.9 141.6 L337.6 139.4 L341.2 136.9 L345.1 135.4 L347.9 134.5 L350.7 133 L352.9 132.6 L355.3 131.2 L356.5 131 L357.7 130.4 L358.7 129.8 L359.5 129.9 L360 129.3 L360.1 128.6" stroke="#3e9fd8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+<circle cx="40" cy="262" r="5" fill="#2e3844" stroke="rgba(255,255,255,.2)"></circle>
+<circle cx="360" cy="128" r="12" stroke="#e8eef4" stroke-width="1.6"></circle>
+<path d="M360 108v8M360 140v8M340 128h8M372 128h8" stroke="#e8eef4" stroke-width="1.6" stroke-linecap="round"></path>
+<circle cx="360" cy="128" r="2.4" fill="#7cc4ee"></circle>
+<text x="374" y="98" fill="#b0bcc8" font-size="13" font-family="Geist, sans-serif" text-anchor="middle">Target</text>
+</g>
+<text x="20" y="284" fill="#808c99" font-size="13" font-family="Geist, sans-serif">A slow sweep onto a target, last 2 s</text>
+</svg>
+<div style="display: flex; gap: 22px; font-size: 15px; color: #b0bcc8">
+<span style="display: flex; align-items: center; gap: 8px"><svg width="28" height="12" viewBox="0 0 28 12" fill="none"><path d="M1 7L4 3L7 9L10 4L13 8L16 2L19 9L22 5L27 6" stroke="#808c99" stroke-width="1.6" stroke-linejoin="round"></path></svg>Raw, as you hold it</span>
+<span style="display: flex; align-items: center; gap: 8px"><svg width="28" height="12" viewBox="0 0 28 12" fill="none"><path d="M1 8C8 7 18 5 27 4" stroke="#7cc4ee" stroke-width="3" stroke-linecap="round"></path></svg>With Medium</span>
+</div>
+<div style="display: flex; gap: 12px">
+<div class="stat"><span style="font-size: 14px; color: #808c99">Wobble while still</span><span style="font-size: 22px; font-weight: 700; color: #93e6c1">−70%</span></div>
+<div class="stat"><span style="font-size: 14px; color: #808c99">Delay on slow aim</span><span style="font-size: 22px; font-weight: 700">≈ 40 ms</span></div>
+<div class="stat"><span style="font-size: 14px; color: #808c99">Fast turns</span><span style="font-size: 22px; font-weight: 700">Untouched</span></div>
+</div>
+</div>
+</section>
+</main>
+
+<footer style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Wardogs · Gyro · Fine-tune · Steadiness</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px">◂ ▸ Compare</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">A</span>Keep Medium</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">X</span>Try it</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">Y</span>Reset</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">LT</span><span class="gp">RT</span>Group</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Back to Gyro</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

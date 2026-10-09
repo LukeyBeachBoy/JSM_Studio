@@ -121,7 +121,7 @@
 .item[data-highlighted]:focus-visible,
 :global(body[data-input-source='controller']) .item[data-highlighted] {
   background: var(--surface-selected);
-  box-shadow: 0 0 0 var(--focus-controller-width) var(--focus-controller);
+  box-shadow: var(--focus-ring-pad);
 }
 
 .item[data-state='checked'] {

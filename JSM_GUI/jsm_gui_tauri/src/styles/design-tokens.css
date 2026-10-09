@@ -33,7 +33,7 @@
 
   /* Focus */
   --focus-controller: #9ad8ff;           /* ring colour for pad focus */
-  --focus-controller-width: 2px;
+  --focus-controller-width: 3px;         /* console v2 (V9): the 3px ring */
   --focus-keyboard: #6ec3f4;             /* :focus-visible ring (no fill) */
   --focus-offset: 2px;
 
@@ -98,6 +98,8 @@
   --control-h-sm: 28px; --control-h: 36px; --control-h-lg: 44px;
   --footer-h: 48px;
   --capsule-h: 44px;
+  /* Console v2 (V2): the docked hint bar under the content. */
+  --hintbar-h: 64px;
   --content-max: 1040px;
   --glyph-sm: 20px; --glyph-md: 28px; --glyph-lg: 36px;
 
@@ -105,6 +107,10 @@
   --shadow-menu: 0 12px 32px rgba(0, 0, 0, .45), 0 0 0 1px var(--line-2);
   --shadow-capsule: 0 8px 24px rgba(0, 0, 0, .4), 0 0 0 1px var(--line-1);
   --shadow-lift: 0 2px 8px rgba(0, 0, 0, .28);
+  /* Console v2 (V9): the pad's focus ring, flat. The gap variant sits outside
+     a 2px canvas-coloured gap on pills. */
+  --focus-ring-pad: 0 0 0 3px var(--focus-controller), 0 0 0 7px color-mix(in srgb, var(--focus-controller) 20%, transparent);
+  --focus-ring-pad-gap: 0 0 0 5px var(--focus-controller), 0 0 0 9px color-mix(in srgb, var(--focus-controller) 20%, transparent);
 
   /* Motion */
   --dur-1: 90ms; --dur-2: 160ms; --dur-3: 240ms; --dur-4: 400ms; --dur-ambient: 2400ms;
@@ -156,3 +162,44 @@
      with the theme attribute set reduced motion was silently ignored. */
   :root, :root[data-theme] { --dur-1: 0ms; --dur-2: 0ms; --dur-3: 120ms; --dur-4: 120ms; --stagger: 0ms; }
 }
+
+/* Console v2 (V10): Screen distance. "couch" is the 10-foot scale for playing
+   across the room; "desk" (the default) keeps the values above. Painted on
+   <html data-density> by hooks/useDisplayPrefs.ts. */
+/* The Kit's type table: Couch title 40, section 26, body 20, caption 16.
+   Desk (the values above, floored) never goes below 14. The [data-theme]
+   twin outranks console.css's :root[data-theme] bar sizes. */
+:root[data-density='couch'], :root[data-density='couch'][data-theme] {
+  --fs-display: 48px; --lh-display: 56px;
+  --fs-page: 40px;    --lh-page: 48px;
+  --fs-section: 26px; --lh-section: 34px;
+  --fs-label: 20px;   --lh-label: 28px;
+  --fs-body: 20px;    --lh-body: 28px;
+  --fs-hint: 16px;    --lh-hint: 22px;
+  --fs-eyebrow: 16px; --lh-eyebrow: 20px;
+  --fs-micro: 16px;
+  --row-h-compact: 56px; --row-h: 72px; --row-h-tall: 92px;
+  --control-h-sm: 36px; --control-h: 48px; --control-h-lg: 56px;
+  --bar-control-h: 48px;
+  --titlebar-h: 76px;
+  --hintbar-h: 76px;
+  --sp-row-pad: 20px;
+}
+
+/* Desk: "nothing below 14" (console v2 Kit). The 11px eyebrows and micro
+   labels and 13px hints of the desk scale come up to 14. */
+:root, :root[data-theme] {
+  --fs-hint: 14px; --lh-hint: 20px;
+  --fs-eyebrow: 14px; --lh-eyebrow: 18px;
+  --fs-micro: 14px;
+}
+:root[data-density='couch'], :root[data-density='couch'][data-theme] {
+  --fs-hint: 16px; --lh-hint: 22px;
+  --fs-eyebrow: 16px; --lh-eyebrow: 20px;
+  --fs-micro: 16px;
+}
+
+/* Console v2 (V12): the JoyShockMapper key beside a friendly label, shown only
+   while Show config names is on (components/ConfigName.tsx). */
+.config-name { display: none; margin-left: var(--sp-2); font-family: var(--font-mono); font-size: var(--fs-micro); font-weight: var(--fw-regular); color: var(--text-3); letter-spacing: 0; }
+:root[data-config-names='on'] .config-name { display: inline; }

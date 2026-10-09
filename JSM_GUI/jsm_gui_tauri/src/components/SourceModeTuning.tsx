@@ -20,6 +20,10 @@ export function SourceAxisTuning({ configText: text = '', onConfigTextChange: se
 export function SourceModeTuning({ mode, configText: text = '', onConfigTextChange: setText, disabled }: SourceModeConfig & { mode: string; disabled?: boolean }) {
   if (!setText) return null
   const target: VirtualStickTarget | null = mode.startsWith('LEFT_') ? 'LEFT_STICK' : mode.startsWith('RIGHT_') ? 'RIGHT_STICK' : null
+  // A flick sent through a gamepad stick needs that stick's game corrections too
+  // (dead zone, outer range, curve); they were only reachable from gyro before.
+  const flickOutput = ['FLICK', 'FLICK_ONLY', 'ROTATE_ONLY'].includes(mode) ? readVirtualSetting(text, 'FLICK_STICK_OUTPUT') ?? '' : ''
+  const correctionTarget: VirtualStickTarget | null = target ?? (flickOutput === 'LEFT_STICK' || flickOutput === 'RIGHT_STICK' ? flickOutput : null)
   const controller = readVirtualSetting(text, 'VIRTUAL_CONTROLLER') ?? 'NONE'
   const choice = (key: string, label: string, help: string, fallback: string, options: { value: string; label: string }[]) => {
     const value = readVirtualSetting(text, key) ?? fallback
@@ -42,17 +46,17 @@ export function SourceModeTuning({ mode, configText: text = '', onConfigTextChan
     </>}
     {['FLICK', 'FLICK_ONLY', 'ROTATE_ONLY'].includes(mode) && <>
       {choice('FLICK_STICK_OUTPUT', 'Flick output', 'Send camera turn commands through the mouse or a virtual joystick. Virtual output requires a measured maximum game turn rate.', 'MOUSE', [{ value: 'MOUSE', label: 'Mouse' }, { value: 'LEFT_STICK', label: 'Left virtual stick' }, { value: 'RIGHT_STICK', label: 'Right virtual stick' }])}
-      {['LEFT_STICK', 'RIGHT_STICK'].includes(readVirtualSetting(text, 'FLICK_STICK_OUTPUT') ?? '') && <SummaryRow setting="VIRTUAL_STICK_CALIBRATION" label="Maximum game turn rate" value={`${readVirtualSetting(text, 'VIRTUAL_STICK_CALIBRATION') ?? 360} Â°/s`} help="Measured camera speed at full game stick tilt; shared with gyro-to-joystick tuning."
+      {['LEFT_STICK', 'RIGHT_STICK'].includes(readVirtualSetting(text, 'FLICK_STICK_OUTPUT') ?? '') && <SummaryRow setting="VIRTUAL_STICK_CALIBRATION" label="Maximum game turn rate" value={`${readVirtualSetting(text, 'VIRTUAL_STICK_CALIBRATION') ?? 360} °/s`} help="Measured camera speed at full game stick tilt; shared with gyro-to-joystick tuning."
         disabled={disabled} adjust={{ kind: 'number', value: Number(readVirtualSetting(text, 'VIRTUAL_STICK_CALIBRATION') ?? 360), min: 1, max: 20000, step: 30, fineStep: 1, onChange: next => setText(previous => writeVirtualSetting(previous, 'VIRTUAL_STICK_CALIBRATION', next)) }} />}
       {controller === 'NONE' && ['LEFT_STICK', 'RIGHT_STICK'].includes(readVirtualSetting(text, 'FLICK_STICK_OUTPUT') ?? '') && <p role="status">Virtual flick output requires Xbox or DS4 output.</p>}
       {['LEFT_STICK', 'RIGHT_STICK'].includes(readVirtualSetting(text, 'FLICK_STICK_OUTPUT') ?? '') && <VirtualStickProbe text={text} target={readVirtualSetting(text, 'FLICK_STICK_OUTPUT') as VirtualStickTarget} disabled={disabled} setText={setText} />}
     </>}
     {target && ['LEFT_STICK', 'RIGHT_STICK'].includes(mode) && <VirtualStickProbe text={text} target={target} disabled={disabled} setText={setText} />}
-    {target && Object.entries(VIRTUAL_STICK_FIELDS).filter(([key]) => !mode.endsWith('_STEER_X') || key !== 'VIRTUAL_SCALE').map(([key, meta]) => {
-      const value = Number(readVirtualSetting(text, target + '_' + key) ?? meta.default)
-      return <SummaryRow key={key} setting={target + '_' + key} label={meta.label} helpDialog help={meta.help} value={`${Number((value * meta.factor).toFixed(3))}${meta.unit}`} disabled={disabled}
+    {correctionTarget && Object.entries(VIRTUAL_STICK_FIELDS).filter(([key]) => !mode.endsWith('_STEER_X') || key !== 'VIRTUAL_SCALE').map(([key, meta]) => {
+      const value = Number(readVirtualSetting(text, correctionTarget + '_' + key) ?? meta.default)
+      return <SummaryRow key={key} setting={correctionTarget + '_' + key} label={meta.label} helpDialog help={meta.help} value={`${Number((value * meta.factor).toFixed(3))}${meta.unit}`} disabled={disabled}
         adjust={{ kind: 'number', value: value * meta.factor, min: meta.min * meta.factor, max: meta.max * meta.factor, step: meta.step * meta.factor,
-          onChange: next => setText(previous => writeVirtualStickNumber(previous, target, key as keyof typeof VIRTUAL_STICK_FIELDS, next / meta.factor, text)) }} />
+          onChange: next => setText(previous => writeVirtualStickNumber(previous, correctionTarget, key as keyof typeof VIRTUAL_STICK_FIELDS, next / meta.factor, text)) }} />
     })}
   </div>
 }

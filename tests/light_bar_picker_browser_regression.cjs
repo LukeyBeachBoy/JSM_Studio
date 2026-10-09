@@ -21,12 +21,14 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
     }
     fs.mkdirSync('tmp', { recursive: true })
     const press = async key => { await page.evaluate(key => window.__pad.press([key]), key); await page.waitForTimeout(250) }
-    const popover = page.getByRole('dialog', { name: 'Custom color', exact: true })
+    const popover = page.getByRole('dialog', { name: 'Custom colour', exact: true })
     const hex = popover.getByRole('textbox', { name: /hex/i })
 
     // ---- Preferences: Controller light ----
-    await page.getByRole('button', { name: /^Preferences/ }).first().click()
-    await page.getByText('Controller light', { exact: true }).first().waitFor()
+    // Console v2: Settings ▸ Controller ▸ Light colour opens its own page.
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('jsm:navigate-page', { detail: 'settings' })))
+    await page.getByRole('button', { name: /^Light colour when a configuration/ }).click()
+    await page.getByText('Light colour', { exact: true }).first().waitFor()
     const group = page.getByRole('radiogroup', { name: 'Light bar color' }).first()
     await group.waitFor()
     // Collapsed: the swatch row and nothing else.
@@ -78,7 +80,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
     // A click outside closes; a preset unchecks custom.
     await custom.click()
     await popover.waitFor()
-    await page.getByText('Controller light', { exact: true }).first().click()
+    await page.getByText('Light colour', { exact: true }).first().click()
     await popover.waitFor({ state: 'hidden' })
     await group.getByRole('radio', { name: 'Green', exact: true }).click()
     assert.equal(await custom.getAttribute('aria-checked'), 'false')
@@ -96,48 +98,32 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
     await popover.waitFor({ state: 'hidden' })
     assert.ok(await custom.evaluate(el => el === document.activeElement), 'B closes it and hands focus back')
 
-    // ---- A binding card: LED while held ----
+    // ---- A binding: Light in the Controller action picker (console v2) ----
+    // Change light colour, Light while held and Light brightness are tiles of
+    // the Light group; the colour starts as the configuration's and is picked
+    // in the binding sheet's Fine-tune (BIND).
+    await page.keyboard.press('Escape')
+    await page.locator('[data-subpage]').waitFor({ state: 'detached' })
     await page.getByRole('button', { name: /^Home/ }).first().click()
     await page.locator('[data-home-continue]').click({ timeout: 15000 })
     await page.getByRole('button', { name: 'Buttons', exact: true }).click()
     const card = page.locator('details[data-input-command="N"]').first()
     await card.waitFor()
-    if (await card.getAttribute('open') === null) await card.locator('summary').first().click()
-    // LED while held is a command (TODO-54): added from the picker's JSM tab,
-    // its colour picked in the row's settings sheet, which opens on the add.
-    await card.getByRole('button', { name: 'Add command' }).click()
-    const picker = page.getByRole('dialog', { name: 'Choose an action' })
-    await picker.locator('.action-picker__tabs .action-tab').filter({ hasText: 'JSM' }).click()
-    await picker.getByRole('button', { name: 'Change LED colour', exact: true }).click()
-    await picker.waitFor({ state: 'detached' })
-    let held = page.getByRole('dialog').filter({ has: page.getByRole('radiogroup', { name: 'LED activation', exact: true }) })
-    await held.waitFor()
-    await held.getByRole('radio', { name: 'While held', exact: true }).click()
-    held = page.getByRole('dialog').filter({ has: page.getByRole('radiogroup', { name: 'LED activation', exact: true }) })
-    const heldGroup = held.getByRole('radiogroup', { name: 'Light bar color' })
-    await heldGroup.waitFor()
-    assert.equal(await page.locator('[data-color-wall]').count(), 0, 'the sheet shows swatches only')
-    assert.equal(await held.getByRole('spinbutton', { name: /Brightness while held/i }).count() + await held.getByLabel(/Brightness while held/i).count() > 0, true, 'Brightness while held stays beside the picker')
+    if (await card.getAttribute('open') === null) await card.locator(':scope > summary').click()
+    await card.locator('[data-kind="controller"]').first().click()
+    const picker = page.locator('[data-picker="controller"]')
+    await picker.waitFor()
+    await picker.locator('[data-category="light"]').click()
+    assert.deepEqual(await picker.locator('[data-action] [class*="tileTitle"]').allInnerTexts(), ['Change light colour', 'Light while held', 'Light brightness'])
+    assert.match(await picker.innerText(), /The light the rest of the time/)
+    await picker.locator('[data-action="LIGHT_BAR"]').focus()
+    assert.match(await picker.locator('aside').innerText(), /Colours to pick from next/)
     await page.screenshot({ path: 'tmp/light-bar-picker-card-collapsed.png' })
-    const heldCustom = heldGroup.getByRole('radio', { name: 'Custom', exact: true })
-    await heldCustom.click()
-    await popover.waitFor()
-    await hex.fill('ff8800')
-    await hex.press('Enter')
-    await page.screenshot({ path: 'tmp/light-bar-picker-card-open.png' })
-    await popover.getByRole('button', { name: 'Done', exact: true }).click()
-    await popover.waitFor({ state: 'hidden' })
-    assert.equal(await heldCustom.getAttribute('aria-checked'), 'true')
-    assert.equal(await heldCustom.getAttribute('data-color'), '#ff8800')
-    await held.locator('[data-modal-close]').click()
-    await held.waitFor({ state: 'detached' })
-    // The row reads the colour it was given.
-    const heldRow = card.locator('[data-command-row][data-held-led="true"]')
-    await heldRow.waitFor()
-    assert.match(await heldRow.getByRole('button', { name: /^Choose action/ }).innerText(), /Change LED Color/)
-    assert.match(await heldRow.getByRole('combobox', { name: 'LED activation', exact: true }).innerText(), /Hold/i)
-    const swatch = heldRow.locator('[aria-hidden="true"][style*="background"]');
-    assert.equal(await swatch.evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(255, 136, 0)', 'the held row previews its chosen color')
+    await picker.locator('[data-action="LIGHT_BAR"]').click()
+    await page.locator('[data-picker="light"] [data-light-use]').click()
+    await picker.waitFor({ state: 'detached' })
+    // The binding reads as a light change, not as the raw command.
+    await page.waitForFunction(() => /light|LED/i.test(document.querySelector('details[data-input-command="N"]')?.textContent ?? ''))
     await page.screenshot({ path: 'tmp/light-bar-picker-card-custom.png' })
 
     assert.deepEqual(errors, [])

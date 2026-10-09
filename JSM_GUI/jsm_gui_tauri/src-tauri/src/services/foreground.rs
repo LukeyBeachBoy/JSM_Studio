@@ -16,14 +16,45 @@
 //! click-through and never become the foreground window.
 
 use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
-use std::sync::OnceLock;
-use tauri::{AppHandle, Manager};
+use std::sync::{Mutex, OnceLock};
+use serde::Serialize;
+use tauri::{AppHandle, Emitter, Manager};
 
 use crate::services::app_state::AppState;
 
 static APP: OnceLock<AppHandle> = OnceLock::new();
 static IN_FRONT: AtomicBool = AtomicBool::new(false);
 static KNOWN: AtomicBool = AtomicBool::new(false);
+
+/// The app in front other than this one (console v2, Library ▸ Launch with
+/// game's "Right now" and "In front now"): the last one seen, so the page can
+/// ask on open, and announced as "foreground-app" whenever it changes.
+#[derive(Clone, Debug, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ForegroundApp {
+    /// The executable's file name without .exe ("Wardogs").
+    pub process_name: String,
+    pub pid: u32,
+}
+
+static LAST_APP: Mutex<Option<ForegroundApp>> = Mutex::new(None);
+
+/// The last app other than this one that was in front.
+pub fn current_app() -> Option<ForegroundApp> {
+    LAST_APP.lock().ok().and_then(|guard| guard.clone())
+}
+
+/// Note who is in front now, when it is not this app, and say so if it changed.
+fn note_foreground_app(app: &AppHandle) {
+    let Some((pid, stem)) = crate::services::jsm_process::foreground_process() else { return };
+    if pid == std::process::id() { return; }
+    let next = ForegroundApp { process_name: stem, pid };
+    let changed = match LAST_APP.lock() {
+        Ok(mut guard) => { let changed = guard.as_ref() != Some(&next); *guard = Some(next.clone()); changed }
+        Err(_) => false,
+    };
+    if changed { let _ = app.emit("foreground-app", &next); }
+}
 
 /// A change of foreground: record it and hand the controller over. The first
 /// answer counts as a change, so a launch straight into Studio is handled
@@ -68,7 +99,9 @@ mod win {
             // Every transition matters, including game -> desktop -> game:
             // both are "not Studio", but a topmost game can cover the overlay.
             crate::services::overlay::refresh_stacking(app);
-            super::settle(app, foreground_is_ours());
+            let ours = foreground_is_ours();
+            if !ours { super::note_foreground_app(app); }
+            super::settle(app, ours);
         }
     }
 

@@ -44,3 +44,50 @@ export function readTriggerCalibration(text: string, side: 'LEFT' | 'RIGHT', fie
   const value = Number(readVirtualSetting(text, side + '_TRIGGER_' + field) ?? (field === 'OFFSET' ? 25 : 150))
   return Number.isFinite(value) ? value : field === 'OFFSET' ? 25 : 150
 }
+
+// Console v2 (TriggersResistance, TriggersEffects): each effect as a card, and
+// each field in the design's words and units. Byte positions and strengths are
+// shown as a percent of the pull (byte / 255); zones and forces stay steps.
+export const TRIGGER_EFFECT_CARDS: Record<TriggerEffectMode, { label: string; caption: string; fields: string[] }> = {
+  ON: { label: 'Automatic', caption: 'Firm at half press', fields: [] },
+  OFF: { label: 'None', caption: 'Free pull', fields: [] },
+  RESISTANCE: { label: 'Resistance', caption: 'Firm from a point', fields: ['Starts at', 'Strength'] },
+  BOW: { label: 'Bow', caption: 'Builds, then snaps', fields: ['Starts at', 'Snap point', 'Strength', 'Snap strength'] },
+  GALLOPING: { label: 'Galloping', caption: 'Two-beat pulses', fields: ['Starts at', 'Ends at', 'First beat', 'Second beat', 'Pulses'] },
+  SEMI_AUTOMATIC: { label: 'Semi-automatic', caption: 'Firm, then gives way', fields: ['Starts at', 'Ends at', 'Strength'] },
+  AUTOMATIC: { label: 'Automatic pulses', caption: 'Buzzes as you hold', fields: ['Starts at', 'Strength', 'Pulses'] },
+  MACHINE: { label: 'Machine', caption: 'Uneven pulses', fields: ['Starts at', 'Ends at', 'First strength', 'Second strength', 'Pulses', 'Period'] },
+  SEGMENT: { label: 'Resistance segment', caption: 'Firm in one stretch', fields: ['Starts at', 'Ends at', 'Strength'] },
+}
+
+export type EffectFieldDisplay = { label: string; kind: 'percent' | 'step' | 'hz'; min: number; max: number; value: number; text: string; help: string }
+
+/** One field of an effect, read for a row: "Starts at · 25%", "Zone 2 · 0–9". */
+export function effectFieldDisplay(effect: TriggerEffect, index: number): EffectFieldDisplay {
+  const field = (TRIGGER_EFFECTS[effect.mode].fields as EffectField[])[index]
+  const label = TRIGGER_EFFECT_CARDS[effect.mode].fields[index] ?? field.label
+  const value = effect.values[index]
+  if (field.unit === ' Hz') return { label, kind: 'hz', min: field.min, max: field.max, value, text: `${value} Hz`, help: 'How many pulses a second.' }
+  if (field.unit === ' / 255' && label !== 'Period') return { label, kind: 'percent', min: field.min, max: field.max, value, text: `${Math.round(value / 2.55)}%`, help: label === 'Strength' ? 'How hard it pushes back.' : label === 'Ends at' ? 'Where it gives way.' : 'Where along the pull it begins. 0% is fully released.' }
+  if (label === 'Period') return { label, kind: 'step', min: field.min, max: field.max, value, text: `${value} · 0–${field.max}`, help: 'How long each pulse pattern lasts.' }
+  const zone = field.unit === ' / 9 travel zones'
+  return { label, kind: 'step', min: field.min, max: field.max, value, text: zone ? `Zone ${value} · 0–${field.max}` : `${value} · 0–${field.max}`, help: zone ? 'Travel zone where this begins; the pull is split into ten zones.' : 'Force step; higher pushes back harder.' }
+}
+
+/** The push-back an effect gives along the pull (0..1 → 0..1), for its graph. */
+export function effectProfile(effect: TriggerEffect | null, threshold = 0): (pull: number) => number {
+  if (!effect) return () => 0
+  const v = effect.values
+  switch (effect.mode) {
+    case 'OFF': return () => 0
+    case 'ON': return pull => pull >= Math.max(0.05, threshold) ? 0.7 : 0.05
+    case 'RESISTANCE': return pull => pull >= v[0] / 9 ? v[1] / 8 : 0
+    case 'BOW': return pull => pull < v[0] / 8 ? 0 : pull < v[1] / 8 ? (v[2] / 8) * ((pull - v[0] / 8) / Math.max(0.01, (v[1] - v[0]) / 8)) : (v[3] / 8) * 0.25
+    case 'GALLOPING': return pull => pull >= v[0] / 8 && pull <= v[1] / 9 ? (Math.sin(pull * 60) > 0 ? 0.6 : 0.2) : 0
+    case 'MACHINE': return pull => pull >= v[0] / 8 && pull <= v[1] / 9 ? (Math.sin(pull * 50) > 0 ? v[2] / 7 : v[3] / 7) : 0
+    case 'AUTOMATIC': return pull => pull >= v[0] / 255 ? (v[1] / 255) * (0.6 + 0.4 * Math.sin(pull * 70)) : 0
+    case 'SEMI_AUTOMATIC':
+    case 'SEGMENT': return pull => pull >= v[0] / 255 && pull <= v[1] / 255 ? v[2] / 255 : 0
+  }
+  return () => 0
+}

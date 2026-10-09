@@ -94,6 +94,7 @@ console.log('PASS (1/2): redundant overrides are recognised by value, respecting
 // Part 2: the whole round trip in the app
 // ---------------------------------------------------------------------------
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const { gyroInheritedChecks, gyroOverrideEdits, gyroRestoreEdits, gyroSetSlowY } = require('./gyro_v2_helpers.cjs');
 
 const TEMPLATE = [
   '# Shared FPS baseline',
@@ -138,7 +139,8 @@ const CHILD = ['RESET_MAPPINGS', 'profiles-library/FPS Template.txt', 'E = R', '
 
 // What saving adds to any profile, and is not an override.
 const HEADER = new Set(['RESET_MAPPINGS', 'TELEMETRY_ENABLED = ON', 'TELEMETRY_PORT = 8974', 'AUTOCONNECT = ON', 'profiles-library/FPS Template.txt']);
-const ownLines = text => text.split(/\r?\n/).map(l => l.trim()).filter(l => l && !HEADER.has(l) && (!l.startsWith('#') || l.startsWith('# @label'))).sort();
+// With a controller connected an edit lands in its own layout (`# @controller type-24 KEY = …`, console v2 V4); it is the same line.
+const ownLines = text => text.split(/\r?\n/).map(l => l.trim().replace(/^# @controller type-24 /, '')).filter(l => l && !HEADER.has(l) && (!l.startsWith('#') || l.startsWith('# @label'))).sort();
 
 (async () => {
   const browser = await chromium.launch({ channel: 'msedge', headless: true });
@@ -147,7 +149,7 @@ const ownLines = text => text.split(/\r?\n/).map(l => l.trim()).filter(l => l &&
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
     page.setDefaultTimeout(15000);
-    await page.addInitScript(([child, template]) => {
+    await page.addInitScript(([child, template, CONNECTED]) => {
       const profiles = { Child: child, 'FPS Template': template };
       window.__saved = [];
       window.__reads = [];
@@ -163,12 +165,18 @@ const ownLines = text => text.split(/\r?\n/).map(l => l.trim()).filter(l => l &&
           return Object.prototype.hasOwnProperty.call(profiles, name) ? profiles[name] : null;
         },
       };
+      // JSM_TEST_CONTROLLER=1 connects a Steam Controller: edits are then written into its own layout
+      // (`# @controller type-24 KEY = …`), and a value set back to the base's own must leave no variant line behind.
+      // Without it the test runs on the shared layout.
+      window.__connected = CONNECTED;
       window.telemetry = { onSample: cb => {
-        const emit = () => cb({ console: 'Mapper ready', activeProfile: 'profiles-library/Child.txt', devices: [{ handle: 1, type: 24, supportedButtons: 8589934591, status: { buttons: 0, leftStick: { x: 0, y: 0 }, rightStick: { x: 0, y: 0 }, triggers: { left: 0, right: 0 }, gyro: { x: 0, y: 0, z: 0 }, leftPad: { x: 0, y: 0, touched: false }, rightPad: { x: 0, y: 0, touched: false } } }] });
+        const emit = () => cb({ console: 'Mapper ready', activeProfile: 'profiles-library/Child.txt', devices: window.__connected ? [{ handle: 1, type: 24, supportedButtons: 8589934591, status: { buttons: 0, leftStick: { x: 0, y: 0 }, rightStick: { x: 0, y: 0 }, triggers: { left: 0, right: 0 }, gyro: { x: 0, y: 0, z: 0 }, leftPad: { x: 0, y: 0, touched: false }, rightPad: { x: 0, y: 0, touched: false } } }] : [] });
         emit(); const timer = setInterval(emit, 150); return () => clearInterval(timer);
       } };
-    }, [CHILD, TEMPLATE]);
+    }, [CHILD, TEMPLATE, process.env.JSM_TEST_CONTROLLER === '1']);
     await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420');
+    await page.addLocatorHandler(page.getByRole('button', { name: 'Keep them', exact: true }), async () => { await page.getByRole('button', { name: 'Keep them', exact: true }).click() });
+    await page.getByRole('button', { name: 'Keep them', exact: true }).click({ timeout: 5000 }).catch(() => {})
     await page.locator('[data-home-continue]').click({ timeout: 15000 }).catch(() => {});
     await page.locator('.profile-chip').filter({ hasText: 'Child' }).waitFor();
     await page.waitForFunction(() => (window.__reads || []).includes('profiles-library/FPS Template.txt'));
@@ -176,6 +184,12 @@ const ownLines = text => text.split(/\r?\n/).map(l => l.trim()).filter(l => l &&
     // --- helpers -------------------------------------------------------------
     const nav = async name => { await page.getByRole('button', { name, exact: true }).first().click(); await page.waitForTimeout(400) };
     const state = () => page.locator('.state-button').first().innerText();
+    // The status chip says "Unsaved · ☰ to save"; its caption counts the changes ("Unsaved · 10 changes to Child…").
+    const unsaved = async () => {
+      const chip = page.locator('.state-button').first();
+      if (!/^Unsaved·(M)?Save$/.test((await chip.innerText()).replace(/\s/g, ''))) return 0;
+      return Number((await chip.getAttribute('data-caption')).match(/Unsaved · (\d+) changes?/)[1]);
+    };
     // The origin marker nearest a control: "inherited:FPS Template", "override", or "none".
     const originNear = selector => page.evaluate(selector => {
       let el = document.querySelector(selector), marker = null;
@@ -187,15 +201,41 @@ const ownLines = text => text.split(/\r?\n/).map(l => l.trim()).filter(l => l &&
     const field = label => `.main-pane input[aria-label="${label}"]`;
     const combo = label => `.main-pane [role=combobox][aria-label="${label}"]`;
     const group = label => `.main-pane [role=group][aria-label="${label}"]`;
-    // A shift ("RSR,W") is a row in its input's Modeshifts lane now (3c).
+    // A shift ("RSR,W") is a row of its input's While holding page (console v2): the row says where it
+    // comes from, and "Every way of pressing, while held" opens the shift's own binding sheet.
     const card = command => command.includes(',')
-      ? page.locator(`details[data-input-command="${command.split(',')[1]}"] [data-modeshift-row="${command.split(',')[0]}"]`).first()
+      ? page.locator(`[data-input-command="${command}"]`).first()
       : page.locator(`details[data-input-command="${command}"]`).first();
-    const cardOrigin = command => page.evaluate(command => {
-      const [held, key] = command.includes(',') ? command.split(',') : [null, command];
-      const marker = document.querySelector(held ? `.main-pane details[data-input-command="${key}"] [data-modeshift-row="${held}"] .origin-marker` : `.main-pane details[data-input-command="${command}"] .origin-marker`);
-      return marker ? marker.getAttribute('data-origin') : 'none';
-    }, command);
+    const shiftList = async command => {
+      const [held, key] = command.split(',');
+      await open(card(key));
+      await page.locator(`details[data-input-command="${key}"][open] [data-fold="while-holding"]`).click();
+      const row = page.locator(`[data-modeshift-row="${held}"]`);
+      await row.waitFor();
+      return row;
+    };
+    const closeSubPages = async () => {
+      for (let i = 0; i < 4 && await page.locator('[data-subpage]').count(); i++) { await page.keyboard.press('Escape'); await page.waitForTimeout(300) }
+    };
+    const cardOrigin = async command => {
+      if (command.includes(',')) {
+        const row = await shiftList(command);
+        const origin = await row.locator('.origin-marker').first().getAttribute('data-origin', { timeout: 1500 }).catch(() => 'none');
+        await closeSubPages();
+        return origin;
+      }
+      return page.evaluate(command => {
+        const marker = document.querySelector(`.main-pane details[data-input-command="${command}"] .origin-marker`);
+        return marker ? marker.getAttribute('data-origin') : 'none';
+      }, command);
+    };
+    const bindShift = async (command, key) => {
+      const row = await shiftList(command);
+      await row.click();
+      await page.getByRole('button', { name: /Every way of pressing/ }).click();
+      await bindKey(card(command), key);
+      await closeSubPages();
+    };
     const setNumber = async (label, value) => {
       const input = page.locator(field(label)).first();
       await input.scrollIntoViewIfNeeded();
@@ -211,40 +251,75 @@ const ownLines = text => text.split(/\r?\n/).map(l => l.trim()).filter(l => l &&
       await page.locator(group(label)).getByRole('button', { name: option, exact: true }).click();
       await page.waitForTimeout(200);
     };
-    const open = async details => { if (!(await details.evaluate(e => e.tagName !== 'DETAILS' || e.open))) { await details.locator(':scope > summary').click(); await page.waitForTimeout(250) } };
-    // The binding editor's action picker: `last` is the main block's key where
-    // a name appears twice (Ctrl is left and right; the left one is first).
-    const bindKey = async (details, key, which = 'last') => {
+    // A row's binding sheet is a layer over the list: another row's sheet needs this one closed first.
+    const open = async details => {
+      if (await details.evaluate(e => e.tagName !== 'DETAILS' || e.open)) return;
+      if (await page.locator('.sheet-layer').count()) { await page.keyboard.press('Escape'); await page.locator('.sheet-layer').waitFor({ state: 'detached' }) }
+      await details.locator(':scope > summary').click(); await page.waitForTimeout(250);
+    };
+    // The key picker (console v2): Common in games, else Letters.
+    const bindKey = async (details, key) => {
       await details.getByRole('button', { name: /^Choose action/ }).first().click();
-      await page.locator('.action-picker button').filter({ hasText: new RegExp(`^${key}$`) })[which]().click();
+      const keys = page.locator('[data-picker="key"]');
+      await keys.waitFor();
+      const tile = keys.locator('button.key-cap[data-token="' + key.toUpperCase() + '"]');
+      if (!(await tile.count())) await keys.locator('[data-category="letters"]').click();
+      await tile.click();
       await page.waitForTimeout(300);
     };
+    // Console v2 (P4): Sticks, Triggers and Trackpads show one input at a time,
+    // picked on the rail; a setting's origin is a pill on its row, or the
+    // marker beside the front's question.
+    const rail = async name => { await page.locator('.section-item').filter({ hasText: name }).first().click(); await page.waitForTimeout(250) };
+    const markerOf = key => page.evaluate(key => {
+      const marker = document.querySelector(`.main-pane .origin-marker[data-setting-origin="${key}"]`);
+      if (!marker) return 'none';
+      const kind = marker.getAttribute('data-origin');
+      return kind === 'inherited' ? `inherited:${marker.querySelector('small').textContent.replace('Inherited · ', '').replace('From ', '')}` : kind;
+    }, key);
+    const cardOf = scope => page.locator(`${scope} [role="radio"][data-current="true"]`).getAttribute('data-value');
+    const choose = async (scope, value) => { await page.locator(`${scope} [role="radio"][data-value="${value}"]`).click(); await page.waitForTimeout(200) };
     const gridColumns = async direction => {
       await nav('Trackpads');
-      await page.locator('#trackpad-right button.summary-row[data-input-command="RIGHT_PAD"]').click();
-      const columns = page.locator('.sheet button.summary-row').filter({ has: page.locator('.summary-row__label').getByText('Columns', { exact: true }) }).first();
-      await columns.focus(); await page.keyboard.press('Enter');
-      await page.waitForFunction(() => document.activeElement?.getAttribute('data-adjusting') === 'true');
-      await page.keyboard.press(direction); await page.keyboard.press('Enter');
-      const result = [await columns.locator('.summary-row__value').innerText(), await columns.locator('.summary-row__hint').innerText()];
-      await page.keyboard.press('Escape');
-      await page.locator('.sheet').waitFor({ state: 'detached' });
+      await rail('Right pad');
+      await page.locator('#trackpad-right [data-trackpad-fine-tune]').click();
+      const sub = page.locator('[data-subpage]');
+      await sub.locator('[data-group="zones"]').click();
+      const columns = sub.locator('[role="slider"]').filter({ hasText: 'Columns' });
+      await columns.focus(); await page.keyboard.press(direction);
+      const result = [await columns.getAttribute('aria-valuenow'), await columns.locator('[class*="tag"]').innerText()];
+      await sub.locator('[data-modal-close]').evaluate(close => close.click());
+      await sub.waitFor({ state: 'detached' });
       return result;
     };
     const output = async label => {
-      await page.locator('.mapping-plate').first().click();
-      await page.getByRole('menuitem', { name: new RegExp(label) }).first().click();
+      // Console v2: what games see is a choice in the ☰ options menu ("Games see").
+      await page.locator('.titlebar .menu-chip').click();
+      await page.locator('.config-menu__item').filter({ has: page.locator('.config-menu__label').getByText('Virtual controller', { exact: true }) }).click();
+      await page.getByRole('radio', { name: new RegExp('^' + label) }).first().click();
+      await page.locator('.config-menu').waitFor({ state: 'detached' });
       await page.waitForTimeout(200);
-      await page.keyboard.press('Escape');
     };
-    // The input's name is set in its first command's settings sheet (3c).
+    // The input's name is set from the row's Y menu ▸ Rename (console v2): the on-screen keyboard opens holding the current name.
+    const typing = page.getByRole('dialog', { name: /^Type: / });
     const openLabel = async () => {
-      await card('W').locator('[data-command-row]').first().getByRole('button', { name: 'Command settings' }).click();
-      return page.getByRole('dialog').last().locator('input[aria-label="Action name"]');
+      await card('W').locator(':scope > summary').focus();
+      await page.keyboard.press('y');
+      await page.getByRole('menuitem', { name: 'Rename', exact: true }).click();
+      await typing.waitFor();
     };
-    const closeLabel = async () => { const sheet = page.getByRole('dialog').last(); await sheet.locator('[data-modal-close]').click(); await sheet.waitFor({ state: 'detached' }) };
-    const labelField = () => ({ inputValue: async () => { const f = await openLabel(); const value = await f.inputValue(); await closeLabel(); return value } });
-    const setLabel = async text => { const f = await openLabel(); await f.fill(text); await f.press('Enter'); await page.waitForTimeout(200); await closeLabel() };
+    const labelField = () => ({ inputValue: async () => {
+      await openLabel();
+      const value = (await typing.locator('[data-text-field] > span').first().innerText()).trim();
+      await page.keyboard.press('Escape'); await typing.waitFor({ state: 'detached' });
+      return value;
+    } });
+    const setLabel = async text => {
+      await openLabel();
+      for (let i = 0; i < 24; i++) await page.keyboard.press('Backspace');
+      await page.keyboard.type(text); await page.keyboard.press('Enter');
+      await typing.waitFor({ state: 'detached' }); await page.waitForTimeout(200);
+    };
     const save = async () => {
       const count = await page.evaluate(() => window.__saved.length);
       await page.keyboard.press('Control+s');
@@ -254,37 +329,30 @@ const ownLines = text => text.split(/\r?\n/).map(l => l.trim()).filter(l => l &&
     };
 
     // --- 1. everything the template sets is shown, and shown as inherited -----
-    assert.equal(await state(), '✓ Applied', 'opening must not rewrite the file');
-    await nav('Gyro');
-    for (const [label, value] of [['Minimum sensitivity (X)', '2'], ['Minimum sensitivity (Y)', '1.5'], ['Maximum sensitivity (X)', '4'], ['Maximum sensitivity (Y)', '3'], ['Minimum threshold', '5'], ['Maximum threshold', '75']]) {
-      assert.equal(await page.locator(field(label)).first().inputValue(), value, `${label} shows the template's value`);
-      assert.equal(await originNear(field(label)), 'inherited:FPS Template', `${label} is marked as inherited`);
-    }
-    assert.equal(await originNear(group('Activation')), 'inherited:FPS Template');
-    assert.match(await page.locator(combo('Activation input')).innerText(), /RS/);
-    await page.locator('.main-pane button.summary-row').filter({ has: page.locator('.summary-row__label').getByText('Noise & Steadying', { exact: true }) }).click();
-    assert.deepEqual(await page.evaluate(() => [...document.querySelectorAll('.sheet .origin-marker')].map(m => `${m.getAttribute('data-setting-origin')}:${m.getAttribute('data-origin')}`).sort()),
-      ['GYRO_CUTOFF_SPEED:inherited', 'GYRO_SMOOTH_THRESHOLD:inherited', 'GYRO_SMOOTH_TIME:inherited']);
-    await page.keyboard.press('Escape');
-    await page.locator('.sheet').waitFor({ state: 'detached' });
+    assert.equal(await state(), 'Live · saved', 'opening must not rewrite the file');
+    // Gyro (console v2, P5): Speed ▸ Advanced, Steadiness ▸ Advanced and When is gyro on? (gyro_v2_helpers).
+    await gyroInheritedChecks(page);
 
-    await nav('Joysticks');
-    assert.equal(await page.locator(combo('Right stick mode')).innerText(), 'Flick Stick');
-    assert.equal(await originNear(combo('Right stick mode')), 'inherited:FPS Template');
-    assert.equal(await originNear(combo('Left stick mode')), 'inherited:FPS Template');
-    const deadzone = page.locator('.main-pane button.summary-row').filter({ has: page.locator('.summary-row__label').getByText('Deadzone', { exact: true }) });
-    assert.equal(await deadzone.first().locator('.summary-row__value').innerText(), '0.12');
-    assert.equal(await deadzone.first().locator('.summary-row__hint').innerText(), 'From FPS Template');
+    await nav('Sticks');
+    assert.equal(await markerOf('LEFT_STICK_MODE'), 'inherited:FPS Template');
+    const deadzone = page.locator('.main-pane [role="slider"]').filter({ hasText: 'Ignore small movement' });
+    assert.equal(await deadzone.getAttribute('aria-valuetext'), '12%');
+    assert.equal(await deadzone.locator('[class*="tag"]').innerText(), 'From FPS Template');
+    await rail('Right stick');
+    assert.equal(await cardOf('#mapping-section-rightStick'), 'FLICK');
+    assert.equal(await markerOf('RIGHT_STICK_MODE'), 'inherited:FPS Template');
 
     await nav('Triggers');
-    assert.equal(await page.locator(combo('Left trigger behavior')).innerText(), 'No skip');
-    assert.equal(await originNear(combo('Left trigger behavior')), 'inherited:FPS Template');
-    assert.equal(await page.locator(combo('Right trigger behavior')).innerText(), 'Must skip');
+    assert.equal(await cardOf('#trigger-left'), 'NO_SKIP');
+    assert.equal(await markerOf('ZL_MODE'), 'inherited:FPS Template');
+    await rail('Right trigger');
+    assert.equal(await cardOf('#trigger-right'), 'MUST_SKIP');
 
     await nav('Trackpads');
-    for (const pad of ['LEFT_PAD', 'RIGHT_PAD']) {
-      assert.equal(await page.locator(`button.summary-row[data-input-command="${pad}"] .summary-row__hint`).innerText(), 'From FPS Template', `${pad} mode is inherited`);
-    }
+    assert.equal(await cardOf('#trackpad-left'), 'MOUSE');
+    assert.equal(await markerOf('LEFT_TOUCHPAD_MODE'), 'inherited:FPS Template', 'LEFT_PAD mode is inherited');
+    await rail('Right pad');
+    assert.equal(await markerOf('RIGHT_TOUCHPAD_MODE'), 'inherited:FPS Template', 'RIGHT_PAD mode is inherited');
 
     await nav('Buttons');
     for (const command of ['N', 'S', 'W', 'L', 'R', 'LSL', 'RSR']) assert.equal(await cardOrigin(command), 'inherited', `${command} is inherited`);
@@ -294,28 +362,24 @@ const ownLines = text => text.split(/\r?\n/).map(l => l.trim()).filter(l => l &&
     assert.equal(await cardOrigin('RSR,W'), 'inherited', 'the template\'s modeshift is inherited');
 
     // --- 2. overrides: each kind, through its own control ----------------------
-    await nav('Gyro');
-    await setNumber('Minimum sensitivity (X)', 3);
-    assert.equal(await page.locator(field('Minimum sensitivity (Y)')).first().inputValue(), '1.5', 'editing X must keep the inherited Y, not zero it');
-    await setNumber('Maximum threshold', 60);
-    await segment('Activation', 'Hold to enable');
-    for (const selector of [field('Minimum sensitivity (X)'), field('Maximum threshold'), group('Activation')]) assert.equal(await originNear(selector), 'override', selector);
-    await nav('Joysticks');
-    await pick('Right stick mode', 'Mouse Aim');
-    assert.equal(await originNear(combo('Right stick mode')), 'override');
+    await gyroOverrideEdits(page);
+    await nav('Sticks');
+    await rail('Right stick');
+    await choose('#mapping-section-rightStick', 'LOOK');
+    assert.equal(await markerOf('RIGHT_STICK_MODE'), 'override');
     await nav('Triggers');
-    await pick('Left trigger behavior', 'Must skip');
-    assert.deepEqual(await gridColumns('ArrowRight'), ['3', 'Overrides FPS Template']);
+    await rail('Left trigger');
+    await choose('#trigger-left', 'MUST_SKIP');
+    assert.deepEqual(await gridColumns('ArrowRight'), ['3', 'Changed from FPS Template']);
     await output('Virtual DualShock 4');
     await nav('Buttons');
     await open(card('S'));
     await bindKey(card('S'), 'T');
     assert.equal(await cardOrigin('S'), 'override');
-    await open(card('W')); await open(card('RSR,W'));
-    await bindKey(card('RSR,W'), 'Y');
+    await bindShift('RSR,W', 'Y');
     assert.equal(await cardOrigin('RSR,W'), 'override');
     await setLabel('Prone');
-    assert.equal(await state(), 'Apply 10 changes');
+    assert.equal(await unsaved(), 10);
 
     const overridden = await save();
     assert.deepEqual(ownLines(overridden), [
@@ -325,52 +389,54 @@ const ownLines = text => text.split(/\r?\n/).map(l => l.trim()).filter(l => l &&
     assert.match(overridden, /^profiles-library\/FPS Template\.txt$/m, 'the import line stays');
 
     // --- 3. set each one back BY HAND, no reset control ------------------------
-    await nav('Gyro');
-    await setNumber('Minimum sensitivity (X)', 2);
-    await setNumber('Maximum threshold', 75);   // the template says 75.0
-    await segment('Activation', 'Hold to disable');
-    for (const selector of [field('Minimum sensitivity (X)'), field('Minimum sensitivity (Y)'), field('Maximum threshold'), group('Activation')]) {
-      assert.equal(await originNear(selector), 'inherited:FPS Template', `${selector} follows the template again`);
-    }
-    await nav('Joysticks');
-    await pick('Right stick mode', 'Flick Stick');
-    assert.equal(await originNear(combo('Right stick mode')), 'inherited:FPS Template');
+    await gyroRestoreEdits(page);
+    await nav('Sticks');
+    await rail('Right stick');
+    await choose('#mapping-section-rightStick', 'FLICK');
+    assert.equal(await markerOf('RIGHT_STICK_MODE'), 'inherited:FPS Template');
     await nav('Triggers');
-    await pick('Left trigger behavior', 'No skip');
-    assert.equal(await originNear(combo('Left trigger behavior')), 'inherited:FPS Template');
+    await rail('Left trigger');
+    await choose('#trigger-left', 'NO_SKIP');
+    assert.equal(await markerOf('ZL_MODE'), 'inherited:FPS Template');
     assert.deepEqual(await gridColumns('ArrowLeft'), ['2', 'From FPS Template']);
     await output('Virtual Xbox');
     await nav('Buttons');
     await open(card('S'));
     await bindKey(card('S'), 'Space');
     assert.equal(await cardOrigin('S'), 'inherited');
-    await open(card('W')); await open(card('RSR,W'));
-    await bindKey(card('RSR,W'), 'X');
+    await bindShift('RSR,W', 'X');
     assert.equal(await cardOrigin('RSR,W'), 'inherited');
     await setLabel('Crouch');
     assert.equal(await labelField().inputValue(), 'Crouch');
     // Unsaved relative to the file, which still has every one of those lines.
-    assert.equal(await state(), 'Apply 10 changes', 'dropping the lines is a change to the saved file');
+    assert.equal(await unsaved(), 10, 'dropping the lines is a change to the saved file');
 
     const restored = await save();
     assert.deepEqual(ownLines(restored), ['E = R'], `setting values back removes their lines; the pre-existing E = R is left alone:\n${restored}`);
     assert.equal(await cardOrigin('E'), 'override');
 
     // --- 4. the pre-existing equal override goes once it is edited -------------
+    const connected = process.env.JSM_TEST_CONTROLLER === '1';
     await open(card('E'));
     await bindKey(card('E'), 'T');
     await bindKey(card('E'), 'R');
-    assert.equal(await cardOrigin('E'), 'inherited');
-    assert.equal(await state(), 'Apply 1 change');
-    assert.deepEqual(ownLines(await save()), []);
+    if (connected) {
+      // The edit is the controller's, so the shared layout's own redundant line is left alone, and
+      // setting E back to R leaves nothing behind for this controller either.
+      assert.equal(await cardOrigin('E'), 'override', 'the shared file still has its own E = R');
+      assert.equal(await unsaved(), 0, 'T then back to R is no change at all');
+      assert.deepEqual(ownLines(await save()), ['E = R']);
+    } else {
+      assert.equal(await cardOrigin('E'), 'inherited');
+      assert.equal(await unsaved(), 1);
+      assert.deepEqual(ownLines(await save()), []);
+    }
 
     // --- 5. set back without saving in between: nothing to save ----------------
-    await nav('Gyro');
-    await setNumber('Minimum sensitivity (Y)', 2.5);
-    assert.equal(await state(), 'Apply 1 change');
-    await setNumber('Minimum sensitivity (Y)', 1.5);
-    assert.equal(await state(), 'Apply Child', 'back to the saved text: no unsaved change, draft or not');
-    assert.equal(await originNear(field('Minimum sensitivity (Y)')), 'inherited:FPS Template');
+    await gyroSetSlowY(page, 2.5);
+    assert.equal(await unsaved(), 1);
+    await gyroSetSlowY(page, 1.5);
+    assert.equal(await unsaved(), 0, 'back to the saved text: no unsaved change, draft or not');
 
     assert.deepEqual(errors, [], `page errors: ${errors.join(', ')}`);
     console.log('PASS (2/2): a template\'s values are inherited everywhere, overrides save as themselves, and setting one back by hand makes it inherited again');

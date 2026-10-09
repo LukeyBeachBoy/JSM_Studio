@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mode on and off</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.lbl{font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#808c99;font-weight:600}
+.ib{display:inline-flex;align-items:center;justify-content:center;min-width:38px;height:28px;padding:0 6px;box-sizing:border-box;border-radius:8px;background:#2e3844;color:#e8eef4;font-weight:700;font-size:13px;flex:none}
+.row{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;align-items:center;gap:16px;min-height:68px;padding:12px 22px;box-sizing:border-box;border-radius:16px;background:#1f2730;color:#e8eef4;text-align:left}
+.row .t{font-size:19px;font-weight:650}
+.row .s{font-size:15px;color:#808c99;line-height:1.35}
+.opt{border-radius:14px;background:#0f151b;padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0;box-sizing:border-box}
+.opt .t{font-size:18px;font-weight:650}
+.opt .s{font-size:15px;color:#808c99;line-height:1.35}
+.sw{width:56px;height:32px;border-radius:16px;background:#2e3844;position:relative;flex:none;margin-left:auto}
+.sw span{position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:50%;background:#808c99}
+.hue{width:44px;height:44px;border-radius:12px;flex:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15)}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="height: 76px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 40px; background: #0d1217">
+<span style="font-size: 18px; color: #808c99">Wardogs · Modes · Vehicles</span>
+<span style="font-size: 18px; color: #808c99">▸</span>
+<span style="font-size: 22px; font-weight: 700">How it turns on and off</span>
+<span style="margin-left: auto; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 20px; background: #1e3d33; color: #93e6c1; font-size: 16px; font-weight: 600"><span style="width: 9px; height: 9px; border-radius: 50%; background: #5fd3a0"></span>Live · saved</span>
+</header>
+
+<main style="flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 520px; gap: 32px; padding: 28px 40px 24px">
+
+<section style="display: flex; flex-direction: column; gap: 12px; min-width: 0">
+<div style="display: flex; align-items: center; gap: 16px; margin-bottom: 6px">
+<span style="width: 22px; height: 22px; border-radius: 7px; background: #b48cf0"></span>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<h1 style="margin: 0; font-size: 32px; font-weight: 700">Vehicles</h1>
+<span style="font-size: 16px; color: #b0bcc8">Changes A, RB and the left stick while it’s on</span>
+</div>
+</div>
+
+<div class="focus" style="background: #1d445c; border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px">
+<span style="font-size: 19px; font-weight: 650">Turn it on by</span>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px">
+<div class="opt" style="background: #24323f; box-shadow: inset 0 0 0 2px #7cc4ee">
+<span class="t" style="display: flex; align-items: center; gap: 8px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b8e2fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v10M8 9l4 4 4-4M5 20h14"></path></svg>Holding</span>
+<span class="s" style="color: #b8e2fa">On while you hold it</span>
+</div>
+<div class="opt">
+<span class="t" style="display: flex; align-items: center; gap: 8px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4"></path></svg>Tap to toggle</span>
+<span class="s">Tap on, tap off</span>
+</div>
+<div class="opt">
+<span class="t" style="display: flex; align-items: center; gap: 8px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v8M7 6.5a8 8 0 1 0 10 0"></path></svg>Turn on</span>
+<span class="s">Stays on until turned off</span>
+</div>
+</div>
+<span style="font-size: 15px; color: #b8e2fa">Good for driving: let go of L4 and you’re back on foot.</span>
+</div>
+
+<button class="row"><span style="display: flex; flex-direction: column; gap: 2px"><span class="t">With this button</span><span class="s">Press a new one to change it</span></span><span style="margin-left: auto; display: flex; align-items: center; gap: 12px; font-size: 17px; color: #d4dde6"><span class="ib" style="background: #b48cf0; color: #1a1030">L4</span>Left back, upper</span></button>
+
+<div style="background: #1f2730; border-radius: 16px; padding: 14px 18px; display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 19px; font-weight: 650">Turned off by</span>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px">
+<div class="opt" style="box-shadow: inset 0 0 0 2px #2e3844"><span class="t" style="display: flex; align-items: center; gap: 8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93e6c1" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg>Letting go</span><span class="s">Comes with Holding</span></div>
+<div class="opt" style="opacity: .55"><span class="t">Tapping again</span><span class="s">Comes with Tap to toggle</span></div>
+<div class="opt"><span class="t">Another button</span><span class="s">e.g. View leaves the map</span></div>
+</div>
+</div>
+
+<button class="row"><span style="display: flex; flex-direction: column; gap: 2px"><span class="t">Pause holds while it’s on</span><span class="s">Other modes’ hold buttons do nothing until it’s off</span></span><span class="sw"><span></span></span></button>
+
+<button class="row" style="background: transparent; box-shadow: inset 0 0 0 2px #2e3844; min-height: 64px"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 18px; font-weight: 600">Advanced</span><span class="s">Act when you let go · more buttons · bring in old “While holding L4” changes</span></span><span style="margin-left: auto; font-size: 17px; color: #808c99">▸</span></button>
+</section>
+
+<aside style="background: #1a222b; border-radius: 20px; padding: 22px 24px; display: flex; flex-direction: column; gap: 12px; min-width: 0">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<span class="lbl">Order</span>
+<span style="display: flex; align-items: center; gap: 8px; font-size: 15px; color: #b0bcc8"><span class="gp">LT</span>up<span class="gp">RT</span>down</span>
+</div>
+
+<svg viewBox="0 0 460 360" width="100%" height="352" fill="none" style="flex: none">
+<rect x="40" y="40" width="280" height="52" rx="10" fill="#1f2730" stroke="#f0a05a" stroke-width="2"></rect><rect x="58" y="59" width="14" height="14" rx="4" fill="#f0a05a"></rect><text x="84" y="72" fill="#f6c79c" font-family="Geist, sans-serif" font-size="16" font-weight="600">3 · Comms</text>
+<rect x="40" y="110" width="280" height="52" rx="10" fill="#1f2730" stroke="#5fd3a0" stroke-width="2"></rect><rect x="58" y="129" width="14" height="14" rx="4" fill="#5fd3a0"></rect><text x="84" y="142" fill="#a5e8c8" font-family="Geist, sans-serif" font-size="16" font-weight="600">2 · Tactical map</text>
+<rect x="40" y="180" width="280" height="52" rx="10" stroke="#b48cf0" stroke-opacity=".7" stroke-width="2" stroke-dasharray="6 6"></rect>
+<rect x="40" y="250" width="280" height="52" rx="10" fill="#1f2730" stroke="#808c99" stroke-width="2"></rect><rect x="58" y="269" width="14" height="14" rx="4" fill="#808c99"></rect><text x="84" y="282" fill="#b0bcc8" font-family="Geist, sans-serif" font-size="16" font-weight="600">Default</text>
+<rect x="170" y="166" width="250" height="56" rx="10" fill="#b48cf0"></rect>
+<rect x="188" y="187" width="14" height="14" rx="4" fill="#1a1030"></rect>
+<text x="214" y="200" fill="#1a1030" font-family="Geist, sans-serif" font-size="17" font-weight="700">1 · Vehicles</text>
+<path d="M440 158V136M432 144l8-8 8 8" stroke="#b48cf0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M440 230V252M432 244l8 8 8-8" stroke="#b48cf0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+
+<span style="font-size: 16px; line-height: 1.5; color: #b0bcc8">First on the mode strip and in lists. When two modes are on, the one turned on last wins.</span>
+
+<div style="height: 1px; background: #232c36; margin: 4px 0"></div>
+
+<div style="display: flex; align-items: center; gap: 14px">
+<span class="hue" style="width: 40px; height: 40px; background: #b48cf0"></span>
+<span style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><span style="font-size: 18px; font-weight: 650">Colour · Purple</span><span style="font-size: 15px; color: #808c99">Colour follows its place in the list · LT/RT to move</span></span>
+</div>
+<div style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #808c99">
+<span style="display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border-radius: 15px; background: #2a2340; color: #d8c4fa; font-weight: 600"><span style="width: 10px; height: 10px; border-radius: 3px; background: #b48cf0"></span>1st</span>
+<span style="display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border-radius: 15px; background: #0f151b"><span style="width: 10px; height: 10px; border-radius: 3px; background: #5fd3a0"></span>2nd</span>
+<span style="display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border-radius: 15px; background: #0f151b"><span style="width: 10px; height: 10px; border-radius: 3px; background: #f0a05a"></span>3rd</span>
+<span style="display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border-radius: 15px; background: #0f151b"><span style="width: 10px; height: 10px; border-radius: 3px; background: #7cc4ee"></span>4th</span>
+<span style="display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border-radius: 15px; background: #0f151b"><span style="width: 10px; height: 10px; border-radius: 3px; background: #f07aa8"></span>5th</span>
+<span style="display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border-radius: 15px; background: #0f151b"><span style="width: 10px; height: 10px; border-radius: 3px; background: #e8d36a"></span>6th</span>
+</div>
+</aside>
+</main>
+
+<footer style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Wardogs · Modes · Vehicles · On and off</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">A</span>Choose</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">X</span>Try it</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">Y</span>Rename · delete</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">LT</span><span class="gp">RT</span>Move in order</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Back to Modes</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -39,17 +39,26 @@ export type ConfigurationMenuItem = {
   choices?: ConfigurationChoice[]
   /** Starts a new group: a thin rule above it. */
   divider?: boolean
+  /** Where the pad lands when the menu opens (Review changes, when there is
+   *  something to review); otherwise the first item that can act. False
+   *  means never land here (Review changes with nothing unsaved). */
+  defaultFocus?: boolean
   onSelect?: () => void
 }
 
 type ConfigurationMenuProps = {
   open: boolean
   configName: string
+  /** The configuration's state, in the header: "Live · saved", "Unsaved · 3 changes". */
+  status?: string
   items: ConfigurationMenuItem[]
   onClose: () => void
 }
 
-export function ConfigurationMenu({ open, configName, items, onClose }: ConfigurationMenuProps) {
+/** Keep the focused item in view: the menu scrolls inside the window (UX review, S1). */
+const keepInView = (event: { currentTarget: HTMLElement }) => event.currentTarget.scrollIntoView({ block: 'nearest' })
+
+export function ConfigurationMenu({ open, configName, status, items, onClose }: ConfigurationMenuProps) {
   const [viewing, setViewing] = useState<string | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
   // The item a list was opened from, to land on when stepping back.
@@ -77,9 +86,12 @@ export function ConfigurationMenu({ open, configName, items, onClose }: Configur
   if (!open) return null
 
   const back = () => { cameFrom.current = viewing; setViewing(null) }
+  // The pad lands on the item asked for, else the first that can act: never
+  // on "Review changes · Nothing unsaved" (UX review, S1).
+  const landing = items.find(item => item.defaultFocus && !item.idle) ?? items.find(item => !item.idle && item.defaultFocus !== false)
 
   return (
-    <div className="modal-overlay config-menu-overlay" onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}
+    <div className="modal-overlay config-menu-overlay" onMouseDown={event => { if (event.target === event.currentTarget) { event.preventDefault(); onClose() } }}
       // B inside a list goes back up to the menu, not out of it. Handled
       // before useKeyboardNav, which would press Close.
       onKeyDown={event => { if (event.key === 'Escape' && sub) { event.preventDefault(); event.stopPropagation(); back() } }}>
@@ -87,6 +99,7 @@ export function ConfigurationMenu({ open, configName, items, onClose }: Configur
         <div className="config-menu__header">
           <span className="eyebrow">{sub ? 'Configuration menu' : 'Configuration'}</span>
           <b id="config-menu-title" className="config-menu__title">{sub ? sub.label : configName}</b>
+          {!sub && status && <span className="config-menu__status">{status}</span>}
           <button type="button" className="sheet__close" tabIndex={-1} data-nav-skip data-modal-close aria-label="Close" onClick={onClose}>
             <Icon name="close" size={18} />
           </button>
@@ -100,7 +113,7 @@ export function ConfigurationMenu({ open, configName, items, onClose }: Configur
             {sub.choices!.map(choice => (
               <button key={choice.key} type="button" role="radio" className="config-menu__item" aria-checked={Boolean(choice.checked)}
                 aria-disabled={choice.idle ? true : undefined} data-reason={choice.idle ? choice.meta : undefined}
-                data-hints={choice.idle ? 'B:Back' : 'A:Choose;B:Back'}
+                data-hints={choice.idle ? 'B:Back' : 'A:Choose;B:Back'} onFocus={keepInView}
                 onClick={() => { if (choice.idle) return; onClose(); choice.onSelect() }}>
                 {choice.checked
                   ? <Icon name="success" size={20} />
@@ -115,8 +128,8 @@ export function ConfigurationMenu({ open, configName, items, onClose }: Configur
             {items.map(item => (
               <button key={item.key} type="button" data-key={item.key} className={`config-menu__item${item.divider ? ' config-menu__item--divided' : ''}`}
                 aria-disabled={item.idle ? true : undefined} data-reason={item.idle ? item.meta : undefined}
-                aria-haspopup={item.choices ? 'true' : undefined}
-                data-hints={item.idle ? 'B:Close' : item.choices ? 'A:Open;B:Close' : 'A:Choose;B:Close'}
+                aria-haspopup={item.choices ? 'true' : undefined} data-autofocus={item === landing ? '' : undefined} onFocus={keepInView}
+                data-hints={item.idle ? 'B:Close' : item.choices ? 'A:Open;B:Close' : 'A:Select;B:Close'}
                 onClick={() => {
                   if (item.idle) return
                   if (item.choices) { setViewing(item.key); return }

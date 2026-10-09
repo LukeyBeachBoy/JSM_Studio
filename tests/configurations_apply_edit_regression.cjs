@@ -25,45 +25,50 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
     const openConfigurations = async () => {
       await page.evaluate(() => [...document.querySelectorAll('.titlebar button')].find(b => /Home/.test(b.textContent))?.click());
       await page.waitForTimeout(700);
-      await page.evaluate(() => [...document.querySelectorAll('button, a')].find(b => b.textContent.trim().startsWith('Configurations'))?.click());
+      await page.evaluate(() => window.dispatchEvent(new CustomEvent('jsm:navigate-page', { detail: 'configurations' })));
       await page.locator('[data-profile]').first().waitFor();
     };
     const applied = () => page.evaluate(() => window.__applied.slice());
-    const editing = () => page.evaluate(() => document.querySelector('[data-profile] [class*="tagAccent"]')?.closest('[data-profile]')?.dataset.profile);
+    // Console v2 (Library): covers, not rows. A edits, X makes live, Y is More.
+    const editing = () => page.evaluate(() => document.querySelector('[data-editing="true"]')?.dataset.profile ?? document.querySelector('.titlebar')?.textContent ?? '');
 
+    // The Steam Controller's first-connection question comes up on its own.
+    const keepSounds = page.getByRole('button', { name: 'Keep them' });
+    await keepSounds.waitFor({ timeout: 5000 }).then(() => keepSounds.click()).catch(() => {});
     await openConfigurations();
-    assert.equal(await editing(), 'Wardogs');
+    assert.match(await editing(), /Wardogs/);
+    // Wardogs is live and unchanged: its Make live says so instead.
+    await page.locator('[data-profile="Wardogs"] button').first().focus();
+    await page.locator('aside button').filter({ hasText: /Live now$/ }).waitFor();
 
-    // Y on the row being edited applies it.
-    await page.locator('[data-profile="Wardogs"] > button').first().focus();
-    await page.keyboard.press('y');
-    await page.waitForTimeout(600);
-    assert.deepEqual(await applied(), ['profiles-library/Wardogs.txt'], 'Y on the edited configuration did not apply it');
-
-    // The Apply button does the same.
-    await page.locator('aside button').filter({ hasText: /Apply$/ }).click();
-    await page.waitForTimeout(600);
-    assert.equal((await applied()).length, 2, 'Apply on the edited configuration did not apply it');
-
-    // Y on another row: it becomes the one being edited, and applied.
-    await page.locator('[data-profile="Cyberpunk"] > button').first().focus();
-    await page.keyboard.press('y');
+    // X on another cover: it becomes the one being edited, and live.
+    await page.locator('[data-profile="Cyberpunk"] button').first().focus();
+    await page.keyboard.press('x');
     await page.waitForTimeout(900);
-    assert.equal((await applied()).at(-1), 'profiles-library/Cyberpunk.txt', 'Y on another configuration did not apply it');
-    assert.equal(await editing(), 'Cyberpunk');
+    assert.equal((await applied()).at(-1), 'profiles-library/Cyberpunk.txt', 'X on another configuration did not make it live');
+    assert.match(await editing(), /Cyberpunk/);
 
-    // One Edit press on another row opens it in the editor.
-    await page.locator('[data-profile="Gamepad"] > button').first().focus();
+    // The detail's Make live does the same for the one focused.
+    await page.locator('[data-profile="Wardogs"] button').first().focus();
+    await page.locator('aside button').filter({ hasText: /Make live$/ }).click();
+    await page.waitForTimeout(900);
+    assert.equal((await applied()).at(-1), 'profiles-library/Wardogs.txt', 'Make live in the detail did not apply it');
+
+    // One Edit press on another cover opens it in the editor.
+    await openConfigurations();
+    await page.locator('[data-profile="Gamepad"] button').first().focus();
     await page.keyboard.press('Enter');
     await page.waitForTimeout(900);
-    assert.equal(await page.locator('[data-profile]').count(), 0, 'Edit left the Configurations page open');
-    assert.match(await page.locator('.titlebar').innerText(), /Gamepad/, 'Edit did not switch to Gamepad');
+    assert.equal(await page.locator('[data-profile]').count(), 0, 'Edit left the Library open');
+    assert.match(await editing(), /Gamepad/, 'Edit did not switch to Gamepad');
 
-    // X on a row opens its options.
+    // Y on a cover opens More: Duplicate, Rename, Change base…
     await openConfigurations();
-    await page.locator('[data-profile="Gamepad"] > button').first().focus();
-    await page.keyboard.press('x');
-    await page.locator('[role="menu"]').waitFor({ timeout: 2000 });
+    await page.locator('[data-profile="Cyberpunk"] button').first().focus();
+    await page.keyboard.press('y');
+    const more = page.getByRole('dialog', { name: 'Cyberpunk' });
+    await more.waitFor({ timeout: 2000 });
+    for (const label of ['Duplicate', 'Rename', 'Change base', 'Launch with game', 'Show in folder', 'Edit the file directly', 'Delete']) await more.getByRole('button', { name: new RegExp(`^${label}`) }).first().waitFor();
 
     assert.deepEqual(errors, []);
     console.log('configurations apply and edit: ok');

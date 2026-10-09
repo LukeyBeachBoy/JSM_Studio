@@ -12,7 +12,7 @@ export type OriginInfo = {
   spoken: string
   /** The imported file's display name, when the value comes from or overrides one. */
   sourceName: string | null
-  /** The imported (or Default-layer) value this file overrides, raw. */
+  /** The base's (or Default mode's) value this configuration changes, raw. */
   baseValue: string | null
   /** True when "Use inherited" / "Use Default" would do something. */
   canReset: boolean
@@ -49,15 +49,15 @@ export function useSettingOriginInfo(setting?: string): OriginInfo | null {
   let spoken = ''
   if (context.layer) {
     kind = own ? 'override' : 'inherited'
-    shown = own ? `Override · ${context.layer}` : 'From Default'
-    spoken = own ? '' : 'Inherited · '
+    shown = own ? `Changed in ${context.layer}` : 'From Default'
+    spoken = own ? '' : 'Same as Default · '
   } else if (own) {
     kind = canReset ? 'override' : 'own'
-    shown = canReset ? 'Override' : 'This profile'
+    shown = canReset ? 'Changed here' : 'This configuration'
   } else if (imported) {
     kind = 'inherited'
-    shown = imported
-    spoken = 'Inherited · '
+    shown = `From ${imported}`
+    spoken = ''
   } else {
     kind = 'default'
     shown = 'App default'
@@ -69,7 +69,7 @@ export function useSettingOriginInfo(setting?: string): OriginInfo | null {
     sourceName: imported ?? (context.layer ? 'Default' : overridden),
     baseValue,
     canReset,
-    resetLabel: context.layer ? 'Use Default' : 'Use inherited',
+    resetLabel: context.layer ? 'Use Default' : 'Use the base',
     reset: canReset && context.reset ? () => context.reset?.(setting) : null,
     disabled: Boolean(context.disabled),
   }

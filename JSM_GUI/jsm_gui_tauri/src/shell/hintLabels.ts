@@ -9,8 +9,9 @@ export type HintButton = 'A' | 'B' | 'X' | 'Y' | 'LB/RB' | 'LT/RT' | 'MOVE' | 'V
 export type Hint = { button: HintButton; label: string }
 
 // The order the capsule reads in, whatever order the hints were declared in
-// (binding card refresh 1h). VIEW+MENU is the capture-era pair; it goes last.
-export const HINT_ORDER: HintButton[] = ['MOVE', 'A', 'X', 'Y', 'B', 'LB/RB', 'LT/RT', 'MENU', 'VIEW', 'VIEW+MENU']
+// (console v2 Kit: "Order never changes: A, X, Y, triggers, bumpers, B"),
+// with ◂ ▸ first where a row takes it and Menu / View just before B.
+export const HINT_ORDER: HintButton[] = ['MOVE', 'A', 'X', 'Y', 'LT/RT', 'LB/RB', 'MENU', 'VIEW', 'VIEW+MENU', 'B']
 
 /** One hint per button, the last one declared, in HINT_ORDER. A row that
  *  names its own B and a component that adds "B:Back" after it must not draw

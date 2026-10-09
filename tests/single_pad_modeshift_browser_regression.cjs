@@ -29,15 +29,27 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
     await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1421')
     await page.locator('[data-home-continue]').click()
     await page.getByRole('button', { name: 'Trackpads', exact: true }).click()
-
-    const group = page.getByRole('region', {name:'Trackpad modeshifts',exact:true})
-    await group.getByRole('button', {name:'Add modeshift',exact:true}).click()
-    await group.getByRole('combobox').click()
-    await page.getByRole('option').filter({hasText:'top-left bumper'}).first().click()
-    const shift = group.locator('[data-modeshift="L"]')
+    // Console v2 (P4): a one-pad controller gets the same Trackpads front, with
+    // a one-item rail; its "While holding…" is a sub-page from the Y menu (D11).
+    const pad = page.locator('#trackpad-shared')
+    await pad.waitFor()
+    assert.equal(await page.locator('.section-item').count(), 1, 'one pad, one rail item')
+    assert.equal(await pad.locator('[role="radio"][data-current="true"]').getAttribute('data-value'), 'MOUSE')
+    await pad.locator('[role="radio"]').first().focus()
+    await page.keyboard.press('y')
+    await page.locator('[data-more-item="holding"]').click()
+    // The list is a "<pad> while holding" section; "Add a button" opens the
+    // "Hold which button?" sheet, and the new shift opens on its own page.
+    const group = page.locator('[data-subpage]').first().locator('[data-modeshift-list]')
+    await group.locator('[data-add-modeshift]').click()
+    const sheet = page.getByRole('dialog').filter({ has: page.locator('[data-hold-input]') })
+    await sheet.locator('[data-hold-input="L"]').click()
+    await sheet.getByRole('button', {name:'Next',exact:true}).click()
+    await page.locator('[data-modeshift-editor="L"]').waitFor()
+    assert.equal(await group.locator('[data-modeshift="L"]').count(), 1, 'the shift is listed')
     await page.keyboard.press('Control+s')
     await page.waitForFunction(() => /L,TOUCHPAD_MODE = MOUSE/.test(window.__paritySaved))
-    await group.screenshot({path:'tmp/single-pad-modeshift.png'})
+    await page.screenshot({path:'tmp/single-pad-modeshift.png'})
     assert.deepEqual(errors, [])
     console.log('PASS: single-trackpad modeshift is visible and saved')
   } finally { await browser.close() }

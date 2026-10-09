@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { navOrigin, noteFocus, noteHover } from '../nav/navAnchor'
 import { CLEAR_BOTTOM, CLEAR_TOP, cancelScroll, ensureVisible, scrollDestination } from '../nav/scroller'
 import { navBox } from '../nav/navBox'
@@ -28,7 +28,9 @@ const TEXT_INPUT_TYPES = new Set(['text', 'search', 'url', 'email', 'password', 
 // getComputedStyle per element, which on a long page was most of the cost of
 // a D-pad press.
 const isVisible = (element: HTMLElement) => {
-  if (element.closest('[hidden], [inert], [aria-hidden="true"], [aria-disabled="true"], [data-disabled]') || element.matches(':disabled')) return false
+  // Console v2 Kit: an unavailable control that says why (data-reason) stays
+  // reachable, so the pad can land on it and read the reason in the footer.
+  if (element.closest('[hidden], [inert], [aria-hidden="true"], [aria-disabled="true"]:not([data-reason]), [data-disabled]') || element.matches(':disabled')) return false
   const details = element.closest('details:not([open])')
   if (details && !details.querySelector(':scope > summary')?.contains(element)) return false
   if (typeof element.checkVisibility === 'function') {
@@ -152,7 +154,10 @@ export function useKeyboardNav({ onPageStep, onEscape, activePage, contentSelect
   // on launch.
   const focusedPage = useRef(activePage)
   const pageFocus = useRef(new Map<unknown, Remembered>())
-  const verticalPath = useRef<{ from: HTMLElement; to: HTMLElement; key: string; overlay: HTMLElement | null; page: unknown }[]>([])
+  // `label` is what the control said when the pad left it: a part's rows are
+  // re-used for the next part (the Gyro rail), so the same element can be a
+  // different control by the time the pad is back.
+  const verticalPath = useRef<{ from: HTMLElement; to: HTMLElement; key: string; overlay: HTMLElement | null; page: unknown; label: string }[]>([])
   const activePageRef = useRef(activePage)
   activePageRef.current = activePage
 
@@ -200,11 +205,14 @@ export function useKeyboardNav({ onPageStep, onEscape, activePage, contentSelect
   // launch shouldn't yank focus into the page before anyone has touched a
   // controller.
   //
-  // Focus lands once, on the right control, after the page has settled: not
-  // while it is still sliding in (the ring shook as it chased the animation),
-  // and not before its data has loaded (it landed on one control, then the
-  // rows arrived above it and the remembered one turned up a second later).
-  useEffect(() => {
+  // Focus lands on the page's first control before the new page is first
+  // painted (a layout effect), so it slides in already selected: landing once
+  // the slide-in had settled showed the row expand a beat after the page
+  // arrived, which read as a jolt. A page still loading (a lazy panel, an
+  // aria-busy list) lands once it has; and while the page is still settling,
+  // rows arriving above the early landing move it to the new first control,
+  // as long as nobody has moved since.
+  useLayoutEffect(() => {
     if (focusedPage.current === activePage) return
     focusedPage.current = activePage
     const content = document.querySelector<HTMLElement>(contentSelector)
@@ -221,15 +229,24 @@ export function useKeyboardNav({ onPageStep, onEscape, activePage, contentSelect
     pageFocus.current.delete(activePage)
     const loading = () => Boolean(content.querySelector('.lazy-panel-fallback, [aria-busy="true"]'))
     const pick = () => pageEntryTarget(focusablesIn(content)) ?? null
+    // The landing's own focus is not "the person moved".
+    let ownFocus = false
+    let early: HTMLElement | null = null
+    const focusOwn = (target: HTMLElement) => {
+      ownFocus = true
+      try { target.focus({ preventScroll: true }) } finally { ownFocus = false }
+    }
     const land = () => {
       if (done) return true
+      // Already on the first control since the first frame, and it still is.
+      if (early && document.activeElement === early && early.isConnected && pick() === early) { done = true; return true }
       // Moved while it settled (a section picked, the wheel, the stick): land
       // in what is on screen and leave the page where it was taken.
       const moved = Boolean(scrollHost && scrollDestination(scrollHost) > 1)
       const target = moved ? visibleEntry('ArrowDown') ?? pick() : pick()
       if (!target) return false
       done = true
-      target.focus({ preventScroll: true })
+      focusOwn(target)
       if (!moved) ensureVisible(target, { smooth: false })
       return true
     }
@@ -239,9 +256,17 @@ export function useKeyboardNav({ onPageStep, onEscape, activePage, contentSelect
     // before the page settled used to be undone by the landing, which pulled
     // focus back into the page -- behind the menu's scrim.
     const claimed = (event: FocusEvent) => {
-      if (event.target instanceof Node && event.target !== document.body) done = true
+      if (!ownFocus && event.target instanceof Node && event.target !== document.body) done = true
     }
     document.addEventListener('focusin', claimed)
+    // The first frame: the page is committed but not yet painted.
+    if (!loading()) {
+      early = pick()
+      if (early) {
+        focusOwn(early)
+        ensureVisible(early, { smooth: false })
+      }
+    }
     const observer = new MutationObserver(() => { lastChange = performance.now() })
     observer.observe(content, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-busy'] })
     let frame = 0
@@ -299,8 +324,24 @@ export function useKeyboardNav({ onPageStep, onEscape, activePage, contentSelect
           // item of the closed menu -- is gone.
           const opened = returnFocus.get(overlay)
           if (!opened || opened.element === document.body || !opened.element.isConnected || lastOverlay.contains(opened.element)) returnFocus.set(overlay, previous)
-        } else if (previous?.element.isConnected) previous.element.focus({ preventScroll: true })
-        else if (previous?.input) document.querySelector<HTMLElement>(`details[data-input-command="${CSS.escape(previous.input)}"] > summary`)?.focus()
+        } else if (previous?.element.isConnected && isVisible(previous.element)) previous.element.focus({ preventScroll: true })
+        else if (previous?.input && document.querySelector(`details[data-input-command="${CSS.escape(previous.input)}"] > summary`)) document.querySelector<HTMLElement>(`details[data-input-command="${CSS.escape(previous.input)}"] > summary`)?.focus()
+        else if (!overlay) {
+          // The opener is gone (the dialog's action re-drew or removed it:
+          // Save as copy, Delete, a toggle in a list): land on the page's
+          // result -- what the page marks as its landing, else where the page
+          // is entered -- never on <body> (UX review, B3). A frame later, so
+          // the page has drawn what the action changed.
+          requestAnimationFrame(() => {
+            const active = document.activeElement
+            if (active && active !== document.body) return
+            if (topmostOverlay()) return
+            const content = document.querySelector<HTMLElement>(contentSelector)
+            const marked = content?.querySelector<HTMLElement>('[data-autofocus]')
+            const target = (marked && isVisible(marked) ? marked : null) ?? pageEntry(pageFocus.current.get(activePageRef.current)?.element)
+            target?.focus({ preventScroll: true })
+          })
+        }
       }
       lastOverlay = overlay
     }
@@ -310,7 +351,7 @@ export function useKeyboardNav({ onPageStep, onEscape, activePage, contentSelect
     })
     observer.observe(document.body, { childList: true, subtree: true })
     return () => observer.disconnect()
-  }, [])
+  }, [contentSelector])
 
   useEffect(() => {
     // One directional move, from wherever the pad is (see navAnchor).
@@ -333,8 +374,14 @@ export function useKeyboardNav({ onPageStep, onEscape, activePage, contentSelect
       }
       if (!next) return false
       if (vertical && previous && previous.key !== key && previous.from.isConnected && isVisible(previous.from) &&
+        // Back is back: the control this move came from, whenever it is still clear in the way
+        // back and still says what it said (a re-used row is not it; then only the old rule,
+        // another column of the same row, applies). The geometry alone can choose another one -- a nearer control that only the way
+        // back sees (the Library's New-game card ends a few pixels over the selected
+        // configuration's actions; the Assistant's link sits between its Test button and the
+        // row below) -- and Up then did not undo Down.
         directionalTarget(origin!, [previous.from], key) === previous.from &&
-        Math.abs(navBox(previous.from).top - navBox(next).top) <= 8) {
+        ((previous.from.textContent ?? '') === previous.label || Math.abs(navBox(previous.from).top - navBox(next).top) <= 8)) {
         path.pop()
         previous.from.focus({ preventScroll: true })
         if (!ensureVisible(previous.from)) previous.from.scrollIntoView({ block: 'nearest', inline: 'nearest' })
@@ -342,7 +389,7 @@ export function useKeyboardNav({ onPageStep, onEscape, activePage, contentSelect
       }
       if (previous && previous.key !== key) path.length = 0
       if (vertical && origin && next !== origin) {
-        path.push({ from: origin, to: next, key, overlay, page: activePageRef.current })
+        path.push({ from: origin, to: next, key, overlay, page: activePageRef.current, label: origin.textContent ?? '' })
         if (path.length > 100) path.shift()
       }
       next.focus({ preventScroll: true })
@@ -530,7 +577,10 @@ export function shellTarget(current: HTMLElement | null, key: string, remembered
     case 'page-tabs':
       if (key === 'ArrowDown') return pageEntry(remembered)
       if (key === 'ArrowUp') return directionalTarget(current, withinScope('titlebar'), key) ?? withinScope('titlebar')[0]
-      return within()
+      // The tabs sit in the title bar's one row (console v2, V3): past the
+      // last tab, Right reaches the status chip and the "…" options button,
+      // and Left before the first reaches the game chip (UX review, B4).
+      return within() ?? directionalTarget(current, withinScope('titlebar'), key)
     case 'sections':
       return key === 'ArrowRight' ? pageEntry(remembered) : key === 'ArrowLeft' ? undefined : within()
     case 'page': {
@@ -586,8 +636,32 @@ export function directionalTarget(current: HTMLElement, candidates: HTMLElement[
     })
     return nearestIn(current, past, direction, true)
   }
+  // Up and Down stay in the scroll area they are in until it has nothing more
+  // that way: in a scrolled sub-page the header's status chip is nearer than a
+  // row scrolled out of view above, and Up used to jump to it, so the walk back
+  // up a long page never retraced itself. Only a control straight ahead keeps
+  // the walk in the scroll area: a row of the next column over (Feel it's
+  // Up, onto the left column's last row) must not win over the header's chip
+  // that is straight above it.
+  if (!horizontal) {
+    const scroller = scrollParent(current)
+    if (scroller) {
+      const inside = candidates.filter(candidate => scroller.contains(candidate))
+      const next = inside.length ? nearestIn(current, inside, direction, true) : undefined
+      if (next) return next
+    }
+  }
   // From outside any region, a region is entered like anything else.
   return nearestIn(current, candidates, direction)
+}
+
+/** The nearest ancestor that scrolls vertically and has something to scroll. */
+function scrollParent(element: HTMLElement) {
+  for (let node = element.parentElement; node && node !== document.body; node = node.parentElement) {
+    const overflow = getComputedStyle(node).overflowY
+    if ((overflow === 'auto' || overflow === 'scroll') && node.scrollHeight > node.clientHeight + 1) return node
+  }
+  return null
 }
 
 function nearestIn(current: HTMLElement, candidates: HTMLElement[], direction: string, straightOnly = false) {

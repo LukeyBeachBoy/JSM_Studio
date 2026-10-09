@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Menu details</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7cc4ee}a:hover{color:#b8e2fa}
+.g{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e8eef4;color:#0d1217;font-weight:700;font-size:14px;flex:none}
+.gp{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 8px;box-sizing:border-box;border-radius:8px;background:#e8eef4;color:#0d1217;font-weight:700;font-size:12px;flex:none}
+.focus{box-shadow:0 0 0 3px #3e9fd8,0 0 0 7px rgba(62,159,216,.2)}
+.panel{background:#1a222b;border-radius:20px;padding:18px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.ph{display:flex;align-items:baseline;justify-content:space-between;margin:0 4px 4px}
+.ph b{font-size:22px;font-weight:700}
+.ph span{font-size:15px;color:#808c99}
+.lbl{font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:#808c99;font-weight:600;margin:8px 4px 2px}
+.r{font-family:inherit;border:0;cursor:pointer;width:100%;display:flex;align-items:center;gap:12px;min-height:52px;padding:8px 18px;box-sizing:border-box;border-radius:12px;background:#1f2730;color:#e8eef4;text-align:left}
+.r .t{font-size:17px;font-weight:600}
+.r .s{font-size:15px;color:#808c99}
+.r .v{margin-left:auto;font-size:17px;font-weight:600;white-space:nowrap;color:#d4dde6}
+.sw{width:52px;height:30px;border-radius:15px;background:#2e3844;position:relative;flex:none;margin-left:auto}
+.sw span{position:absolute;top:4px;left:4px;width:22px;height:22px;border-radius:50%;background:#808c99}
+.tick{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:15px;background:#24323f;font-size:15px;font-weight:600;color:#b8e2fa}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #131920; font-family: Geist, system-ui, sans-serif; color: #e8eef4; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="height: 76px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 40px; background: #0d1217">
+<span style="font-size: 18px; color: #808c99">Wardogs · Menus · Weapon wheel</span>
+<span style="font-size: 18px; color: #5b6571">▸</span>
+<span style="font-size: 22px; font-weight: 700">Details</span>
+<span style="margin-left: auto; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 20px; background: #1e3d33; color: #93e6c1; font-size: 16px; font-weight: 600"><span style="width: 9px; height: 9px; border-radius: 50%; background: #5fd3a0"></span>Live · saved</span>
+</header>
+
+<main style="flex: 1; min-height: 0; display: grid; grid-template-columns: 300px minmax(0, 1fr) minmax(0, 1fr); gap: 24px; padding: 28px 40px 24px">
+
+<div class="panel" style="gap: 12px; align-self: start">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 17px; font-weight: 600">Preview</span><span style="font-family: 'Geist Mono', monospace; font-size: 14px; color: #a6d65a">● live</span></div>
+<svg viewBox="0 0 264 264" width="264" height="264" fill="none">
+<g transform="scale(0.66)">
+<circle cx="200" cy="200" r="177" fill="#0f141a"></circle>
+<path d="M132.65 37.40A176 176 0 0 1 267.35 37.40L222.96 144.57A60 60 0 0 0 177.04 144.57Z" fill="#3e9fd8"></path>
+<path d="M267.35 37.40A176 176 0 0 1 362.60 132.65L255.43 177.04A60 60 0 0 0 222.96 144.57Z" fill="#0f141a"></path>
+<path d="M362.60 132.65A176 176 0 0 1 362.60 267.35L255.43 222.96A60 60 0 0 0 255.43 177.04Z" fill="#131a21"></path>
+<path d="M362.60 267.35A176 176 0 0 1 267.35 362.60L222.96 255.43A60 60 0 0 0 255.43 222.96Z" fill="#0f141a"></path>
+<path d="M267.35 362.60A176 176 0 0 1 132.65 362.60L177.04 255.43A60 60 0 0 0 222.96 255.43Z" fill="#131a21"></path>
+<path d="M132.65 362.60A176 176 0 0 1 37.40 267.35L144.57 222.96A60 60 0 0 0 177.04 255.43Z" fill="#0f141a"></path>
+<path d="M37.40 267.35A176 176 0 0 1 37.40 132.65L144.57 177.04A60 60 0 0 0 144.57 222.96Z" fill="#131a21"></path>
+<path d="M37.40 132.65A176 176 0 0 1 132.65 37.40L177.04 144.57A60 60 0 0 0 144.57 177.04Z" fill="#0f141a"></path>
+<g stroke="rgba(255,255,255,.08)" stroke-width="1.5"><circle cx="200" cy="200" r="176"></circle><path d="M132.65 37.40L177.04 144.57M267.35 37.40L222.96 144.57M362.60 132.65L255.43 177.04M362.60 267.35L255.43 222.96M267.35 362.60L222.96 255.43M132.65 362.60L177.04 255.43M37.40 267.35L144.57 222.96M37.40 132.65L144.57 177.04"></path></g>
+<circle cx="200" cy="58" r="9" stroke="#07131d" stroke-width="2.2"></circle><rect x="168" y="76" width="64" height="20" rx="4" fill="rgba(7,19,29,.18)"></rect><rect x="180" y="84" width="40" height="4" rx="2" fill="#07131d" opacity=".8"></rect><rect x="189" y="100" width="22" height="18" rx="4" fill="rgba(7,19,29,.18)"></rect>
+<circle cx="283" cy="93" r="9" stroke="#e8eef4" stroke-width="2.2"></circle><rect x="251" y="111" width="64" height="20" rx="4" fill="#2b3138"></rect><rect x="263" y="119" width="40" height="4" rx="2" fill="#e8eef4" opacity=".8"></rect><rect x="272" y="135" width="22" height="18" rx="4" fill="#2b3138"></rect>
+<circle cx="318" cy="176" r="9" stroke="#e8eef4" stroke-width="2.2"></circle><rect x="286" y="194" width="64" height="20" rx="4" fill="#2b3138"></rect><rect x="298" y="202" width="40" height="4" rx="2" fill="#e8eef4" opacity=".8"></rect><rect x="307" y="218" width="22" height="18" rx="4" fill="#2b3138"></rect>
+<circle cx="283" cy="259" r="9" stroke="#e8eef4" stroke-width="2.2"></circle><rect x="251" y="277" width="64" height="20" rx="4" fill="#2b3138"></rect><rect x="263" y="285" width="40" height="4" rx="2" fill="#e8eef4" opacity=".8"></rect><rect x="272" y="301" width="22" height="18" rx="4" fill="#2b3138"></rect>
+<circle cx="200" cy="294" r="9" stroke="#e8eef4" stroke-width="2.2"></circle><rect x="168" y="312" width="64" height="20" rx="4" fill="#2b3138"></rect><rect x="180" y="320" width="40" height="4" rx="2" fill="#e8eef4" opacity=".8"></rect><rect x="189" y="336" width="22" height="18" rx="4" fill="#2b3138"></rect>
+<circle cx="117" cy="259" r="9" stroke="#e8eef4" stroke-width="2.2"></circle><rect x="85" y="277" width="64" height="20" rx="4" fill="#2b3138"></rect><rect x="97" y="285" width="40" height="4" rx="2" fill="#e8eef4" opacity=".8"></rect><rect x="106" y="301" width="22" height="18" rx="4" fill="#2b3138"></rect>
+<circle cx="82" cy="176" r="9" stroke="#e8eef4" stroke-width="2.2"></circle><rect x="50" y="194" width="64" height="20" rx="4" fill="#2b3138"></rect><rect x="62" y="202" width="40" height="4" rx="2" fill="#e8eef4" opacity=".8"></rect><rect x="71" y="218" width="22" height="18" rx="4" fill="#2b3138"></rect>
+<circle cx="117" cy="93" r="9" stroke="#e8eef4" stroke-width="2.2"></circle><rect x="85" y="111" width="64" height="20" rx="4" fill="#2b3138"></rect><rect x="97" y="119" width="40" height="4" rx="2" fill="#e8eef4" opacity=".8"></rect><rect x="106" y="135" width="22" height="18" rx="4" fill="#2b3138"></rect>
+<circle cx="200" cy="200" r="60" fill="#0f141a" stroke="rgba(255,255,255,.16)" stroke-width="1.5"></circle>
+<circle cx="200" cy="200" r="40" stroke="#3e9fd8" stroke-width="2" stroke-dasharray="4 5"></circle>
+</g>
+</svg>
+<span style="font-size: 15px; color: #808c99">360 px wide · names 18 px · keys 18 px</span>
+<svg viewBox="0 0 264 150" width="264" height="150" fill="none">
+<rect x="1" y="1" width="262" height="148" rx="8" fill="#0f151b" stroke="#2e3844" stroke-width="1.5"></rect>
+<circle cx="132" cy="75" r="34" fill="rgba(62,159,216,.16)" stroke="#7cc4ee" stroke-width="1.6"></circle>
+<rect x="18" y="86" width="46" height="46" rx="8" stroke="#5fd3a0" stroke-opacity=".7" stroke-dasharray="3 3"></rect>
+<circle cx="214" cy="42" r="24" stroke="#f0a05a" stroke-opacity=".7" stroke-dasharray="3 3"></circle>
+<circle cx="132" cy="75" r="3" fill="#ffffff"></circle>
+</svg>
+<span style="font-size: 15px; color: #808c99">All three menus where they open</span>
+</div>
+
+<div class="panel">
+<div class="ph"><b>Opened by</b><span>Controls 1 of 1</span></div>
+<span class="lbl">Navigate</span>
+<button class="r"><span class="t">Navigate with</span><span class="v">Right stick</span></button>
+<button class="r"><span class="t">Stick moves</span><span class="v">Straight to a slice</span></button>
+<span class="lbl">Open and pick</span>
+<button class="r"><span class="t">How it opens</span><span class="v">Always ready</span></button>
+<button class="r" style="opacity: .45"><span style="display: flex; flex-direction: column; gap: 2px"><span class="t">Opener</span><span class="s">A button, held or released</span></span><span class="v">Hold or toggle only</span></button>
+<div class="focus" style="background: #1d445c; border-radius: 12px; padding: 12px 18px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; gap: 12px"><span style="font-size: 17px; font-weight: 650">When it picks</span><span style="margin-left: auto; font-size: 18px; font-weight: 700; white-space: nowrap"><span style="color: #7cc4ee">◂</span> Stick returns <span style="color: #7cc4ee">▸</span></span></div>
+<span style="font-size: 15px; line-height: 1.45; color: #b8e2fa">Let the stick spring back and the highlighted slice is used.</span>
+</div>
+<button class="r" style="opacity: .45"><span style="display: flex; flex-direction: column; gap: 2px"><span class="t">Confirm button</span><span class="s">When it picks on a press</span></span><span class="v">Stick click</span></button>
+<button class="r"><span style="display: flex; flex-direction: column; gap: 2px"><span class="t">Cancel button</span><span class="s">Closes without picking</span></span><span class="v">None</span></button>
+<button class="r" style="background: transparent; box-shadow: inset 0 0 0 2px #2e3844; margin-top: 4px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b0bcc8" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg><span class="t" style="color: #d4dde6">Another way to open it</span><span class="v" style="color: #808c99; font-weight: 500">Pad or stick</span></button>
+</div>
+
+<div class="panel">
+<div class="ph"><b>More</b><span>Weapon wheel</span></div>
+<span class="lbl">Text and icons</span>
+<button class="r"><span class="t">Slice name size</span><span class="v">18 px</span></button>
+<button class="r"><span class="t">Key size</span><span class="v">18 px</span></button>
+<button class="r"><span class="t">Shows</span><span style="margin-left: auto; display: flex; gap: 6px"><span class="tick">✓ Names</span><span class="tick">✓ Keys</span><span class="tick">✓ Icons</span></span></button>
+<span class="lbl">Wheel centre</span>
+<button class="r"><span style="display: flex; flex-direction: column; gap: 2px"><span class="t">Centre action</span><span class="s">Its own binding, like holster</span></span><span class="sw"><span></span></span></button>
+<button class="r"><span style="display: flex; flex-direction: column; gap: 2px"><span class="t">Centre dead zone</span><span class="s">The dashed ring picks nothing</span></span><span class="v">20%</span></button>
+<span class="lbl">On screen</span>
+<button class="r"><span class="t">Appears</span><span class="v">When opened</span></button>
+<button class="r"><span style="display: flex; flex-direction: column; gap: 2px"><span class="t">Position all menus</span><span class="s">See overlaps, match positions</span></span><span class="v" style="color: #808c99">▸</span></button>
+<button class="r" style="margin-top: 4px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffb3bd" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"></path></svg><span class="t" style="color: #ffb3bd">Delete this menu</span></button>
+</div>
+</main>
+
+<footer style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: #0d1217; border-top: 1px solid #1f2730; font-size: 17px; color: #b0bcc8">
+<span>Wardogs · Menus · Weapon wheel · Details</span>
+<div style="display: flex; align-items: center; gap: 24px">
+<span style="display: flex; align-items: center; gap: 10px">◂ ▸ Change</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">Y</span>Remove these controls</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="gp">LT</span><span class="gp">RT</span>Panel</span>
+<span style="display: flex; align-items: center; gap: 10px"><span class="g">B</span>Back to the menu</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

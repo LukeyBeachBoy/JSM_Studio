@@ -38,13 +38,18 @@ const { chromium } = require('C:/Users/luker/.cache/codex-runtimes/codex-primary
     if (await onboarding.waitFor({ state: 'visible', timeout: 3000 }).then(() => true).catch(() => false)) {
       await onboarding.getByRole('button', { name: 'Keep them', exact: true }).click()
     }
-    await page.getByRole('button', { name: /Global chords/i }).first().click()
-    await page.locator('[class*="rowMain"]').first().click()
-    await page.getByRole('button', { name: 'Add OR alternative', exact: true }).click()
-    const create = page.locator('[class*="triggerGroup"]').nth(1).getByRole('button', { name: 'Create / Share', exact: true })
+    // Console v2: Settings ▸ Hold to swap; Y on the card opens the entry, and
+    // "Choose from a list" names every button this controller has.
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('jsm:navigate-page', { detail: 'globalChords' })))
+    const card = page.locator('[data-chord-card]').first()
+    await card.waitFor()
+    await card.focus()
+    await page.keyboard.press('y')
+    await page.getByRole('button', { name: 'Choose from a list' }).first().click()
+    const create = page.getByRole('group', { name: 'Buttons to hold together' }).getByRole('button', { name: 'Create / Share', exact: true })
     await create.click()
-    await page.waitForFunction(() => [...document.querySelectorAll('button')].some(button => button.textContent === 'Create / Share' && button.getAttribute('aria-pressed') === 'true' && !button.matches(':disabled')))
-    assert.equal(await page.getByRole('button', { name: 'Touchpad click', exact: true }).count(), 2)
+    await page.waitForFunction(() => [...document.querySelectorAll('button')].some(button => button.textContent.includes("Create / Share") && button.getAttribute('aria-pressed') === 'true' && !button.matches(':disabled')))
+    assert.equal(await page.getByRole('button', { name: 'Touchpad click', exact: true }).count(), 1)
     for (const command of ['L3', 'R3']) {
       assert.equal(await page.locator(`svg[data-glyph="${command}"] text`).first().textContent(), command)
     }

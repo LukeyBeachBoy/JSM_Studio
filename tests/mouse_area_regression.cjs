@@ -191,6 +191,17 @@ assert.match(padSection, /setting=\{key\('TOUCHPAD_AREA_FIT'\)\}/);
 const settingsSection = read('JSM_GUI/jsm_gui_tauri/src/components/keymap/TouchpadSettingsSection.tsx');
 assert.match(settingsSection, /<option value="MOUSE_AREA">/);
 assert.match(settingsSection, /setting=\{key\('TOUCHPAD_AREA'\)\}/);
+// Console v2 (P4): the Trackpads front offers Mouse area as a card, and its
+// Screen area row draws the area; Pad fit is a segmented row on the front and
+// in Fine-tune (Click, Mouse area).
+const padModes = read('JSM_GUI/jsm_gui_tauri/src/components/trackpads/padModes.tsx');
+assert.match(padModes, /MOUSE_AREA: \{ label: 'Mouse area'/);
+assert.match(padModes, /case 'MOUSE_AREA': return \{ \[modeKey\]: 'MOUSE_AREA' \}/);
+const trackpadsPage = read('JSM_GUI/jsm_gui_tauri/src/components/trackpads/TrackpadsPage.tsx');
+assert.match(trackpadsPage, /label="Screen area"[\s\S]*?onOpen=\{\(\) => pad\.card\.onPickMouseArea\?\.\(\)\}/);
+assert.match(trackpadsPage, /label="Pad fit"[^\n]*setting=\{`\$\{P\}TOUCHPAD_AREA_FIT`\}/);
+const trackpadFineTune = read('JSM_GUI/jsm_gui_tauri/src/components/trackpads/TrackpadFineTune.tsx');
+assert.match(trackpadFineTune, /label="Screen area"[\s\S]*?onOpen=\{\(\) => pad\.card\.onPickMouseArea\?\.\(\)\}/);
 const controls = read('JSM_GUI/jsm_gui_tauri/src/components/KeymapControls.tsx');
 assert.match(controls, /mouseAreas\.LEFT\.pick\(livePadAspect\)/);
 assert.match(controls, /mouseAreas\.RIGHT\.pick\(livePadAspect\)/);
@@ -204,6 +215,11 @@ const lib = read('JSM_GUI/jsm_gui_tauri/src-tauri/src/lib.rs');
 for (const command of ['area_picker_open', 'area_picker_state', 'area_picker_next_monitor', 'area_picker_close']) {
   assert.match(lib, new RegExp(`commands::${command},`), `${command} registered`);
 }
+// Building a window from a synchronous command deadlocks on Windows: Draw on
+// screen hung there and the picker never appeared (2026-10-08). Async, and the
+// window is prebuilt at startup.
+assert.match(read('JSM_GUI/jsm_gui_tauri/src-tauri/src/commands.rs'), /pub async fn area_picker_open\(/, 'area_picker_open must be async');
+assert.ok(read('JSM_GUI/jsm_gui_tauri/src-tauri/src/lib.rs').includes('services::area_picker::prepare(&app.handle());'), 'the picker window is built at startup');
 const picker = read('JSM_GUI/jsm_gui_tauri/src-tauri/src/services/area_picker.rs');
 // It takes input (unlike the overlay) and puts Studio out of the way of the game.
 assert.match(picker, /set_ignore_cursor_events\(false\)/);
