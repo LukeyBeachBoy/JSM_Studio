@@ -76,7 +76,7 @@ export function SteamImportDialog({ onClose, onImport, libraryProfiles = [] }: P
   const templates = (layouts ?? []).filter(layout => layout.source === 'template')
   const row = (layout: SteamLayoutFile, first: boolean) => (
     <li key={layout.path}>
-      <button type="button" className={styles.row} onClick={() => void choose(layout)} data-hints="A:Review;B:Back" data-caption={`${layout.title} · ${layout.path}`} data-autofocus={first ? '' : undefined}>
+      <button type="button" className={styles.row} onClick={() => void choose(layout)} data-hints="A:Review;B:Back" data-caption={`${layout.title} · ${fileName(layout.path)}`} data-autofocus={first ? '' : undefined}>
         <Icon name="library" size={24} />
         <span>
           <span className={styles.rowName}>{layout.title}</span>

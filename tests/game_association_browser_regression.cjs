@@ -131,13 +131,13 @@ const shotsDir = process.env.JSM_DIALOG_SHOTS || path.join(__dirname, '..', 'tmp
     assert.equal(await page.locator('[data-profile="Cyberpunk"] img[data-app-icon]').count(), 0);
     await page.keyboard.press('y');
     await page.getByRole('dialog', { name: 'Cyberpunk' }).getByRole('button', { name: /^Launch with game/ }).click();
-    const edit = page.getByRole('dialog', { name: 'Game for Cyberpunk' });
+    const edit = page.getByRole('dialog', { name: /Launch with game$/ });
     await edit.waitFor({ timeout: 3000 });
     assert.equal(await edit.getByRole('switch').getAttribute('aria-checked'), 'true', 'a live rule opens with auto-apply on');
     await edit.getByRole('combobox', { name: 'Running now' }).click();
     await page.getByRole('option', { name: /Cyberpunk2077\.exe/ }).click();
     await edit.getByText('C:\\Games\\Cyberpunk 2077\\bin\\x64\\Cyberpunk2077.exe').waitFor({ timeout: 3000 });
-    await edit.getByRole('button', { name: 'Save' }).click();
+    await edit.getByRole('button', { name: 'Save', exact: true }).click();
     await edit.waitFor({ state: 'hidden', timeout: 3000 });
     await page.locator('[data-profile="Cyberpunk"] img[data-app-icon]').waitFor({ timeout: 3000 });
     await page.waitForTimeout(500);

@@ -185,7 +185,7 @@ export function AssociationsPage({ libraryProfiles, autoloadEnabled, runtimeBusy
                   </button>
                   <span className={lib.loads}>loads<span className={lib.loadsChip}>{rule.kind === 'profile' && rule.profileName ? <>{swatch(rule.profileName)}{rule.profileName}{rule.missingProfile ? ' (missing)' : ''}</> : 'Custom'}</span></span>
                   <Switch on={!rule.paused} label={`${exeName(rule.processName)} on`} disabled={runtimeBusy} onChange={on => void setPaused(rule, !on)} />
-                  {live && <p className={lib.appHint}>Goes live whenever it comes to the front. A picks a different configuration.</p>}
+                  {live && <p className={lib.appHint}>Goes live when this game is in front.</p>}
                 </li>
               )
             })}

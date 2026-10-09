@@ -21,6 +21,7 @@ export type ModeCard = {
   art?: ReactNode
   /** Still focusable, says why it can't be used here (Kit: unavailable). */
   unavailable?: string
+  skipNavigation?: boolean
   /** Extra data-* attributes on the card (a test hook, a glyph the footer reads). */
   data?: Record<`data-${string}`, string | undefined>
 }
@@ -45,7 +46,7 @@ type ModeCardsProps = {
   hints?: string
 }
 
-export function ModeCards({ label, note, options, value, onChange, more, columns = 4, variant = 'picture', useLabel, className, hints }: ModeCardsProps) {
+export function ModeCards({ label, note, options, value, onChange, more, columns = 4, variant = 'picture', useLabel: actionLabel, className, hints }: ModeCardsProps) {
   const extra = hints ? `;${hints}` : ''
   return (
     <section className={`${styles.wrap} ${className ?? ''}`.trim()} aria-label={typeof label === 'string' ? label : undefined}>
@@ -61,9 +62,9 @@ export function ModeCards({ label, note, options, value, onChange, more, columns
           return (
             <button key={option.value} type="button" role="radio" aria-checked={current} className={styles.card} data-variant={variant}
               data-current={current ? 'true' : undefined} data-value={option.value} {...option.data}
-              aria-disabled={option.unavailable ? 'true' : undefined} data-reason={option.unavailable}
+              aria-disabled={option.unavailable ? 'true' : undefined} data-reason={option.unavailable} tabIndex={option.skipNavigation ? -1 : undefined}
               // The page's hints come last so its B ("Layout" on a front) wins over the default.
-              data-hints={option.unavailable ? `B:Back${extra}` : `A:${useLabel ? useLabel(option) : `Use ${option.label}`};B:Back${extra}`}
+              data-hints={option.unavailable ? `B:Back${extra}` : `A:${actionLabel ? actionLabel(option) : `Use ${option.label}`};B:Back${extra}`}
               data-caption={typeof option.caption === 'string' ? `${option.label} · ${option.caption}` : undefined} data-caption-label={option.label}
               onClick={() => { if (!option.unavailable) onChange(option.value) }}>
               {option.art && <span className={styles.art} aria-hidden="true">{option.art}</span>}

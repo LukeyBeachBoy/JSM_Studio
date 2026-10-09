@@ -68,6 +68,7 @@ type Props = {
   onImportFile: (fileName: string, content: string) => void
   /** Start from another configuration: a copy named for the game. */
   onCopyFrom: (source: string, name: string, game: NewGame) => Promise<void>
+  onOpenExisting?: (name: string) => void
 }
 
 const HOLD_MS = 900
@@ -204,6 +205,17 @@ export function NewConfigurationFlow(props: Props) {
     onDone: value => { const trimmed = value.trim(); if (trimmed) { setName(trimmed); setTypedName(true) } },
   })
   const canLaunch = Boolean(game?.processName)
+  const requestedName = (name || game?.name || 'New configuration').trim()
+  const existingName = libraryProfiles.find(entry => entry.toLowerCase() === requestedName.toLowerCase())
+  let availableName = requestedName
+  for (let suffix = 2; libraryProfiles.some(entry => entry.toLowerCase() === availableName.toLowerCase()); suffix++) availableName = `${requestedName} ${suffix}`
+  const openExisting = async () => {
+    if (!existingName || !props.onOpenExisting) return
+    ending.current = true
+    if (testing) await onEndTry(true)
+    props.onOpenExisting(existingName)
+  }
+  const nameConflict = existingName ? <div role="status"><p>{existingName} already exists. This copy will be {availableName}.</p>{props.onOpenExisting && <button type="button" className={styles.field} data-hints="A:Open existing;B:Back" onClick={() => void openExisting()}>Open {existingName}</button>}</div> : null
   const launchReason = !game || game.kind === 'none' ? 'Pick a game first' : !game.processName ? 'Start the game once to link it' : undefined
 
   // ---- Step 2: presets.
@@ -240,7 +252,7 @@ export function NewConfigurationFlow(props: Props) {
   }, [testing, step, tryState])
 
   const create = async (): Promise<string | null> => {
-    const finalName = (name || game?.name || 'New configuration').trim()
+    const finalName = availableName
     return onCreate({ name: finalName, processName: game?.processName, exePath: game?.exePath, autoApply: canLaunch && launch, text: draftText })
   }
   const keep = async (next: 'layout' | 'change') => {
@@ -424,7 +436,7 @@ export function NewConfigurationFlow(props: Props) {
                     data-hints="A:Choose & next;X:Launch with game;Y:Rename;B:Cancel" onFocus={() => pickGame(candidate)} onClick={() => { pickGame(candidate); setStep(2) }}>
                     <span className={styles.thumb}>{thumb ? <img className={styles.thumb} src={thumb} alt="" /> : <Icon name="associations" size={22} />}</span>
                     <span><b>{candidate.name}</b><small>{exeFileName(process.processName)}</small></span>
-                    {current && <p>Its name and art come along. Change either later.</p>}
+                    {current && <p>Selected game</p>}
                   </button>
                 )
               })}
@@ -462,10 +474,11 @@ export function NewConfigurationFlow(props: Props) {
           <p className={styles.eyebrow} style={{ margin: 0 }}>Your new configuration</p>
           <div className={styles.hero}>{heroArt && <img src={heroArt} alt="" />}<b>{game && game.kind !== 'none' ? game.name : 'No game'}</b></div>
           <button type="button" className={styles.field} data-hints="A:Rename;Y:Rename;B:Cancel" onClick={rename}>
-            <span>Name</span><b>{name || game?.name || 'New configuration'}</b><small>{typedName ? 'Y to rename' : game?.exePath ? 'From the game’s folder · Y to rename' : 'Y to rename'}</small>
+            <span>Name</span><b>{availableName}</b><small>{game?.exePath ? 'From the game’s folder' : 'Library name'}</small>
           </button>
+          {nameConflict}
           <div className={styles.toggleRow}>
-            <span><b>Launch with game</b><small>Off: it only wears the game’s art. On: it goes live whenever the game is in front.{launchReason && game?.kind === 'steam' ? ` ${launchReason}.` : ''}</small></span>
+            <span><b>Launch with game</b><small>{launch ? 'Goes live when this game is in front.' : 'Uses the game’s name and art.'}{launchReason && game?.kind === 'steam' ? ` ${launchReason}.` : ''}</small></span>
             <Switch on={canLaunch && launch} label="Launch with game" disabled={!canLaunch} onChange={setLaunch} />
           </div>
           <p className={styles.foot}>Next, pick how you want to play. Importing from Steam or a file is there too.</p>
@@ -552,6 +565,7 @@ export function NewConfigurationFlow(props: Props) {
         </section>
         <aside className={styles.aside} aria-label="What was sent">
           <p className={styles.eyebrow} style={{ margin: 0, display: 'flex' }}>What was sent<span className={styles.liveDot}>● live</span></p>
+          {nameConflict}
           <ul className={styles.log} aria-live="polite">
             {log.length === 0 && <li><time /><span /><span style={{ color: 'var(--text-2)' }}>Press a button, pull a trigger, touch a pad.</span></li>}
             {log.map((entry, index) => (

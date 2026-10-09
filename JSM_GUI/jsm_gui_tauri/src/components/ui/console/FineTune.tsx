@@ -60,6 +60,11 @@ function clampSideways(root: HTMLElement | null, event: KeyboardEvent<HTMLDivEle
   if (!root || event.defaultPrevented || (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight')) return
   const active = document.activeElement as HTMLElement | null
   if (!active || !root.contains(active) || active.matches('[data-arrows="horizontal"], input, textarea, select')) return
+  if (event.key === 'ArrowLeft' && active.closest('[data-nav-region="fine-tune-content"]')) {
+    event.preventDefault()
+    root.querySelector<HTMLElement>('[data-nav-region="fine-tune-rail"] [aria-current="true"]')?.focus({ preventScroll: true })
+    return
+  }
   const items = Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(item => item.getClientRects().length > 0 && !item.matches(NAV_SKIP_SELECTOR) && !item.closest('[aria-hidden="true"]'))
   if (!directionalTarget(active, items, event.key)) event.preventDefault()
 }

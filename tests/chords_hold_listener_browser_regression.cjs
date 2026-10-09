@@ -21,6 +21,7 @@ const PROFILE = ['RESET_MAPPINGS', 'RSL = SPACE', 'L = G', 'S = E'].join('\n') +
     await page.waitForFunction(() => window.__pad && document.querySelector('.titlebar') && window.electronAPI?.saveLibraryProfile);
     await page.waitForTimeout(800);
     await page.evaluate(text => window.electronAPI.saveLibraryProfile('Chords', text), PROFILE);
+    await page.evaluate(() => window.dispatchEvent(new Event('jsm:library-changed')));
     await page.evaluate(() => window.dispatchEvent(new CustomEvent('jsm:navigate-page', { detail: 'configurations' })));
     await page.locator('[data-profile="Chords"] > button').first().focus();
     await page.keyboard.press('Enter');

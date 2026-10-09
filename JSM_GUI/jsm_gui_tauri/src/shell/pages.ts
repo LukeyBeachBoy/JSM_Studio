@@ -101,4 +101,4 @@ export const slideOrder = (tab: PrimaryTab): PrimaryTab[] =>
 /** What LT/RT step on a page, as the footer and the rail name them (console v2
  *  Kit: "Section", "Category", "Mode", "Topic"). */
 export const stepLabel = (tab: PrimaryTab): string =>
-  studioHub(tab) === 'settings' ? (tab === 'help' ? 'Topic' : 'Category') : tab === 'overview' ? 'Layer' : 'Section'
+  studioHub(tab) === 'settings' ? 'Category' : tab === 'overview' ? 'Layer' : 'Section'

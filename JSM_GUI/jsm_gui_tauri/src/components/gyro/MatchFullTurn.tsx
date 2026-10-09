@@ -54,7 +54,7 @@ export function MatchFullTurn({ open, onClose, trail }: { open: boolean; onClose
       <PadActions x={turned.reset}><div className={styles.split} data-match-turn="">
         <section className={styles.visualCard}><MatchTurnVisual pointer={pointer} turned={turned} /></section>
         <section className={styles.splitRows}>
-          <header className={styles.pageHeading}><h1>Match a full turn (360°)</h1><p>One turn of the controller becomes one turn in game, so 1× means one turn. Three ways, in order of effort.</p></header>
+          <header className={styles.pageHeading}><h1>Match controller turning to the game</h1><p>Choose how to measure a full turn.</p></header>
           {mouseOnly && <Note tone="warn">{mouseOnly} A stick’s speed is its game turn rate, under Direction ▸ Stick settings.</Note>}
           <KeyNumberRow k="IN_GAME_SENS" label="In-game sensitivity" hint="Set this to the mouse sensitivity inside the game first" fallback={1} min={0} max={100} step={0.1} fineStep={0.01} disabled={mouseOnly} />
           <div className={styles.subhead}>1 · Measure it in game</div>

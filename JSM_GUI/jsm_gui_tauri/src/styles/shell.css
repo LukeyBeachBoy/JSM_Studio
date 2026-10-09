@@ -317,6 +317,11 @@ body[data-input-source='controller'] .test-banner__stop:focus { box-shadow: 0 0 
 }
 .shell-body[data-width='narrow'],
 .shell-body[data-sections='false'] { grid-template-columns: minmax(0, 1fr); }
+.shell-body[data-width='narrow'][data-sections='true'] { grid-template-rows: auto minmax(0, 1fr); }
+.shell-body[data-width='narrow'] .section-list { flex-direction: row; overflow-x: auto; padding: var(--sp-2) var(--sp-4); gap: var(--sp-2); }
+.shell-body[data-width='narrow'] .section-list__keys { display: none; }
+.shell-body[data-width='narrow'] .section-item { flex: none; margin: 0; }
+.shell-body[data-width='narrow'] .section-item::before { display: none; }
 
 .section-list {
   display: flex;

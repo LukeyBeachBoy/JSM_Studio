@@ -557,11 +557,8 @@ export function HelpDocsPage({ onOpenPage, focusSetting }: { onOpenPage?: (tab: 
   jumpRef.current = jumpToSection
   const onJump = useCallback((slug: string) => jumpRef.current(slug), [])
 
-  // ---- Console v2 (SettingsGuides, SettingsGuidesSearch): LT/RT step the
-  // topics (or, with a search, the next guide that has a match), LB/RB step
-  // the matches, Y types a search, X clears it, B goes back to the categories.
+  // LT/RT keep Settings category navigation; LB/RB step topics or matches.
   const host = useRef<HTMLDivElement | null>(null)
-  const inPage = () => Boolean(host.current?.contains(document.activeElement))
   const stepTopic = (direction: 1 | -1) => {
     const list = normalizedQuery ? topics.filter(entry => (topicMatches.get(entry.id) ?? 0) > 0) : topics
     if (!list.length) return
@@ -572,8 +569,7 @@ export function HelpDocsPage({ onOpenPage, focusSetting }: { onOpenPage?: (tab: 
     setTopicId(next.id)
     requestAnimationFrame(() => host.current?.querySelector<HTMLElement>(`[data-topic="${next.id}"]`)?.focus({ preventScroll: true }))
   }
-  useStepClaim('jsm:section-step', direction => { if (!inPage() && document.activeElement?.closest('.section-list')) return false; stepTopic(direction) })
-  useStepClaim('jsm:page-step', direction => { goToRelativeMatch(direction) }, Boolean(normalizedQuery))
+  useStepClaim('jsm:page-step', direction => { if (normalizedQuery) goToRelativeMatch(direction); else stepTopic(direction) })
   const askSearch = () => requestValueEntry({ title: 'Search the guides', eyebrow: 'Guides & reference', value: search, hint: 'Every guide and the manual, offline', onDone: value => setSearch(value) })
   const searchRef = useRef(askSearch)
   searchRef.current = askSearch
@@ -596,7 +592,7 @@ export function HelpDocsPage({ onOpenPage, focusSetting }: { onOpenPage?: (tab: 
   const guidesWithMatches = topics.filter(entry => (topicMatches.get(entry.id) ?? 0) > 0).length
   const totalMatches = topics.reduce((sum, entry) => sum + (topicMatches.get(entry.id) ?? 0), 0)
   const xHint = normalizedQuery ? 'X:Clear search' : topic.page ? `X:${topic.page.label}` : ''
-  const hints = (a: string) => [a, xHint, 'Y:Search', `LT/RT:${normalizedQuery ? 'Guide' : 'Topic'}`, normalizedQuery ? 'LB/RB:Match' : '', 'B:Categories'].filter(Boolean).join(';')
+  const hints = (a: string) => [a, xHint, 'Y:Search', 'LT/RT:Category', `LB/RB:${normalizedQuery ? 'Match' : 'Topic'}`, 'B:Categories'].filter(Boolean).join(';')
 
   return (
     <div ref={host} className={styles.docs}
@@ -610,7 +606,7 @@ export function HelpDocsPage({ onOpenPage, focusSetting }: { onOpenPage?: (tab: 
         document.querySelector<HTMLElement>('.section-list .section-item[aria-current="true"]')?.focus()
       }}>
       <nav className={styles.topics} aria-label="Guides" data-nav-region="topics">
-        <div className={styles.offline}><b>Guides &amp; reference</b><span className={styles.badge}>Works offline</span></div>
+        <div className={styles.offline}><span className={styles.badge}>Works offline</span></div>
         <button type="button" className={styles.searchButton} onClick={askSearch} data-hints="A:Search;B:Categories" data-caption="Search the guides · every guide and the manual">
           <svg width="16" height="16" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true"><circle cx="6" cy="6" r="4.25" /><path d="m9.2 9.2 3.3 3.3" /></svg>
           <span>{normalizedQuery ? `“${normalizedQuery}”` : 'Search the guides'}</span>
@@ -633,10 +629,10 @@ export function HelpDocsPage({ onOpenPage, focusSetting }: { onOpenPage?: (tab: 
             <span className={styles.findStatus} aria-live="polite">
               {totalMatches > 0 ? `${totalMatches} ${totalMatches === 1 ? 'match' : 'matches'} in ${guidesWithMatches} ${guidesWithMatches === 1 ? 'guide' : 'guides'} · ${matchCount ? `${activeMatchIndex + 1} of ${matchCount}` : '0'} here` : t('help.findStatusNoMatches')}
             </span>
-            <span className={styles.findNote}>LB and RB step through matches here. LT and RT jump to the next guide that has one. X clears.</span>
+            <span className={styles.findNote}>{guidesWithMatches} guides with matches</span>
           </div>
         )}
-        <span className={styles.topicKeys} aria-hidden="true">LT · {normalizedQuery ? 'Guide' : 'Topic'} · RT</span>
+        <span className={styles.topicKeys} aria-hidden="true">LB · {normalizedQuery ? 'Match' : 'Topic'} · RB</span>
         <div className={styles.topicList} role="tablist" aria-orientation="vertical">
           {topics.map(entry => {
             const count = topicMatches.get(entry.id) ?? 0

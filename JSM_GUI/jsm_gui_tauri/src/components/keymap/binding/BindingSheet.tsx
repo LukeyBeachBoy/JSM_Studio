@@ -179,7 +179,7 @@ export function BindingSheetBody({ api, initial, embedded }: Props) {
             const isSelected = !rareSelected && view === 'grid' && selected.kind === kind
             return (
               <button key={kind} type="button" role="tab" aria-selected={isSelected} className={styles.whenTile} data-when={kind} data-set={value ? 'true' : 'false'}
-                data-selected={isSelected ? 'true' : undefined} data-autofocus={!rareSelected && selected.kind === kind ? '' : undefined} data-index={index}
+                data-selected={isSelected ? 'true' : undefined} data-autofocus={view === 'grid' && !rareSelected && selected.kind === kind ? '' : undefined} data-index={index}
                 data-hints={tileHints(activation, Boolean(value))}
                 data-caption={`${activationLabel(kind, t)} · ${value ? `sends ${value}` : 'nothing yet'}`}
                 onFocus={() => { setSelected(activation); setView('grid') }}
@@ -189,7 +189,7 @@ export function BindingSheetBody({ api, initial, embedded }: Props) {
               </button>
             )
           })}
-          <button type="button" role="tab" data-autofocus={rareSelected ? '' : undefined} aria-selected={rareSelected || view === 'more'} aria-expanded={view === 'more'} className={styles.whenTile} data-when="more" data-more="true"
+          <button type="button" role="tab" data-autofocus={rareSelected || view === 'more' ? '' : undefined} aria-selected={rareSelected || view === 'more'} aria-expanded={view === 'more'} className={styles.whenTile} data-when="more" data-more="true"
             data-set={rareSelected ? (sendsOf(selected) ? 'true' : 'false') : 'true'} data-selected={rareSelected || view === 'more' ? 'true' : undefined}
             data-hints={view === 'more' ? `A:Hide more;${api.onRename ? 'Y:Rename;' : ''}B:Done` : `A:${t('bind.showMore', 'More ways to press')};${api.onRename ? 'Y:Rename;' : ''}B:Done`}
             data-caption={`More · ${moreKinds.map(kind => activationLabel(kind, t).replace(/…$/, '')).join(', ')}`}

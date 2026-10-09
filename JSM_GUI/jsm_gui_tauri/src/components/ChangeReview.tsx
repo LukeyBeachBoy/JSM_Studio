@@ -250,11 +250,11 @@ export function ChangeReview(props: Props) {
       <div ref={root} className={styles.page} role="region" aria-label="Review changes">
         <section className={styles.main} aria-label="Changes">
           <header className={styles.head}>
-            <h1>{changes.length} {changes.length === 1 ? 'change' : 'changes'}</h1>
-            <span>{savedLine}</span>
+            <h1>{changes.length ? `${changes.length} ${changes.length === 1 ? 'change' : 'changes'}` : 'All changes saved'}</h1>
+            {changes.length > 0 && <span>{savedLine}</span>}
           </header>
-          {!changes.length && <div className={styles.empty} data-autofocus="" tabIndex={0} data-hints="Y:Undo · redo;B:Back">
-            <Icon name="apply" size={32} /><h2>No pending changes</h2><p>Your configuration matches its saved version. Undo and Redo are beside this.</p>
+          {!changes.length && <div className={styles.empty}>
+            <Icon name="apply" size={32} /><h2>No pending changes</h2><p>Your configuration matches its saved version.</p>
           </div>}
           {groups.map(({ group, entries }, groupIndex) => <section className={styles.group} key={group.id} aria-label={group.label} style={group.hue ? { '--change-hue': group.hue } as CSSProperties : undefined}>
             <h2 className={styles.groupLabel}>{group.hue && <span className={styles.groupSwatch} aria-hidden="true" />}{group.label}<span className={styles.count}>{entries.length}</span></h2>
@@ -277,7 +277,6 @@ export function ChangeReview(props: Props) {
                 </span>
                 <span className={styles.revert} role="button" tabIndex={-1} aria-label={label} data-nav-skip
                   onClick={event => { event.stopPropagation(); if (!props.disabled) props.onRevert(change) }}><span className={styles.revertKey} aria-hidden="true">X</span>Revert</span>
-                <span className={styles.goCaption}>A goes to {row.input ? inputDisplayName(row.input, props.family) : row.name} so you can see it in place.</span>
               </button>
             })}
           </section>)}
@@ -300,14 +299,14 @@ export function ChangeReview(props: Props) {
               <Icon name="redo" size={20} /><span><b>Redo</b><small>{redoSentence ?? 'Nothing to redo'}</small></span>
             </button>
             <span className={styles.spacer} />
-            <button type="button" className={`${styles.hs} ${styles.save}`} aria-disabled={props.disabled || !changes.length ? 'true' : undefined} data-reason={!changes.length ? 'No unsaved changes' : undefined}
+            {changes.length > 0 && <><button type="button" className={`${styles.hs} ${styles.save}`} aria-disabled={props.disabled || !changes.length ? 'true' : undefined} data-reason={!changes.length ? 'No unsaved changes' : undefined}
               data-hints={changes.length ? 'A:Save and make live;B:Back' : 'B:Back'} onClick={() => { if (!props.disabled && changes.length) props.onApply() }}>
               <span className={styles.menuKey} aria-hidden="true"><Icon name="more" size={16} /></span><b>Save and make live</b>
             </button>
             <button type="button" className={`${styles.hs} ${styles.discard}`} aria-disabled={props.disabled || !changes.length ? 'true' : undefined} data-reason={!changes.length ? 'No unsaved changes' : undefined}
               data-hints={changes.length ? 'A:Discard;B:Back' : 'B:Back'} aria-label={`Discard all ${changes.length}`} onClick={() => { if (!props.disabled && changes.length) props.onRevertAll() }}>
               <Icon name="remove" size={20} /><span><b>Discard all {changes.length}</b><small>Back to the saved file</small></span>
-            </button>
+            </button></>}
           </div>
         </aside>
       </div>

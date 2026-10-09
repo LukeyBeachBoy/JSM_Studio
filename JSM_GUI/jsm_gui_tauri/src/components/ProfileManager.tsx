@@ -84,6 +84,15 @@ export function ProfileManager(props: ProfileManagerProps) {
   const [subWhere, setSubWhere] = useState<string | null>(null)
   const importRef = useRef<HTMLInputElement>(null)
   const pageRef = useRef<HTMLDivElement>(null)
+  const [importLanding, setImportLanding] = useState<string | null>(null)
+  useEffect(() => {
+    const selectImported = (event: Event) => {
+      const name = (event as CustomEvent<string>).detail
+      if (name) { setSelected(name); setImportLanding(name) }
+    }
+    window.addEventListener('jsm:library-select', selectImported)
+    return () => window.removeEventListener('jsm:library-select', selectImported)
+  }, [])
 
   // ---- What each configuration is, for covers and the detail.
   const liveState = useCallback((name: string): 'live' | 'older' | null => {
@@ -109,9 +118,9 @@ export function ProfileManager(props: ProfileManagerProps) {
   const games = useMemo(() => {
     const list = graph.games.filter(name => name !== desktopName)
     const stamp = (name: string) => meta[name]?.modifiedAtMs ?? 0
-    list.sort((a, b) => Number(b === appliedProfileName) - Number(a === appliedProfileName) || Number(b === currentProfileName) - Number(a === currentProfileName) || stamp(b) - stamp(a))
+    list.sort((a, b) => stamp(b) - stamp(a) || a.localeCompare(b))
     return desktopName ? [...list, desktopName] : list
-  }, [graph.games, desktopName, meta, appliedProfileName, currentProfileName])
+  }, [graph.games, desktopName, meta])
   const userBases = graph.bases.filter(name => name !== BUILTIN_CHORD_NAME)
   const presets = useMemo(() => {
     const seen = new Map<string, typeof builtinBases>()
@@ -237,6 +246,11 @@ export function ProfileManager(props: ProfileManagerProps) {
   // first one, never on <body> (UX review, B3).
   const shelfKey = items.join('\n')
   useEffect(() => {
+    if (!importLanding || data.loading) return
+    const cover = pageRef.current?.querySelector<HTMLElement>(`[data-profile="${CSS.escape(importLanding)}"] button, button[data-profile="${CSS.escape(importLanding)}"]`)
+    if (cover) { cover.focus(); setImportLanding(null) }
+  }, [importLanding, shelfKey, data.loading])
+  useEffect(() => {
     if (firstRun) return
     return landOn(pageRef.current, () => {
       const root = pageRef.current
@@ -272,7 +286,7 @@ export function ProfileManager(props: ProfileManagerProps) {
               <LibraryCover name={game} sub={coverSub(game)} live={liveState(game)} compact={compact} current={game === current}
                 steamAppId={graph.configs[game]?.game?.steamAppId} exePath={gameRule?.exePath} desktop={game === desktopName}
                 hints="A:Edit;X:Make live;Y:More;B:Home"
-                onFocus={() => setSelected(game)} onClick={() => { setSelected(game); edit(game) }} />
+                onFocus={() => setSelected(game)} onClick={event => { setSelected(game); if (event.detail === 0) edit(game) }} onDoubleClick={() => edit(game)} />
             </div>
           )
         })}
@@ -415,7 +429,7 @@ export function ProfileManager(props: ProfileManagerProps) {
                 <b>{base}</b>
                 <p>{blurb(texts[base])}</p>
                 <p className={styles.used}>{(graph.usedBy[base] ?? []).length ? `Used by ${(graph.usedBy[base] ?? []).join(', ')}` : 'Not used yet'}</p>
-                <p className={styles.hint}>A edits it. Every game on it follows.</p>
+                <p className={styles.hint}>Shared by the games built on it</p>
               </button>
             ))}
             {libraryProfiles.includes(BUILTIN_CHORD_NAME) && (
@@ -424,7 +438,7 @@ export function ProfileManager(props: ProfileManagerProps) {
                 <span className={styles.baseArt} aria-hidden="true"><InputGlyph command="LSL" family={family} size={36} /><span className={styles.arrowText}>→</span><Icon name="library" size={30} /></span>
                 <b>Hold to swap<span className={styles.builtTag}>BUILT IN</span></b>
                 <p>Hold buttons to swap to another whole configuration until you let go</p>
-                <p className={styles.hint}>Can’t be changed · copy it to make your own</p>
+                <p className={styles.hint}>Built-in base</p>
               </button>
             )}
             {presets.map(entry => {
@@ -432,12 +446,12 @@ export function ProfileManager(props: ProfileManagerProps) {
               const users = entry.flatMap(base => graph.builtinUsedBy[base.relativePath] ?? [])
               return (
                 <button key={id} type="button" role="listitem" className={styles.baseCard} data-builtin-base={entry[0].preset} aria-current={id === current ? 'true' : undefined}
-                  data-hints="A:Copy to make your own;B:Home" onFocus={() => setSelected(id)} onClick={() => void copyBuiltin(entry[0].relativePath, entry[0].title)}>
+                  data-hints="A:Select base;B:Home" onFocus={() => setSelected(id)} onClick={() => setSelected(id)}>
                   <span className={styles.baseArt} aria-hidden="true"><span className={styles.stack}><i style={{ background: 'var(--text-3)' }} /><i style={{ background: 'var(--accent)', width: 110 }} /></span></span>
                   <b>{entry[0].title}<span className={styles.builtTag}>BUILT IN</span></b>
                   <p>{entry[0].blurb}</p>
                   {users.length > 0 && <p className={styles.used}>Used by {users.join(', ')}</p>}
-                  <p className={styles.hint}>Can’t be changed · copy it to make your own{entry.length > 1 ? ` · ${entry.length} versions, by controller` : ''}</p>
+                  <p className={styles.hint}>Built-in base{entry.length > 1 ? ` · ${entry.length} controller variants` : ''}</p>
                 </button>
               )
             })}

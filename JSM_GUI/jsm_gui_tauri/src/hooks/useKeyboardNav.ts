@@ -326,7 +326,14 @@ export function useKeyboardNav({ onPageStep, onEscape, activePage, contentSelect
           if (!opened || opened.element === document.body || !opened.element.isConnected || lastOverlay.contains(opened.element)) returnFocus.set(overlay, previous)
         } else if (previous?.element.isConnected && isVisible(previous.element)) previous.element.focus({ preventScroll: true })
         else if (previous?.input && document.querySelector(`details[data-input-command="${CSS.escape(previous.input)}"] > summary`)) document.querySelector<HTMLElement>(`details[data-input-command="${CSS.escape(previous.input)}"] > summary`)?.focus()
-        else if (!overlay) {
+        else if (overlay) {
+          const active = document.activeElement
+          if (!active || active === document.body || !overlay.contains(active)) {
+            const preferred = overlay.querySelector<HTMLElement>('[data-autofocus]')
+            const target = preferred && isVisible(preferred) ? preferred : pageEntryTarget(focusablesIn(overlay))
+            target?.focus({ preventScroll: true })
+          }
+        } else {
           // The opener is gone (the dialog's action re-drew or removed it:
           // Save as copy, Delete, a toggle in a list): land on the page's
           // result -- what the page marks as its landing, else where the page
@@ -348,6 +355,15 @@ export function useKeyboardNav({ onPageStep, onEscape, activePage, contentSelect
     update()
     const observer = new MutationObserver(() => {
       if (topmostOverlay() !== lastOverlay || (lastOverlay && !lastOverlay.isConnected)) update()
+      // Inline picker content can disappear while its enclosing sheet stays
+      // mounted. Restore inside that sheet before another pad action arrives.
+      const overlay = topmostOverlay()
+      const active = document.activeElement
+      if (overlay && (!active || active === document.body || !overlay.contains(active))) {
+        const preferred = overlay.querySelector<HTMLElement>('[data-autofocus]')
+        const target = preferred && isVisible(preferred) ? preferred : pageEntryTarget(focusablesIn(overlay))
+        target?.focus({ preventScroll: true })
+      }
     })
     observer.observe(document.body, { childList: true, subtree: true })
     return () => observer.disconnect()
@@ -421,8 +437,7 @@ export function useKeyboardNav({ onPageStep, onEscape, activePage, contentSelect
       switch (event.key) {
         case 'Tab': {
           const overlay = topmostOverlay()
-          if (!overlay) return
-          const items = focusablesIn(overlay)
+          const items = focusablesIn(overlay ?? document.body)
           const index = items.indexOf(document.activeElement as HTMLElement)
           if (items.length && (index < 0 || (!event.shiftKey && index === items.length - 1) || (event.shiftKey && index === 0))) {
             event.preventDefault()

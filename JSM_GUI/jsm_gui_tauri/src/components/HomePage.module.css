@@ -61,7 +61,7 @@
 .summary { margin: 14px 0 0; font-size: calc(var(--fs-body) + 3px); line-height: 1.35; color: #c9d3dc; }
 
 /* ---- A Edit layout · X Test it · Y Switch game */
-.actions { display: flex; gap: var(--sp-4); }
+.actions { display: flex; gap: var(--sp-4); flex-shrink: 0; }
 .primary, .secondary {
   height: 76px;
   display: flex;
@@ -75,7 +75,8 @@
 }
 .primary { flex: 1; background: var(--accent-strong); color: var(--text-on-accent); font-size: calc(var(--fs-label) + 7px); font-weight: var(--fw-semibold); }
 .primary:hover { background: var(--accent); }
-.secondary { flex: 0 1 240px; background: var(--surface-control); color: var(--text-1); font-size: calc(var(--fs-label) + 5px); font-weight: var(--fw-semibold); }
+.secondary { flex: 1; background: var(--surface-control); color: var(--text-1); font-size: calc(var(--fs-label) + 5px); font-weight: var(--fw-semibold); }
+.actions > button { min-width: 0; white-space: nowrap; }
 .secondary:hover { background: var(--surface-control-hover); }
 .secondary[aria-disabled='true'] { color: var(--text-3); cursor: default; }
 .primaryGlyph { color: var(--text-on-accent); }
@@ -167,3 +168,17 @@
 .doorText { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .doorText b { font-size: calc(var(--fs-label) + 2px); font-weight: var(--fw-semibold); }
 .doorText span { font-size: var(--fs-hint); color: var(--text-3); }
+@media (max-width: 1279px) {
+  .actions { gap: 10px; }
+  .actions > button { height: 60px; gap: 8px; font-size: 18px; border-radius: 14px; }
+  .tuneTile { padding: 14px; gap: 8px; }
+  .tuneWords { font-size: 20px; }
+  .tuneHint { white-space: normal; }
+}
+@media (max-height: 760px) {
+  .hero { min-height: 180px; flex-basis: 240px; padding: 24px; }
+  .main { gap: 16px; }
+  .name { font-size: 48px; }
+  .cover, .tile { height: 120px; }
+  .door { padding: 14px 18px; }
+}

@@ -82,7 +82,7 @@ export function MappingDebugPage({ consoleText, configText, appliedConfig, hasPe
       </SettingsSection>
 
       <SettingsSection title="Fix it">
-        <OpenRow label="Copy the log" hint="To paste into a bug report" value={`${log.lines.length} lines`} onOpen={() => void copyLog(log.lines)} hints="A:Copy;B:Home" data={{ 'data-fix': 'copy' }} />
+        <OpenRow label="Copy the log" hint="To paste into a bug report" value={`${log.lines.length} lines`} onOpen={() => void copyLog(log.lines)} hints="A:Copy;B:Home" data={{ 'data-fix': 'copy', 'data-autofocus': '' }} />
         <OpenRow label="Restart the mapper" hint={`${liveName ?? 'The live configuration'} loads again in a second`} onOpen={() => void restart()} disabled={busy === 'restart' ? 'Restarting…' : undefined} hints="A:Restart;B:Home" data={{ 'data-fix': 'restart' }} />
         <OpenRow label="Reconnect controllers" hint="Every controller drops for a moment, then comes back" onOpen={() => void reconnect()} disabled={busy === 'reconnect' ? 'Reconnecting…' : undefined} hints="A:Reconnect;B:Home" data={{ 'data-fix': 'reconnect' }} />
       </SettingsSection>

@@ -1,4 +1,4 @@
-import { forwardRef, type ReactNode } from 'react'
+import { forwardRef, type ReactNode, type MouseEvent } from 'react'
 import { useGameArt, monogram, nameHue } from './gameArt'
 import { AppIconImage } from '../AppIconImage'
 import { Icon } from '../icons/Icon'
@@ -22,7 +22,7 @@ type Props = {
   current?: boolean
   hints?: string
   caption?: string
-  onClick: () => void
+  onClick: (event: MouseEvent<HTMLButtonElement>) => void
   onFocus?: () => void
   onDoubleClick?: () => void
   data?: Record<`data-${string}`, string | undefined>

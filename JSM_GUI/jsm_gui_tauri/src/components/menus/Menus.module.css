@@ -15,7 +15,7 @@
 
 .rail { position: sticky; top: 0; display: flex; flex-direction: column; gap: var(--sp-2); }
 .railKeys { display: flex; align-items: center; gap: var(--sp-2); color: var(--text-2); font-size: var(--fs-hint); margin-bottom: var(--sp-2); }
-.railItem { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: var(--sp-3) var(--sp-4); border: 0; border-radius: var(--r-row); background: transparent; color: var(--text-1); font: inherit; text-align: left; cursor: pointer; }
+.railItem { width: 100%; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: var(--sp-3) var(--sp-4); border: 0; border-radius: var(--r-row); background: transparent; color: var(--text-1); font: inherit; text-align: left; cursor: pointer; }
 .railItem b { font-size: var(--fs-label); }
 .railItem > span { display: inline-flex; align-items: center; gap: 6px; color: var(--text-2); font-size: var(--fs-hint); }
 .railItem[aria-current='true'] { background: var(--surface-row); }

@@ -93,7 +93,6 @@ export function StartupPage({ libraryProfiles, liveName }: { libraryProfiles: st
         <SettingsNote>When there’s a new version, a line under the header offers to install it and restart.</SettingsNote>
       </SettingsSection>
       <ResetDefaultSettings />
-      <p className="settings-version">JSM Evolved v{appVersion}</p>
 
       <SubPage open={picking} onClose={() => setPicking(false)} crumbRoot="Settings" trail={['Startup', 'What loads first']} title="Pick another" backLabel="Back to Startup">
         <div className={styles.mainColumn} style={{ maxWidth: 760 }} role="radiogroup" aria-label="What loads first">

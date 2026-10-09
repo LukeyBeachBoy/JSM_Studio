@@ -184,7 +184,7 @@ export function GlobalChordsPage({ onEditConfiguration, onChordsChanged, devices
     <div className={styles.page} aria-busy={!loaded || busy || undefined}>
       <div className={styles.explainer}>
         <SwapPicture holding="Another configuration" letGo={letGo} />
-        <p><b>Not a mode.</b> A mode changes a few buttons inside one configuration. This swaps in a whole other one while you hold, and lets go when you do.</p>
+        <p>Hold a button to use another whole configuration. Let go to return to the one you were using.</p>
       </div>
 
       <div className={styles.cards} role="list" aria-label="Hold to swap · the higher card wins">
@@ -216,17 +216,16 @@ export function GlobalChordsPage({ onEditConfiguration, onChordsChanged, devices
           </button>
         </div>
       </div>
-      {loaded && <SettingsNote>A changes the buttons. X opens the configuration to edit what it does. When two match, the higher card wins.</SettingsNote>}
+      {loaded && <SettingsNote>When two match, the higher card wins.</SettingsNote>}
 
       {/* Pressing the buttons: a sheet over the page while the pad is read raw. */}
       {capture.capturing && (
-        <div className="modal-overlay modal-overlay--over" data-focus-trap="true">
-          <div className="modal-card confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="chord-capture-title">
-            <h3 id="chord-capture-title">Press the buttons together</h3>
+        <SubPage open onClose={capture.cancel} crumbRoot="Settings" trail={['Hold to swap']} title="Press the buttons together" backLabel="Cancel">
+          <div className={settingsStyles.mainColumn}>
             <p>Hold them all, then let go. {capture.held.length ? keys(capture.held) : 'Waiting for a press…'}</p>
-            <div className="confirm-dialog__actions"><button type="button" className="button button--secondary" data-modal-close onClick={capture.cancel}>Cancel</button></div>
+            <button type="button" className="button button--secondary" onClick={capture.cancel} data-hints="A:Cancel;B:Cancel">Cancel</button>
           </div>
-        </div>
+        </SubPage>
       )}
 
       <SubPage open={adding} onClose={() => setAdding(false)} crumbRoot="Settings" trail={['Hold to swap']} title="Add one" backLabel="Back to Hold to swap">

@@ -221,7 +221,7 @@ function SoundEditor({ sound, previewGain, onPreviewGain, onSaved, onMore, inten
       for (let channel = 0; channel < decoded.numberOfChannels; channel++) { const data = decoded.getChannelData(channel); for (let i = 0; i < mono.length; i++) mono[i] += data[i] / decoded.numberOfChannels }
       setSamples(mono); setRate(decoded.sampleRate); setBuffer(decoded)
       if (!sound.trimEndMs) setEnd(Math.round(decoded.duration * 1000))
-    }).catch(problem => { if (!cancelled) setError(midi ? String(problem) : `Could not decode the MP3: ${String(problem)}`) })
+    }).catch(() => { if (!cancelled) setError(midi ? 'This MIDI file could not be opened. Reimport it or choose another file.' : 'This MP3 could not be opened. Reimport it or choose another file.') })
     return () => { cancelled = true; if (playback.current) void playback.current.close(); playback.current = null }
   }, [sound.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -416,14 +416,13 @@ function SoundEditor({ sound, previewGain, onPreviewGain, onSaved, onMore, inten
         <p><span>{midi ? 'One note at a time, moved into the range the grips play clearly' : 'The melody is moved by octaves into the range the grips play clearly'}</span>{onController && <span className={styles.playing}>● playing on controller</span>}</p>
       </div>
       <div ref={trim} className={styles.trim} tabIndex={0} role="group" aria-label="Trim" data-arrows="horizontal" data-autofocus="" data-hints={hints}
-        data-caption={`Trim · ◂ ▸ moves the ${active} marker · A switches to the ${active === 'start' ? 'end' : 'start'} · hold ◂ ▸ for 0.01 s steps`} onKeyDown={onTrimKey}>
+        data-caption={`Trim · Editing the ${active} marker`} onKeyDown={onTrimKey}>
         <div className={styles.trimValues}>
           <b>Trim</b>
           <span data-active={active === 'start' ? 'true' : undefined} onClick={() => setActive('start')}>Start <output aria-label="Start (seconds)">{seconds(start)} s</output></span>
           <span data-active={active === 'end' ? 'true' : undefined} onClick={() => setActive('end')}>End <output aria-label="End (seconds)">{seconds(end)} s</output></span>
           <span className={styles.keeps}>Keeps {((end - start) / 1000).toFixed(1)} s</span>
         </div>
-        <p>◂ ▸ moves the {active} marker · A switches to the {active === 'start' ? 'end' : 'start'} · hold ◂ ▸ for 0.01 s steps</p>
       </div>
       {midi && song && <ValueRow label="Move the selection" hint="Slides start and end together along the song" value={Math.round(start / 100) / 10} min={0} max={Math.max(0, (duration - MIN_SELECTION_MS) / 1000)} step={0.1}
         format={value => `${value.toFixed(1)} s`} onChange={value => moveWindow(value * 1000)} data={{ 'data-selection-position': '' }} />}

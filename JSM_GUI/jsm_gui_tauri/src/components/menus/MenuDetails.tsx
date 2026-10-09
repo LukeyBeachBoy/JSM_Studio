@@ -253,10 +253,10 @@ function MorePage({ menu, menus, onChange, onRename, onEditCentre, onPositionAll
           {!deleting ? <button type="button" className={`${styles.stepRow} ${styles.dangerRow}`} data-delete-row="" data-hints="A:Delete…;B:Back to the menu"
             data-caption={`Delete this menu · ${menu.name} and its controls go; bindings that open it stop working until it is made again`} onClick={() => setDeleting(true)}>
             <span className={styles.stepText}><b><Icon name="remove" size={18} /> Delete this menu</b></span>
-          </button> : <div ref={guard.ref} onKeyDown={guard.onKeyDown} className={styles.deletePanel} role="alertdialog" aria-label={`Delete ${menu.name}?`}>
+          </button> : <div ref={guard.ref} onKeyDown={guard.onKeyDown} className={styles.deletePanel} role="alertdialog" data-focus-trap="true" aria-label={`Delete ${menu.name}?`}>
             <b>Delete {menu.name}?</b>
             <p>Its {menu.actions.length} {TYPE_LABEL[menu.type] === 'Grid' ? 'zones' : 'slices'} and controls go with it. Bindings that open it do nothing until it is made again. Nothing leaves the file until you save.</p>
-            <button type="button" className={styles.keep} data-keep="" data-hints="A:Keep it;B:Keep it" onClick={() => setDeleting(false)}><b>Keep it</b><small>Nothing changes.</small></button>
+            <button type="button" className={styles.keep} data-keep="" data-modal-close data-hints="A:Keep it;B:Keep it" onClick={() => setDeleting(false)}><b>Keep it</b><small>Nothing changes.</small></button>
             <button type="button" className={styles.deleteButton} data-delete="" data-hints="A:Delete;B:Keep it" onClick={onDelete}>Delete {menu.name}</button>
           </div>}
         </section>

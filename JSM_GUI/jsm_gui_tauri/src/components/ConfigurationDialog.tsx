@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { desktopBridge, type AutoloadRule, type RunningProcess } from '../platform/desktopBridge'
 import { exeFileName, processStemOf } from '../hooks/useAppIcon'
@@ -6,6 +6,7 @@ import { showToast } from '../utils/toast'
 import { AppIconImage } from './AppIconImage'
 import { Switch } from './AssociationsPage'
 import { Dialog } from './ui/Dialog'
+import { SubPage } from './ui/console'
 import { AppSelect } from './ui/AppSelect'
 import { Icon } from './icons/Icon'
 import styles from './ConfigurationDialog.module.css'
@@ -41,6 +42,16 @@ type ConfigurationDialogProps = {
 
 const gameFromRule = (rule: AutoloadRule | null | undefined): Game | null =>
   rule ? { processName: rule.processName, exePath: rule.exePath } : null
+
+function ConfigurationSurface({ mode, profileName, title, onClose, onKeyDown, actions, children }: {
+  mode: 'create' | 'associate'; profileName?: string; title: string; onClose: () => void
+  onKeyDown: (event: KeyboardEvent<HTMLElement>) => void; actions: ReactNode; children: ReactNode
+}) {
+  if (mode === 'create') return <Dialog onClose={onClose} width={560} title={title} onKeyDown={onKeyDown} actions={actions}>{children}</Dialog>
+  return <SubPage open onClose={onClose} crumbRoot="Library" trail={['Games', profileName ?? 'Configuration']} title="Launch with game" backLabel="Back to Library">
+    <div style={{ maxWidth: 760, margin: '0 auto' }} onKeyDown={onKeyDown}>{children}<div className="confirm-dialog__actions">{actions}</div></div>
+  </SubPage>
+}
 
 /** "DOOM Eternal" from "C:\Games\DOOM Eternal\DOOMEternalx64vk.exe": the folder is usually the game's name. */
 export const suggestedName = (exePath: string) => {
@@ -130,10 +141,8 @@ export function ConfigurationDialog({ mode, profileName, rule, onClose, onCreate
   const title = mode === 'create' ? t('newConfiguration.title', 'New configuration') : t('newConfiguration.associateTitle', 'Game for {{name}}', { name: profileName })
 
   return (
-    <Dialog onClose={onClose} width={560} className={styles.dialog}
-      eyebrow={mode === 'create' ? t('newConfiguration.eyebrow', 'Configurations') : t('newConfiguration.associateEyebrow', 'Launch with game')}
+    <ConfigurationSurface mode={mode} profileName={profileName} onClose={onClose}
       title={title}
-      hints={[{ button: 'A', label: t('newConfiguration.select', 'Select') }, { button: 'B', label: t('common.cancel', 'Cancel') }]}
       onKeyDown={event => { if (event.key === 'Enter' && (event.target as HTMLElement).tagName === 'INPUT') { event.preventDefault(); void submit() } }}
       actions={<>
         <button type="button" className="button button--secondary" disabled={busy} onClick={onClose} data-hints="A:Cancel;B:Cancel">{t('common.cancel', 'Cancel')}</button>
@@ -162,10 +171,10 @@ export function ConfigurationDialog({ mode, profileName, rule, onClose, onCreate
                 <span className={styles.chosenPath}>{game.exePath ?? t('newConfiguration.noPath', 'Process name only · Browse to add its icon')}</span>
               </> : <span className={styles.chosenNone}>{t('newConfiguration.none', 'No game chosen. The configuration gets a plain icon.')}</span>}
             </span>
-            {game && <button type="button" className={`icon-button ${styles.clear}`} aria-label={t('newConfiguration.clear', 'Remove game')} data-caption={t('newConfiguration.clear', 'Remove game')} disabled={busy} onClick={() => chooseGame(null)}><Icon name="remove" size={18} /></button>}
+            {game && <button type="button" tabIndex={-1} data-nav-skip className={`icon-button ${styles.clear}`} aria-label={t('newConfiguration.clear', 'Remove game')} data-caption={t('newConfiguration.clear', 'Remove game')} disabled={busy} onClick={() => chooseGame(null)}><Icon name="remove" size={18} /></button>}
           </div>
           <div className={styles.pickers}>
-            <button type="button" className="button button--secondary" disabled={busy} onClick={() => void browse()}>{t('newConfiguration.browse', 'Browse…')}</button>
+            <button type="button" data-autofocus={mode === 'associate' ? '' : undefined} className="button button--secondary" disabled={busy} onClick={() => void browse()} data-hints="A:Choose game">{t('newConfiguration.browse', 'Browse…')}</button>
             <label className={styles.runningField}>
               <span className={styles.runningLabel}>{t('newConfiguration.runningNow', 'Running now')}</span>
               <AppSelect className="app-select" aria-label={t('newConfiguration.runningNow', 'Running now')} value={runningValue} disabled={busy || (!runningLoading && running.length === 0)}
@@ -182,12 +191,12 @@ export function ConfigurationDialog({ mode, profileName, rule, onClose, onCreate
 
         <div className={`setting-row setting-row--compact ${styles.autoApplyRow}`} data-disabled={game ? undefined : ''}>
           <span className={styles.autoApplyText}>
-            <span>{t('newConfiguration.autoApply', 'Launch with game')}</span>
-            <small>{t('newConfiguration.autoApplyNote', 'Off: it only wears the game\u2019s art. On: it goes live whenever the game is in front (Library \u25b8 Launch with game).')}</small>
+            <span>Launch with game</span>
+            <small>{autoApply ? 'Goes live when the game is in front' : 'Uses the game’s art; launched manually'}</small>
           </span>
-          <Switch on={!!game && autoApply} label={t('newConfiguration.autoApply', 'Launch with game')} disabled={busy || !game} onChange={setAutoApply} />
+          <Switch on={!!game && autoApply} label="Launch with game" disabled={busy || !game} onChange={setAutoApply} />
         </div>
       </div>
-    </Dialog>
+    </ConfigurationSurface>
   )
 }

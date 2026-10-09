@@ -23,12 +23,14 @@ const BASE = (process.env.JSM_TEST_URL || 'http://127.0.0.1:1420').replace(/\/$/
     // ---- V10: type scale. Desk never goes below 14; Couch is 40 / 26 / 20 / 16.
     await go('settings')
     assert.equal(await title(), 'Controller')
+    assert.equal(await page.locator('[aria-label="Screen distance"]').count(), 0, 'readability has one home in Look & language')
+    await go('appearance')
     const token = name => page.evaluate(n => getComputedStyle(document.documentElement).getPropertyValue(n).trim(), name)
     assert.equal(await page.evaluate(() => document.documentElement.dataset.density), 'desk')
     for (const name of ['--fs-hint', '--fs-eyebrow', '--fs-micro', '--fs-body'])
       assert.ok(parseFloat(await token(name)) >= 14, `${name} is at least 14px on Desk (${await token(name)})`)
     const density = page.locator('[role="radiogroup"][aria-label="Screen distance"]')
-    await density.waitFor()   // Screen distance is on Settings ▸ Controller
+    await density.waitFor()   // Screen distance is on Look & language
     await density.focus()
     await page.keyboard.press('ArrowLeft')
     await page.waitForFunction(() => document.documentElement.dataset.density === 'couch')
@@ -150,12 +152,13 @@ const BASE = (process.env.JSM_TEST_URL || 'http://127.0.0.1:1420').replace(/\/$/
     assert.deepEqual(apps, ['JoyShockMapper.exe', 'JSM Evolved.exe', 'steam.exe'])
     assert.match(await page.locator('.main-pane').innerText(), /Steam[\s\S]*react twice/)
 
-    // ---- Guides: LT/RT step topics, B goes back to the categories; LB/RB do nothing without a search.
+    // ---- Guides: LB/RB step topics; LT/RT retain Settings category navigation.
     await go('help')
     await page.waitForFunction(() => { const topic = document.querySelector('[data-topic="start"]'); if (document.activeElement !== topic) topic.focus(); return true })
-    assert.equal(await page.locator('.hint-capsule__item').filter({ hasText: 'Topic' }).count(), 1, 'LT/RT are named Topic')
+    await page.locator('.hint-capsule__item').filter({ hasText: 'Topic' }).waitFor()
+    assert.equal(await page.locator('.hint-capsule__item').filter({ hasText: 'Topic' }).count(), 1, 'LB/RB are named Topic')
     assert.equal(await page.locator('.hint-capsule__item').filter({ hasText: 'Categories' }).count(), 1, 'B is named Categories')
-    await page.keyboard.press(']')
+    await page.keyboard.press('PageDown')
     await page.waitForFunction(() => document.querySelector('[data-topic="buttons"]')?.getAttribute('aria-selected') === 'true')
     assert.equal(await title(), 'Guides & reference', 'a topic step does not change the category')
     await page.keyboard.press('Escape')

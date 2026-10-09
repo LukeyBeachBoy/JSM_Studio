@@ -230,6 +230,7 @@ export function ButtonMappingCard({ api, summary, shifts = NO_SHIFTS, rowTitle, 
               ))}
             </span>
             {scopeLine && <span className={styles.scopeLine}>{scopeLine}</span>}
+            <span className={styles.mouseHelp}>Right-click for copy, clear and name.</span>
           </span>
         )}
         <Menu open={menuOpen} onOpenChange={next => { setMenuOpen(next); if (!next) requestAnimationFrame(() => { if (!document.activeElement || document.activeElement === document.body || document.activeElement.closest('[data-menu-anchor]')) summaryRef.current?.focus() }) }} items={menuItems} align="end" ariaLabel={`${name} · Copy, clear, name`}

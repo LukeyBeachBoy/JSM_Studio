@@ -20,6 +20,7 @@ import { BindingSheetBody } from '../keymap/binding/BindingSheet'
 import { Sheet } from '../ui/Sheet'
 import { ModeCards, OpenRow, SubPage, ValueRow } from '../ui/console'
 import { Icon, type IconName } from '../icons/Icon'
+import { MoreChip } from '../modes/MoreChip'
 import { MenuDetails } from './MenuDetails'
 import { MenuPositionPage } from './MenuPositionPage'
 import { menuSlotApi } from './menuSlotApi'
@@ -253,7 +254,7 @@ export function MenusPage({ text, setText, configName, deviceType, sample, initi
         {catalog.menus.map(item => {
           const openedIn = (openers.get(item.id) ?? []).find(opener => opener.layer)
           const attachment = item.attachments[0]
-          return <button key={item.id} type="button" className={styles.railItem} data-menu-id={item.id} aria-current={menu?.id === item.id ? 'true' : undefined}
+          return <div key={item.id} className="more-host" style={{ position: 'relative' }}><button type="button" className={styles.railItem} data-menu-id={item.id} aria-current={menu?.id === item.id ? 'true' : undefined}
             data-hints={`A:Edit;Y:Rename;${showHint}LT/RT:Menu;B:Back`} data-caption={`${item.name} · ${behaviourSentence(item)}`}
             onClick={() => { setSelected(item.id); requestAnimationFrame(() => preview.current?.focus()) }} onFocus={() => setSelected(item.id)}>
             <b>{item.name}</b>
@@ -261,7 +262,7 @@ export function MenusPage({ text, setText, configName, deviceType, sample, initi
               {openedIn && <><span className={styles.modeTag} style={{ '--mode-hue': hue(openedIn) } as CSSProperties} aria-hidden="true" />{openedIn.layer!.name} · </>}
               {openedIn ? sourceName(attachment).toLowerCase() : sourceName(attachment)} · {openedIn ? item.actions.length : unitOf(item.type, item.actions.length)}
             </span>
-          </button>
+          </button><MoreChip label={`Rename ${item.name}`} /></div>
         })}
         <button type="button" className={`${styles.railItem} ${styles.newMenu}`} aria-disabled={catalog.menus.length >= MAX_MENUS || !!catalog.problem ? 'true' : undefined}
           data-reason={catalog.menus.length >= MAX_MENUS ? 'A configuration holds up to 16 menus' : catalog.problem ? 'Fix the menu catalogue in the source first' : undefined}

@@ -218,10 +218,10 @@ export function ModeChanges({ layer, index, layers, text, actions, family, defau
             <button type="button" className={`${styles.mi} ${styles.danger}`} data-delete-row="" data-hints="A:Delete…;B:Back to Layers" aria-disabled={disabled ? 'true' : undefined} onClick={() => { if (!disabled) setDeleting(true) }}>
               <Icon name="remove" size={18} /><b>Delete {layer.name}</b>
             </button>
-          </> : <div ref={guard.ref} onKeyDown={guard.onKeyDown} className={styles.deletePanel} role="alertdialog" aria-labelledby="mode-delete-title" aria-describedby="mode-delete-body">
+          </> : <div ref={guard.ref} onKeyDown={guard.onKeyDown} className={styles.deletePanel} role="alertdialog" data-focus-trap="true" aria-labelledby="mode-delete-title" aria-describedby="mode-delete-body">
             <h3 id="mode-delete-title"><Icon name="remove" size={20} /> Delete {layer.name}?</h3>
             <p id="mode-delete-body">{rows.length ? `Its ${rows.length} change${rows.length === 1 ? '' : 's'} go with it. ` : ''}{primary ? `${name(primary.input.replace(/^!/, ''))} keeps its other actions. ` : ''}Nothing leaves the file until you save.</p>
-            <button type="button" className={styles.keep} data-keep="" data-hints="A:Keep it;B:Keep it" onClick={() => setDeleting(false)}><b>Keep it</b><small>Nothing changes.</small></button>
+            <button type="button" className={styles.keep} data-keep="" data-modal-close data-hints="A:Keep it;B:Keep it" onClick={() => setDeleting(false)}><b>Keep it</b><small>Nothing changes.</small></button>
             <button type="button" className={styles.deleteButton} data-delete="" data-hints="A:Delete;B:Keep it" onClick={onDelete}>Delete {layer.name}</button>
           </div>}
         </aside>

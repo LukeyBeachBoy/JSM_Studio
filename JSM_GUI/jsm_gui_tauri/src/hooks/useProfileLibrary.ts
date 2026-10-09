@@ -243,6 +243,7 @@ export function useProfileLibrary({ resetConfigHistory, configText, setConfigTex
   // `renames`: the review's per-set names (console v2, SteamImport), by planned name.
   const handleImportSteamLayout = async (conversion: SteamConversion, renames: Record<string, string> = {}) => {
     const created: string[] = []
+    let imported: string | null = null
     try {
       await runLongOperation(`Importing ${conversion.title}…`, async ({ progress, signal }) => {
         const names = new Map<string, string>()
@@ -270,6 +271,7 @@ export function useProfileLibrary({ resetConfigHistory, configText, setConfigTex
         const main = names.get(conversion.sets[0].name)!
         progress(0.9, `Opening ${main}`)
         await handleLoadProfileFromLibrary(main)
+        imported = main
         progress(1)
         report(t('messages.profileImported', { profileName: main }))
       }, { cancellable: true })
@@ -279,6 +281,7 @@ export function useProfileLibrary({ resetConfigHistory, configText, setConfigTex
       await refreshLibraryProfiles()
       report(`Import of ${conversion.title} cancelled.`)
     }
+    return imported
   }
   const handleCopyActiveProfile = async () => {
     const profile = await desktopBridge.copyActiveProfile()

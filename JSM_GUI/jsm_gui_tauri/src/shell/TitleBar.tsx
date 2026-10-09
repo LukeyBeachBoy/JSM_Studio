@@ -135,6 +135,7 @@ function Clock() {
 export function TitleBar(props: TitleBarProps) {
   const { t } = useTranslation()
   const [profileQuery, setProfileQuery] = useState('')
+  const showsKeys = useShowsKeys()
   const editingLabel = props.editingName ?? t('app.profileSummary.selectProfile', 'Choose a configuration')
   const appliedIsEditing = Boolean(props.appliedName && props.appliedName === props.editingName)
   // The game's own icon in the chip (Layout header), when it launches with one.
@@ -173,7 +174,7 @@ export function TitleBar(props: TitleBarProps) {
       <span>Home</span>
       {/* 24, not 22: the glyphs are drawn on a 24 grid, so this is the size
           at which every edge lands on a whole pixel. */}
-      <ButtonGlyph button="VIEW" size={24} />
+      {!showsKeys && <ButtonGlyph button="VIEW" size={24} />}
     </button>
   )
 
@@ -236,8 +237,8 @@ export function TitleBar(props: TitleBarProps) {
       )}
       {props.variant === 'home' && <Clock />}
 
-      {props.variant === 'editing' && <>
-        <StatusChip state={props.state} onPress={props.onStatePress} editingName={props.editingName} />
+      {props.variant !== 'studio' && <>
+        {props.variant === 'editing' && <StatusChip state={props.state} onPress={props.onStatePress} editingName={props.editingName} />}
         <button type="button" className="menu-chip" aria-label="Options: review changes, undo, save" onClick={props.onOpenConfigMenu}
           data-hints="A:Options;B:Back" data-caption="Options · review changes, undo, save, test and more · hold Menu (M) to open">
           <Icon name="more" size={20} />

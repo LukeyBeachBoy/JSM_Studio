@@ -102,7 +102,6 @@ export function ControllerSettings({ controllerType }: { controllerType?: number
     <div className={styles.mainColumn} style={{ maxWidth: 980 }}>
       <div className={styles.sectionBody}>
         <NavigateRow />
-        <ScreenDistanceRow />
         <RumbleRow />
         <HardwareCalibrationRow />
         <ThumbOverlayRow />

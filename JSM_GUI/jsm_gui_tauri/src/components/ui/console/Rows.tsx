@@ -48,7 +48,8 @@ type RowAction = { label: string; run: () => void }
 const rowHints = (own: string[], extra: string | undefined, inSubPage: boolean) => {
   const parts = extra ? extra.split(';').filter(Boolean) : []
   const back = parts.find(part => part.startsWith('B:'))
-  return [...parts.filter(part => !part.startsWith('B:')), ...own, back ?? (inSubPage ? '' : 'B:Back')].filter(Boolean).join(';')
+  const claimed = new Set(own.filter(Boolean).map(part => part.split(':')[0]))
+  return [...parts.filter(part => !part.startsWith('B:') && !claimed.has(part.split(':')[0])), ...own, back ?? (inSubPage ? '' : 'B:Back')].filter(Boolean).join(';')
 }
 
 /** Whether the row sits in a sub-page (ui/console SubPage), whose footer names B itself. */

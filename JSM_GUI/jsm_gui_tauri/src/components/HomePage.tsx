@@ -12,6 +12,7 @@ import { desktopBridge } from '../platform/desktopBridge'
 import { AppIconImage } from './AppIconImage'
 import { useShell } from '../shell/ShellContext'
 import { landOn } from '../nav/landing'
+import { useLibraryGraph } from '../hooks/useLibraryGraph'
 import styles from './HomePage.module.css'
 
 // Home (console v2, Home.dc.html): where the app opens and where View returns
@@ -49,13 +50,14 @@ type HomePageProps = {
   onSwitch: () => void
   onContinue: () => void
   onTest: () => void
+  onMakeLive: () => void
   /** Why Test cannot run right now, or null. */
   testReason: string | null
   quickTune: HomeQuickTune
   onGyroSpeed: (value: number) => void
   onOpenTune: (tile: 'gyro' | 'trackpads') => void
   /** How many configurations the library has, for "3 configurations". */
-  configurationCount: number
+  libraryProfiles: string[]
   /** The library has answered and holds nothing: Home lands on New for a game. */
   firstRun: boolean
   /** Other configurations, newest first, for the Your games shelf. */
@@ -103,6 +105,9 @@ function GameCover({ name, note, onOpen }: { name: string; note?: string; onOpen
 }
 
 export function HomePage(props: HomePageProps) {
+  const library = useLibraryGraph(props.libraryProfiles)
+  const games = props.games.filter(name => library.graph.games.includes(name))
+  const configurationCount = library.graph.games.length
   const { t } = useTranslation()
   const { family } = useShell()
   const name = props.configName ?? 'No configuration'
@@ -155,7 +160,7 @@ export function HomePage(props: HomePageProps) {
     adjustSpeed(event.key === 'ArrowRight' ? 1 : -1, event.shiftKey)
   }
   const unsaved = props.changeCount > 0 ? `${props.changeCount} unsaved ${props.changeCount === 1 ? 'change' : 'changes'}` : null
-  const homeHints = 'A:Edit layout;X:Test;Y:Switch game'
+  const homeHints = `A:Edit layout;${props.testReason ? '' : 'X:Test;'}Y:Switch game`
 
   return (
     <div ref={root} className={styles.home}>
@@ -186,14 +191,17 @@ export function HomePage(props: HomePageProps) {
             data-hints={props.testReason ? 'Y:Switch game' : 'A:Test it;Y:Switch game'}>
             <ButtonGlyph button="X" size={26} family={family} className={styles.actionGlyph} />Test it
           </button>
-          <button type="button" className={styles.secondary} onClick={props.onSwitch} data-hints="A:Switch game;X:Test"
+          {!props.applied && hasConfig && <button type="button" className={styles.secondary} onClick={props.onMakeLive} data-hints="A:Make live" data-caption={`Make ${name} live`}>
+            <Icon name="apply" size={26} />Make live
+          </button>}
+          <button type="button" className={styles.secondary} onClick={props.onSwitch} data-hints={`A:Switch game${props.testReason ? '' : ';X:Test'}`}
             data-caption="Switch game · pick another configuration from your library">
             <ButtonGlyph button="Y" size={26} family={family} className={styles.actionGlyph} />Switch game
           </button>
         </div>
 
         <div className={styles.tune}>
-          <span className="eyebrow">Quick tune · changes apply live</span>
+          <span className="eyebrow">Quick tune · {props.applied && !props.changeCount ? 'changes apply live' : 'editing this configuration'}</span>
           <div className={styles.tuneGrid}>
             <button type="button" className={styles.tuneTile} data-arrows={speed === null ? undefined : 'horizontal'}
               onKeyDown={onSpeedKey} onClick={() => props.onOpenTune('gyro')}
@@ -226,13 +234,13 @@ export function HomePage(props: HomePageProps) {
       <section className={styles.side} aria-labelledby="home-studio-title" data-nav-region="studio">
         <div className={styles.sideHead}>
           <h2 id="home-studio-title" className={styles.sideTitle}>Your games</h2>
-          <span className={styles.sideNote}>{props.configurationCount} {props.configurationCount === 1 ? 'configuration' : 'configurations'}</span>
+          <span className={styles.sideNote}>{configurationCount} {configurationCount === 1 ? 'configuration' : 'configurations'}</span>
         </div>
         <div className={styles.shelf}>
-          {props.games.slice(0, 1).map(item => <GameCover key={item} name={item} onOpen={() => props.onOpenGame(item)} />)}
+          {games.slice(0, 1).map(item => <GameCover key={item} name={item} onOpen={() => props.onOpenGame(item)} />)}
           {props.fallback
             ? <GameCover name={props.fallback} note="When no game matches" onOpen={() => props.onOpenGame(props.fallback!)} />
-            : props.games.slice(1, 2).map(item => <GameCover key={item} name={item} onOpen={() => props.onOpenGame(item)} />)}
+            : games.slice(1, 2).map(item => <GameCover key={item} name={item} onOpen={() => props.onOpenGame(item)} />)}
           <button type="button" className={`${styles.tile} ${styles.tileNew}`} onClick={props.onNewGame} data-hints="A:New for a game" data-autofocus={landing === 'new' ? '' : undefined}
             data-caption="New for a game · start from a game and a play style, or import from Steam or a file">
             <Icon name="add" size={30} />

@@ -5,6 +5,7 @@ import { InputGlyph } from './glyphs/InputGlyph'
 import { PAD_EVENT, type PadEventDetail } from '../nav/useControllerNavigation'
 import { PAD_HELD_EVENT, TEXT_ENTRY_EVENT, type PadHeldDetail, type TextEntryRequest } from '../nav/textEntry'
 import { useShell } from '../shell/ShellContext'
+import { useShowsKeys } from '../nav/inputSource'
 import styles from './TextEntryOverlay.module.css'
 
 // The on-screen keyboard (console v2, TextEntry.dc.html) for the app's own
@@ -46,6 +47,7 @@ const KEYBOARD_ICON = <svg width="24" height="24" viewBox="0 0 24 24" fill="none
 
 export function TextEntryOverlay() {
   const shell = useShell()
+  const showsKeys = useShowsKeys()
   const glyphFamily = shell.family === 'generic' ? undefined : shell.family
   const [request, setRequest] = useState<TextEntryRequest | null>(null)
   const [text, setText] = useState('')
@@ -176,6 +178,7 @@ export function TextEntryOverlay() {
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close(false); return }
     if (!event.nativeEvent.isTrusted || event.ctrlKey || event.altKey || event.metaKey) return
+    if (event.key === 'CapsLock') { event.preventDefault(); setCaps(value => !value); return }
     if (event.key === 'Backspace') { event.preventDefault(); event.stopPropagation(); backspace(); return }
     if (event.key === 'Enter') { event.preventDefault(); event.stopPropagation(); enter(); return }
     if (event.key.length === 1) { event.preventDefault(); event.stopPropagation(); setText(current => current + event.key) }
@@ -189,7 +192,7 @@ export function TextEntryOverlay() {
   const shown = (key: string) => upper ? key.toUpperCase() : key
   const footer: [PadButtonName, string][] = [['A', 'Type'], ['X', 'Backspace'], ['Y', 'Space'], ['LT', 'Shift'], ['RT', 'Enter'], ['LB', 'Symbols']]
   const panelStyle = { transform: `translate(${frame.x}px, ${frame.y}px)`, left: 120 - frame.w / 2, right: 120 - frame.w / 2, top: 36 - frame.h / 2, bottom: 92 - frame.h / 2 }
-  const live = focusedKey
+  const live = showsKeys ? `Shift for a capital · Caps Lock ${caps ? 'on' : 'off'}` : focusedKey
     ? `A types ${focusedKey === ' ' ? 'a space' : shown(focusedKey)} · hold LT for a capital · L3 ${caps ? 'unlocks' : 'locks'} caps`
     : `Hold LT for a capital · L3 ${caps ? 'unlocks' : 'locks'} caps`
   return createPortal(
@@ -239,7 +242,7 @@ export function TextEntryOverlay() {
           ))}
           <div className={styles.row}>
             <button type="button" className={`${styles.key} ${styles.fn}`} aria-pressed={caps} data-key-caps onClick={() => setCaps(value => !value)} data-hints="A:Caps lock;B:Cancel" style={{ flexGrow: 1.6 }}>
-              <span className={styles.chip}>L3</span>⇪ Caps
+               <span className={styles.chip}>{showsKeys ? 'Caps Lock' : 'L3'}</span>⇪ Caps
             </button>
             <button type="button" className={`${styles.key} ${styles.fn}`} data-key-backspace onClick={backspace} data-hints="A:Backspace;B:Cancel" style={{ flexGrow: 2.4 }}>
               <ButtonGlyph button="X" size={22} family={glyphFamily} />⌫ Backspace
@@ -266,7 +269,7 @@ export function TextEntryOverlay() {
         <span className={styles.where}>{request.where ?? [shell.configName, request.eyebrow?.split(' · ')[0], label].filter(Boolean).join(' · ')}</span>
         <span className={styles.footerHints}>
           {footer.map(([button, word]) => <span key={button}><ButtonGlyph button={button} size={24} family={glyphFamily} />{word}</span>)}
-          <span><span className={styles.chip}>L3</span>Caps</span>
+          <span><span className={styles.chip}>{showsKeys ? 'Caps Lock' : 'L3'}</span>Caps</span>
           <span><ButtonGlyph button="MENU" size={24} family={glyphFamily} />Done</span>
           <span><ButtonGlyph button="B" size={24} family={glyphFamily} />Cancel</span>
         </span>

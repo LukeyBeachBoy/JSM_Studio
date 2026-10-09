@@ -319,8 +319,13 @@ function App() {
   // menus, asked for by the Gyro page and Mouse feel with the input to show.
   const [curveView, setCurveView] = useState<CurveSide | null>(null)
   const [virtualMenuId, setVirtualMenuId] = useState<string | null>(null)
+  const menuSource = useRef<PrimaryTab>('home')
+  const menuReturn = useRef<PrimaryTab | null>(null)
   useEffect(() => {
-    const open = (event: Event) => { setVirtualMenuId((event as CustomEvent<string>).detail); setPrimaryTab('virtualMenus') }
+    const open = (event: Event) => {
+      if (menuSource.current !== 'virtualMenus') menuReturn.current = menuSource.current
+      setVirtualMenuId((event as CustomEvent<string>).detail); setPrimaryTab('virtualMenus')
+    }
     window.addEventListener('jsm:virtual-menu', open)
     return () => window.removeEventListener('jsm:virtual-menu', open)
   }, [])
@@ -373,6 +378,7 @@ function App() {
     return () => { window.removeEventListener('jsm:open-docs', open); window.removeEventListener('jsm:navigate-page', goto) }
   }, [])
   const [primaryTab, setPrimaryTabState] = useState<PrimaryTab>('home')
+  menuSource.current = primaryTab
   // Page change slides 16px in the direction of travel along the tab order.
   const [pageDirection, setPageDirection] = useState<'forward' | 'back'>('forward')
   // The configuration page B on Home (and Continue editing) returns to.
@@ -381,6 +387,7 @@ function App() {
     setPrimaryTabState(previous => {
       const target = typeof next === 'function' ? next(previous) : next
       if (target !== previous) {
+        if (previous === 'virtualMenus') menuReturn.current = null
         const order = slideOrder(previous)
         setPageDirection(order.indexOf(target) < order.indexOf(previous) ? 'back' : 'forward')
         if (pageMeta(previous).group === 'controls') lastEditingPage.current = previous
@@ -429,6 +436,12 @@ function App() {
     if (isSteamImportOpen) { setSteamImportOpen(false); return true }
     if (drawerOpen) { setDrawerOpen(false); return true }
     if (returnToInput.current) { const restore = returnToInput.current; returnToInput.current = null; restore(); return true }
+    if (primaryTab === 'virtualMenus' && menuReturn.current) {
+      const source = menuReturn.current
+      menuReturn.current = null
+      setPrimaryTab(source)
+      return true
+    }
     // Home is the root: B goes nowhere (the pad feels the edge), and never
     // forward into the editor (UX review, B6). A Studio page: B is Home (2f).
     // A configuration page: back to Overview, and no further.
@@ -1757,7 +1770,7 @@ function App() {
   const quickTuneTimer = useRef<number | null>(null)
   const quickTuneLive = useRef(false)
   const quickTuneGyroSpeed = (value: number) => {
-    if (quickTuneTimer.current === null) quickTuneLive.current = !hasPendingChanges
+    if (quickTuneTimer.current === null) quickTuneLive.current = editingIsRunning && !hasPendingChanges
     setConfigText(previous => writeGyroSpeed(previous, value))
     if (quickTuneTimer.current !== null) window.clearTimeout(quickTuneTimer.current)
     quickTuneTimer.current = window.setTimeout(() => {
@@ -1778,11 +1791,12 @@ function App() {
         // A edits the layout: the Layout tab, where every input is.
         onContinue={() => setPrimaryTab('overview')}
         onTest={() => void startTest()}
+        onMakeLive={() => void editorActionRef.current('both')}
         testReason={testReason}
         quickTune={quick}
         onGyroSpeed={quickTuneGyroSpeed}
         onOpenTune={tile => setPrimaryTab(tile === 'gyro' ? 'gyro' : 'touchpad')}
-        configurationCount={libraryProfiles.filter(name => !templateNames.has(name)).length}
+        libraryProfiles={libraryProfiles}
         firstRun={libraryReady && libraryProfiles.length === 0}
         games={libraryProfiles.filter(name => name !== currentLibraryProfile && !templateNames.has(name) && name !== homeFallback)}
         fallback={homeFallback && homeFallback !== currentLibraryProfile && libraryProfiles.includes(homeFallback) ? homeFallback : null}
@@ -2627,7 +2641,7 @@ function App() {
       {/* The page tabs are in the title bar's one row (console v2, V3);
           Settings has none: its categories are the rail (V6). */}
       <div className="shell-body" data-width={shellWidth} data-sections={shellSections.length > 0 ? 'true' : 'false'}>
-        {shellWidth !== 'narrow' && shellSections.length > 0 && <SectionList sections={shellSections} ariaLabel={studioHub(primaryTab) === 'settings' ? 'Settings categories' : `${t(meta.labelKey, meta.label)} sections`}
+        {shellSections.length > 0 && <SectionList sections={shellSections} ariaLabel={studioHub(primaryTab) === 'settings' ? 'Settings categories' : `${t(meta.labelKey, meta.label)} sections`}
           // The input fronts' rail steps the other stick / trigger / pad, and their footers say so (UX review, inputs polish).
           stepLabel={studioHub(primaryTab) === 'settings' ? 'Category' : primaryTab === 'joysticks' ? 'Other stick' : primaryTab === 'triggers' ? 'Other trigger' : primaryTab === 'touchpad' ? 'Other pad' : 'Section'} />}
         <div className="shell-content">
@@ -2659,7 +2673,7 @@ function App() {
             {/* Layout for this controller (console v2, ControllerVariant): a full page. */}
             <ControllerLayoutScope open={controllerLayoutOpen} onClose={() => setControllerLayoutOpen(false)} text={documentText} effectiveText={configIncludes.resolveText(documentText)} devices={sample?.devices} model={editingControllerModel} onModel={next => { if (next === editingControllerModel) return; setDocumentText(finalizePendingValues()); resetPendingSensitivityChanges(); setControllerEditingTarget(next) }} onChange={setDocumentTextAsAction} />
             {/* Controller light & sounds (console v2, ControllerLight). */}
-            <LightSounds open={lightSoundsOpen} onClose={() => setLightSoundsOpen(false)} text={defaultText} onChange={setDefaultConfigText} layers={layers}
+            <LightSounds open={lightSoundsOpen} fromSettings={studioHub(primaryTab) === 'settings'} onClose={() => setLightSoundsOpen(false)} text={defaultText} onChange={setDefaultConfigText} layers={layers}
               onChangeDocument={setControllerDocument} device={sample?.devices?.[0]} onOpenSettings={() => { setLightSoundsOpen(false); setPrimaryTab('settings') }} />
             <LayerUsageContext.Provider value={{ text: effectiveConfigText, layers, actions: layerActions, selected: layers.find(layer => layer.id === layerId), onChangeLayers: next => setControllerDocument(previous => writeLayers(previous, next)), onSetActions: (input, next) => setControllerDocument(previous => setLayerActions(previous, input, next)), onSelect: selectLayer, onNavigate: navigateInput, disabled: isCalibrating, family: controllerFamily }}>
             <SettingOrigins.Provider value={{ config: currentLibraryProfile ?? undefined, text: effectiveConfigText, own: layerId ? Object.entries(layers.find(l => l.id === layerId)?.overrides ?? {}).map(([k,v]) => `${k} = ${v}`).join('\n') : ownDefaultText, base: importedBase.text, baseOrigins: importedBase.origins, origins: configIncludes.resolution?.origins ?? {}, layer: layers.find(l => l.id === layerId)?.name, disabled: isCalibrating, reset: key => { resetPendingSensitivityChanges(); if (editingControllerModel && !layerId) { setDocumentText(previous => resetControllerAssignment(previous, editingControllerModel, key)); return } setControllerDocument(previous => layerId ? writeLayers(previous, layers.map(l => { if(l.id !== layerId) return l; const overrides = {...l.overrides}; delete overrides[key]; return {...l, overrides} })) : previous.split(/\r?\n/).filter(line => !Object.prototype.hasOwnProperty.call(layerEntries(line), key)).join('\n')) } }}>
@@ -2915,6 +2929,7 @@ function App() {
             onTry={text => tryDraft(text, 'Trying a new configuration · nothing saved yet')}
             onEndTry={endDraftTry}
             onCreate={async draft => (await handleCreateProfile(draft)) ?? null}
+            onOpenExisting={name => { setNewConfigurationOpen(false); void handleLoadProfileFromLibrary(name).then(() => setPrimaryTab('overview')) }}
             onFinish={(name, next, text) => {
               setNewConfigurationOpen(false)
               libraryChanged()
@@ -2973,7 +2988,7 @@ function App() {
         <Suspense fallback={<LazyPanelFallback title="Import from Steam" compact />}>
           <SteamImportDialog
             onClose={() => setSteamImportOpen(false)}
-            onImport={(conversion, renames) => { setSteamImportOpen(false); void handleImportSteamLayout(conversion, renames).then(() => libraryChanged()) }}
+            onImport={(conversion, renames) => { setSteamImportOpen(false); void handleImportSteamLayout(conversion, renames).then(name => { libraryChanged(); if (name) window.dispatchEvent(new CustomEvent('jsm:library-select', { detail: name })) }) }}
             libraryProfiles={libraryProfiles}
           />
         </Suspense>

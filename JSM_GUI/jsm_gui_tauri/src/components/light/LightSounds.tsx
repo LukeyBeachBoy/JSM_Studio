@@ -41,13 +41,14 @@ type Props = {
   device?: TelemetryDevice
   /** Settings ▸ Controller, where the defaults live. */
   onOpenSettings: () => void
+  fromSettings?: boolean
 }
 
 export function LightSounds({ open, ...props }: Props) {
   return open ? <LightSoundsBody {...props} /> : null
 }
 
-function LightSoundsBody({ onClose, text, onChange, layers, onChangeDocument, device, onOpenSettings }: Omit<Props, 'open'>) {
+function LightSoundsBody({ onClose, text, onChange, layers, onChangeDocument, device, onOpenSettings, fromSettings }: Omit<Props, 'open'>) {
   const { runtime } = usePreferences()
   const defaultColor = runtime?.ledColor ?? '#ffffff'
   const saved = hexOf(getKeymapValue(text, 'LIGHT_BAR'))
@@ -81,6 +82,7 @@ function LightSoundsBody({ onClose, text, onChange, layers, onChangeDocument, de
   const step = (by: 1 | -1) => { const next = (index + by + swatches.length) % swatches.length; setIndex(next); preview(valueAt(next)) }
   const onStripKey = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); event.stopPropagation(); step(event.key === 'ArrowRight' ? 1 : -1) }
+    else if (event.key === 'ArrowDown') { event.preventDefault(); event.stopPropagation(); strip.current?.closest('[data-subpage]')?.querySelector<HTMLElement>('[aria-label="Light & sounds"] [role="slider"]')?.focus({ preventScroll: true }) }
     else if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); if (swatches[index] === 'custom') setPopover(true); else keep(valueAt(index)) }
   }
   useEffect(() => {
@@ -113,7 +115,7 @@ function LightSoundsBody({ onClose, text, onChange, layers, onChangeDocument, de
   const hue = hsvFromHex(shown).h
   const jingle = runtime?.bootSoundLevel
   return (
-    <SubPage open onClose={() => { endPreview(); onClose() }} trail={['Layout']} title="Controller light & sounds" badge={null} where="Layout · Light & sounds" backLabel="Back to Layout">
+    <SubPage open onClose={() => { endPreview(); onClose() }} trail={fromSettings ? ['Settings', 'Controller'] : ['Layout']} title="Controller light & sounds" badge={null} where={`${fromSettings ? 'Settings · Controller' : 'Layout'} · Light & sounds`} backLabel={fromSettings ? 'Back to Settings' : 'Back to Layout'}>
       <div className={styles.page}>
         <section className={styles.well} aria-label="Light · this configuration">
           <header className={styles.wellHead}><span className={styles.eyebrow}>Light · this configuration</span>{previewing && <span className={styles.live}>● Previewing on your controller</span>}</header>
@@ -123,8 +125,8 @@ function LightSoundsBody({ onClose, text, onChange, layers, onChangeDocument, de
           </div>
           <div ref={strip} className={styles.colourPanel} tabIndex={0} role="listbox" aria-label="Light bar color" data-arrows="horizontal" data-autofocus=""
             aria-activedescendant={`light-swatch-${index}`}
-            data-hints={`MOVE:Preview;A:${swatches[index] === 'custom' ? 'Custom colour' : 'Keep colour'};Y:Back to Default;B:Back to Layout`}
-            data-caption="◂ ▸ shows each colour on the controller. A keeps it. Default follows Settings ▸ Controller."
+            data-hints={`MOVE:Preview;A:${swatches[index] === 'custom' ? 'Custom colour' : 'Keep colour'};Y:Back to Default`}
+            data-caption="Controller light colour · Default follows Settings ▸ Controller."
             onKeyDown={onStripKey} onBlur={endPreview}>
             <svg className={styles.wheel} viewBox="0 0 200 200" aria-hidden="true">
               {Array.from({ length: 12 }, (_, i) => {
@@ -147,14 +149,14 @@ function LightSoundsBody({ onClose, text, onChange, layers, onChangeDocument, de
                   {swatch === 'default' ? 'Default' : swatch === 'custom' ? <Icon name="appearance" size={16} /> : null}
                 </span>)}
               </div>
-              <p className={styles.caption}>◂ ▸ shows each colour on the controller. A keeps it. Default follows Settings ▸ Controller.</p>
+              <p className={styles.caption}>Default follows Settings ▸ Controller.</p>
             </div>
           </div>
           {popover && <LightBarPopover anchor={strip.current} color={custom} onChange={hex => { setCustom(hex); preview(hex) }} onClose={() => { setPopover(false); keep(custom); strip.current?.focus() }} />}
         </section>
 
         <section className={styles.side} aria-label="Light & sounds">
-          <header className={styles.sideHead}><h1>Light & sounds</h1><p>For this configuration. Anything on Default follows Settings.</p></header>
+          <header className={styles.sideHead}><p>For this configuration. Anything on Default follows Settings.</p></header>
           <ValueRow label="Brightness" hero setting="LED_BRIGHTNESS" value={brightness} min={0} max={100} step={5} format={value => `${value}%`}
             caption="Default comes from Settings ▸ Controller" onChange={value => onChange(previous => updateKeymapEntry(previous, 'LED_BRIGHTNESS', [value]))}
             onReset={() => onChange(previous => removeKeymapEntry(previous, 'LED_BRIGHTNESS'))} />
@@ -167,8 +169,8 @@ function LightSoundsBody({ onClose, text, onChange, layers, onChangeDocument, de
             </div>
           </div>
           <span className={styles.eyebrow}>Sounds</span>
-          <OpenRow label="Power-on jingle" hint="The controller’s own start-up tune" value={jingle === 0 ? 'Silenced · Settings ▸ Controller' : 'Plays · Settings ▸ Controller'} onOpen={onOpenSettings} hints="A:Open Settings;B:Back to Layout" />
-          <OpenRow label="Your sounds" hint="Tunes from MP3 or MIDI, played from any button" value="Sound library" onOpen={() => setLibrary(true)} hints="A:Open;B:Back to Layout" />
+          <OpenRow label="Power-on jingle" hint="The controller’s own start-up tune" value={jingle === 0 ? 'Silenced · Settings ▸ Controller' : 'Plays · Settings ▸ Controller'} onOpen={onOpenSettings} hints="A:Open Settings" />
+          <OpenRow label="Your sounds" hint="Tunes from MP3 or MIDI, played from any button" value="Sound library" onOpen={() => setLibrary(true)} hints="A:Open" />
           <span className={styles.eyebrow}>Trackpads</span>
           <SegmentedRow label="Trackpad rotation" hint="Level with the controller · from Settings" value={rotation}
             options={[{ value: 'default', label: 'Default', caption: `As Settings ▸ Controller: left ${runtime?.leftPadRotation ?? 0}°, right ${runtime?.rightPadRotation ?? 0}°` },
@@ -184,7 +186,7 @@ function LightSoundsBody({ onClose, text, onChange, layers, onChangeDocument, de
           </>}
         </section>
       </div>
-      {library && <SoundLibraryPage onClose={() => setLibrary(false)} trail={['Layout', 'Light & sounds']} onOpenSettings={() => { setLibrary(false); onOpenSettings() }} />}
+      {library && <SoundLibraryPage onClose={() => setLibrary(false)} trail={[fromSettings ? 'Settings' : 'Layout', 'Light & sounds']} onOpenSettings={() => { setLibrary(false); onOpenSettings() }} />}
     </SubPage>
   )
 }
@@ -197,7 +199,7 @@ function ModeChip({ layer, hue, value, onPreview, onEnd, onChange }: { layer: Co
   const step = (by: 1 | -1) => { const next = (index + by + options.length) % options.length; setIndex(next); if (options[next]) onPreview(options[next]); else onEnd() }
   return <div className={styles.modeChip} tabIndex={0} role="slider" aria-label={`${layer.name} light`} aria-valuetext={colourName(looking) === 'Default' ? 'Same' : colourName(looking)} data-arrows="horizontal"
     style={{ '--mode-hue': hue } as CSSProperties} data-changed={looking !== value ? 'true' : undefined}
-    data-hints={`MOVE:Preview;A:Keep;${value ? 'Y:Same as the configuration;' : ''}B:Back to Layout`}
+    data-hints={`MOVE:Preview;A:Keep;${value ? 'Y:Same as the configuration' : ''}`}
     data-caption={`${layer.name} · the light while ${layer.name} is on${value ? ` · ${colourName(value)}` : ' · same as the configuration'}`}
     onBlur={() => { setIndex(Math.max(0, options.indexOf(value))); onEnd() }}
     onClick={() => { const next = (index + 1) % options.length; setIndex(next); onChange(options[next]); onEnd() }}

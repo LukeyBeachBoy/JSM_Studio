@@ -141,6 +141,7 @@ export function TrackpadsPage(props: TrackpadsPageProps) {
     caption: value === 'ZONES' && card === 'ZONES' ? `${SHAPE_NAMES[shape] ?? shape} · ${regions.length} zone${regions.length === 1 ? '' : 's'}`
       : value === 'PS_TOUCHPAD' && twoPads ? 'Needs a one-pad controller' : PAD_CARD_NAMES[value].caption,
     unavailable: value === 'PS_TOUCHPAD' && twoPads ? 'PlayStation touchpad passes one pad to a DS4 game; it isn’t available on a two-pad controller.' : undefined,
+    skipNavigation: value === 'PS_TOUCHPAD' && twoPads,
   }))
   usePadButton(root, 'Y', () => setMore(true))
   usePadButton(root, 'X', regions.length > 1 ? stepRegion : undefined)
@@ -167,7 +168,7 @@ export function TrackpadsPage(props: TrackpadsPageProps) {
     rows = <>
       {selected && <div className={styles.zoneRow}>{props.renderButton(selected, { label: where(selectedIndex), subtitle: `Zone ${selectedIndex} of ${regions.length}`, xAction: regions.length > 1 ? { label: 'Next zone', run: stepRegion } : undefined })}</div>}
       <SwitchRow label="Click required" hint="Zones fire only when you press the pad in" setting={padKey.requiresClick(side)} extraHints={stepHints}
-        on={readWord(readText, padKey.requiresClick(side)) === 'ON'} onChange={on => writeKeys(setText, { [padKey.requiresClick(side)]: on ? 'ON' : null })}
+        on={readWord(readText, padKey.requiresClick(side)) === 'ON'} onChange={on => writeKeys(setText, { [padKey.requiresClick(side)]: on ? 'ON' : 'OFF' })}
         onReset={readWord(readText, padKey.requiresClick(side)) ? () => writeKeys(setText, { [padKey.requiresClick(side)]: null }) : undefined} />
       {pad.menu && <OpenRow label="On-screen menu" hint={describeMenuPlacement(pad.menu)} value="Arrange" hints={`A:Arrange;${stepHints}`}
         onOpen={() => window.dispatchEvent(new CustomEvent('jsm:menu-layout', { detail: pad.menuKey }))} />}

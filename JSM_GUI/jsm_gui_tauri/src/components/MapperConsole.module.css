@@ -56,5 +56,5 @@
 .help { margin: 0; color: var(--text-3); font-size: var(--fs-hint); }
 .recent { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
 .recentTitle { color: var(--text-3); font-size: var(--fs-hint); margin-right: var(--sp-2); }
-.recentItem { height: 40px; padding: 0 var(--sp-4); border: 0; border-radius: var(--r-pill); background: var(--surface-row); color: var(--text-1); font-family: var(--font-mono); font-size: var(--fs-hint); cursor: pointer; }
+.recentItem { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; height: 40px; padding: 0 var(--sp-4); border: 0; border-radius: var(--r-pill); background: var(--surface-row); color: var(--text-1); font-family: var(--font-mono); font-size: var(--fs-hint); cursor: pointer; }
 .recentItem:hover { background: var(--surface-row-hover); }

@@ -26,8 +26,8 @@
 .after { color: var(--change-hue, var(--text-1)); overflow-wrap: anywhere; }
 .revert { display: inline-flex; align-items: center; gap: var(--sp-2); padding: 4px var(--sp-2); border-radius: var(--r-pill); color: var(--text-2); font-size: var(--fs-body); }
 .revert:hover { background: var(--surface-control); color: var(--text-1); }
-.revertKey { display: none; width: 24px; height: 24px; border-radius: 50%; background: var(--text-1); color: var(--surface-frame); font-size: 12px; font-weight: 700; place-items: center; }
-.row:focus .revertKey { display: inline-grid; }
+.revertKey { display: inline-grid; visibility: hidden; width: 24px; height: 24px; border-radius: 50%; background: var(--text-1); color: var(--surface-frame); font-size: 12px; font-weight: 700; place-items: center; }
+.row:focus .revertKey { visibility: visible; }
 .row:focus .revert { color: var(--accent); }
 .goCaption { display: none; grid-column: 1 / -1; padding: var(--sp-2) 0 var(--sp-1) 44px; color: var(--accent); font-size: var(--fs-hint); }
 .row:focus .goCaption { display: block; }

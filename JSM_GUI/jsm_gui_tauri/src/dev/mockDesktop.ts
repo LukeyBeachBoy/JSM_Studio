@@ -4,6 +4,7 @@
 // main.tsx, which only imports this behind import.meta.env.DEV).
 import steamSampleV3 from '../../../../tests/fixtures/steam/wardogs_v3.vdf?raw'
 import steamSampleV2 from '../../../../tests/fixtures/steam/gamepad_v2.vdf?raw'
+import tauriConf from '../../src-tauri/tauri.conf.json'
 
 const profiles: Record<string, string> = {
   Wardogs: [
@@ -133,7 +134,7 @@ const mockGyroCalNow = () => {
 // Steam, the built-in Quick tools), Startup, the update status, recent commands.
 type MockChord = { id: string; buttons: string[]; triggerGroups: string[][]; controllerModel: string | null; profilePath: string; rank?: number | null }
 const mockShell = {
-  update: { currentVersion: '0.7.135', available: false, checking: false, checkedAtMs: null as number | null, latestVersion: null as string | null, releaseUrl: null as string | null, error: null as string | null },
+  update: { currentVersion: tauriConf.version, available: false, checking: false, checkedAtMs: null as number | null, latestVersion: null as string | null, releaseUrl: null as string | null, error: null as string | null },
   startup: { startInTray: true, startupProfile: 'last' },
   chords: [
     { id: 'desktop', buttons: [], triggerGroups: [['HOME']], controllerModel: null, profilePath: 'profiles-library/Gamepad.txt' },
@@ -144,7 +145,7 @@ const mockShell = {
 
 export function installMockDesktop() {
   // What the pad would have felt (nav/feedback.ts), for checking by hand or test.
-  ;(window as unknown as { __padFeedback: unknown[] }).__padFeedback = []
+  (window as unknown as { __padFeedback: unknown[] }).__padFeedback = []
   const w = window as unknown as Record<string, unknown>
   // Telemetry only draws while the window has focus; a preview pane or a
   // second monitor would otherwise never see the controller.
@@ -173,6 +174,12 @@ export function installMockDesktop() {
     // template in the library and its settings read as inherited.
     readConfigFile: async (path: string) => profiles[path.replace(/^.*[\\/]/, '').replace(/\.txt$/i, '')] ?? null,
     saveLibraryProfile: async (name: string, content: string) => { profiles[name] = content; return { name } },
+    renameLibraryProfile: async (oldName: string, newName: string) => {
+      if (!(oldName in profiles) || !newName.trim() || newName in profiles) return null
+      profiles[newName] = profiles[oldName]
+      delete profiles[oldName]
+      return { name: newName, content: profiles[newName] }
+    },
     // Gyro ▸ Speed ▸ Advanced ▸ Game & lean: Windows' default 6 of 11.
     getWindowsPointerSpeed: async () => ({ speed: 10, enhancePrecision: false }),
     // Gyro ▸ Recalibrate: a 1 s wait then a 5 s run, reported the way the

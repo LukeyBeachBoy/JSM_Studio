@@ -16,22 +16,21 @@ const assert=require('node:assert/strict');
  // Review changes is a full page now (console v2, ReviewChanges): grouped like the tabs, before → after inline.
  const dialog=page.getByRole('dialog',{name:/Review changes$/});await dialog.waitFor();
  const text=async()=>dialog.innerText();
- assert.match(await text(),/7 changes/);assert.match(await text(),/With \S+ held/);assert.doesNotMatch(await text(),/Modeshift/);
+ await dialog.getByRole('heading',{name:'7 changes',exact:true}).waitFor();assert.match(await text(),/With \S+ held/);assert.doesNotMatch(await text(),/Modeshift/);
  assert.match(await text(),/Vehicles layer/i);assert.match(await text(),/Same as Default|→/);
  assert.match(await text(),/Buttons/i);assert.match(await text(),/Trackpads/i);
  // The history names each edit, Undo says what it undoes.
- assert.match(await dialog.getByRole('button',{name:'Undo'}).innerText(),/Undo/);
+ assert.match(await dialog.getByRole('button',{name:'Undo',exact:true}).innerText(),/Undo/);
  await page.waitForTimeout(400);await page.screenshot({path:'tools/change-review-desktop.png'});
  await dialog.getByRole('button',{name:'Revert Y button name',exact:true}).click();
- assert.match(await text(),/6 changes/);
- await dialog.getByRole('button',{name:'Undo'}).click();assert.match(await text(),/7 changes/);
- await dialog.getByRole('button',{name:'Redo'}).click();assert.match(await text(),/6 changes/);
+ await dialog.getByRole('heading',{name:'6 changes',exact:true}).waitFor();
+ await dialog.getByRole('button',{name:'Undo',exact:true}).click();await dialog.getByRole('heading',{name:'7 changes',exact:true}).waitFor();
+ await dialog.getByRole('button',{name:'Redo',exact:true}).click();await dialog.getByRole('heading',{name:'6 changes',exact:true}).waitFor();
  // X on a focused row reverts it too.
- await dialog.locator('[data-change-id]').first().evaluate(el=>{el.focus();el.dispatchEvent(new CustomEvent('jsm:pad',{detail:{button:'X'},bubbles:true,cancelable:true}))});assert.match(await text(),/5 changes/);
+ await dialog.locator('[data-change-id]').first().evaluate(el=>{el.focus();el.dispatchEvent(new CustomEvent('jsm:pad',{detail:{button:'X'},bubbles:true,cancelable:true}))});await dialog.getByRole('heading',{name:'5 changes',exact:true}).waitFor();
  await dialog.getByRole('button',{name:'Discard all 5',exact:true}).click();await dialog.getByRole('heading',{name:'No pending changes'}).waitFor();
- await dialog.getByRole('button',{name:'Undo'}).click();assert.match(await text(),/5 changes/);
+ await dialog.getByRole('button',{name:'Undo',exact:true}).click();await dialog.getByRole('heading',{name:'5 changes',exact:true}).waitFor();
  await page.setViewportSize({width:620,height:760});await page.screenshot({path:'tools/change-review-compact.png'});
  assert.equal(await dialog.evaluate(el=>el.scrollWidth>el.clientWidth+1),false);assert.deepEqual(errors,[]);
  console.log('PASS: grouped review page, input glyphs, chord wording, before → after, selective revert (button and X), undo/redo, discard-all undo and compact layout');
 }finally{await browser.close()}})().catch(e=>{console.error(e);process.exit(1)});
-

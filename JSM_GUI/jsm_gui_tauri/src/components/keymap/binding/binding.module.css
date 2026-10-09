@@ -276,3 +276,5 @@ details:has(> .row) { position: relative; }
 .panel [role='radio'], .panel [data-variant='picture'] { background: rgba(255, 255, 255, .03); }
 .panel [role='radio']:hover { background: var(--surface-row-hover); }
 .stickCards [role='radiogroup'] > button > span:first-child { aspect-ratio: 4 / 3; }
+.mouseHelp { display: none; color: var(--text-3); font-size: var(--fs-hint); }
+:global(body[data-input-source='mouse']) .mouseHelp { display: block; }
