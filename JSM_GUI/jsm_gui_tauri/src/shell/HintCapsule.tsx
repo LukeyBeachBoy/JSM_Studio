@@ -112,7 +112,7 @@ const withHome = (hints: Hint[]): Hint[] => {
   if (overlayOpen()) return hints
   const group = pageGroup()
   if (group === 'studio') return hints.map(hint => hint.button === 'B' && hint.label === 'Back' ? { ...hint, label: 'Home' } : hint)
-  if (group === 'home' && !hints.some(hint => hint.button === 'MENU')) return [...hints, { button: 'MENU', label: 'Options' }]
+  if (group === 'home' && !hints.some(hint => hint.button === 'MENU')) return [...hints, { button: 'MENU', label: 'Tap: options · hold: save' }]
   return hints
 }
 

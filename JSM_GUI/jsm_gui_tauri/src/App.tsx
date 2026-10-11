@@ -41,7 +41,7 @@ import { OverviewPage } from './components/OverviewPage'
 import { HidHidePage } from './components/HidHidePage'
 import { useProfileLibrary } from './hooks/useProfileLibrary'
 import { changeBase as changeLibraryBase, duplicateConfiguration, libraryChanged } from './hooks/useLibraryGraph'
-import { setBaseInclude, setGameMeta } from './utils/libraryGraph'
+import { setBaseInclude, setGameMeta, describeConfig } from './utils/libraryGraph'
 import { ControllerLayoutScope } from './components/ControllerLayoutScope'
 import { controllerModelKey, foldController, projectController, controllerBase, resetControllerAssignment, sharedController } from './utils/controllerLayouts'
 import { useKeymapConfig } from './hooks/useKeymapConfig'
@@ -1582,8 +1582,7 @@ function App() {
       if (isStudioPage(primaryTab)) return false
       setConfigMenuOpen(true)
     },
-    // Menu tapped: what the status chip does (save and make live, make live,
-    // stop testing). Holding Menu opens the Configuration menu instead.
+    // Holding Menu saves and makes live, following the status chip.
     onSave: () => {
       if (isStudioPage(primaryTab) || stateButton.kind === 'idle') return false
       pressStateButton()
@@ -1784,6 +1783,7 @@ function App() {
       <HomePage
         configName={currentLibraryProfile}
         configText={currentLibraryProfile ? configText : undefined}
+        currentBase={describeConfig(currentLibraryProfile ?? '', documentText).base}
         applied={editingIsRunning && !mapperExit}
         summary={currentLibraryProfile ? summarizeConfiguration(effectiveConfigText, layers.length, controllerFamily) : ''}
         changeCount={changeCount}
@@ -1792,6 +1792,7 @@ function App() {
         onContinue={() => setPrimaryTab('overview')}
         onTest={() => void startTest()}
         onMakeLive={() => void editorActionRef.current('both')}
+        onChangeBase={changeBaseOf}
         testReason={testReason}
         quickTune={quick}
         onGyroSpeed={quickTuneGyroSpeed}

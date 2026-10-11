@@ -7,7 +7,8 @@ import { PAD_EVENT, type PadEventDetail } from '../nav/useControllerNavigation'
 import { exeFileName, useProfileAssociation } from '../hooks/useAppIcon'
 import { fallbackCover } from '../hooks/useGameArt'
 import { useGameArt as useSteamArt } from './library/gameArt'
-import { readGameMeta } from '../utils/libraryGraph'
+import { BasePickerSheet } from './library/LibrarySheets'
+import { libraryPath, BUILTIN_CHORD_NAME, readGameMeta } from '../utils/libraryGraph'
 import { desktopBridge } from '../platform/desktopBridge'
 import { AppIconImage } from './AppIconImage'
 import { useShell } from '../shell/ShellContext'
@@ -42,6 +43,7 @@ type HomePageProps = {
   configName: string | null
   /** The configuration being edited, for its game (the `# @game` line). */
   configText?: string
+  currentBase: string | null
   /** Saved and the one live. */
   applied: boolean
   /** "Shooter · gyro aim on right grip · trackpad menus · 3 modes". */
@@ -51,6 +53,7 @@ type HomePageProps = {
   onContinue: () => void
   onTest: () => void
   onMakeLive: () => void
+  onChangeBase: (name: string, path: string | null) => Promise<void>
   /** Why Test cannot run right now, or null. */
   testReason: string | null
   quickTune: HomeQuickTune
@@ -106,6 +109,7 @@ function GameCover({ name, note, onOpen }: { name: string; note?: string; onOpen
 
 export function HomePage(props: HomePageProps) {
   const library = useLibraryGraph(props.libraryProfiles)
+  const [baseOpen, setBaseOpen] = useState(false)
   const games = props.games.filter(name => library.graph.games.includes(name))
   const configurationCount = library.graph.games.length
   const { t } = useTranslation()
@@ -198,6 +202,13 @@ export function HomePage(props: HomePageProps) {
             data-caption="Switch game · pick another configuration from your library">
             <ButtonGlyph button="Y" size={26} family={family} className={styles.actionGlyph} />Switch game
           </button>
+          <button type="button" className={styles.secondary} onClick={() => setBaseOpen(true)} disabled={!hasConfig}
+            data-hints="A:Change base" data-caption="Change the shared base this configuration is built on">
+            <Icon name="inherited" size={26} />Change base
+          </button>
+          <button type="button" className={styles.secondary} onClick={() => props.onOpenStudio('configurations')} data-hints="A:Your game configs">
+            <Icon name="library" size={26} />Your game configs
+          </button>
         </div>
 
         <div className={styles.tune}>
@@ -231,6 +242,21 @@ export function HomePage(props: HomePageProps) {
         </div>
       </section>
 
+      {baseOpen && props.configName && <BasePickerSheet open onClose={() => setBaseOpen(false)} name={name}
+        current={props.currentBase} builtin={library.builtinBases}
+        userBases={library.graph.bases.filter(base => base !== name && base !== BUILTIN_CHORD_NAME)}
+        loops={path => {
+          const seen = new Set<string>()
+          const walk = (candidate: string): boolean => {
+            const key = candidate.toLowerCase()
+            if (key === libraryPath(name).toLowerCase()) return true
+            if (seen.has(key)) return false
+            seen.add(key)
+            return Boolean(Object.values(library.graph.configs).find(item => item.path.toLowerCase() === key)?.imports.some(walk))
+          }
+          return walk(path)
+        }}
+        onPick={path => { setBaseOpen(false); void props.onChangeBase(name, path) }} />}
       <section className={styles.side} aria-labelledby="home-studio-title" data-nav-region="studio">
         <div className={styles.sideHead}>
           <h2 id="home-studio-title" className={styles.sideTitle}>Your games</h2>

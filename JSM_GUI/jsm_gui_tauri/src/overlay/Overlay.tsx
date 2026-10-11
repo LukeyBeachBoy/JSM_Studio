@@ -2,6 +2,8 @@ import { MenuDrawing } from './MenuDrawing'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
+import { controllerModelKey, projectController } from '../utils/controllerLayouts'
+import type { TelemetryDevice } from '../hooks/useTelemetry'
 import { RAW_BUTTONS } from '../utils/controllerStatus'
 import { resolveIncludes } from '../utils/configIncludes'
 import { readVirtualMenus } from '../utils/virtualMenus'
@@ -34,8 +36,14 @@ const NOT_A_CHOSEN_PROFILE = ['profiles-library/applied-preview.txt', 'MappingDi
  * sees. Telemetry is the only place it surfaces.
  */
 async function liveProfilePath(): Promise<string | null> {
-  const sample = await invoke<{ activeProfile?: string } | null>('get_latest_telemetry_sample').catch(() => null)
-  const path = sample?.activeProfile?.trim().replace(/\\/g, '/')
+  const sample = await invoke<{
+    activeProfile?: string
+    devices?: { activeProfile?: string | null; status?: object | null }[]
+  } | null>('get_latest_telemetry_sample').catch(() => null)
+  // Match the device used by the native overlay packet. Hold-to-swap chords
+  // change its profile while the app-wide profile still names the game.
+  const device = sample?.devices?.find(device => device.status != null && typeof device.status === 'object')
+  const path = (device?.activeProfile?.trim() || sample?.activeProfile?.trim())?.replace(/\\/g, '/')
   if (!path || !/\.txt$/i.test(path)) return null
   return NOT_A_CHOSEN_PROFILE.some(skip => skip.toLowerCase() === path.toLowerCase()) ? null : path
 }
@@ -173,9 +181,13 @@ export function Overlay() {
           }
         }
         const resolved = resolveIncludes(root, files)
+        const telemetry = await invoke<{ devices?: TelemetryDevice[] } | null>('get_latest_telemetry_sample').catch(() => null)
+        const device = telemetry?.devices?.find(item => item.status != null)
+        const effective = resolved.effectiveText ?? rootText
+        const projected = projectController(effective, controllerModelKey(device), effective)
         if (cancelled) return
-        const next = resolveOverlayMenus(resolved.effectiveText ?? rootText)
-        for (const menu of readVirtualMenus(resolved.effectiveText ?? rootText).menus) next[`NAMED:${menu.id}`] = namedMenuOverlay(menu)
+        const next = resolveOverlayMenus(projected)
+        for (const menu of readVirtualMenus(projected).menus) next[`NAMED:${menu.id}`] = namedMenuOverlay(menu)
         // This runs every two seconds. Only an actual change is a new menu set:
         // a fresh object each time re-ran the placement effect below and moved
         // the always-on-top window every two seconds for as long as a menu was

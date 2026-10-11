@@ -281,3 +281,7 @@
 .buttonsRow { display: flex; flex-wrap: wrap; gap: var(--sp-3); margin-top: var(--sp-2); }
 .buttonsRow .act { grid-template-columns: auto; padding: 0 22px; }
 .buttonsRow .act[data-primary='true'] { grid-template-columns: auto minmax(0, 1fr); }
+
+.baseSectionTitle { margin: 0 0 var(--sp-3); font-size: var(--fs-label); }
+.baseGrid + .baseSectionTitle { margin-top: var(--sp-6); }
+.copyAction { display: flex; align-items: center; gap: 8px; color: var(--accent); font-weight: var(--fw-semibold); margin-top: auto; }

@@ -238,6 +238,7 @@ export function MenusPage({ text, setText, configName, deviceType, sample, initi
   if (!catalog.menus.length && !catalog.problem) return (
     <div className={styles.page} data-virtual-menus-page="" data-empty="">
       <section className={styles.emptyState} aria-label="Start a menu">
+        <p>Virtual menus are reusable wheels, grids and strips opened by a button or attached to an input. Trackpad “Zones you bind” belong to the pad and are edited on Trackpads; their on-screen overlay is separate.</p>
         <p>Hold a button, point at what you want, let go. Good for weapons, emotes and build items. Start from a shape:</p>
         <TemplateCards onPick={create} />
       </section>
@@ -360,7 +361,8 @@ export function MenusPage({ text, setText, configName, deviceType, sample, initi
         onChange={(id, patch) => update(catalog.menus.map(item => item.id === id ? { ...item, placement: { ...item.placement, ...patch } } : item))} onClose={() => setPositioning(null)} />}
       {creating && <SubPage open onClose={() => setCreating(false)} trail={['Menus']} title="New menu">
         <section className={styles.emptyState} aria-label="Start a menu">
-          <p>Hold a button, point at what you want, let go. Good for weapons, emotes and build items. Start from a shape:</p>
+          <p>Virtual menus are reusable wheels, grids and strips opened by a button or attached to an input. Trackpad “Zones you bind” belong to the pad and are edited on Trackpads; their on-screen overlay is separate.</p>
+        <p>Hold a button, point at what you want, let go. Good for weapons, emotes and build items. Start from a shape:</p>
           <TemplateCards onPick={create} />
         </section>
       </SubPage>}

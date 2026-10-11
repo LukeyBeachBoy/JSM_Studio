@@ -31,6 +31,17 @@ const SCROLL = [
   'SCROLL_SENS = 76',
 ].join('\n');
 
+const QUICK_ACCESS = [
+  'LEFT_TOUCHPAD_MODE = GRID_AND_STICK',
+  'LEFT_GRID_REQUIRES_CLICK = ON',
+  'LEFT_GRID_SIZE = 3 1',
+  '# @controller type-24 LEFT_GRID_SIZE = 2 2',
+  '# @controller type-24 LT3 = F1',
+  '# @controller type-24 LT4 = NONE',
+  'LT1 = HOME', 'LT2 = INSERT',
+  '# @overlay LEFT at 0.14 0.8 size 317 font 25',
+].join('\n');
+
 function installTauriStub(profiles) {
   const callbacks = {};
   let nextId = 1;
@@ -48,7 +59,10 @@ function installTauriStub(profiles) {
       if (cmd === 'get_active_profile') {
         return Promise.resolve({ path: 'profiles-library/Game.txt', content: profiles['profiles-library/Game.txt'] });
       }
-      if (cmd === 'get_latest_telemetry_sample') return Promise.resolve({ activeProfile: window.__live });
+      if (cmd === 'get_latest_telemetry_sample') return Promise.resolve({
+        activeProfile: window.__live,
+        devices: window.__deviceLive ? [{ activeProfile: window.__deviceLive, type: 24, status: {} }] : [],
+      });
       if (cmd === 'read_config_file') return Promise.resolve(profiles[args.path] ?? null);
       if (cmd === 'overlay_workarea') return Promise.resolve({ x: 0, y: 0, width: 1920, height: 1080 });
       return Promise.resolve(null);
@@ -72,6 +86,7 @@ const packet = (magnitude, live) => ({
     await page.addInitScript(installTauriStub, {
       'profiles-library/Game.txt': WHEEL,
       'profiles-library/Chord.txt': SCROLL,
+      'profiles-library/Quick Access.txt': QUICK_ACCESS,
     });
     await page.goto(URL);
     await page.waitForFunction(() => !!window.__emit);
@@ -106,6 +121,43 @@ const packet = (magnitude, live) => ({
     await page.waitForTimeout(150);
     assert.equal(await tilt(0.3, 'profiles-library/Game.txt'), 'true',
       'the weapon wheel must come back once its profile is running again');
+
+    // A per-controller chord leaves the global game profile unchanged. Both
+    // immediate reload and the periodic read must keep following the device.
+    await page.evaluate(() => {
+      window.__live = 'profiles-library/Chord.txt'; // global profile has no menu
+      window.__deviceLive = 'profiles-library/Game.txt'; // device chord has one
+    });
+    await tilt(0, 'profiles-library/Chord.txt');
+    await tilt(0, 'profiles-library/Game.txt');
+    await page.waitForTimeout(200);
+    assert.equal(await tilt(0.3, 'profiles-library/Game.txt'), 'true',
+      'a controller chord menu must render even when the app-wide game has no menu');
+    await page.waitForTimeout(2200);
+    assert.equal(await tilt(0.3, 'profiles-library/Game.txt'), 'true',
+      'periodic profile loading must not replace the held chord menu with the game');
+    await page.evaluate(() => { window.__deviceLive = 'profiles-library/Chord.txt'; });
+    assert.equal(await tilt(0.3, 'profiles-library/Chord.txt'), 'false',
+      'releasing a controller chord must return to the game without its menu');
+
+    await page.evaluate(() => { window.__deviceLive = 'profiles-library/Quick Access.txt'; });
+    const touch = async () => {
+      for (let i = 0; i < 4; i++) {
+        await page.evaluate(p => window.__emit(p), {
+          ...packet(0, 'profiles-library/Quick Access.txt'),
+          leftPad: { x: 0.4, y: 0.2, touched: true },
+        });
+        await page.waitForTimeout(100);
+      }
+      return page.locator('[data-visible]').first().getAttribute('data-visible');
+    };
+    assert.equal(await touch(), 'true', 'the Quick Access left-pad grid must show over the game profile');
+    assert.equal(await page.locator('[data-visible="true"] [data-bound]').count(), 4, 'controller-specific 2 by 2 grid includes every zone');
+    const tracks = await page.locator('[data-visible="true"] [style*="grid-template-columns"]').evaluate(el => ({ columns: el.style.gridTemplateColumns, rows: el.style.gridTemplateRows }));
+    assert.equal(tracks.columns, 'repeat(2, 1fr)');
+    assert.equal(tracks.rows, 'repeat(2, 1fr)');
+    await page.waitForTimeout(2200);
+    assert.equal(await touch(), 'true', 'the left-pad grid must survive the periodic profile refresh');
 
     assert.deepEqual(errors, [], `page errors: ${errors.join(', ')}`);
     console.log('PASS: a configuration swap drops the old menus on the packet that reports it, not two seconds later');

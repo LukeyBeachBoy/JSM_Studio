@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { desktopBridge } from '../platform/desktopBridge'
 import { getPressedControllerCommandSet } from '../utils/controllerStatus'
 import type { TelemetrySample } from '../hooks/useTelemetry'
-import { PadNavigator, type NavAction, type PadButton } from './padNavigator'
+import { PadNavigator, HOLD_MENU_MS, type NavAction, type PadButton } from './padNavigator'
 import { NAV_SKIP_SELECTOR, pageEntryTarget } from '../hooks/useKeyboardNav'
 import { isStudioNavigationProfile } from '../utils/appliedProfile'
 import { restingAnchor } from './navAnchor'
@@ -55,7 +55,7 @@ type Options = {
   onHome: () => void
   /** Menu: the Configuration menu, where there is a configuration to act on. */
   onMenu: () => boolean | void
-  /** Menu tapped: save (what the title bar's status chip does). */
+  /** Hold Menu: save (what the title bar's status chip does). */
   onSave: () => boolean | void
 }
 
@@ -236,7 +236,7 @@ export function useControllerNavigation(options: Options) {
         return
       }
       if (action.kind === 'hold' && action.button === 'MENU') {
-        padFeedback(latest.current.onMenu() === false ? 'edge' : 'titleBar', 'right')
+        padFeedback(latest.current.onSave() === false ? 'edge' : 'select', 'right')
         return
       }
       if (action.kind === 'hold') {
@@ -290,10 +290,8 @@ export function useControllerNavigation(options: Options) {
           void goHome()
           return
         case 'MENU': {
-          // A tap saves, from anywhere -- a sub-page can still claim Menu for
-          // itself first (Review changes: ☰ Save). Holding it opens the menu.
-          if (overlayOpen() && sendPad('MENU')) { padFeedback('select'); return }
-          padFeedback(latest.current.onSave() === false ? 'edge' : 'select', 'right')
+          // Tap opens configuration options; hold saves from any page.
+          padFeedback(latest.current.onMenu() === false ? 'edge' : 'titleBar', 'right')
           return
         }
       }
@@ -338,20 +336,16 @@ export function useControllerNavigation(options: Options) {
     // Configuration menu as Menu does. Enter, Esc, the arrows and PgUp/PgDn
     // already were keys. Only keys nothing else took, and never while typing.
     const TYPED = 'input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="range"]), textarea, select, [contenteditable="true"]'
-    // M is the keyboard's Menu: a tap (released before the key repeats) saves,
-    // holding it opens the Configuration menu.
+    // M matches Menu: tap for options, hold to save.
     let mDown = false, mHeld = false
+    let mTimer: ReturnType<typeof setTimeout> | undefined
     const onKeyUp = (event: KeyboardEvent) => {
       if (event.key.toLowerCase() !== 'm' || !mDown) return
       mDown = false
-      if (!mHeld) latest.current.onSave()
+      clearTimeout(mTimer)
+      if (!mHeld) latest.current.onMenu()
     }
     const onKey = (event: KeyboardEvent) => {
-      if (event.isTrusted && event.repeat && mDown && event.key.toLowerCase() === 'm') {
-        event.preventDefault()
-        if (!mHeld) { mHeld = true; latest.current.onMenu() }
-        return
-      }
       if (!event.isTrusted || event.defaultPrevented || event.repeat || event.ctrlKey || event.altKey || event.metaKey) return
       if (document.body.dataset.bindingCapture === 'true') return
       const target = event.target instanceof Element ? event.target : null
@@ -378,13 +372,14 @@ export function useControllerNavigation(options: Options) {
         return
       }
       if (overlayOpen()) {
-        // A sub-page or dialog can claim Menu (Review changes: ☰ Save); otherwise
-        // M still saves from inside it, as the pad's Menu does.
-        if (key === 'm' && sendPad('MENU')) { event.preventDefault(); return }
+        // Menu keeps the same tap/hold behavior inside a dialog.
         if (key !== 'm') return
       }
       if (key === 'Home') { event.preventDefault(); latest.current.onHome(); return }
-      if (key === 'm') { event.preventDefault(); mDown = true; mHeld = false }
+      if (key === 'm') {
+        event.preventDefault(); mDown = true; mHeld = false
+        mTimer = setTimeout(() => { if (mDown) { mHeld = true; latest.current.onSave() } }, HOLD_MENU_MS)
+      }
     }
     window.addEventListener('keydown', onKey)
     window.addEventListener('keyup', onKeyUp)
@@ -451,6 +446,7 @@ export function useControllerNavigation(options: Options) {
     })
     const host = document.querySelector<HTMLElement>('.shell-scroll')
     const unwatch = host ? watchManualScroll(host) : undefined
-    return () => { window.removeEventListener('keydown', onKey); window.removeEventListener('keyup', onKeyUp); window.removeEventListener(VIRTUAL_PAD_EVENT, onVirtual); dispose?.(); unwatch?.() }
+    return () => { window.removeEventListener('keydown', onKey); window.removeEventListener('keyup', onKeyUp)
+      clearTimeout(mTimer); window.removeEventListener(VIRTUAL_PAD_EVENT, onVirtual); dispose?.(); unwatch?.() }
   }, [])
 }

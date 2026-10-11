@@ -61,7 +61,7 @@
 .summary { margin: 14px 0 0; font-size: calc(var(--fs-body) + 3px); line-height: 1.35; color: #c9d3dc; }
 
 /* ---- A Edit layout · X Test it · Y Switch game */
-.actions { display: flex; gap: var(--sp-4); flex-shrink: 0; }
+.actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-3); flex-shrink: 0; }
 .primary, .secondary {
   height: 76px;
   display: flex;

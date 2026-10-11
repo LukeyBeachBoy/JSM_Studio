@@ -170,7 +170,7 @@ export function TrackpadsPage(props: TrackpadsPageProps) {
       <SwitchRow label="Click required" hint="Zones fire only when you press the pad in" setting={padKey.requiresClick(side)} extraHints={stepHints}
         on={readWord(readText, padKey.requiresClick(side)) === 'ON'} onChange={on => writeKeys(setText, { [padKey.requiresClick(side)]: on ? 'ON' : 'OFF' })}
         onReset={readWord(readText, padKey.requiresClick(side)) ? () => writeKeys(setText, { [padKey.requiresClick(side)]: null }) : undefined} />
-      {pad.menu && <OpenRow label="On-screen menu" hint={describeMenuPlacement(pad.menu)} value="Arrange" hints={`A:Arrange;${stepHints}`}
+      {pad.menu && <OpenRow label="Zone overlay" hint={`Shows this pad’s bound zones · ${describeMenuPlacement(pad.menu)}`} value="Arrange" hints={`A:Arrange;${stepHints}`}
         onOpen={() => window.dispatchEvent(new CustomEvent('jsm:menu-layout', { detail: pad.menuKey }))} />}
       {touchClickRows}
     </>
@@ -231,6 +231,7 @@ export function TrackpadsPage(props: TrackpadsPageProps) {
           <p className={styles.padLive}>{livePoint ? <><span className={p4.liveChip}>● {card === 'ZONES' ? `thumb on ${hitName}` : card === 'TOUCH_STICK' ? 'dragging' : 'touching'}</span></> : <span>{card === 'ZONES' && (shape === 'FOUR_WAY' || shape === 'EIGHT_WAY' || shape === 'RADIAL') ? 'Middle ring presses nothing' : 'Touch the pad to try it'}</span>}</p>
         </div>
         <div className={p4.frontRows}>
+          {card === 'ZONES' && <p className={styles.zoneExplanation}>Zones belong to this trackpad and fire its bindings when touched or clicked. Their overlay mirrors the pad. Reusable menus opened by buttons live on the Virtual menus page.</p>}
           {rows}
           <OpenRow label="Fine-tune" hint={card === 'ZONES' ? 'Zone shape, centre dead zone, touch and click, touch stick, feel' : card === 'MOUSE_AREA' ? 'Touch and click, click damping, lift-off, feel' : card === 'MOUSE' ? 'Speed and curve, glide, click, feel' : 'Touch and click, touch stick, feel'}
             value="Open" hints={`A:Open;${stepHints}`} data={{ 'data-trackpad-fine-tune': side }} onOpen={() => setFineTune(card === 'MOUSE' ? 'speed' : card === 'MOUSE_AREA' ? 'area' : card === 'TOUCH_STICK' ? 'zones:stick' : 'zones')} />

@@ -47,8 +47,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  const hold = async buttons => page.evaluate(b => b.forEach(x => window.__held.add(x)), buttons);
  const release = async buttons => page.evaluate(b => b ? b.forEach(x => window.__held.delete(x)) : window.__held.clear(), buttons);
  const press = async (...buttons) => { await hold(buttons); await page.waitForTimeout(60); await release(buttons); await page.waitForTimeout(80); };
- // Menu: a tap saves; holding it opens the Configuration menu.
- const holdMenu = async () => { await hold(['+']); await page.waitForTimeout(650); await release(['+']); await page.waitForTimeout(120); };
+ // Menu: tap opens options, holding saves.
  // A soft pull, half way: that is enough to turn a page (padNavigator's
  // TRIGGER_ON), well short of the full pull the Triggers page draws.
  const pull = async (side, amount = 0.5) => { await page.evaluate(([s, v]) => { window.__triggers[s] = v }, [side, amount]); await page.waitForTimeout(60); await page.evaluate(s => { window.__triggers[s] = 0 }, side); await page.waitForTimeout(80); };
@@ -155,8 +154,8 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  await press('E');
  await page.waitForFunction(() => document.activeElement?.closest('details[data-input-command="N"]'));
 
- // Holding Menu opens the Configuration menu; View closes it first, then goes Home.
- await holdMenu();
+ // Tapping Menu opens the Configuration menu; View closes it first, then goes Home.
+ await press('+');
  await page.locator('.config-menu').waitFor();
  await page.waitForFunction(() => document.activeElement?.closest('.config-menu'));
  await press('-');
@@ -168,7 +167,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
  await page.locator('.section-item').filter({hasText:/^Press timing$/}).click();
  await page.waitForFunction(() => (document.querySelector('.page-header__title') ?? document.querySelector('.page-tab[aria-current="page"]'))?.textContent === 'Press timing');
  assert.equal(await group(), 'studio');
- await holdMenu();
+ await press('+');
  await page.waitForTimeout(150);
  assert.equal(await page.locator('.config-menu').count(), 0, 'Menu does nothing on a Studio page');
  await press('E');
@@ -178,7 +177,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
 
  // Test hands the pad to the configuration: navigation stops until View + Menu is held.
  // Test is in the Configuration menu now (1e), reached with the pad.
- await holdMenu();
+ await press('+');
  await page.locator('.config-menu').waitFor();
  for (let step = 0; step < 8 && !(await active()).text.includes('Test it'); step++) await press('DOWN');
  assert.match((await active()).text, /Test it/);

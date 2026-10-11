@@ -74,7 +74,7 @@
 }
 .card:hover { background: var(--surface-row-hover); }
 .card[aria-disabled='true'] { cursor: default; }
-.cardArt { flex: none; width: 96px; height: 64px; display: grid; place-items: center; border-radius: var(--r-row); background: var(--surface-sunken); color: var(--art-line); }
+.cardArt { flex: none; width: 96px; height: 64px; display: grid; place-items: center; border-radius: var(--r-row); background: transparent; color: var(--text-2); }
 .cardArt img { max-width: 88px; max-height: 56px; }
 .cardText { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 4px; }
 .cardTitle { font-size: var(--fs-label); font-weight: var(--fw-semibold); }

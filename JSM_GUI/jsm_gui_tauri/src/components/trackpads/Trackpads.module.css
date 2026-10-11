@@ -17,3 +17,5 @@
 .feelColumn { display: flex; flex-direction: column; gap: var(--sp-2); padding: var(--sp-4); border-radius: var(--r-card, 16px); background: rgba(255, 255, 255, .03); }
 .feelColumn > span { color: var(--text-2); font-size: var(--fs-hint); }
 .feelNote { color: var(--text-3); font-size: var(--fs-hint); }
+
+.zoneExplanation { margin: 0; color: var(--text-2); font-size: var(--fs-hint); line-height: var(--lh-hint); }

@@ -52,7 +52,7 @@ export const REPEAT_START_MS = 130
 export const REPEAT_FLOOR_MS = 55
 export const REPEAT_STEP_MS = 12
 export const HOLD_BACK_MS = 1500
-/** Holding Menu this long opens the Configuration menu; a tap saves. */
+/** Holding Menu this long saves; a tap opens the Configuration menu. */
 export const HOLD_MENU_MS = 450
 export const EXIT_TEST_MS = 600
 
@@ -197,8 +197,8 @@ export class PadNavigator {
       if (button === 'VIEW' || button === 'MENU') continue
       if ((down.has(button) && !this.held.has(button)) || tapped(button)) actions.push({ kind: 'press', button })
     }
-    // ---- Hold Menu: the Configuration menu. A tap (released before that) is a
-    // press, which saves; a hold never also fires the press on release.
+    // ---- Hold Menu saves. A tap (released before that) is a
+    // press, which opens configuration options; a hold never also fires the press on release.
     if (down.has('MENU') && !down.has('VIEW')) {
       this.menuSince ??= now
       if (!this.menuFired && !this.chordSeen && now - this.menuSince >= HOLD_MENU_MS) {

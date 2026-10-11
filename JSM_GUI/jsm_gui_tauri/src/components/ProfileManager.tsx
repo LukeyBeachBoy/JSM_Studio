@@ -130,7 +130,7 @@ export function ProfileManager(props: ProfileManagerProps) {
   }, [builtinBases, family])
 
   // The focused item; follows the editor the first time round.
-  const items = view === 'games' ? games : [...userBases, ...(libraryProfiles.includes(BUILTIN_CHORD_NAME) ? [BUILTIN_CHORD_NAME] : []), ...presets.map(variants => `builtin:${variants[0].preset}`)]
+  const items = view === 'games' ? games : [...userBases, ...presets.map(variants => `builtin:${variants[0].preset}`)]
   const current = selected && items.includes(selected) ? selected : (currentProfileName && items.includes(currentProfileName) ? currentProfileName : items[0] ?? null)
   useEffect(() => {
     const label = current?.startsWith('builtin:') ? presets.find(variants => `builtin:${variants[0].preset}` === current)?.[0].title ?? null : current
@@ -139,7 +139,7 @@ export function ProfileManager(props: ProfileManagerProps) {
   useEffect(() => () => onWhere?.(null), [onWhere])
 
   useEffect(() => {
-    const builtinCount = presets.length + (libraryProfiles.includes(BUILTIN_CHORD_NAME) ? 1 : 0)
+    const builtinCount = presets.length
     onCount?.(view === 'games' ? `${games.length} ${games.length === 1 ? 'configuration' : 'configurations'}` : `${userBases.length} ${userBases.length === 1 ? 'base' : 'bases'} · ${builtinCount} built in`)
   }, [view, games.length, userBases.length, presets.length, libraryProfiles, onCount])
   useEffect(() => () => onCount?.(null), [onCount])
@@ -421,7 +421,9 @@ export function ProfileManager(props: ProfileManagerProps) {
     return (
       <div className={styles.basesLayout}>
         <div className={styles.page}>
-          <div className={styles.baseGrid} role="list" aria-label="Bases">
+          <h2 className={styles.baseSectionTitle}>Your bases</h2>
+          {!userBases.length && <p className={styles.note}>No user bases yet. Copy a built-in base below, or start from a game.</p>}
+          <div className={styles.baseGrid} role="list" aria-label="Your bases">
             {userBases.map(base => (
               <button key={base} type="button" role="listitem" className={styles.baseCard} data-profile={base} aria-current={base === current ? 'true' : undefined}
                 data-hints="A:Edit base;Y:More;B:Home" onFocus={() => setSelected(base)} onClick={() => edit(base)}>
@@ -432,32 +434,29 @@ export function ProfileManager(props: ProfileManagerProps) {
                 <p className={styles.hint}>Shared by the games built on it</p>
               </button>
             ))}
-            {libraryProfiles.includes(BUILTIN_CHORD_NAME) && (
-              <button type="button" role="listitem" className={styles.baseCard} data-profile={BUILTIN_CHORD_NAME} aria-current={current === BUILTIN_CHORD_NAME ? 'true' : undefined}
-                data-hints="A:Copy to make your own;B:Home" onFocus={() => setSelected(BUILTIN_CHORD_NAME)} onClick={onOpenBuiltin}>
-                <span className={styles.baseArt} aria-hidden="true"><InputGlyph command="LSL" family={family} size={36} /><span className={styles.arrowText}>→</span><Icon name="library" size={30} /></span>
-                <b>Hold to swap<span className={styles.builtTag}>BUILT IN</span></b>
-                <p>Hold buttons to swap to another whole configuration until you let go</p>
-                <p className={styles.hint}>Built-in base</p>
-              </button>
-            )}
+            <button type="button" role="listitem" className={styles.newCard} data-hints="A:New base;B:Home" onClick={() => setNewBaseOpen(true)}>
+              <span className={styles.newPlus} aria-hidden="true">+</span><b>New base</b><p>Start from a game you already set up</p>
+            </button>
+          </div>
+          <h2 className={styles.baseSectionTitle}>Built-in bases</h2>
+          <p className={styles.note}>Choose a base to copy it and make your own.</p>
+          <div className={styles.baseGrid} role="list" aria-label="Built-in bases">
             {presets.map(entry => {
               const id = `builtin:${entry[0].preset}`
               const users = entry.flatMap(base => graph.builtinUsedBy[base.relativePath] ?? [])
               return (
-                <button key={id} type="button" role="listitem" className={styles.baseCard} data-builtin-base={entry[0].preset} aria-current={id === current ? 'true' : undefined}
-                  data-hints="A:Select base;B:Home" onFocus={() => setSelected(id)} onClick={() => setSelected(id)}>
-                  <span className={styles.baseArt} aria-hidden="true"><span className={styles.stack}><i style={{ background: 'var(--text-3)' }} /><i style={{ background: 'var(--accent)', width: 110 }} /></span></span>
+                <button key={id} type="button" role="listitem" className={styles.baseCard} data-profile={id} data-builtin-base={entry[0].preset} aria-current={id === current ? 'true' : undefined}
+                  data-hints="A:Copy to make your own;B:Home" onFocus={() => setSelected(id)} onClick={() => void copyBuiltin(entry[0].relativePath, entry[0].title)}>
+                  <span className={styles.baseArt} aria-hidden="true"><span className={styles.stack}><i style={{ background: 'var(--layer-2)' }} /><i style={{ background: 'var(--accent)', width: 110 }} /></span></span>
                   <b>{entry[0].title}<span className={styles.builtTag}>BUILT IN</span></b>
                   <p>{entry[0].blurb}</p>
                   {users.length > 0 && <p className={styles.used}>Used by {users.join(', ')}</p>}
+                  <span className={styles.copyAction}><ButtonGlyph button="A" size={22} family={family} />Copy to make your own</span>
                   <p className={styles.hint}>Built-in base{entry.length > 1 ? ` · ${entry.length} controller variants` : ''}</p>
                 </button>
               )
             })}
-            <button type="button" role="listitem" className={styles.newCard} data-hints="A:New base;B:Home" onClick={() => setNewBaseOpen(true)}>
-              <span className={styles.newPlus} aria-hidden="true">+</span><b>New base</b><p>Start from a game you already set up</p>
-            </button>
+
           </div>
           {current && name && (
             <aside className={styles.detail} aria-label={`${current === BUILTIN_CHORD_NAME ? BUILTIN_CHORD_NAME : name} details`} data-library-detail="" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>

@@ -240,7 +240,7 @@ export function TitleBar(props: TitleBarProps) {
       {props.variant !== 'studio' && <>
         {props.variant === 'editing' && <StatusChip state={props.state} onPress={props.onStatePress} editingName={props.editingName} />}
         <button type="button" className="menu-chip" aria-label="Options: review changes, undo, save" onClick={props.onOpenConfigMenu}
-          data-hints="A:Options;B:Back" data-caption="Options · review changes, undo, save, test and more · hold Menu (M) to open">
+          data-hints="A:Options;B:Back" data-caption="Options · review changes, undo, save, test and more · tap Menu (M) for options · hold to save">
           <Icon name="more" size={20} />
         </button>
       </>}
@@ -262,10 +262,10 @@ export function StatusChip({ state, onPress, editingName }: { state: StateButton
       return <button type="button" className="state-button" data-tone="testing" data-state="testing" onClick={onPress} data-hints="A:Stop testing;B:Stop testing"
         data-caption={`Testing ${name} · B (Esc), the banner's Stop testing, or holding View + Menu stops it`}><span className="state-button__dot" aria-hidden="true" />{showsKeys ? 'Testing · Esc to stop' : STATUS_TEXT.testing}</button>
     case 'changes':
-      // Menu (M) saves from anywhere; holding it opens the Configuration menu.
-      return <button type="button" className="state-button" data-tone="accent" data-state="unsaved" onClick={onPress} data-hints="A:Save and make live;MENU:Save · hold for options;B:Back"
-        data-caption={`Unsaved · ${state.count} ${state.count === 1 ? 'change' : 'changes'} to ${name}. Menu saves and makes it live (Ctrl+Shift+A); hold Menu to review first`}>
-        <span className="state-button__dot" aria-hidden="true" />{STATUS_TEXT.unsaved}<span className="state-button__sep" aria-hidden="true">·</span><ButtonGlyph button="MENU" size={20} className="state-button__glyph" />Save</button>
+      // Tap Menu (M) for options; hold to save from anywhere.
+      return <button type="button" className="state-button" data-tone="accent" data-state="unsaved" onClick={onPress} data-hints="A:Save and make live;MENU:Options · hold to save;B:Back"
+        data-caption={`Unsaved · ${state.count} ${state.count === 1 ? 'change' : 'changes'} to ${name}. Tap Menu (M) for options; hold to save and make live (Ctrl+Shift+A)`}>
+        <span className="state-button__dot" aria-hidden="true" />{STATUS_TEXT.unsaved}<span className="state-button__sep" aria-hidden="true">·</span><ButtonGlyph button="MENU" size={20} className="state-button__glyph" />Hold to save</button>
     case 'apply':
       return <button type="button" className="state-button" data-tone="control" data-state="paused" onClick={onPress} data-hints="A:Make live;B:Back"
         data-caption={`Paused while you edit · ${state.name || name} is saved but not live. A makes it live (Ctrl+Shift+A)`}><span className="state-button__dot" aria-hidden="true" />{STATUS_TEXT.paused}</button>
