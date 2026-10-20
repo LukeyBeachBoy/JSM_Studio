@@ -1,6 +1,6 @@
 # First setup
 
-This guide describes the current development version of JSM Evolved. The public v0.7.22 JSM Studio installer predates the new interface and permission choices. Check the release notes before assuming these steps match a download.
+This guide describes the [0.7.155 Windows prerelease](https://github.com/LukeyBeachBoy/JSM_Studio/releases/tag/v0.7.155). It is unsigned testing software. The older stable v0.7.22 JSM Studio installer predates this interface and these permission choices. Read the [test status and limitations](releases/0.7.155.md) and back up your library before upgrading.
 
 ## 1. Choose the download
 

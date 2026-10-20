@@ -1,39 +1,34 @@
-# Release candidate implementation — 20 October 2026
+# Unsigned prerelease status — 20 October 2026
 
-**0.7.155 is built locally; the first trust fixes and README preparation are complete.**
-See [candidate changes, evidence and remaining acceptance](releases/0.7.155.md).
+**0.7.155 is available for early Windows testing.**
+[Download and release notes](https://github.com/LukeyBeachBoy/JSM_Studio/releases/tag/v0.7.155) ·
+[CI build](https://github.com/LukeyBeachBoy/JSM_Studio/actions/runs/39443880940) ·
+[Detailed validation and limits](releases/0.7.155.md).
 
-- [x] Separate Windows sign-in consent, Off on fresh install/upgrade, enforced by
-  the mapper even when FakerInput is already present.
-- [x] Confirmation and disable controls in Startup settings; native state release,
-  held-button protection and reset-to-Off behavior.
-- [x] Remove installer execution from the shell and legacy updater entry points;
-  validate release links, open the browser and retain the running session.
-- [x] Native consent, browser permissions/reset/update, Rust and targeted controller
-  regressions; add new native/source regressions to release CI.
-- [x] Build the complete 0.7.155 NSIS package, including rebuilt native components.
-- [x] Refresh README screenshots, project history, candidate status and permission/
-  update explanations; retain the fair feature comparison and explicit limits.
-- [ ] Review/commit/publish matching app and mapper revisions, run public CI and
-  produce the clean-checkout release artifact.
-- [ ] Test the exact installer on a clean Windows setup and with physical hardware.
-- [ ] Resolve signing or explicitly choose an unsigned testing release; obtain
-  outside setup feedback and record a real-controller demonstration.
+- [x] Sign-in input Off by default, separate confirmation, native consent
+  enforcement, held-button protection and reset-to-Off behavior.
+- [x] Update actions open a validated GitHub release page; no installer execution.
+- [x] Matching mapper source published and pinned in the public app repository.
+- [x] Linux controller/editor regression CI and Windows build/backend/consent CI.
+- [x] Unsigned NSIS prerelease built from a clean GitHub checkout, with installer
+  checksum and exact source revisions attached to the release.
+- [x] Public README screenshots, project history, comparison, permission guidance
+  and direct prerelease link match the download.
+- [ ] Fresh install, upgrade/uninstall, driver approval/refusal and native UAC
+  checks on the exact public installer.
+- [ ] Physical-controller/game and lock/unlock acceptance, with model/firmware/
+  transport recorded separately for each controller.
+- [ ] Outside setup feedback and a short real-controller demonstration before a
+  broad Reddit launch. A targeted request for early testers must retain the
+  unsigned/experimental status and these limitations.
 
-The current local installer is **18,382,325 bytes**, SHA-256:
+The release's **SHA256SUMS.txt** and **SOURCE-REVISIONS.txt** identify the public
+artifact. Earlier local 0.7.155 installers are superseded; their hashes are not
+checksums for the public download. Browser tests and README screenshots use sample
+input and do not establish physical-controller or installer acceptance.
 
-```text
-77ecb24040acc03e1e309b42dc1e611f96492efecfe516cb58633fd33af915dc
-```
-
-It includes existing working-tree changes. Local evidence lives in
-`tmp/reddit-rc/` (source fingerprints, binary hashes and browser captures), with
-build/Rust/touch logs in `tmp/reddit-rc-*.log`. It was not installed or published.
-The earlier same-version intermediate build was superseded during this pass;
-only the hash above identifies the final candidate.
-
-The plan below is retained as the audit trail. Its original findings describe
-the state before these fixes; the checklist above is the current status.
+The plan below is retained as a historical audit trail. Its original findings
+refer to the state before publication; the checklist above is the current status.
 
 ---
 

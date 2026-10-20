@@ -30,16 +30,16 @@ Tune how aiming responds, put different actions on a tap or a hold, turn a track
 
 **Windows x64. Development software.**
 
-[**Browse this project's Windows releases →**](https://github.com/LukeyBeachBoy/JSM_Studio/releases)
+[**Download 0.7.155 — unsigned Windows prerelease →**](https://github.com/LukeyBeachBoy/JSM_Studio/releases/tag/v0.7.155)
 
-**Candidate: 0.7.155 · Windows x64 · unsigned.** See the [candidate notes and test status](docs/releases/0.7.155.md). This candidate is being prepared locally; it is not yet a public download.
+**For early testers.** This build contains the interface and permission changes shown here. See the [changes, automated checks and remaining tests](docs/releases/0.7.155.md). Clean-machine installation and physical-controller acceptance on this exact package are still pending; keep a backup of your configurations.
 
-As checked on **20 October 2026**, the newest public release is still **v0.7.22**, named *JSM Studio*. It predates the interface and permission changes shown here. **Do not download that older release expecting these features.**
+The older **v0.7.22 JSM Studio** remains the stable release. In-app update checks look for stable releases, so use the link above for this testing build.
 
 Download the Windows `*-setup.exe` asset, not GitHub's “Source code” archive. Current packaging produces an NSIS installer; do not expect an MSI unless a particular release actually provides one.
 
 - App installers are currently **unsigned**. Windows may show **Unknown publisher** or SmartScreen. A logo and publisher metadata do not authenticate a file.
-- Normal app launches in the current source **do not request administrator access**. Driver setup and an explicit administrator restart can still prompt. Older releases behave differently.
+- Normal app launches in this prerelease **do not request administrator access**. Driver setup and an explicit administrator restart can still prompt. Older releases behave differently.
 - Controller input on the Windows lock screen is **off by default** and needs its own confirmation, even when FakerInput is already installed.
 - **View release** opens GitHub in your browser. The app does not download or run an update installer.
 - Linux, SteamOS and macOS builds of this desktop app are **not available**.
@@ -81,7 +81,7 @@ Use a trackpad as a mouse, then hold a button to switch to another mode or a bou
 
 **Keep using Steam Input if it already does what you need.** It has integrated game support and community layouts. Evolved is worth investigating if you specifically want JSM's configuration format and aiming controls, independent game launching, or this editor's trackpad and menu workflow.
 
-This compares workflows, not performance. ☑️ = available; ◐ = limited, different or conditional; ❌ = not provided by that product. Evolved means the **0.7.155 candidate source**, not v0.7.22. Upstream means the JoyShockMapper command-line application without a separate GUI.
+This compares workflows, not performance. ☑️ = available; ◐ = limited, different or conditional; ❌ = not provided by that product. Evolved means the **0.7.155 prerelease**. Upstream means the JoyShockMapper command-line application without a separate GUI.
 
 | Capability | JSM Evolved | Steam Input | Upstream JSM |
 | --- | :---: | :---: | :---: |
@@ -111,8 +111,8 @@ Sources: [Valve's Steam Input documentation](https://partner.steamgames.com/doc/
 
 | Hardware / environment | Current position |
 | --- | --- |
-| Steam Controller 2026 | Main focus of this fork; per-pad, grip and haptic work. Connection-by-connection acceptance testing is still needed for the next release. |
-| DualShock 4, DualSense, Joy-Con, Switch Pro | Supported JSM families with editor handling. This does not mean every feature and transport was tested in the next release. |
+| Steam Controller 2026 | Main focus of this fork; per-pad, grip and haptic work. Connection-by-connection acceptance testing is still needed for this prerelease. |
+| DualShock 4, DualSense, Joy-Con, Switch Pro | Supported JSM families with editor handling. This does not mean every feature and transport was tested in this prerelease. |
 | Xbox and other SDL controllers | Depends on exposed inputs. Extra buttons, gyro and haptics vary by model, mode and driver. |
 | Steam Controller 2015 | Do not infer support from the 2026 name. Dedicated release validation is pending. |
 | Steam Deck / Linux / macOS | No supported Evolved desktop build. See Steam Input or upstream JSM for their platform support. |
@@ -133,7 +133,7 @@ Inspectable source and build instructions are not a security audit or proof that
 
 **“Are you installing drivers?”**
 
-ViGEmBus is for virtual gamepad output, HidHide hides the physical controller, and FakerInput is an optional virtual keyboard/mouse path. They are separate from ordinary keyboard/mouse mapping. Current installer changes make ViGEmBus and FakerInput opt-in; HidHide has a separate setup flow. Shared drivers remain after app uninstall. ViGEmBus is [end-of-life upstream](https://docs.nefarius.at/projects/ViGEm/End-of-Life/), a real maintenance limitation.
+ViGEmBus is for virtual gamepad output, HidHide hides the physical controller, and FakerInput is an optional virtual keyboard/mouse path. They are separate from ordinary keyboard/mouse mapping. The installer asks before adding ViGEmBus or FakerInput; HidHide has a separate setup flow. Shared drivers remain after app uninstall. ViGEmBus is [end-of-life upstream](https://docs.nefarius.at/projects/ViGEm/End-of-Life/), a real maintenance limitation.
 
 **“Is this an AI wrapper?”**
 
