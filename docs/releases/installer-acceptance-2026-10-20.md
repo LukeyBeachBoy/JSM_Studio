@@ -53,7 +53,15 @@ PC. Its branded pages and corrected close-app warning were inspected in Windows.
 All 59 checked configuration files remained unchanged. The installed app showed
 the corrected game count and stable-release wording, and **Browse all releases**
 opened this project's GitHub releases in the browser while the app kept running.
-The five native icon/shortcut tests passed.
+The five native icon/shortcut tests passed, and both the final app and mapper
+process tokens were non-elevated.
+
+[Controller/editor CI passed for the published fixes](https://github.com/LukeyBeachBoy/JSM_Studio/actions/runs/39465560071).
+The first-run isolation also temporarily displaced a generated accent icon file;
+that file was restored alongside the original data and the app restarted.
+Taskbar appearance still needs the maintainer's visual confirmation. The
+automation tool could not address the uninstaller window, so that inspection
+was cancelled without uninstalling; its final checkbox layout remains unverified.
 
 Local candidate installer SHA-256:
 `53e084d00faae248b0f63020f46f75d7478992d070fb79ce15f9e0a313fd590f`.
