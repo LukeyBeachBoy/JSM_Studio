@@ -51,7 +51,7 @@ The installer asks before adding missing ViGEmBus/FakerInput drivers, with **No*
 | --- | --- |
 | Controller telemetry | UDP on `127.0.0.1`, between the local mapper and app; not an analytics upload |
 | Configurations and preferences | Local files; app settings under the Windows app-data directory for `com.lukeybeachboy.jsmstudio`; configuration libraries can be selected separately |
-| Update checks | GitHub releases API at startup and when you choose Check now; GitHub receives normal connection information such as IP and user agent |
+| Update checks | GitHub latest stable release API at startup and when you choose Check now; prereleases must be found through the README/release page. GitHub receives normal connection information such as IP and user agent |
 | View release | Explicit action opens this project's GitHub release page in your browser. The app does not download or execute an installer and stays running |
 | Assistant connection/model checks | The provider/endpoint you select when testing or discovering models; a local model can use loopback |
 | Assistant requests | Your prompt, conversation history, profile name and current configuration text (up to the implementation's limit) go to the configured provider |
@@ -64,4 +64,4 @@ Core editing and mapping need no AI account or online service. A remote provider
 
 ## Remaining security work
 
-Before broad promotion: verify the packaged normal-user flow, authenticate release binaries, inspect update authenticity and download staging, test driver refusal/reboot/recovery, and review secure-desktop helpers separately. See the [release checklist](release-readiness.md). Do not describe the project as audited, malware-free or universally anti-cheat-safe.
+Before broad promotion: verify the packaged normal-user flow, authenticate release binaries, verify release-link handling and downloaded-file integrity, test driver refusal/reboot/recovery, and review secure-desktop helpers separately. See the [release checklist](release-readiness.md). Do not describe the project as audited, malware-free or universally anti-cheat-safe.
