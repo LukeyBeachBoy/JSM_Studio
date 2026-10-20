@@ -34,7 +34,7 @@ Tune how aiming responds, put different actions on a tap or a hold, turn a track
 
 **For early testers.** This build contains the interface and permission changes shown here. See the [changes, automated checks and remaining tests](docs/releases/0.7.155.md). Clean-machine installation and physical-controller acceptance on this exact package are still pending; keep a backup of your configurations.
 
-The published installer passed an upgrade and fresh-app-data check on the maintainer's PC, preserving 59 checked configuration files. See the [acceptance record and remaining manual tests](docs/releases/installer-acceptance-2026-10-20.md). Follow-up installer and first-run fixes are being validated in 0.7.156; the public download above is still 0.7.155.
+The published installer passed an upgrade and fresh-app-data check on the maintainer's PC, preserving 59 checked configuration files. See the [acceptance record and remaining manual tests](docs/releases/installer-acceptance-2026-10-20.md). Follow-up installer, first-run and taskbar-icon fixes are being validated in 0.7.157; the public download above is still 0.7.155.
 
 The older **v0.7.22 JSM Studio** remains the stable release. In-app update checks look for stable releases, so use the link above for this testing build.
 

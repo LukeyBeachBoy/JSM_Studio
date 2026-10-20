@@ -69,6 +69,19 @@ This identifies the local test package, not a public GitHub download. The
 installed and build executables differed only in Tauri's three-byte NSIS bundle
 marker, verified by byte comparison.
 
+## Taskbar follow-up: 0.7.157
+
+The maintainer confirmed that the taskbar icon remained blank after 0.7.156.
+Retaining/restoring icon files was insufficient. Inspection of the installed
+Tauri 2.11.2 / Tao 0.35.2 source showed that `set_icon` updates `ICON_SMALL`,
+while the separate large taskbar icon was never assigned.
+
+The 0.7.157 candidate explicitly assigns `ICON_BIG` on the window thread using
+the same accent icon file. It owns that icon until replacement, then releases
+only its own previous handle. A native hidden-window regression verifies
+assignment, replacement and preservation after a failed load; all six icon
+tests passed. Visual confirmation on the maintainer's taskbar remains pending.
+
 ## Manual checks before a broad Reddit post
 
 Record version, controller model, firmware, connection, Windows version and game

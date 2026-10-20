@@ -9,19 +9,17 @@
 //! Raw RGBA rather than PNG: decoding PNG in the backend would pull an image
 //! crate in for two icons, and the WebView already has the bytes decoded.
 //!
-//! The taskbar is the one place the window icon does not reach: a pinned
-//! taskbar button, and a Start Menu entry, show their *shortcut's* icon, and
-//! the installer's shortcuts have none of their own, so they fall back to the
-//! exe's cyan mark whatever the window says (TODO-45). So the window icon is
-//! also written out as an .ico in the runtime folder, and every shortcut that
-//! carries the product name is pointed at it. The file name carries a hash of
-//! the pixels: Explorer caches icons by path, and a new path is the one
-//! reliable way to make it look again.
+//! Tauri's set_icon updates Windows' small caption icon only. The running
+//! taskbar button also needs ICON_BIG; pinned buttons and Start entries can
+//! instead use their shortcut icon. The generated .ico supplies both paths.
+//! Its name carries a pixel hash so Explorer notices accent changes.
 
 use std::fs;
 use std::os::windows::process::CommandExt;
+use std::os::windows::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::Mutex;
 
 use tauri::{image::Image, ipc::InvokeBody, ipc::Request, AppHandle, Manager};
 
@@ -32,6 +30,59 @@ const WINDOW_FILE: &str = "brand-window.rgba";
 const ICO_PREFIX: &str = "brand-window-";
 const MAX_SIDE: u32 = 512;
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+
+// Own only the large icon we created, never a handle owned by Tauri. Keeping it
+// alive matters: WM_SETICON associates the handle; it does not copy the image.
+struct OwnedTaskbarIcon(usize);
+
+impl Drop for OwnedTaskbarIcon {
+    fn drop(&mut self) {
+        // SAFETY: this handle came from LoadImageW without LR_SHARED.
+        unsafe { windows_sys::Win32::UI::WindowsAndMessaging::DestroyIcon(self.0 as _) };
+    }
+}
+
+static TASKBAR_ICON: Mutex<Option<OwnedTaskbarIcon>> = Mutex::new(None);
+
+fn install_taskbar_icon(
+    hwnd: windows_sys::Win32::Foundation::HWND,
+    ico: &Path,
+    current: &mut Option<OwnedTaskbarIcon>,
+) -> Result<(), String> {
+    use windows_sys::Win32::UI::WindowsAndMessaging::{
+        LoadImageW, SendMessageW, ICON_BIG, IMAGE_ICON, LR_DEFAULTSIZE, LR_LOADFROMFILE, WM_SETICON,
+    };
+    let path: Vec<u16> = ico.as_os_str().encode_wide().chain(Some(0)).collect();
+    // SAFETY: the terminated filename stays alive for the call. This creates
+    // an owned HICON at the system's large-icon size from our multi-size ICO.
+    let icon = unsafe {
+        LoadImageW(std::ptr::null_mut(), path.as_ptr(), IMAGE_ICON, 0, 0, LR_LOADFROMFILE | LR_DEFAULTSIZE)
+    };
+    if icon.is_null() {
+        return Err(format!("Could not load the taskbar icon: {}", std::io::Error::last_os_error()));
+    }
+    let icon = OwnedTaskbarIcon(icon as usize);
+    // SAFETY: called on the window thread with the live main HWND (or the
+    // test's own HWND). The previous owned icon is dropped only after replacement.
+    unsafe { SendMessageW(hwnd, WM_SETICON, ICON_BIG as usize, icon.0 as isize) };
+    *current = Some(icon);
+    Ok(())
+}
+
+fn refresh_taskbar_icon(app: &AppHandle, ico: PathBuf) -> Result<(), String> {
+    let handle = app.clone();
+    app.run_on_main_thread(move || {
+        let result = (|| {
+            let window = handle.get_webview_window("main").ok_or("No main window")?;
+            let hwnd = window.hwnd().map_err(|error| error.to_string())?;
+            let mut icon = TASKBAR_ICON.lock().map_err(|error| error.to_string())?;
+            install_taskbar_icon(hwnd.0 as _, &ico, &mut icon)
+        })();
+        if let Err(error) = result {
+            eprintln!("Could not update the taskbar icon: {error}");
+        }
+    }).map_err(|error| error.to_string())
+}
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Target {
@@ -211,6 +262,7 @@ fn refresh_shortcut_icons(app: &AppHandle, width: u32, height: u32, rgba: &[u8])
         fs::write(&temp, ico_bytes(rgba, width, height)).map_err(|error| error.to_string())?;
         fs::rename(&temp, &ico).map_err(|error| error.to_string())?;
     }
+    refresh_taskbar_icon(app, ico.clone())?;
     let shortcuts = shortcut_candidates(&app.package_info().name);
     let result = point_shortcuts_at(&shortcuts, &ico);
     if result.is_ok() {
@@ -261,6 +313,41 @@ fn notify_shell() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn running_window_keeps_a_large_icon_across_updates_and_load_failures() {
+        use windows_sys::Win32::UI::WindowsAndMessaging::{
+            CreateWindowExW, DestroyWindow, SendMessageW, ICON_BIG, WM_GETICON,
+        };
+        struct TestWindow(windows_sys::Win32::Foundation::HWND);
+        impl Drop for TestWindow {
+            fn drop(&mut self) {
+                unsafe { DestroyWindow(self.0) };
+            }
+        }
+        // Drop the hidden test window before its final icon. No installed app,
+        // shortcuts, Explorer state or visible desktop windows are touched.
+        let mut owned = None;
+        let class: Vec<u16> = "STATIC".encode_utf16().chain(Some(0)).collect();
+        let window = TestWindow(unsafe {
+            CreateWindowExW(0, class.as_ptr(), std::ptr::null(), 0, 0, 0, 1, 1,
+                std::ptr::null_mut(), std::ptr::null_mut(), std::ptr::null_mut(), std::ptr::null())
+        });
+        assert!(!window.0.is_null());
+        let large_icon = || unsafe { SendMessageW(window.0, WM_GETICON, ICON_BIG as usize, 0) as usize };
+        assert_eq!(large_icon(), 0, "the window starts without a large icon");
+        let ico = Path::new(env!("CARGO_MANIFEST_DIR")).join("icons/icon.ico");
+        install_taskbar_icon(window.0, &ico, &mut owned).unwrap();
+        let first = large_icon();
+        assert_ne!(first, 0);
+        assert_eq!(first, owned.as_ref().unwrap().0);
+        install_taskbar_icon(window.0, &ico, &mut owned).unwrap();
+        assert_ne!(large_icon(), first, "replacement has its own lifetime");
+        assert_eq!(large_icon(), owned.as_ref().unwrap().0);
+        let current = large_icon();
+        assert!(install_taskbar_icon(window.0, &ico.join("missing.ico"), &mut owned).is_err());
+        assert_eq!(large_icon(), current, "a load failure preserves the working icon");
+    }
 
     fn u16_at(bytes: &[u8], at: usize) -> u16 { u16::from_le_bytes([bytes[at], bytes[at + 1]]) }
     fn u32_at(bytes: &[u8], at: usize) -> u32 { u32::from_le_bytes([bytes[at], bytes[at + 1], bytes[at + 2], bytes[at + 3]]) }

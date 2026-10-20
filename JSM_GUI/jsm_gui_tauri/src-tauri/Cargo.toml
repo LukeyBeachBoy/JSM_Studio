@@ -1,6 +1,6 @@
 [package]
 name = "jsm-gui-app-tauri"
-version = "0.7.156"
+version = "0.7.157"
 description = "Tauri shell for JSM Evolved"
 authors = ["Evan McLean"]
 edition = "2021"
