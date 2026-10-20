@@ -1,6 +1,4 @@
-import { detachStickMenu, stickMenuLinks, isDirectStickMenu } from '../../utils/stickMenus'
-import { PadFeedbackRows } from './PadFeedbackRows'
-import { hasSeparatePadFeedback } from '../../utils/padFeedback'
+import { detachStickMenu } from '../../utils/stickMenus'
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SubPage, OpenRow, SegmentedRow } from '../ui/console'
@@ -11,27 +9,25 @@ import { getBindingLabel, setBindingLabel, parseBindingLabels } from '../../util
 import { parseBindingIcons, setBindingIcon } from '../../utils/bindingIcons'
 import { describeBinding } from '../../utils/bindingDescription'
 import type { ControllerVisualFamily } from '../../utils/controllerStatus'
-import { getButtonBindingRows, getKeymapValue } from '../../utils/keymap'
+import { getButtonBindingRows, getKeymapValue, updateKeymapEntry } from '../../utils/keymap'
 import { resolveOverlayMenus } from '../../utils/overlayLayout'
 import { resolveTouchpadGrids } from '../../utils/touchpadGrids'
-import { addModeshift, clearModeshift, foldModeshift, modeshiftTriggers, projectModeshift, readModeshift, readShifted, removeModeshift, renameModeshift, writeModeshift, type ModeshiftTarget } from '../../utils/modeshift'
+import { addModeshift, foldModeshift, modeshiftTriggers, projectModeshift, readModeshift, readShifted, removeModeshift, renameModeshift, writeModeshift, type ModeshiftTarget } from '../../utils/modeshift'
 import type { VirtualControllerType } from '../../utils/virtualController'
 import type { LivePadTouch } from './TouchpadGridSection'
 import type { TouchpadModeCardConfig } from './TouchpadSettingsSection'
-import { TouchpadStickSection } from './TouchpadStickSection'
-import { PadSection } from './PadSection'
-import { buildTouchpadGridButton, getSpecialOptionList, type ButtonDefinition } from '../../keymap/schema'
+import { TrackpadsPage } from '../trackpads/TrackpadsPage'
+import { useMouseAreaConfig } from '../../hooks/useMouseAreaConfig'
+import { buildTouchpadGridButton, getSpecialOptionList, TOUCH_BUTTONS, MISC_BUTTONS, TOUCH_STICK_BUTTONS, LEFT_STICK_BUTTONS, RIGHT_STICK_BUTTONS, TRIGGER_BUTTONS, type ButtonDefinition } from '../../keymap/schema'
 import { ButtonBindingsCard } from './ButtonBindingsCard'
 import { InputGlyph } from '../glyphs/InputGlyph'
 import { useButtonRowState } from '../../keymap/useButtonRowState'
 import { useBindingsConfig } from '../../hooks/useBindingsConfig'
 import styles from './InputModeshifts.module.css'
 import { takeModeshiftRequest, useModeshiftRequestVersion } from '../sticks/inputSide'
-import { StickSection } from './StickSection'
-import { useStickConfig } from '../../hooks/useStickConfig'
-import { useStickModeExtras } from '../../hooks/useStickModeExtras'
+import { SticksPage } from '../sticks/SticksPage'
+import { TriggersPage } from '../triggers/TriggersPage'
 import { SettingPrefix } from '../SettingOrigin'
-import { stickModeDirectionUse } from '../../constants/sticks'
 import { heldInput, isReleasedInput, withRelease } from '../../utils/released'
 
 type SectionActionProps = {
@@ -68,7 +64,6 @@ export type InputModeshiftsProps = {
 }
 
 const clampGrid = (value: number) => Math.max(1, Math.min(5, Math.round(value) || 1))
-const finite = (value: number) => (Number.isFinite(value) ? value : undefined)
 const SHAPE_NAMES: Record<string, string> = { RECTANGLE: 'Grid', FOUR_WAY: '4-way', EIGHT_WAY: '8-way', RADIAL: 'Radial' }
 
 // A target carries its inputs' own definitions where it has them. Where it
@@ -283,7 +278,7 @@ function useShiftedPad(text: string, trigger: string, target: ModeshiftTarget) {
  *
  * A pad is one physical input with several modes, so a shift is just that input
  * in one of those modes -- and it is drawn with the very section the pad itself
- * uses (PadSection): the same preview, the same shape tiles, the same region
+ * uses (TrackpadsPage): the same preview, the same shape tiles, the same region
  * row, the same menu appearance. Anything the normal pad can be configured to
  * do, a shifted pad can, because it is literally the same UI.
  *
@@ -292,130 +287,39 @@ function useShiftedPad(text: string, trigger: string, target: ModeshiftTarget) {
  */
 function PadModeshiftBody({ trigger, heldName, ...props }: InputModeshiftsProps & { trigger: string; heldName: string }) {
   const { t } = useTranslation()
-  const { target, text, onChange, actions } = props
+  const { target, text, onChange } = props
   const pad = target.pad!
-  const [selectedCommand, setSelectedCommand] = useState<string | null>(null)
   const shifted = useShiftedPad(text, trigger, target)
-  const menuKey = `${pad.keyPrefix || 'TOUCH'}:${trigger}`
-  // The overlay's menus are resolved from the whole config; once per change,
-  // not once per telemetry frame.
-  const shiftedMenu = useMemo(() => resolveOverlayMenus(text)[menuKey], [text, menuKey])
-
-  const key = (name: string) => `${pad.keyPrefix ? pad.keyPrefix + '_' : ''}${name}`
-  const read = shifted.read
+  const [selected, setSelected] = useState<string | null>(null)
   const projected = useMemo(() => projectModeshift(text, trigger), [text, trigger])
   const setProjected = useCallback<Dispatch<SetStateAction<string>>>(update => {
     const next = typeof update === 'function' ? update(projected) : update
     onChange(previous => foldModeshift(previous, trigger, next, {}, projected))
   }, [onChange, projected, trigger])
-  const tuning = useStickConfig({ configText: projected, setConfigText: setProjected })
-  const extras = useStickModeExtras(read('TOUCH_STICK_MODE').toUpperCase(), {
-    configText: projected, onConfigTextChange: setProjected,
-    ...tuning, mouseRingRadius: tuning.mouseRingRadiusValue, onMouseRingRadiusChange: tuning.handleMouseRingRadiusChange,
-    scrollSens: tuning.scrollSensValue, onScrollSensChange: tuning.handleScrollSensChange,
-    virtualControllerType: props.virtualControllerType,
-  })
-  const write = (name: string, value: string) => onChange(previous => value.trim() ? writeModeshift(previous, trigger, key(name), value) : clearModeshift(previous, trigger, key(name)))
-  const sens = read('TOUCHPAD_SENS').trim().split(/\s+/).map(Number.parseFloat)
-  const sensitivity = finite(sens[0])
-  const sensitivityY = finite(sens[1]) ?? sensitivity
-  // TOUCHPAD_SENS is a FloatXY: one number means both axes, two means X then Y.
-  // Collapse back to one when the axes agree so a shift does not gratuitously
-  // widen a setting the normal card would have written as a single value.
-  const writeSens = (value: string, axis: 'x' | 'y') => {
-    if (value === '') {
-      if (axis === 'x') return write('TOUCHPAD_SENS', '')
-      return write('TOUCHPAD_SENS', sensitivity === undefined ? '' : String(sensitivity))
-    }
-    const next = Number.parseFloat(value)
-    if (!Number.isFinite(next)) return
-    const x = axis === 'x' ? next : sensitivity ?? next
-    const y = axis === 'y' ? next : sensitivityY ?? next
-    write('TOUCHPAD_SENS', x === y ? String(x) : `${x} ${y}`)
+  const areas = useMouseAreaConfig({ readText: projected, setConfigText: setProjected, settingPrefix: `${trigger},` })
+  const area = areas[pad.keyPrefix]
+  const side = pad.side === 'shared' ? 'single' : pad.side
+  const menuKey = `${pad.keyPrefix || 'TOUCH'}:${trigger}`
+  const card: TouchpadModeCardConfig = {
+    mode: shifted.mode, dualStageMode: shifted.read('TOUCHPAD_DUAL_STAGE_MODE'), gridColumns: shifted.columns, gridRows: shifted.rows, gridShape: shifted.shape,
+    mouseArea: area.area, mouseAreaFit: area.fit, onMouseAreaFitChange: area.setFit,
+    onPickMouseArea: () => area.pick(props.padAspect ?? 1),
   }
-  const deadzone = Number.parseFloat(read('GRID_DEADZONE'))
-
-  const config: TouchpadModeCardConfig = {
-    keyPrefix: `${pad.keyPrefix ? pad.keyPrefix + '_' : ''}`,
-    mode: shifted.mode,
-    dualStageMode: read('TOUCHPAD_DUAL_STAGE_MODE').trim().toUpperCase(),
-    gridColumns: shifted.columns,
-    gridRows: shifted.rows,
-    gridShape: shifted.shape,
-    gridDeadzone: Number.isFinite(deadzone) ? deadzone : undefined,
-    sensitivity,
-    sensitivityY,
-    onModeChange: value => write('TOUCHPAD_MODE', value),
-    onGridSizeChange: (nextColumns, nextRows) => write('GRID_SIZE', `${clampGrid(nextColumns)} ${clampGrid(nextRows)}`),
-    onGridShapeChange: value => write('GRID_SHAPE', value),
-    onGridDeadzoneChange: value => write('GRID_DEADZONE', value),
-    onSensitivityChange: value => writeSens(value, 'x'),
-    onSensitivityYChange: value => writeSens(value, 'y'),
-    onDualStageModeChange: value => write('TOUCHPAD_DUAL_STAGE_MODE', value),
-    gridRequiresClick: read('GRID_REQUIRES_CLICK', 'OFF').trim().toUpperCase() === 'ON',
-    onGridRequiresClickChange: checked => write('GRID_REQUIRES_CLICK', checked ? 'ON' : 'OFF'),
-  }
-
-  const grid = shifted.mode === 'GRID_AND_STICK'
-  const selected = shifted.regions.find(button => button.command === selectedCommand) ?? shifted.regions[0] ?? null
-  const stick = {
-    touchStickMode: read('TOUCH_STICK_MODE').trim().toUpperCase(),
-    touchDeadzoneInner: read('TOUCH_DEADZONE_INNER'),
-    touchRingMode: read('TOUCH_RING_MODE').trim().toUpperCase(),
-    touchStickRadius: read('TOUCH_STICK_RADIUS'),
-    touchStickAxis: read('TOUCH_STICK_AXIS').trim().toUpperCase(),
-    onTouchStickModeChange: (value: string) => write('TOUCH_STICK_MODE', value),
-    onTouchDeadzoneInnerChange: (value: string) => write('TOUCH_DEADZONE_INNER', value),
-    onTouchRingModeChange: (value: string) => write('TOUCH_RING_MODE', value),
-    onTouchStickRadiusChange: (value: string) => write('TOUCH_STICK_RADIUS', value),
-    onTouchStickAxisChange: (value: string) => write('TOUCH_STICK_AXIS', value),
-  }
-
-  return (
-    <SettingPrefix prefix={`${trigger},`}><PadSection
-      keyPrefix={`${pad.keyPrefix ? pad.keyPrefix + '_' : ''}` as 'LEFT_' | 'RIGHT_' | ''}
-      settingPrefix={`${trigger},`}
-      title={target.title}
-      command={`${trigger},${pad.keyPrefix}_PAD`}
-      feedback={pad.keyPrefix ? {
-        value: hasSeparatePadFeedback(key => getKeymapValue(projected, key) ?? undefined, pad.keyPrefix) ? 'Separate' : 'Shared',
-        editor: <PadFeedbackRows side={pad.keyPrefix} mode={config.mode}
-          read={key => getKeymapValue(projected, key) ?? undefined}
-          onChange={values => onChange(previous => Object.entries(values).reduce((next, [key, value]) => writeModeshift(next, trigger, key, value), previous))} />,
-      } : undefined}
-      config={config}
-      menu={grid ? shiftedMenu : undefined}
-      appearance={{ menuKey, onChange }}
-      livePad={props.livePad}
-      padAspect={props.padAspect ?? 1}
-      regions={grid ? shifted.regions : []}
-      selected={grid ? selected : null}
-      onSelect={setSelectedCommand}
-      describeRegion={shifted.describe}
-      renderButton={(button, options) => (
-        <ShiftedBinding key={`${trigger}:${button.command}`} {...props} trigger={trigger} button={button}
-          defaultOpen={options?.defaultOpen} rowLabel={options?.label} subtitle={options?.subtitle} xAction={options?.xAction} />
-      )}
-    >
-      {grid && config.gridRequiresClick && trigger !== target.grid?.clickButton && (
-        <p className={styles.hint}>
-          {t('keymap.shiftRequiresClick', 'Regions fire on a pad click while {{held}} is held.', { held: heldName })}{' '}
-          <button type="button" className="link-btn" onClick={() => write('GRID_REQUIRES_CLICK', 'OFF')}>
-            {t('keymap.shiftFireOnHeld', 'Fire as soon as it is held instead')}
-          </button>
-        </p>
-      )}
-      {grid && (
-        <TouchpadStickSection
-          title={t(pad.side === 'left' ? 'keymap.touchStickTitleLeft' : 'keymap.touchStickTitleRight')}
-          keyPrefix={`${pad.keyPrefix ? pad.keyPrefix + '_' : ''}`}
-          tuning={extras.primary || extras.advanced ? <>{extras.primary}{extras.advanced}</> : undefined}
-          {...stick}
-          {...actions}
-        />
-      )}
-    </PadSection></SettingPrefix>
-  )
+  const buttons = [...TOUCH_BUTTONS, ...MISC_BUTTONS]
+  const click = buttons.find(button => button.command === (pad.side === 'left' ? 'MISC3' : pad.side === 'right' ? 'MISC2' : 'CAPTURE'))
+  const touch = buttons.find(button => button.command === (pad.side === 'left' ? 'MISC4' : 'TOUCH'))
+  return <SettingPrefix prefix={`${trigger},`}>
+    <TrackpadsPage readText={projected} setText={setProjected}
+      modeShift={{ trigger, label: isReleasedInput(trigger) ? `${heldName} released` : `${heldName} held` }} dualPadController={pad.side !== 'shared'}
+      pads={[{ side, card, regions: shifted.regions, menu: resolveOverlayMenus(text)[menuKey], menuKey, live: props.livePad ?? null,
+        touch, click, modeshiftTarget: target }]}
+      padAspect={props.padAspect ?? 1} selectedRegion={selected} onSelectRegion={setSelected}
+      renderButton={(button, options) => <ShiftedBinding {...props} trigger={trigger} button={button} defaultOpen={options?.defaultOpen}
+        rowLabel={options?.label} subtitle={options?.subtitle} xAction={options?.xAction} />}
+      renderModeshifts={() => null}
+      describe={command => { const info = shifted.describe(command); return { ...info, binding: info.binding ? describeBinding(info.binding, t) : '' } }}
+      stickButtons={TOUCH_STICK_BUTTONS} onBindTouchStickWasd={() => setProjected(previous => Object.entries({ TUP: 'W', TLEFT: 'A', TDOWN: 'S', TRIGHT: 'D' }).reduce((next, [key, value]) => updateKeymapEntry(next, key, [value]), previous))} warnings={[]} virtualControllerType={props.virtualControllerType} />
+  </SettingPrefix>
 }
 
 /** One line on what a shift turns its target into, for the card's header. */
@@ -454,64 +358,61 @@ function useShiftSummary(props: InputModeshiftsProps, trigger: string) {
 /** Use the ordinary stick editor against a trigger-scoped projection. */
 function StickModeshiftBody({ trigger, ...props }: InputModeshiftsProps & { trigger: string }) {
   const { t } = useTranslation()
-  const [selected, setSelected] = useState<string | null>(null)
-  const { onChange } = props
   const side = props.target.mode!.key === 'LEFT_STICK_MODE' ? 'left' : 'right'
-  const SIDE = side === 'left' ? 'LEFT' : 'RIGHT'
   const projected = useMemo(() => projectModeshift(props.text, trigger), [props.text, trigger])
   const setProjected = useCallback<Dispatch<SetStateAction<string>>>(update => {
     const next = typeof update === 'function' ? update(projected) : update
-    onChange(previous => foldModeshift(previous, trigger, next, {}, projected))
-  }, [onChange, projected, trigger])
-  const stick = useStickConfig({ configText: projected, setConfigText: setProjected })
-  const mode = stick.stickModes[side].mode.toUpperCase()
-  const extras = useStickModeExtras(mode, {
-    sourceAxisKey: side === 'left' ? 'LEFT_STICK_AXIS' : 'RIGHT_STICK_AXIS',
-    configText: projected, onConfigTextChange: setProjected,
-    ...stick, mouseRingRadius: stick.mouseRingRadiusValue, onMouseRingRadiusChange: stick.handleMouseRingRadiusChange,
-    scrollSens: stick.scrollSensValue, onScrollSensChange: stick.handleScrollSensChange,
-    virtualControllerType: props.virtualControllerType,
-  })
-  const read = (key: string) => getKeymapValue(projected, key) ?? ''
-  const write = (key: string, value: string) => props.onChange(previous => writeModeshift(previous, trigger, key, value))
-  const buttons = props.target.buttons.map(definitionFor)
-  const find = (command: string) => buttons.find(button => button.command === command)
-  const directionUse = stickModeDirectionUse(mode)
-  const directions = (directionUse === 'all' ? ['UP', 'LEFT', 'DOWN', 'RIGHT'] : directionUse === 'leftRight' ? ['LEFT', 'RIGHT'] : [])
-    .map(direction => find(`${SIDE[0]}${direction}`)).filter((button): button is ButtonDefinition => Boolean(button))
+    props.onChange(previous => foldModeshift(previous, trigger, next, {}, projected))
+  }, [props.onChange, projected, trigger])
   const describe = (command: string) => ({
-    label: getBindingLabel(props.text, `${trigger},${command}`) ?? getBindingLabel(props.text, command),
-    binding: read(command) && read(command) !== 'NONE' ? describeBinding(read(command), t) : '',
-    icon: parseBindingIcons(props.text)[`${trigger},${command}`] ?? parseBindingIcons(props.text)[command],
+    label: getBindingLabel(projected, command),
+    binding: describeBinding(getKeymapValue(projected, command) ?? '', t),
   })
-  const prefix = `${SIDE[0]}M`
-  const count = Math.max(2, Math.min(25, Number.parseInt(read(`${SIDE}_STICK_MENU_SIZE`)) || 8))
-  const segments = Array.from({ length: count }, (_, i) => ({ command: `${prefix}${i + 1}`, descriptionKey: 'keymap.stickSegment', playstation: `Segment ${i + 1}`, xbox: `Segment ${i + 1}` }))
-  const menuKey = `${side === 'left' ? 'LSTICK' : 'RSTICK'}:${trigger}`
-  const zones = side === 'left' ? stick.leftStickDeadzone : stick.rightStickDeadzone
-  return <SettingPrefix prefix={`${trigger},`}>
-    <StickSection side={side} keyPrefix={`${SIDE}_`} title={props.target.title}
-      mode={mode} ring={stick.stickModes[side].ring} inner={zones.inner} outer={zones.outer}
-      defaultInner={stick.stickDeadzoneDefaults.inner} defaultOuter={stick.stickDeadzoneDefaults.outer}
-      menuConfig={{ text: props.text, onChange: props.onChange, trigger }}
-      onModeChange={value => {
-        if (stickMenuLinks(props.text, side).some(link => isDirectStickMenu(link.attachment, trigger))) props.onChange(previous => writeModeshift(detachStickMenu(previous, side, trigger), trigger, `${SIDE}_STICK_MODE`, value || 'NO_MOUSE'))
-        else stick.handleStickModeChange(SIDE, value || 'NO_MOUSE')
-      }}
-      onRingChange={value => stick.handleRingModeChange(SIDE, value)}
-      onInnerChange={value => stick.handleStickDeadzoneChange(SIDE, 'INNER', value)}
-      onOuterChange={value => stick.handleStickDeadzoneChange(SIDE, 'OUTER', value)}
-      directionButtons={directions} directionSummary={directions.map(button => describe(button.command).binding || '—').join(' · ') || t('keymap.unbound', 'Unbound')}
-      clickButton={find(`${SIDE[0]}3`)} ringButton={find(`${SIDE[0]}RING`)} touchButton={find(`${SIDE[0]}TOUCH`)}
-      renderButton={(button, options) => <ShiftedBinding {...props} trigger={trigger} button={button} defaultOpen={options?.defaultOpen} rowLabel={options?.label} subtitle={options?.subtitle} xAction={options?.xAction} />}
-      extras={extras.primary} extrasAdvanced={extras.advanced}
-      radial={mode === 'RADIAL_MENU' ? {
-        menu: resolveOverlayMenus(props.text)[menuKey], segments: read(`${SIDE}_STICK_MENU_SIZE`) || '8',
-        deadzone: read(`${SIDE}_STICK_MENU_DEADZONE`), buttons: segments, selected, onSelect: setSelected,
-        onSegmentsChange: value => write(`${SIDE}_STICK_MENU_SIZE`, value),
-        onDeadzoneChange: value => write(`${SIDE}_STICK_MENU_DEADZONE`, value), describe,
-        appearance: { menuKey, onChange: props.onChange },
-      } : undefined} />
+  const inputs = (side: 'left' | 'right') => {
+    const list = side === 'left' ? LEFT_STICK_BUTTONS : RIGHT_STICK_BUTTONS
+    const prefix = side === 'left' ? 'L' : 'R'
+    const find = (command: string) => list.find(button => button.command === command)
+    return { directions: list.filter(button => new RegExp(`^${prefix}(UP|DOWN|LEFT|RIGHT)$`).test(button.command)),
+      rotation: list.filter(button => new RegExp(`^${prefix}(LEFT|RIGHT)$`).test(button.command)),
+      click: find(`${prefix}3`), ring: find(`${prefix}RING`), touch: find(`${prefix}TOUCH`) }
+  }
+  const segments = (side: 'left' | 'right') => Array.from({ length: Math.max(2, Math.min(25, Number(getKeymapValue(projected, `${side.toUpperCase()}_STICK_MENU_SIZE`)) || 8)) }, (_, i) => ({
+    command: `${side === 'left' ? 'L' : 'R'}M${i + 1}`, descriptionKey: 'keymap.stickSegment', playstation: `Segment ${i + 1}`, xbox: `Segment ${i + 1}`,
+  }))
+  return <SettingPrefix prefix={`${trigger},`}><SticksPage readText={projected} setText={setProjected}
+    modeShift={{ trigger, label: heldInputName(props.target, props.modifiers, trigger), side }}
+    inputs={{ left: inputs('left'), right: inputs('right') }}
+    onModeChange={(SIDE, value) => props.onChange(previous => writeModeshift(detachStickMenu(previous, side, trigger), trigger, `${SIDE}_STICK_MODE`, value || 'NO_MOUSE'))}
+    renderButton={(button, options) => <ShiftedBinding {...props} trigger={trigger} button={button} defaultOpen={options?.defaultOpen} rowLabel={options?.label} subtitle={options?.subtitle} xAction={options?.xAction} />}
+    renderModeshifts={() => null} modeshiftTarget={() => props.target} describe={describe}
+    wheelMenus={{ left: resolveOverlayMenus(props.text)[`LSTICK:${trigger}`], right: resolveOverlayMenus(props.text)[`RSTICK:${trigger}`] }}
+    wheelSegments={{ left: segments('left'), right: segments('right') }}
+    menuConfig={{ text: props.text, onChange: props.onChange, trigger }} virtualControllerType={props.virtualControllerType}
+    onVirtualControllerTypeChange={value => props.onChange(previous => updateKeymapEntry(previous, 'VIRTUAL_CONTROLLER', [value]))}
+    onBindWasd={side => setProjected(previous => Object.entries({ UP: 'W', LEFT: 'A', DOWN: 'S', RIGHT: 'D' }).reduce((next, [key, value]) => updateKeymapEntry(next, `${side === 'left' ? 'L' : 'R'}${key}`, [value]), previous))} />
+  </SettingPrefix>
+}
+
+function TriggerModeshiftBody({ trigger, ...props }: InputModeshiftsProps & { trigger: string }) {
+  const { t } = useTranslation()
+  const side = props.target.mode!.key === 'ZL_MODE' ? 'left' : 'right'
+  const projected = useMemo(() => projectModeshift(props.text, trigger), [props.text, trigger])
+  const setProjected = useCallback<Dispatch<SetStateAction<string>>>(update => {
+    const next = typeof update === 'function' ? update(projected) : update
+    props.onChange(previous => foldModeshift(previous, trigger, next, {}, projected))
+  }, [props.onChange, projected, trigger])
+  const read = (key: string, fallback = '') => getKeymapValue(projected, key) ?? fallback
+  const write = (key: string, value: string) => props.onChange(previous => writeModeshift(previous, trigger, key, value))
+  return <SettingPrefix prefix={`${trigger},`}><TriggersPage readText={projected} setText={setProjected}
+    modeShift={{ trigger, label: heldInputName(props.target, props.modifiers, trigger), side }}
+    zlMode={read('ZL_MODE', 'NO_FULL')} zrMode={read('ZR_MODE', 'NO_FULL')} onModeChange={(side, value) => write(side === 'left' ? 'ZL_MODE' : 'ZR_MODE', value)}
+    threshold={Number(read('TRIGGER_THRESHOLD', '0.5'))} onThresholdChange={value => write('TRIGGER_THRESHOLD', value)}
+    adaptiveValue={read('ADAPTIVE_TRIGGER', 'OFF')} onAdaptiveChange={value => write('ADAPTIVE_TRIGGER', value)}
+    buttons={{ left: TRIGGER_BUTTONS.filter(button => /^ZLF?$/.test(button.command)), right: TRIGGER_BUTTONS.filter(button => /^ZRF?$/.test(button.command)) }}
+    renderButton={(button, options) => <ShiftedBinding {...props} trigger={trigger} button={button} defaultOpen={options?.defaultOpen} rowLabel={options?.label} subtitle={options?.subtitle} />}
+    renderModeshifts={() => null} describe={command => ({ binding: describeBinding(read(command), t), label: getBindingLabel(projected, command) })}
+    virtualControllerType={props.virtualControllerType}
+    onVirtualControllerTypeChange={value => props.onChange(previous => updateKeymapEntry(previous, 'VIRTUAL_CONTROLLER', [value]))} />
   </SettingPrefix>
 }
 
@@ -549,7 +450,7 @@ function ShiftEditor({ trigger, triggers, onRename, onRemove, onClose, onPickBut
           disabled={triggers.includes(withRelease(trigger, !released)) ? 'This button already has the other one' : undefined}
           options={[{ value: 'held', label: 'While held', caption: 'The change lasts while the button is down' }, { value: 'released', label: 'While let go', caption: 'The change lasts while the button is up' }]}
           onChange={value => onRename(trigger, withRelease(trigger, value === 'released'))} />
-        {target.mode && !props.renderEditor && !target.pad && !/^(LEFT|RIGHT)_STICK_MODE$/.test(target.mode.key) && (
+        {target.mode && !props.renderEditor && !target.pad && !/^(?:(LEFT|RIGHT)_STICK_MODE|Z[LR]_MODE)$/.test(target.mode.key) && (
           <SegmentedRow label={t('keymap.modeshiftShiftedMode', 'Mode while held')} setting={trigger + ',' + target.mode.key} value={mode}
             options={target.mode.options.map(option => ({ value: option.value, label: option.label }))} onChange={value => write(target.mode!.key, value)} />
         )}
@@ -560,6 +461,8 @@ function ShiftEditor({ trigger, triggers, onRename, onRemove, onClose, onPickBut
           ? <PadModeshiftBody {...props} trigger={trigger} heldName={heldName} />
           : target.mode && /^(LEFT|RIGHT)_STICK_MODE$/.test(target.mode.key)
           ? <StickModeshiftBody {...props} trigger={trigger} />
+          : target.mode && /^Z[LR]_MODE$/.test(target.mode.key)
+          ? <TriggerModeshiftBody {...props} trigger={trigger} />
           : (
             <div className={styles.bindings}>
               {target.buttons.map(button => <ShiftedBinding key={button.command} {...props} trigger={trigger} button={definitionFor(button)} />)}

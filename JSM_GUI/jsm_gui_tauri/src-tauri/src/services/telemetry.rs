@@ -302,6 +302,9 @@ impl PressLatch {
     }
 
     fn observe(&mut self, packet: &Value) {
+        if packet.get("sessionLocked").and_then(Value::as_bool) == Some(true) {
+            self.previous.clear(); self.pending.clear(); return;
+        }
         for (handle, buttons) in Self::devices(packet) {
             let before = self.previous.insert(handle, buttons).unwrap_or(buttons);
             *self.pending.entry(handle).or_default() |= buttons & !before;
@@ -332,12 +335,17 @@ fn emit_telemetry_packet(app: &AppHandle, packet: &Value) -> Result<(), String> 
 /// this trims rather than forwarding the packet wholesale. Emitted only to the
 /// overlay window, so the main WebView is not woken at the overlay's rate.
 fn emit_overlay_packet(app: &AppHandle, packet: &Value) -> Result<(), String> {
+    let Some(payload) = overlay_packet(packet) else { return Ok(()) };
+    app.emit_to("overlay", "overlay-telemetry", payload)
+        .map_err(|error| format!("Failed to emit overlay packet: {error}"))
+}
+
+fn overlay_packet(packet: &Value) -> Option<Value> {
     let device = packet
         .get("devices")
         .and_then(Value::as_array)
-        .and_then(|devices| devices.iter().find(|device| device.get("status").is_some()));
-    let Some(device) = device else { return Ok(()) };
-    let Some(status) = device.get("status") else { return Ok(()) };
+        .and_then(|devices| devices.iter().find(|device| device.get("status").is_some_and(Value::is_object)))?;
+    let status = device.get("status")?;
     // Static per device, but carried per packet rather than emitted once: a
     // controller can be unplugged and replaced by one with a differently shaped
     // pad, and two integers are nothing beside the floats already here.
@@ -365,10 +373,7 @@ fn emit_overlay_packet(app: &AppHandle, packet: &Value) -> Result<(), String> {
         })
     };
 
-    app.emit_to(
-        "overlay",
-        "overlay-telemetry",
-        json!({
+    Some(json!({
             "buttons": status.get("buttons").and_then(Value::as_u64).unwrap_or(0),
             "leftPad": pad("leftPad"),
             "rightPad": pad("rightPad"),
@@ -381,10 +386,45 @@ fn emit_overlay_packet(app: &AppHandle, packet: &Value) -> Result<(), String> {
             // load another one without Studio knowing, and until the overlay
             // hears about it, it keeps drawing the menus of the profile that is
             // no longer loaded.
-            "activeProfile": packet.get("activeProfile").cloned().unwrap_or(Value::Null),
-        }),
-    )
-    .map_err(|error| format!("Failed to emit overlay packet: {error}"))
+            // Global chords swap this controller's profile without changing
+            // the app-wide game profile. Keep its menu and input together.
+            "activeProfile": device.get("activeProfile")
+                .filter(|value| value.as_str().is_some_and(|path| !path.trim().is_empty()))
+                .or_else(|| packet.get("activeProfile"))
+                .cloned().unwrap_or(Value::Null),
+        }))
+}
+
+#[cfg(test)]
+mod overlay_profile_tests {
+    use super::*;
+
+    #[test]
+    fn controller_chord_profile_follows_its_input_and_returns_to_game() {
+        let mut packet = json!({"activeProfile": "Witcher.txt", "devices": [
+            {"activeProfile": "Other.txt", "status": null},
+            {"activeProfile": "Quick Access.txt", "status": {
+                "buttons": 64, "leftPad": {"x": 0.4, "y": 0.2, "touched": true}
+            }}
+        ]});
+        let payload = overlay_packet(&packet).unwrap();
+        assert_eq!(payload["activeProfile"], "Quick Access.txt");
+        assert_eq!(payload["buttons"], 64);
+        assert_eq!(payload["leftPad"]["touched"], true);
+        packet["devices"][1]["activeProfile"] = json!("Witcher.txt");
+        assert_eq!(overlay_packet(&packet).unwrap()["activeProfile"], "Witcher.txt");
+    }
+
+    #[test]
+    fn legacy_or_empty_controller_profile_falls_back_to_global() {
+        for profile in [Value::Null, json!(""), json!("  ")] {
+            let packet = json!({"activeProfile": "Game.txt", "devices": [
+                {"activeProfile": profile, "status": {}}
+            ]});
+            assert_eq!(overlay_packet(&packet).unwrap()["activeProfile"], "Game.txt");
+        }
+        assert!(overlay_packet(&json!({"devices": []})).is_none());
+    }
 }
 
 /// The mapper's idle heartbeat (sent whenever its controller poll has been quiet
@@ -395,6 +435,8 @@ fn emit_overlay_packet(app: &AppHandle, packet: &Value) -> Result<(), String> {
 /// a held chord ended and began again, and the app showed no controller.
 /// Returns whether the packet was a heartbeat carrying the old list.
 fn fill_heartbeat_devices(state: &AppState, packet: &mut Value) -> bool {
+    // Locked-session packets deliberately contain no PIN/button telemetry.
+    if packet.get("sessionLocked").and_then(Value::as_bool) == Some(true) { return false; }
     if packet_has_devices(packet) { return false; }
     let Ok(telemetry_state) = state.telemetry.lock() else { return false };
     let fresh = telemetry_state.latest_received_at.is_some_and(|at| at.elapsed() <= Duration::from_millis(TELEMETRY_STALE_MS));
@@ -574,6 +616,23 @@ mod heartbeat_tests {
         assert!(packet_has_devices(&seen), "everything reading the packet still sees the controller");
         assert!(packet_has_devices(latest_packet(&state).unwrap().as_ref().unwrap()));
         assert_eq!(seen["gyroCal"]["phase"], 0, "the heartbeat's own fields are kept");
+    }
+
+    #[test]
+    fn locked_session_never_replays_cached_buttons() {
+        let state = AppState::default();
+        ingest(&state, device_packet());
+        let seen = ingest(&state, json!({"sessionLocked": true, "activeProfile": "profiles-library/Windows Sign-in.txt", "devices": []}));
+        assert!(!packet_has_devices(&seen));
+        assert_eq!(seen["devices"], json!([]));
+        assert!(!packet_has_devices(latest_packet(&state).unwrap().as_ref().unwrap()));
+        let after = ingest(&state, heartbeat());
+        assert!(!packet_has_devices(&after));
+        let mut latch = PressLatch::default();
+        latch.observe(&json!({"devices":[{"handle":1,"status":{"buttons":1}}]}));
+        latch.observe(&json!({"devices":[{"handle":1,"status":{"buttons":3}}]}));
+        latch.observe(&seen);
+        assert!(latch.previous.is_empty() && latch.pending.is_empty());
     }
 
     #[test]

@@ -5,6 +5,7 @@ import { APP_STARTED_AT, appVersion, checkForUpdatesNow, describeChecked, descri
 import { showToast } from '../../utils/toast'
 import { ModeCards, OpenRow, SubPage } from '../ui/console'
 import { ResetDefaultSettings } from '../ResetDefaultSettings'
+import { PermissionSettings } from './PermissionSettings'
 import { SettingsColumns, SettingsNote, SettingsSection, SwitchRow } from './SettingsKit'
 import styles from './Settings.module.css'
 
@@ -27,7 +28,7 @@ function WhenWindowsStarts({ tray, loads }: { tray: boolean; loads: string }) {
   )
 }
 
-export function StartupPage({ libraryProfiles, liveName }: { libraryProfiles: string[]; liveName: string | null }) {
+export function StartupPage({ libraryProfiles, liveName, hasPendingChanges = false }: { libraryProfiles: string[]; liveName: string | null; hasPendingChanges?: boolean }) {
   const { autostart } = usePreferences()
   const [autostartPending, setAutostartPending] = useState(false)
   const [startup, setStartup] = useState<StartupPreferences | null>(null)
@@ -49,7 +50,7 @@ export function StartupPage({ libraryProfiles, liveName }: { libraryProfiles: st
     setAutostartPending(false)
     if (!success) {
       setCachedAutostart(previous)
-      showToast('Windows did not take the change. Try again, or check Task Scheduler.', 'error')
+      showToast('Windows did not take the change. If an older administrator startup task exists, restart as administrator once to migrate it.', 'error')
     }
   }
   const saveStartup = async (patch: Partial<StartupPreferences>) => {
@@ -68,7 +69,7 @@ export function StartupPage({ libraryProfiles, liveName }: { libraryProfiles: st
   return (
     <SettingsColumns asideLabel="When Windows starts" main={<>
       <div className={styles.sectionBody}>
-        <SwitchRow label="Start with Windows" hint="No permission prompt each time you sign in" on={autostart} pending={autostartPending}
+        <SwitchRow label="Start with Windows" hint="Starts with normal access for your Windows account" on={autostart} pending={autostartPending}
           onChange={next => void changeAutostart(next)} onReset={() => void changeAutostart(false)} />
         <SwitchRow label="Start in the tray" hint="Mapping runs; the window stays out of the way" on={startup ? startup.startInTray : null}
           disabled={autostart === false ? 'Only matters when JSM Evolved starts with Windows' : undefined}
@@ -83,14 +84,15 @@ export function StartupPage({ libraryProfiles, liveName }: { libraryProfiles: st
             { value: 'named', label: named ?? 'Pick another', caption: named ? 'Chosen from your library · A picks again' : 'From your library', unavailable: waiting },
           ]} />
       </SettingsSection>
+      <PermissionSettings hasPendingChanges={hasPendingChanges} />
       <SettingsSection title="Updates">
-        <OpenRow label={describeUpdate(update)} hint={updateLine} value={update?.checking ? 'Checking…' : update?.available ? 'Get it ▸' : 'Check now'}
+        <OpenRow label={describeUpdate(update)} hint={updateLine} value={update?.checking ? 'Checking…' : update?.available ? 'View release ▸' : 'Check now'}
           data={{ 'data-update-status': update?.available ? 'available' : update?.error ? 'error' : update?.checkedAtMs ? 'current' : 'unknown' }}
           onOpen={() => {
             if (update?.available) void shellBridge.installUpdate().catch(error => showToast(String(error), 'error'))
             else void checkForUpdatesNow()
-          }} hints={update?.available ? 'A:Install and restart;B:Home' : 'A:Check now;B:Home'} />
-        <SettingsNote>When there’s a new version, a line under the header offers to install it and restart.</SettingsNote>
+          }} hints={update?.available ? 'A:View release;B:Home' : 'A:Check now;B:Home'} />
+        <SettingsNote>Update checks contact GitHub. View release opens your browser so you can read the notes and choose a download. JSM Evolved stays running and does not install updates automatically.</SettingsNote>
       </SettingsSection>
       <ResetDefaultSettings />
 

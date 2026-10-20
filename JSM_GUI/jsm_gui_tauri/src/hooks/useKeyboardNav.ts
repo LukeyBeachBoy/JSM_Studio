@@ -1,3 +1,4 @@
+import { activeOverlay } from '../nav/activeOverlay'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { navOrigin, noteFocus, noteHover } from '../nav/navAnchor'
 import { CLEAR_BOTTOM, CLEAR_TOP, cancelScroll, ensureVisible, scrollDestination } from '../nav/scroller'
@@ -43,11 +44,7 @@ const isVisible = (element: HTMLElement) => {
   return rect.width > 0 && rect.height > 0
 }
 
-const topmostOverlay = () => {
-  // Dialogs, and the navigation drawer, which traps focus the same way.
-  const overlays = document.querySelectorAll<HTMLElement>('.modal-overlay, [data-focus-trap="true"]')
-  return overlays.length ? overlays[overlays.length - 1] : null
-}
+const topmostOverlay = activeOverlay
 
 // Radix popovers (Select lists, dropdown menus and their submenus) run their own
 // roving focus, typeahead and Escape handling. While one is open this hook keeps

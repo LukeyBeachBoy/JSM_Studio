@@ -246,7 +246,7 @@ export function ChangeReview(props: Props) {
   const savedLine = savedAt ? `since you ${savedAt.kind === 'saved' ? 'last saved' : 'opened it'}, ${ago(savedAt.at, now)}` : 'since the last save or load'
   return (
     <SubPage open onClose={props.onClose} trail={['Menu']} title="Review changes" badge={null}
-      hints={[{ button: 'Y', label: 'Undo · redo' }, ...(changes.length ? [{ button: 'MENU' as const, label: 'Hold to save' }] : [])]}>
+      hints={[{ button: 'Y', label: 'Undo · redo' }, ...(changes.length ? [{ button: 'MENU' as const, label: 'Hold to save & make live' }] : [])]}>
       <div ref={root} className={styles.page} role="region" aria-label="Review changes">
         <section className={styles.main} aria-label="Changes">
           <header className={styles.head}>
@@ -262,7 +262,7 @@ export function ChangeReview(props: Props) {
               const row = describeReviewChange(change, props.baseline, props.text, layers, props.family, t)
               const label = `Revert ${row.name}${row.modifier ? ` ${row.modifier.toLowerCase()}` : ''}`
               return <button key={change.id} type="button" className={styles.row} data-change-id={change.id} data-autofocus={groupIndex === 0 && index === 0 ? 'true' : undefined}
-                data-hints={`A:Go to it;X:Revert;Y:Undo · redo;${changes.length ? 'MENU:Hold to save;' : ''}B:Back`}
+                data-hints={`A:Go to it;X:Revert;Y:Undo · redo;${changes.length ? 'MENU:Hold to save and make live;' : ''}B:Back`}
                 data-caption={`${row.name}${row.modifier ? ` · ${row.modifier}` : ''} · ${row.before} → ${row.after}`}
                 aria-label={`${row.name}${row.modifier ? `, ${row.modifier}` : ''}: ${row.before} to ${row.after}`}
                 onClick={() => props.onGoTo?.(change)}>

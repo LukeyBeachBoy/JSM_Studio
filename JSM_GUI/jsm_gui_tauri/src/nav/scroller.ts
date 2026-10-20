@@ -1,3 +1,4 @@
+import { activeOverlay } from './activeOverlay'
 // One owner for programmatic scrolling of the page (.shell-scroll).
 //
 // LB/RB section jumps, the pad keeping focus in view, and page entry all used
@@ -51,8 +52,7 @@ function nearestScrollHost(element: HTMLElement | null, boundary?: HTMLElement) 
 
 /** An open overlay owns scrolling even while focus is on its header/footer. */
 export function activeScrollHost() {
-  const overlays = document.querySelectorAll<HTMLElement>('.modal-overlay, [data-focus-trap="true"]')
-  const overlay = overlays[overlays.length - 1]
+  const overlay = activeOverlay()
   const active = document.activeElement as HTMLElement | null
   if (overlay) {
     const focused = overlay.contains(active) ? nearestScrollHost(active, overlay) : null

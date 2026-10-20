@@ -6,6 +6,7 @@ import { persistAppearance } from '../appearanceStorage'
 import { setFeedbackStrength } from '../nav/feedback'
 import { DEFAULT_ACCENT } from '../brand/brand'
 import { shellBridge } from '../platform/shellBridge'
+import { permissionBridge } from '../platform/permissionBridge'
 import { SubPage } from './ui/console'
 import settingsStyles from './settings/Settings.module.css'
 
@@ -13,6 +14,8 @@ import settingsStyles from './settings/Settings.module.css'
  *  settings, shortcuts, look and language (screen distance and config names
  *  too), and Quick tools on the Steam and ··· buttons. Configurations stay. */
 export async function resetEverything() {
+  await permissionBridge.setWindowsSignIn(false)
+  await permissionBridge.save({ requestAdminOnLaunch: false, introductionSeen: true })
   if ('__TAURI_INTERNALS__' in window) await invoke('reset_default_settings')
   else await keyboard.savePreferences(defaultPreferences)
   const startupReset = await desktopBridge.setAutostartEnabled(false)
@@ -40,7 +43,7 @@ export function ResetEverythingPage({ open, onClose }: { open: boolean; onClose:
     <SubPage open={open} onClose={() => { if (!busy) onClose() }} crumbRoot="Settings" trail={['Startup']} title="Reset everything" backLabel="Cancel">
       <div className={settingsStyles.mainColumn} style={{ maxWidth: 720 }} role="alertdialog" aria-labelledby="reset-settings-title">
         <h2 id="reset-settings-title" className={settingsStyles.sectionTitle}>Reset everything to defaults?</h2>
-        <p className={settingsStyles.panelNote}>Startup, controller settings, shortcuts, look and language go back to how they came. Quick tools returns to the Steam and ··· buttons. Your configurations stay in your library.</p>
+        <p className={settingsStyles.panelNote}>Startup, controller settings, shortcuts, look and language go back to how they came. Administrator launch requests and Windows sign-in input turn off. Quick tools returns to the Steam and ··· buttons. Your configurations stay in your library.</p>
         <button type="button" className={settingsStyles.switchRow} data-autofocus="" data-hints="A:Cancel;B:Cancel" disabled={busy} onClick={onClose}>
           <span className={settingsStyles.rowText}><span className={settingsStyles.rowLabel}>Cancel</span><span className={settingsStyles.rowHint}>Nothing changes</span></span>
         </button>

@@ -124,3 +124,17 @@ const splitFlick = renameModeshift(flick, rightStick, 'L', 'R');
 assert.equal(readModeshift(splitFlick, 'L', 'FLICK_TIME'), '0.23', 'other stick keeps tuning on old trigger');
 assert.equal(readModeshift(splitFlick, 'R', 'FLICK_TIME'), '0.23', 'renamed stick copies tuning to new trigger');
 console.log('PASS: mandatory triggers, inherited read-through, pad cleanup, full stick tuning/radial scope, no phantom shifts, shared-tuning preservation and scoped rename/remove');
+
+const sharedPads = 'RIGHT_TOUCHPAD_MODE = MOUSE\nLEFT_TOUCHPAD_MODE = MOUSE\nR,RIGHT_TOUCHPAD_MODE = MOUSE_AREA\nR,RIGHT_TOUCHPAD_AREA = 0.1 0.2 0.3 0.4\nR,RIGHT_TOUCHPAD_AREA_FIT = STRETCH\nR,MISC2 = MMOUSE\nR,LEFT_TOUCHPAD_MODE = MOUSE\nR,TOUCHPAD_MIN_CUTOFF = 3\nR,TOUCHPAD_HAPTIC_INTENSITY = 20\n';
+const movedPad = renameModeshift(sharedPads, realPad, 'R', 'L');
+assert.equal(readModeshift(movedPad, 'L', 'RIGHT_TOUCHPAD_AREA'), '0.1 0.2 0.3 0.4');
+assert.equal(readModeshift(movedPad, 'L', 'RIGHT_TOUCHPAD_AREA_FIT'), 'STRETCH');
+assert.equal(readModeshift(movedPad, 'L', 'MISC2'), 'MMOUSE');
+assert.equal(readModeshift(movedPad, 'L', 'TOUCHPAD_MIN_CUTOFF'), '3');
+assert.equal(readModeshift(movedPad, 'R', 'TOUCHPAD_MIN_CUTOFF'), '3', 'the other pad retains shared smoothing');
+const removedPad = removeModeshift(sharedPads, realPad, 'R');
+assert.equal(readModeshift(removedPad, 'R', 'RIGHT_TOUCHPAD_AREA'), undefined);
+assert.equal(readModeshift(removedPad, 'R', 'RIGHT_TOUCHPAD_AREA_FIT'), undefined);
+assert.equal(readModeshift(removedPad, 'R', 'MISC2'), undefined);
+assert.equal(readModeshift(removedPad, 'R', 'TOUCHPAD_HAPTIC_INTENSITY'), '20', 'the other shifted pad retains shared feedback');
+console.log('PASS: mouse-area, fit, click and shared pad tuning follow shift rename/remove without changing the other pad');

@@ -4,14 +4,14 @@
 .meta { margin-right: auto; color: var(--text-3); font-size: var(--fs-hint); }
 
 .log {
-  height: min(46vh, 420px);
+  height: min(58vh, 640px);
   overflow-y: auto;
   padding: var(--sp-4);
   border-radius: var(--r-card);
   background: var(--surface-sunken);
   font-family: var(--font-mono);
   font-size: var(--fs-hint);
-  line-height: 1.85;
+  line-height: 1.6;
   color: var(--text-2);
 }
 .log:focus-visible { outline: 2px solid var(--focus-keyboard); outline-offset: 2px; }

@@ -59,3 +59,11 @@ jobs:
 
       - name: Verify telemetry preview throttling
         run: node tests/telemetry_performance_regression.cjs
+
+      - name: Verify mode-shift inheritance and mouse-area scope
+        run: |
+          node tests/modeshift_regression.cjs
+          node tests/mouse_area_regression.cjs
+
+      - name: Verify controller profile adoption
+        run: node tests/chord_profile_adoption_regression.cjs

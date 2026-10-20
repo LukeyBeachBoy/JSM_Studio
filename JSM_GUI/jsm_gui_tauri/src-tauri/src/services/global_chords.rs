@@ -11,6 +11,27 @@ static LAYER_STACK: std::sync::Mutex<Option<Value>> = std::sync::Mutex::new(None
 
 static CANCEL_GLOBAL:std::sync::atomic::AtomicBool=std::sync::atomic::AtomicBool::new(false);
 pub fn consume_until_release() {CANCEL_GLOBAL.store(true,std::sync::atomic::Ordering::Relaxed);}
+
+#[derive(Default)]
+struct FocusHandover {
+    chord_active: bool,
+    pending: Option<bool>,
+}
+impl FocusHandover {
+    fn defer(&mut self, focused: bool) -> bool {
+        if !self.chord_active { return false; }
+        self.pending = Some(focused);
+        true
+    }
+    fn update(&mut self, active: bool) -> Option<bool> {
+        self.chord_active = active;
+        if active { None } else { self.pending.take() }
+    }
+}
+static FOCUS_HANDOVER: std::sync::Mutex<FocusHandover> = std::sync::Mutex::new(FocusHandover { chord_active: false, pending: None });
+pub fn defer_focus_change(focused: bool) -> bool {
+    FOCUS_HANDOVER.lock().map(|mut handover| handover.defer(focused)).unwrap_or(false)
+}
 pub fn layer_stack() -> Value {
     LAYER_STACK.lock().ok().and_then(|stack| stack.clone()).unwrap_or_else(|| serde_json::json!({ "profile": "", "layers": [] }))
 }
@@ -40,11 +61,11 @@ pub fn start(app: AppHandle, state: AppState) {
         let mut chords=Vec::new();let mut enabled=false;
         let mut revision=config_layers::revision();let mut next_reload=Instant::now();
         loop {
-            let cancel=CANCEL_GLOBAL.swap(false,std::sync::atomic::Ordering::Relaxed);
             if crate::services::virtual_keyboard::take_toggle() {
                 let open=!crate::services::virtual_keyboard::requested();
                 if let Err(error)=crate::services::virtual_keyboard::set_open(&app,open) {eprintln!("Keyboard: {error}");}
             }
+            let cancel=CANCEL_GLOBAL.swap(false,std::sync::atomic::Ordering::Relaxed);
             crate::services::virtual_keyboard::health(&app);
             let next_revision=config_layers::revision();
             if revision!=next_revision {
@@ -78,6 +99,11 @@ pub fn start(app: AppHandle, state: AppState) {
                     // A binding selected a normal profile for this controller.
                     controller.active=None;controller.source=live.clone();controller.activation.reset();
                     controller.layers=config_layers::prepare_for_model(&app,&live,&model).unwrap_or_default();
+                    // The mapper changed this controller, but focus handover
+                    // restores Studio's persisted applied profile. Adopt the
+                    // explicit choice before that handover can bring back the
+                    // old configuration (often Quick Access itself).
+                    crate::commands::adopt_profile_loaded_by_binding(&app,&state,&live);
                 }
                 let global=eligible_global_profile(held,&mut controller.cancelled);any_global|=global.is_some();
                 let keyboard=crate::services::virtual_keyboard::requested();
@@ -98,6 +124,11 @@ pub fn start(app: AppHandle, state: AppState) {
             let disconnected:Vec<_>=controllers.keys().filter(|id|!devices.iter().any(|d|d["handle"].as_i64()==Some(**id))).copied().collect();
             for id in disconnected {let _=jsm_process::inject_console_command(&app,&state,&format!("STUDIO_DEVICE_CHORD_END {id}"));controllers.remove(&id);}
             crate::services::virtual_keyboard::set_global(any_global);
+            let pending = FOCUS_HANDOVER.lock().ok().and_then(|mut handover| handover.update(any_global));
+            if let Some(focused) = pending {
+                let handle = app.clone();
+                thread::spawn(move || crate::commands::studio_focus_changed(&handle, focused));
+            }
             publish_layer_stack(&app,&base,&visible_layers,&visible_ids);
             thread::sleep(Duration::from_millis(16));
         }
@@ -231,6 +262,19 @@ fn layer_input_pressed(device: &Value, button: &str, base: &str) -> bool {
 mod tests {
     use super::*;
     use serde_json::json;
+    #[test]
+    fn focus_handover_waits_for_chord_release_and_uses_latest_focus() {
+        let mut handover = FocusHandover::default();
+        assert!(!handover.defer(true));
+        assert_eq!(handover.update(true), None);
+        assert!(handover.defer(false));
+        assert_eq!(handover.update(true), None, "a held Alt+Tab must not reload mappings");
+        assert!(handover.defer(true));
+        assert!(handover.defer(false));
+        assert_eq!(handover.update(false), Some(false));
+        assert_eq!(handover.update(false), None, "handover runs once");
+        assert!(!handover.defer(true));
+    }
     #[test]
     fn model_chords_route_to_one_physical_controller() {
         let ds = json!({"handle":1,"type":5,"status":{"buttons":1u64<<5}});

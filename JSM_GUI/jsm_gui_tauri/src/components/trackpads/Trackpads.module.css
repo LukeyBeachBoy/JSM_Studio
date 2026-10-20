@@ -5,6 +5,12 @@
 .padArt p, .padLive { margin: 0; color: var(--text-2); font-size: var(--fs-hint); }
 .surface { width: 100%; max-width: 300px; height: auto; }
 .zoneRow { min-width: 0; }
+.areaGuide { display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-4); border-radius: var(--r-card, 16px); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); background: color-mix(in srgb, var(--accent) 7%, var(--surface-row)); }
+.areaGuide h2 { margin: 0; font-size: var(--fs-title, 24px); color: var(--text-1); }
+.areaGuide p { margin: 0; color: var(--text-2); line-height: 1.5; }
+.areaGuide small { color: var(--text-2); }
+.stepLabel { font-size: var(--fs-hint); font-weight: 700; color: var(--accent); }
+.shiftContext { color: var(--accent); font-weight: 600; }
 .parts { display: flex; flex-direction: column; gap: var(--sp-3); }
 .partStrip { display: flex; align-items: stretch; gap: var(--sp-2); padding: var(--sp-1); border-radius: var(--r-row); background: rgba(255, 255, 255, .03); }
 .partKey { align-self: center; padding: 2px 6px; border-radius: 6px; background: #e8eef4; color: #0d1217; font-size: 11px; font-weight: 700; }

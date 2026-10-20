@@ -13,7 +13,7 @@ import styles from './MapperConsole.module.css'
 
 export type LogLine = { at: number; text: string; kind?: 'command' | 'output' }
 
-const MAX_LINES = 600
+const MAX_LINES = 2000
 export const stamp = (ms: number) => {
   const time = new Date(ms)
   const pad = (value: number, size = 2) => String(value).padStart(size, '0')

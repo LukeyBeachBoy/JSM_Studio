@@ -344,3 +344,9 @@ tmp/
 # Raw capture streams and recorder control files stay local; retain analysis.
 /captures/**/controller-telemetry.jsonl
 /captures/**/STOP
+
+# Published release notes and local-only testing captures
+!docs/releases/
+!docs/releases/*.md
+/tools/desktop-config-*/
+/JSM_GUI/jsm_gui_tauri/src-tauri/third_party/FakerInput/*.msi

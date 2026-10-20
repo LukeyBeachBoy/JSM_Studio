@@ -22,6 +22,11 @@ export type ModeshiftTarget = {
   pad?: { side: 'left' | 'right' | 'shared'; keyPrefix: 'LEFT' | 'RIGHT' | '' }
 }
 
+export function triggerModeshiftSettings(side: 'left' | 'right') {
+  return ['TRIGGER_THRESHOLD', 'TRIGGER_HYSTERESIS', 'TRIGGER_SKIP_DELAY', 'ADAPTIVE_TRIGGER',
+    `${side.toUpperCase()}_TRIGGER_EFFECT`, `${side.toUpperCase()}_TRIGGER_OFFSET`, `${side.toUpperCase()}_TRIGGER_RANGE`]
+}
+
 // Every per-pad setting a shift can carry. Used both to scope a shift's
 // lines -- removing or renaming one must take all of them, or orphaned chorded
 // lines keep applying -- and to know what the shifted editor may write.
@@ -33,6 +38,8 @@ export function padModeshiftSettings(keyPrefix: 'LEFT' | 'RIGHT' | '') {
     'GRID_DEADZONE',
     'GRID_REQUIRES_CLICK',
     'TOUCHPAD_SENS',
+    'TOUCHPAD_AREA',
+    'TOUCHPAD_AREA_FIT',
     'TOUCHPAD_DUAL_STAGE_MODE',
     'TOUCHPAD_HAPTICS',
     ...PAD_FEEDBACK_FIELDS.map(entry => `TOUCHPAD_${entry.field}`),
@@ -41,8 +48,19 @@ export function padModeshiftSettings(keyPrefix: 'LEFT' | 'RIGHT' | '') {
     'TOUCH_STICK_AXIS',
     'TOUCH_DEADZONE_INNER',
     'TOUCH_RING_MODE',
-  ].map(name => `${keyPrefix ? keyPrefix + '_' : ''}${name}`).concat(SHARED_STICK_SETTINGS)
+  ].map(name => `${keyPrefix ? keyPrefix + '_' : ''}${name}`).concat(SHARED_STICK_SETTINGS, SHARED_PAD_SETTINGS,
+    keyPrefix === 'LEFT' ? ['MISC3', 'MISC4'] : keyPrefix === 'RIGHT' ? ['MISC2', 'TOUCH'] : ['TOUCH', 'CAPTURE'])
 }
+
+const SHARED_PAD_SETTINGS = [
+  'TOUCHPAD_ACCELERATION', 'TOUCHPAD_ACCEL_CURVE', 'TOUCHPAD_ACCEL_MIN_SPEED', 'TOUCHPAD_ACCEL_MAX_SPEED',
+  'TOUCHPAD_ACCEL_MIN_GAIN', 'TOUCHPAD_ACCEL_MAX_GAIN', 'TOUCHPAD_ACCEL_NATURAL_VHALF', 'TOUCHPAD_ACCEL_POWER_VREF',
+  'TOUCHPAD_ACCEL_POWER_EXPONENT', 'TOUCHPAD_ACCEL_SIGMOID_MID', 'TOUCHPAD_ACCEL_SIGMOID_WIDTH', 'TOUCHPAD_ACCEL_JUMP_TAU',
+  'TOUCHPAD_TRACKBALL_DECAY', 'TOUCHPAD_TRACKBALL_MIN_VELOCITY', 'TOUCHPAD_MIN_CUTOFF', 'TOUCHPAD_SPEED_COEFF',
+  'TOUCHPAD_D_CUTOFF', 'TOUCHPAD_CLICK_DAMPEN', 'TOUCHPAD_CLICK_DAMPEN_THRESHOLD', 'TOUCHPAD_MOVEMENT_THRESHOLD',
+  'ACCEL_CURVE_LINK', 'TRIGGER_SKIP_DELAY', 'TOUCHPAD_HAPTICS', ...PAD_FEEDBACK_FIELDS.map(entry => `TOUCHPAD_${entry.field}`),
+  'TUP', 'TDOWN', 'TLEFT', 'TRIGHT', 'TRING',
+]
 
 const SHARED_STICK_SETTINGS = [
   'STICK_SENS', 'STICK_POWER', 'STICK_ACCELERATION_RATE', 'STICK_ACCELERATION_CAP',
@@ -99,7 +117,7 @@ export function modeshiftTriggers(text: string, target: ModeshiftTarget): string
     const key = match?.[2].trim().toUpperCase()
     // Shared tuning alone cannot identify a stick. The mode or one of its
     // own bindings/settings establishes which input actually has a shift.
-    return match && key && owns(target, key) && !SHARED_STICK_SETTINGS.includes(key) && !selfChord(match[1].trim(), key) ? [match[1].trim().toUpperCase()] : []
+    return match && key && owns(target, key) && !SHARED_STICK_SETTINGS.includes(key) && !SHARED_PAD_SETTINGS.includes(key) && !selfChord(match[1].trim(), key) ? [match[1].trim().toUpperCase()] : []
   }))]
 }
 
@@ -145,7 +163,7 @@ export function removeModeshift(text: string, target: ModeshiftTarget, trigger: 
   return text.split(/\r?\n/).filter(line => {
     if (shiftAnnotation(line, target, trigger) === null) return false
     const match = assignment(line)
-    if (shared && match && SHARED_STICK_SETTINGS.includes(match[2].trim().toUpperCase())) return true
+    if (shared && match && [...SHARED_STICK_SETTINGS, ...SHARED_PAD_SETTINGS].includes(match[2].trim().toUpperCase())) return true
     return !(match?.[1].trim().toUpperCase() === trigger && owns(target, match[2].trim().toUpperCase()))
   }).join('\n')
 }
@@ -159,7 +177,7 @@ export function renameModeshift(text: string, target: ModeshiftTarget, from: str
     const annotation = shiftAnnotation(line, target, from, to)
     if (annotation !== undefined) return annotation ?? line
     const match = assignment(line)
-    if (shared && match?.[1].trim().toUpperCase() === from && SHARED_STICK_SETTINGS.includes(match[2].trim().toUpperCase())) {
+    if (shared && match?.[1].trim().toUpperCase() === from && [...SHARED_STICK_SETTINGS, ...SHARED_PAD_SETTINGS].includes(match[2].trim().toUpperCase())) {
       return [line, `${to},${match[2].trim()} = ${match[3]}`]
     }
     return match?.[1].trim().toUpperCase() === from && owns(target, match[2].trim().toUpperCase())
@@ -189,7 +207,7 @@ function sharedTuningInUse(text: string, target: ModeshiftTarget, trigger: strin
     const match = assignment(line)
     const key = match?.[2].trim().toUpperCase() ?? ''
     return match?.[1].trim().toUpperCase() === trigger.toUpperCase() &&
-      /^(?:(?:LEFT_|RIGHT_)?(?:STICK_MODE|TOUCH_STICK_MODE)|MOTION_STICK_MODE|GYRO_OUTPUT)$/.test(key) && !owns(target, key)
+      /^(?:(?:LEFT_|RIGHT_)?(?:STICK_MODE|TOUCH_STICK_MODE|TOUCHPAD_MODE)|MOTION_STICK_MODE|GYRO_OUTPUT)$/.test(key) && !owns(target, key)
   })
 }
 

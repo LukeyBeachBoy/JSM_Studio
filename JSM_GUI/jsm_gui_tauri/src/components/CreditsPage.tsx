@@ -83,8 +83,8 @@ export function CreditsPage() {
           </p>
           <p className={styles.builtOn}>Built on JoyShockMapper · MIT licence</p>
         </div>
-        <button type="button" className="button button--secondary" onClick={() => update?.available ? void shellBridge.installUpdate() : void checkForUpdatesNow()} data-hints={hints(update?.available ? 'A:Install and restart' : 'A:Check for updates')}>
-          {update?.checking ? 'Checking…' : update?.available ? `Get ${update.latestVersion}` : 'Check for updates'}
+        <button type="button" className="button button--secondary" onClick={() => update?.available ? void shellBridge.installUpdate().catch(() => setLinkError(true)) : void checkForUpdatesNow()} data-hints={hints(update?.available ? 'A:View release' : 'A:Check for updates')}>
+          {update?.checking ? 'Checking…' : update?.available ? `View release ${update.latestVersion}` : 'Check for updates'}
         </button>
       </header>
       {linkError && <p role="alert" className={styles.error}>{t('credits.linkError')}</p>}

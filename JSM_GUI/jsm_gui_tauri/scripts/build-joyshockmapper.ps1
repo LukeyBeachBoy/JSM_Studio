@@ -48,6 +48,7 @@ if (-not $builtBinary) {
 
 New-Item -ItemType Directory -Path $bundleDir -Force | Out-Null
 Copy-Item -LiteralPath $builtBinary.FullName -Destination (Join-Path $bundleDir "JoyShockMapper.exe") -Force
+Copy-Item -LiteralPath (Join-Path $builtBinary.DirectoryName 'jsm-input.dll') -Destination (Join-Path $bundleDir 'jsm-input.dll') -Force
 
 $builtSdl = Join-Path $builtBinary.DirectoryName "SDL3.dll"
 if (Test-Path -LiteralPath $builtSdl) {

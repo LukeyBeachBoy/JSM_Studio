@@ -204,7 +204,7 @@ export function HomePage(props: HomePageProps) {
           </button>
           <button type="button" className={styles.secondary} onClick={() => setBaseOpen(true)} disabled={!hasConfig}
             data-hints="A:Change base" data-caption="Change the shared base this configuration is built on">
-            <Icon name="inherited" size={26} />Change base
+            <Icon name="base" size={26} />Change base
           </button>
           <button type="button" className={styles.secondary} onClick={() => props.onOpenStudio('configurations')} data-hints="A:Your game configs">
             <Icon name="library" size={26} />Your game configs

@@ -53,7 +53,7 @@ const {chromium}=require('C:/Users/luker/.cache/codex-runtimes/codex-primary-run
  await page.waitForFunction(()=>window.testChords.map(c=>c.id).join()==='photo,builtin-default');
  assert.deepEqual(await page.evaluate(()=>window.testChords.map(c=>c.rank)),[0,1]);
  // Make my own copy: "My Quick tools", swapped in instead, opened to edit.
- await entry.getByRole('button',{name:/^Make my own copy/}).click();
+ await entry.getByRole('button',{name:/^Make my own copy/}).first().click();
  await page.waitForFunction(()=>window.testProfiles['My Quick tools']?.includes('W = "OPEN_KEYBOARD"'));
  assert.equal(await page.evaluate(()=>window.testChords.find(c=>c.id==='builtin-default').profilePath),'profiles-library/My Quick tools.txt');
  // Remove from Hold to swap: Keep it first; the configuration stays.

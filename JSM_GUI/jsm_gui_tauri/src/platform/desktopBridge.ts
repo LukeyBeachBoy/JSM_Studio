@@ -415,7 +415,7 @@ type Unsubscribe = () => void
 export type MouseAreaRect = { x: number; y: number; w: number; h: number }
 
 export type MouseAreaPickRequest = {
-  /** Which setting the result is for: 'LEFT', 'RIGHT', or '' for a single pad. */
+  /** Editor route: LEFT, RIGHT or empty, optionally prefixed by a mode-shift trigger and comma. */
   pad: string
   /** The area the pad already has, drawn ready to adjust. */
   area: MouseAreaRect | null
@@ -522,11 +522,7 @@ export interface DesktopBridge {
   runCalibrationCommand: (command: string) => Promise<CalibrationCommandResult>
   getBackendChoice: () => Promise<BackendChoice | null>
   setBackendChoice: (choice: BackendChoice) => Promise<{ success: boolean; backend: BackendChoice } | null>
-  // Registers/removes a Windows Scheduled Task (run-level Highest) rather than
-  // a Registry Run key -- the app's manifest requires admin, and a Run-key
-  // launch would still hit an interactive UAC prompt every logon. See
-  // src-tauri/src/services/autostart.rs for why the scheduled-task route
-  // avoids that.
+  // Per-user Windows startup; legacy elevated tasks are migrated explicitly.
   getAutostartEnabled: () => Promise<boolean>
   setAutostartEnabled: (enabled: boolean) => Promise<boolean>
   openExternal: (url: string) => Promise<void>
@@ -654,9 +650,6 @@ const previewAppIcon = (exePath: string): AppIcon => {
 }
 const isTauriWindow = () => typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
 
-type TauriUpdate = import('@tauri-apps/plugin-updater').Update
-
-let pendingTauriUpdate: TauriUpdate | null = null
 const tauriUpdateAvailableListeners = new Set<(version: string) => void>()
 const tauriUpdateDownloadedListeners = new Set<() => void>()
 const tauriUpdateProgressListeners = new Set<(percent: number) => void>()
@@ -665,13 +658,6 @@ const notifyTauriUpdateAvailable = (version: string) => {
   tauriUpdateAvailableListeners.forEach(listener => listener(version))
 }
 
-const notifyTauriUpdateDownloaded = () => {
-  tauriUpdateDownloadedListeners.forEach(listener => listener())
-}
-
-const notifyTauriUpdateProgress = (percent: number) => {
-  tauriUpdateProgressListeners.forEach(listener => listener(Math.max(0, Math.min(100, percent))))
-}
 
 const invokeTauri = async <T>(command: string, args?: Record<string, unknown>) => {
   const { invoke } = await import('@tauri-apps/api/core')
@@ -1246,58 +1232,15 @@ export const desktopBridge: DesktopBridge = {
   },
   async checkForUpdates() {
     if (!isTauriWindow()) return
-
-    try {
-      const { check } = await import('@tauri-apps/plugin-updater')
-      pendingTauriUpdate = await check()
-      if (pendingTauriUpdate) {
-        notifyTauriUpdateAvailable(pendingTauriUpdate.version)
-      }
-    } catch (error) {
-      console.warn('Failed to check for JSM Evolved updates', error)
-    }
+    const update = await invokeTauri<{ available: boolean; latestVersion?: string }>('check_for_updates')
+    if (update.available && update.latestVersion) notifyTauriUpdateAvailable(update.latestVersion)
   },
   async downloadUpdate() {
-    if (isTauriWindow()) {
-      if (!pendingTauriUpdate) {
-        throw new Error('No JSM Evolved update is available to download.')
-      }
-
-      let contentLength = 0
-      let downloadedLength = 0
-      notifyTauriUpdateProgress(0)
-      await pendingTauriUpdate.download(event => {
-        if (event.event === 'Started') {
-          contentLength = event.data.contentLength ?? 0
-          downloadedLength = 0
-          notifyTauriUpdateProgress(0)
-        } else if (event.event === 'Progress') {
-          downloadedLength += event.data.chunkLength
-          notifyTauriUpdateProgress(
-            contentLength > 0 ? Math.round((downloadedLength / contentLength) * 100) : 0,
-          )
-        } else if (event.event === 'Finished') {
-          notifyTauriUpdateProgress(100)
-        }
-      })
-      notifyTauriUpdateDownloaded()
-      return
-    }
-    await getElectronAPI()?.downloadUpdate?.()
+    // Legacy entry points follow the same browser-only policy as the shell.
+    if (isTauriWindow()) return invokeTauri<void>('install_update')
   },
   async installUpdate() {
-    if (isTauriWindow()) {
-      if (!pendingTauriUpdate) {
-        throw new Error('No downloaded JSM Evolved update is ready to install.')
-      }
-
-      await pendingTauriUpdate.install()
-      pendingTauriUpdate = null
-      const { relaunch } = await import('@tauri-apps/plugin-process')
-      await relaunch()
-      return
-    }
-    await getElectronAPI()?.installUpdate?.()
+    if (isTauriWindow()) return invokeTauri<void>('install_update')
   },
   onTelemetrySample(callback) {
     if (isTauriWindow()) {

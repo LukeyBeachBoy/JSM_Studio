@@ -1,7 +1,8 @@
 //! Native controller keyboard. The WebView only draws; input edges are handled
 //! on every mapper packet, never by a throttled background JavaScript timer.
 //! Capture is a temporary empty mapping in the existing serialized chord stack.
-//! User global chords remain above it and the exact applied profile restores.
+//! Opening consumes the initiating global chord until release, so capture can
+//! take effect immediately. Later global chords can still suspend typing.
 use std::{sync::{Mutex, OnceLock, atomic::{AtomicBool, Ordering}}, time::{Instant, Duration}};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -13,6 +14,7 @@ static ENGINE: OnceLock<Mutex<Engine>> = OnceLock::new();
 static TOGGLE: AtomicBool = AtomicBool::new(false);
 static GLOBAL: AtomicBool = AtomicBool::new(false);
 static REQUESTED: AtomicBool = AtomicBool::new(false);
+static ACCESSIBILITY_ACTIVE: AtomicBool = AtomicBool::new(false);
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 #[serde(rename_all="camelCase")]
@@ -128,6 +130,32 @@ pub fn initialize(app: &AppHandle) -> Result<(),String> {
     // EVERY input afterwards, including their bindings and all derived regions.
     runtime::write_file_atomically(root.join(CAPTURE),capture_profile())?;
     ensure(app)?;
+    #[cfg(target_os = "windows")]
+    {
+        static STARTED: AtomicBool = AtomicBool::new(false);
+        if !STARTED.swap(true, Ordering::Relaxed) {
+            let app = app.clone();
+            std::thread::spawn(move || {
+                use windows_sys::Win32::System::Threading::{CreateWaitableTimerExW,
+                    SetWaitableTimer, WaitForSingleObject, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS};
+                // Ordinary Sleep(2) can round to 15.6 ms on Windows. A private
+                // high-resolution wait avoids limiting the display feed to 64 Hz
+                // without changing the system-wide timer resolution.
+                let timer = unsafe { CreateWaitableTimerExW(std::ptr::null(), std::ptr::null(),
+                    CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS) };
+                loop {
+                    // Display transport never runs on the input/haptics thread.
+                    publish_accessibility_frame(&app);
+                    let due = -20_000i64;
+                    if !timer.is_null() && unsafe { SetWaitableTimer(timer, &due, 0, None, std::ptr::null(), 0) } != 0 {
+                        unsafe { WaitForSingleObject(timer, 20); }
+                    } else {
+                        std::thread::sleep(Duration::from_millis(2));
+                    }
+                }
+            });
+        }
+    }
     Ok(())
 }
 fn capture_profile()->String {
@@ -196,7 +224,7 @@ pub fn request_toggle(owner:i64) {
 }
 pub fn take_toggle()->bool { TOGGLE.swap(false,Ordering::Relaxed) }
 pub fn ensure(app:&AppHandle)->Result<tauri::WebviewWindow,String> {
-    if let Some(w)=app.get_webview_window(LABEL) { return Ok(w); }
+    if let Some(w)=app.get_webview_window(LABEL) { ensure_accessibility_helper(&w); return Ok(w); }
     let w=WebviewWindowBuilder::new(app,LABEL,WebviewUrl::App("keyboard.html".into()))
         .title("JSM Evolved Keyboard").transparent(true).decorations(false).always_on_top(true)
         .skip_taskbar(true).resizable(false).shadow(false).focused(false).visible(false)
@@ -210,7 +238,111 @@ pub fn ensure(app:&AppHandle)->Result<tauri::WebviewWindow,String> {
         let style=GetWindowLongPtrW(h,GWL_EXSTYLE);
         SetWindowLongPtrW(h,GWL_EXSTYLE,style | WS_EX_NOACTIVATE as isize);
     }
+    ensure_accessibility_helper(&w);
     Ok(w)
+}
+
+// Only the small display helper has UIAccess. The mapper, input injection and
+// WebView remain in Studio. A missing helper retains the ordinary keyboard.
+// Retry when opening after an installation/crash; never spawn on every packet.
+#[cfg(target_os = "windows")]
+fn accessibility_session_tag() -> Option<u64> {
+    static TAG: OnceLock<Option<u64>> = OnceLock::new();
+    *TAG.get_or_init(|| {
+        let mut bytes = [0u8; 8];
+        getrandom::getrandom(&mut bytes).ok()?;
+        let tag = u64::from_ne_bytes(bytes);
+        (tag != 0).then_some(tag)
+    })
+}
+
+fn ensure_accessibility_helper(window: &tauri::WebviewWindow) {
+    #[cfg(target_os = "windows")]
+    {
+        use windows_sys::Win32::{Foundation::{CloseHandle, WAIT_TIMEOUT},
+            System::Threading::WaitForSingleObject,
+            UI::{Shell::{ShellExecuteExW, SHELLEXECUTEINFOW, SEE_MASK_NOCLOSEPROCESS, SEE_MASK_FLAG_NO_UI},
+                WindowsAndMessaging::SW_SHOWNOACTIVATE}};
+        struct Process(usize);
+        impl Drop for Process { fn drop(&mut self) { unsafe { CloseHandle(self.0 as _); } } }
+        static CHILD: Mutex<Option<Process>> = Mutex::new(None);
+        let Ok(mut child) = CHILD.lock() else { return; };
+        if child.as_ref().is_some_and(|process| unsafe { WaitForSingleObject(process.0 as _, 0) == WAIT_TIMEOUT }) { return; }
+        *child = None;
+        // Use the protected machine location, never a PATH lookup, resource
+        // directory, current directory or an executable next to user profiles.
+        let Some(program_files) = std::env::var_os("ProgramW6432").or_else(|| std::env::var_os("ProgramFiles")) else { return; };
+        let path = std::path::PathBuf::from(program_files)
+            .join("JSM Evolved/Accessibility/jsm-keyboard-accessibility.exe");
+        if !path.is_file() { return; }
+        let Ok(hwnd) = window.hwnd() else { return; };
+        let wide = |s: &std::ffi::OsStr| s.to_string_lossy().encode_utf16().chain(Some(0)).collect::<Vec<_>>();
+        let file = wide(path.as_os_str());
+        let directory = wide(path.parent().unwrap().as_os_str());
+        let Some(tag) = accessibility_session_tag() else { return; };
+        let argument = wide(std::ffi::OsStr::new(&format!("{} {tag}", hwnd.0 as usize)));
+        let mut info: SHELLEXECUTEINFOW = unsafe { std::mem::zeroed() };
+        info.cbSize = std::mem::size_of::<SHELLEXECUTEINFOW>() as u32;
+        info.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_FLAG_NO_UI;
+        info.lpFile = file.as_ptr();
+        info.lpParameters = argument.as_ptr();
+        info.lpDirectory = directory.as_ptr();
+        info.nShow = SW_SHOWNOACTIVATE;
+        // The shell performs the signed UIAccess launch. CreateProcess alone
+        // cannot acquire UIAccess for this executable.
+        if unsafe { ShellExecuteExW(&mut info) } != 0 && !info.hProcess.is_null() {
+            *child = Some(Process(info.hProcess as usize));
+        } else {
+            eprintln!("Could not start keyboard accessibility display: {}", std::io::Error::last_os_error());
+        }
+    }
+    #[cfg(not(target_os = "windows"))]
+    let _ = window;
+}
+
+fn publish_accessibility_frame(app: &AppHandle) {
+    #[cfg(target_os = "windows")]
+    {
+        use windows_sys::Win32::{System::DataExchange::COPYDATASTRUCT,
+            UI::WindowsAndMessaging::{FindWindowW, SendMessageTimeoutW,
+            WM_COPYDATA, SMTO_ABORTIFHUNG, SMTO_BLOCK}};
+        static LAST: Mutex<Option<Instant>> = Mutex::new(None);
+        let note_active = |active| {
+            if ACCESSIBILITY_ACTIVE.swap(active, Ordering::Relaxed) != active {
+                let _ = app.emit_to(LABEL, "keyboard-accessibility-active", active);
+            }
+        };
+        if !requested() { return; }
+        let Ok(mut last) = LAST.try_lock() else { return; };
+        if last.is_some_and(|time| time.elapsed() < Duration::from_millis(2)) { return; }
+        *last = Some(Instant::now());
+        let Some(window) = app.get_webview_window(LABEL) else { return; };
+        let Ok(hwnd) = window.hwnd() else { return; };
+        let title: Vec<u16> = format!("JSM Evolved Accessible Keyboard {}\0", hwnd.0 as usize).encode_utf16().collect();
+        let class: Vec<u16> = "JSMKeyboardAccessibility\0".encode_utf16().collect();
+        let helper = unsafe { FindWindowW(class.as_ptr(), title.as_ptr()) };
+        if helper.is_null() { note_active(false); return; }
+        static APPEARANCE: Mutex<Option<(Instant, std::collections::BTreeMap<String, String>)>> = Mutex::new(None);
+        let Ok(mut cached) = APPEARANCE.lock() else { return; };
+        if cached.as_ref().is_none_or(|(time, _)| time.elapsed() >= Duration::from_secs(1)) {
+            *cached = Some((Instant::now(), crate::services::appearance::load_appearance_preferences(app.clone(), Default::default()).unwrap_or_default()));
+        }
+        let appearance = &cached.as_ref().unwrap().1;
+        let theme = appearance.get("jsm-theme").map(String::as_str).unwrap_or("dark");
+        let payload = serde_json::json!({"frame":frame(), "theme":theme,
+            "accent":appearance.get("jsm-accent").map(String::as_str).unwrap_or("cyan")});
+        let data: Vec<u16> = payload.to_string().encode_utf16().chain(Some(0)).collect();
+        let Some(tag) = accessibility_session_tag() else { return; };
+        let copy = COPYDATASTRUCT { dwData: tag as usize, cbData: (data.len() * 2) as u32, lpData: data.as_ptr() as _ };
+        let mut result = 0;
+        // Bounded synchronous copy: no dangling pointers and no unbounded wait
+        // on a stalled display process. The helper can only render this state.
+        let delivered = unsafe { SendMessageTimeoutW(helper, WM_COPYDATA, hwnd.0 as usize, &copy as *const _ as isize,
+            SMTO_ABORTIFHUNG | SMTO_BLOCK, 5, &mut result) };
+        note_active(delivered != 0 && result != 0);
+    }
+    #[cfg(not(target_os = "windows"))]
+    let _ = app;
 }
 pub fn set_open(app:&AppHandle,open:bool)->Result<(),String> {
     let w=ensure(app)?;
@@ -238,6 +370,7 @@ pub fn set_open(app:&AppHandle,open:bool)->Result<(),String> {
         if !open { e.owner=None; }
     }
     REQUESTED.store(open,Ordering::Relaxed);
+    if open { crate::services::global_chords::consume_until_release(); }
     let _=app.emit("virtual-keyboard-open",open);
     if !open { let _=w.hide(); }
     if let Some(overlay)=app.get_webview_window(crate::services::overlay::OVERLAY_LABEL) {
@@ -771,6 +904,10 @@ fn transform_window(app:&AppHandle,change:(f64,f64,f64,bool)) {
     let _=w.set_size(tauri::PhysicalSize::new(width,height));let _=w.set_position(tauri::PhysicalPosition::new(x,y));
 }
 
+#[cfg(target_os="windows")]
+#[path = "virtual_hid.rs"]
+mod virtual_hid;
+
 fn send(key:&str)->Result<(),String> {
     #[cfg(target_os="windows")]
     {
@@ -778,6 +915,7 @@ fn send(key:&str)->Result<(),String> {
         let vk=match key {"⌫"=>Some(VK_BACK),"↵"=>Some(VK_RETURN),"Tab"=>Some(VK_TAB),"←"=>Some(VK_LEFT),"→"=>Some(VK_RIGHT),_=>None};
         let text=if key=="Space" {" "} else {key};
         let units:Vec<u16>=if let Some(vk)=vk {vec![vk]} else {text.encode_utf16().collect()};
+        if let Some(result) = virtual_hid::send(vk, &units) { return result; }
         let mut inputs=Vec::with_capacity(units.len()*2);
         for unit in units {
             for up in [false,true] {
@@ -800,6 +938,8 @@ pub fn keyboard_preferences()->Preferences {preferences()}
 pub fn keyboard_save_preferences(app:AppHandle,preferences:Preferences)->Result<Preferences,String> {save_preferences(&app,preferences)}
 #[tauri::command]
 pub fn keyboard_state()->Frame {frame()}
+#[tauri::command]
+pub fn keyboard_accessibility_active()->bool { ACCESSIBILITY_ACTIVE.load(Ordering::Relaxed) }
 #[tauri::command]
 pub fn keyboard_set_open(app:AppHandle,open:bool)->Result<(),String> {
     let state=app.state::<AppState>();
@@ -1131,6 +1271,23 @@ mod input_tests {
         step(&mut e,&device(0),true,false);
         assert_eq!(step(&mut e,&device(1<<28),true,false),vec!["j"]);
         assert!(step(&mut e,&device(1<<28),true,false).is_empty(),"a held click types once");
+    }
+    #[test] fn keyboard_shows_while_quick_access_is_still_held_without_typing_the_opener() {
+        let mut e=open("split");
+        let held_quick=1u64<<27;
+        let opener=device(held_quick | (1<<14));
+        let (show, output)=advance(&mut e,&opener,false,false,true);
+        assert!(!show);
+        assert!(output.is_empty());
+        // Opening consumes the global chord and capture is acknowledged even
+        // though its physical Quick Access and X buttons have not been let go.
+        let (show, output)=advance(&mut e,&opener,true,false,false);
+        assert!(show, "capture must show the keyboard before Quick Access release");
+        assert!(e.frame.ready);
+        assert!(!e.armed, "the opening X must not type");
+        assert!(output.is_empty());
+        assert!(step(&mut e,&device(held_quick),true,false).is_empty());
+        assert!(e.armed, "Quick Access alone must not block keyboard readiness");
     }
     #[test] fn light_pressure_types_once_until_release_and_physical_click_does_not_double_type() {
         let mut e=open("split");

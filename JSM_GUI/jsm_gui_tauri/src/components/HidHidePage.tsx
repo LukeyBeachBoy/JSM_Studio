@@ -34,12 +34,13 @@ const telemetryKey = (device: Pick<TelemetryDevice, 'vid' | 'pid'>) => device.vi
 const hidHideKey = (device: Pick<HidHideDevice, 'vendorId' | 'productId'>) => device.vendorId && device.productId ? `${device.vendorId}:${device.productId}` : null
 
 type HidHidePageProps = {
+  onOpenStartup?: () => void
   telemetryDevices?: TelemetryDevice[]
   /** The live configuration's virtual output; read from it when not given. */
   virtualOutput?: VirtualControllerType
 }
 
-export function HidHidePage({ telemetryDevices, virtualOutput }: HidHidePageProps) {
+export function HidHidePage({ telemetryDevices, virtualOutput, onOpenStartup }: HidHidePageProps) {
   const [status, setStatus] = useState<HidHideStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [busyKey, setBusyKey] = useState<string | null>(null)
@@ -149,7 +150,8 @@ export function HidHidePage({ telemetryDevices, virtualOutput }: HidHidePageProp
           </SettingsSection>
         ) : (
           <SettingsSection title="Open as administrator" note="HidHide only answers an app running as administrator">
-            <SettingsNote>Close JSM Evolved from the tray, open it again with “Run as administrator”, then check again. Starting with Windows from Settings ▸ Startup does this for you.</SettingsNote>
+            <SettingsNote>Normal mapping can continue. To change HidHide settings, save your configuration and use Restart as administrator in Settings → Startup. Starting with Windows uses normal access.</SettingsNote>
+            {onOpenStartup && <OpenRow label="Open administrator settings" hint="Settings → Startup" onOpen={onOpenStartup} />}
             <OpenRow label="Check again" hint="After reopening as administrator" onOpen={() => void refresh()} hints="A:Check again;B:Home" />
           </SettingsSection>
         )}

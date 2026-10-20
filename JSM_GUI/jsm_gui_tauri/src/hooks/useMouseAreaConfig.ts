@@ -36,11 +36,13 @@ export type MouseAreaSettings = {
 type Args = {
   readText: string
   setConfigText?: React.Dispatch<React.SetStateAction<string>>
+  /** Route picker results to this editor, even while the base editor is mounted. */
+  settingPrefix?: string
 }
 
 const keyFor = (name: 'TOUCHPAD_AREA' | 'TOUCHPAD_AREA_FIT', scope: MouseAreaScope) => (scope ? `${scope}_${name}` : name)
 
-export function useMouseAreaConfig({ readText, setConfigText }: Args): Record<MouseAreaScope, MouseAreaSettings> {
+export function useMouseAreaConfig({ readText, setConfigText, settingPrefix = '' }: Args): Record<MouseAreaScope, MouseAreaSettings> {
   const write = useCallback((key: string, value: string | null) => {
     setConfigText?.(previous => (value ? updateKeymapEntry(previous, key, [value]) : removeKeymapEntry(previous, key)))
   }, [setConfigText])
@@ -48,10 +50,10 @@ export function useMouseAreaConfig({ readText, setConfigText }: Args): Record<Mo
   // The picker's result names the pad it was opened for, so one listener
   // serves every scope and a result cannot land on the wrong pad.
   useEffect(() => desktopBridge.onMouseAreaPicked(result => {
-    if (!result.area) return
-    const scope = (result.pad === 'LEFT' || result.pad === 'RIGHT' ? result.pad : '') as MouseAreaScope
+    const scope = (['', 'LEFT', 'RIGHT'] as const).find(scope => result.pad === settingPrefix + scope)
+    if (!result.area || scope === undefined) return
     write(keyFor('TOUCHPAD_AREA', scope), formatMouseArea(result.area))
-  }), [write])
+  }), [write, settingPrefix])
 
   return useMemo(() => {
     const scopeSettings = (scope: MouseAreaScope): MouseAreaSettings => {
@@ -62,12 +64,12 @@ export function useMouseAreaConfig({ readText, setConfigText }: Args): Record<Mo
         fit: normalizeMouseAreaFit(fitRaw),
         fitSet: Boolean(fitRaw?.trim()),
         setArea: next => write(keyFor('TOUCHPAD_AREA', scope), next ? formatMouseArea(next) : null),
-        // STRETCH is the mapper's default, so choosing it removes the line
-        // rather than writing the default out.
-        setFit: next => write(keyFor('TOUCHPAD_AREA_FIT', scope), normalizeMouseAreaFit(next) === 'UNIFORM' ? 'UNIFORM' : null),
+        // Write both choices explicitly: deleting STRETCH would fall back to
+        // an imported or unshifted UNIFORM setting instead of the chosen fit.
+        setFit: next => write(keyFor('TOUCHPAD_AREA_FIT', scope), normalizeMouseAreaFit(next)),
         pick: padAspect => {
           void desktopBridge.openMouseAreaPicker({
-            pad: scope,
+            pad: settingPrefix + scope,
             area: area ?? DEFAULT_MOUSE_AREA,
             fit: normalizeMouseAreaFit(fitRaw),
             padAspect,
@@ -76,5 +78,5 @@ export function useMouseAreaConfig({ readText, setConfigText }: Args): Record<Mo
       }
     }
     return { '': scopeSettings(''), LEFT: scopeSettings('LEFT'), RIGHT: scopeSettings('RIGHT') }
-  }, [readText, write])
+  }, [readText, write, settingPrefix])
 }

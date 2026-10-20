@@ -10,3 +10,14 @@ if ((Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash -ne $expectedH
     throw 'ViGEmBus installer checksum mismatch. Refusing to bundle it.'
 }
 Write-Output 'Verified ViGEmBus 1.22.0 installer.'
+
+$hidDir = Join-Path $PSScriptRoot '../src-tauri/third_party/FakerInput'
+$hidInstaller = Join-Path $hidDir 'FakerInput_Setup_0.1.1_x64.msi'
+New-Item -ItemType Directory -Path $hidDir -Force | Out-Null
+if (-not (Test-Path -LiteralPath $hidInstaller)) {
+    Invoke-WebRequest 'https://github.com/Ryochan7/FakerInput/releases/download/v0.1.1/FakerInput_Setup_0.1.1_x64.msi' -OutFile $hidInstaller
+}
+if ((Get-FileHash -LiteralPath $hidInstaller -Algorithm SHA256).Hash -ne '4C0AEFB7340051A91D606776243298B5CD1143EF5508BBAE6800C474F9ED0840') {
+    throw 'FakerInput installer checksum mismatch. Refusing to bundle it.'
+}
+Write-Output 'Verified FakerInput 0.1.1 virtual keyboard/mouse installer.'

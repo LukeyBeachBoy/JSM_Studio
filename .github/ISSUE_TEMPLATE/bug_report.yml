@@ -1,0 +1,41 @@
+name: Bug report
+description: Something did not behave as expected.
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping test JSM Evolved. Review logs before sharing: remove API keys, sign-in details and personal paths.
+        Say whether you used a release installer or built the source. The old v0.7.22 release differs from current development.
+  - type: input
+    id: version
+    attributes:
+      label: App version and source
+      placeholder: "e.g. 0.7.xxx Windows installer, or source commit"
+    validations:
+      required: true
+  - type: input
+    id: setup
+    attributes:
+      label: Windows version, controller and connection
+      placeholder: "e.g. Windows 11, DualSense, USB"
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Mapping and permissions
+      description: Keyboard/mouse or virtual gamepad? Normal or administrator access? Steam Input or another mapper running? Which optional drivers are installed?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps, expected result and actual result
+      description: Include the game/application and the smallest configuration that reproduces the issue.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshots or reviewed logs
+      description: Optional. Do not include credentials or Windows sign-in recordings.

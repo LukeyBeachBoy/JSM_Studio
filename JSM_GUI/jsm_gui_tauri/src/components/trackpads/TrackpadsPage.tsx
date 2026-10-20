@@ -14,7 +14,7 @@ import { ModeCards, OpenRow, SegmentedRow, SubPage, SwitchRow, ValueRow } from '
 import { describeMenuPlacement } from '../../utils/menuDescriptions'
 import { MOUSE_AREA_FIT_OPTIONS, describeMouseArea, mapTouchToArea } from '../../utils/mouseArea'
 import { modeshiftTriggers } from '../../utils/modeshift'
-import { InputSideProxies, MoreMenu, readNumber, readWord, useFocusCurrentCard, useInheritedKeys, usePadButton, WhileHoldingPage, writeKeys, type SetText } from '../sticks/shared'
+import { InputSideProxies, ModeShiftRow, MoreMenu, readNumber, readWord, useFocusCurrentCard, useInheritedKeys, usePadButton, WhileHoldingPage, writeKeys, type SetText, type ModeshiftEditing } from '../sticks/shared'
 import { takeFineTuneRequest, useFineTuneRequestVersion, useInputSide, setInputSide } from '../sticks/inputSide'
 import { PAD_CARDS, PAD_CARD_NAMES, PadCardArt, SHAPE_NAMES, padCardOf, padCardWrites, padKey, padPrefix, type PadCard, type PadSide } from './padModes'
 import { TrackpadFineTune } from './TrackpadFineTune'
@@ -49,6 +49,8 @@ export type PadConfig = {
 }
 
 export type TrackpadsPageProps = {
+  modeShift?: ModeshiftEditing
+  dualPadController?: boolean
   readText: string
   setText?: SetText
   disabled?: boolean
@@ -139,9 +141,9 @@ export function TrackpadsPage(props: TrackpadsPageProps) {
   const options = PAD_CARDS.map(value => ({
     value, label: PAD_CARD_NAMES[value].label, art: <PadCardArt card={value} />,
     caption: value === 'ZONES' && card === 'ZONES' ? `${SHAPE_NAMES[shape] ?? shape} · ${regions.length} zone${regions.length === 1 ? '' : 's'}`
-      : value === 'PS_TOUCHPAD' && twoPads ? 'Needs a one-pad controller' : PAD_CARD_NAMES[value].caption,
-    unavailable: value === 'PS_TOUCHPAD' && twoPads ? 'PlayStation touchpad passes one pad to a DS4 game; it isn’t available on a two-pad controller.' : undefined,
-    skipNavigation: value === 'PS_TOUCHPAD' && twoPads,
+      : value === 'PS_TOUCHPAD' && (twoPads || props.dualPadController) ? 'Needs a one-pad controller' : PAD_CARD_NAMES[value].caption,
+    unavailable: value === 'PS_TOUCHPAD' && (twoPads || props.dualPadController) ? 'PlayStation touchpad passes one pad to a DS4 game; it isn’t available on a two-pad controller.' : undefined,
+    skipNavigation: value === 'PS_TOUCHPAD' && (twoPads || props.dualPadController),
   }))
   usePadButton(root, 'Y', () => setMore(true))
   usePadButton(root, 'X', regions.length > 1 ? stepRegion : undefined)
@@ -152,6 +154,7 @@ export function TrackpadsPage(props: TrackpadsPageProps) {
   const fit = pad.card.mouseAreaFit ?? 'STRETCH'
   const areaCursor = card === 'MOUSE_AREA' && livePoint ? mapTouchToArea(toUnit(livePoint.x), toUnit(livePoint.y), area ?? { x: 0, y: 0, w: 1, h: 1 }, fit, props.padAspect, 16 / 9) : null
   const clickShift = pad.click ? modeshiftTriggers(readText, pad.modeshiftTarget).includes(pad.click.command) : false
+  const shifts = modeshiftTriggers(readText, pad.modeshiftTarget)
   // The live chip names the zone under the thumb (hit-tested), not the selected row.
   const hitZone = card === 'ZONES' && livePoint && pad.menu ? regions[hitIndex(pad.menu, livePoint)] ?? null : null
   const hitInfo = hitZone ? props.describe(hitZone.command) : null
@@ -176,13 +179,19 @@ export function TrackpadsPage(props: TrackpadsPageProps) {
     </>
   } else if (card === 'MOUSE_AREA') {
     rows = <>
-      <OpenRow label="Screen area" hint={`Where the pad lands on screen · ${describeMouseArea(area)}`} value="Draw" hints={`A:Draw on screen;${stepHints}`}
+      <section className={styles.areaGuide} aria-label="Mouse area setup">
+        <span className={styles.stepLabel}>1 · Choose where the cursor can go</span>
+        <h2>Draw your screen area</h2>
+        <p>Open the game or app you want to control, then draw a box around its map, hotbar or menu. The pad’s corners move the cursor to that box’s corners.</p>
+        <OpenRow label="Screen area" hint={area ? describeMouseArea(area) : 'No custom box yet · the pad currently covers the whole screen'} value="Draw on screen" hints={`A:Draw on screen;${stepHints}`}
         disabled={drawing ? 'Drawing on screen… Enter keeps it, Esc cancels, Tab moves to the next screen.' : undefined}
         data={{ 'data-setting': `${P}TOUCHPAD_AREA` }} onOpen={() => { if (!pad.card.onPickMouseArea) return; pad.card.onPickMouseArea(); setDrawing(true) }} />
-      <SegmentedRow label="Pad fit" hint="How a square pad lies over a wide box" setting={`${P}TOUCHPAD_AREA_FIT`} value={fit} extraHints={stepHints}
+        <small>Drag to draw · Enter keeps it · Esc cancels · Tab changes screen</small>
+      </section>
+      <SegmentedRow label="2 · Fit the pad to your box" hint="Stretch reaches every corner; keep pad shape avoids stretching movement in a wide box" setting={`${P}TOUCHPAD_AREA_FIT`} value={fit} extraHints={stepHints}
         options={MOUSE_AREA_FIT_OPTIONS.map(option => ({ value: option.value, label: option.value === 'STRETCH' ? 'Stretch to fill' : 'Keep pad shape' }))}
         onChange={value => pad.card.onMouseAreaFitChange?.(value)} />
-      {pad.click && <OpenRow label="Click zones" hint={clickShift ? 'Zones while the pad is pressed in' : 'Press the pad in to use zones instead'} value={clickShift ? 'Set' : 'None'} hints={`A:Open;${stepHints}`} onOpen={() => setHolding(true)} />}
+      {!props.modeShift && pad.click && <OpenRow label="Click zones" hint={clickShift ? 'Zones while the pad is pressed in' : 'Press the pad in to use zones instead'} value={clickShift ? 'Set' : 'None'} hints={`A:Open;${stepHints}`} onOpen={() => setHolding(true)} />}
       {touchClickRows}
     </>
   } else if (card === 'MOUSE') {
@@ -190,7 +199,7 @@ export function TrackpadsPage(props: TrackpadsPageProps) {
       <ValueRow hero label="Sensitivity" setting={`${P}TOUCHPAD_SENS`} value={readNumber(readText, `${P}TOUCHPAD_SENS`, 1)} min={0} max={10} step={0.05} fineStep={0.01} format={value => `${value.toFixed(2)}×`}
         caption="How far the cursor goes for a swipe across the pad." extraHints={stepHints}
         onChange={value => { const y = readNumber(readText, `${P}TOUCHPAD_SENS`, NaN, 1); writeKeys(setText, { [`${P}TOUCHPAD_SENS`]: Number.isFinite(y) && y !== value ? `${value} ${y}` : value }) }} />
-      {pad.click && <OpenRow label="Click zones" hint={clickShift ? 'Zones while the pad is pressed in' : 'Press the pad in to use zones instead'} value={clickShift ? 'Set' : 'None'} hints={`A:Open;${stepHints}`} onOpen={() => setHolding(true)} />}
+      {!props.modeShift && pad.click && <OpenRow label="Click zones" hint={clickShift ? 'Zones while the pad is pressed in' : 'Press the pad in to use zones instead'} value={clickShift ? 'Set' : 'None'} hints={`A:Open;${stepHints}`} onOpen={() => setHolding(true)} />}
       {touchClickRows}
     </>
   } else if (card === 'TOUCH_STICK') {
@@ -216,8 +225,9 @@ export function TrackpadsPage(props: TrackpadsPageProps) {
       {props.warnings.length > 0 && <div className={p4.notice} data-tone="warn" role="status"><span>{props.warnings.join(' ')}</span></div>}
       <header className={p4.frontHeading}>
         <h1>{name} is for…</h1>
+        {props.modeShift && <span className={styles.shiftContext}>{props.modeShift.label} · These controls apply only during this mode shift</span>}
         <SettingOrigin setting={`${P}TOUCHPAD_MODE`} />
-        <span>Changes apply live.</span>
+        <span>{props.modeShift ? 'The normal pad is unchanged.' : 'Changes apply live.'}</span>
       </header>
       <ModeCards columns={6} value={card} onChange={choose} options={options} hints={stepHints} className={styles.cards} />
       <div className={p4.frontLower} data-pad="true">
@@ -233,6 +243,7 @@ export function TrackpadsPage(props: TrackpadsPageProps) {
         <div className={p4.frontRows}>
           {card === 'ZONES' && <p className={styles.zoneExplanation}>Zones belong to this trackpad and fire its bindings when touched or clicked. Their overlay mirrors the pad. Reusable menus opened by buttons live on the Virtual menus page.</p>}
           {rows}
+          {!props.modeShift && <ModeShiftRow count={shifts.length} onOpen={() => setHolding(true)} />}
           <OpenRow label="Fine-tune" hint={card === 'ZONES' ? 'Zone shape, centre dead zone, touch and click, touch stick, feel' : card === 'MOUSE_AREA' ? 'Touch and click, click damping, lift-off, feel' : card === 'MOUSE' ? 'Speed and curve, glide, click, feel' : 'Touch and click, touch stick, feel'}
             value="Open" hints={`A:Open;${stepHints}`} data={{ 'data-trackpad-fine-tune': side }} onOpen={() => setFineTune(card === 'MOUSE' ? 'speed' : card === 'MOUSE_AREA' ? 'area' : card === 'TOUCH_STICK' ? 'zones:stick' : 'zones')} />
         </div>
@@ -240,7 +251,7 @@ export function TrackpadsPage(props: TrackpadsPageProps) {
 
       <MoreMenu open={more} onClose={() => setMore(false)} eyebrow={`Trackpads · ${name}`} title="More"
         items={[
-          { id: 'holding', label: 'Mode shift', hint: 'Hold another button to change this pad (click zones too)', onSelect: () => setHolding(true) },
+          ...(!props.modeShift ? [{ id: 'holding', label: 'Mode shift', hint: 'Hold another button to change this pad (click zones too)', onSelect: () => setHolding(true) }] : []),
           ...(pad.touch ? [{ id: 'touch', label: 'Touch', hint: 'Your thumb on the pad', value: props.describe(pad.touch.command).binding || 'Unbound', onSelect: () => setFineTune('more') }] : []),
           ...(pad.click ? [{ id: 'click', label: 'Click', hint: 'Pressing the pad in', value: props.describe(pad.click.command).binding || 'Unbound', onSelect: () => setFineTune('more') }] : []),
           { id: 'directions', label: 'Touch-stick directions', hint: 'Up, down, left, right and ring, shared by every touch stick', onSelect: () => setDirections(true) },

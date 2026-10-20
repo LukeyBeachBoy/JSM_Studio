@@ -136,12 +136,14 @@ export function useProfileLibrary({ resetConfigHistory, configText, setConfigTex
       setRuntimeConfig(text)
       setAppliedProfileName(profileName)
       if (!options?.quiet) report(t('messages.profileApplied', { profileName: profileName ?? t('app.profileSummary.unsavedProfile') }))
+      return true
     } catch (error) {
       // The backend's own message named the failing path; swallowing it left
       // "Failed to apply keymap." as the only clue that Apply was rejecting
       // every write outright.
       const reason = error instanceof Error ? error.message : String(error ?? '')
       report(reason ? `${t('messages.applyKeymapFailed')} ${reason}` : t('messages.applyKeymapFailed'), true)
+      return false
     }
   }
   // With a draft from the New configuration dialog (TODO-46): the name is the

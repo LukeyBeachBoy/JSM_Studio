@@ -1,0 +1,19 @@
+name: Feature or compatibility request
+description: Explain a controller workflow you cannot currently achieve.
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: What are you trying to do?
+      description: Describe the controller, game and desired behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: What happens today?
+      description: Include your version and any workaround or equivalent feature in another mapper.
+  - type: textarea
+    id: success
+    attributes:
+      label: What would a good result look like?

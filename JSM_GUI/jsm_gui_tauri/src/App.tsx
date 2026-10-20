@@ -11,9 +11,9 @@ import { TimingPage } from './components/TimingPage'
 import { ControllerSettings } from './components/settings/ControllerSettings'
 import { StartupPage } from './components/settings/StartupPage'
 import { BuiltinConfigurationDialog, BUILTIN_CHORD_NAME } from './components/BuiltinConfigurationDialog'
-import { FirmwareSoundPrompt } from './components/FirmwareSoundPrompt'
+import { PermissionIntroduction } from './components/settings/PermissionSettings'
 import { flushSync } from 'react-dom'
-import { appliedProfileLabel, isStudioNavigationProfile } from './utils/appliedProfile'
+import { activeControllerProfilePath, appliedProfileLabel, isStudioNavigationProfile } from './utils/appliedProfile'
 import { ConfigScope } from './components/ConfigScope'
 import { GYRO_TUNING_KEYS } from './utils/gyroSettingsScope'
 import { gyroRouteForKey, requestGyroRoute } from './utils/gyroRoutes'
@@ -50,7 +50,7 @@ import { ToastHost } from './components/ToastHost'
 import { LongOperationHost } from './components/LongOperation'
 import { FocusGlide } from './components/FocusGlide'
 import { desktopBridge } from './platform/desktopBridge'
-import { usePreferences, primePreferences } from './platform/preferenceStore'
+import { primePreferences } from './platform/preferenceStore'
 import { getKeymapValue, removeKeymapEntry, updateKeymapEntry } from './utils/keymap'
 import { parseBindingLabels, setBindingLabel } from './utils/bindingLabels'
 import { parseBindingIcons, setBindingIcon } from './utils/bindingIcons'
@@ -229,10 +229,7 @@ const LazyPanelFallback = ({ title, compact = false }: LazyPanelFallbackProps) =
 )
 
 
-// Registers a Windows Scheduled Task rather than a Registry Run entry -- see
-// desktopBridge.getAutostartEnabled/setAutostartEnabled and
-// src-tauri/src/services/autostart.rs for why that's the version that
-// actually launches without a UAC prompt at every logon.
+// Windows startup uses a per-user Run entry with normal access.
 
 // Read the Preferences page's values as soon as the app loads, so the page
 // mounts with them rather than asking (and visibly changing) on every visit.
@@ -260,13 +257,6 @@ function App() {
     devices.sort((a, b) => Number(controllerModelKey(b) === editingControllerModel) - Number(controllerModelKey(a) === editingControllerModel))
     return { ...rawSample, devices }
   }, [rawSample, editingControllerModel])
-  const { runtime: runtimePreferences } = usePreferences()
-  const [firmwarePromptVisible, setFirmwarePromptVisible] = useState(false)
-  useEffect(() => {
-    if (runtimePreferences?.firmwareSoundPromptDone) { setFirmwarePromptVisible(false); return }
-    if (!sample?.devices?.some(device => controllerVisualFamily(device.type) === 'steam')) return
-    if (!document.querySelector('[role="dialog"], [role="alertdialog"]')) setFirmwarePromptVisible(true)
-  }, [runtimePreferences?.firmwareSoundPromptDone, sample?.devices])
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
   const [recalibrating, setRecalibrating] = useState(false)
   const [isProfileModalOpen, setProfileModalOpen] = useState(false)
@@ -540,7 +530,6 @@ function App() {
     return () => observer.disconnect()
   }, [inputRequest])
 
-  const [showHidHideElevationModal, setShowHidHideElevationModal] = useState(false)
   const configWindowRef = useRef<HTMLDivElement | null>(null)
   const [sourceFocusLine, setSourceFocusLine] = useState<{ line: number; nonce: number } | null>(null)
   const configWindowDragRef = useRef<{ pointerId: number; offsetX: number; offsetY: number } | null>(null)
@@ -1071,7 +1060,7 @@ function App() {
       // Save-and-make-live is one action, so it says one true sentence rather
       // than "saved, not live yet" followed by "is live" (UX review, S9).
       if (action !== 'apply' && !await saveConfig({ ...options, quiet: action === 'both' })) return
-      if (action !== 'save') await applyConfig({ ...options, quiet: action === 'both' })
+      if (action !== 'save' && !await applyConfig({ ...options, quiet: action === 'both' })) return
       if (action === 'both') showToast(`Saved ${currentLibraryProfile ?? 'configuration'} · live now`)
     } finally { actionInFlight.current = false; setEditorBusy(false) }
   }
@@ -1163,21 +1152,6 @@ function App() {
       setControllerNavEnabled(state.controllerNavEnabled)
       }).catch(error => {
       console.error('Failed to load runtime mapping state', error)
-    })
-    return () => {
-      disposed = true
-    }
-  }, [])
-
-  useEffect(() => {
-    let disposed = false
-    void desktopBridge.getHidHideStatus().then(status => {
-      if (disposed) return
-      if (status.requiresElevation) {
-        setShowHidHideElevationModal(true)
-      }
-    }).catch(error => {
-      console.error('Failed to probe HidHide status', error)
     })
     return () => {
       disposed = true
@@ -1305,13 +1279,25 @@ function App() {
   // ---- Shell context: what the title bar, tabs and capsule describe.
   const device = sample?.devices?.[0]
   const controllerFamily = controllerVisualFamily(device?.type)
-  const appliedName = mappingEnabled ? appliedProfileLabel(sample?.activeProfile, appliedProfileName)?.replace(/.txt$/i, '') ?? null : null
+  const liveProfilePath = activeControllerProfilePath(sample)
+  const appliedName = mappingEnabled ? appliedProfileLabel(liveProfilePath, appliedProfileName)?.replace(/\.txt$/i, '') ?? null : null
   // What games get. While Studio is in front the mapper runs AppNavigation,
   // which is Studio's own and never shown; the configuration behind it is the
   // one that counts as running.
-  const runningProfilePath = isStudioNavigationProfile(sample?.activeProfile)
+  const runningProfilePath = isStudioNavigationProfile(liveProfilePath)
     ? (appliedProfileName ? `profiles-library/${appliedProfileName.replace(/\.txt$/i, '')}.txt` : '')
-    : typeof sample?.activeProfile === 'string' ? sample.activeProfile : ''
+    : liveProfilePath
+  const [controllerRuntimeConfig, setControllerRuntimeConfig] = useState<{ path: string; text: string } | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    setControllerRuntimeConfig(null)
+    if (runningProfilePath && appliedName !== appliedProfileName) {
+      void desktopBridge.readConfigFile(runningProfilePath).then(text => {
+        if (!cancelled && text != null) setControllerRuntimeConfig({ path: runningProfilePath, text })
+      }).catch(() => {})
+    }
+    return () => { cancelled = true }
+  }, [runningProfilePath, appliedName, appliedProfileName])
   // What this configuration's imports alone produce, and which import each
   // value came from: the value an override replaces, and whose it was.
   const importedBase = useMemo(() => {
@@ -1410,7 +1396,7 @@ function App() {
       ? 'off'
       : testing
         ? 'testing'
-        : autoloadEnabled && controllerNavEnabled ? 'studio' : 'on'
+        : autoloadEnabled && controllerNavEnabled && isStudioNavigationProfile(liveProfilePath) ? 'studio' : 'on'
   // ---- Test mode: the configuration runs inside Studio until View + Menu is
   // held, Esc is pressed, or Return to Studio is clicked. Starting it applies
   // the configuration being edited, which is what "Testing <name>" promises.
@@ -1599,7 +1585,7 @@ function App() {
       }
     : { kind: 'searching' }
   const editApplied = () => {
-    const name = appliedProfileLabel(sample?.activeProfile, appliedProfileName)
+    const name = appliedProfileLabel(liveProfilePath, appliedProfileName)
     if (name) requestLoadProfile(name.replace(/.txt$/i, ''))
     else showToast('The applied profile source is unavailable.', 'error')
   }
@@ -1613,8 +1599,10 @@ function App() {
   // edit that was never applied reads "Apply Wardogs".
   const changeCount = useMemo(() => hasPendingChanges ? Math.max(1, countChanges(appliedConfig, documentText)) : 0, [hasPendingChanges, appliedConfig, documentText])
   const asWritten = useCallback((text: string) => serializeConfig(parseConfigText(ensureHeaderLines(text))), [])
-  const editingIsRunning = useMemo(() => Boolean(currentLibraryProfile) && currentLibraryProfile === appliedProfileName && !!runtimeConfig
-    && countChanges(asWritten(runtimeConfig), asWritten(documentText)) === 0, [currentLibraryProfile, appliedProfileName, runtimeConfig, documentText, asWritten])
+  const liveRuntimeConfig = appliedName === appliedProfileName ? runtimeConfig
+    : controllerRuntimeConfig?.path === runningProfilePath ? controllerRuntimeConfig.text : null
+  const editingIsRunning = useMemo(() => Boolean(currentLibraryProfile) && currentLibraryProfile === appliedName && !!liveRuntimeConfig
+    && countChanges(asWritten(liveRuntimeConfig), asWritten(documentText)) === 0, [currentLibraryProfile, appliedName, liveRuntimeConfig, documentText, asWritten])
   const stateButton: StateButton = testing
     ? { kind: 'testing' }
     : applyIdleReason
@@ -2017,7 +2005,7 @@ function App() {
     // Settings ▸ Controller and Settings ▸ Startup (console v2, V6): separate
     // categories now (components/settings).
     if (primaryTab === 'settings') return <ControllerSettings controllerType={sample?.devices?.[0]?.type} />
-    if (primaryTab === 'startup') return <StartupPage libraryProfiles={libraryProfiles.filter(name => !templateNames.has(name))} liveName={appliedName} />
+    if (primaryTab === 'startup') return <StartupPage libraryProfiles={libraryProfiles.filter(name => !templateNames.has(name))} liveName={appliedName} hasPendingChanges={hasPendingChanges} />
 
     if (primaryTab === 'gyro') {
       // The settings-page template (Gyro.dc.html): GyroPage draws the seven
@@ -2538,7 +2526,7 @@ function App() {
     }
 
     if (primaryTab === 'deviceVisibility') {
-      return <HidHidePage telemetryDevices={sample?.devices} virtualOutput={virtualControllerType} />
+      return <HidHidePage telemetryDevices={sample?.devices} virtualOutput={virtualControllerType} onOpenStartup={() => setPrimaryTab('startup')} />
     }
 
     if (primaryTab === 'debugConsole') {
@@ -2872,36 +2860,6 @@ function App() {
           </div>
         </div>
       )}
-      {showHidHideElevationModal && (
-        <div className="modal-overlay">
-          <div className="modal-card">
-            <div className="modal-header">
-              <h3>{t('controllerStatus.hidHideElevationTitle')}</h3>
-            </div>
-            <p className="modal-description">{t('controllerStatus.hidHideElevationStartupBody')}</p>
-            <div className="modal-actions">
-              <button
-                type="button"
-                className="primary-btn"
-                onClick={() => {
-                  setPrimaryTab('deviceVisibility')
-                  setShowHidHideElevationModal(false)
-                }}
-              >
-                {t('controllerStatus.hidHideOpenStatusPage')}
-              </button>
-              <button
-                type="button"
-                className="ghost-btn"
-                data-modal-close
-                onClick={() => setShowHidHideElevationModal(false)}
-              >
-                {t('common.close')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       {isProfileModalOpen && (
         <div className="modal-overlay">
           <div className="modal-card profile-modal">
@@ -3005,8 +2963,7 @@ function App() {
           />
         </Suspense>
       )}
-      {firmwarePromptVisible && runtimePreferences && !runtimePreferences.firmwareSoundPromptDone
-        && <FirmwareSoundPrompt onOpenPreferences={() => setPrimaryTab('settings')} />}
+      <PermissionIntroduction onOpenSettings={() => setPrimaryTab('startup')} />
       {/* The unsaved-changes guard (Components 13.13), laid out for the pad: a
           vertical stack of large choices, recommended first and destructive
           last. It is rendered last so it is the topmost overlay in DOM order,

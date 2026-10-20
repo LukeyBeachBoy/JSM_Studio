@@ -1,111 +1,66 @@
-// "Start with Windows" via a Scheduled Task rather than the usual Registry Run
-// key / tauri-plugin-autostart approach.
-//
-// This app's manifest (app.manifest.xml) sets requireAdministrator, which it
-// needs for HidHide and input injection. A Run-key entry launches the exe the
-// same way a double-click does, so Windows shows the interactive UAC consent
-// prompt every single logon -- exactly the friction the user wants gone, and
-// it would defeat the point of "launch at startup, controller instantly
-// usable" if a popup sat in front of it waiting to be clicked.
-//
-// Task Scheduler has a specific, documented exception to that: a task whose
-// principal RunLevel is HighestAvailable launches already elevated with NO
-// UAC prompt, because the consent was captured once, when the task was
-// registered, rather than at every launch. This is the standard mechanism
-// Windows itself provides for "elevated app, launch at logon, no popup" --
-// it is not a UAC bypass or a security downgrade, since creating such a task
-// still requires the creating process to already be elevated (true here: the
-// app is only ever running at all because the user already passed UAC once
-// to start it).
-use std::env;
-use std::os::windows::process::CommandExt;
-use std::process::Command;
+//! Startup belongs to the signed-in user and never grants administrator rights.
+//! Older versions created a highest-privilege task. Remove that task before
+//! enabling the Run entry; never leave two startup mechanisms active.
+use std::{env, os::windows::process::CommandExt, process::{Command, Output}};
 
-const TASK_NAME: &str = "JSM Evolved Autostart";
-// The name the task had before the rebrand; found and replaced at launch.
-const LEGACY_TASK_NAME: &str = "JSM Studio Autostart";
-// Suppresses the console window schtasks.exe would otherwise flash briefly.
-const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+const RUN_KEY: &str = r"HKCU\Software\Microsoft\Windows\CurrentVersion\Run";
+const VALUE_NAME: &str = "JSM Evolved";
+const OLD_TASKS: [&str; 2] = ["JSM Evolved Autostart", "JSM Studio Autostart"];
 
-fn run_schtasks(args: &[&str]) -> Result<std::process::Output, String> {
-    Command::new("schtasks.exe")
-        .args(args)
-        .creation_flags(CREATE_NO_WINDOW)
-        .output()
-        .map_err(|error| format!("Failed to run schtasks.exe: {error}"))
+fn run(program: &str, args: &[&str]) -> Result<Output, String> {
+    Command::new(program).args(args).creation_flags(0x0800_0000).output().map_err(|e| format!("Could not run {program}: {e}"))
+}
+
+fn task_exists(name: &str) -> bool {
+    run("schtasks.exe", &["/Query", "/TN", name]).map(|o| o.status.success()).unwrap_or(false)
+}
+
+pub fn has_legacy_task() -> bool { OLD_TASKS.iter().any(|name| task_exists(name)) }
+
+fn run_entry_exists() -> Result<bool, String> {
+    Ok(run("reg.exe", &["query", RUN_KEY, "/v", VALUE_NAME])?.status.success())
 }
 
 pub fn is_autostart_enabled() -> Result<bool, String> {
-    let output = run_schtasks(&["/Query", "/TN", TASK_NAME])?;
-    Ok(output.status.success())
+    Ok(run_entry_exists()? || has_legacy_task())
 }
 
-pub fn set_autostart_enabled(enabled: bool) -> Result<(), String> {
-    if enabled {
-        let exe_path = env::current_exe()
-            .map_err(|error| format!("Failed to resolve the running executable's path: {error}"))?;
-        let exe_path = exe_path
-            .to_str()
-            .ok_or_else(|| "The executable path contains characters schtasks can't accept.".to_string())?;
-        // --autostart tells lib.rs's setup() to leave the window hidden (it
-        // starts hidden either way per tauri.conf.json) instead of showing it --
-        // "launch at startup" should mean the controller is ready, not that a
-        // window pops up over whatever the user just logged in to do.
-        // The whole thing needs to be one quoted string for /TR: schtasks treats
-        // an unquoted flag after the exe path as part of a literal command line,
-        // but only accepts that as a single /TR argument, not several argv entries.
-        let task_run_command = format!("\"{exe_path}\" --autostart");
-        // /F overwrites a pre-existing task instead of erroring, so re-enabling
-        // (or upgrading from an older exe path) is idempotent. /RL HIGHEST is
-        // the whole point -- see module comment.
-        let output = run_schtasks(&[
-            "/Create",
-            "/TN",
-            TASK_NAME,
-            "/TR",
-            &task_run_command,
-            "/SC",
-            "ONLOGON",
-            "/RL",
-            "HIGHEST",
-            "/F",
-        ])?;
-        if !output.status.success() {
-            let message = String::from_utf8_lossy(&output.stderr);
-            return Err(format!("Failed to create the startup task: {message}"));
-        }
-    } else {
-        let output = run_schtasks(&["/Delete", "/TN", TASK_NAME, "/F"]);
-        // Deleting a task that was never created is not a failure from the
-        // caller's point of view -- the end state (no autostart) is already
-        // what they asked for.
-        if let Ok(result) = &output {
-            if !result.status.success() {
-                let message = String::from_utf8_lossy(&result.stderr);
-                if !message.contains("cannot find") && !message.contains("does not exist") {
-                    return Err(format!("Failed to remove the startup task: {message}"));
-                }
-            }
+fn remove_old_tasks() -> Result<(), String> {
+    for name in OLD_TASKS {
+        if task_exists(name) && !run("schtasks.exe", &["/Delete", "/TN", name, "/F"])?.status.success() {
+            return Err("An older administrator startup task could not be removed. Use Restart as administrator in Settings > Startup once, then change Start with Windows again.".into());
         }
     }
     Ok(())
 }
 
-/// Runs once per launch, off the main thread. A task under the old product
-/// name, or one pointing at an exe that has since moved (a rename changes the
-/// install folder), is replaced by one for this exe; if there is none, the
-/// person never turned it on and nothing is created.
+fn startup_command(executable: &str) -> String { format!("\"{executable}\" --autostart") }
+
+pub fn set_autostart_enabled(enabled: bool) -> Result<(), String> {
+    remove_old_tasks()?;
+    let output = if enabled {
+        let exe = env::current_exe().map_err(|e| e.to_string())?;
+        let exe = exe.to_str().ok_or("The app path cannot be represented as text.")?;
+        run("reg.exe", &["add", RUN_KEY, "/v", VALUE_NAME, "/t", "REG_SZ", "/d", &startup_command(exe), "/f"])?
+    } else if run_entry_exists()? {
+        run("reg.exe", &["delete", RUN_KEY, "/v", VALUE_NAME, "/f"])?
+    } else { return Ok(()); };
+    if output.status.success() { Ok(()) } else { Err("Windows could not update Start with Windows for your account.".into()) }
+}
+
 pub fn refresh_after_launch() {
-    let legacy = run_schtasks(&["/Query", "/TN", LEGACY_TASK_NAME]).map(|o| o.status.success()).unwrap_or(false);
-    let current = is_autostart_enabled().unwrap_or(false);
-    if !legacy && !current {
-        return;
+    // Existing users retain their choice. A normal launch that cannot remove
+    // an old task leaves it intact and exposes the migration in permission_status.
+    if is_autostart_enabled().unwrap_or(false) {
+        if let Err(error) = set_autostart_enabled(true) { eprintln!("Could not refresh startup: {error}"); }
     }
-    if legacy {
-        let _ = run_schtasks(&["/Delete", "/TN", LEGACY_TASK_NAME, "/F"]);
-    }
-    // /F recreates in place, so this is also the path refresh for `current`.
-    if let Err(error) = set_autostart_enabled(true) {
-        eprintln!("Could not refresh the startup task: {error}");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn startup_quotes_the_executable_and_keeps_arguments_outside_it() {
+        assert_eq!(startup_command(r"C:\Users\A B\JSM Evolved.exe"), r#""C:\Users\A B\JSM Evolved.exe" --autostart"#);
     }
 }

@@ -285,3 +285,5 @@
 .baseSectionTitle { margin: 0 0 var(--sp-3); font-size: var(--fs-label); }
 .baseGrid + .baseSectionTitle { margin-top: var(--sp-6); }
 .copyAction { display: flex; align-items: center; gap: 8px; color: var(--accent); font-weight: var(--fw-semibold); margin-top: auto; }
+.signInGuide { width: 100%; max-width: 1600px; margin: 0 auto; }
+.signInGuide > svg { display: block; width: 100%; height: auto; max-height: calc(100vh - 270px); }

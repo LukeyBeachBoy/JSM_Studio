@@ -5,9 +5,11 @@ import { createRoot } from 'react-dom/client'
 import '../styles/design-tokens.css'
 import '../styles/accents.css'
 import { initAccent } from '../hooks/useAccent'
+import { initI18n } from '../i18n'
 import { Overlay } from './Overlay'
 
-void restoreAppearance().then(() => {
+void restoreAppearance().then(async () => {
+  await initI18n({ updateDocumentTitle: false })
   initAccent()
   const root = document.getElementById('overlay-root')
   if (root) createRoot(root).render(<StrictMode><Overlay /></StrictMode>)

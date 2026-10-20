@@ -1,12 +1,9 @@
 fn main() {
     #[cfg(windows)]
     {
-        println!("cargo:rerun-if-env-changed=JSM_TEST_NO_ELEVATION");
-        // Test binaries inherit the app manifest. Release packaging always
-        // retains its administrator requirement.
-        let manifest = if std::env::var_os("JSM_TEST_NO_ELEVATION").is_some() && std::env::var("PROFILE").as_deref() != Ok("release") {
-            include_str!("app.manifest.xml").replace("requireAdministrator", "asInvoker")
-        } else { include_str!("app.manifest.xml").to_owned() };
+        // Ordinary launches and test binaries use the current user's rights.
+        // Privileged operations use the explicit administrator restart flow.
+        let manifest = include_str!("app.manifest.xml");
         let windows =
             tauri_build::WindowsAttributes::new().app_manifest(&manifest);
         let attrs = tauri_build::Attributes::new().windows_attributes(windows);

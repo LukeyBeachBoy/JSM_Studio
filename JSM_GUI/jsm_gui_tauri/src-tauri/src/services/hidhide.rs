@@ -739,12 +739,7 @@ mod imp {
         }
 
         let client_path = find_hidhide_configuration_client(app)?;
-        Command::new(&client_path).spawn().map_err(|error| {
-            format!(
-                "Failed to launch HidHide configuration client {}: {error}",
-                client_path.display()
-            )
-        })?;
+        crate::services::permissions::run_elevated_file(&client_path, None, false)?;
 
         Ok(())
     }
@@ -1422,33 +1417,24 @@ mod imp {
     }
 
     fn run_hidhide_installer(installer_path: &Path) -> Result<(), String> {
-        let mut command = if installer_path
+        let exit_code = if installer_path
             .extension()
             .and_then(|value| value.to_str())
             .is_some_and(|extension| extension.eq_ignore_ascii_case("msi"))
         {
-            let mut command = Command::new("msiexec.exe");
-            command.arg("/i").arg(installer_path);
-            command
+            crate::services::permissions::run_elevated_file(Path::new("msiexec.exe"), Some(&format!("/i \"{}\"", installer_path.display())), true)?
         } else {
-            Command::new(installer_path)
+            crate::services::permissions::run_elevated_file(installer_path, None, true)?
         };
 
-        let status = command.status().map_err(|error| {
-            format!(
-                "Failed to launch HidHide installer {}: {error}",
-                installer_path.display()
-            )
-        })?;
-
-        if status.success() || status.code() == Some(HIDHIDE_INSTALLER_REBOOT_REQUIRED_EXIT_CODE) {
+        if exit_code == 0 || exit_code == HIDHIDE_INSTALLER_REBOOT_REQUIRED_EXIT_CODE as u32 {
             return Ok(());
         }
 
         Err(format!(
             "HidHide installer {} exited with code {:?}.",
             installer_path.display(),
-            status.code()
+            exit_code
         ))
     }
 

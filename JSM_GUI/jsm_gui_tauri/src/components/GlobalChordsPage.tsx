@@ -125,7 +125,7 @@ export function GlobalChordsPage({ onEditConfiguration, onChordsChanged, devices
     focusAfter.current = target.id
     void persist({ ...target, buttons: [], triggerGroups: groups.filter(group => group.length) })
     setCapturingFor(null)
-  })
+  }, { buttonsOnly: true })
   const pressFor = (id: string, group: number) => { setCapturingFor({ id, group }); capture.start() }
   useEffect(() => { if (!capture.capturing && capturingFor) setCapturingFor(null) }, [capture.capturing])
 
@@ -223,6 +223,7 @@ export function GlobalChordsPage({ onEditConfiguration, onChordsChanged, devices
         <SubPage open onClose={capture.cancel} crumbRoot="Settings" trail={['Hold to swap']} title="Press the buttons together" backLabel="Cancel">
           <div className={settingsStyles.mainColumn}>
             <p>Hold them all, then let go. {capture.held.length ? keys(capture.held) : 'Waiting for a press…'}</p>
+            <p className={settingsStyles.panelNote}>Touch and grip sensors are ignored here. To use one, choose it from the list.</p>
             <button type="button" className="button button--secondary" onClick={capture.cancel} data-hints="A:Cancel;B:Cancel">Cancel</button>
           </div>
         </SubPage>

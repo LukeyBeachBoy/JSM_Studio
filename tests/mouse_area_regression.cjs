@@ -4,7 +4,7 @@
 // The editor's preview and the picker's ghost draw where a touch puts the
 // cursor using utils/mouseArea.ts; the mapper puts it there using
 // include/TouchAreaMapping.h. If the two disagree, the preview lies. So the
-// first half compiles the REAL header with MSVC and sweeps both over the same
+// first half compiles the REAL header with a native C++ compiler and sweeps both over the same
 // inputs; the second half checks every layer is wired: the mapper registers
 // the settings and dispatches the mode, the editor knows the keys, and the
 // picker's command surface exists.
@@ -17,7 +17,23 @@ const { spawnSync } = require('node:child_process');
 const ROOT = path.join(__dirname, '..');
 const JSM = path.join(ROOT, 'JoyShockMapper/JoyShockMapper');
 const HEADER = path.join(JSM, 'include/TouchAreaMapping.h');
-const VCVARS = 'C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Auxiliary/Build/vcvars64.bat';
+function compile(source, exe, includes = []) {
+  const cwd = path.dirname(exe);
+  let build;
+  if (process.platform === 'win32') {
+    const installer = path.join(process.env['ProgramFiles(x86)'] || 'C:/Program Files (x86)', 'Microsoft Visual Studio/Installer');
+    const discovery = spawnSync(path.join(installer, 'vswhere.exe'), ['-latest', '-products', '*', '-requires', 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64', '-property', 'installationPath'], { encoding: 'utf8' });
+    assert.equal(discovery.status, 0, `Visual Studio discovery failed: ${discovery.stderr}`);
+    const vcvars = path.join(discovery.stdout.trim(), 'VC/Auxiliary/Build/vcvars64.bat');
+    assert.ok(fs.existsSync(vcvars), 'Install Visual Studio C++ tools to run native parity tests');
+    const batch = path.join(cwd, 'compile.bat');
+    fs.writeFileSync(batch, `@echo off\r\nset "PATH=${installer};%PATH%"\r\ncall "${vcvars}" >nul\r\nif errorlevel 1 exit /b 1\r\ncl /nologo /EHsc /std:c++17 ${includes.map(dir => `/I "${dir}"`).join(' ')} "${source}" /Fe:"${exe}"\r\n`);
+    build = spawnSync('cmd.exe', ['/d', '/c', batch], { cwd, encoding: 'utf8' });
+  } else {
+    build = spawnSync(process.env.CXX || 'g++', ['-std=c++17', ...includes.flatMap(dir => ['-I', dir]), source, '-o', exe], { cwd, encoding: 'utf8' });
+  }
+  assert.equal(build.status, 0, `Native harness did not compile: ${build.error || ''}\n${build.stdout}${build.stderr}`);
+}
 const read = relative => fs.readFileSync(path.join(ROOT, relative), 'utf8');
 
 // --- the TypeScript under test, transpiled the same way vite would -----------
@@ -99,18 +115,13 @@ function runBackend() {
     `static void run(float u, float v, touch_area::Rect r, touch_area::Fit fit, float pad, float screen) {\n` +
     `  float x = 0, y = 0; touch_area::map(u, v, r, fit, pad, screen, x, y); std::printf("%.6f %.6f\\n", x, y);\n}\n` +
     `int main(){\n${rows}\n  return 0;\n}\n`);
-  const installer = 'C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer';
-  fs.writeFileSync(path.join(tmp, 'b.bat'),
-    `@echo off\r\nset "PATH=${installer};%PATH%"\r\ncall "${VCVARS}" >nul\r\n` +
-    `cl /nologo /EHsc /std:c++17 "${tmp}\\parity.cpp" /Fe:"${tmp}\\parity.exe"\r\n`);
-  const build = spawnSync('cmd.exe', ['/d', '/c', path.join(tmp, 'b.bat')], { cwd: tmp, encoding: 'utf8' });
-  if (build.status !== 0) throw new Error(`backend did not compile:\n${build.stdout}${build.stderr}`);
+  compile(path.join(tmp, 'parity.cpp'), path.join(tmp, 'parity.exe'));
   const run = spawnSync(path.join(tmp, 'parity.exe'), { encoding: 'utf8' });
   if (run.status !== 0) throw new Error('backend harness failed to run');
   return run.stdout.trim().split(/\r?\n/).map(line => line.split(' ').map(Number));
 }
 
-if (fs.existsSync(VCVARS)) {
+{
   const backend = runBackend();
   assert.equal(backend.length, cases.length);
   let mismatches = 0;
@@ -128,18 +139,11 @@ if (fs.existsSync(VCVARS)) {
 
   // The mapper's own unit test, with the compiler the mapper is built with.
   const work = fs.mkdtempSync(path.join(os.tmpdir(), 'mousearea-tests-'));
-  const installer = 'C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer';
   const exe = path.join(work, 'touch_area_tests.exe');
-  fs.writeFileSync(path.join(work, 't.bat'),
-    `@echo off\r\nset "PATH=${installer};%PATH%"\r\ncall "${VCVARS}" >nul\r\n` +
-    `cl /nologo /EHsc /std:c++17 /I "${path.join(JSM, 'include')}" "${path.join(JSM, 'tests', 'touch_area_tests.cpp')}" /Fe:"${exe}"\r\n`);
-  const build = spawnSync('cmd.exe', ['/d', '/c', path.join(work, 't.bat')], { cwd: work, encoding: 'utf8' });
-  assert.equal(build.status, 0, `touch_area_tests did not compile:\n${build.stdout}${build.stderr}`);
+  compile(path.join(JSM, 'tests', 'touch_area_tests.cpp'), exe, [path.join(JSM, 'include')]);
   const run = spawnSync(exe, { encoding: 'utf8' });
   assert.equal(run.status, 0, `touch_area_tests failed:\n${run.stdout}${run.stderr}`);
   assert.match(run.stdout, /touch_area_tests: ok/);
-} else {
-  console.log('SKIP: MSVC not found; parity with the mapper not checked');
 }
 
 // --- the mapper wires the mode and its settings ------------------------------
@@ -198,8 +202,8 @@ const padModes = read('JSM_GUI/jsm_gui_tauri/src/components/trackpads/padModes.t
 assert.match(padModes, /MOUSE_AREA: \{ label: 'Mouse area'/);
 assert.match(padModes, /case 'MOUSE_AREA': return \{ \[modeKey\]: 'MOUSE_AREA' \}/);
 const trackpadsPage = read('JSM_GUI/jsm_gui_tauri/src/components/trackpads/TrackpadsPage.tsx');
-assert.match(trackpadsPage, /label="Screen area"[\s\S]*?onOpen=\{\(\) => pad\.card\.onPickMouseArea\?\.\(\)\}/);
-assert.match(trackpadsPage, /label="Pad fit"[^\n]*setting=\{`\$\{P\}TOUCHPAD_AREA_FIT`\}/);
+assert.match(trackpadsPage, /label="Screen area"[\s\S]*?pad\.card\.onPickMouseArea\(\)/);
+assert.match(trackpadsPage, /label="2 · Fit the pad to your box"[^\n]*setting=\{`\$\{P\}TOUCHPAD_AREA_FIT`\}/);
 const trackpadFineTune = read('JSM_GUI/jsm_gui_tauri/src/components/trackpads/TrackpadFineTune.tsx');
 assert.match(trackpadFineTune, /label="Screen area"[\s\S]*?onOpen=\{\(\) => pad\.card\.onPickMouseArea\?\.\(\)\}/);
 const controls = read('JSM_GUI/jsm_gui_tauri/src/components/KeymapControls.tsx');

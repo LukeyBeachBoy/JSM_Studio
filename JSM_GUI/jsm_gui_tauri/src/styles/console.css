@@ -88,6 +88,9 @@
 .state-button[data-tone='control']:hover:not([aria-disabled='true']) { background: var(--surface-control-hover); }
 .state-button[data-tone='control'][aria-disabled='true'] { color: var(--text-3); cursor: default; }
 .state-button[data-tone='applied'] { background: var(--ok-soft, rgba(95, 211, 160, .14)); color: var(--ok, #93e6c1); }
+.titlebar__live-profile { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; max-width: 240px; height: var(--bar-control-h); padding: 0 12px; border: 0; border-radius: var(--r-row); background: var(--ok-soft, rgba(95, 211, 160, .14)); color: var(--ok, #93e6c1); font: inherit; font-size: var(--fs-body); cursor: pointer; }
+.titlebar__live-profile > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.titlebar__live-profile:hover { background: var(--surface-control-hover); }
 /* Console v2 (V3): the status chip's dot says the state at a glance. */
 .state-button { gap: var(--sp-2); }
 .state-button__dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
@@ -655,6 +658,9 @@ body:has(.curve-view-overlay) .hint-capsule { visibility: hidden; }
 .dialog__title { margin: 0; font-size: 20px; font-weight: var(--fw-semibold); line-height: 26px; }
 .dialog__close { position: absolute; width: 0; height: 0; padding: 0; border: 0; opacity: 0; }
 .dialog__body { flex: 1; min-height: 0; overflow-y: auto; }
+.permission-dialog .dialog__body { padding: 0 24px 20px; line-height: 1.55; }
+.permission-dialog .dialog__body > :first-child { margin-top: 0; }
+.permission-dialog .dialog__body > :last-child { margin-bottom: 0; }
 .dialog__footer {
   display: flex;
   flex: none;

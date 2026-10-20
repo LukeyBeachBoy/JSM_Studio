@@ -13,7 +13,8 @@ import { GyroMore, useGyroMoreEntries } from './gyro/GyroMore'
 import { GyroFront } from './gyro/GyroFront'
 import { GyroFineTune } from './gyro/GyroFineTune'
 import { MatchFullTurn } from './gyro/MatchFullTurn'
-import { WhenOn } from './gyro/WhenOn'
+import { WhenOn, heldTriggers } from './gyro/WhenOn'
+import { ModeShiftRow } from './sticks/shared'
 import { WhileHolding, HeldScope } from './gyro/WhileHolding'
 import { Recalibrate } from './gyro/Recalibrate'
 import { TiltSettings, type TiltPart } from './gyro/TiltSettings'
@@ -157,6 +158,7 @@ function GyroBody({ isCalibrating, countdown }: { isCalibrating: boolean; countd
           {env.locked && <p className={styles.lockNote} role="status">{env.locked}</p>}
           <GyroFront onFineTune={() => openFine(fineGroup)} onWhenOn={() => setOverlay({ view: 'when-on' })}
             onCalibrate={() => setOverlay({ view: 'calibrate' })} onMatchTurn={() => setOverlay({ view: 'match-turn' })} />
+          <ModeShiftRow count={heldTriggers(env.rootText, 'gyro').length} onOpen={() => { setOverlay({ view: 'when-on' }); setHolding(true) }} />
         </div>
       </GyroMore>
       <GyroFineTune open={overlay?.view === 'fine-tune'} onClose={close} trail={trail} group={fineGroup} onGroup={setFineGroup}

@@ -1,6 +1,6 @@
-// Menu (☰ / M): a tap saves and makes the configuration live -- from anywhere,
-// sub-pages included, which used to swallow it -- and holding it opens the
-// Configuration menu. The status chip carries the Menu glyph inside it.
+// Menu / M: tap opens options; hold saves and makes the configuration live.
+// The visible label explains both effects, including inside sub-pages. Failed
+// applies must not announce success. Uses the renderer mock, not hardware.
 const assert = require('node:assert/strict');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
 
@@ -13,6 +13,19 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
     await page.goto(base.includes('?') ? base : `${base}/?mock`);
     await page.waitForFunction(() => window.__pad && document.querySelector('.titlebar'));
     await page.addLocatorHandler(page.getByRole('button', { name: 'Keep them', exact: true }), async () => { await page.getByRole('button', { name: 'Keep them', exact: true }).click() });
+    await page.evaluate(() => {
+      window.__editorCalls = [];
+      window.__editorToasts = [];
+      window.addEventListener('app-toast', event => window.__editorToasts.push(event.detail));
+      const api = window.electronAPI;
+      const save = api.saveLibraryProfile, apply = api.applyProfile;
+      api.saveLibraryProfile = async (...args) => { window.__editorCalls.push('save'); return save(...args) };
+      api.applyProfile = async (...args) => {
+        window.__editorCalls.push('apply');
+        if (window.__failEditorApply) throw new Error('Regression: mapper unavailable');
+        return apply(...args);
+      };
+    });
     await page.waitForTimeout(800);
     const chip = page.locator('.titlebar .state-button');
     const chipText = async () => (await chip.innerText()).replace(/\s/g, '');
@@ -29,42 +42,67 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
     await page.evaluate(() => window.dispatchEvent(new CustomEvent('jsm:navigate-page', { detail: 'buttons' })));
     await page.waitForTimeout(800);
 
-    // The glyph is inside the chip, which reads "Unsaved · ☰ Save".
     await makeDirty();
-    assert.match(await chipText(), /^Unsaved·(M)?Save$/);
-    assert.equal(await chip.locator('.state-button__glyph, .hint-key').count(), 1, 'the Menu glyph sits inside the chip');
+    assert.match(await chipText(), /^Unsaved\u00b7(M)?Holdtosave&makelive$/);
+    assert.equal(await chip.locator('.state-button__glyph, .hint-key').count(), 1);
+    const shot = async width => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.waitForTimeout(200);
+      assert.equal(await chip.evaluate(el => el.scrollWidth <= el.clientWidth), true, 'save/apply label fits');
+      await page.screenshot({ path: `tests/tmp/save-and-make-live-${width}.png` });
+    };
+    await shot(1440); await shot(1000); await page.setViewportSize({ width: 1440, height: 900 });
+    const clear = () => page.evaluate(() => { window.__editorCalls = []; window.__editorToasts = [] });
+    const calls = () => page.evaluate(() => window.__editorCalls);
 
-    // Pad: a tap of Menu saves (no menu opens).
+    // A tap opens options without saving or applying.
+    await clear();
     await page.evaluate(() => window.__pad.press(['+'], 80));
-    await saved();
-    assert.equal(await page.locator('.config-menu').count(), 0, 'a tap does not open the menu');
+    await page.locator('.config-menu').waitFor();
+    assert.deepEqual(await calls(), []);
+    await page.keyboard.press('Escape');
+    await page.locator('.config-menu').waitFor({ state: 'detached' });
 
-    // Pad: holding Menu opens the Configuration menu and does not also save-press on release.
+    // Holding Menu saves and applies exactly once, including on release.
     await page.evaluate(() => window.__pad.press(['+'], 700));
-    await page.locator('.config-menu').waitFor();
-    await page.keyboard.press('Escape');
-    await page.locator('.config-menu').waitFor({ state: 'detached' });
-
-    // Keyboard: M tapped saves, held opens the menu.
-    await makeDirty();
-    await page.keyboard.press('m');
     await saved();
+    assert.deepEqual(await calls(), ['save', 'apply']);
     assert.equal(await page.locator('.config-menu').count(), 0);
-    await page.keyboard.down('m'); await page.keyboard.down('m'); await page.keyboard.up('m');
-    await page.locator('.config-menu').waitFor();
-    await page.keyboard.press('Escape');
-    await page.locator('.config-menu').waitFor({ state: 'detached' });
 
-    // Inside a sub-page (it used to swallow Menu): a tap still saves.
+    await makeDirty(); await clear();
+    await page.keyboard.down('m'); await page.waitForTimeout(700); await page.keyboard.up('m');
+    await saved();
+    assert.deepEqual(await calls(), ['save', 'apply']);
+
+    // Ctrl+S remains the explicit save-only alternative.
+    await makeDirty(); await clear();
+    await page.keyboard.press('Control+s');
+    await page.waitForFunction(() => window.__editorCalls.includes('save'));
+    assert.deepEqual(await calls(), ['save']);
+
+    // Inside a sub-page the same hold still reaches save and apply.
     await makeDirty();
     await page.evaluate(() => window.dispatchEvent(new CustomEvent('jsm:navigate-page', { detail: 'joysticks' })));
     await page.waitForTimeout(1000);
     await page.getByRole('button', { name: /^Fine-tune/ }).first().click();
     await page.locator('[data-subpage]').waitFor();
-    await page.evaluate(() => window.__pad.press(['+'], 80));
+    await clear();
+    await page.evaluate(() => window.__pad.press(['+'], 700));
     await saved();
+    assert.deepEqual(await calls(), ['save', 'apply']);
+    await page.keyboard.press('Escape');
+
+    // A saved file is retained on apply failure, but no false Live success.
+    await makeDirty(); await clear();
+    await page.evaluate(() => { window.__failEditorApply = true });
+    await page.keyboard.down('m'); await page.waitForTimeout(700); await page.keyboard.up('m');
+    await page.waitForFunction(() => window.__editorToasts.some(toast => toast.kind === 'error'));
+    assert.deepEqual(await calls(), ['save', 'apply']);
+    assert.equal(await page.evaluate(() => window.__editorToasts.some(toast => /live now/.test(toast.message))), false);
+    assert.match(await page.getByRole('alert').innerText(), /mapper unavailable/);
+    await page.screenshot({ path: 'tests/tmp/save-and-make-live-error.png' });
 
     assert.deepEqual(errors, []);
-    console.log('PASS: Menu tap saves (also from a sub-page), hold opens the Configuration menu; the glyph is inside the chip');
+    console.log('PASS: explicit save/apply labels at two widths, Menu/M hold saves and applies once, tap options, Ctrl+S saves only, sub-pages and failed apply feedback');
   } finally { await browser.close(); }
 })().catch(e => { console.error(e); process.exit(1); });

@@ -1,0 +1,21 @@
+cmake_minimum_required(VERSION 3.20)
+project(jsm_keyboard_accessibility LANGUAGES CXX)
+set(WEBVIEW2_SDK "${CMAKE_CURRENT_BINARY_DIR}/webview2" CACHE PATH "Extracted Microsoft.Web.WebView2 NuGet package")
+add_executable(jsm-keyboard-accessibility WIN32 KeyboardAccessibility.cpp)
+target_include_directories(jsm-keyboard-accessibility PRIVATE "${WEBVIEW2_SDK}/build/native/include")
+target_compile_features(jsm-keyboard-accessibility PRIVATE cxx_std_20)
+target_compile_definitions(jsm-keyboard-accessibility PRIVATE UNICODE _UNICODE)
+target_link_libraries(jsm-keyboard-accessibility PRIVATE windowsapp d3d11 dxgi dwmapi dcomp advapi32 shell32 gdi32 ole32 shlwapi version "${WEBVIEW2_SDK}/build/native/x64/WebView2LoaderStatic.lib")
+if(MSVC)
+  target_compile_options(jsm-keyboard-accessibility PRIVATE /W4 /EHsc /utf-8)
+  target_link_options(jsm-keyboard-accessibility PRIVATE "/MANIFEST:EMBED" "/MANIFESTUAC:level='asInvoker' uiAccess='true'" "/MANIFESTINPUT:${CMAKE_CURRENT_SOURCE_DIR}/app.manifest")
+  # No compiler runtime DLLs loaded from a writable working directory.
+  set_property(TARGET jsm-keyboard-accessibility PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
+# Integration test: a disposable source window and the installed signed helper.
+add_executable(keyboard-accessibility-test EXCLUDE_FROM_ALL KeyboardAccessibilityTest.cpp)
+target_compile_features(keyboard-accessibility-test PRIVATE cxx_std_17)
+target_compile_definitions(keyboard-accessibility-test PRIVATE UNICODE _UNICODE)
+target_link_libraries(keyboard-accessibility-test PRIVATE shell32)
+set_target_properties(keyboard-accessibility-test PROPERTIES OUTPUT_NAME "JSM Evolved")

@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { ButtonDefinition } from '../../keymap/schema'
 import type { TelemetryDevice } from '../../hooks/useTelemetry'
-import type { ModeshiftTarget } from '../../utils/modeshift'
+import { modeshiftTriggers, triggerModeshiftSettings, type ModeshiftTarget } from '../../utils/modeshift'
 import { ModeCards, OpenRow } from '../ui/console'
-import { isSet, readNumber, useFocusCurrentCard, useInheritedKeys, MoreMenu, usePadButton, WhileHoldingPage, InputSideProxies, type SetText } from '../sticks/shared'
+import { isSet, readNumber, useFocusCurrentCard, useInheritedKeys, ModeShiftRow, MoreMenu, usePadButton, WhileHoldingPage, InputSideProxies, type SetText } from '../sticks/shared'
 import { useInputSide, takeFineTuneRequest, useFineTuneRequestVersion } from '../sticks/inputSide'
 import { TriggerBlade } from './TriggerBlade'
 import { SettingOrigin } from '../SettingOrigin'
@@ -21,6 +21,7 @@ import styles from './Triggers.module.css'
 export type RenderBindingRow = (button: ButtonDefinition, options?: { defaultOpen?: boolean; label?: string; subtitle?: string; emptyLabel?: string; modeshifts?: boolean; xAction?: { label: string; run: () => void } }) => ReactNode
 
 export type TriggersPageProps = {
+  modeShift?: { trigger: string; label: string; side: 'left' | 'right' }
   readText: string
   setText?: SetText
   disabled?: boolean
@@ -45,7 +46,8 @@ export type TriggersPageProps = {
 export function TriggersPage(props: TriggersPageProps) {
   useInheritedKeys()
   const { readText, zlMode, zrMode, onModeChange, liveDevice, buttons, renderButton, describe, virtualControllerType } = props
-  const side = useInputSide('triggers')
+  const selectedSide = useInputSide('triggers')
+  const side = props.modeShift?.side ?? selectedSide
   const root = useRef<HTMLDivElement>(null)
   const [fineTune, setFineTune] = useState<string | null>(null)
   const [more, setMore] = useState(false)
@@ -90,7 +92,7 @@ export function TriggersPage(props: TriggersPageProps) {
   }))
   const changed = isSet(readText, 'TRIGGER_THRESHOLD', 'TRIGGER_HYSTERESIS', 'TRIGGER_SKIP_DELAY', 'ADAPTIVE_TRIGGER', 'LEFT_TRIGGER_EFFECT', 'RIGHT_TRIGGER_EFFECT', 'LEFT_TRIGGER_OFFSET', 'LEFT_TRIGGER_RANGE', 'RIGHT_TRIGGER_OFFSET', 'RIGHT_TRIGGER_RANGE')
   const shift: ModeshiftTarget = {
-    id: `trigger-${side}`, title: name,
+    id: `trigger-${side}`, title: name, settings: triggerModeshiftSettings(side),
     buttons: buttons[side].map(button => ({ command: button.command, label: button.command.endsWith('F') ? 'Full press' : 'Half press', definition: button })),
     mode: { key: side === 'left' ? 'ZL_MODE' : 'ZR_MODE', defaultValue: 'NO_FULL', options: [
       ...TRIGGER_CARD_VALUES.filter(value => value !== 'GAMEPAD').map(value => ({ value, label: TRIGGER_MODE_NAMES[value].label })),
@@ -125,6 +127,7 @@ export function TriggersPage(props: TriggersPageProps) {
                 disabled={gamepad ? 'A gamepad trigger sends the whole pull; pick a two-step card to bind a full press.' : 'One press has no full press. Pick a two-step card above to bind one.'}
                 data={{ 'data-input-command': full.command }} hints={stepHints} onOpen={() => {}} />}
           {gamepad && <p className={p4.note}>Half and full press bindings and press points aren’t used while Gamepad trigger is chosen.</p>}
+          {!props.modeShift && <ModeShiftRow count={modeshiftTriggers(readText, shift).length} onOpen={() => setHolding(true)} />}
           <OpenRow label="Fine-tune" hint="Press points, resistance, calibration" value={changed ? 'Changed' : 'Default'}
             hints={`A:Open;${stepHints}`} data={{ 'data-trigger-fine-tune': '' }} onOpen={() => setFineTune('press')} />
         </div>
@@ -137,7 +140,7 @@ export function TriggersPage(props: TriggersPageProps) {
         items={[
           { id: 'calibrate', label: 'Calibrate triggers', hint: 'Find where a DualSense trigger starts to push back', onSelect: () => setCalibrating(true),
             unavailable: liveDevice?.type === 5 ? undefined : liveDevice ? 'Needs a DualSense: only its triggers push back.' : 'Needs a DualSense connected.' },
-          { id: 'holding', label: 'Mode shift', hint: 'Hold another button to change this trigger', onSelect: () => setHolding(true) },
+          ...(!props.modeShift ? [{ id: 'holding', label: 'Mode shift', hint: 'Hold another button to change this trigger', onSelect: () => setHolding(true) }] : []),
           { id: 'fine-tune', label: 'Fine-tune', hint: 'Press points, resistance, calibration', onSelect: () => setFineTune('press') },
           { id: 'test', label: 'Try it in Test', hint: 'Run this configuration on the controller', onSelect: startTest },
         ]} />

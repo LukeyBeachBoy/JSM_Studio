@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" font-family="Segoe UI, Arial, sans-serif">
+    <rect width="1920" height="1080" fill="#101a22"/>
+    <g fill="#192b35"><rect x="48" y="180" width="480" height="824" rx="24"/><rect x="1392" y="180" width="480" height="824" rx="24"/></g>
+    <text x="88" y="244" fill="#f2f6f8" font-size="32" font-weight="700">PIN buttons</text>
+    <text x="88" y="282" fill="#b1c4cf" font-size="21">Press directly · Release to repeat</text>
+    <g transform="translate(288 353)">
+    <circle r="42" fill="#9cebd6"/>
+    <text y="-11" text-anchor="middle" fill="#264b47" font-size="15" font-weight="700">Y</text>
+    <text y="20" text-anchor="middle" fill="#0a2825" font-size="36" font-weight="750">1</text>
+  </g><g transform="translate(188 441)">
+    <circle r="42" fill="#9cebd6"/>
+    <text y="-11" text-anchor="middle" fill="#264b47" font-size="15" font-weight="700">X</text>
+    <text y="20" text-anchor="middle" fill="#0a2825" font-size="36" font-weight="750">4</text>
+  </g><g transform="translate(388 441)">
+    <circle r="42" fill="#9cebd6"/>
+    <text y="-11" text-anchor="middle" fill="#264b47" font-size="15" font-weight="700">B</text>
+    <text y="20" text-anchor="middle" fill="#0a2825" font-size="36" font-weight="750">2</text>
+  </g><g transform="translate(288 529)">
+    <circle r="42" fill="#9cebd6"/>
+    <text y="-11" text-anchor="middle" fill="#264b47" font-size="15" font-weight="700">A</text>
+    <text y="20" text-anchor="middle" fill="#0a2825" font-size="36" font-weight="750">3</text>
+  </g>
+    <text x="88" y="619" fill="#b1c4cf" font-size="21">D-pad</text>
+    <g transform="translate(288 684)">
+    <circle r="42" fill="#9cebd6"/>
+    <text y="-11" text-anchor="middle" fill="#264b47" font-size="15" font-weight="700">↑</text>
+    <text y="20" text-anchor="middle" fill="#0a2825" font-size="36" font-weight="750">5</text>
+  </g><g transform="translate(188 772)">
+    <circle r="42" fill="#9cebd6"/>
+    <text y="-11" text-anchor="middle" fill="#264b47" font-size="15" font-weight="700">←</text>
+    <text y="20" text-anchor="middle" fill="#0a2825" font-size="36" font-weight="750">8</text>
+  </g><g transform="translate(388 772)">
+    <circle r="42" fill="#9cebd6"/>
+    <text y="-11" text-anchor="middle" fill="#264b47" font-size="15" font-weight="700">→</text>
+    <text y="20" text-anchor="middle" fill="#0a2825" font-size="36" font-weight="750">6</text>
+  </g><g transform="translate(288 860)">
+    <circle r="42" fill="#9cebd6"/>
+    <text y="-11" text-anchor="middle" fill="#264b47" font-size="15" font-weight="700">↓</text>
+    <text y="20" text-anchor="middle" fill="#0a2825" font-size="36" font-weight="750">7</text>
+  </g>
+    <text x="88" y="964" fill="#e3ebef" font-size="25">LB = 9 · RB = 0</text>
+    <text x="1432" y="244" fill="#f2f6f8" font-size="32" font-weight="700">Windows sign-in</text>
+    <text x="1432" y="325" fill="#9cebd6" font-size="25" font-weight="700">Menu = ENTER</text>
+    <text x="1432" y="368" fill="#b1c4cf" font-size="22">Right trigger = ENTER</text>
+    <text x="1432" y="456" fill="#9cebd6" font-size="25" font-weight="700">View = BACKSPACE</text>
+    <text x="1432" y="499" fill="#b1c4cf" font-size="22">Left trigger = BACKSPACE</text>
+    <path d="M1432 566h400" stroke="#36505e"/>
+    <text x="1432" y="641" fill="#f2f6f8" font-size="29" font-weight="700">Controller off</text>
+    <text x="1432" y="697" fill="#9cebd6" font-size="24">Hold Quick Access</text>
+    <text x="1432" y="739" fill="#9cebd6" font-size="24">+ tap Y</text>
+    <text x="1432" y="790" fill="#e3ebef" font-size="22">Then release both buttons</text>
+    <text x="1432" y="930" fill="#b1c4cf" font-size="22">Steam wakes it again</text>
+  </svg>

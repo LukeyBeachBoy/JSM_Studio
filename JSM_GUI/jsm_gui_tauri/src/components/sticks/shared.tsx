@@ -13,6 +13,13 @@ import styles from './P4.module.css'
 // Pieces the Sticks, Triggers and Trackpads pages share (console v2, P4).
 
 export type SetText = Dispatch<SetStateAction<string>>
+export type ModeshiftEditing = { trigger: string; label: string }
+
+/** The entry point stays on each input's main page, rather than only under More. */
+export function ModeShiftRow({ count, onOpen }: { count: number; onOpen: () => void }) {
+  return <OpenRow label="Mode shift" hint="Hold another button to use different controls; release it to return to normal"
+    value={count ? `${count} configured` : 'Add'} onOpen={onOpen} data={{ 'data-mode-shift-entry': '' }} hints="A:Add or edit mode shifts;B:Back" />
+}
 
 /** A number from the configuration, or the fallback when it is unset or not a number. */
 export function readNumber(text: string, key: string, fallback: number, index = 0) {
@@ -110,7 +117,7 @@ export function WhileHoldingPage({ open, onClose, trail, children }: { open: boo
   return (
     <SubPage open={open} onClose={onClose} trail={trail} title="Mode shift" backLabel={`Back to ${trail[trail.length - 1] ?? 'page'}`}>
       <div className={styles.whileHolding}>
-        <p className={styles.lede}>Hold a button and this changes until you let go.</p>
+          <p className={styles.lede}>Choose a button to hold, then configure what this input does while it is held. Release it to return to the normal controls.</p>
         {children}
       </div>
     </SubPage>

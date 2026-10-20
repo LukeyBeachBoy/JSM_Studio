@@ -7,6 +7,14 @@
  * configuration games get once Studio loses focus. */
 const INTERNAL = new Set(['applied-preview', 'appnavigation'])
 
+/** The selected controller can load a profile without changing the mapper's
+ * app-wide profile. Callers put the selected device first. */
+export function activeControllerProfilePath(sample: { activeProfile?: unknown; devices?: { activeProfile?: unknown }[] } | null | undefined): string {
+  const devicePath = sample?.devices?.[0]?.activeProfile
+  if (typeof devicePath === 'string' && devicePath.trim()) return devicePath.trim()
+  return typeof sample?.activeProfile === 'string' ? sample.activeProfile.trim() : ''
+}
+
 export const isStudioNavigationProfile = (runtimePath: unknown) =>
   typeof runtimePath === 'string' && /(^|[\\/])AppNavigation\.txt$/i.test(runtimePath.trim())
 

@@ -8,6 +8,7 @@ pub mod area_picker;
 pub mod appearance;
 pub mod app_state;
 pub mod autostart;
+pub mod permissions;
 pub mod brand_icon;
 pub mod hidhide;
 pub mod input_debug;

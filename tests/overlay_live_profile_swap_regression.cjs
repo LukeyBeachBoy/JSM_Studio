@@ -38,7 +38,7 @@ const QUICK_ACCESS = [
   '# @controller type-24 LEFT_GRID_SIZE = 2 2',
   '# @controller type-24 LT3 = F1',
   '# @controller type-24 LT4 = NONE',
-  'LT1 = HOME', 'LT2 = INSERT',
+  'LT1 = SCROLLUP+', 'LT2 = INSERT',
   '# @overlay LEFT at 0.14 0.8 size 317 font 25',
 ].join('\n');
 
@@ -51,6 +51,7 @@ function installTauriStub(profiles) {
   window.__TAURI_INTERNALS__ = {
     transformCallback(cb) { const id = nextId++; callbacks[id] = cb; return id; },
     invoke(cmd, args) {
+      if (cmd === 'load_appearance_preferences') return new Promise(resolve => setTimeout(() => resolve({ 'jsm-language': window.__language ?? 'en' }), 200));
       if (cmd === 'plugin:event|listen') {
         window.__emit = payload => callbacks[args.handler]({ event: args.event, id: 1, payload });
         return Promise.resolve(1);
@@ -152,12 +153,30 @@ const packet = (magnitude, live) => ({
       return page.locator('[data-visible]').first().getAttribute('data-visible');
     };
     assert.equal(await touch(), 'true', 'the Quick Access left-pad grid must show over the game profile');
+    const overlayText = await page.locator('[data-visible="true"]').innerText();
+    assert.ok(!overlayText.includes('bindingText.'), `overlay leaked translation keys: ${overlayText}`);
+    assert.match(overlayText, /rapid-fire/, 'turbo bindings use the initialized translations in the separate overlay window');
+    assert.equal(await page.title(), 'JSM Studio Overlay', 'translation startup preserves the overlay window identity');
+    await page.screenshot({ path: 'tools/desktop-config-20261020/translated-scroll-overlay.png' });
     assert.equal(await page.locator('[data-visible="true"] [data-bound]').count(), 4, 'controller-specific 2 by 2 grid includes every zone');
     const tracks = await page.locator('[data-visible="true"] [style*="grid-template-columns"]').evaluate(el => ({ columns: el.style.gridTemplateColumns, rows: el.style.gridTemplateRows }));
     assert.equal(tracks.columns, 'repeat(2, 1fr)');
     assert.equal(tracks.rows, 'repeat(2, 1fr)');
     await page.waitForTimeout(2200);
     assert.equal(await touch(), 'true', 'the left-pad grid must survive the periodic profile refresh');
+
+    await page.addInitScript(() => { window.__language = 'zh-CN'; });
+    await page.reload();
+    await page.waitForFunction(() => !!window.__emit);
+    let ready = false;
+    for (let i = 0; i < 20 && !ready; i++) ready = await tilt(0.3, 'profiles-library/Game.txt') === 'true';
+    assert.ok(ready, 'the initial menu must be ready before testing a profile swap');
+    await page.evaluate(() => { window.__deviceLive = 'profiles-library/Quick Access.txt'; });
+    assert.equal(await touch(), 'true');
+    const translated = await page.locator('[data-visible="true"]').innerText();
+    assert.match(translated, /连发/, 'saved language must finish restoring before overlay translations initialize');
+    assert.ok(!translated.includes('bindingText.'));
+    assert.equal(await page.locator('html').getAttribute('lang'), 'zh-CN');
 
     assert.deepEqual(errors, [], `page errors: ${errors.join(', ')}`);
     console.log('PASS: a configuration swap drops the old menus on the packet that reports it, not two seconds later');

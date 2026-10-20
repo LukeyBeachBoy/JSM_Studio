@@ -41,6 +41,7 @@ const CLICK_SLOP = 0.004
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v))
 
 function padName(pad: string) {
+  pad = pad.split(',').pop() ?? pad
   if (pad === 'LEFT') return 'Left pad'
   if (pad === 'RIGHT') return 'Right pad'
   return 'Touchpad'

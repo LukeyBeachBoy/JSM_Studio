@@ -221,3 +221,25 @@ above:
 - `ID_SET_SETTINGS_VALUES` routes ids 0x30/0x54/0x55 to the IMU settings handler (a runtime set; whether it writes flash was not traced); everything
   else, grip range and flicker guard included, is RAM and must be re-sent after a
   reconnect.
+
+## Runtime configuration scope — 2026-10-18
+
+SDL's hardware maintenance now resolves each controller's active device/model
+configuration before sending grip range and flicker guard or choosing automatic
+contact/release haptics. Previously this ran outside the input callback's
+configuration context, so controller-specific overrides and isolated Hold to
+swap settings were missed. Making the configuration live from the editor could
+appear to fix it by changing the shared values instead.
+
+The first poll after startup, chord activation, or reconnect applies the
+effective settings without an editor change. Unchanged settings avoid repeated
+feature reports; failed writes retry. Releasing a chord returns to the base
+configuration's settings. An unset threshold still means leave the firmware's
+current value alone. Haptics remain contact/release pulses rather than continuous
+rumble, with independent left/right enable switches.
+
+`python JoyShockMapper/tests/run_grip_harness.py` exercises production scope
+selection, threshold writes, and haptic edge routing with a simulated transport,
+including reconnect, failed writes, separate devices, and configuration-lock
+contention. Physical contact distance and perceived pulse strength require a
+controller retest.

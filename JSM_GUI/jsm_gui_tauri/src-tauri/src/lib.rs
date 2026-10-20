@@ -6,20 +6,24 @@ use tauri::{Manager, RunEvent, WindowEvent};
 
 use services::{app_state::AppState, hidhide, input_debug, jsm_process, telemetry};
 
-/// True when this invocation came from the logon scheduled task rather than a
+/// True when this invocation came from Windows startup rather than a
 /// person opening the app. See `autostart.rs` and the setup hook below.
 fn launched_at_autostart<I: IntoIterator<Item = String>>(arguments: I) -> bool {
     arguments.into_iter().any(|argument| argument == "--autostart")
 }
 
 /// Whether the window opens at launch: always for a person opening the app;
-/// for the logon task only when Start in the tray is off.
+/// for Windows startup only when Start in the tray is off.
 fn show_window_at_launch<I: IntoIterator<Item = String>>(arguments: I, start_in_tray: bool) -> bool {
     !launched_at_autostart(arguments) || !start_in_tray
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    if let Err(error) = services::permissions::wait_for_previous_instance() {
+        eprintln!("{error}");
+        return;
+    }
     let app = tauri::Builder::default()
         // Registered before anything else so a second launch hands its arguments
         // to the running app and exits here, rather than getting as far as
@@ -36,6 +40,9 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .manage(AppState::default())
         .setup(|app| {
+            if services::permissions::request_at_launch(app.handle(), launched_at_autostart(std::env::args())) {
+                return Ok(());
+            }
             let state = app.state::<AppState>().inner().clone();
             if let Err(error) = runtime::ensure_required_files(&app.handle()) {
                 eprintln!("Failed to initialize Tauri runtime files: {error}");
@@ -122,6 +129,10 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            services::permissions::permission_status,
+            services::permissions::save_permission_preferences,
+            services::permissions::set_windows_sign_in_enabled,
+            services::permissions::restart_as_administrator,
             services::appearance::load_appearance_preferences,
             services::appearance::save_appearance_preference,
             commands::reset_default_settings,
@@ -135,6 +146,7 @@ pub fn run() {
             services::virtual_keyboard::keyboard_preferences,
             services::virtual_keyboard::keyboard_save_preferences,
             services::virtual_keyboard::keyboard_state,
+            services::virtual_keyboard::keyboard_accessibility_active,
             services::virtual_keyboard::keyboard_set_open,
             commands::overlay_set_enabled,
             commands::ui_set_refresh_hz,

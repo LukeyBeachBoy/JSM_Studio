@@ -5,7 +5,15 @@ const source = fs.readFileSync('JSM_GUI/jsm_gui_tauri/src/utils/appliedProfile.t
 const compiled = ts.transpileModule(source, {compilerOptions: {module: ts.ModuleKind.CommonJS}}).outputText;
 const exported = {};
 new Function('exports', compiled)(exported);
-const {appliedProfileLabel} = exported;
+const {appliedProfileLabel, activeControllerProfilePath} = exported;
+const globalPath = 'profiles-library/applied-preview.txt';
+assert.equal(activeControllerProfilePath({ activeProfile: globalPath, devices: [{ activeProfile: 'profiles-library/Desktop.txt' }] }), 'profiles-library/Desktop.txt');
+assert.equal(activeControllerProfilePath({ activeProfile: globalPath, devices: [{ activeProfile: 'profiles-library/Quick Access Chord.txt' }] }), 'profiles-library/Quick Access Chord.txt');
+for (const activeProfile of [undefined, null, '', '  ']) {
+  assert.equal(activeControllerProfilePath({ activeProfile: globalPath, devices: [{ activeProfile }] }), globalPath);
+}
+assert.equal(activeControllerProfilePath({ activeProfile: globalPath, devices: [{ activeProfile: 'profiles-library/Gamepad.txt' }, { activeProfile: 'profiles-library/Desktop.txt' }] }), 'profiles-library/Gamepad.txt', 'only the selected controller drives the status');
+assert.equal(activeControllerProfilePath(null), '');
 for (const preview of ['applied-preview', 'profiles-library/applied-preview.txt', 'C:\\profiles-library\\APPLIED-PREVIEW.TXT']) {
   assert.equal(appliedProfileLabel(preview, 'Cyberpunk'), 'Cyberpunk');
 }

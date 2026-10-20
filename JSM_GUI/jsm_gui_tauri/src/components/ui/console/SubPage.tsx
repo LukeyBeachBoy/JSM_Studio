@@ -1,10 +1,11 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useShell } from '../../../shell/ShellContext'
 import { HintCapsule } from '../../../shell/HintCapsule'
 import type { Hint } from '../../../shell/hintLabels'
 import { PAD_EVENT, type PadEventDetail } from '../../../nav/useControllerNavigation'
 import styles from './SubPage.module.css'
+const SubPageDepth = createContext(0)
 
 // A full-screen sub-page (console v2: StickFineTuneAim, BindingWhileHolding,
 // BindingFineTune, the pickers, the New configuration wizard…). It covers the
@@ -50,6 +51,7 @@ type SubPageProps = {
 }
 
 export function SubPage({ open, onClose, trail, title, badge, where, stepLabel, onStep, backLabel = 'Back', hints, bare, crumbRoot, children }: SubPageProps) {
+  const depth = useContext(SubPageDepth)
   const shell = useShell()
   const root = useRef<HTMLDivElement>(null)
   const latest = useRef(onStep)
@@ -89,7 +91,7 @@ export function SubPage({ open, onClose, trail, title, badge, where, stepLabel, 
     </button>
   )
   return createPortal(
-    <div ref={root} className={styles.layer} data-focus-trap="true" data-subpage="" role="dialog" aria-modal="true" aria-label={`${crumbs.join(' · ')} · ${title}`}>
+    <SubPageDepth.Provider value={depth + 1}><div ref={root} className={styles.layer} style={{ zIndex: Math.min(45, 41 + depth) }} data-overlay-depth={depth} data-focus-trap="true" data-subpage="" role="dialog" aria-modal="true" aria-label={`${crumbs.join(' · ')} · ${title}`}>
       <main className={styles.body}>{children}</main>
       {!bare && (
         <header className={styles.header}>
@@ -107,7 +109,7 @@ export function SubPage({ open, onClose, trail, title, badge, where, stepLabel, 
         <HintCapsule width={shell.width} family={shell.family} controller={shell.controller} where={where ?? `${crumbs.join(' · ')} · ${title}`} extraHints={extra} />
       </footer>
       {bare && backButton}
-    </div>,
+    </div></SubPageDepth.Provider>,
     document.body,
   )
 }

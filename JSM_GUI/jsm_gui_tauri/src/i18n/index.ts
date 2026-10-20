@@ -9,13 +9,13 @@ const resources = {
   'zh-CN': { translation: zhCN },
 }
 
-function syncDocumentMetadata(language: AppLanguage) {
+function syncDocumentMetadata(language: AppLanguage, updateDocumentTitle: boolean) {
   if (typeof document === 'undefined') return
   document.documentElement.lang = language
-  document.title = i18n.t('common.appName')
+  if (updateDocumentTitle) document.title = i18n.t('common.appName')
 }
 
-export async function initI18n() {
+export async function initI18n({ updateDocumentTitle = true }: { updateDocumentTitle?: boolean } = {}) {
   if (i18n.isInitialized) return i18n
 
   await i18n.use(initReactI18next).init({
@@ -29,12 +29,12 @@ export async function initI18n() {
     returnNull: false,
   })
 
-  syncDocumentMetadata(normalizeAppLanguage(i18n.language))
+  syncDocumentMetadata(normalizeAppLanguage(i18n.language), updateDocumentTitle)
 
   i18n.on('languageChanged', language => {
     const normalized = normalizeAppLanguage(language)
     persistAppLanguage(normalized)
-    syncDocumentMetadata(normalized)
+    syncDocumentMetadata(normalized, updateDocumentTitle)
   })
 
   return i18n

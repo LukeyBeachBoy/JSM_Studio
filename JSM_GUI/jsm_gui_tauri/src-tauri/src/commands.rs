@@ -444,9 +444,13 @@ pub(crate) fn adopt_profile_loaded_by_binding(app: &AppHandle, state: &AppState,
 /// not left with the navigation profile, which maps nothing. Apps with a rule
 /// are left to AutoLoad, which loads theirs; Studio only notes the time.
 pub(crate) fn studio_focus_changed(app: &AppHandle, focused: bool) {
-    if crate::services::virtual_keyboard::requested() { return; }
     use std::sync::atomic::Ordering::Relaxed;
     let state = tauri::Manager::state::<AppState>(app);
+    if state.telemetry_ui_active.load(Relaxed) != focused { return; }
+    // Loading a whole profile resets held key outputs. In particular, losing
+    // focus to Alt+Tab must not release Alt and re-press the chord's binding.
+    if crate::services::global_chords::defer_focus_change(focused) { return; }
+    if crate::services::virtual_keyboard::requested() { return; }
     if focused {
         state.studio_testing.store(false, Relaxed);
         state.handover_foreground_pid.store(0, Relaxed);
@@ -462,6 +466,7 @@ pub(crate) fn studio_focus_changed(app: &AppHandle, focused: bool) {
     if state.telemetry_ui_active.load(Relaxed) {
         return; // Studio came straight back.
     }
+    if crate::services::global_chords::defer_focus_change(false) { return; }
     if !jsm_process::is_running(state.inner()).unwrap_or(false) {
         return; // No mapper, so no rule fired and nothing to load into.
     }

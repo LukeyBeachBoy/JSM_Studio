@@ -438,6 +438,10 @@ pub fn ensure_required_files(app: &AppHandle) -> Result<(), String> {
     }
     ensure_mapping_disabled_file(app)?;
     seed_default_chord_if_missing(app)?;
+    ensure_file(
+        &absolute_profile_path(app, "profiles-library/Windows Sign-in.txt")?,
+        include_str!("../../../../JoyShockMapper/dist/WindowsSignIn.txt"),
+    )?;
     // The shipped preset bases (console v2, D24), refreshed like AppNavigation.
     crate::services::bases::seed(app)?;
 
@@ -1664,6 +1668,7 @@ pub(crate) fn read_global_chords(app: &AppHandle) -> Result<Vec<GlobalChord>, St
 }
 
 pub fn reset_default_settings(app:&AppHandle)->Result<RuntimeMappingState,String> {
+    crate::services::permissions::set_windows_sign_in_enabled(app.clone(),false)?;
     let previous=read_runtime_mapping_state(app)?;
     let mut defaults=default_runtime_mapping_state(app)?;
     defaults.active_profile_path=previous.active_profile_path;

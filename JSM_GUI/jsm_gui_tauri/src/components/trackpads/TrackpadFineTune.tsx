@@ -127,12 +127,12 @@ export function TrackpadFineTune(props: Props) {
         options={[...SMOOTHING_PRESETS.map(item => ({ value: item.id, label: item.label })), { value: 'custom', label: 'Custom' }]}
         onChange={value => { const found = SMOOTHING_PRESETS.find(item => item.id === value); if (found) writeKeys(setText, { TOUCHPAD_MIN_CUTOFF: found.cutoff, TOUCHPAD_SPEED_COEFF: found.speed }) }}
         onReset={() => writeKeys(setText, { TOUCHPAD_MIN_CUTOFF: null, TOUCHPAD_SPEED_COEFF: null })} />
-      <SubHead>{smoothing === 'custom' ? 'Custom, exactly' : `${SMOOTHING_PRESETS.find(item => item.id === smoothing)?.label}, exactly`}</SubHead>
-      <ValueRow label="Smoothing cutoff" hint="Lower smooths resting and slow movement more" setting="TOUCHPAD_MIN_CUTOFF" value={cutoff} min={0} max={20} step={0.5} fineStep={0.1} format={value => `${value} Hz`}
+      <SubHead>{smoothing === 'custom' ? 'Custom, exactly' : `${SMOOTHING_PRESETS.find(item => item.id === smoothing)?.label} · detailed controls`}</SubHead>
+      <ValueRow label="Steadiness at slow speed" hint="Lower filters out more tiny shakes when pointing at small buttons, but makes slow movement trail your thumb" setting="TOUCHPAD_MIN_CUTOFF" value={cutoff} min={0} max={20} step={0.5} fineStep={0.1} format={value => `${value} Hz`}
         onChange={value => writeKey(setText, 'TOUCHPAD_MIN_CUTOFF', value)} onReset={() => writeKey(setText, 'TOUCHPAD_MIN_CUTOFF', null)} />
-      <ValueRow label="How soon flicks escape" hint="Higher keeps quick flicks responsive" setting="TOUCHPAD_SPEED_COEFF" value={speedCoeff} min={0} max={5} step={0.05} fineStep={0.01}
+      <ValueRow label="Responsiveness during fast swipes" hint="Raise this if quick swipes feel delayed; lower it if the pointer becomes shaky as you speed up" setting="TOUCHPAD_SPEED_COEFF" value={speedCoeff} min={0} max={5} step={0.05} fineStep={0.01}
         onChange={value => writeKey(setText, 'TOUCHPAD_SPEED_COEFF', value)} onReset={() => writeKey(setText, 'TOUCHPAD_SPEED_COEFF', null)} />
-      <ValueRow label="Speed reading cutoff" hint="Steadies the speed estimate; higher reacts faster" setting="TOUCHPAD_D_CUTOFF" value={dCutoff} min={0.01} max={120} step={1} fineStep={0.1} format={value => `${value} Hz`}
+      <ValueRow label="How quickly smoothing reacts to speed" hint="Higher notices a slow-to-fast swipe sooner; lower makes smoothing change more gradually if movement feels twitchy" setting="TOUCHPAD_D_CUTOFF" value={dCutoff} min={0.01} max={120} step={1} fineStep={0.1} format={value => `${value} Hz`}
         onChange={value => writeKey(setText, 'TOUCHPAD_D_CUTOFF', value)} onReset={() => writeKey(setText, 'TOUCHPAD_D_CUTOFF', null)} />
     </>,
     visual: <GlideVisual decay={decay} minVelocity={minVelocity} speed={pad.speed ?? 0} />,
@@ -144,7 +144,7 @@ export function TrackpadFineTune(props: Props) {
   const cols = size[0] || 2
   const rowsCount = size[1] || 1
   const deadzone = readNumber(text, padKey.gridDeadzone(side), 0)
-  const rotationKey = side === 'single' ? null : `${P}TOUCHPAD_ROTATION`
+  const rotationKey = side === 'single' || page.modeShift ? null : `${P}TOUCHPAD_ROTATION`
   const rotation = rotationKey ? readNumber(text, rotationKey, 0) : 0
   const dualKey = `${P}TOUCHPAD_DUAL_STAGE_MODE`
   const dual = readWord(text, dualKey) || 'NO_SKIP'
@@ -188,7 +188,7 @@ export function TrackpadFineTune(props: Props) {
           onChange={value => writeKey(setText, padKey.gridDeadzone(side), value ? Number((value / 100).toFixed(3)) : null)} onReset={() => writeKey(setText, padKey.gridDeadzone(side), null)} />
         <ValueRow label="Turn the zones" hint="Rotate the layout to match how your thumb sits. Also turns the mouse and the touch stick on this pad." setting={rotationKey ?? undefined}
           value={rotation} min={-180} max={180} step={5} fineStep={0.5} format={value => `${value > 0 ? '+' : ''}${value}°`} extraHints="LB/RB:Part"
-          disabled={rotationKey ? undefined : 'A one-pad controller’s pad can’t be turned.'}
+          disabled={rotationKey ? undefined : page.modeShift ? 'Pad rotation is a controller setting shared by every mode shift. Adjust it on the normal pad.' : 'A one-pad controller’s pad can’t be turned.'}
           onChange={value => rotationKey && writeKey(setText, rotationKey, value || null)} onReset={() => rotationKey && writeKey(setText, rotationKey, null)} />
       </>}
       {zonePart === 'touch' && touchAndClick('LB/RB:Part')}
@@ -243,12 +243,12 @@ export function TrackpadFineTune(props: Props) {
 
   // ---- More
   const moreGroup: FineTuneGroup = {
-    id: 'more', label: 'More', title: 'Touch, click and more', description: 'The pad’s own touch and click bindings, and changes while another button is held.',
-    status: [pad.touch && `touch ${page.describe(pad.touch.command).binding || 'unbound'}`, pad.click && `click ${page.describe(pad.click.command).binding || 'unbound'}`].filter(Boolean).join(' · ') || 'While holding…',
+    id: 'more', label: 'More', title: 'Mode shifts, touch and click', description: 'The pad’s own touch and click bindings, and changes while another button is held.',
+    status: [!page.modeShift && 'Mode shifts', pad.touch && `Touch ${page.describe(pad.touch.command).binding || 'Unbound'}`, pad.click && `Click ${page.describe(pad.click.command).binding || 'Unbound'}`].filter(Boolean).join(' · ') || 'While holding…',
     content: <>
       {pad.touch && <div>{page.renderButton(pad.touch, { label: 'Touch', subtitle: 'Your thumb on the pad', modeshifts: true })}</div>}
       {pad.click && <div>{page.renderButton(pad.click, { label: 'Click', subtitle: 'Pressing the pad in', modeshifts: true })}</div>}
-      <OpenRow label="Mode shift" hint="Hold another button to change this pad" onOpen={props.onHolding} />
+      {!page.modeShift && <OpenRow label="Mode shift" hint="Hold another button to change this pad" onOpen={props.onHolding} />}
       <OpenRow label="Touch-stick directions" hint="Shared by every touch stick" onOpen={props.onDirections} />
       {pad.other?.length ? <OpenRow label="Other controller types" hint={`${pad.other.length} bindings for inputs this pad doesn’t have`} onOpen={props.onOthers} /> : null}
     </>,
@@ -262,7 +262,7 @@ export function TrackpadFineTune(props: Props) {
     TOUCH_STICK: [zonesGroup, feelGroup, moreGroup],
   }[card as 'MOUSE' | 'MOUSE_AREA' | 'ZONES' | 'TOUCH_STICK'] ?? [feelGroup, moreGroup]
   const active = groups.some(item => item.id === groupId) ? groupId : groups[0].id
-  const shared = active === 'speed' || active === 'glide' || active === 'click' ? 'Shared by both pads: speed-up, glide and click are one setting for every pad.' : active === 'feel' ? 'Each pad can have its own feel, or share one.' : undefined
+  const shared = page.modeShift ? `Changes apply while ${page.modeShift.label}. Speed, glide and click tuning affect both pads during that shift.` : active === 'speed' || active === 'glide' || active === 'click' ? 'Shared by both pads: speed-up, glide and click are one setting for every pad.' : active === 'feel' ? 'Each pad can have its own feel, or share one.' : undefined
 
   return (
     <>

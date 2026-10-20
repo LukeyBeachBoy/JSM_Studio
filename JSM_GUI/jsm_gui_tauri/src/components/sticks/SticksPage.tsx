@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { ButtonDefinition } from '../../keymap/schema'
 import type { TelemetryDevice } from '../../hooks/useTelemetry'
-import type { ModeshiftTarget } from '../../utils/modeshift'
+import { modeshiftTriggers, type ModeshiftTarget } from '../../utils/modeshift'
 import type { OverlayMenu } from '../../utils/overlayLayout'
 import { namedMenuOverlay } from '../../utils/namedMenuOverlay'
 import { isDirectStickMenu, stickMenuLinks } from '../../utils/stickMenus'
@@ -10,7 +10,7 @@ import { WheelChooser } from './WheelChooser'
 import { MenuPreview } from '../keymap/MenuPreview'
 import { ModeCards, OpenRow, SubPage, ValueRow } from '../ui/console'
 import type { VirtualStickTarget } from '../../utils/virtualStickSettings'
-import { InputSideProxies, MoreMenu, readWord, useFocusCurrentCard, useInheritedKeys, usePadButton, WhileHoldingPage, writeKey, type SetText } from './shared'
+import { InputSideProxies, ModeShiftRow, MoreMenu, readWord, useFocusCurrentCard, useInheritedKeys, usePadButton, WhileHoldingPage, writeKey, type SetText } from './shared'
 import { peekModeshiftRequest, takeFineTuneRequest, useFineTuneRequestVersion, useInputSide, useModeshiftRequestVersion } from './inputSide'
 import { MORE_MODES, StickCardArt, moreModeOf, stickCardOf, stickModeName, type StickCard } from './stickModes'
 import { StickAdvanced, StickFineTune, StickMoreModes } from './StickFineTune'
@@ -31,6 +31,8 @@ type RenderRow = StickCtx['renderButton']
 export type StickInputs = { directions: ButtonDefinition[]; click?: ButtonDefinition; ring?: ButtonDefinition; touch?: ButtonDefinition; rotation: ButtonDefinition[] }
 
 export type SticksPageProps = {
+  modeShift?: { trigger: string; label: string; side: 'left' | 'right' }
+  menuConfig?: StickMenuConfig
   readText: string
   setText?: SetText
   disabled?: boolean
@@ -70,7 +72,8 @@ const FINE_TUNE_HINT: Record<StickCard, string> = {
 export function SticksPage(props: SticksPageProps) {
   useInheritedKeys()
   const { readText, setText, liveDevice } = props
-  const side = useInputSide('joysticks')
+  const selectedSide = useInputSide('joysticks')
+  const side = props.modeShift?.side ?? selectedSide
   const SIDE = side === 'left' ? 'LEFT' : 'RIGHT'
   const name = side === 'left' ? 'Left stick' : 'Right stick'
   const root = useRef<HTMLDivElement>(null)
@@ -93,8 +96,8 @@ export function SticksPage(props: SticksPageProps) {
 
   const mode = readWord(readText, `${SIDE}_STICK_MODE`) || 'NO_MOUSE'
   const live = liveDevice?.status ? (side === 'left' ? liveDevice.status.leftStick : liveDevice.status.rightStick) : null
-  const menuConfig: StickMenuConfig | undefined = setText ? { text: readText, onChange: setText } : undefined
-  const reservedLink = stickMenuLinks(readText, side).find(link => isDirectStickMenu(link.attachment))
+  const menuConfig: StickMenuConfig | undefined = props.menuConfig ?? (setText ? { text: readText, onChange: setText } : undefined)
+  const reservedLink = stickMenuLinks(menuConfig?.text ?? readText, side).find(link => isDirectStickMenu(link.attachment, props.modeShift?.trigger))
   const reserved = reservedLink ? { id: reservedLink.menu.id, name: reservedLink.menu.name } : undefined
   const inputs = props.inputs[side]
   const ctx: StickCtx = {
@@ -171,17 +174,18 @@ export function SticksPage(props: SticksPageProps) {
             caption={card === 'WHEEL' ? 'Push this far before a slice is picked.' : card === 'LOOK' || card === 'FLICK' ? 'Raise it if the view creeps when you let go.' : 'Raise it if your character drifts when you let go.'} extraHints={stepHints}
             onChange={value => writeKey(setText, innerKey, Number((value / 100).toFixed(4)))} onReset={() => writeKey(setText, innerKey, null)} />
           {inputs.click && props.renderButton(inputs.click, { label: `Push in (${side === 'left' ? 'L3' : 'R3'})`, subtitle: clickInfo?.label ?? 'What clicking the stick does' })}
+          {!props.modeShift && <ModeShiftRow count={modeshiftTriggers(readText, props.modeshiftTarget(side)).length} onOpen={() => setHolding(true)} />}
           <OpenRow label="Fine-tune" hint={FINE_TUNE_HINT[card]} value="Open" hints={`A:Open;${stepHints}`} data={{ 'data-stick-fine-tune-row': side }} onOpen={() => setFineTune('')} />
         </div>
       </div>
 
       {/* The wheel card's chooser: a new wheel (opens in Menus) or one the configuration already has. */}
-      {setText && chooseMenu && <WheelChooser open side={side} text={readText} setText={setText} onClose={() => setChooseMenu(false)} legacy={mode === 'RADIAL_MENU' && !reserved} />}
+      {setText && chooseMenu && <WheelChooser open side={side} text={menuConfig?.text ?? readText} setText={menuConfig?.onChange ?? setText} trigger={props.modeShift?.trigger} onClose={() => setChooseMenu(false)} legacy={mode === 'RADIAL_MENU' && !reserved} />}
       <MoreMenu open={more} onClose={() => setMore(false)} eyebrow={`Sticks · ${name}`} title="More"
         items={[
           ...(inputs.directions.length ? [{ id: 'keys', label: 'Change keys', hint: 'What up, left, down and right send', onSelect: () => setDirections(true) }] : []),
           ...(props.onBindWasd && inputs.directions.length ? [{ id: 'wasd', label: 'Bind to W A S D', hint: 'Points the four directions at W, A, S and D', onSelect: () => props.onBindWasd?.(side) }] : []),
-          { id: 'holding', label: 'Mode shift', hint: 'Hold another button to change this stick', onSelect: () => setHolding(true) },
+          ...(!props.modeShift ? [{ id: 'holding', label: 'Mode shift', hint: 'Hold another button to change this stick', onSelect: () => setHolding(true) }] : []),
           ...(inputs.ring ? [{ id: 'ring', label: 'Ring action', hint: 'A binding held on a light or full push', value: props.describe(inputs.ring.command).binding || 'Unbound', onSelect: () => setFineTune('deadzone') }] : []),
           ...(inputs.touch ? [{ id: 'touch', label: 'Touch', hint: 'Resting your thumb on the stick', value: props.describe(inputs.touch.command).binding || 'Unbound', onSelect: () => setFineTune('touch') }] : []),
           { id: 'more-modes', label: 'Other stick modes', hint: `${MORE_MODES.length} modes · mouse ring, scroll wheel, walk/run rings, steering…`, onSelect: () => setMoreModes(true) },

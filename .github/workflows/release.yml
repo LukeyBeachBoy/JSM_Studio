@@ -1,4 +1,4 @@
-name: Release JSM Studio (Fork)
+name: Build JSM Evolved release candidate
 
 on:
   push:
@@ -13,8 +13,8 @@ jobs:
   trackpad-regressions:
     uses: ./.github/workflows/trackpad-regression.yml
 
-  publish-windows:
-    name: Build and publish Windows installers
+  build-windows:
+    name: Build Windows installer draft
     needs: trackpad-regressions
     runs-on: windows-latest
 
@@ -24,6 +24,16 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
+
+      - name: Verify tag and version agree
+        shell: pwsh
+        run: |
+          $config = Get-Content JSM_GUI/jsm_gui_tauri/src-tauri/tauri.conf.json -Raw | ConvertFrom-Json
+          $package = Get-Content JSM_GUI/jsm_gui_tauri/package.json -Raw | ConvertFrom-Json
+          if ($package.version -ne $config.version) { throw "Frontend and app versions differ." }
+          if ($env:GITHUB_REF_TYPE -eq 'tag' -and $env:GITHUB_REF_NAME -ne "v$($config.version)") {
+            throw "Tag must match the configured app version."
+          }
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -39,204 +49,78 @@ jobs:
         working-directory: JSM_GUI/jsm_gui_tauri
         run: npm ci
 
-      - name: Build JoyShockMapper from forked submodule
+      - name: Prepare bundled resources
         working-directory: JSM_GUI/jsm_gui_tauri
-        run: npm run build:joyshockmapper
+        run: |
+          npm run prepare:drivers
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run build:joyshockmapper
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run build:sidecars
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run build:web
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Build Tauri NSIS installer with ViGEmBus
+      - name: Test Windows backend
+        working-directory: JSM_GUI/jsm_gui_tauri/src-tauri
+        run: cargo test --lib
+
+      - name: Test native sign-in consent without locking Windows
+        run: node tests/windows_sign_in_consent_regression.cjs
+
+      - name: Build installer as a draft prerelease
+        id: bundle
         uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: JSM_GUI/jsm_gui_tauri
           tagName: v__VERSION__
-          releaseName: JSM Studio v__VERSION__ (Steam Controller 2026)
+          releaseName: JSM Evolved v__VERSION__ — release candidate
           releaseBody: |
-            ## JSM Studio with Steam Controller 2026 support
+            Windows x64 development build. Download the *-setup.exe asset.
 
-            Windows installer for the forked JoyShockMapper with full Steam
-            Controller 2026 (Triton/Proteus/Nereid) support, and the Studio
-            interface built around it.
+            This is a draft candidate, not a completed release validation.
+            Maintainer: replace this paragraph with version-specific changes and
+            completed hardware/install checks before publishing.
 
-            This is the first tagged release since v0.7.4. Everything under
-            "What's new" landed across 0.7.5-0.7.22.
+            The app currently has no Authenticode signature. A checksum does not
+            establish publisher identity or prove a file is safe. Do not disable
+            Windows protection to install it.
 
-            ---
+            Normal app launch uses normal Windows access. Optional driver setup
+            and explicit administrator restart can show separate Windows prompts.
+            Shared drivers remain installed after app uninstall.
 
-            ## What's new since v0.7.4
+            Setup and permissions: https://github.com/LukeyBeachBoy/JSM_Studio/blob/main/docs/getting-started.md
+            Release gates: https://github.com/LukeyBeachBoy/JSM_Studio/blob/main/docs/release-readiness.md
+          releaseDraft: true
+          prerelease: true
 
-            ### Grip sensors, per side
-            The grips have separate haptic actuators, but both fired from one
-            shared intensity, so wanting feedback from the right grip alone meant
-            turning grip haptics off entirely. **Left grip** and **Right grip**
-            checkboxes under Grip sensors now gate the automatic contact and
-            release pulses independently. Strength and effect stay shared, and a
-            profile without the new keys behaves exactly as it did before.
-
-            The calibration pair is unchanged: `GRIP_SENSOR_RANGE` (how near your
-            hand must come before the sensor trips) and `GRIP_FLICKER_GUARD` (how
-            far it must move away again before releasing, so a hand resting at the
-            edge cannot chatter). Raw firmware units; -1 keeps the controller's own
-            value. Both are written to the controller, exactly as Steam Input's
-            Grip Sensor Calibration page does it.
-
-            Earlier notes claimed the firmware stores a single capacitive threshold
-            and therefore cannot calibrate each grip separately. That was stated
-            more strongly than the evidence supports. What was actually established
-            is narrower: the verified settings path writes the same pair to both
-            sensors, and no supported per-side calibration command is known. The
-            investigation behind that -- the Steam UI, a steamclient64
-            disassembly, the bundled firmware image and SDL's Triton input path --
-            is written up in `docs/grip-calibration-investigation.md`, including
-            what it does not prove.
-
-            Note that none of this concerns the back buttons (L4/L5/R4/R5), which
-            are physical switches.
-
-            ### Modeshifts for every input group
-            Modeshift editing used to be a trackpad feature: one dropdown per pad,
-            one shift, a single trigger. The same idea applies to every group of
-            inputs, so the face buttons, bumpers, sticks and both pads now take
-            modeshifts, a group can carry several, and each shift keeps its own
-            layout independent of the normal one.
-
-            ### Save and Apply are separate
-            Apply pushes a preview to the running backend instead of overwriting
-            the profile you are tuning against, so you can test a change before
-            committing to it. Ctrl+Z walks back any change on any page. Switching
-            away from unsaved edits now warns instead of silently discarding them,
-            and the toolbar says what Save and Apply each act on.
-
-            0.7.17 fixed Apply failing on every single use since 0.7.12 -- the
-            preview file was being written outside the library the backend reads
-            from, which took the post-calibration profile restore down with it.
-
-            ### Trackpad click behaviour
-            - `TOUCHPAD_RELEASE_HAPTIC_INTENSITY` / `_EFFECT` gives the click a
-              falling edge, on the pad that actually released. Defaults to TICK
-              against the press's CLICK so the two edges are told apart rather than
-              reading as two identical taps. Off by default
-            - `TOUCHPAD_CLICK_DAMPEN` stops a pad you also aim with from dragging
-              the camera as your finger rolls into the click, eased in on analog
-              pressure by `TOUCHPAD_CLICK_DAMPEN_THRESHOLD`
-            - `GYRO_CLICK_DAMPEN` does the same for the gyro, for setups that pan
-              with the pad and correct with the IMU
-            - The dampening threshold was inert until 0.7.9: the ramp assumed a
-              press covers most of the 0-1 range SDL reports, but the pads' force
-              values sit far down that scale, so a press just over the threshold
-              produced about 2% damping. The threshold is now where damping is
-              fully applied, and a live pressure readout sits under the slider
-            - Left pad click and Right pad click are bindable again under Touch and
-              click buttons, where a Steam Controller previously showed nothing
-
-            ### A preview that costs nothing in the background
-            The live controller preview ran an animation loop for the lifetime of
-            the app and re-rendered on every telemetry packet, so a controller
-            polling above the frame rate rendered more than once per frame -- and
-            a minimised or unfocused window kept doing it while a game had focus.
-            It now publishes at most once per frame and stops entirely when the
-            window loses focus or is hidden, on both the UI and the Rust side.
-            Mapping, global chords and connection health are unaffected: they still
-            see every packet, because pausing those would stop your controller
-            working the moment you alt-tabbed.
-
-            ### Quick binds
-            The whole controller passed through to a virtual Xbox/DS4 pad in one
-            click, and any four-way directional pointed at WASD.
-
-            ### Interface
-            - A collapsible sidebar that fits its own width instead of scrolling
-              sideways
-            - One binding clipboard bar that says what is copied and lets you clear
-              it, with the per-input Paste quietened to a text action
-            - One trigger picker per binding card instead of two that disagreed, a
-              keycap for the output, and a gear menu without the dead entries
-            - Dropdown help sits beside the option list rather than below it, so
-              hovering down the list no longer resizes the popup and slides the
-              option out from under the pointer
-            - The profile chip shows the profile you applied, not the internal
-              preview filename it is applied through
-
-            ### Install
-            ViGEmBus installs elevated from the installer hook, so gamepad
-            passthrough works without a separate manual install step.
-
-            ---
-
-            ## What this fork adds
-
-            For anyone installing for the first time.
-
-            ### Steam Controller 2026 support
-            - Recognized over USB, Bluetooth, Proteus Puck, and Nereid receiver
-            - All Valve-specific inputs: QAM, 4 paddles, 2 pad clicks, grip
-              sensors, capacitive stick touch
-            - Both physical trackpads with independent per-pad configuration
-            - `LEFT_TOUCHPAD_MODE`, `RIGHT_TOUCHPAD_MODE`, `LEFT_GRID_SIZE`,
-              `RIGHT_GRID_SIZE`, and the rest of the per-pad settings
-            - SDL 3.4.14+ with the Triton HID driver and two-touchpad support
-
-            ### The interface, built around Steam Input's shape
-            The controller is split across pages the way Steam Input splits it --
-            Buttons, D-Pad, Triggers, Joysticks, Trackpads, Gyro -- so each page
-            shows only its own inputs instead of one long wall of bindings. A
-            setting appears only when it can do something: mouse smoothing on a pad
-            set to Mouse, columns and rows only on a pad set to Grid and Stick.
-            Grid and Stick draws the actual pad split into its cells with your
-            finger shown live on it. The back buttons are called L4, R4, L5 and R5,
-            as they are on the hardware.
-
-            ### Haptics you can bind
-            Any effect can be bound to any input, alongside or instead of a key.
-            Pick Haptics in the binding editor, or write the name yourself:
-            `HAPTIC_L_CLICK`, `HAPTIC_R_TICK`, `HAPTIC_BOTH_TONE`, with an optional
-            gain (`HAPTIC_L_CLICK_6` louder, `HAPTIC_R_TICK_N12` quieter). Side is
-            `L`, `R` or `BOTH`; the effects are the firmware's own OFF, TICK,
-            CLICK, TONE, RUMBLE, NOISE, SCRIPT and SWEEP.
-
-            ### Trackpad precision
-            - Pad deltas are floating point end to end. They were cast to `int16_t`
-              every 3ms poll, so a slow steady swipe rounded to zero and the cursor
-              stepped instead of moving
-            - Steam Controller pads are treated as square. They were reusing the
-              DualShock 4's 1920x920, making vertical gain 2.09x too low
-            - One Euro filter on pad position with measured frame time, tuned by
-              `TOUCHPAD_MIN_CUTOFF` and `TOUCHPAD_SPEED_COEFF`
-            - The pads report a capacitive touch rather than a press. SDL's Triton
-              driver built the finger-down flag out of the pressure channel, so a
-              resting finger registered nothing until it exerted force -- and right
-              at that boundary the pressure reading sits in the noise, so contact
-              flickered. Patched at build time; the lightest touch now registers
-            - Touching the pad during a trackball coast stops it, the way grabbing
-              a trackball does. `TOUCHPAD_TRACKBALL_MIN_VELOCITY` sets how fast a
-              swipe must still be travelling at liftoff to coast at all
-            - Each pad's grid is its own: LT1.. on the left, RT1.. on the right,
-              each with its own cells, bindings and live touch
-
-            ### The once-a-second cursor stutter
-            Reported on the trackpad, the gyro and stick aim alike -- three paths
-            that share no smoothing code. Two causes, both since fixed. "Auto
-            switch" fetched the foreground window's title on every one-second poll
-            rather than only when the app changed; on win32 that waits on the other
-            process's message pump, and a busy game can leave it hanging. And
-            AutoConnect, a separate always-on one-second poll, asked SDL for a
-            device count while holding the same lock the 333Hz output loop needs
-            for its entire tick -- across a hardcoded 20ms wait inside SDL's
-            refresh. That guaranteed a 20ms cursor stall every second, on every
-            session, unrelated to any setting you could turn off.
-
-            ### Known limitations
-            - Trigger clicks (physical click at end of trigger travel) are not yet
-              exposed - requires an SDL upstream patch
-            - TOUCH, CAPTURE and the touch stick's directions are still shared by
-              both pads. Only the grid cells are per-pad
-            - Grip calibration applies to both grips together. Only the automatic
-              grip haptics can be set per side
-            - Auto-updater is disabled (pending signing key setup)
-            - macOS builds not supported (Windows-only)
-
-            ### Source
-            - JoyShockMapper: https://github.com/LukeyBeachBoy/JoyShockMapper
-            - JSM Studio: https://github.com/LukeyBeachBoy/JSM_Studio
-          releaseDraft: false
-          prerelease: false
+      - name: Attach checksum and exact source revisions
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_ID: ${{ steps.bundle.outputs.releaseId }}
+        run: |
+          if (-not $env:RELEASE_ID) { throw "Tauri action did not return a release ID." }
+          $tag = gh api "repos/$env:GH_REPO/releases/$env:RELEASE_ID" --jq '.tag_name'
+          if ($LASTEXITCODE -ne 0) { throw "Cannot read draft release." }
+          $destination = Join-Path $env:RUNNER_TEMP 'jsm-release-verification'
+          New-Item -ItemType Directory -Path $destination -Force | Out-Null
+          gh release download $tag --repo $env:GH_REPO --pattern '*-setup.exe' --dir $destination
+          if ($LASTEXITCODE -ne 0) { throw "Cannot download the uploaded installer for hashing." }
+          $installers = @(Get-ChildItem -LiteralPath $destination -Filter '*-setup.exe')
+          if ($installers.Count -eq 0) { throw "No uploaded installer found." }
+          $hashes = foreach ($installer in $installers) {
+            $hash = (Get-FileHash -LiteralPath $installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $($installer.Name)"
+          }
+          $hashPath = Join-Path $destination 'SHA256SUMS.txt'
+          $hashes | Set-Content -LiteralPath $hashPath -Encoding utf8
+          $sourcePath = Join-Path $destination 'SOURCE-REVISIONS.txt'
+          @("App: $(git rev-parse HEAD)", "Mapper: $(git -C JoyShockMapper rev-parse HEAD)", "Workflow: $env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID") |
+            Set-Content -LiteralPath $sourcePath -Encoding utf8
+          gh release upload $tag $hashPath $sourcePath --repo $env:GH_REPO --clobber
+          if ($LASTEXITCODE -ne 0) { throw "Could not attach verification files." }

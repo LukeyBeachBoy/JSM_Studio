@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { OpenRow, SubPage } from '../ui/console'
-import { readVirtualMenus, writeVirtualMenus } from '../../utils/virtualMenus'
+import { readVirtualMenus } from '../../utils/virtualMenus'
 import { connectStickMenu, type StickSide } from '../../utils/stickMenus'
-import { updateKeymapEntry } from '../../utils/keymap'
 import type { SetText } from './shared'
 import styles from './P4.module.css'
 
@@ -20,19 +19,20 @@ type Props = {
   setText: SetText
   /** A RADIAL_MENU wheel from an older file: "New wheel" converts it, keeping its slices. */
   legacy: boolean
+  trigger?: string
 }
 
-export function WheelChooser({ open, onClose, side, text, setText, legacy }: Props) {
+export function WheelChooser({ open, onClose, side, text, setText, legacy, trigger = '' }: Props) {
   const [problem, setProblem] = useState<string | null>(null)
   const name = side === 'left' ? 'Left stick' : 'Right stick'
   const catalog = readVirtualMenus(text)
   const wheels = catalog.menus.filter(menu => menu.type === 'RADIAL')
   const connect = (id?: string) => {
-    const result = connectStickMenu(text, side, id)
+    const result = connectStickMenu(text, side, id, trigger)
     setProblem(result.problem ?? null)
     if (!result.id) return
     const menuId = result.id
-    setText(previous => writeVirtualMenus(updateKeymapEntry(previous, `${side.toUpperCase()}_STICK_MODE`, ['NO_MOUSE']), readVirtualMenus(result.text).menus))
+    setText(previous => connectStickMenu(previous, side, id, trigger).text)
     onClose()
     // A new wheel has empty slices: open it in Menus to fill them. An existing
     // one is ready, so you stay on Sticks with the stick reserved for it.

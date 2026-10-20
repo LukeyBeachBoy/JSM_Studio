@@ -22,6 +22,9 @@ import { LibraryCover } from './library/LibraryCover'
 import { MoreSheet, BasePickerSheet, type MoreItem } from './library/LibrarySheets'
 import styles from './library/Library.module.css'
 import { landOn } from '../nav/landing'
+import { SubPage } from './ui/console'
+import { windowsSignInGuide } from '../utils/windowsSignInGuide'
+import steamFrontArt from '../assets/steam-controller-front.svg?raw'
 
 // The Library (console v2: Library, LibraryActions, LibraryDetail,
 // LibraryBases). Games: a shelf of covers -- each game's configuration, the
@@ -81,6 +84,9 @@ export function ProfileManager(props: ProfileManagerProps) {
   const [baseFor, setBaseFor] = useState<string | null>(null)
   const [gameFor, setGameFor] = useState<string | null>(null)
   const [newBaseOpen, setNewBaseOpen] = useState(false)
+  const [signInGuideOpen, setSignInGuideOpen] = useState(false)
+  const signInText = texts['Windows Sign-in'] ?? ''
+  const signInReference = useMemo(() => windowsSignInGuide(signInText, steamFrontArt), [signInText])
   const [subWhere, setSubWhere] = useState<string | null>(null)
   const importRef = useRef<HTMLInputElement>(null)
   const pageRef = useRef<HTMLDivElement>(null)
@@ -189,7 +195,7 @@ export function ProfileManager(props: ProfileManagerProps) {
     return [
       { key: 'duplicate', icon: 'copy', label: 'Duplicate', note: 'A copy, opened to edit', run: () => void duplicate(name) },
       { key: 'rename', icon: 'details', label: 'Rename', run: () => rename(name) },
-      { key: 'base', icon: 'inherited', label: 'Change base', note: facts?.base ? baseLabel(facts.base, builtinBases) : 'Nothing', run: () => { setMoreFor(null); setBaseFor(name) } },
+      { key: 'base', icon: 'base', label: 'Change base', note: facts?.base ? baseLabel(facts.base, builtinBases) : 'Nothing', run: () => { setMoreFor(null); setBaseFor(name) } },
       ...(isBase ? [] : [{ key: 'game', icon: 'associations' as const, label: 'Launch with game', note: rule ? exeFileName(rule.processName) : 'None', run: () => { setMoreFor(null); setGameFor(name) } }]),
       { key: 'folder', icon: 'folder', label: 'Show in folder', run: () => { setMoreFor(null); onShowInFolder() } },
       { key: 'source', icon: 'source', label: 'Edit the file directly', note: 'For experts', run: () => { setMoreFor(null); onEditSource(name) } },
@@ -262,6 +268,11 @@ export function ProfileManager(props: ProfileManagerProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shelfKey, firstRun])
   const compact = view === 'games' && (Object.values(graph.configs).some(facts => facts.swaps.length > 0) || Object.keys(graph.problems).length > 0)
+  const signInHelp = (name: string) => name === 'Windows Sign-in' ? <>
+    <p className={styles.hint}>Off by default. Enable controller input in Settings → Startup → Windows sign-in; FakerInput must be installed separately. While enabled and JSM Evolved is running, enter your PIN yourself; it is never saved in this configuration. Quick Access + Y turns a supported Steam Controller off after you release both buttons.</p>
+    <button type="button" className={styles.act} data-sign-in-reference="" data-hints="A:Button reference;B:Home" onClick={() => setSignInGuideOpen(true)}><Icon name="info" size={24} />Button reference</button>
+  </> : null
+
   const renderGames = () => {
     const name = current
     const facts = name ? graph.configs[name] : undefined
@@ -322,6 +333,7 @@ export function ProfileManager(props: ProfileManagerProps) {
               {name === currentProfileName && hasPendingChanges && <span className={styles.olderPill}>Unsaved changes</span>}
               <span className={styles.detailFile}>{name}.txt{meta[name] ? ` · saved ${relativeTime(meta[name].modifiedAtMs, now)}` : ''}</span>
             </div>
+            {signInHelp(name)}
             <dl className={styles.facts}>
               <div><dt>Controller</dt><dd>{controllerName ?? 'Any'}</dd></div>
               <div><dt>Sends</dt><dd>{facts.sends}</dd></div>
@@ -464,11 +476,12 @@ export function ProfileManager(props: ProfileManagerProps) {
                 <h2 className={styles.detailName}>{current === BUILTIN_CHORD_NAME ? 'Hold to swap' : name}</h2>
                 <span className={styles.mono} style={{ color: 'var(--text-3)' }}>{isPreset ? variants.map(base => base.fileName).join(' · ') : `${current}.txt`}</span>
               </div>
+              {signInHelp(current)}
               <dl className={styles.facts}>
                 <div><dt>Used by</dt><dd>{usedBy.length ? usedBy.join(', ') : 'Nothing yet'}</dd></div>
                 <div><dt>Built on</dt><dd>{userFacts?.base ? baseLabel(userFacts.base, builtinBases) : 'Nothing'}</dd></div>
                 <div><dt>Sends</dt><dd>{isPreset ? (variants[0].text.match(/VIRTUAL_CONTROLLER\s*=\s*XBOX/) ? 'Xbox controller' : 'Keyboard & mouse') : userFacts?.sends ?? '—'}</dd></div>
-                <div><dt>Goes live</dt><dd>{current === BUILTIN_CHORD_NAME ? 'While its buttons are held' : 'Only through a game'}</dd></div>
+                <div><dt>Goes live</dt><dd>{current === 'Windows Sign-in' ? 'While locked, only if enabled in Startup settings' : current === BUILTIN_CHORD_NAME ? 'While its buttons are held' : 'Only through a game'}</dd></div>
               </dl>
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                 {isPreset
@@ -504,6 +517,11 @@ export function ProfileManager(props: ProfileManagerProps) {
   return (
     <div className={styles.page} ref={pageRef} aria-busy={libraryLoading || data.loading || undefined} data-library-view={view}>
       {view === 'games' ? renderGames() : renderBases()}
+      <SubPage open={signInGuideOpen} onClose={() => setSignInGuideOpen(false)} crumbRoot="Library" trail={['Windows Sign-in']} title="Button reference" backLabel="Back">
+        <div className={styles.signInGuide} data-sign-in-guide="" dangerouslySetInnerHTML={{ __html: signInReference }} />
+        <p className={styles.hint}>Steam Controller (2026) · Shows the saved Windows Sign-in bindings. Touch and grip sensors are not needed. This reference is available in JSM Evolved; it does not overlay the Windows sign-in screen.</p>
+        <button type="button" className={styles.act} data-sign-in-guide-back="" data-autofocus="" data-hints="A:Back to library;B:Back" onClick={() => setSignInGuideOpen(false)}>Back to library</button>
+      </SubPage>
       {moreName && (
         <MoreSheet open onClose={() => setMoreFor(null)} eyebrow={`Library · ${view === 'games' ? 'Games' : 'Bases'}`} title={moreName} file={`${moreName}.txt`}
           items={moreItems(moreName)} confirming={confirmDelete} onWhere={setSubWhere}

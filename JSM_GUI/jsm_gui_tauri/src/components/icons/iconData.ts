@@ -8,6 +8,7 @@ export const UI_ICONS = {
   "apply": "<path d=\"M12 3.5v11M7.5 10l4.5 4.5 4.5-4.5\"></path><path d=\"M4.5 16.5v4h15v-4\"></path>",
   "associations": "<rect x=\"3.5\" y=\"4.5\" width=\"17\" height=\"12\" rx=\"2.5\"></rect><path d=\"M9 20h6M12 16.5V20\"></path>",
   "back": "<path d=\"M14 7l-5 5 5 5\"></path>",
+  "base": "<rect x=\"3\" y=\"6.5\" width=\"15\" height=\"4\" rx=\"1\" fill=\"var(--layer-2)\" stroke=\"none\"></rect><rect x=\"3\" y=\"13.5\" width=\"18\" height=\"4\" rx=\"1\" fill=\"var(--accent)\" stroke=\"none\"></rect>",
   "battery": "<rect x=\"3.5\" y=\"7.5\" width=\"15\" height=\"9\" rx=\"2.5\"></rect><path d=\"M21 10.5v3\"></path><path d=\"M6.5 10.5v3M9.5 10.5v3M12.5 10.5v3\"></path>",
   "buttons": "<circle cx=\"12\" cy=\"5.5\" r=\"2.5\"></circle><circle cx=\"12\" cy=\"18.5\" r=\"2.5\"></circle><circle cx=\"5.5\" cy=\"12\" r=\"2.5\"></circle><circle cx=\"18.5\" cy=\"12\" r=\"2.5\"></circle>",
   "calibrate": "<circle cx=\"12\" cy=\"12\" r=\"7\"></circle><path d=\"M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4\"></path><circle cx=\"12\" cy=\"12\" r=\"1.5\" fill=\"currentColor\" stroke=\"none\"></circle>",
