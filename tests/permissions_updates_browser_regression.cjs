@@ -40,6 +40,10 @@ const base = process.env.JSM_TEST_URL || 'http://127.0.0.1:1420'
     await admin.click(); await checked(admin, false)
     await page.reload(); await go()
     await checked(signIn, false)
+    await page.evaluate(() => { window.__externalUrl = null; window.electronAPI.openExternal = async url => { window.__externalUrl = url } })
+    await page.getByRole('button', { name: /^Browse all releases/ }).click()
+    await page.waitForFunction(() => window.__externalUrl === 'https://github.com/LukeyBeachBoy/JSM_Studio/releases')
+    await page.getByText(/Update checks contact GitHub for stable releases/).waitFor()
     await page.evaluate(() => { window.electronAPI.installAppUpdate = async () => { throw new Error('Browser unavailable') } })
     const banner = page.locator('[role="status"][data-phase]')
     await banner.getByRole('button', { name: 'View release', exact: true }).click()
@@ -73,7 +77,32 @@ const base = process.env.JSM_TEST_URL || 'http://127.0.0.1:1420'
     ])
     await go()
     await checked(signIn, false); await checked(admin, false)
+    const fresh = await browser.newPage()
+    await fresh.addInitScript(() => {
+      let api
+      Object.defineProperty(window, 'electronAPI', {
+        configurable: true,
+        get: () => api,
+        set: value => {
+          api = value
+          const list = api.listLibraryProfiles
+          api.listLibraryProfiles = async () => ['Windows Sign-in', ...await list()]
+          const load = api.loadLibraryProfile
+          api.loadLibraryProfile = async name => name === 'Windows Sign-in'
+            ? { name, content: 'RESET_MAPPINGS\nS = SPACE\n' }
+            : load(name)
+        },
+      })
+    })
+    await fresh.goto(`${base}/?mock`)
+    await fresh.locator('[data-home-continue]').waitFor()
+    const shelf = fresh.getByRole('region', { name: 'Your games' })
+    await shelf.getByText('3 configurations', { exact: true }).waitFor()
+    assert.equal(await shelf.getByText('Windows Sign-in', { exact: true }).count(), 0, 'lock-screen reference is not a suggested game')
+    await fresh.evaluate(() => window.dispatchEvent(new CustomEvent('jsm:navigate-page', { detail: 'startup' })))
+    await fresh.getByRole('button', { name: /^No newer stable release/ }).waitFor()
+    await fresh.close()
     assert.deepEqual(errors, [])
-    console.log('PASS: first-run defaults, explicit consent/cancel, persistence, independent admin setting, updater failure/retry, minimum window')
+    console.log('PASS: first-run defaults, explicit consent/cancel, persistence, independent admin setting, updater failure/retry, stable release wording, preview link, game suggestions, minimum window')
   } finally { await browser.close() }
 })().catch(error => { console.error(error); process.exit(1) })

@@ -211,19 +211,13 @@ fn refresh_shortcut_icons(app: &AppHandle, width: u32, height: u32, rgba: &[u8])
         fs::write(&temp, ico_bytes(rgba, width, height)).map_err(|error| error.to_string())?;
         fs::rename(&temp, &ico).map_err(|error| error.to_string())?;
     }
-    // Older accents' files go, once nothing points at them any more.
     let shortcuts = shortcut_candidates(&app.package_info().name);
     let result = point_shortcuts_at(&shortcuts, &ico);
     if result.is_ok() {
-        if let Ok(entries) = fs::read_dir(&dir) {
-            for entry in entries.flatten() {
-                let name = entry.file_name();
-                let name = name.to_string_lossy();
-                if name.starts_with(ICO_PREFIX) && name.ends_with(".ico") && entry.path() != ico {
-                    let _ = fs::remove_file(entry.path());
-                }
-            }
-        }
+        // Explorer can retain the previous shortcut icon path for an open
+        // taskbar button even after the .lnk changes. Keep these small,
+        // content-addressed files until app data is removed so that cached
+        // buttons and renamed pins never resolve to a deleted icon.
         notify_shell();
     }
     result

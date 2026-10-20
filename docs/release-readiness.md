@@ -14,8 +14,10 @@
   checksum and exact source revisions attached to the release.
 - [x] Public README screenshots, project history, comparison, permission guidance
   and direct prerelease link match the download.
-- [ ] Fresh install, upgrade/uninstall, driver approval/refusal and native UAC
-  checks on the exact public installer.
+- [x] Upgrade of the public 0.7.155 installer on the maintainer's PC, preserving
+  59 checked configuration files, plus isolated fresh-app-data onboarding.
+- [ ] Clean-machine install, independent uninstall, missing-driver approval/
+  refusal and native UAC checks. [Acceptance record and follow-up fixes](releases/installer-acceptance-2026-10-20.md).
 - [ ] Physical-controller/game and lock/unlock acceptance, with model/firmware/
   transport recorded separately for each controller.
 - [ ] Outside setup feedback and a short real-controller demonstration before a

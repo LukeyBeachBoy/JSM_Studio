@@ -92,7 +92,10 @@ export function StartupPage({ libraryProfiles, liveName, hasPendingChanges = fal
             if (update?.available) void shellBridge.installUpdate().catch(error => showToast(String(error), 'error'))
             else void checkForUpdatesNow()
           }} hints={update?.available ? 'A:View release;B:Home' : 'A:Check now;B:Home'} />
-        <SettingsNote>Update checks contact GitHub. View release opens your browser so you can read the notes and choose a download. JSM Evolved stays running and does not install updates automatically.</SettingsNote>
+        <OpenRow label="Browse all releases" hint="Preview builds and stable releases on GitHub"
+          onOpen={() => void desktopBridge.openExternal('https://github.com/LukeyBeachBoy/JSM_Studio/releases').catch(error => showToast(String(error), 'error'))}
+          hints="A:Open GitHub;B:Home" />
+        <SettingsNote>Update checks contact GitHub for stable releases. For preview builds, choose Browse all releases. Release pages open in your browser so you can read the notes and choose a download. JSM Evolved stays running and does not install updates automatically.</SettingsNote>
       </SettingsSection>
       <ResetDefaultSettings />
 

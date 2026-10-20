@@ -14,6 +14,6 @@ The version tag must match the app's configured version. The draft description d
 
 A checksum proves correspondence with the file listed by the release, not publisher identity or absence of malware. Automatic installation has been removed pending an authenticated updater design. Release links are restricted to this project's HTTPS release pages; invalid destinations fall back to its releases listing.
 
-GitHub's latest-release endpoint does not offer draft/prerelease candidates as stable upgrades. A tested prerelease needs a deliberate download; promoting a release is a separate maintainer decision.
+GitHub's latest-release endpoint does not offer draft/prerelease candidates as stable upgrades. A tested prerelease needs a deliberate download; promoting a release is a separate maintainer decision. Starting in 0.7.156, Startup settings labels this as a stable-release check and provides **Browse all releases** for preview downloads.
 
 See [release readiness](release-readiness.md) before promoting anything.

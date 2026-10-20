@@ -110,8 +110,10 @@ function GameCover({ name, note, onOpen }: { name: string; note?: string; onOpen
 export function HomePage(props: HomePageProps) {
   const library = useLibraryGraph(props.libraryProfiles)
   const [baseOpen, setBaseOpen] = useState(false)
-  const games = props.games.filter(name => library.graph.games.includes(name))
-  const configurationCount = library.graph.games.length
+  // Keep the optional lock-screen reference in Library, away from game suggestions.
+  const gameProfiles = library.graph.games.filter(name => name !== 'Windows Sign-in')
+  const games = props.games.filter(name => gameProfiles.includes(name))
+  const configurationCount = gameProfiles.length
   const { t } = useTranslation()
   const { family } = useShell()
   const name = props.configName ?? 'No configuration'

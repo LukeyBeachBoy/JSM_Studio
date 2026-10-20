@@ -163,12 +163,12 @@ export function useUpdateStatus(): UpdateStatus | null {
   return useSyncExternalStore(subscribeUpdates, () => updateStatus)
 }
 
-/** "Up to date", "Version 0.8.0 is ready", "Checking…", "Couldn't check". */
+/** The update endpoint checks stable releases; previews remain available on GitHub. */
 export const describeUpdate = (status: UpdateStatus | null) => {
-  if (!status || status.checking) return 'Checking for updates…'
+  if (!status || status.checking) return 'Checking stable releases…'
   if (status.error) return 'Couldn’t check'
-  if (status.available) return `Version ${status.latestVersion} is ready`
-  return 'Up to date'
+  if (status.available) return `Stable version ${status.latestVersion} is ready`
+  return 'No newer stable release'
 }
 
 /** "checked when JSM Evolved started", "checked at 21:40". */
