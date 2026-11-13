@@ -64,10 +64,12 @@ static void hexdump(const char *tag, const BYTE *p, int n)
 static HANDLE openVendor(const std::vector<Dev> &devs, Dev &chosen)
 {
 	const char *force = getenv("SCPROBE_PID");
+	const char *interfaceFilter = getenv("SCPROBE_INTERFACE");
 	USHORT wantPid = force ? (USHORT)strtoul(force, nullptr, 16) : 0;
 	for (const auto &d : devs)
 	{
-		if (d.usagePage < 0xFF00) continue;
+		if (d.usagePage < 0xFF00 || d.featLen < 3) continue;
+		if (interfaceFilter && d.path.find(std::wstring(interfaceFilter, interfaceFilter + strlen(interfaceFilter))) == std::wstring::npos) continue;
 		if (wantPid && d.pid != wantPid) continue;
 		HANDLE h = CreateFileW(d.path.c_str(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr);
 		if (h == INVALID_HANDLE_VALUE) { printf("# open failed (%lu) for pid %04x\n", GetLastError(), d.pid); continue; }

@@ -116,7 +116,7 @@ async function inSpeedParts(page, part, fn) {
   return result
 }
 
-/** The Steadiness ▸ Advanced part rows ("Ignore jitter", "Smoothing"…). */
+/** The Steadiness ▸ Advanced part rows ("Deadzone & steadying", "Smoothing"…). */
 async function inSteadinessPart(page, part, fn) {
   await gyroFront(page)
   await page.locator('[data-gyro-fine-tune]').click()
@@ -145,11 +145,11 @@ const tagOf = async row => (await row.innerText()).match(/(From [^\n]+|Changed[^
  * template, so every inherited value reads "Changed from …" (pre-existing since V4).
  */
 async function gyroInheritedChecks(page, { origin = true } = {}) {
-  await inSpeedParts(page, 'Speeds', async scope => {
-    for (const [label, value] of [['Slow speed', '2×'], ['Slow speed, up/down', '1.5×'], ['Fast speed', '4×'], ['Fast speed, up/down', '3×'], ['Slow until', '5 °/s'], ['Fast from', '75 °/s']]) {
+  await inSpeedParts(page, 'Sensitivity', async scope => {
+    for (const [label, value] of [['Minimum sensitivity (RWS)', '2×'], ['Minimum vertical sensitivity (RWS)', '1.5×'], ['Maximum sensitivity (RWS)', '4×'], ['Maximum vertical sensitivity (RWS)', '3×'], ['Minimum speed threshold', '5 °/s'], ['Maximum speed threshold', '75 °/s']]) {
       assert.equal(await valueText(valueRow(scope, label)), value, `${label} shows the template's value`)
     }
-    if (origin) for (const label of ['Slow speed', 'Fast speed', 'Slow until', 'Fast from']) assert.equal(await tagOf(valueRow(scope, label)), 'From FPS Template', `${label} is marked as inherited`)
+    if (origin) for (const label of ['Minimum sensitivity (RWS)', 'Maximum sensitivity (RWS)', 'Minimum speed threshold', 'Maximum speed threshold']) assert.equal(await tagOf(valueRow(scope, label)), 'From FPS Template', `${label} is marked as inherited`)
   })
   await inWhenOn(page, async scope => {
     const activation = segmentRow(scope, 'Gyro is on')
@@ -157,26 +157,26 @@ async function gyroInheritedChecks(page, { origin = true } = {}) {
     if (origin) assert.equal(await tagOf(activation), 'From FPS Template')
     await scope.locator('[data-condition="0"]').waitFor()
   })
-  await inSteadinessPart(page, 'Ignore jitter', async scope => {
-    assert.equal(await valueText(valueRow(scope, 'Ignore turns slower than')), '1 °/s')
-    if (origin) assert.equal(await tagOf(valueRow(scope, 'Ignore turns slower than')), 'From FPS Template')
+  await inSteadinessPart(page, 'Deadzone & steadying', async scope => {
+    assert.equal(await valueText(valueRow(scope, 'Gyro cutoff speed')), '1 °/s')
+    if (origin) assert.equal(await tagOf(valueRow(scope, 'Gyro cutoff speed')), 'From FPS Template')
   })
   await inSteadinessPart(page, 'Smoothing', async scope => {
-    assert.equal(await valueText(valueRow(scope, 'Smooth below this speed')), '3 °/s')
+    assert.equal(await valueText(valueRow(scope, 'Smoothing threshold')), '3 °/s')
     assert.equal(await valueText(valueRow(scope, 'Smoothing time')), '0.125 s')
     if (origin) {
-      assert.equal(await tagOf(valueRow(scope, 'Smooth below this speed')), 'From FPS Template')
+      assert.equal(await tagOf(valueRow(scope, 'Smoothing threshold')), 'From FPS Template')
       assert.equal(await tagOf(valueRow(scope, 'Smoothing time')), 'From FPS Template')
     }
   })
 }
 
 async function gyroOverrideEdits(page, { origin = true } = {}) {
-  await inSpeedParts(page, 'Speeds', async scope => {
-    await typeValue(valueRow(scope, 'Slow speed'), 3)
-    assert.equal(await valueText(valueRow(scope, 'Slow speed, up/down')), '1.5×', 'editing X must keep the inherited Y, not zero it')
-    await typeValue(valueRow(scope, 'Fast from'), 60)
-    if (origin) for (const label of ['Slow speed', 'Fast from']) assert.match(await tagOf(valueRow(scope, label)), /^Changed/, `${label} is an override`)
+  await inSpeedParts(page, 'Sensitivity', async scope => {
+    await typeValue(valueRow(scope, 'Minimum sensitivity (RWS)'), 3)
+    assert.equal(await valueText(valueRow(scope, 'Minimum vertical sensitivity (RWS)')), '1.5×', 'editing X must keep the inherited Y, not zero it')
+    await typeValue(valueRow(scope, 'Maximum speed threshold'), 60)
+    if (origin) for (const label of ['Minimum sensitivity (RWS)', 'Maximum speed threshold']) assert.match(await tagOf(valueRow(scope, label)), /^Changed/, `${label} is an override`)
   })
   await inWhenOn(page, async scope => {
     await segment(segmentRow(scope, 'Gyro is on'), 'While I hold')
@@ -185,10 +185,10 @@ async function gyroOverrideEdits(page, { origin = true } = {}) {
 }
 
 async function gyroRestoreEdits(page, { origin = true } = {}) {
-  await inSpeedParts(page, 'Speeds', async scope => {
-    await typeValue(valueRow(scope, 'Slow speed'), 2)
-    await typeValue(valueRow(scope, 'Fast from'), 75) // the template says 75.0
-    if (origin) for (const label of ['Slow speed', 'Fast from']) assert.equal(await tagOf(valueRow(scope, label)), 'From FPS Template', `${label} follows the template again`)
+  await inSpeedParts(page, 'Sensitivity', async scope => {
+    await typeValue(valueRow(scope, 'Minimum sensitivity (RWS)'), 2)
+    await typeValue(valueRow(scope, 'Maximum speed threshold'), 75) // the template says 75.0
+    if (origin) for (const label of ['Minimum sensitivity (RWS)', 'Maximum speed threshold']) assert.equal(await tagOf(valueRow(scope, label)), 'From FPS Template', `${label} follows the template again`)
   })
   await inWhenOn(page, async scope => {
     await segment(segmentRow(scope, 'Gyro is on'), 'Unless I hold')
@@ -198,10 +198,10 @@ async function gyroRestoreEdits(page, { origin = true } = {}) {
 
 /** Type the up/down slow speed (a draft typed and set back must not read as a change). */
 async function gyroSetSlowY(page, value) {
-  await inSpeedParts(page, 'Speeds', async scope => typeValue(valueRow(scope, 'Slow speed, up/down'), value))
+  await inSpeedParts(page, 'Sensitivity', async scope => typeValue(valueRow(scope, 'Minimum vertical sensitivity (RWS)'), value))
 }
 async function gyroSlowYOrigin(page) {
-  return inSpeedParts(page, 'Speeds', async scope => tagOf(valueRow(scope, 'Slow speed')))
+  return inSpeedParts(page, 'Sensitivity', async scope => tagOf(valueRow(scope, 'Minimum sensitivity (RWS)')))
 }
 
 module.exports = {

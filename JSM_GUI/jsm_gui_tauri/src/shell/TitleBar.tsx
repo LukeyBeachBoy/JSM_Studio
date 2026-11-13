@@ -5,8 +5,9 @@ import { Menu, type MenuItem } from '../components/ui/Menu'
 import { ButtonGlyph } from '../components/glyphs/ButtonGlyph'
 import { BrandMark } from '../components/BrandMark'
 import type { ShellWidth } from './useShellWidth'
-import { windowControls } from './windowControls'
+import { WindowControls } from './NativeWindowControls'
 import { layerHue, layerSlotOf } from '../utils/layers'
+import { fallbackCover } from '../hooks/useGameArt'
 import { useProfileAssociation } from '../hooks/useAppIcon'
 import { AppIconImage } from '../components/AppIconImage'
 import { useShowsKeys } from '../nav/inputSource'
@@ -49,6 +50,7 @@ type TitleBarProps = {
   /** The game chip's second line (V4): the controller, and "only for this
    *  controller" when the configuration has a layout of its own for it. */
   chipController?: string
+  controllerSelector?: ReactNode
   /** The mode being edited, when not Default (P6 mode indicator): shown in the chip. */
   modeName?: string | null
   modeColor?: string
@@ -72,6 +74,9 @@ type TitleBarProps = {
 
   state: StateButton
   onStatePress: () => void
+  onSave?: () => void
+  saveReason?: string | null
+  onSearch?: () => void
   /** Console v2 (V4): which controller the edits go to ("Shared layout",
    *  "Only for Steam Controller"); the game chip's menu opens the sheet. */
   controllerScope?: string
@@ -93,34 +98,6 @@ export const STATUS_TEXT = {
   testing: 'Testing · B to stop',
   paused: 'Paused while you edit',
 } as const
-
-function WindowControls() {
-  const [maximized, setMaximized] = useState(false)
-  useEffect(() => {
-    let dispose: (() => void) | undefined
-    let cancelled = false
-    const refresh = () => { void windowControls.isMaximized().then(value => { if (!cancelled) setMaximized(value) }) }
-    refresh()
-    void windowControls.onResized(refresh).then(unlisten => { if (cancelled) unlisten(); else dispose = unlisten })
-    return () => { cancelled = true; dispose?.() }
-  }, [])
-  // Mouse-only (HANDOFF.md, "Focus model"): out of the tab order and the pad's.
-  return (
-    <div className="window-controls" data-focusable="false">
-      <button type="button" tabIndex={-1} aria-label="Minimise" onClick={() => void windowControls.minimize()}>
-        <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M0 5.5h10" stroke="currentColor" /></svg>
-      </button>
-      <button type="button" tabIndex={-1} aria-label={maximized ? 'Restore' : 'Maximise'} onClick={() => void windowControls.toggleMaximize()}>
-        {maximized
-          ? <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true" fill="none" stroke="currentColor"><rect x=".5" y="2.5" width="7" height="7" rx="1" /><path d="M2.5 2.5V1.5a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-1" /></svg>
-          : <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true" fill="none" stroke="currentColor"><rect x=".5" y=".5" width="9" height="9" rx="1" /></svg>}
-      </button>
-      <button type="button" tabIndex={-1} className="window-controls__close" aria-label="Close" onClick={() => void windowControls.close()}>
-        <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M.5.5l9 9M9.5.5l-9 9" stroke="currentColor" /></svg>
-      </button>
-    </div>
-  )
-}
 
 /** Home's clock (Home.dc.html: "21:40"), to the minute. */
 function Clock() {
@@ -168,7 +145,7 @@ export function TitleBar(props: TitleBarProps) {
   ]
 
   const homeChip = (
-    <button type="button" className="home-chip" onClick={props.onHome} data-hints="A:Home;B:Back"
+    <button type="button" className="home-chip" aria-label={t('app.nav.home', 'Home')} onClick={props.onHome} data-hints="A:Home;B:Back"
       data-caption="Home · this configuration, your games and Settings">
       <BrandMark size={20} />
       <span>Home</span>
@@ -186,6 +163,7 @@ export function TitleBar(props: TitleBarProps) {
 
   return (
     <header className="titlebar" data-variant={props.variant} data-focus-scope="titlebar" data-tauri-drag-region data-frameless={props.frameless ? 'true' : undefined}>
+      <div className="titlebar__primary" data-tauri-drag-region>
       {props.variant === 'home'
         ? (
           // Home's mark is a name, not a button (§8: the logo isn't clickable).
@@ -215,7 +193,8 @@ export function TitleBar(props: TitleBarProps) {
               onKeyDown={event => { if ((event.key === 'x' || event.key === 'X') && props.appliedName) { event.preventDefault(); props.onEditApplied() } }}
               data-caption={`${editingLabel} · ${chipLine}${props.controllerScope ? ` · ${props.controllerScope}` : ''}`}
               aria-label={`${t('app.profileSummary.editingTitle', 'Editing')}: ${editingLabel}${props.dirty ? ', unsaved changes' : ''}`}>
-              <span className="game-chip__art" aria-hidden="true"><AppIconImage exePath={game?.exePath} size={30} fallback={editingLabel.slice(0, 1).toUpperCase()} /></span>
+              <span className="game-chip__art" aria-hidden="true"><AppIconImage exePath={game?.exePath} size={30}
+                fallback={<span className="configuration-mark" style={{ backgroundImage: fallbackCover(editingLabel) }}>{editingLabel.slice(0, 1).toUpperCase()}</span>} /></span>
               <span className="game-chip__text">
                 <b className="profile-chip-name">{editingLabel}{props.dirty && <span className="unsaved-dot profile-chip-dot" aria-hidden="true" />}</b>
                 <span className="game-chip__controller" data-mapping={props.mapping}>{props.modeName && props.mapping !== 'off' && props.mapping !== 'disconnected' && <span className="game-chip__mode" style={{ background: props.modeColor }} aria-hidden="true" />}{chipLine}</span>
@@ -226,13 +205,15 @@ export function TitleBar(props: TitleBarProps) {
         />
       )}
 
-      {props.tabs}
+      {props.controllerSelector}
+      {props.variant !== 'editing' && props.tabs}
 
       <div className="titlebar__drag" data-tauri-drag-region />
 
       {props.appliedName && !appliedIsEditing && props.mapping !== 'off' && props.mapping !== 'disconnected' && (
         <button type="button" className="titlebar__live-profile" onClick={props.onEditApplied}
           aria-label={`Live configuration: ${props.appliedName}. Select to edit`}
+          title={`Live configuration: ${props.appliedName}`}
           data-hints="A:Edit live configuration;B:Back" data-caption={`Running now · ${props.appliedName} · select to edit`}>
           <span className="state-button__dot" aria-hidden="true" />
           <span>Live · <b>{props.appliedName}</b></span>
@@ -246,6 +227,12 @@ export function TitleBar(props: TitleBarProps) {
       )}
       {props.variant === 'home' && <Clock />}
 
+      {props.onSearch && <button type="button" className="menu-chip titlebar__search" aria-label="Search pages and configurations (Ctrl+K)" title="Search · Ctrl+K" onClick={props.onSearch}><Icon name="search" size={20} /></button>}
+      {props.variant === 'editing' && props.onSave && <button type="button" className="titlebar__save" aria-label="Save configuration (Ctrl+S)" onClick={() => { if (!props.saveReason) props.onSave?.() }}
+        aria-disabled={props.saveReason ? true : undefined} data-reason={props.saveReason ?? undefined} title={props.saveReason ?? 'Save configuration · Ctrl+S'}>
+        <Icon name="save" size={18} /><span className="titlebar__save-label">Save</span> <kbd>Ctrl+S</kbd>
+      </button>}
+
       {props.variant !== 'studio' && <>
         {props.variant === 'editing' && <StatusChip state={props.state} onPress={props.onStatePress} editingName={props.editingName} />}
         <button type="button" className="menu-chip" aria-label="Options: review changes, undo, save" onClick={props.onOpenConfigMenu}
@@ -254,6 +241,8 @@ export function TitleBar(props: TitleBarProps) {
         </button>
       </>}
 
+      </div>
+      {props.variant === 'editing' && props.tabs}
       {props.frameless && <WindowControls />}
     </header>
   )
@@ -274,7 +263,7 @@ export function StatusChip({ state, onPress, editingName }: { state: StateButton
       // Tap Menu (M) for options; hold to save and make live from anywhere.
       return <button type="button" className="state-button" data-tone="accent" data-state="unsaved" onClick={onPress} data-hints="A:Save and make live;MENU:Options · hold to save and make live;B:Back"
         data-caption={`Unsaved · ${state.count} ${state.count === 1 ? 'change' : 'changes'} to ${name}. Tap Menu (M) for options; hold to save and make live (Ctrl+Shift+A)`}>
-        <span className="state-button__dot" aria-hidden="true" />{STATUS_TEXT.unsaved}<span className="state-button__sep" aria-hidden="true">·</span><ButtonGlyph button="MENU" size={20} className="state-button__glyph" />Hold to save & make live</button>
+        <span className="state-button__dot" aria-hidden="true" />{STATUS_TEXT.unsaved}<span className="state-button__sep" aria-hidden="true">·</span>Make live</button>
     case 'apply':
       return <button type="button" className="state-button" data-tone="control" data-state="paused" onClick={onPress} data-hints="A:Make live;B:Back"
         data-caption={`Paused while you edit · ${state.name || name} is saved but not live. A makes it live (Ctrl+Shift+A)`}><span className="state-button__dot" aria-hidden="true" />{STATUS_TEXT.paused}</button>

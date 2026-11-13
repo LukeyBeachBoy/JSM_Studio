@@ -43,6 +43,126 @@ impl Drop for OwnedTaskbarIcon {
 }
 
 static TASKBAR_ICON: Mutex<Option<OwnedTaskbarIcon>> = Mutex::new(None);
+static PREVIOUS_APP_ID: std::sync::OnceLock<Option<String>> = std::sync::OnceLock::new();
+
+mod shell_properties {
+    use windows::Win32::{
+        Foundation::HWND,
+        Storage::EnhancedStorage::{
+            PKEY_AppUserModel_ID, PKEY_AppUserModel_RelaunchCommand,
+            PKEY_AppUserModel_RelaunchDisplayNameResource, PKEY_AppUserModel_RelaunchIconResource,
+        },
+        System::{Com::StructuredStorage::{PROPVARIANT, PropVariantChangeType, PVCHF_DEFAULT}, Variant::VT_LPWSTR},
+        UI::Shell::PropertiesSystem::{IPropertyStore, SHGetPropertyStoreForWindow},
+    };
+    use std::path::Path;
+
+    pub(super) fn set(hwnd: HWND, identifier: &str, name: &str, exe: &Path, ico: &Path) -> windows::core::Result<()> {
+        // SAFETY: called on our window's owning UI thread. The property store
+        // copies values; owned PROPVARIANTs release their strings on drop.
+        unsafe {
+            let store: IPropertyStore = SHGetPropertyStoreForWindow(hwnd)?;
+            // Supply the complete relaunch description before the window ID,
+            // otherwise Explorer can resolve a different shortcut first.
+            for (key, text) in [
+                (PKEY_AppUserModel_RelaunchCommand, format!("\"{}\"", exe.display())),
+                (PKEY_AppUserModel_RelaunchDisplayNameResource, name.to_string()),
+                (PKEY_AppUserModel_RelaunchIconResource, format!("{},0", ico.display())),
+                (PKEY_AppUserModel_ID, identifier.to_string()),
+            ] {
+                let mut value = PROPVARIANT::default();
+                PropVariantChangeType(&mut value, &PROPVARIANT::from(text.as_str()), PVCHF_DEFAULT, VT_LPWSTR)?;
+                store.SetValue(&key, &value)?;
+            }
+            store.Commit()
+        }
+    }
+
+    pub(super) fn read(hwnd: HWND) -> serde_json::Value {
+        unsafe {
+            let Ok(store) = SHGetPropertyStoreForWindow::<IPropertyStore>(hwnd) else {
+                return serde_json::Value::Null;
+            };
+            let read = |key| store.GetValue(key).ok().map(|value| value.to_string());
+            serde_json::json!({
+                "appId": read(&PKEY_AppUserModel_ID),
+                "relaunchCommand": read(&PKEY_AppUserModel_RelaunchCommand),
+                "relaunchName": read(&PKEY_AppUserModel_RelaunchDisplayNameResource),
+                "relaunchIcon": read(&PKEY_AppUserModel_RelaunchIconResource),
+            })
+        }
+    }
+}
+
+fn process_app_id() -> Option<String> {
+    use windows_sys::Win32::{System::Com::CoTaskMemFree, UI::Shell::GetCurrentProcessExplicitAppUserModelID};
+    let mut value = std::ptr::null_mut();
+    // SAFETY: Windows allocates the returned terminated string; free it with
+    // the allocator documented for GetCurrentProcessExplicitAppUserModelID.
+    unsafe {
+        if GetCurrentProcessExplicitAppUserModelID(&mut value) < 0 || value.is_null() {
+            return None;
+        }
+        let mut length = 0;
+        while *value.add(length) != 0 { length += 1; }
+        let result = String::from_utf16_lossy(std::slice::from_raw_parts(value, length));
+        CoTaskMemFree(value.cast());
+        Some(result)
+    }
+}
+
+/// Match the installer's shortcut identity before creating any Windows UI.
+/// Otherwise direct executable launches rely on Explorer's heuristic identity,
+/// which can differ from launches through the installed shortcut.
+pub fn initialize_identity(identifier: &str) -> Result<(), String> {
+    PREVIOUS_APP_ID.get_or_init(process_app_id);
+    let identifier: Vec<u16> = identifier.encode_utf16().chain(Some(0)).collect();
+    let result = unsafe {
+        windows_sys::Win32::UI::Shell::SetCurrentProcessExplicitAppUserModelID(identifier.as_ptr())
+    };
+    if result < 0 { Err(format!("Could not set the taskbar identity: {result:#x}")) } else { Ok(()) }
+}
+
+/// Local support evidence from our own windows, without recording user input
+/// or profile contents. Inspect after startup as well as after an icon update:
+/// a successful WM_SETICON alone does not prove which window Explorer groups.
+pub fn record_window_status(app: &AppHandle) {
+    use windows_sys::Win32::UI::WindowsAndMessaging::{
+        GetClassLongPtrW, GetWindow, GetWindowLongPtrW, IsWindowVisible, SendMessageW,
+        GCLP_HICON, GCLP_HICONSM, GWL_EXSTYLE, GW_OWNER, ICON_BIG, ICON_SMALL,
+        ICON_SMALL2, WM_GETICON,
+    };
+    let handle = app.clone();
+    let _ = app.run_on_main_thread(move || {
+        let windows: Vec<_> = handle.webview_windows().into_iter().filter_map(|(label, window)| {
+            let hwnd = window.hwnd().ok()?.0 as windows_sys::Win32::Foundation::HWND;
+            // SAFETY: these are read-only queries on our live windows, on their
+            // owning thread. No icon ownership is taken from the returned values.
+            Some(unsafe { serde_json::json!({
+                "label": label,
+                "hwnd": hwnd as usize,
+                "visible": IsWindowVisible(hwnd) != 0,
+                "owner": GetWindow(hwnd, GW_OWNER) as usize,
+                "extendedStyle": format!("{:#010x}", GetWindowLongPtrW(hwnd, GWL_EXSTYLE)),
+                "largeIcon": SendMessageW(hwnd, WM_GETICON, ICON_BIG as usize, 0),
+                "smallIcon": SendMessageW(hwnd, WM_GETICON, ICON_SMALL as usize, 0),
+                "smallIcon2": SendMessageW(hwnd, WM_GETICON, ICON_SMALL2 as usize, 0),
+                "classLargeIcon": GetClassLongPtrW(hwnd, GCLP_HICON),
+                "classSmallIcon": GetClassLongPtrW(hwnd, GCLP_HICONSM),
+                "shell": shell_properties::read(windows::Win32::Foundation::HWND(hwnd)),
+            }) })
+        }).collect();
+        if let Ok(dir) = runtime::runtime_dir(&handle) {
+            let report = serde_json::json!({
+                "version": handle.package_info().version.to_string(),
+                "previousProcessAppId": PREVIOUS_APP_ID.get(),
+                "processAppId": process_app_id(),
+                "windows": windows,
+            });
+            let _ = fs::write(dir.join("window-icons.json"), report.to_string());
+        }
+    });
+}
 
 fn install_taskbar_icon(
     hwnd: windows_sys::Win32::Foundation::HWND,
@@ -76,11 +196,16 @@ fn refresh_taskbar_icon(app: &AppHandle, ico: PathBuf) -> Result<(), String> {
             let window = handle.get_webview_window("main").ok_or("No main window")?;
             let hwnd = window.hwnd().map_err(|error| error.to_string())?;
             let mut icon = TASKBAR_ICON.lock().map_err(|error| error.to_string())?;
-            install_taskbar_icon(hwnd.0 as _, &ico, &mut icon)
+            install_taskbar_icon(hwnd.0 as _, &ico, &mut icon)?;
+            let exe = std::env::current_exe().map_err(|error| error.to_string())?;
+            shell_properties::set(windows::Win32::Foundation::HWND(hwnd.0),
+                &handle.config().identifier, &handle.package_info().name, &exe, &ico)
+                .map_err(|error| error.to_string())
         })();
         if let Err(error) = result {
             eprintln!("Could not update the taskbar icon: {error}");
         }
+        record_window_status(&handle);
     }).map_err(|error| error.to_string())
 }
 
@@ -315,6 +440,16 @@ mod tests {
     use super::*;
 
     #[test]
+    fn process_identity_matches_the_installed_shortcut_identifier() {
+        // Only this test process changes identity; no Explorer state or
+        // installed shortcut is modified.
+        let config: serde_json::Value = serde_json::from_str(include_str!("../../tauri.conf.json")).unwrap();
+        let identifier = config["identifier"].as_str().unwrap();
+        initialize_identity(identifier).unwrap();
+        assert_eq!(process_app_id().as_deref(), Some(identifier));
+    }
+
+    #[test]
     fn running_window_keeps_a_large_icon_across_updates_and_load_failures() {
         use windows_sys::Win32::UI::WindowsAndMessaging::{
             CreateWindowExW, DestroyWindow, SendMessageW, ICON_BIG, WM_GETICON,
@@ -347,6 +482,19 @@ mod tests {
         let current = large_icon();
         assert!(install_taskbar_icon(window.0, &ico.join("missing.ico"), &mut owned).is_err());
         assert_eq!(large_icon(), current, "a load failure preserves the working icon");
+        // Exercise the actual Windows property store, including paths with
+        // spaces and replacement when the selected accent changes.
+        let hwnd = windows::Win32::Foundation::HWND(window.0);
+        let exe = Path::new(r"C:\Program Files\JSM Evolved\JSM Evolved.exe");
+        shell_properties::set(hwnd, "JSM.Test", "JSM Evolved", exe, &ico).unwrap();
+        let properties = shell_properties::read(hwnd);
+        assert_eq!(properties["appId"], "JSM.Test");
+        assert_eq!(properties["relaunchCommand"], format!("\"{}\"", exe.display()));
+        assert_eq!(properties["relaunchIcon"], format!("{},0", ico.display()));
+        assert_eq!(properties["relaunchName"], "JSM Evolved");
+        let next = Path::new(r"C:\Icon directory\purple.ico");
+        shell_properties::set(hwnd, "JSM.Test", "JSM Evolved", exe, next).unwrap();
+        assert_eq!(shell_properties::read(hwnd)["relaunchIcon"], format!("{},0", next.display()));
     }
 
     fn u16_at(bytes: &[u8], at: usize) -> u16 { u16::from_le_bytes([bytes[at], bytes[at + 1]]) }

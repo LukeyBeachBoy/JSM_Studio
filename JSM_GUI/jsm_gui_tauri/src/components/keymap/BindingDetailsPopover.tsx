@@ -1,3 +1,5 @@
+import { useBindingProvenance } from '../BindingProvenance'
+import { inputContent } from '../glyphs/InputText'
 import { useContext, useState, type CSSProperties, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { LayerUsageContext, useInputUses } from '../LayerBar'
@@ -6,7 +8,7 @@ import { describeBinding } from '../../utils/bindingDescription'
 import { useSettingOriginInfo } from './settingOriginInfo'
 import { Dialog } from '../ui/Dialog'
 import { useShell } from '../../shell/ShellContext'
-import { inputDisplayName } from '../../keymap/inputNames'
+import { describeValue } from '../modes/modeText'
 import { useInputVariant, requestOpenBinding } from './binding/variantScope'
 import styles from './binding/binding.module.css'
 
@@ -38,6 +40,8 @@ export function BindingDetailsPopover({ command, title, label, glyph, summary, m
   const { t } = useTranslation()
   const shell = useShell()
   const origin = useSettingOriginInfo(command)
+  const provenance = useBindingProvenance()
+  const source = provenance?.input(command)
   const uses = useInputUses(command)
   const variant = useInputVariant(command)
   const { actions, layers, onSelect, selected } = useContext(LayerUsageContext)
@@ -48,21 +52,30 @@ export function BindingDetailsPopover({ command, title, label, glyph, summary, m
   const short = title.replace(/ button$/, '')
 
   const modeValue = (overrides: Record<string, string>) => overrides[key] ?? overrides[command]
-  const changedModes = layers.filter(layer => modeValue(layer.overrides) !== undefined)
   const baseName = origin?.sourceName && origin.kind !== 'default' && !(selected && origin.sourceName === 'Default') ? origin.sourceName : null
   const ownSet = origin?.kind === 'own' || origin?.kind === 'override'
   const baseValue = origin?.kind === 'inherited' ? summary : origin?.baseValue ? describeBinding(origin.baseValue, t) : null
 
   // The stack, top wins.
   type Item = { key: string; name: string; sub?: string; value?: string; set: boolean; mode?: string }
-  const items: Item[] = [
-    ...changedModes.map(layer => ({ key: `mode-${layer.id}`, name: `${layer.name} layer`, sub: describeActivation(layer.id, actions, input => inputDisplayName(input, shell.family)), value: describeBinding(modeValue(layer.overrides)!, t), set: true, mode: layerHue(layerSlot(layers, layer.id)) })),
+  // In a layer preview, the API summary is the effective output. Do not
+  // label it as this config's Default value or infer it from imported bases.
+  const selectedOverride = selected && modeValue(selected.overrides) !== undefined
+  const items: Item[] = source && source.kind !== 'unset' ? [{
+    key: 'effective', name: source.label, value: summary || 'Nothing', set: true, mode: source.color,
+  }] : selected ? [{
+    key: selectedOverride ? `mode-${selected.id}` : 'default',
+    name: selectedOverride ? selected.name : 'Default',
+    sub: selectedOverride ? 'Override' : 'Inherited in this preview',
+    value: summary || 'Nothing', set: true,
+    mode: selectedOverride ? layerHue(layerSlot(layers, selected.id)) : undefined,
+  }] : [
     ...(variant ? [{ key: 'variant', name: `${variant.label} only`, value: variant.changed && variant.value ? describeBinding(variant.value, t) : undefined, set: variant.changed }] : []),
     { key: 'config', name: config, value: ownSet ? summary || 'Nothing' : undefined, set: ownSet },
     ...(baseName ? [{ key: 'base', name: baseName, value: baseValue ?? undefined, set: Boolean(baseValue) }] : []),
     { key: 'jsm', name: 'JoyShockMapper default', sub: 'Nothing, unless set above', set: true },
   ]
-  const used = items.find(item => !item.mode && item.set && item.value !== undefined)?.key ?? 'jsm'
+  const used = items.find(item => item.set && item.value !== undefined)?.key ?? 'jsm'
 
   const openIn = (layerId: string) => {
     onClose()
@@ -82,22 +95,22 @@ export function BindingDetailsPopover({ command, title, label, glyph, summary, m
   return (
     <Dialog onClose={onClose} width={1120} eyebrow={`${title}${label ? ` · ${label}` : ''}`} title={t('bind.details', 'Details')}
       lead={glyph ? <span className={styles.headGlyph} aria-hidden="true">{glyph}</span> : undefined}
-      aside={<span className={styles.sendsTag}>{t('bind.pressSends', 'Press sends')}<b>{summary || 'Nothing'}</b></span>}
+      aside={<span className={styles.sendsTag}>{t('bind.pressSends', 'Press sends')}<b>{inputContent(summary || 'Nothing')}</b></span>}
       footerNote={`${config} · ${title} · Details`}
       hints={[...(focusedName ? [{ button: 'A' as const, label: `Open in ${focusedName}` }] : []), { button: 'X', label: 'Every use' }, { button: 'B', label: 'Close' }]}
       onPad={button => { if (button === 'X') { everyUse(); return true } return false }}
       onKeyDown={event => { if ((event.key === 'x' || event.key === 'X') && !event.defaultPrevented) { event.preventDefault(); everyUse() } }}>
       <div className={styles.details} aria-label={`Details for ${title}`}>
         <section className={styles.stack} aria-label={`Where ${short} gets its action`}>
-          <div className={styles.stackHead}><span>Where {short} gets its action</span><span>Top wins</span></div>
+          <div className={styles.stackHead}><span>Where {short} gets its action</span><span>Current preview</span></div>
           {items.map(item => (
             <div key={item.key} className={styles.stackItem} data-set={item.set ? 'true' : undefined} data-used={item.key === used ? 'true' : undefined}
               data-mode={item.mode ? 'true' : undefined} style={item.mode ? { ['--mode-hue' as string]: item.mode } as CSSProperties : undefined}>
               <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <b>{item.name}</b>
-                <span>{item.key === used ? 'used now' : item.sub ?? (item.value === undefined ? 'not set' : '')}</span>
+                <span>{inputContent(item.key === used ? 'Shown in preview' : item.sub ?? (item.value === undefined ? 'not set' : ''))}</span>
               </span>
-              {item.value !== undefined && <span className={styles.stackValue}>{item.value}</span>}
+              {item.value !== undefined && <span className={styles.stackValue}>{inputContent(item.value)}</span>}
             </div>
           ))}
         </section>
@@ -147,10 +160,10 @@ export function BindingDetailsPopover({ command, title, label, glyph, summary, m
                 onClick={() => openIn(layer.id)}>
                 <span className={styles.swatch} aria-hidden="true" />
                 <span className={styles.detailRowText}>
-                  <b>{layer.name} layer</b>
-                  <span>{value !== undefined ? `Changed here · ${describeBinding(value, t)}` : 'Same as Default'} · on {describeActivation(layer.id, actions, input => inputDisplayName(input, shell.family))}</span>
+                  <b>{layer.name}</b>
+                  <span>{value !== undefined ? inputContent(`When active: ${describeValue(command, value, layer.overrides, t)}`) : 'Same as Default'}</span>
                 </span>
-                <span className={styles.tag} data-tone={value !== undefined ? 'mode' : undefined}>{value !== undefined ? `Changed · ${describeBinding(value, t)}` : 'Same as Default'}</span>
+                <span className={styles.tag} data-tone={value !== undefined ? 'mode' : undefined}>{value !== undefined ? 'Override' : 'Inherited'}</span>
               </button>
             )
           })}
@@ -169,11 +182,4 @@ export function BindingDetailsPopover({ command, title, label, glyph, summary, m
       </div>
     </Dialog>
   )
-}
-
-function describeActivation(layerId: string, actions: { input: string; verb: string; layerId: string }[], name: (input: string) => string) {
-  const action = actions.find(item => item.layerId === layerId)
-  if (!action) return 'nothing turns it on'
-  const input = name(action.input.replace(/^!/, ''))
-  return action.verb === 'hold' ? `while ${input} is held` : action.verb === 'toggle' ? `${input} toggles it` : action.verb === 'apply' ? `${input} turns it on` : `${input} turns it off`
 }

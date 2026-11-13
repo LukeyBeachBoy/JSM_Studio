@@ -1,4 +1,6 @@
 pub mod ai;
+pub mod storage_context;
+pub mod slots;
 pub mod ai_chatgpt;
 pub mod bases;
 pub mod credentials;
@@ -34,3 +36,5 @@ pub mod tray_menu;
 pub mod controller_layouts;
 pub mod updates;
 pub mod console_history;
+
+pub mod slot_toast;

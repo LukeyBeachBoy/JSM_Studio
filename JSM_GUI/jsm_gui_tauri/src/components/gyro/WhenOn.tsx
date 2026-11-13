@@ -212,7 +212,7 @@ export function WhenOnVisual({ source, onRecalibrate, onMatchTurn }: { source: S
       })}
       <li className={styles.verdict}><span>{verdict}</span><b data-on={on ? 'true' : undefined} data-gyro-verdict={on ? 'on' : 'off'}>{on ? 'On' : 'Off'}</b></li>
     </ul>
-    {/* Recalibrate and Match a full turn live on the front and in More; no second set of tiles here (UX review). */}
+    {/* Recalibrate and Real-world calibration live on the front and in More; no second set of tiles here (UX review). */}
     {void onRecalibrate}{void onMatchTurn}
   </div>
 }

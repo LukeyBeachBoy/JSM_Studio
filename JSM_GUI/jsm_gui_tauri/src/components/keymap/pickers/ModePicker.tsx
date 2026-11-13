@@ -7,6 +7,7 @@ import { SegmentedRow } from '../../ui/console'
 import { LayerUsageContext } from '../../LayerBar'
 import { actionsOnInput, layerHue, layerSlot, layerVerbKeys, layerVerbOrder, sameLayerAction, visibleOverrideKeys, type LayerAction, type LayerVerb } from '../../../utils/layers'
 import styles from './Pickers.module.css'
+import { layerRemovalValue, parseLayerRemoval } from '../../../utils/layerBinding'
 
 // Switch mode · mode, then how (console v2, PickerFamily). The configuration's
 // modes as tiles in their colours; "When A is pressed" Hold · Toggle · Turn on ·
@@ -20,15 +21,24 @@ export function ModePicker(props: ActionPickerProps & { onSearch?: () => void })
   const words = usePickerWords(inputLabel, command)
   const { layers, actions, onSetActions } = useContext(LayerUsageContext)
   const existing: LayerAction | null = command.source.kind === 'layerAction' ? command.source.action : null
+  const removal = command.outputKind === 'command' ? parseLayerRemoval(command.outputValue) : null
+  // Timed activators belong to the binding, not the input-wide Press/Let go
+  // annotations. Native removal already respects their timing and scope.
+  const bindingOutput = !existing && (Boolean(removal) || !['regular', 'release'].includes(command.triggerKind))
   const base = command.physicalInput.replace(/^!/, '')
-  const [verb, setVerb] = useState<LayerVerb>(existing?.verb ?? 'hold')
+  const [verb, setVerb] = useState<LayerVerb>(existing?.verb ?? (bindingOutput ? 'remove' : 'hold'))
   const [onRelease, setOnRelease] = useState(Boolean(existing?.input.startsWith('!')))
   const tiles = useRef<HTMLDivElement>(null)
   useRefocusOn(tiles, 'modes', ['[data-current="true"]', 'button'])
   const verbLabel = (value: LayerVerb) => t(layerVerbKeys[value], value)
-  const canWrite = Boolean(existing || onAddLayerAction || onSetActions)
+  const canWrite = Boolean(bindingOutput || existing || onAddLayerAction || onSetActions)
 
   const choose = (layerId: string) => {
+    if (bindingOutput) {
+      onSelect({ outputKind: 'command', outputValue: layerRemovalValue(layerId) })
+      onClose()
+      return
+    }
     const input = onRelease ? `!${base}` : base
     if (existing) {
       onSelect({ layerAction: { layerId, verb, input } })
@@ -61,14 +71,14 @@ export function ModePicker(props: ActionPickerProps & { onSearch?: () => void })
         <PickerSection label={t('pickers.modeWhich', 'Which mode')} caption={layers.length ? t('pickers.modeCaption', 'A mode changes a few buttons while it’s on') : undefined}>
           <div ref={tiles} className={styles.grid} style={{ ['--cols' as string]: 3 }}>
             {layers.map(layer => {
-              const isCurrent = existing?.layerId === layer.id
+              const isCurrent = (existing?.layerId ?? removal?.layerId) === layer.id
               const changes = visibleOverrideKeys(layer.overrides).length
               return (
                 <button key={layer.id} type="button" className={`${styles.tile} ${styles.plainTile}`} data-layer={layer.id}
                   style={{ ['--mode-hue' as string]: layerHue(layerSlot(layers, layer.id)) }}
                   data-current={isCurrent ? 'true' : undefined} aria-pressed={isCurrent}
                   aria-disabled={canWrite ? undefined : 'true'} data-reason={canWrite ? undefined : t('pickers.modeCannot', 'A mode switch is added from the binding sheet')}
-                  data-caption={`${verbLabel(verb)} ${layer.name} · ${describe(onRelease) || ''}`}
+                  data-caption={`${verbLabel(verb)} ${layer.name} · ${bindingOutput ? words.activation : describe(onRelease) || ''}`}
                   data-hints={`A:${t('pickers.useNamed', 'Use {{name}}', { name: `${verbLabel(verb)} ${layer.name}` })}${remove ? `;Y:${t('pickers.remove', 'Remove')}` : ''}`}
                   onClick={() => { if (canWrite) choose(layer.id) }}>
                   <span className={styles.modeSwatch} aria-hidden="true" />
@@ -90,6 +100,9 @@ export function ModePicker(props: ActionPickerProps & { onSearch?: () => void })
             </button>
           </div>
         </PickerSection>
+        {bindingOutput ? <PickerSection label={t('pickers.layerTurnOff', 'Turn off layer')} caption={command.triggerKind === 'hold'
+          ? t('pickers.layerOffAfterHold', 'Turns the selected layer off once the Hold time is reached. It stays off after you let go. Change the delay on the Timing page.')
+          : t('pickers.layerOffActivation', 'Turns the selected layer off on {{activation}}. It stays off until you turn it on again.', { activation: words.activation })} /> : <>
         <SegmentedRow label={t('pickers.modeWhen', 'When {{input}} is pressed', { input: words.input })} value={verb} onChange={value => setVerb(value as LayerVerb)}
           data={{ 'data-mode-verb': verb }}
           options={layerVerbOrder.map(value => ({ value, label: verbLabel(value), caption: t(`keymap.layerDesc${value === 'hold' ? 'Hold' : value === 'toggle' ? 'Toggle' : value === 'apply' ? 'Apply' : 'Remove'}`, { input: words.input, defaultValue: '' }) || undefined }))} />
@@ -99,6 +112,7 @@ export function ModePicker(props: ActionPickerProps & { onSearch?: () => void })
             { value: 'press', label: t('pickers.activationPress', 'Press'), caption: t('pickers.happensOnPress', 'Press: when {{input}} goes down', { input: words.input }) },
             { value: 'release', label: t('pickers.activationRelease', 'Let go'), caption: t('pickers.happensOnRelease', 'Let go: when {{input}} comes back up', { input: words.input }) },
           ]} />
+        </>}
       </div>
     </PickerPage>
   )

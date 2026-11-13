@@ -9,7 +9,7 @@
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) var(--hintbar-h);
   grid-template-areas: 'header' 'body' 'footer';
-  background: var(--surface-frame);
+  background: var(--surface-canvas);
   color: var(--text-1);
   animation: subpage-in 200ms var(--ease-standard, ease) both;
 }
@@ -21,8 +21,9 @@
   min-height: 64px;
   display: flex;
   align-items: center;
-  gap: var(--sp-4);
-  padding: 0 var(--sp-6);
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-6);
   border-bottom: 1px solid var(--line-1);
 }
 .crumbs { min-width: 0; display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; color: var(--text-2); font-size: var(--fs-label); }
@@ -46,4 +47,9 @@
 .back, .backFloating { flex: none; display: inline-flex; align-items: center; gap: var(--sp-1); height: 40px; padding: 0 var(--sp-4) 0 var(--sp-3); border: 0; border-radius: var(--r-pill); background: var(--surface-row); color: var(--text-1); font: inherit; font-size: var(--fs-label); font-weight: var(--fw-semibold); cursor: pointer; }
 .back:hover, .backFloating:hover { background: var(--surface-row-hover); }
 .back span, .backFloating span { font-size: 22px; line-height: 1; margin-top: -2px; }
-.backFloating { position: absolute; top: 8px; left: 16px; z-index: 2; height: 32px; }
+.backFloating { position: static; margin: var(--sp-3) var(--page-pad, 24px); grid-area: header; justify-self: start; z-index: 2; height: 32px; }
+
+.layer[data-frameless] > .header { padding-right: calc(3 * 46px + var(--sp-3)); }
+.crumbs { flex: 1 1 220px; line-height: var(--lh-label); }
+.title { line-height: var(--lh-section); }
+@media (max-width: 1100px) { .badge { display: none; } }

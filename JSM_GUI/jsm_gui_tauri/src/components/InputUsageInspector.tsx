@@ -1,3 +1,4 @@
+import { inputContent } from './glyphs/InputText'
 import { useContext, useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Sheet } from './ui/Sheet'
@@ -149,8 +150,8 @@ export function InputUsageInspector() {
     <button key={row.key} type="button" className={styles.row} onClick={row.onOpen} data-hints="A:Open;B:Close">
       <span className={styles.chain}>{row.chain}</span>
       <span className={styles.text}>
-        {row.title && <span className={styles.title}>{row.title}</span>}
-        {row.detail && <span className={styles.detail}>{row.detail}</span>}
+        {row.title && <span className={styles.title}>{inputContent(row.title)}</span>}
+        {row.detail && <span className={styles.detail}>{inputContent(row.detail)}</span>}
       </span>
       <Icon name="chevronRight" size={18} className={styles.chevron} />
     </button>

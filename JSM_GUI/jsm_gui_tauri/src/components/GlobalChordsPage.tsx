@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { desktopBridge, type GlobalChord } from '../platform/desktopBridge'
 import { shellBridge } from '../platform/shellBridge'
 import type { TelemetryDevice } from '../hooks/useTelemetry'
-import { controllerSupportsInput, controllerButtonLabel, controllerVisualFamily } from '../utils/controllerStatus'
-import { controllerModelKey, controllerVariantLabel } from '../utils/controllerLayouts'
+import { controllerButtonLabel, controllerVisualFamily } from '../utils/controllerStatus'
+import { controllerModelKey, controllerTargetKey, controllerVariantLabel } from '../utils/controllerLayouts'
 import { showToast } from '../utils/toast'
 import { InputGlyph } from './glyphs/InputGlyph'
 import {
@@ -13,6 +13,7 @@ import {
 import { OpenRow, SubPage } from './ui/console'
 import { SettingsNote, SettingsSection } from './settings/SettingsKit'
 import { usePressCapture } from './settings/usePressCapture'
+import { HoldInputPicker } from './HoldInputPicker'
 import { useShell } from '../shell/ShellContext'
 import settingsStyles from './settings/Settings.module.css'
 import styles from './GlobalChordsPage.module.css'
@@ -125,9 +126,10 @@ export function GlobalChordsPage({ onEditConfiguration, onChordsChanged, devices
     focusAfter.current = target.id
     void persist({ ...target, buttons: [], triggerGroups: groups.filter(group => group.length) })
     setCapturingFor(null)
-  }, { buttonsOnly: true })
+  }, { buttonsOnly: true, mouseButtons: true })
+  const chooseFor = (id: string, group: number) => setListFor({ id, group })
   const pressFor = (id: string, group: number) => { setCapturingFor({ id, group }); capture.start() }
-  useEffect(() => { if (!capture.capturing && capturingFor) setCapturingFor(null) }, [capture.capturing])
+  useEffect(() => { if (!capture.capturing) setCapturingFor(null) }, [capture.capturing])
 
   const addWith = async (name: string | null) => {
     setAdding(false)
@@ -164,16 +166,16 @@ export function GlobalChordsPage({ onEditConfiguration, onChordsChanged, devices
 
   const keys = (buttons: string[]) => buttons.length
     ? <span className={styles.keys} aria-label={buttons.map(command => { const known = ALL_BUTTONS.find(button => button.command.toUpperCase() === command); return known ? controllerButtonLabel(known, family) : command }).join(' + ')}>
-        {buttons.map((button, index) => <span key={button} className={styles.key}>{index > 0 && <span className={styles.plus} aria-hidden="true">+</span>}<InputGlyph command={button} family={family} size={24} /></span>)}
+        {buttons.map((button, index) => <span key={button} className={styles.key}>{index > 0 && <span className={styles.plus} aria-hidden="true">+</span>}<InputGlyph command={button} family={family} size={24} title={button === 'MOUSE_BACK' ? 'Mouse Back (button 4)' : button === 'MOUSE_FORWARD' ? 'Mouse Forward (button 5)' : undefined} /></span>)}
       </span>
     : <span className={styles.unset}>No buttons yet</span>
   const holdLine = (chord: GlobalChord) => {
     const groups = groupsOf(chord).filter(group => group.length)
-    return groups.length ? <>Hold {groups.map((group, index) => <span key={index}>{index > 0 && <span className={styles.or}> or </span>}{keys(group)}</span>)}</> : <span className={styles.unset}>No buttons yet · A presses them</span>
+    return groups.length ? <>Hold {groups.map((group, index) => <span key={index}>{index > 0 && <span className={styles.or}> or </span>}{keys(group)}</span>)}</> : <span className={styles.unset}>No inputs yet · A chooses them</span>
   }
   const controllerText = (chord: GlobalChord) => {
     if (!chord.controllerModel) return 'Any controller'
-    const device = devices?.find(item => controllerModelKey(item) === chord.controllerModel)
+    const device = devices?.find(item => controllerModelKey(item) === chord.controllerModel || controllerTargetKey(item) === chord.controllerModel)
     return device ? `${controllerVariantLabel(device)} only` : `${chord.controllerModel} only · not connected`
   }
   const letGo = currentName ?? 'This game'
@@ -197,7 +199,7 @@ export function GlobalChordsPage({ onEditConfiguration, onChordsChanged, devices
                 if (event.key === 'x' || event.key === 'X') { event.preventDefault(); if (isBuiltin(chord)) setCopying(chord); else onEditConfiguration?.(profileNameFromPath(chord.profilePath)) }
                 if (event.key === 'y' || event.key === 'Y') { event.preventDefault(); setEntry(chord.id) }
               }}
-              onClick={() => pressFor(chord.id, 0)}>
+              onClick={() => chooseFor(chord.id, 0)}>
               <SwapPicture holding={displayName(chord)} letGo={letGo} />
               <span className={styles.cardText}>
                 <span className={styles.cardName}>{displayName(chord)}{isBuiltin(chord) && <span className={settingsStyles.tag}>Built-in</span>}</span>
@@ -245,6 +247,7 @@ export function GlobalChordsPage({ onEditConfiguration, onChordsChanged, devices
           const index = chords.findIndex(chord => chord.id === open.id)
           const groups = groupsOf(open)
           const models = [...new Map((devices ?? []).map(device => [controllerModelKey(device), device])).values()]
+          const savedDevice = devices?.find(device => controllerTargetKey(device) === open.controllerModel)
           return (
             <div className={styles.entry}>
               <div className={settingsStyles.mainColumn}>
@@ -258,19 +261,19 @@ export function GlobalChordsPage({ onEditConfiguration, onChordsChanged, devices
                 ) : (
                   <OpenRow label="Edit configuration" hint={`What ${displayName(open)} does while you hold`} value={displayName(open)} onOpen={() => { setEntry(null); onEditConfiguration?.(profileNameFromPath(open.profilePath)) }} />
                 )}
-                <SettingsSection title="Hold these" note="X then press the buttons">
+                <SettingsSection title="Hold these" note="Choose visually, or listen for an input">
                   {groups.map((group, groupIndex) => (
                     <div key={groupIndex} className={styles.wayRow}>
-                      <OpenRow label={groupIndex === 0 ? 'One way' : 'Or'} value={keys(group)} onOpen={() => pressFor(open.id, groupIndex)}
-                        hints={`A:Press new buttons;X:Press new buttons;Y:Choose from a list;B:Back`} />
-                      <button type="button" className="button button--ghost button--sm" tabIndex={-1} onClick={() => setListFor({ id: open.id, group: groupIndex })}>Choose from a list</button>
+                      <OpenRow label={groupIndex === 0 ? 'One way' : 'Or'} value={keys(group)} onOpen={() => chooseFor(open.id, groupIndex)}
+                        hints="A:Choose inputs;B:Back" />
+                      <button type="button" className="button button--ghost button--sm" tabIndex={-1} onClick={() => pressFor(open.id, groupIndex)}>Listen for input</button>
                       {groups.length > 1 && <button type="button" className="button button--ghost button--sm" onClick={() => void persist({ ...open, buttons: [], triggerGroups: groups.filter((_, i) => i !== groupIndex) })} data-hints="A:Remove this way;B:Back">Remove this way</button>}
                     </div>
                   ))}
-                  <OpenRow label="Another way to hold it" hint="Either one swaps it in" onOpen={() => pressFor(open.id, groups.length)} hints="A:Press the buttons;B:Back" />
+                  <OpenRow label="Another way to hold it" hint="Either one swaps it in" onOpen={() => chooseFor(open.id, groups.length)} hints="A:Choose inputs;B:Back" />
                 </SettingsSection>
                 <SettingsSection title="Configuration" note="What swaps in">
-                  <div role="radiogroup" aria-label="Configuration">
+                  <div className={styles.configurationChoices} role="radiogroup" aria-label="Configuration">
                     {[...new Set([profileNameFromPath(open.profilePath), ...profiles])].map(name => (
                       <button key={name} type="button" role="radio" aria-checked={name === profileNameFromPath(open.profilePath)} className={settingsStyles.switchRow} data-hints="A:Use this;B:Back"
                         onClick={() => void persist({ ...open, profilePath: profilePathFromName(name) })}>
@@ -287,7 +290,7 @@ export function GlobalChordsPage({ onEditConfiguration, onChordsChanged, devices
                   <div role="radiogroup" aria-label="Which controller">
                     {[{ key: '', label: 'Any controller', note: '' },
                       ...models.map(device => ({ key: controllerModelKey(device), label: `${controllerVariantLabel(device)} only`, note: '' })),
-                      ...(open.controllerModel && !models.some(device => controllerModelKey(device) === open.controllerModel) ? [{ key: open.controllerModel, label: `${open.controllerModel} only`, note: 'not connected' }] : []),
+                      ...(open.controllerModel && !models.some(device => controllerModelKey(device) === open.controllerModel) ? [{ key: open.controllerModel, label: savedDevice ? `${controllerVariantLabel(savedDevice)} only` : `${open.controllerModel} only`, note: savedDevice ? '' : 'not connected' }] : []),
                     ].map(option => (
                       <button key={option.key || 'any'} type="button" role="radio" aria-checked={(open.controllerModel ?? '') === option.key} className={settingsStyles.switchRow} data-hints="A:Choose;B:Back"
                         onClick={() => void persist({ ...open, controllerModel: option.key || null })}>
@@ -314,8 +317,8 @@ export function GlobalChordsPage({ onEditConfiguration, onChordsChanged, devices
         })()}
       </SubPage>
 
-      {/* The buttons from a list, for when no controller is at hand. */}
-      <SubPage open={listFor !== null} onClose={() => setListFor(null)} crumbRoot="Settings" trail={['Hold to swap']} title="Choose from a list" backLabel="Back">
+      {/* Visual selection works without a connected controller; listening is optional. */}
+      <SubPage open={listFor !== null} onClose={() => setListFor(null)} crumbRoot="Settings" trail={['Hold to swap']} title="Choose inputs to hold" backLabel="Back">
         {listFor && (() => {
           const chord = chords.find(item => item.id === listFor.id)
           if (!chord) return null
@@ -326,16 +329,9 @@ export function GlobalChordsPage({ onEditConfiguration, onChordsChanged, devices
             next[listFor.group] = selected.includes(command) ? selected.filter(item => item !== command) : [...selected, command]
             void persist({ ...chord, buttons: [], triggerGroups: next })
           }
-          return (
-            <div className={styles.chips} role="group" aria-label="Buttons to hold together">
-              {ALL_BUTTONS.filter(button => !/^(L|R)(UP|DOWN|LEFT|RIGHT|RING)$/.test(button.command) && (controllerSupportsInput(devices?.[0], button.command) || selected.includes(button.command.toUpperCase()))).map(button => {
-                const command = button.command.toUpperCase()
-                return <button type="button" key={command} className={styles.chip} aria-pressed={selected.includes(command)} data-hints="A:Add or take away;B:Back" onClick={() => toggle(command)}>
-                  <InputGlyph command={command} family={family} size={18} />{controllerButtonLabel(button, family)}
-                </button>
-              })}
-            </div>
-          )
+          return <HoldInputPicker key={`${listFor.id}:${listFor.group}`} devices={devices} controllerModel={chord.controllerModel}
+            selected={selected} definitions={ALL_BUTTONS} onToggle={toggle}
+            onListen={() => { const target = listFor; setListFor(null); pressFor(target.id, target.group) }} />
         })()}
       </SubPage>
 

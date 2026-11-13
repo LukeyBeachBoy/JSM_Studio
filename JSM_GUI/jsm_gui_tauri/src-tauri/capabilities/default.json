@@ -6,6 +6,7 @@
     "main",
     "overlay",
     "hud",
+    "slot-toast",
     "traymenu",
     "areapicker",
     "keyboard"

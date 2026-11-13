@@ -80,7 +80,59 @@ The 0.7.157 candidate explicitly assigns `ICON_BIG` on the window thread using
 the same accent icon file. It owns that icon until replacement, then releases
 only its own previous handle. A native hidden-window regression verifies
 assignment, replacement and preservation after a failed load; all six icon
-tests passed. Visual confirmation on the maintainer's taskbar remains pending.
+tests passed. The maintainer subsequently confirmed that the taskbar icon
+remained blank, including after a Windows icon-display refresh. The tray icon
+and its theme changes worked.
+
+### Local identity investigation (not a new published candidate)
+
+A diagnostic build of 0.7.157 queried its own live windows. The main window
+returned nonzero `ICON_SMALL` and `ICON_BIG` handles, confirming that the large
+icon assignment actually runs. Its overlay uses Tao's taskbar exclusion, which
+calls `ITaskbarList::DeleteTab`; the native `WS_EX_APPWINDOW` style alone is
+therefore not proof that the overlay owns the blank taskbar button.
+
+The installer sets the shortcut AppUserModelID, but the app previously did not
+explicitly set its process AppUserModelID. The local test now sets the configured
+identifier before constructing any windows. Runtime readback confirmed that the
+previous explicit ID was absent and the new ID is
+`com.lukeybeachboy.jsmstudio`. Both main-window icon handles remained present.
+The old JSM Studio installation also has shortcuts with this identifier; a
+conflict remains a hypothesis, not a confirmed cause.
+
+Seven native icon/shortcut/identity tests passed. All 59 checked profile files
+still matched their saved hashes. The original installed 0.7.157 executable is
+backed up locally. This is a locally replaced diagnostic executable, not a new
+installer or public prerelease. Visual confirmation is still required before
+calling the identity change a fix or publishing another candidate.
+
+The local `jsm-runtime/window-icons.json` report records only app version,
+process identity and native state of the app's own windows. It contains no
+profile contents or controller input.
+
+## Recovery after normal uninstall/reinstall
+
+**Qualification of the earlier acceptance results:** the local Codex desktop
+package's filesystem redirection caused shell checks of the nominal AppData
+path to see a preserved package copy. Those checks did not establish what an
+ordinary unpackaged launch could read. Repeat installer/data-retention and
+taskbar acceptance from an ordinary Explorer launch before publishing another
+candidate. Do not treat an elevated shell or a literal AppData path as proof
+that package redirection is absent.
+
+After the maintainer's uninstall/reinstall, the ordinary 0.7.158 app showed only
+fresh defaults. A read-only helper launched through the existing Explorer
+session independently confirmed that view. A complete preserved library was
+found in the Codex package's redirected roaming data and copied to a separate
+workspace recovery snapshot. All 59 saved profile/layer hashes matched.
+
+Recovery backed up the fresh ordinary roaming folder, restored the preserved
+roaming data through the ordinary Explorer session, and verified those same 59
+hashes at the destination. No preserved source or backup was deleted. The normal
+app was restarted and visibly showed Megastore Simulator live, the purple theme,
+and 16 game configurations (including the new default Profile 1 retained from
+the reinstall). This verifies recovery; it does not prove why the normal folder
+was reset during the maintainer's uninstall.
 
 ## Manual checks before a broad Reddit post
 

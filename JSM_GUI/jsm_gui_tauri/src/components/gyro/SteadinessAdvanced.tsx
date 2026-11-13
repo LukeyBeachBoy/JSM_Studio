@@ -1,9 +1,10 @@
 import { SubPage, FineTune, stepGroup, ValueRow, type FineTuneGroup } from '../ui/console'
 import { upsertFlagCommand } from '../../utils/config'
-import { readPair, writePair } from '../../utils/gyroSpeed'
-import { euroSmoothedAt, isOneEuroOn, passedAt, readSteadyingSettings, smoothedAt, smoothingLagMs } from '../../utils/gyroSteadiness'
+import { effectiveGyroCurveParams, readPair, writePair } from '../../utils/gyroSpeed'
+import { accelSensitivityAt } from '../../utils/accelCurve'
+import { euroSmoothedAt, isOneEuroOn, readSteadyingSettings, smoothedAt, smoothingLagMs } from '../../utils/gyroSteadiness'
 import { useGyro, KeyNumberRow, KeySwitchRow, SwitchRow, Note, VisualTitle, PadActions } from './GyroContext'
-import { FractionGraph, PipelineStrip, SnapZones, BrakeIllustration, liveOmega, liveGyro, useModel } from './visuals'
+import { FractionGraph, PipelineStrip, SnapZones, BrakeIllustration, liveOmega, useModel } from './visuals'
 import { useOutputReasons } from './groups'
 
 // Steadiness ▸ Advanced (GyroSteadinessAdvanced, GyroJitterFilter,
@@ -21,6 +22,17 @@ export function SteadinessAdvanced({ open, onClose, trail, part, onPart }: Props
   const reasons = useOutputReasons()
   const s = readSteadyingSettings(gyro.text, { oneEuro: isOneEuroOn(gyro.rootText), tickMs: readSteadyingSettings(gyro.rootText).tickMs })
   const live = liveOmega(gyro.sample)
+  const motion = gyro.sample?.devices?.[0]?.status?.motion
+  const inputSpeed = motion ? Math.hypot(motion.input.x, motion.input.y) : null
+  const filterSpeed = motion ? Math.hypot(motion.filtered.x, motion.filtered.y) : live
+  const derivative = motion?.derivative ? Math.max(Math.abs(motion.derivative.x), Math.abs(motion.derivative.y)) : null
+  const retained = (axis: 'x' | 'y') => {
+    const params = effectiveGyroCurveParams(gyro.text, gyro.rootText, axis)
+    return (speed: number) => {
+      const base = accelSensitivityAt(speed, { ...params, steadying: undefined })
+      return base > 0 ? Math.min(1, accelSensitivityAt(speed, params) / base) : 0
+    }
+  }
   const floor = readPair(gyro.text, 'GYRO_STEADYING_FLOOR') ?? [0, 0]
   const snap = gyro.num('GYRO_ANGLE_SNAP', 0)
   const brake = gyro.num('DECEL_BRAKE_STRENGTH', 0)
@@ -43,39 +55,39 @@ export function SteadinessAdvanced({ open, onClose, trail, part, onPart }: Props
   }
   const label = (id: SteadinessPart, text: string) => (changed[id] ? `Changed: ${text.charAt(0).toLowerCase()}${text.slice(1)}` : text)
   const strip = (current: SteadinessPart, caption: string) => <PipelineStrip current={current} caption={caption} stages={[
-    { id: 'jitter', label: 'Jitter', status: s.cutoff > 0 ? `Below ${s.cutoff}` : 'Off' },
     { id: 'smoothing', label: 'Smooth', status: s.smoothThreshold > 0 ? `Below ${s.smoothThreshold} °/s` : 'Off' },
     { id: 'adaptive', label: 'Adaptive', status: s.oneEuro ? 'On' : 'Off' },
-    { id: 'snap', label: 'Snap/brake', status: snap > 0 || brake > 0 ? 'On' : 'Off' },
+    { id: 'jitter', label: 'Jitter', status: s.cutoff > 0 || s.recovery > 0 ? `Below ${Math.max(s.cutoff, s.recovery)} °/s` : 'Off' },
+    { id: 'snap', label: 'Snapping & braking', status: snap > 0 || brake > 0 ? 'On' : 'Off' },
   ]} />
-  const floorDisabled = filters ?? deflectionOnly ?? (s.recovery <= s.cutoff ? 'Needs Fade back in above Ignore turns slower than.' : undefined)
+  const floorDisabled = filters ?? deflectionOnly ?? (s.recovery <= s.cutoff ? 'Set the steadying recovery threshold above the gyro cutoff speed.' : undefined)
   const setFloor = (axis: 0 | 1, value: number) => gyro.setText(previous => {
     const pair: [number, number] = [...(readPair(gyro.text, 'GYRO_STEADYING_FLOOR') ?? [0, 0])] as [number, number]
     pair[axis] = value
     return writePair(previous, 'GYRO_STEADYING_FLOOR', pair)
   })
-  const restNow = live === null ? null : Math.min(live, 99)
+  const restNow = filterSpeed
 
   const groups: FineTuneGroup[] = [
     {
-      id: 'jitter', label: 'Ignore jitter', status: label('jitter', status.jitter), changed: changed.jitter,
-      detail: 'Cutoff speed, fade back in, keep-moving floor',
-      description: 'Silences the tiny buzz of a controller sitting still.',
+      id: 'jitter', label: 'Deadzone & steadying', status: label('jitter', status.jitter), changed: changed.jitter,
+      detail: 'Gyro cutoff, recovery threshold and sensitivity floor',
+      description: 'The deadzone blocks tiny motion. A nonzero steadying floor uses a smooth S-shaped transition into the sensitivity curve; it does not average samples over time.',
       content: <>
-        <KeyNumberRow k="GYRO_CUTOFF_SPEED" hero label="Ignore turns slower than" fallback={0} min={0} max={360} step={0.1} fineStep={0.01} format={sp} disabled={filters}
+        <KeyNumberRow k="GYRO_CUTOFF_SPEED" hero label="Gyro cutoff speed" fallback={0} min={0} max={360} step={0.1} fineStep={0.01} format={sp} disabled={filters}
           caption={`Set it just above what the controller reads sitting still${restNow === null ? '' : `: ${restNow.toFixed(1)} °/s right now`}. ◂ ▸ steps 0.1.`} />
-        <KeyNumberRow k="GYRO_CUTOFF_RECOVERY" label="Fade back in by" hint="Aim eases in up to this speed, not all at once" fallback={0} min={0} max={360} step={0.5} fineStep={0.01} format={sp} disabled={filters} />
-        <ValueRow label="Keep at least, left/right" hint="Least speed while fading in; 0 is the classic feel" value={floor[0]} min={0} max={100} step={0.1} fineStep={0.01}
+        <KeyNumberRow k="GYRO_CUTOFF_RECOVERY" label="Steadying recovery threshold" hint="Full sensitivity returns at this speed; between cutoff and recovery, sensitivity increases gradually" fallback={0} min={0} max={360} step={0.5} fineStep={0.01} format={sp} disabled={filters} />
+        <ValueRow label="Steadying floor, horizontal (RWS)" hint="Minimum effective sensitivity above the cutoff; 0 allows sensitivity to fade to zero" value={floor[0]} min={0} max={100} step={0.1} fineStep={0.01}
           setting={gyro.held ? undefined : 'GYRO_STEADYING_FLOOR'} disabled={floorDisabled ?? gyro.locked} onChange={value => setFloor(0, value)}
           onReset={gyro.get('GYRO_STEADYING_FLOOR') !== undefined ? () => gyro.reset('GYRO_STEADYING_FLOOR') : undefined} data={{ 'data-setting': 'GYRO_STEADYING_FLOOR' }} />
-        <ValueRow label="Keep at least, up/down" hint="Same, for vertical aim" value={floor[1]} min={0} max={100} step={0.1} fineStep={0.01}
+        <ValueRow label="Steadying floor, vertical (RWS)" hint="Minimum effective sensitivity for vertical aim above the cutoff" value={floor[1]} min={0} max={100} step={0.1} fineStep={0.01}
           setting={gyro.held ? undefined : 'GYRO_STEADYING_FLOOR'} disabled={floorDisabled ?? gyro.locked} onChange={value => setFloor(1, value)}
           onReset={gyro.get('GYRO_STEADYING_FLOOR') !== undefined ? () => gyro.reset('GYRO_STEADYING_FLOOR') : undefined} data={{ 'data-setting': 'GYRO_STEADYING_FLOOR' }} />
       </>,
       visual: <>
         <VisualTitle title="How much gets through, by speed" live={restNow === null ? '—' : sp(restNow)} />
-        <FractionGraph yLabel="Gets through →" xMax={Math.max(8, s.recovery * 2, s.cutoff * 3)} live={live}
-          curves={[{ fn: speed => passedAt(speed, s.cutoff, s.recovery) }]}
+        <FractionGraph yLabel="Sensitivity retained →" xMax={Math.max(8, s.recovery * 2, s.cutoff * 3)} live={filterSpeed}
+          curves={[{ fn: retained('x'), label: 'Left/right' }, { fn: retained('y'), label: 'Up/down', tone: 'alt' }]}
           marks={[...(s.cutoff > 0 ? [{ at: s.cutoff, label: String(s.cutoff) }] : []), ...(s.recovery > s.cutoff ? [{ at: s.recovery, label: String(s.recovery) }] : [])]}
           bands={s.cutoff > 0 ? [{ from: 0, to: s.cutoff, label: 'Ignored' }, ...(s.recovery > s.cutoff ? [{ from: s.cutoff, to: s.recovery, label: 'Fades in' }] : []), { from: Math.max(s.cutoff, s.recovery), to: Math.max(8, s.recovery * 2, s.cutoff * 3), label: 'All of it' }] : []} />
         {strip('jitter', s.cutoff > 0 || s.recovery > 0 ? `Above ${Math.max(s.cutoff, s.recovery)} °/s nothing is held back, so real turns never feel this.` : 'Off: every movement gets through.')}
@@ -84,71 +96,72 @@ export function SteadinessAdvanced({ open, onClose, trail, part, onPart }: Props
     {
       id: 'smoothing', label: 'Smoothing', status: label('smoothing', status.smoothing), changed: changed.smoothing,
       detail: 'Speed, time, continuous',
-      description: 'Averages out slow movement. Fast turns pass straight through.',
+      description: 'Smoothing averages motion over time to reduce jitter, adding some delay. Steadying instead reduces low-speed sensitivity.',
       content: <>
-        <KeyNumberRow k="GYRO_SMOOTH_THRESHOLD" hero label="Smooth below this speed" fallback={0} min={0} max={360} step={1} fineStep={0.1} format={value => (value > 0 ? sp(value) : 'Off')} disabled={filters}
+        <KeyNumberRow k="GYRO_SMOOTH_THRESHOLD" hero label="Smoothing threshold" fallback={0} min={0} max={360} step={1} fineStep={0.1} format={value => (value > 0 ? sp(value) : 'Off')} disabled={filters}
           caption="Turns slower than this are smoothed, faster ones go straight through. Set it just above how fast your hands shake." />
         <KeyNumberRow k="GYRO_SMOOTH_TIME" label="Smoothing time" hint="Longer is calmer but adds a little delay" fallback={0.125} min={0} max={1} step={0.025} fineStep={0.001} format={value => `${value} s`} disabled={filters} />
-        <KeySwitchRow k="GYRO_SMOOTHING_DECAY" label="Continuous smoothing" hint="Same feel whatever the update rate" disabled={filters} />
+        <KeySwitchRow k="GYRO_SMOOTHING_DECAY" label="Exponential smoothing" hint="Uses time-based decay instead of a fixed sample window" disabled={filters} />
       </>,
       visual: <>
-        <VisualTitle title="How much is smoothed, by speed" live={live === null ? '—' : sp(live)} />
-        <FractionGraph yLabel="Smoothed →" xMax={Math.max(24, s.smoothThreshold * 3)} live={live} curves={[{ fn: speed => smoothedAt(speed, s) }]}
+        <VisualTitle title="Smoothing weight by input speed" live={inputSpeed === null ? undefined : sp(inputSpeed)} />
+        <FractionGraph yLabel="Smoothed →" xMax={Math.max(24, s.smoothThreshold * 3)} live={inputSpeed} curves={[{ fn: speed => smoothedAt(speed, s) }]}
           marks={s.smoothThreshold > 0 ? [{ at: s.smoothThreshold, label: sp(s.smoothThreshold) }] : []}
-          bands={s.smoothThreshold > 0 ? [{ from: 0, to: s.smoothThreshold / 2, label: 'Fully smoothed' }, { from: s.smoothThreshold / 2, to: s.smoothThreshold, label: 'Blend' }, { from: s.smoothThreshold, to: Math.max(24, s.smoothThreshold * 3), label: 'Straight through' }] : []} />
+          bands={s.smoothThreshold > 0 && s.smoothTime > 0 ? [...(s.decay ? [{ from: 0, to: s.smoothThreshold, label: 'Quadratic blend' }] : [{ from: 0, to: s.smoothThreshold / 2, label: 'Fully smoothed' }, { from: s.smoothThreshold / 2, to: s.smoothThreshold, label: 'Blend' }]), { from: s.smoothThreshold, to: Math.max(24, s.smoothThreshold * 3), label: 'Straight through' }] : []} />
         {strip('smoothing', s.smoothThreshold > 0 ? `Your movement passes through these in order. At ${s.smoothTime} s, slow aim lags by about ${Math.round(lag)} ms.` : 'Your movement passes through these in order. Smoothing is off.')}
       </>,
     },
     {
-      id: 'adaptive', label: 'Adaptive filter', status: label('adaptive', status.adaptive), changed: changed.adaptive,
+      id: 'adaptive', label: 'One Euro filter', status: label('adaptive', status.adaptive), changed: changed.adaptive,
       detail: 'On or off, smoothing at rest, how fast it lets go',
       description: 'Smooths hard when you’re still, lets go as you speed up.',
       content: <>
-        <SwitchRow label="Adaptive filter" hint="For the whole configuration" on={s.oneEuro} setting="ONE_EURO_FILTER" disabled={filters ?? gyro.locked}
+        <SwitchRow label="One Euro filter" hint="For the whole configuration" on={s.oneEuro} setting="ONE_EURO_FILTER" disabled={filters ?? gyro.locked}
           onChange={next => gyro.setRootText(previous => upsertFlagCommand(previous, 'ONE_EURO_FILTER', next))} />
-        <KeyNumberRow k="ONE_EURO_SPEED_COEFF" hero label="How fast it lets go" fallback={0.3} min={0} max={2} step={0.05} fineStep={0.01}
-          disabled={filters ?? (s.oneEuro ? undefined : 'Turn the adaptive filter on first.')}
+        <KeyNumberRow k="ONE_EURO_SPEED_COEFF" hero label="Speed coefficient (beta)" fallback={0.3} min={0} max={2} step={0.05} fineStep={0.01}
+          disabled={filters ?? (s.oneEuro ? undefined : 'Turn the One Euro filter on first.')}
           caption="Higher lets a flick through sooner; lower stays calm for longer. ◂ ▸ steps 0.05; Shift for 0.01." />
-        <KeyNumberRow k="ONE_EURO_MIN_CUTOFF" label="Smoothing at rest" hint="Lower is calmer; higher keeps tiny moves sharp" fallback={6} min={0} max={20} step={0.5} fineStep={0.1} format={value => `${value} Hz`}
-          disabled={filters ?? (s.oneEuro ? undefined : 'Turn the adaptive filter on first.')} />
+        <KeyNumberRow k="ONE_EURO_MIN_CUTOFF" label="Minimum cutoff frequency" hint="Lower is calmer; higher keeps tiny moves sharp" fallback={6} min={0} max={20} step={0.5} fineStep={0.1} format={value => `${value} Hz`}
+          disabled={filters ?? (s.oneEuro ? undefined : 'Turn the One Euro filter on first.')} />
         <Note>The two numbers can change while you hold a button; on or off cannot.</Note>
       </>,
       visual: <>
-        <VisualTitle title="How much is smoothed, by speed" live={live === null ? '—' : sp(live)} />
-        <FractionGraph yLabel="Smoothed →" xMax={60} live={s.oneEuro ? live : null}
+        <VisualTitle title="One Euro response to acceleration" live={s.oneEuro && derivative !== null ? `${Math.round(derivative)} °/s²` : undefined} />
+        <FractionGraph yLabel="Previous output weight →" xLabel="Filtered angular acceleration →" unit="°/s²" xMax={600} live={s.oneEuro ? derivative : null}
           curves={[
-            { fn: speed => euroSmoothedAt(speed, s.minCutoff, 0.1), label: '0.1 · calmer', tone: 'alt' },
-            { fn: speed => euroSmoothedAt(speed, s.minCutoff, 0.8), label: '0.8 · lets go sooner', tone: 'alt' },
-            { fn: speed => euroSmoothedAt(speed, s.minCutoff, s.speedCoeff), label: String(s.speedCoeff) },
+            { fn: derivative => euroSmoothedAt(derivative, s.minCutoff, 0.1, s.tickMs), label: 'beta 0.1', tone: 'alt' },
+            { fn: derivative => euroSmoothedAt(derivative, s.minCutoff, 0.8, s.tickMs), label: 'beta 0.8', tone: 'alt' },
+            { fn: derivative => s.oneEuro ? euroSmoothedAt(derivative, s.minCutoff, s.speedCoeff, s.tickMs) : 0, label: s.oneEuro ? `beta ${s.speedCoeff}` : 'Off' },
           ]} />
+        <Note>Response at the configured {s.tickMs} ms update interval. The live point uses the axis with the larger filtered acceleration.</Note>
         {strip('adaptive', `At rest: smoothed at ${s.minCutoff} Hz. Unlike smoothing, there is no hard switch-over speed, so there’s nothing to feel kick in.`)}
       </>,
     },
     {
-      id: 'snap', label: 'Snap & brake', status: label('snap', status.snap), changed: changed.snap,
-      detail: 'Snap angle and ease, brake after flicks, steady while clicking, coast slowdown',
+      id: 'snap', label: 'Angle snapping & braking', status: label('snap', status.snap), changed: changed.snap,
+      detail: 'Angle snapping, deceleration brake, click damping and trackball decay',
       description: 'Straighter sweeps, cleaner stops, steadier clicks.',
       content: <>
         {deflectionOnly && <Note tone="warn">{deflectionOnly}</Note>}
-        <KeyNumberRow k="GYRO_ANGLE_SNAP" hero label="Snap within" fallback={0} min={0} max={45} step={1} fineStep={0.1} format={value => (value > 0 ? `${value}°` : 'Off')} disabled={filters ?? deflectionOnly}
-          caption={`A sweep within ${snap || 'this many degrees'}${snap ? '°' : ''} of level or straight up comes out exactly level. 0 turns it off.`} />
-        <KeySwitchRow k="GYRO_ANGLE_SNAP_EASE" label="Ease into the snap" hint="Pull gradually instead of jumping" disabled={filters ?? deflectionOnly} />
-        <KeyNumberRow k="DECEL_BRAKE_STRENGTH" label="Brake after flicks" hint="Trims the overshoot as a flick slows" fallback={0} min={0} max={1} step={0.05} fineStep={0.01} factor={100} format={value => `${Math.round(value)}%`} disabled={filters ?? deflectionOnly} />
-        <KeyNumberRow k="DECEL_BRAKE_THRESHOLD" label="Brake trigger" hint="Slowing faster than this starts the brake" fallback={25} min={1} max={60} step={0.5} fineStep={0.1} format={sp} disabled={filters ?? deflectionOnly} />
-        <KeyNumberRow k="GYRO_CLICK_DAMPEN" label="Steady while clicking" hint="How much a trackpad press freezes aim" fallback={0} min={0} max={1} step={0.05} fineStep={0.01} factor={100} format={value => `${Math.round(value)}%`} disabled={filters ?? deflectionOnly} />
-        <KeyNumberRow k="TRACKBALL_DECAY" label="Coast slowdown" hint="While Gyro trackball is held" fallback={1} min={0} max={60} step={0.1} fineStep={0.01} format={value => `${value} /s`} disabled={deflectionOnly} />
+        <KeyNumberRow k="GYRO_ANGLE_SNAP" hero label="Angle snapping threshold" fallback={0} min={0} max={45} step={1} fineStep={0.1} format={value => (value > 0 ? `${value}°` : 'Off')} disabled={filters ?? deflectionOnly}
+          caption={`Motion within ${snap || 'this many degrees'}${snap ? '°' : ''} of a horizontal or vertical axis snaps to that axis. 0 turns it off.`} />
+        <KeySwitchRow k="GYRO_ANGLE_SNAP_EASE" label="Angle snapping easing" hint="Pull gradually instead of jumping" disabled={filters ?? deflectionOnly} />
+        <KeyNumberRow k="DECEL_BRAKE_STRENGTH" label="Deceleration brake strength" hint="Trims the overshoot as a flick slows" fallback={0} min={0} max={1} step={0.05} fineStep={0.01} factor={100} format={value => `${Math.round(value)}%`} disabled={filters ?? deflectionOnly} />
+        <KeyNumberRow k="DECEL_BRAKE_THRESHOLD" label="Deceleration brake threshold" hint="Slowing faster than this starts the brake" fallback={25} min={1} max={60} step={0.5} fineStep={0.1} format={sp} disabled={filters ?? deflectionOnly} />
+        <KeyNumberRow k="GYRO_CLICK_DAMPEN" label="Click damping" hint="How much a trackpad press freezes aim" fallback={0} min={0} max={1} step={0.05} fineStep={0.01} factor={100} format={value => `${Math.round(value)}%`} disabled={filters ?? deflectionOnly} />
+        <KeyNumberRow k="TRACKBALL_DECAY" label="Trackball decay" hint="How quickly simulated gyro trackball motion loses speed" fallback={1} min={0} max={60} step={0.1} fineStep={0.01} format={value => `${value} /s`} disabled={deflectionOnly} />
       </>,
       visual: <>
-        <VisualTitle title="Where aim snaps" live={headingText(liveGyro(gyro.sample))} />
-        <SnapZones snap={snap} heading={heading(liveGyro(gyro.sample))} />
-        <VisualTitle title={`End of a flick · brake ${brake > 0 ? `${Math.round(brake * 100)}%` : 'off · dashed: at 50%'}`} />
+        <VisualTitle title="Where aim snaps" live={motion?.snapInput ? headingText(motion.snapInput) : undefined} />
+        <SnapZones snap={snap} heading={heading(motion?.snapInput ?? null)} />
+        <VisualTitle title={`Brake illustration · ${brake > 0 ? `${Math.round(brake * 100)}%` : 'off · dashed: at 50%'}`} />
         <BrakeIllustration strength={brake} />
       </>,
     },
   ]
 
   return (
-    <SubPage open={open} onClose={onClose} trail={trail} title="Advanced" stepLabel="Part" backLabel="Back to Steadiness"
+    <SubPage open={open} onClose={onClose} trail={trail} title="Advanced" stepLabel="Part" backLabel="Back to Filters"
       onStep={direction => onPart(stepGroup(groups, part, direction) as SteadinessPart)}
       hints={gyro.callbacks.onTryIt ? [{ button: 'X', label: 'Try it' }] : undefined}
       where={`${trail.join(' · ')} · Advanced · ${groups.find(group => group.id === part)?.label ?? ''}`}>
@@ -163,7 +176,7 @@ export function SteadinessAdvanced({ open, onClose, trail, part, onPart }: Props
 /** Direction of the live movement, degrees from level (for the snap picture). */
 const heading = (gyro: { x: number; y: number } | null) => {
   if (!gyro || Math.hypot(gyro.x, gyro.y) < 1) return null
-  const degrees = (Math.atan2(gyro.x, gyro.y) * 180) / Math.PI
+  const degrees = (Math.atan2(gyro.y, gyro.x) * 180) / Math.PI
   return (degrees + 360) % 360
 }
 const headingText = (gyro: { x: number; y: number } | null) => {

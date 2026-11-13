@@ -47,6 +47,7 @@ import type { ModeshiftSummary } from '../../utils/modeshift'
 import { TRIGGER_LABEL_KEYS } from './triggerKinds'
 import { getVirtualControllerLogicalOutput, type VirtualControllerType } from '../../utils/virtualController'
 import { describeCommandOutput, explainCommandOutput } from '../../utils/bindingDescription'
+import { readVirtualMenus } from '../../utils/virtualMenus'
 import { LayerUsageContext } from '../LayerBar'
 import { actionsOnInput, sameLayerAction, type LayerAction } from '../../utils/layers'
 import type { ActivationRef, BindingApi } from './binding/model'
@@ -264,7 +265,8 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
   const menuItem = Boolean(onBindingIconChange)
   // The LED while held and the layer actions are the input's own (TODO-54,
   // TODO-55): a shifted card and a menu item chord and annotate nothing.
-  const { actions: layerActions, onSetActions, layers } = useContext(LayerUsageContext)
+  const { actions: layerActions, onSetActions, layers, text: menuText } = useContext(LayerUsageContext)
+  const menus = useMemo(() => readVirtualMenus(menuText).menus, [menuText])
   const ownsExtras = !menuItem && !isShifted
   const heldLed = useMemo(
     () => (ownsExtras && onHeldLedColorChange ? { color: heldLedColor ?? null, brightness: heldLedBrightness ?? null } : null),
@@ -788,7 +790,7 @@ export const ButtonBindingsCard = memo(function ButtonBindingsCard({
     .map(command => ({
       trigger: t(TRIGGER_LABEL_KEYS[command.triggerKind]),
       kind: command.source.kind === 'layerAction' || command.source.kind === 'special' || command.triggerKind === 'stickShift' ? (command.triggerKind === 'release' ? 'release' : 'regular') : command.triggerKind,
-      output: describeCommandOutput(command, layers, t),
+      output: describeCommandOutput(command, layers, t, menus),
       outputTitle: explainCommandOutput(command, shortName, t),
       jsm: command.outputKind === 'special' || command.outputKind === 'gyroAction' || command.source.kind === 'special' || command.source.kind === 'stickShift' || isFixedCommand(command),
     }))

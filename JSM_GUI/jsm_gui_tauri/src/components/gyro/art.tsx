@@ -57,7 +57,7 @@ export function EffectArt({ effect }: { effect: string }) {
   return svg(<path d={shapes[effect] ?? 'M8 40 H40 L46 30 L52 50 L58 40 H112'} className={effect === 'OFF' ? styles.artDashed : styles.artAccent} />)
 }
 
-/** A curve type as a thumbnail (Speed ▸ Advanced curve picker). */
+/** A curve type as a thumbnail (Sensitivity ▸ Advanced curve picker). */
 export function CurveArt({ type }: { type: AccelCurveType | 'OFF' }) {
   if (type === 'OFF') return svg(<path d="M10 50 H110" className={styles.artAccent} />)
   const params = { curveType: type, minSens: 0.25, maxSens: 1, minThreshold: 10, maxThreshold: type === 'QUADRATIC' || type === 'JUMP' ? 60 : 70, ...GYRO_ACCEL_DEFAULTS, naturalVHalf: 18, powerVRef: 8, powerExponent: 1, sigmoidMid: 30, sigmoidWidth: 6, jumpTau: 3 }

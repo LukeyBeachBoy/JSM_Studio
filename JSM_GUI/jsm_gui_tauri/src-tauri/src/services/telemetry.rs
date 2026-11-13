@@ -141,6 +141,7 @@ pub fn start(app: AppHandle, state: AppState) {
                         let heartbeat = fill_heartbeat_devices(&state, &mut packet);
                         presses.observe(&packet);
                         for (command,owner) in studio_commands.take(&packet) {
+                            if let Some(id) = command.strip_prefix("LAYER_REMOVE ") { crate::services::global_chords::request_layer_removal(owner, id); }
                             if command=="OPEN_KEYBOARD" {crate::services::virtual_keyboard::request_toggle(owner);}
                             if command=="TOGGLE_MAPPING" {
                                 crate::services::global_chords::consume_until_release();
@@ -344,7 +345,9 @@ fn overlay_packet(packet: &Value) -> Option<Value> {
     let device = packet
         .get("devices")
         .and_then(Value::as_array)
-        .and_then(|devices| devices.iter().find(|device| device.get("status").is_some_and(Value::is_object)))?;
+        .and_then(|devices| devices.iter().find(|device| device["status"]["virtualMenus"].as_array()
+            .is_some_and(|menus| menus.iter().any(|menu| menu["open"].as_bool() == Some(true))))
+            .or_else(|| devices.iter().find(|device| device.get("status").is_some_and(Value::is_object))))?;
     let status = device.get("status")?;
     // Static per device, but carried per packet rather than emitted once: a
     // controller can be unplugged and replaced by one with a differently shaped
@@ -364,8 +367,8 @@ fn overlay_packet(packet: &Value) -> Option<Value> {
     // means the same thing, so the overlay decides a stick menu is live from
     // deflection against the menu's deadzone -- which is also how the backend
     // decides, so the two agree about when a wheel is up.
-    let stick = |name: &str| {
-        status.get(name).map(|stick| {
+    let stick = |name: &str, adjusted: &str| {
+        status.get(adjusted).or_else(|| status.get(name)).map(|stick| {
             json!({
                 "x": stick.get("x").and_then(Value::as_f64).unwrap_or(0.0),
                 "y": stick.get("y").and_then(Value::as_f64).unwrap_or(0.0),
@@ -377,11 +380,13 @@ fn overlay_packet(packet: &Value) -> Option<Value> {
             "buttons": status.get("buttons").and_then(Value::as_u64).unwrap_or(0),
             "leftPad": pad("leftPad"),
             "rightPad": pad("rightPad"),
-            "leftStick": stick("leftStick"),
-            "rightStick": stick("rightStick"),
+            "leftStick": stick("leftStick", "adjustedLeftStick"),
+            "rightStick": stick("rightStick", "adjustedRightStick"),
             "virtualMenus": status.get("virtualMenus"),
             "touchpadWidth": dimension("touchpadWidth"),
             "touchpadHeight": dimension("touchpadHeight"),
+            "deviceType": device.get("type"),
+            "controllerId": device.get("controllerId"),
             // Which configuration the mapper is actually running. A binding can
             // load another one without Studio knowing, and until the overlay
             // hears about it, it keeps drawing the menus of the profile that is
@@ -398,6 +403,26 @@ fn overlay_packet(packet: &Value) -> Option<Value> {
 #[cfg(test)]
 mod overlay_profile_tests {
     use super::*;
+    #[test]
+    fn overlay_uses_the_controller_that_opened_the_menu() {
+        let packet=json!({"devices":[
+            {"controllerId":"first","status":{"buttons":1}},
+            {"controllerId":"second","activeProfile":"second.txt","status":{"buttons":2,"virtualMenus":[{"open":true}]}}
+        ]});
+        let payload=overlay_packet(&packet).unwrap();
+        assert_eq!(payload["controllerId"],"second"); assert_eq!(payload["buttons"],2); assert_eq!(payload["activeProfile"],"second.txt");
+    }
+
+    #[test]
+    fn stick_menus_receive_adjusted_input_with_legacy_fallback() {
+        let packet = json!({"devices":[{"status":{
+            "leftStick":{"x":0.7,"y":0.0}, "adjustedLeftStick":{"x":0.0,"y":1.0},
+            "rightStick":{"x":0.2,"y":0.3}
+        }}]});
+        let payload = overlay_packet(&packet).unwrap();
+        assert_eq!(payload["leftStick"], json!({"x":0.0,"y":1.0}));
+        assert_eq!(payload["rightStick"], json!({"x":0.2,"y":0.3}));
+    }
 
     #[test]
     fn controller_chord_profile_follows_its_input_and_returns_to_game() {

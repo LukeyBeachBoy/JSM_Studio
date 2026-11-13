@@ -1,0 +1,18 @@
+:root { --binding-base: oklch(77% .11 235); --binding-game: oklch(82% .08 295); }
+:root[data-theme='light'] { --binding-base: oklch(47% .12 235); --binding-game: oklch(44% .12 295); }
+.binding-source-mark, .binding-source-part { display: inline-block; flex: none; width: 9px; height: 9px; border: 1.5px solid var(--binding-source-color); border-radius: 50%; background: var(--binding-source-color); box-sizing: border-box; vertical-align: middle; }
+.binding-source-mark[data-binding-source='base'], .binding-source-part[data-binding-source='base'] { background: transparent; border-radius: var(--r-xs); transform: rotate(45deg); }
+.binding-source-mark[data-binding-source='layer'], .binding-source-part[data-binding-source='layer'] { border-radius: var(--r-xs); }
+.binding-source-mark[data-binding-source='mixed'] { display: inline-flex; align-items: center; gap: var(--sp-1); width: auto; height: 12px; border: 0; background: transparent; }
+.binding-source-spoken { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+.binding-source-legend { display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-2) var(--sp-3); padding: 0; color: var(--text-2); font-size: var(--fs-hint); }
+.binding-source-legend [role='listitem'] { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.binding-source-legend-label, .binding-source-legend-note { color: var(--text-3); }
+.binding-source-legend-note { font-size: var(--fs-micro); }
+.origin-marker .binding-source-mark.origin-marker__dot { width: 9px; height: 9px; box-shadow: none; border-color: var(--binding-source-color); background: var(--binding-source-color); }
+.origin-marker .binding-source-mark.origin-marker__dot[data-binding-source='base'] { background: transparent; border-radius: var(--r-xs); }
+.origin-marker .binding-source-mark.origin-marker__dot[data-binding-source='layer'] { border-radius: var(--r-xs); }
+.origin-marker .binding-source-mark.origin-marker__dot[data-binding-source='mixed'] { width: auto; background: transparent; border: 0; }
+
+.binding-source-legend { margin-left: auto; }
+.binding-source-legend-label { font-size: var(--fs-hint); }

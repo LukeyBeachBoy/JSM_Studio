@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { SubPage, FineTune, stepGroup, ModeCards, ValueRow, OpenRow, type FineTuneGroup } from '../ui/console'
+import { SubPage, FineTune, SettingRows, stepGroup, ModeCards, ValueRow, OpenRow, type FineTuneGroup } from '../ui/console'
 import {
   correctedStickRadius, readVirtualSetting, virtualStickProblem, virtualStickValues, writeVirtualStickNumber,
   VIRTUAL_STICK_FIELDS, type VirtualStickField, type VirtualStickTarget,
@@ -55,7 +55,7 @@ export function StickSettings({ open, onClose, trail, target, part, onPart }: Pr
       status: `${CONTROLLER_LABEL[controller] ?? controller} pad · ${deflection ? 'hold the angle' : steering ? 'rotation speed' : 'camera speed'}`,
       detail: 'Virtual pad, camera speed or hold the angle, game turn rate, real stick mix',
       description: `Gyro becomes a ${side} stick. The game decides what that stick does.`,
-      content: <div data-virtual-stick={target}>
+      content: <SettingRows data-virtual-stick={target}>
         <KeyChoiceRow k="VIRTUAL_CONTROLLER" label="Virtual pad" hint="For the whole configuration" fallback="NONE"
           options={[{ value: 'NONE', label: 'Off' }, { value: 'XBOX', label: 'Xbox 360' }, { value: 'DS4', label: 'PlayStation 4' }]} />
         {controller === 'NONE' && <Note tone="warn">Gyro to a stick needs a virtual pad. Choose Xbox 360 or PlayStation 4.</Note>}
@@ -82,10 +82,10 @@ export function StickSettings({ open, onClose, trail, target, part, onPart }: Pr
             onReset={gyro.get('GYRO_DEFLECTION_RANGE') !== undefined ? () => gyro.reset('GYRO_DEFLECTION_RANGE') : undefined} data={{ 'data-setting': 'GYRO_DEFLECTION_RANGE' }} />)}
           <SwitchRow label="Lock at the limits" hint="Turn back to move at once; off remembers turning past the limit" on={lock} setting="GYRO_DEFLECTION_LOCK_EXTENTS" disabled={gyro.locked}
             onChange={next => gyro.set('GYRO_DEFLECTION_LOCK_EXTENTS', next ? 'ON' : 'OFF')} />
-          <Note>Bind Recenter gyro deflection to a button to capture a fresh neutral. Filters and drift calibration affect the angle; turn speed, speed-up, snapping and click steadying don’t. A held Gyro trackball clutches the angle instead of coasting.</Note>
+          <Note>Bind Recenter gyro deflection to a button to capture a fresh neutral. Filters and drift calibration affect the angle; sensitivity, acceleration, angle snapping and click damping don’t. A held Gyro trackball clutches the angle instead of coasting.</Note>
         </>}
         {field('VIRTUAL_SCALE', 'Real stick adds', `Your ${side} stick still aims; this scales it`)}
-      </div>,
+      </SettingRows>,
       visual: <>
         <VisualTitle title="Turn, then stop" live />
         <StickTimeline deflection={deflection} />
@@ -96,7 +96,7 @@ export function StickSettings({ open, onClose, trail, target, part, onPart }: Pr
       status: deadzoneChanged ? `Changed: skip deadzone ${Math.round(values.inner * 100)}%` : 'Default',
       detail: 'Skip the game’s deadzone, full speed sooner, undo its curve, test signal',
       description: 'Undo the game’s own stick handling, so small turns aren’t lost.',
-      content: <div data-virtual-stick={target}>
+      content: <SettingRows data-virtual-stick={target}>
         {field('UNDEADZONE_INNER', 'Skip the game’s deadzone', 'Counter the game’s inner deadzone', { hero: true, caption: 'With the test signal on, raise it until the camera just starts to creep, then back off a touch.' })}
         <SwitchRow label="Deadzone test signal" hint="Holds the stick at that edge; turn off when done" setting={`${target}_DEADZONE_PROBE`} on={values.probe} disabled={gyro.locked}
           onChange={next => gyro.set(`${target}_DEADZONE_PROBE`, next ? 'ON' : 'OFF')}
@@ -104,9 +104,9 @@ export function StickSettings({ open, onClose, trail, target, part, onPart }: Pr
         {field('UNDEADZONE_OUTER', 'Full speed sooner', 'If the game maxes out before the edge')}
         {field('UNPOWER', 'Undo the game’s curve', '0 or 1 is straight; 2 undoes a squared curve')}
         <Note>Inner and Full speed sooner together stay under 100%.</Note>
-      </div>,
+      </SettingRows>,
       visual: <>
-        <VisualTitle title={`Your virtual ${side} stick`} live={values.probe ? 'test signal on' : true} />
+        <VisualTitle title={`Your virtual ${side} stick`} live={values.probe ? 'test signal on' : live ? true : undefined} />
         <VirtualStickResponse inner={values.inner} live={live}
           curve={x => correctedStickRadius(x, values.inner, values.outer, values.exponent, values.probe)}
           label={deflection ? 'Stick sent for each angle from neutral' : 'Stick sent for each camera speed you ask for'} />
@@ -115,7 +115,7 @@ export function StickSettings({ open, onClose, trail, target, part, onPart }: Pr
           { label: deflection ? 'Full stick at' : 'Game turn rate', value: deflection ? `${range.x}° · ${range.y}°` : `${values.maxSpeed} °/s` },
           { label: 'Stick now', value: live ? `${live.x.toFixed(2)}, ${live.y.toFixed(2)}` : 'No output read' },
         ]} />
-        <p className={styles.visualCaption}>{live ? 'Dashed is the game without the fix. The live dot is what the game receives.' : 'Dashed is the game without the fix. Live output appears once the mapper reports it for the applied configuration.'}</p>
+        <p className={styles.visualCaption}>{live ? 'Dashed is the game without the fix. The green horizontal line is the measured stick output; its requested input is not reported.' : 'Dashed is the game without the fix. Live output appears once the mapper reports it for the applied configuration.'}</p>
       </>,
     },
   ]

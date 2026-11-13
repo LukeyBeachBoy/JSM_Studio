@@ -11,6 +11,9 @@
 }
 @media (max-width: 1279px) { .home { grid-template-columns: minmax(0, 1fr) 340px; gap: var(--sp-6); padding: var(--sp-6); } }
 
+/* The slot bar shares Home's side gutters and supplies its own top spacing. */
+:global(.home-body:has(> [data-slots-bar])) > .home { height: auto; margin-top: 0; padding-top: var(--sp-6); }
+
 .main { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: var(--sp-5); }
 
 /* ---- The hero: the game's art (Steam library cache) or a flat two-tone cover. */
@@ -24,7 +27,7 @@
   justify-content: flex-end;
   overflow: hidden;
   padding: 36px;
-  border-radius: 22px;
+  border-radius: var(--r-card);
   background-color: var(--surface-row);
   background-size: cover;
   background-position: center;
@@ -51,32 +54,33 @@
 .name {
   margin: 0;
   overflow: hidden;
-  font-size: calc(var(--fs-page) * 2.2);
+  font-size: 64px;
   line-height: 1;
   font-weight: var(--fw-bold);
   letter-spacing: -.02em;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.summary { margin: 14px 0 0; font-size: calc(var(--fs-body) + 3px); line-height: 1.35; color: #c9d3dc; }
+.summary { margin: 14px 0 0; font-size: var(--fs-label); line-height: 1.35; color: #c9d3dc; }
 
 /* ---- A Edit layout · X Test it · Y Switch game */
-.actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-3); flex-shrink: 0; }
+.actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); flex-shrink: 0; }
 .primary, .secondary {
-  height: 76px;
+  min-height: 56px;
+  padding: var(--sp-3) var(--sp-4);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 14px;
   border: 0;
-  border-radius: 18px;
+  border-radius: var(--r-card);
   font: inherit;
   cursor: pointer;
 }
-.primary { flex: 1; background: var(--accent-strong); color: var(--text-on-accent); font-size: calc(var(--fs-label) + 7px); font-weight: var(--fw-semibold); }
+.primary { flex: 1; background: var(--accent-strong); color: var(--text-on-accent); font-size: var(--fs-section); font-weight: var(--fw-semibold); }
 .primary:hover { background: var(--accent); }
-.secondary { flex: 1; background: var(--surface-control); color: var(--text-1); font-size: calc(var(--fs-label) + 5px); font-weight: var(--fw-semibold); }
-.actions > button { min-width: 0; white-space: nowrap; }
+.secondary { flex: 1; background: var(--surface-control); color: var(--text-1); font-size: var(--fs-section); font-weight: var(--fw-semibold); }
+.actions > button { min-width: 0; white-space: normal; text-align: center; }
 .secondary:hover { background: var(--surface-control-hover); }
 .secondary[aria-disabled='true'] { color: var(--text-3); cursor: default; }
 .primaryGlyph { color: var(--text-on-accent); }
@@ -106,9 +110,9 @@
 .tuneTile[aria-disabled='true'] { cursor: pointer; }
 .tuneLabel { font-size: var(--fs-label); color: var(--text-2); }
 .tuneValueLine { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-2); width: 100%; }
-.tuneValue { font-size: calc(var(--fs-page) + 2px); font-weight: var(--fw-semibold); font-variant-numeric: tabular-nums; }
+.tuneValue { font-size: var(--fs-page); font-weight: var(--fw-semibold); font-variant-numeric: tabular-nums; }
 .tuneHint { font-size: var(--fs-hint); color: var(--text-3); white-space: nowrap; }
-.tuneWords { font-size: calc(var(--fs-label) + 6px); line-height: 1.25; font-weight: var(--fw-semibold); }
+.tuneWords { font-size: var(--fs-section); line-height: 1.25; font-weight: var(--fw-semibold); }
 .bar { display: block; width: 100%; height: 6px; border-radius: 3px; background: var(--surface-sunken); overflow: hidden; }
 .bar > span { display: block; height: 100%; border-radius: 3px; background: var(--accent); }
 
@@ -142,15 +146,15 @@
 .cover::before { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 35%, rgba(7, 12, 17, .78) 100%); }
 .coverIcon { position: absolute; top: 14px; left: 14px; }
 .coverText { position: relative; display: flex; flex-direction: column; gap: 4px; min-width: 0; color: #e8eef4; }
-.coverName { overflow: hidden; font-size: calc(var(--fs-label) + 4px); font-weight: var(--fw-semibold); text-overflow: ellipsis; white-space: nowrap; }
+.coverName { overflow: hidden; font-size: var(--fs-label); font-weight: var(--fw-semibold); text-overflow: ellipsis; white-space: nowrap; }
 .coverNote { font-size: var(--fs-hint); color: #c9d3dc; }
-.tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: var(--surface-row); font-size: calc(var(--fs-label) + 2px); }
+.tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: var(--surface-row); font-size: var(--fs-label); }
 .tile:hover { background: var(--surface-row-hover); }
 .tile b { font-weight: var(--fw-semibold); }
 .tileNew { background: transparent; box-shadow: inset 0 0 0 2px var(--surface-control); color: var(--text-2); }
 .tileNew:hover { background: var(--surface-row-hover); }
 
-.doors { display: flex; flex-direction: column; gap: var(--sp-3); margin-top: auto; }
+.doors { display: flex; flex-direction: column; gap: var(--sp-3);  }
 .door {
   display: flex;
   align-items: center;
@@ -166,7 +170,7 @@
 }
 .door:hover { background: var(--surface-row-hover); }
 .doorText { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.doorText b { font-size: calc(var(--fs-label) + 2px); font-weight: var(--fw-semibold); }
+.doorText b { font-size: var(--fs-label); font-weight: var(--fw-semibold); }
 .doorText span { font-size: var(--fs-hint); color: var(--text-3); }
 @media (max-width: 1279px) {
   .actions { gap: 10px; }
@@ -181,4 +185,16 @@
   .name { font-size: 48px; }
   .cover, .tile { height: 120px; }
   .door { padding: 14px 18px; }
+}
+
+.makeLive { grid-column: 1 / -1; }
+.actions > button > svg, .actions > button > span { flex-shrink: 0; }
+@media (max-width: 1000px) {
+  .home { grid-template-columns: minmax(0, 1fr) 280px; gap: var(--sp-4); padding: var(--sp-4); }
+  .actions > button { font-size: var(--fs-label); height: auto; min-height: 52px; padding: var(--sp-3); }
+  .tuneGrid { grid-template-columns: minmax(0, 1fr); gap: var(--sp-2); }
+  .tuneTile { gap: var(--sp-1); }
+  .hero { min-height: 180px; padding: var(--sp-6); }
+  .name { font-size: 40px; white-space: normal; overflow-wrap: anywhere; }
+  .tuneWords { font-size: var(--fs-label); }
 }

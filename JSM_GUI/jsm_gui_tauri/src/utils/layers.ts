@@ -1,5 +1,6 @@
 /** Layers travel with their profile. Only explicit overrides are stored. */
 import { sameValue } from './inheritedOverrides'
+import { foldSharedFlagCommands } from './config'
 import { FACE_BUTTONS, DPAD_BUTTONS, BUMPER_BUTTONS, TRIGGER_BUTTONS, CENTER_BUTTONS, PADDLE_BUTTONS, MINI_BUTTONS, MISC_BUTTONS, LEFT_STICK_BUTTONS, RIGHT_STICK_BUTTONS, TOUCH_BUTTONS, TOUCH_STICK_BUTTONS } from '../keymap/schema'
 /** What turns a layer on or off belongs to the input, the way Steam binds
  *  "Apply Action Layer" onto a button rather than storing it on the layer. So a
@@ -258,10 +259,16 @@ export function projectLayer(text: string, id: string) {
   const layer = readLayers(text).find(layer => layer.id === id)
   if (!layer) return base
   const keys = new Set(Object.keys(layer.overrides))
+  // Action names belong to the binding they describe. A different layer output
+  // must not inherit a name such as "Sprint" when it now sends the handbrake.
+  const baseEntries = layerEntries(base)
+  const replacedInputs = new Set(Object.entries(layer.overrides).filter(([key, value]) => isBinding(key) && !sameValue(value, baseEntries[key] ?? 'NONE')).map(([key]) => key))
   const seen = new Set<string>()
   const lines = base.split(/\r?\n/).reverse().filter(line => {
     const key = Object.keys(layerEntries(line))[0]
     if (!key) return true
+    const namedInput = /^#\s*@(?:label|icon)\s+([^:]+)(?:::.*)?$/.exec(key)?.[1]
+    if (namedInput && replacedInputs.has(namedInput)) return false
     if (keys.has(key) || seen.has(key)) return false
     seen.add(key); return true
   }).reverse()
@@ -282,7 +289,7 @@ export function foldLayer(text: string, id: string, edited: string, before = pro
     if (next[key] === undefined && !key.startsWith('#') && !isBinding(key)) delete layer.overrides[key]
     else layer.overrides[key] = next[key] ?? (key.startsWith('#') ? '' : 'NONE')
   }
-  return writeLayers(text, layers)
+  return writeLayers(foldSharedFlagCommands(text, before, edited), layers)
 }
 export function convertModeshifts(text: string, layer: ConfigLayer, trigger: string) {
   const retained: string[] = []

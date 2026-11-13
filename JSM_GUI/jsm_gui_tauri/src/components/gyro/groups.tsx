@@ -1,4 +1,4 @@
-import { ModeCards, OpenRow, SegmentedRow, ValueRow, type FineTuneGroup } from '../ui/console'
+import { ModeCards, OpenRow, SegmentedRow, SettingRows, ValueRow, type FineTuneGroup } from '../ui/console'
 import { HAPTIC_EFFECT_CHOICES } from '../../utils/hapticBindings'
 import { previewHaptic } from '../../utils/hapticPreview'
 import { gyroDeflectionEnabled } from '../../utils/gyroDeflectionSettings'
@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { formatStickModeLabel } from '../../constants/sticks'
 import { TILT_LABELS, TiltAngleVisual } from './TiltSettings'
 import { defaultHoldInput, inputName } from './inputs'
-import { applySpeedUp, detectSpeedUp, gyroCurveParams, readGyroSpeed, speedUpPreviewParams, writeTurnSpeed, type SpeedUpPreset } from '../../utils/gyroSpeed'
+import { applySpeedUp, detectSpeedUp, effectiveGyroCurveParams, readGyroSpeed, writeTurnSpeed, type SpeedUpPreset } from '../../utils/gyroSpeed'
 import {
   ANGLE_SNAP_ON, CLICK_DAMPEN_ON, RUMBLE_LABELS, RUMBLE_PRESETS, STEADINESS_LABELS,
   applySteadiness, detectRumble, detectSteadiness, readSteadiness, type RumblePreset, type SteadinessPreset,
@@ -16,7 +16,7 @@ import {
 import { readSteadyingSettings, steadinessStats, sweepPaths } from '../../utils/gyroSteadiness'
 import type { GyroSub } from '../../utils/gyroRoutes'
 import { useGyro, KeyNumberRow, KeyChoiceRow, SwitchRow, VisualTitle, RowLabel, Note } from './GyroContext'
-import { SpeedResponse, SteadySweep, StatTiles, RotationDiagram, RumbleDial, liveOmega, liveGyro, useTurned, useModel } from './visuals'
+import { SpeedResponse, SteadySweep, StatTiles, RotationDiagram, RumbleDial, liveOmega, liveGyro, useTurned, useModel, useLiveSweep } from './visuals'
 import { OutputArt, SpaceArt, EffectArt, type SpaceKind } from './art'
 import styles from './Gyro.module.css'
 
@@ -52,24 +52,24 @@ export function useSpeedGroup(open: Open): FineTuneGroup {
   const reasons = useOutputReasons()
   const speed = readGyroSpeed(gyro.text)
   const preset = detectSpeedUp(gyro.text)
-  const params = gyroCurveParams(gyro.text)
+  const params = effectiveGyroCurveParams(gyro.text, gyro.rootText)
   const presets: Exclude<SpeedUpPreset, 'off'>[] = ['gentle', 'strong']
   const changed = gyro.changed('GYRO_SENS', 'MIN_GYRO_SENS', 'MAX_GYRO_SENS', 'MIN_GYRO_THRESHOLD', 'MAX_GYRO_THRESHOLD', 'ACCEL_CURVE')
   const presetLabel = { off: 'Off', gentle: 'Gentle', strong: 'Strong', custom: 'Custom' }[preset]
   return {
-    id: 'speed', label: 'Speed', changed,
+    id: 'speed', label: 'Sensitivity', changed,
     status: changed ? `Changed: ${fmtX(speed.base)}${preset !== 'off' ? ` · ${presetLabel}` : ''}` : `All default · ${fmtX(speed.base)}`,
-    description: 'How fast your aim turns, and whether quick flicks go further.',
+    description: 'Real-world sensitivity is camera rotation divided by controller rotation. A sensitivity curve can vary that ratio with turn speed.',
     content: <>
-      <ValueRow hero label="Turn speed" setting={gyro.held ? undefined : speed.mode === 'static' ? 'GYRO_SENS' : 'MIN_GYRO_SENS'} value={Number(speed.base.toFixed(2))}
+      <ValueRow hero label="Real-world sensitivity (RWS)" setting={gyro.held ? undefined : speed.mode === 'static' ? 'GYRO_SENS' : 'MIN_GYRO_SENS'} value={Number(speed.base.toFixed(2))}
         min={0} max={30} step={0.1} fineStep={0.01} format={fmtX} disabled={reasons.speed ?? gyro.locked}
-        caption="Every speed below is measured from this one."
+        caption="Real-world sensitivity is camera rotation ÷ controller rotation. With matching game calibration, 4× maps a 90° controller turn to a 360° camera turn."
         onChange={value => gyro.setText(previous => writeTurnSpeed(previous, value, '', gyro.text))}
         // Held: back to following the normal speed. Otherwise the mapper's 1×.
         onReset={gyro.held ? () => ['GYRO_SENS', 'MIN_GYRO_SENS', 'MAX_GYRO_SENS'].forEach(gyro.reset) : () => gyro.setText(previous => writeTurnSpeed(previous, 1, '', gyro.text))}
         onX={gyro.callbacks.onTryIt ? { label: 'Try it', run: gyro.callbacks.onTryIt } : undefined}
         data={{ 'data-setting': 'GYRO_SENS' }} />
-      <SegmentedRow label="Speed up fast turns" hint="Slow movements stay precise; fast flicks travel further."
+      <SegmentedRow label="Acceleration" hint="Slow movements stay precise; fast flicks travel further."
         value={preset} disabled={reasons.speed ?? gyro.locked}
         options={[
           { value: 'off', label: 'Off', caption: `${fmtX(speed.base)} at every speed` },
@@ -79,17 +79,17 @@ export function useSpeedGroup(open: Open): FineTuneGroup {
         ]}
         onChange={value => { if (value === 'custom') open({ view: 'speed-advanced', part: 'speeds' }); else gyro.setText(previous => applySpeedUp(previous, value as SpeedUpPreset, '', gyro.text)) }}
         data={{ 'data-setting': 'ACCEL_CURVE' }} />
-      <OpenRow label="Match a full turn (360°)" hint="Turn once in game and the speed is set for you" value="Start"
+      <OpenRow label="Real-world calibration (RWC)" hint="Calibrate mouse output so RWS matches camera rotation" value="Start"
         disabled={reasons.output !== 'MOUSE' ? 'Only while gyro sends the mouse: a stick’s speed is its game turn rate.' : undefined}
         onOpen={() => open({ view: 'match-turn' })} hints="A:Start;B:Back" />
-      <OpenRow label="Advanced" hint="Exact speeds and switch points, curve shape, lean, Windows pointer speed" onOpen={() => open({ view: 'speed-advanced' })} />
+      <OpenRow label="Advanced" hint="Sensitivity and acceleration thresholds, curve shape and game calibration" onOpen={() => open({ view: 'speed-advanced' })} />
     </>,
     visual: <>
       <VisualTitle title="How your aim responds" live={liveOmega(gyro.sample) === null ? '—' : `${Math.round(liveOmega(gyro.sample) ?? 0)} °/s`} />
       <SpeedResponse params={params} live={liveOmega(gyro.sample)}
         caption={preset === 'off' ? `Off · ${fmtX(speed.base)} at every speed` : `${presetLabel}`}
-        compare={presets.filter(name => name !== preset).map(name => ({ label: name === 'gentle' ? 'Gentle' : 'Strong', params: speedUpPreviewParams(speed.base, name) }))} />
-      <p className={styles.visualCaption}>Dashed lines are the other speed-ups from this turn speed. ◂ ▸ on Speed up fast turns applies one live.</p>
+        compare={presets.filter(name => name !== preset).map(name => ({ label: name === 'gentle' ? 'Gentle' : 'Strong', params: effectiveGyroCurveParams(applySpeedUp(gyro.text, name), gyro.rootText) }))} />
+      <p className={styles.visualCaption}>Dashed lines compare acceleration presets at this base sensitivity. Change Acceleration to apply a preset live.</p>
     </>,
   }
 }
@@ -103,6 +103,7 @@ export function useSteadinessGroup(open: Open): FineTuneGroup {
   const settings = readSteadyingSettings(gyro.text, { oneEuro: readSteadyingSettings(gyro.rootText).oneEuro, tickMs: readSteadyingSettings(gyro.rootText).tickMs })
   const stats = useModel(() => steadinessStats(settings), settings)
   const paths = useModel(() => sweepPaths(settings), settings)
+  const livePaths = useLiveSweep(gyro.sample, settings)
   const click = gyro.num('GYRO_CLICK_DAMPEN', 0)
   const snap = gyro.num('GYRO_ANGLE_SNAP', 0)
   const changed = gyro.changed('GYRO_CUTOFF_SPEED', 'GYRO_CUTOFF_RECOVERY', 'GYRO_STEADYING_FLOOR', 'GYRO_SMOOTH_THRESHOLD', 'GYRO_SMOOTH_TIME', 'GYRO_SMOOTHING_DECAY', 'GYRO_CLICK_DAMPEN', 'GYRO_ANGLE_SNAP', 'GYRO_ANGLE_SNAP_EASE', 'DECEL_BRAKE_STRENGTH', 'DECEL_BRAKE_THRESHOLD', 'TRACKBALL_DECAY', 'ONE_EURO_MIN_CUTOFF', 'ONE_EURO_SPEED_COEFF')
@@ -110,9 +111,9 @@ export function useSteadinessGroup(open: Open): FineTuneGroup {
   const extras = [click > 0 && !reasons.deflection ? 'click steady' : '', snap > 0 && !reasons.deflection ? `snap ${snap}°` : '', settings.oneEuro ? 'adaptive' : ''].filter(Boolean)
   const presetCaption = (name: SteadinessPreset) => name === 'off' ? 'No smoothing or jitter cutoff' : `Smooth below ${applyValues(name).GYRO_SMOOTH_THRESHOLD} °/s · ignore below ${applyValues(name).GYRO_CUTOFF_SPEED} °/s`
   return {
-    id: 'steadiness', label: 'Steadiness', changed,
+    id: 'steadiness', label: 'Filters', changed,
     status: changed ? `Changed: ${[label, ...extras].join(' · ')}` : 'All default',
-    description: 'Calm small wobbles without slowing real turns.',
+    description: 'Steadying reduces sensitivity at low speeds. Smoothing averages motion over time to reduce jitter, with some delay.',
     content: <>
       <SegmentedRow label="Steady small movements" hint="Changes are live while you’re here." value={preset} disabled={reasons.filters ?? gyro.locked}
         options={[...(['off', 'light', 'medium', 'heavy'] as const).map(name => ({ value: name, label: STEADINESS_LABELS[name], caption: presetCaption(name) })),
@@ -120,25 +121,26 @@ export function useSteadinessGroup(open: Open): FineTuneGroup {
         onChange={value => { if (value === 'custom') open({ view: 'steadiness-advanced', part: 'smoothing' }); else gyro.setText(previous => applySteadiness(previous, value as SteadinessPreset, Boolean(gyro.held))) }}
         onX={gyro.callbacks.onTryIt ? { label: 'Try it', run: gyro.callbacks.onTryIt } : undefined}
         data={{ 'data-setting': 'GYRO_SMOOTH_THRESHOLD' }} />
-      <SwitchRow label="Steady while clicking" hint="Pressing a trackpad won’t nudge your aim" on={click > 0} setting="GYRO_CLICK_DAMPEN"
+      <SwitchRow label="Click damping" hint="Pressing a trackpad won’t nudge your aim" on={click > 0} setting="GYRO_CLICK_DAMPEN"
         disabled={reasons.filters ?? reasons.deflectionOnly ?? gyro.locked}
         onChange={next => gyro.set('GYRO_CLICK_DAMPEN', next ? CLICK_DAMPEN_ON : 0)}
         onReset={gyro.get('GYRO_CLICK_DAMPEN') !== undefined ? () => gyro.reset('GYRO_CLICK_DAMPEN') : undefined} />
-      <SwitchRow label="Snap to straight lines" hint="Nearly level sweeps come out perfectly level" on={snap > 0} setting="GYRO_ANGLE_SNAP"
+      <SwitchRow label="Angle snapping" hint="Nearly level sweeps come out perfectly level" on={snap > 0} setting="GYRO_ANGLE_SNAP"
         disabled={reasons.filters ?? reasons.deflectionOnly ?? gyro.locked}
         onChange={next => gyro.set('GYRO_ANGLE_SNAP', next ? ANGLE_SNAP_ON : 0)}
         onReset={gyro.get('GYRO_ANGLE_SNAP') !== undefined ? () => gyro.reset('GYRO_ANGLE_SNAP') : undefined} />
-      <OpenRow label="Advanced" hint="Ignore jitter, smoothing, adaptive filter, snap and brake" onOpen={() => open({ view: 'steadiness-advanced' })} />
+      <OpenRow label="Advanced" hint="Deadzone and steadying, smoothing, One Euro filter, angle snapping and braking" onOpen={() => open({ view: 'steadiness-advanced' })} />
     </>,
     visual: <>
-      <VisualTitle title="Your aim, up close" live={liveOmega(gyro.sample) === null ? '—' : `${Number((liveOmega(gyro.sample) ?? 0).toFixed(1))} °/s`} />
-      <SteadySweep raw={paths.raw} out={paths.out} label={`With ${label}`} />
+      <VisualTitle title={livePaths ? 'Recent motion through smoothing' : 'Filter simulation'} live={livePaths ? `${Number((liveOmega(gyro.sample) ?? 0).toFixed(1))} °/s` : undefined} />
+      <SteadySweep raw={(livePaths ?? paths).raw} out={(livePaths ?? paths).out} live={Boolean(livePaths)} label={livePaths ? 'Smoothing preview' : `With ${label}`} />
+      {livePaths && <p className={styles.visualCaption}>Recent controller samples replayed with the current smoothing and One Euro settings. This preview excludes sensitivity, deadzone, snapping and braking.</p>}
       <StatTiles tiles={[
         { label: 'Wobble while still', value: stats.wobbleCut > 0.005 ? `−${Math.round(stats.wobbleCut * 100)}%` : 'Untouched', tone: stats.wobbleCut > 0.005 ? 'good' : undefined },
         { label: 'Delay on slow aim', value: stats.slowDelayMs <= settings.tickMs * 1.5 ? 'None' : ms(stats.slowDelayMs) },
         { label: 'Fast turns', value: stats.fastDelayMs <= settings.tickMs * 1.5 && stats.fastKept > 0.99 ? 'Untouched' : ms(stats.fastDelayMs) },
       ]} />
-      <p className={styles.visualCaption}>Worked out from these settings on a recorded-style hand: a still hold, a 4 °/s aim and a 120 °/s turn.</p>
+      <p className={styles.visualCaption}>The statistics use simulated input: a still hold, a 4 °/s aim and a 120 °/s turn.</p>
     </>,
   }
 }
@@ -150,8 +152,8 @@ const applyValues = (name: SteadinessPreset) => {
 
 // ---- Direction.
 const SPACES: { value: SpaceKind; label: string; caption: string; help: string }[] = [
-  { value: 'LOCAL', label: 'Controller', caption: 'Its own axes', help: 'Default. Turn it to aim sideways, tilt its front to aim up and down.' },
-  { value: 'YAW_PLUS_ROLL', label: 'Turn + lean', caption: 'Lean adds turn', help: 'Turning aims sideways, and leaning it adds to the turn (Speed ▸ Advanced ▸ Lean adds turn sets how much).' },
+  { value: 'LOCAL', label: 'Local', caption: 'Controller axes', help: 'Default. Turn it to aim sideways, tilt its front to aim up and down.' },
+  { value: 'YAW_PLUS_ROLL', label: 'Yaw + roll', caption: 'Roll contributes to horizontal aim', help: 'Turning aims sideways, and leaning it adds to the turn. Roll contribution below sets how much.' },
   { value: 'PLAYER_TURN', label: 'Player turn', caption: 'Any grip angle', help: 'Turn your body or the controller around you: works whatever angle you hold it at.' },
   { value: 'PLAYER_LEAN', label: 'Player lean', caption: 'Lean to turn', help: 'Lean the controller like a wheel to aim sideways, relative to how you hold it.' },
   { value: 'WORLD_TURN', label: 'World turn', caption: 'Around gravity', help: 'Turning around the real vertical aims sideways, however the controller is tilted.' },
@@ -168,7 +170,7 @@ export function useDirectionGroup(open: Open): FineTuneGroup {
   const invertY = (gyro.get('GYRO_AXIS_Y') ?? '').toUpperCase() === 'INVERTED'
   const controller = (gyro.get('VIRTUAL_CONTROLLER') ?? 'NONE').toUpperCase()
   const stick = isVirtualStickTarget(output)
-  const changed = gyro.changed('GYRO_OUTPUT', 'GYRO_SPACE', 'GYRO_AXIS_X', 'GYRO_AXIS_Y', 'MOUSE_X_FROM_GYRO_AXIS', 'MOUSE_Y_FROM_GYRO_AXIS', 'GYRO_STICK_DEFLECTION')
+  const changed = gyro.changed('GYRO_OUTPUT', 'GYRO_SPACE', 'GYRO_AXIS_X', 'GYRO_AXIS_Y', 'MOUSE_X_FROM_GYRO_AXIS', 'MOUSE_Y_FROM_GYRO_AXIS', 'GYRO_STICK_DEFLECTION', 'ROLL_CONTRIBUTION')
   const axes = invertX || invertY ? [invertX ? 'left/right inverted' : '', invertY ? 'up/down inverted' : ''].filter(Boolean).join(', ') : 'normal axes'
   const xFrom = (gyro.get('MOUSE_X_FROM_GYRO_AXIS') ?? 'Y').toUpperCase()
   const yFrom = (gyro.get('MOUSE_Y_FROM_GYRO_AXIS') ?? 'X').toUpperCase()
@@ -188,7 +190,7 @@ export function useDirectionGroup(open: Open): FineTuneGroup {
           { value: 'PS_MOTION', label: 'Motion to game', caption: controller === 'DS4' ? 'PlayStation 4 reads it' : 'Needs the PlayStation 4 virtual pad', art: <OutputArt kind="PS_MOTION" /> },
         ].map(card => gyro.locked ? { ...card, unavailable: gyro.locked } : card)} />
       {output === 'PS_MOTION' && <>
-        <Note>The real gyro and accelerometer go to a virtual PlayStation 4 controller for the game to read. Your controller can be Steam, Nintendo or PlayStation. Turn speed, steadiness and the camera settings don’t change this output, and When gyro is on only turns Rumble while aiming on and off: the motion always goes through.</Note>
+        <Note>The real gyro and accelerometer go to a virtual PlayStation 4 controller for the game to read. Your controller can be Steam, Nintendo or PlayStation. Sensitivity, filters and the camera settings don’t change this output, and When gyro is on only turns Rumble while aiming on and off: the motion always goes through.</Note>
         {controller !== 'DS4' && <Note tone="warn">Motion to game needs the PlayStation 4 virtual pad. Set Virtual pad to PlayStation 4.</Note>}
         <KeyChoiceRow k="VIRTUAL_CONTROLLER" label="Virtual pad" hint="For the whole configuration" fallback="NONE"
           options={[{ value: 'NONE', label: 'Off' }, { value: 'XBOX', label: 'Xbox 360' }, { value: 'DS4', label: 'PlayStation 4' }]} />
@@ -209,12 +211,14 @@ export function useDirectionGroup(open: Open): FineTuneGroup {
       <OpenRow label={stick ? `${OUTPUT_LABEL[output]} settings` : 'Stick settings'}
         hint={stick ? 'Camera speed or hold-the-angle, game turn rate, deadzone and curve fixes, stick mixing, virtual pad' : 'For Left stick or Right stick'}
         disabled={stick ? undefined : 'Choose Left stick or Right stick first.'} onOpen={() => open({ view: 'stick' })} data={{ 'data-stick-settings': '' }} />
-      <RowLabel>Turn using</RowLabel>
+      <RowLabel>Gyro space</RowLabel>
       <ModeCards columns={3} value={space} onChange={value => gyro.set('GYRO_SPACE', value !== 'LOCAL' || gyro.held || (spaceRaw && !gyro.changed('GYRO_SPACE')) ? value : '')}
         useLabel={card => `Use ${card.label}`}
         options={SPACES.map(item => ({ value: item.value, label: item.label, caption: item.caption, art: <SpaceArt kind={item.value} />, unavailable: gyro.locked }))} />
       <Note>{spaceRaw === '' ? 'Default. ' : ''}{spaceInfo?.help}</Note>
-      <OpenRow label="Advanced" hint="Tilt to move, update rate, which rotations steer, ignore other controllers’ gyro" onOpen={() => open({ view: 'direction-advanced' })} />
+      <KeyNumberRow k="ROLL_CONTRIBUTION" label="Roll contribution" hint="How much leaning adds to horizontal aim. Below 0% reverses it." fallback={0} min={-100} max={100} step={5} fineStep={1}
+        format={value => `${value}%`} disabled={space === 'YAW_PLUS_ROLL' ? undefined : 'Only when Gyro space is Yaw + roll.'} />
+      <OpenRow label="Advanced" hint="Which rotations steer, tilt activation and gyro sources" onOpen={() => open({ view: 'direction-advanced' })} />
     </>,
     visual: <>
       <VisualTitle title="Which move does what" live />
@@ -255,7 +259,7 @@ export function useRumbleGroup(): FineTuneGroup {
     id: 'rumble', label: 'Rumble', changed: gyro.changed('GYRO_HAPTIC_INTENSITY', 'GYRO_HAPTIC_INTERVAL', 'GYRO_HAPTIC_EFFECT', 'GYRO_HAPTIC_SIDE'),
     status: strength > 0 ? `${preset === 'custom' ? 'Custom' : RUMBLE_LABELS[preset]} · ${strength}% · every ${interval}°` : 'Off',
     description: 'Feel a click as you turn, like the notches on a dial.',
-    content: <div data-gyro-rotation-feedback="">
+    content: <SettingRows data-gyro-rotation-feedback="">
       {notSteam && <Note tone="warn">{notSteam}</Note>}
       <SegmentedRow label="Rumble while aiming" hint={strength > 0 ? `${strength}%` : 'Off'} value={preset} disabled={gyro.locked}
         options={[...(['off', 'light', 'medium', 'strong'] as const).map(name => ({ value: name, label: RUMBLE_LABELS[name], caption: name === 'off' ? 'No clicks' : `${RUMBLE_PRESETS[name]}% · X feels it` })),
@@ -271,7 +275,7 @@ export function useRumbleGroup(): FineTuneGroup {
       <KeyNumberRow k="GYRO_HAPTIC_INTERVAL" label="Pulse every" hint="How far you turn between clicks" fallback={15} min={0.1} max={3600} step={1} fineStep={0.1} format={value => `${value}°`} />
       <KeyChoiceRow k="GYRO_HAPTIC_SIDE" label="Which side" hint="Under which thumb" fallback="3"
         options={[{ value: '1', label: 'Left pad' }, { value: '2', label: 'Right pad' }, { value: '3', label: 'Both' }]} />
-    </div>,
+    </SettingRows>,
     visual: <>
       <VisualTitle title="What you’ll feel" live={`turned ${Math.round(Math.abs(turned.degrees))}°`} />
       <RumbleDial interval={interval} turned={turned.degrees} off={strength <= 0} label={`One ${EFFECT_LABEL[effect] ?? 'pulse'} every ${interval}° · ${sideName}`} />
@@ -301,17 +305,18 @@ export function useTiltGroup(open: Open, unavailable?: string, onWhileHolding?: 
     id: 'tilt', label: 'Tilt', changed,
     status: tilt.mode === 'always_off' ? 'Off' : `${label} · ${when.toLowerCase()}`,
     description: 'Tilt uses the controller’s angle from neutral; gyro uses how fast you turn. Both can run together.',
-    content: <div data-tilt-group="">
+    content: <div className={styles.partRows} data-tilt-group="">
       {unavailable && <Note tone="warn">{unavailable}</Note>}
-      <SegmentedRow label="Tilt to move" hint="When tilting counts" value={tilt.mode} setting={tilt.mode === 'hold_off' ? 'TILT_OFF' : 'TILT_ON'}
+      <SegmentedRow label="Tilt activation" hint="Independent of gyro activation; controls when the chosen tilt behaviour can send input" value={tilt.mode} setting={tilt.mode === 'hold_off' ? 'TILT_OFF' : 'TILT_ON'}
         disabled={unavailable ?? gyro.locked} data={{ 'data-setting': 'TILT_ON' }}
         options={[
-          { value: 'always_on', label: 'Always', caption: 'Tilt works whenever the controller is tilted' },
+          { value: 'always_on', label: 'Always', caption: 'No activation button required; output depends on the chosen behaviour and bindings' },
           { value: 'hold_on', label: 'While I hold', caption: tiltCombined ? 'Several inputs: When tilt is on' : `While ${inputName(holdButton, gyro.family)} is held` },
           { value: 'hold_off', label: 'Unless I hold', caption: tiltCombined ? 'Several inputs: When tilt is on' : `Paused while ${inputName(holdButton, gyro.family)} is held` },
           { value: 'always_off', label: 'Off', caption: 'Tilt settings and bindings are kept for later' },
         ]}
         onChange={value => gyro.setText(previous => writeTiltActivation(previous, value as GyroActivationMode, tiltCombined ? tilt.button : holdButton))} />
+      <Note>Tilt is off by default. Choose Always or a hold condition above to enable your selected behaviour. Your settings and bindings are kept while it is off.</Note>
       <OpenRow label="Behaviour" hint="What tilting does: actions, mouse, a stick or steering" value={label} onOpen={() => part('behaviour')} disabled={unavailable} data={{ 'data-tilt-open': '' }} />
       <OpenRow label="Angles" hint="Neutral dead zone, full-output angle, lean threshold, ring" value={`${inner}° – ${range}°`} onOpen={() => part('angles')} disabled={unavailable} />
       <OpenRow label="Tuning" hint="Speed, response, flick and output for the behaviour" onOpen={() => part('tuning')} disabled={unavailable} />

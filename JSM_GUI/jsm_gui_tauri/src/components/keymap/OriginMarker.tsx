@@ -1,4 +1,7 @@
-import { readableSetting } from '../../utils/layers'
+import { BindingSourceMark, useBindingProvenance } from '../BindingProvenance'
+import { useContext, type CSSProperties } from 'react'
+import { readableSetting, layerHue, layerSlot } from '../../utils/layers'
+import { LayerUsageContext } from '../LayerBar'
 import { useSettingOriginInfo } from './settingOriginInfo'
 
 type MarkerProps = {
@@ -18,12 +21,17 @@ export function OriginMarker({ setting, detail, withReset, addressable, compact 
   compact?: boolean
 }) {
   const info = useSettingOriginInfo(setting)
-  if (!info || info.kind === 'default' || info.kind === 'own') return null
+  const { selected, layers } = useContext(LayerUsageContext)
+  const provenance = useBindingProvenance()
+  const source = provenance?.input(setting)
+  if (!info || (source ? source.kind === 'unset' : info.kind === 'default' || info.kind === 'own')) return null
+  const shown = source?.label ?? info.shown
   return (
     <span className="setting-origin origin-marker" data-origin={info.kind} data-setting-origin={addressable ? setting : undefined}
-      data-compact={compact ? 'true' : undefined} title={compact ? info.shown : undefined}>
-      <span className="origin-marker__dot" aria-hidden="true" />
-      <small>{info.spoken && <span className="origin-marker__spoken">{info.spoken}</span>}{info.shown}{detail ? ` · ${detail}` : ''}</small>
+      data-compact={compact ? 'true' : undefined} title={shown} data-binding-source={source?.kind}
+      style={source ? { '--origin-override': source.color, color: source.color } as CSSProperties : selected && info.kind === 'override' ? { '--origin-override': layerHue(layerSlot(layers, selected.id)) } as CSSProperties : undefined}>
+      <span aria-hidden="true">{source ? <BindingSourceMark source={source} className="origin-marker__dot" /> : <span className="origin-marker__dot" />}</span>
+      <small>{shown}{detail ? ` · ${detail}` : ''}</small>
       {withReset && info.reset && (
         <button
           type="button"

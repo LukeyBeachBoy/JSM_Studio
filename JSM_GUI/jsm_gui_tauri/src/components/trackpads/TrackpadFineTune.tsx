@@ -12,12 +12,14 @@ import { hasSeparatePadFeedback, padFeedbackPolicyChanges, padFeedbackValue } fr
 import { SMOOTHING_PRESETS, smoothingPreset, strengthWord } from '../../utils/mouseFeel'
 import { TOUCHPAD_DUAL_STAGE_OPTIONS, TOUCH_STICK_AXIS_VALUES } from '../../utils/touchpadConfig'
 import { MOUSE_AREA_FIT_OPTIONS, describeMouseArea } from '../../utils/mouseArea'
-import { accelSensitivityAt, normalizeAccelCurveLink, normalizeAccelCurveType, TOUCHPAD_ACCEL_DEFAULTS, type AccelCurveParams } from '../../utils/accelCurve'
+import { accelCurveSettleSpeed, accelSensitivityAt, normalizeAccelCurveLink, normalizeAccelCurveType, GYRO_ACCEL_DEFAULTS, TOUCHPAD_ACCEL_DEFAULTS, type AccelCurveParams } from '../../utils/accelCurve'
+import { niceCeil } from '../../utils/niceNumbers'
 import { isSet, Note, readNumber, readWord, SubHead, VisualPanel, writeChoice, writeKey, writeKeys } from '../sticks/shared'
 import { FEEL_STRENGTHS, TOUCHPAD_ACCEL_PRESETS, near } from '../sticks/presets'
 import { MoreModeArt, StickCardArt } from '../sticks/stickModes'
 import { SHAPE_NAMES, padCardOf, padKey, padPrefix, type PadSide } from './padModes'
 import type { PadConfig, TrackpadsPageProps } from './TrackpadsPage'
+import { OrientationVisual } from './OrientationVisual'
 import p4 from '../sticks/P4.module.css'
 import styles from './Trackpads.module.css'
 
@@ -80,17 +82,28 @@ export function TrackpadFineTune(props: Props) {
     minThreshold: preset?.minSpeed ?? accel?.minThreshold ?? TOUCHPAD_ACCEL_DEFAULTS.minThreshold, maxThreshold: preset?.maxSpeed ?? accel?.maxThreshold ?? TOUCHPAD_ACCEL_DEFAULTS.maxThreshold,
     naturalVHalf: accel?.naturalVHalf ?? TOUCHPAD_ACCEL_DEFAULTS.naturalVHalf, powerVRef: accel?.powerVRef ?? TOUCHPAD_ACCEL_DEFAULTS.powerVRef, powerExponent: accel?.powerExponent ?? TOUCHPAD_ACCEL_DEFAULTS.powerExponent,
     sigmoidMid: accel?.sigmoidMid ?? TOUCHPAD_ACCEL_DEFAULTS.sigmoidMid, sigmoidWidth: accel?.sigmoidWidth ?? TOUCHPAD_ACCEL_DEFAULTS.sigmoidWidth, jumpTau: accel?.jumpTau ?? TOUCHPAD_ACCEL_DEFAULTS.jumpTau,
+    ...(!preset && link === 'TOUCHPAD_USES_GYRO' ? {
+      curveType: normalizeAccelCurveType(readWord(text, 'ACCEL_CURVE')),
+      minThreshold: readNumber(text, 'MIN_GYRO_THRESHOLD', 0), maxThreshold: readNumber(text, 'MAX_GYRO_THRESHOLD', 0),
+      naturalVHalf: readNumber(text, 'ACCEL_NATURAL_VHALF', GYRO_ACCEL_DEFAULTS.naturalVHalf),
+      powerVRef: readNumber(text, 'ACCEL_POWER_VREF', GYRO_ACCEL_DEFAULTS.powerVRef),
+      powerExponent: readNumber(text, 'ACCEL_POWER_EXPONENT', GYRO_ACCEL_DEFAULTS.powerExponent),
+      sigmoidMid: readNumber(text, 'ACCEL_SIGMOID_MID', GYRO_ACCEL_DEFAULTS.sigmoidMid),
+      sigmoidWidth: readNumber(text, 'ACCEL_SIGMOID_WIDTH', GYRO_ACCEL_DEFAULTS.sigmoidWidth),
+      jumpTau: readNumber(text, 'ACCEL_JUMP_TAU', GYRO_ACCEL_DEFAULTS.jumpTau),
+      ownRange: { min: accel?.minThreshold ?? TOUCHPAD_ACCEL_DEFAULTS.minThreshold, max: accel?.maxThreshold ?? TOUCHPAD_ACCEL_DEFAULTS.maxThreshold },
+    } : {}),
   })
   const movement = readNumber(text, 'TOUCHPAD_MOVEMENT_THRESHOLD', 0)
   const speedGroup: FineTuneGroup = {
-    id: 'speed', label: 'Speed & curve', title: 'Speed & curve', description: 'How far the cursor goes for a swipe, and whether fast swipes go further.',
-    status: !isMouse ? 'Used when this pad is a mouse' : `${isSet(text, `${P}TOUCHPAD_SENS`) ? `${sens.toFixed(2)}×` : 'Default speed'} · ${accelPreset === 'off' ? 'no speed-up' : accelPreset === 'gyro' ? 'same curve as gyro' : `${accelPreset} speed-up`}`,
+    id: 'speed', label: 'Sensitivity & acceleration', title: 'Sensitivity & acceleration', description: 'How far the cursor goes for a swipe, and whether fast swipes go further.',
+    status: !isMouse ? 'Used when this pad is a mouse' : `${isSet(text, `${P}TOUCHPAD_SENS`) ? `${sens.toFixed(2)}×` : 'Default speed'} · ${accelPreset === 'off' ? 'acceleration off' : accelPreset === 'gyro' ? 'same curve as gyro' : `${accelPreset} acceleration`}`,
     changed: isSet(text, `${P}TOUCHPAD_SENS`, 'TOUCHPAD_ACCEL_MIN_GAIN', 'TOUCHPAD_ACCEL_MAX_GAIN', 'TOUCHPAD_ACCEL_CURVE', 'ACCEL_CURVE_LINK', 'TOUCHPAD_MOVEMENT_THRESHOLD', 'TOUCHPAD_ACCELERATION'),
     content: <>
       {!isMouse && <Note>{name} isn’t set to Mouse, so these only apply once it is.</Note>}
       <ValueRow hero label="Sensitivity" setting={`${P}TOUCHPAD_SENS`} value={sens} min={0} max={10} step={0.05} fineStep={0.01} format={value => `${value.toFixed(2)}×`}
         caption="Up and down follow this; Advanced can set them apart." onX={tryIt} onChange={value => writeSens(value, near(sens, sensY) ? undefined : sensY)} onReset={() => writeKey(setText, `${P}TOUCHPAD_SENS`, null)} />
-      <SegmentedRow label="Speed up fast swipes" hint="Slow swipes stay precise; quick flicks cross the screen." setting="TOUCHPAD_ACCEL_MAX_GAIN" value={accelPreset} onX={tryIt}
+      <SegmentedRow label="Acceleration" hint="Slow swipes stay precise; quick flicks cross the screen." setting="TOUCHPAD_ACCEL_MAX_GAIN" value={accelPreset} onX={tryIt}
         options={[...TOUCHPAD_ACCEL_PRESETS.map(item => ({ value: item.value, label: item.label, caption: item.caption })), { value: 'gyro', label: 'Same as gyro', caption: 'Same as gyro: borrows the gyro’s curve shape.' }, { value: 'custom', label: 'Custom', caption: 'Custom: your own curve, under Advanced.' }]}
         onChange={value => {
           const found = TOUCHPAD_ACCEL_PRESETS.find(item => item.value === value)
@@ -98,11 +111,11 @@ export function TrackpadFineTune(props: Props) {
           else if (found) writeChoice(setText, { ACCEL_CURVE_LINK: link === 'TOUCHPAD_USES_GYRO' ? null : page.accel?.link ?? null, TOUCHPAD_ACCEL_CURVE: found.curve === 'LINEAR' ? null : found.curve, TOUCHPAD_ACCEL_MIN_GAIN: found.minGain === 1 ? null : found.minGain, TOUCHPAD_ACCEL_MAX_GAIN: found.maxGain === 1 ? null : found.maxGain }, { TOUCHPAD_ACCEL_CURVE: 'LINEAR', TOUCHPAD_ACCEL_MIN_GAIN: 1, TOUCHPAD_ACCEL_MAX_GAIN: 1 })
           else setAdvanced('curve')
         }} />
-      <ValueRow label="Hold still when resting" hint="Ignore a thumb creeping slower than this" setting="TOUCHPAD_MOVEMENT_THRESHOLD" value={movement} min={0} max={500} step={5} format={value => value === 0 ? 'Off' : `${value} px/s`}
+      <ValueRow label="Movement threshold" hint="Ignore a thumb creeping slower than this" setting="TOUCHPAD_MOVEMENT_THRESHOLD" value={movement} min={0} max={500} step={5} format={value => value === 0 ? 'Off' : `${value} px/s`}
         onChange={value => writeKey(setText, 'TOUCHPAD_MOVEMENT_THRESHOLD', value || null)} onReset={() => writeKey(setText, 'TOUCHPAD_MOVEMENT_THRESHOLD', null)} />
-      <OpenRow label="Advanced" hint="Up and down speed, simple speed-up, curve type, speed range, start and top gain, curve shape, give gyro this curve" onOpen={() => setAdvanced('vertical')} />
+      <OpenRow label="Advanced" hint="Vertical sensitivity, legacy acceleration, curve type, speed thresholds, gain range and curve linking" onOpen={() => setAdvanced('vertical')} />
     </>,
-    visual: <AccelVisual speed={pad.speed ?? 0} current={params()} presets={TOUCHPAD_ACCEL_PRESETS.map(item => ({ label: item.label, params: params(item) }))} />,
+    visual: <AccelVisual speed={page.liveDevice?.status ? pad.speed ?? 0 : null} current={params()} presets={TOUCHPAD_ACCEL_PRESETS.map(item => ({ label: item.label, params: params(item) }))} />,
   }
 
   // ---- Glide
@@ -113,26 +126,26 @@ export function TrackpadFineTune(props: Props) {
   const dCutoff = readNumber(text, 'TOUCHPAD_D_CUTOFF', 15)
   const smoothing = smoothingPreset(cutoff, speedCoeff)
   const glideGroup: FineTuneGroup = {
-    id: 'glide', label: 'Glide', title: 'Glide', description: 'Whether the cursor keeps going after a flick, and how steady a resting thumb is.',
+    id: 'glide', label: 'Momentum', title: 'Momentum', description: 'Whether the cursor keeps going after a flick, and how steady a resting thumb is.',
     status: `${decay > 0 ? `Coasts · flicks over ${minVelocity} px/s` : 'Stops when you lift'} · ${smoothing === 'custom' ? 'custom smoothing' : `${SMOOTHING_PRESETS.find(item => item.id === smoothing)?.label ?? ''} smoothing`}`,
     changed: isSet(text, 'TOUCHPAD_TRACKBALL_DECAY', 'TOUCHPAD_TRACKBALL_MIN_VELOCITY', 'TOUCHPAD_MIN_CUTOFF', 'TOUCHPAD_SPEED_COEFF', 'TOUCHPAD_D_CUTOFF'),
     content: <>
-      <ValueRow hero label="Keep moving after a flick" setting="TOUCHPAD_TRACKBALL_DECAY" value={decay} min={0} max={60} step={1} format={value => value === 0 ? 'Off' : `On · ${value}`}
+      <ValueRow hero label="Trackball decay" setting="TOUCHPAD_TRACKBALL_DECAY" value={decay} min={0} max={60} step={1} format={value => value === 0 ? 'Off' : `On · ${value}`}
         caption={decay === 0 ? 'Default. Off stops the cursor the moment you lift.' : 'Higher values end the coast sooner.'} onX={tryIt}
         onChange={value => writeKey(setText, 'TOUCHPAD_TRACKBALL_DECAY', value || null)} onReset={() => writeKey(setText, 'TOUCHPAD_TRACKBALL_DECAY', null)} />
-      <ValueRow label="Only coast from flicks over" hint="Used once coasting is on" setting="TOUCHPAD_TRACKBALL_MIN_VELOCITY" value={minVelocity} min={0} max={2000} step={25} fineStep={1} format={value => `${value} px/s`}
-        disabled={decay === 0 ? 'Turn on Keep moving after a flick first.' : undefined}
+      <ValueRow label="Trackball minimum velocity" hint="Used once coasting is on" setting="TOUCHPAD_TRACKBALL_MIN_VELOCITY" value={minVelocity} min={0} max={2000} step={25} fineStep={1} format={value => `${value} px/s`}
+        disabled={decay === 0 ? 'Set a nonzero Trackball decay first.' : undefined}
         onChange={value => writeKey(setText, 'TOUCHPAD_TRACKBALL_MIN_VELOCITY', value)} onReset={() => writeKey(setText, 'TOUCHPAD_TRACKBALL_MIN_VELOCITY', null)} />
-      <SegmentedRow label="Steady a resting thumb" hint="Smooths slow movement; quick flicks escape it." setting="TOUCHPAD_MIN_CUTOFF" value={smoothing}
+      <SegmentedRow label="One Euro smoothing" hint="Smooths slow movement; quick flicks escape it." setting="TOUCHPAD_MIN_CUTOFF" value={smoothing}
         options={[...SMOOTHING_PRESETS.map(item => ({ value: item.id, label: item.label })), { value: 'custom', label: 'Custom' }]}
         onChange={value => { const found = SMOOTHING_PRESETS.find(item => item.id === value); if (found) writeKeys(setText, { TOUCHPAD_MIN_CUTOFF: found.cutoff, TOUCHPAD_SPEED_COEFF: found.speed }) }}
         onReset={() => writeKeys(setText, { TOUCHPAD_MIN_CUTOFF: null, TOUCHPAD_SPEED_COEFF: null })} />
       <SubHead>{smoothing === 'custom' ? 'Custom, exactly' : `${SMOOTHING_PRESETS.find(item => item.id === smoothing)?.label} · detailed controls`}</SubHead>
-      <ValueRow label="Steadiness at slow speed" hint="Lower filters out more tiny shakes when pointing at small buttons, but makes slow movement trail your thumb" setting="TOUCHPAD_MIN_CUTOFF" value={cutoff} min={0} max={20} step={0.5} fineStep={0.1} format={value => `${value} Hz`}
+      <ValueRow label="Minimum cutoff frequency" hint="Lower filters out more tiny shakes when pointing at small buttons, but makes slow movement trail your thumb" setting="TOUCHPAD_MIN_CUTOFF" value={cutoff} min={0} max={20} step={0.5} fineStep={0.1} format={value => `${value} Hz`}
         onChange={value => writeKey(setText, 'TOUCHPAD_MIN_CUTOFF', value)} onReset={() => writeKey(setText, 'TOUCHPAD_MIN_CUTOFF', null)} />
-      <ValueRow label="Responsiveness during fast swipes" hint="Raise this if quick swipes feel delayed; lower it if the pointer becomes shaky as you speed up" setting="TOUCHPAD_SPEED_COEFF" value={speedCoeff} min={0} max={5} step={0.05} fineStep={0.01}
+      <ValueRow label="Speed coefficient (beta)" hint="Raise this if quick swipes feel delayed; lower it if the pointer becomes shaky as you speed up" setting="TOUCHPAD_SPEED_COEFF" value={speedCoeff} min={0} max={5} step={0.05} fineStep={0.01}
         onChange={value => writeKey(setText, 'TOUCHPAD_SPEED_COEFF', value)} onReset={() => writeKey(setText, 'TOUCHPAD_SPEED_COEFF', null)} />
-      <ValueRow label="How quickly smoothing reacts to speed" hint="Higher notices a slow-to-fast swipe sooner; lower makes smoothing change more gradually if movement feels twitchy" setting="TOUCHPAD_D_CUTOFF" value={dCutoff} min={0.01} max={120} step={1} fineStep={0.1} format={value => `${value} Hz`}
+      <ValueRow label="Derivative cutoff frequency" hint="Higher notices a slow-to-fast swipe sooner; lower makes smoothing change more gradually if movement feels twitchy" setting="TOUCHPAD_D_CUTOFF" value={dCutoff} min={0.01} max={120} step={1} fineStep={0.1} format={value => `${value} Hz`}
         onChange={value => writeKey(setText, 'TOUCHPAD_D_CUTOFF', value)} onReset={() => writeKey(setText, 'TOUCHPAD_D_CUTOFF', null)} />
     </>,
     visual: <GlideVisual decay={decay} minVelocity={minVelocity} speed={pad.speed ?? 0} />,
@@ -151,7 +164,7 @@ export function TrackpadFineTune(props: Props) {
   const skip = readNumber(text, 'TRIGGER_SKIP_DELAY', 150)
   const stickKey = `${P}TOUCH_STICK_MODE`
   const stickMode = readWord(text, stickKey)
-  const zonesChanged = isSet(text, padKey.gridShape(side), padKey.gridSize(side), padKey.gridDeadzone(side), dualKey, stickKey, `${P}TOUCH_STICK_RADIUS`, `${P}TOUCH_DEADZONE_INNER`, `${P}TOUCH_RING_MODE`, `${P}TOUCH_STICK_AXIS`, ...(rotationKey ? [rotationKey] : []))
+  const zonesChanged = isSet(text, padKey.gridShape(side), padKey.gridSize(side), padKey.gridDeadzone(side), dualKey, stickKey, `${P}TOUCH_STICK_RADIUS`, `${P}TOUCH_DEADZONE_INNER`, `${P}TOUCH_RING_MODE`, `${P}TOUCH_STICK_AXIS`)
   const zoneCount = shape === 'FOUR_WAY' ? 4 : shape === 'EIGHT_WAY' ? 8 : cols * rowsCount
   const partStatus: Record<PartId, string> = {
     layout: `${SHAPE_NAMES[shape] ?? shape} · ${shape === 'RECTANGLE' ? `${cols} × ${rowsCount}` : `dead zone ${Math.round(deadzone * 100)}%`}`,
@@ -186,10 +199,6 @@ export function TrackpadFineTune(props: Props) {
         <ValueRow hero label="Centre dead zone" setting={padKey.gridDeadzone(side)} value={Math.round(deadzone * 100)} min={0} max={95} step={5} fineStep={1} format={value => `${value}%`} extraHints="LB/RB:Part"
           caption="A thumb resting in the middle presses nothing, so it can’t flicker between zones." disabled={shape === 'RECTANGLE' ? 'A grid has no middle ring. Pick 4-way, 8-way or Wheel.' : undefined}
           onChange={value => writeKey(setText, padKey.gridDeadzone(side), value ? Number((value / 100).toFixed(3)) : null)} onReset={() => writeKey(setText, padKey.gridDeadzone(side), null)} />
-        <ValueRow label="Turn the zones" hint="Rotate the layout to match how your thumb sits. Also turns the mouse and the touch stick on this pad." setting={rotationKey ?? undefined}
-          value={rotation} min={-180} max={180} step={5} fineStep={0.5} format={value => `${value > 0 ? '+' : ''}${value}°`} extraHints="LB/RB:Part"
-          disabled={rotationKey ? undefined : page.modeShift ? 'Pad rotation is a controller setting shared by every mode shift. Adjust it on the normal pad.' : 'A one-pad controller’s pad can’t be turned.'}
-          onChange={value => rotationKey && writeKey(setText, rotationKey, value || null)} onReset={() => rotationKey && writeKey(setText, rotationKey, null)} />
       </>}
       {zonePart === 'touch' && touchAndClick('LB/RB:Part')}
       {zonePart === 'stick' && <TouchStickPart page={page} pad={pad} onDirections={props.onDirections} />}
@@ -217,11 +226,9 @@ export function TrackpadFineTune(props: Props) {
         onChange={value => writeKey(setText, 'TOUCHPAD_CLICK_DAMPEN_THRESHOLD', value || null)} onReset={() => writeKey(setText, 'TOUCHPAD_CLICK_DAMPEN_THRESHOLD', null)} />
       <ValueRow label="Lift-off guard" hint="Holds the cursor as your thumb rolls off" setting="TOUCHPAD_LIFT_SPEED" value={lift} min={0} max={1000} step={10} format={value => value === 0 ? 'Off' : `${value} px/s`}
         onChange={value => writeKey(setText, 'TOUCHPAD_LIFT_SPEED', value)} onReset={() => writeKey(setText, 'TOUCHPAD_LIFT_SPEED', null)} />
-      {card === 'MOUSE_AREA' && <SegmentedRow label="Pad fit" hint="Only for a pad set to Mouse area" setting={`${P}TOUCHPAD_AREA_FIT`} value={fit} disabled={card === 'MOUSE_AREA' ? undefined : 'Pad fit is used by a pad set to Mouse area.'}
-        options={MOUSE_AREA_FIT_OPTIONS.map(option => ({ value: option.value, label: option.value === 'STRETCH' ? 'Stretch to fill' : 'Keep pad shape' }))} onChange={value => pad.card.onMouseAreaFitChange?.(value)} />}
       {(card === 'MOUSE' || card === 'MOUSE_AREA') && touchAndClick()}
     </>,
-    visual: <PressureVisual pressure={pad.pressure ?? 0} dampenAt={dampenAt} />,
+    visual: <PressureVisual key={`${page.liveDevice?.handle}:${side}`} packet={page.liveDevice?.status} pressure={page.liveDevice?.status ? pad.pressure ?? 0 : null} dampenAt={dampenAt} />,
   }
 
   // ---- Mouse area
@@ -232,18 +239,32 @@ export function TrackpadFineTune(props: Props) {
     content: <>
       {card !== 'MOUSE_AREA' && <Note>{name} isn’t set to Mouse area, so these only apply once it is.</Note>}
       <OpenRow label="Screen area" hint={`Where the pad lands on screen · ${describeMouseArea(area)}`} value="Draw" onOpen={() => pad.card.onPickMouseArea?.()} hints="A:Draw on screen" />
-      <SegmentedRow label="Pad fit" hint="How a square pad lies over a wide box" setting={`${P}TOUCHPAD_AREA_FIT`} value={fit}
+      <SegmentedRow label="Pad fit" hint="How the pad’s proportions map to the screen area" setting={`${P}TOUCHPAD_AREA_FIT`} value={fit}
         options={MOUSE_AREA_FIT_OPTIONS.map(option => ({ value: option.value, label: option.value === 'STRETCH' ? 'Stretch to fill' : 'Keep pad shape' }))} onChange={value => pad.card.onMouseAreaFitChange?.(value)} />
     </>,
     visual: <VisualPanel title={`${name} is this box`} chip={live ? 'cursor follows your thumb' : undefined}><ScreenAreaPreview area={area} fit={fit} padAspect={page.padAspect} width={400} /></VisualPanel>,
   }
 
+  // Pad coordinates are rotated before mouse, zones and touch-stick handling.
+  // Keep this outside those mode-specific groups and preserve its non-shiftable scope.
+  const orientationGroup: FineTuneGroup = {
+    id: 'orientation', label: 'Orientation', title: 'Orientation',
+    description: 'Rotate this pad to match the angle of your thumb. Applies to its mouse movement, zones and touch stick.',
+    status: rotationKey ? `${rotation > 0 ? '+' : ''}${rotation}° · all pad modes` : page.modeShift ? 'Set on the normal pad' : 'Not supported on one-pad controllers',
+    changed: rotationKey ? isSet(text, rotationKey) : false,
+    content: <ValueRow label="Pad rotation" hint="Shared by every mode shift on this pad" setting={rotationKey ?? undefined}
+      value={rotation} min={-180} max={180} step={5} fineStep={0.5} format={value => `${value > 0 ? '+' : ''}${value}°`}
+      disabled={rotationKey ? undefined : page.modeShift ? 'Pad rotation is a controller setting shared by every mode shift. Adjust it on the normal pad.' : 'A one-pad controller’s pad can’t be turned.'}
+      onChange={value => rotationKey && writeKey(setText, rotationKey, value || null)} onReset={() => rotationKey && writeKey(setText, rotationKey, null)} />,
+    visual: <OrientationVisual side={side} name={name} rotation={rotationKey ? rotation : page.liveDevice?.status?.[side === 'left' ? 'leftPad' : 'rightPad']?.rotation ?? 0} status={page.liveDevice?.status} />,
+  }
+
   // ---- Feel
   const feelGroup = feelGroupFor(page, pad, name)
 
-  // ---- More
+  // ---- Bindings and mode shifts (stable id for existing entry requests)
   const moreGroup: FineTuneGroup = {
-    id: 'more', label: 'More', title: 'Mode shifts, touch and click', description: 'The pad’s own touch and click bindings, and changes while another button is held.',
+    id: 'more', label: page.modeShift ? 'Bindings' : 'Bindings & shifts', title: page.modeShift ? 'Bindings' : 'Bindings & shifts', description: 'The pad’s own touch and click bindings, and changes while another button is held.',
     status: [!page.modeShift && 'Mode shifts', pad.touch && `Touch ${page.describe(pad.touch.command).binding || 'Unbound'}`, pad.click && `Click ${page.describe(pad.click.command).binding || 'Unbound'}`].filter(Boolean).join(' · ') || 'While holding…',
     content: <>
       {pad.touch && <div>{page.renderButton(pad.touch, { label: 'Touch', subtitle: 'Your thumb on the pad', modeshifts: true })}</div>}
@@ -256,13 +277,13 @@ export function TrackpadFineTune(props: Props) {
 
   // Only what the pad's current mode uses: a pad set to Mouse has no zones, a pad of zones has no speed.
   const groups = {
-    MOUSE: [speedGroup, glideGroup, clickGroup, feelGroup, moreGroup],
-    MOUSE_AREA: [areaGroup, clickGroup, feelGroup, moreGroup],
-    ZONES: [zonesGroup, feelGroup, moreGroup],
-    TOUCH_STICK: [zonesGroup, feelGroup, moreGroup],
-  }[card as 'MOUSE' | 'MOUSE_AREA' | 'ZONES' | 'TOUCH_STICK'] ?? [feelGroup, moreGroup]
+    MOUSE: [speedGroup, glideGroup, clickGroup, orientationGroup, feelGroup, moreGroup],
+    MOUSE_AREA: [areaGroup, clickGroup, orientationGroup, feelGroup, moreGroup],
+    ZONES: [zonesGroup, orientationGroup, feelGroup, moreGroup],
+    TOUCH_STICK: [zonesGroup, orientationGroup, feelGroup, moreGroup],
+  }[card as 'MOUSE' | 'MOUSE_AREA' | 'ZONES' | 'TOUCH_STICK'] ?? [orientationGroup, feelGroup, moreGroup]
   const active = groups.some(item => item.id === groupId) ? groupId : groups[0].id
-  const shared = page.modeShift ? `Changes apply while ${page.modeShift.label}. Speed, glide and click tuning affect both pads during that shift.` : active === 'speed' || active === 'glide' || active === 'click' ? 'Shared by both pads: speed-up, glide and click are one setting for every pad.' : active === 'feel' ? 'Each pad can have its own feel, or share one.' : undefined
+  const shared = active === 'orientation' ? 'Orientation belongs to this pad across its modes and mode shifts. Adjust it on the normal pad.' : page.modeShift ? `Changes apply while ${page.modeShift.label}. Speed, glide and click tuning affect both pads during that shift.` : active === 'speed' || active === 'glide' || active === 'click' ? 'Shared by both pads: acceleration, trackball and click tuning apply to every pad.' : active === 'feel' ? 'Each pad can have its own haptics, or share them.' : undefined
 
   return (
     <>
@@ -276,19 +297,19 @@ export function TrackpadFineTune(props: Props) {
       <SubPage open={advanced !== null} onClose={() => setAdvanced(null)} trail={['Trackpads', name, 'Fine-tune']} title="Advanced" stepLabel="Part" backLabel="Back to Fine-tune"
         onStep={direction => setAdvanced(value => stepGroup([{ id: 'vertical' }, { id: 'curve' }], value ?? 'vertical', direction))}>
         <AdvancedParts active={advanced ?? 'vertical'} onActive={setAdvanced} parts={[
-          { id: 'vertical', eyebrow: 'Speed & curve', title: 'Up and down, and simple speed-up', description: 'Give up and down their own speed, or add the older one-number speed-up.',
+          { id: 'vertical', eyebrow: 'Sensitivity & acceleration', title: 'Vertical sensitivity & legacy acceleration', description: 'Set a separate vertical sensitivity, or use the legacy acceleration multiplier.',
             content: <>
-              <SummaryRow label="Up and down speed" hint={near(sens, sensY) ? 'Same as left/right' : 'Its own speed'} setting={`${P}TOUCHPAD_SENS`} toggle={{ on: !near(sens, sensY), onChange: on => writeSens(sens, on ? Number((sens * 0.8).toFixed(2)) : undefined) }} />
-              {!near(sens, sensY) && <ValueRow label="Up and down" setting={`${P}TOUCHPAD_SENS`} value={sensY} min={0} max={10} step={0.05} fineStep={0.01} format={value => `${value.toFixed(2)}×`} onChange={value => writeSens(sens, value)} />}
-              <ValueRow label="Simple speed-up" hint="Older one-number speed-up: quick swipes go up to 4× further. 0 is off." setting="TOUCHPAD_ACCELERATION" value={readNumber(text, 'TOUCHPAD_ACCELERATION', 0)} min={0} max={10} step={0.1} fineStep={0.01}
+              <SummaryRow label="Separate vertical sensitivity" hint={near(sens, sensY) ? 'Same as left/right' : 'Its own speed'} setting={`${P}TOUCHPAD_SENS`} toggle={{ on: !near(sens, sensY), onChange: on => writeSens(sens, on ? Number((sens * 0.8).toFixed(2)) : undefined) }} />
+              {!near(sens, sensY) && <ValueRow label="Vertical sensitivity" setting={`${P}TOUCHPAD_SENS`} value={sensY} min={0} max={10} step={0.05} fineStep={0.01} format={value => `${value.toFixed(2)}×`} onChange={value => writeSens(sens, value)} />}
+              <ValueRow label="Legacy acceleration" hint="Legacy multiplier: quick swipes go up to 4× further. 0 is off." setting="TOUCHPAD_ACCELERATION" value={readNumber(text, 'TOUCHPAD_ACCELERATION', 0)} min={0} max={10} step={0.1} fineStep={0.01}
                 format={value => value === 0 ? 'Off' : value.toFixed(2)} onChange={value => writeKey(setText, 'TOUCHPAD_ACCELERATION', value || null)} onReset={() => writeKey(setText, 'TOUCHPAD_ACCELERATION', null)} />
             </> },
-          { id: 'curve', eyebrow: 'Speed & curve', title: 'Curve', description: 'Curve type, speed range, start and top gain and the curve’s shape, in the curve editor.',
+          { id: 'curve', eyebrow: 'Sensitivity & acceleration', title: 'Curve', description: 'Curve type, speed range, start and top gain and the curve’s shape, in the curve editor.',
             content: <>
               <OpenRow label="Edit the curve" hint="Curve type, speed range, start and top gain, curve shape" value={curveType.toLowerCase()} onOpen={() => window.dispatchEvent(new CustomEvent('jsm:accel-curve', { detail: 'touchpad' }))} />
-              <SummaryRow label="Give gyro this curve" hint="The gyro borrows the trackpad’s curve shape" setting="ACCEL_CURVE_LINK"
+              <SummaryRow label="Link gyro to trackpad curve" hint="The gyro borrows the trackpad’s curve shape" setting="ACCEL_CURVE_LINK"
                 toggle={{ on: link === 'GYRO_USES_TOUCHPAD', onChange: on => writeKey(setText, 'ACCEL_CURVE_LINK', on ? 'GYRO_USES_TOUCHPAD' : null) }} />
-              <SummaryRow label="Use the gyro’s curve" hint="The trackpad borrows the gyro’s curve shape" setting="ACCEL_CURVE_LINK"
+              <SummaryRow label="Link trackpad to gyro curve" hint="The trackpad borrows the gyro’s curve shape" setting="ACCEL_CURVE_LINK"
                 toggle={{ on: link === 'TOUCHPAD_USES_GYRO', onChange: on => writeKey(setText, 'ACCEL_CURVE_LINK', on ? 'TOUCHPAD_USES_GYRO' : null) }} />
             </> },
         ]} />
@@ -412,16 +433,16 @@ function TouchStickPart({ page, pad, onDirections }: { page: TrackpadsPageProps;
     <div ref={ref} className={p4.bindRows} data-touch-stick-part="">
       <span className={p4.cardsLabel}>Dragging acts as</span>
       <ModeCards columns={5} value={value} hints={yHint}
-        options={[{ value: 'OFF', label: 'Off', art: <PadOffArt /> }, { value: 'NO_MOUSE', label: 'Directions you bind', art: <StickCardArt card="MOVING" /> }, { value: 'AIM', label: 'Looking around', art: <StickCardArt card="LOOK" /> }, { value: 'FLICK', label: 'Flick to turn', art: <StickCardArt card="FLICK" /> }]}
-        more={{ label: value === 'MORE' ? mode.replace(/_/g, ' ').toLowerCase() : 'More', caption: 'Mouse ring, mouse area, scroll wheel, gamepad sticks', count: moreModes.length, current: value === 'MORE', onOpen: () => setMoreOpen(open => !open) }}
+        options={[{ value: 'OFF', label: 'Off', art: <PadOffArt /> }, { value: 'NO_MOUSE', label: 'Directions you bind', art: <StickCardArt card="MOVING" /> }, { value: 'AIM', label: 'Mouse aim', art: <StickCardArt card="LOOK" /> }, { value: 'FLICK', label: 'Flick stick', art: <StickCardArt card="FLICK" /> }]}
+        more={{ label: value === 'MORE' ? mode.replace(/_/g, ' ').toLowerCase() : 'More touch-stick modes', caption: 'Mouse ring, mouse area, scroll wheel, gamepad sticks', count: moreModes.length, current: value === 'MORE', onOpen: () => setMoreOpen(open => !open) }}
         onChange={next => write(next === 'OFF' ? null : next === 'AIM' && (mode === 'HYBRID_AIM') ? mode : next === 'FLICK' && /FLICK_ONLY|ROTATE_ONLY/.test(mode) ? mode : next)} />
       {moreOpen && <ModeCards columns={5} value={mode} hints={yHint} useLabel={option => `Use ${option.label}`}
         options={moreModes.map(item => ({ value: item, label: item.replace(/_/g, ' ').toLowerCase().replace(/^./, letter => letter.toUpperCase()), art: <MoreModeArt entry={item === 'INNER_RING' || item === 'OUTER_RING' ? 'RINGS' : item === 'LEFT_STICK' || item === 'RIGHT_STICK' ? 'ANGLE' : item as 'MOUSE_RING'} /> }))}
         onChange={write} />}
-      <ValueRow hero label="Stick size" hint="How far you drag for a full push. The dashed circle grows with it." setting={`${P}TOUCH_STICK_RADIUS`} value={readNumber(text, `${P}TOUCH_STICK_RADIUS`, 0)} min={0} max={2000} step={10} fineStep={1}
+      <ValueRow hero label="Touch stick radius" hint="How far you drag for a full push. The dashed circle grows with it." setting={`${P}TOUCH_STICK_RADIUS`} value={readNumber(text, `${P}TOUCH_STICK_RADIUS`, 0)} min={0} max={2000} step={10} fineStep={1}
         format={v => v === 0 ? 'Default' : `${v}`} extraHints={yHint} disabled={mode ? undefined : 'Pick what dragging acts as first.'}
         onChange={v => writeKey(page.setText, `${P}TOUCH_STICK_RADIUS`, v || null)} onReset={() => writeKey(page.setText, `${P}TOUCH_STICK_RADIUS`, null)} />
-      <ValueRow label="Ignore small drags" hint="The middle that sends nothing" setting={`${P}TOUCH_DEADZONE_INNER`} value={readNumber(text, `${P}TOUCH_DEADZONE_INNER`, 0)} min={0} max={500} step={5} fineStep={1}
+      <ValueRow label="Touch stick inner deadzone" hint="The middle that sends nothing" setting={`${P}TOUCH_DEADZONE_INNER`} value={readNumber(text, `${P}TOUCH_DEADZONE_INNER`, 0)} min={0} max={500} step={5} fineStep={1}
         format={v => v === 0 ? 'Default' : `${v}`} extraHints={yHint} disabled={mode ? undefined : 'Pick what dragging acts as first.'}
         onChange={v => writeKey(page.setText, `${P}TOUCH_DEADZONE_INNER`, v || null)} onReset={() => writeKey(page.setText, `${P}TOUCH_DEADZONE_INNER`, null)} />
       <SegmentedRow label="Ring" hint="When the ring binding is held" setting={`${P}TOUCH_RING_MODE`} value={ring || 'DEFAULT'} extraHints={yHint}
@@ -431,7 +452,7 @@ function TouchStickPart({ page, pad, onDirections }: { page: TrackpadsPageProps;
         options={TOUCH_STICK_AXIS_VALUES.map(v => ({ value: v, label: v === 'STANDARD' ? 'Normal' : v === 'INVERTED' ? 'Flip both' : v === 'X_INVERTED' ? 'Flip left-right' : 'Flip up-down' }))}
         onChange={v => writeKey(page.setText, `${P}TOUCH_STICK_AXIS`, v === 'STANDARD' ? null : v)} />
       <OpenRow label="Bind directions" hint="Up, down, left, right and ring · shared by every touch stick" onOpen={onDirections} hints="A:Open;LB/RB:Part" />
-      <Note>Speed, speed-up and flick settings are shared with the sticks: Sticks ▸ Fine-tune.</Note>
+      <Note>Sensitivity, acceleration and flick settings are shared with the sticks: Sticks ▸ Fine-tune.</Note>
     </div>
   )
 }
@@ -452,51 +473,65 @@ function TouchStickVisual({ live, radius }: { live: { x: number; y: number } | n
   )
 }
 
-function AccelVisual({ speed, current, presets }: { speed: number; current: AccelCurveParams; presets: { label: string; params: AccelCurveParams }[] }) {
-  const top = 3000
-  const maxGain = Math.max(2.6, current.maxSens)
+function AccelVisual({ speed, current, presets }: { speed: number | null; current: AccelCurveParams; presets: { label: string; params: AccelCurveParams }[] }) {
+  const all = [current, ...presets.map(preset => preset.params)]
+  const top = niceCeil(Math.max(3000, ...all.map(params => accelCurveSettleSpeed(params) * 1.1)))
+  const maxGain = Math.max(1, ...all.flatMap(params => [params.minSens, params.maxSens])) * 1.1
   const path = (p: AccelCurveParams) => Array.from({ length: 61 }, (_, index) => { const v = (index / 60) * top; return `${index ? 'L' : 'M'}${40 + (v / top) * 320},${190 - (accelSensitivityAt(v, p) / maxGain) * 160}` }).join(' ')
   return (
-    <VisualPanel title="How the cursor responds" chip={`live ${Math.round(speed)} px/s`} caption="Move to Gentle, Strong or Same as gyro to see the curve before you pick it.">
-      <svg viewBox="0 0 380 220" role="img" aria-label="Trackpad speed-up curve">
-        <path d="M40 30 V190 H360" stroke="rgba(255,255,255,.08)" strokeWidth="1.5" fill="none" />
-        {presets.map(preset => <g key={preset.label}><path d={path(preset.params)} stroke="#808c99" strokeWidth="1.5" strokeDasharray="4 4" fill="none" /><text x="356" y={190 - (accelSensitivityAt(top, preset.params) / maxGain) * 160 - 4} fill="#808c99" fontSize="10" textAnchor="end">{preset.label}</text></g>)}
+    <VisualPanel title="Acceleration gain" chip={speed === null ? undefined : `live ${Math.round(speed)} px/s`} caption={`Curve gain before pad sensitivity and other mouse filters. Range: 0–${top} px/s; gain 0–${Number(maxGain.toFixed(2))}×.`}>
+      <svg viewBox="0 0 380 220" role="img" aria-label={`Trackpad acceleration curve. Swipe speed from 0 to ${top} pixels per second; gain from 0 to ${Number(maxGain.toFixed(2))}.${speed === null ? '' : ` Live: ${Math.round(speed)} pixels per second, ${accelSensitivityAt(speed, current).toFixed(2)} times gain.`}`}>
+        <path d="M40 30 V190 H360" stroke="var(--line-2)" strokeWidth="1.5" fill="none" />
+        {presets.map(preset => <g key={preset.label}><path d={path(preset.params)} stroke="var(--text-2)" strokeWidth="1.5" strokeDasharray="4 4" fill="none" /><text x="356" y={190 - (accelSensitivityAt(top, preset.params) / maxGain) * 160 - 4} fill="var(--text-2)" fontSize="10" textAnchor="end">{preset.label}</text></g>)}
         <path d={path(current)} stroke="var(--accent)" strokeWidth="2" fill="none" />
-        <circle cx={40 + (Math.min(speed, top) / top) * 320} cy={190 - (accelSensitivityAt(Math.min(speed, top), current) / maxGain) * 160} r="5" fill="#a6d65a" stroke="#e3eaf1" strokeWidth="2" />
-        <text x="200" y="212" fill="#808c99" fontSize="10" textAnchor="middle">How fast you swipe →</text>
+        {speed !== null && <circle cx={40 + (Math.min(speed, top) / top) * 320} cy={190 - (accelSensitivityAt(speed, current) / maxGain) * 160} r="5" fill="var(--telemetry)" stroke="var(--art-line)" strokeWidth="2"><title>{Math.round(speed)} px/s · {accelSensitivityAt(speed, current).toFixed(2)}×{speed > top ? ' · beyond chart range' : ''}</title></circle>}
+        <text x="200" y="212" fill="var(--text-2)" fontSize="10" textAnchor="middle">How fast you swipe →</text>
       </svg>
     </VisualPanel>
   )
 }
 
 function GlideVisual({ decay, minVelocity, speed }: { decay: number; minVelocity: number; speed: number }) {
-  const coast = decay > 0 ? Math.max(20, 160 - decay * 2) : 0
+  const launch = speed > 0 ? speed : 1200
+  const seconds = decay > 0 ? Math.max(0.1, Math.min(5, Math.log2(Math.max(launch / 40, 1)) / decay * 1.1)) : 1
+  const top = Math.max(launch, minVelocity, 1) * 1.1
+  const velocity = (time: number) => {
+    if (decay <= 0 || launch < minVelocity) return 0
+    const value = launch * Math.pow(2, -decay * time)
+    return value < 40 ? 0 : value
+  }
+  const path = Array.from({ length: 101 }, (_, i) => `${i ? 'L' : 'M'}${40 + i * 3.2},${170 - velocity(seconds * i / 100) / top * 140}`).join(' ')
   return (
-    <VisualPanel title="A flick, then you lift" chip={`live ${Math.round(speed)} px/s`} caption="Turn coasting up to see the dashed path. Higher values end the coast sooner.">
-      <svg viewBox="0 0 380 200" role="img" aria-label="Glide">
-        <path d="M30 150 C90 140 130 100 170 90" stroke="var(--accent)" strokeWidth="2.5" fill="none" />
-        {coast > 0 ? <path d={`M170 90 L${170 + coast} ${90 - coast * 0.3}`} stroke="var(--accent)" strokeWidth="2" strokeDasharray="5 4" /> : <text x="178" y="86" fill="#808c99" fontSize="11">Off · stops where you lift</text>}
-        <circle cx="170" cy="90" r="5" fill="#e3eaf1" />
-        <path d="M30 186 H350" stroke="rgba(255,255,255,.1)" />
-        <path d={`M30 ${186 - (minVelocity / 2000) * 60} H350`} stroke="#808c99" strokeDasharray="3 3" />
-        <text x="350" y={182 - (minVelocity / 2000) * 60} fill="#808c99" fontSize="10" textAnchor="end">{minVelocity} px/s</text>
+    <VisualPanel title="Coast velocity" chip={`Example launch: ${Math.round(launch)} px/s`} caption="Straight-line coast example using the latest swipe speed, or 1200 px/s at rest. The mapper launches from its remaining filtered momentum.">
+      <svg viewBox="0 0 380 220" role="img" aria-label={`Coast velocity after a ${Math.round(launch)} pixels per second launch. Launch threshold: ${minVelocity} pixels per second. Decay: ${decay}. Time range: 0 to ${seconds.toFixed(2)} seconds.`}>
+        <path d="M40 30 V170 H360" stroke="var(--line-2)" fill="none" />
+        <path d={path} stroke="var(--accent)" strokeWidth="2.5" fill="none" />
+        <path d={`M40 ${170 - minVelocity / top * 140} H360`} stroke="var(--text-2)" strokeDasharray="3 3" />
+        <text x="356" y={Math.max(16, 166 - minVelocity / top * 140)} fill="var(--text-2)" fontSize="10" textAnchor="end">Launch threshold: {minVelocity} px/s</text>
+        <text x="40" y="188" fill="var(--text-2)" fontSize="10">0 s</text>
+        <text x="360" y="188" fill="var(--text-2)" fontSize="10" textAnchor="end">{Number(seconds.toFixed(2))} s</text>
+        <text x="200" y="210" fill="var(--text-2)" fontSize="10" textAnchor="middle">Time after lift →</text>
       </svg>
     </VisualPanel>
   )
 }
-
 /** Pressure over the last few seconds, buffered from telemetry. */
-function PressureVisual({ pressure, dampenAt }: { pressure: number; dampenAt: number }) {
-  const history = useRef<number[]>([])
-  history.current = [...history.current.slice(-119), pressure]
-  const points = history.current.map((value, index) => `${index ? 'L' : 'M'}${30 + (index / 119) * 330},${170 - Math.min(1, value) * 140}`).join(' ')
+function PressureVisual({ pressure, dampenAt, packet }: { pressure: number | null; dampenAt: number; packet?: object }) {
+  const history = useRef<{ at: number; value: number }[]>([])
+  const previousPacket = useRef<object | undefined>(undefined)
+  const now = performance.now()
+  if (pressure === null) history.current = []
+  else if (packet !== previousPacket.current) history.current.push({ at: now, value: pressure })
+  previousPacket.current = packet
+  history.current = history.current.filter(entry => now - entry.at <= 2000)
+  const points = history.current.map(({ at, value }, index) => `${index ? 'L' : 'M'}${360 - (now - at) / 2000 * 330},${170 - Math.max(0, Math.min(1, value)) * 140}`).join(' ')
   return (
-    <VisualPanel title="Press, click, let go" chip={`pressure ${pressure.toFixed(3)}`} caption="Press the pad and read the pressure; set Fully still just below where it clicks.">
-      <svg viewBox="0 0 380 200" role="img" aria-label={`Pressure ${pressure.toFixed(3)}`}>
-        <path d="M30 170 H360 M30 20 V170" stroke="rgba(255,255,255,.1)" />
+    <VisualPanel title="Press, click, let go" chip={pressure === null ? 'No live pressure' : `pressure ${pressure.toFixed(3)}`} caption="Press the pad and read the pressure; set Fully still just below where it clicks.">
+      <svg viewBox="0 0 380 200" role="img" aria-label={pressure === null ? 'No live pressure' : `Pressure ${pressure.toFixed(3)}`}>
+        <path d="M30 170 H360 M30 20 V170" stroke="var(--line-2)" />
         {dampenAt > 0 && <><path d={`M30 ${170 - dampenAt * 140} H360`} stroke="var(--accent)" strokeDasharray="4 4" /><text x="358" y={166 - dampenAt * 140} fill="var(--accent)" fontSize="10" textAnchor="end">Fully still</text></>}
-        <path d={points} stroke="#a6d65a" strokeWidth="2" fill="none" />
-        <text x="195" y="192" fill="#808c99" fontSize="10" textAnchor="middle">time →</text>
+        <path d={points} stroke="var(--telemetry)" strokeWidth="2" fill="none" />
+        <text x="195" y="192" fill="var(--text-2)" fontSize="10" textAnchor="middle">Last 2 seconds →</text>
       </svg>
     </VisualPanel>
   )
@@ -535,15 +570,15 @@ function feelGroupFor(page: TrackpadsPageProps, pad: PadConfig, name: string): F
   const intensities = ['HAPTIC_INTENSITY', 'CLICK_HAPTIC_INTENSITY', 'RELEASE_HAPTIC_INTENSITY'].map(field => Number(value(field, '0')) || 0)
   const interval = Number(value('HAPTIC_INTERVAL', '250')) || 250
   return {
-    id: 'feel', label: 'Feel', title: 'Feel', description: `What the ${name.toLowerCase()}’s own motor plays as you touch it, press it and let go.`,
-    status: `${separate ? 'Its own feel' : twoPads ? 'Shared' : 'Pad'} · ${intensities.every(item => item === 0) ? 'touch, click and release off' : `touch ${strengthWord(intensities[0]).toLowerCase()} · click ${strengthWord(intensities[1]).toLowerCase()} · release ${strengthWord(intensities[2]).toLowerCase()}`}`,
+    id: 'feel', label: 'Haptics', title: 'Haptics', description: `What the ${name.toLowerCase()}’s own motor plays as you touch it, press it and let go.`,
+    status: `${separate ? 'Separate haptics' : twoPads ? 'Shared' : 'Pad'} · ${intensities.every(item => item === 0) ? 'touch, click and release off' : `touch ${strengthWord(intensities[0]).toLowerCase()} · click ${strengthWord(intensities[1]).toLowerCase()} · release ${strengthWord(intensities[2]).toLowerCase()}`}`,
     changed: separate || intensities.some(item => item > 0),
     content: <>
-      {twoPads && <SummaryRow label={`${name} has its own feel`} hint={`The ${side === 'left' ? 'right' : 'left'} pad keeps the shared feel`} setting={`${SIDE}_TOUCHPAD_HAPTICS`}
+      {twoPads && <SummaryRow label={`${name} has its own haptics`} hint={`The ${side === 'left' ? 'right' : 'left'} pad keeps the shared haptics`} setting={`${SIDE}_TOUCHPAD_HAPTICS`}
         toggle={{ on: separate, onChange: on => page.setText?.(previous => Object.entries(padFeedbackPolicyChanges(read, SIDE, on)).reduce((next, [k, v]) => writeKeyText(next, k, v), previous)) }} />}
       <div className={styles.feelColumns}>
         {column('Touch', 'Ticks as your thumb moves', 'HAPTIC_INTENSITY', 'HAPTIC_EFFECT', 'TICK', <>
-          <ValueRow label="Tick every" setting={key('HAPTIC_INTERVAL')} value={interval} min={5} max={2000} step={5} format={v => `${v} px`} onChange={v => writeKey(page.setText, key('HAPTIC_INTERVAL'), v)} />
+          <ValueRow label="Haptic interval" setting={key('HAPTIC_INTERVAL')} value={interval} min={5} max={2000} step={5} format={v => `${v} px`} onChange={v => writeKey(page.setText, key('HAPTIC_INTERVAL'), v)} />
           <small className={styles.feelNote}>Only while the pad moves the mouse</small>
         </>)}
         {column('Click', 'One pulse as the pad goes in', 'CLICK_HAPTIC_INTENSITY', 'CLICK_HAPTIC_EFFECT', 'CLICK')}

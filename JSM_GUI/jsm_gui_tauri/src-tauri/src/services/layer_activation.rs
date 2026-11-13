@@ -15,6 +15,12 @@ pub struct LayerActivation {
 
 impl LayerActivation {
     pub fn reset(&mut self) { *self = Self::default(); }
+    /// Native timed bindings can remove a layer without changing the profile.
+    pub fn remove(&mut self, id: &str) {
+        self.latched.retain(|(layer, _)| layer != id);
+        self.held_order.retain(|layer| layer != id);
+        self.suppressed_holds.insert(id.to_string());
+    }
 
     pub fn update(&mut self, layers: &[PreparedLayer], devices: &[Value], enabled: bool, global_active: bool) -> Vec<String> {
         if !enabled || devices.is_empty() {
@@ -100,6 +106,20 @@ impl LayerActivation {
 mod tests {
     use super::*;
     use serde_json::json;
+    #[test]
+    fn native_remove_clears_only_the_requested_layer_and_requires_a_new_toggle() {
+        let layers = [layer("driving", "", "JOY25", ""), layer("other", "", "JOY1", "")];
+        let sample = |buttons| vec![json!({"type":25,"handle":2,"status":{"buttons":buttons}})];
+        let mut state = LayerActivation::default();
+        state.update(&layers,&sample(0),true,false);
+        assert_eq!(state.update(&layers,&sample(1 << 24),true,false),vec!["driving"]);
+        state.update(&layers,&sample(0),true,false);
+        assert_eq!(state.update(&layers,&sample(1),true,false),vec!["driving","other"]);
+        state.remove("driving");
+        assert_eq!(state.update(&layers,&sample(1),true,false),vec!["other"]);
+        state.update(&layers,&sample(0),true,false);
+        assert_eq!(state.update(&layers,&sample(1 << 24),true,false),vec!["other","driving"]);
+    }
 
     /// One input per action is all these cases need; the lists exist so a layer
     /// can be driven from several.

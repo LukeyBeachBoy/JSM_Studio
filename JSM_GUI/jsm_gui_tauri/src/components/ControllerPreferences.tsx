@@ -1,3 +1,4 @@
+import { ButtonGlyph } from './glyphs/ButtonGlyph'
 import { useRef, useState } from 'react'
 import { desktopBridge, type ControllerPreferences as Preferences, type SoundActuators } from '../platform/desktopBridge'
 import { showToast } from '../utils/toast'
@@ -176,7 +177,7 @@ export function ControllerSounds() {
   }
   return (
     <div ref={host}>
-      <SettingsSection title="Controller sounds" note="Y Your sounds"
+      <SettingsSection title="Controller sounds" note={<><ButtonGlyph button="Y" size={20} pad /> Your sounds</>}
         action={<button type="button" className="button button--secondary button--sm" onClick={() => setLibraryOpen(true)} tabIndex={-1}>Your sounds…</button>}>
         <OpenRow label="On connect" setting="CONNECT_SOUND" hint="Plays when the controller connects to JSM Evolved" value={soundName(prefs.connectSound, prefs.connectSoundFile, names)}
           onOpen={() => setPicking('connect')} disabled={waiting} hints="A:Change;Y:Your sounds;B:Back" />
@@ -231,13 +232,13 @@ export function TrackpadRotation() {
   const waiting = ready ? undefined : 'Reading the controller settings…'
   return (
     <SettingsSection title="Trackpad rotation" note={`Left ${prefs.leftPadRotation}° · Right ${prefs.rightPadRotation}° · every configuration`}>
-      <ModeCards columns={3} value={preset} onChange={value => update(value === 'level' ? { leftPadRotation: PAD_CANT.left, rightPadRotation: PAD_CANT.right } : { leftPadRotation: 0, rightPadRotation: 0 })}
+      <ModeCards columns={3} value={preset} onChange={value => { if (value === 'custom') setAdvanced(true); else update(value === 'level' ? { leftPadRotation: PAD_CANT.left, rightPadRotation: PAD_CANT.right } : { leftPadRotation: 0, rightPadRotation: 0 }) }}
         options={[
           { value: 'mounted', label: 'As mounted', caption: 'Each pad reads along its own edges', art: <PadsArt left={0} right={0} />, unavailable: waiting },
           { value: 'level', label: 'Level', caption: 'Level turns them 10.7° and −10.5°, so a swipe up reads as up', art: <PadsArt left={PAD_CANT.left} right={PAD_CANT.right} />, unavailable: waiting },
-        ]}
-        more={{ label: 'Advanced', caption: preset === 'custom' ? `Your own angles` : 'Exact degrees per pad', current: preset === 'custom', onOpen: () => setAdvanced(true) }} />
-      <SubPage open={advanced} onClose={() => setAdvanced(false)} crumbRoot="Settings" trail={['Controller', 'Trackpad rotation']} title="Advanced" backLabel="Back to Controller">
+          { value: 'custom', label: 'Custom angles', caption: 'Set exact degrees for each pad', art: <PadsArt left={prefs.leftPadRotation} right={prefs.rightPadRotation} />, unavailable: waiting },
+        ]} />
+      <SubPage open={advanced} onClose={() => setAdvanced(false)} crumbRoot="Settings" trail={['Controller', 'Trackpad rotation']} title="Custom trackpad angles" backLabel="Back to Controller">
         <div className={styles.mainColumn} style={{ maxWidth: 860 }}>
           <ValueRow label="Left pad" setting="LEFT_TOUCHPAD_ROTATION" global hint="Degrees the left pad's reading is turned; 10.7 levels it with the controller body" value={prefs.leftPadRotation}
             min={-180} max={180} step={0.5} fineStep={0.1} format={value => `${value}°`} onChange={value => update({ leftPadRotation: clampDegrees(value) })} onReset={() => update({ leftPadRotation: 0 })} disabled={waiting} />

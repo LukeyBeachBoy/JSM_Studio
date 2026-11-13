@@ -26,7 +26,7 @@ use std::{fs, path::PathBuf, time::Duration};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
 
 use crate::services::{ai_chatgpt as chatgpt, credentials};
 
@@ -1013,7 +1013,7 @@ pub async fn detect_local_models() -> Vec<LocalServer> {
 }
 
 fn settings_file(app: &AppHandle) -> Result<PathBuf, String> {
-    Ok(app.path().app_data_dir().map_err(|error| format!("Failed to resolve app data directory: {error}"))?.join(AI_SETTINGS_FILE_NAME))
+    Ok(crate::runtime::app_data_dir(app)?.join(AI_SETTINGS_FILE_NAME))
 }
 
 // ---- Commands (the provider ones; get/save/generate stay in commands.rs).

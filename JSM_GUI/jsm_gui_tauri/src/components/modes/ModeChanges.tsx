@@ -1,3 +1,4 @@
+import { InputText } from '../glyphs/InputText'
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SubPage } from '../ui/console'
@@ -137,7 +138,7 @@ export function ModeChanges({ layer, index, layers, text, actions, family, defau
         <div className={styles.changesMain}>
           <header className={styles.subHead}>
             <span className={styles.bigSwatch} style={{ background: hue }} aria-hidden="true" />
-            <div><h1>{layer.name}</h1><p>{sentence}. Everything not listed comes from Default.</p></div>
+            <div><h1>{layer.name}</h1><p><InputText text={sentence} />. Everything not listed comes from Default.</p></div>
           </header>
           <h2 className={styles.label}>Changed in this layer · {rows.length}</h2>
           {rows.length ? <div className={styles.overrides}>
@@ -148,7 +149,7 @@ export function ModeChanges({ layer, index, layers, text, actions, family, defau
                 {row.input ? <span className={styles.pill}><InputGlyph command={row.input} family={family} size={22} /></span> : <span className={styles.pill}><Icon name="tuning" size={18} /></span>}
                 <b>{row.name}</b>
               </span>
-              <span className={styles.ovValue}><b>{row.value}{[...row.value.matchAll(/#([0-9a-f]{6})\b/gi)].map(match => <span key={match[1]} className={styles.colourChip} style={{ background: `#${match[1]}` }} role="img" aria-label={`Color #${match[1].toLowerCase()}`} />)}</b><small>Default: {row.defaultValue}</small></span>
+              <span className={styles.ovValue}><b><InputText text={row.value} />{[...row.value.matchAll(/#([0-9a-f]{6})\b/gi)].map(match => <span key={match[1]} className={styles.colourChip} style={{ background: `#${match[1]}` }} role="img" aria-label={`Color #${match[1].toLowerCase()}`} />)}</b><small>Default: <InputText text={row.defaultValue} /></small></span>
               <span className={styles.ovAction}>Use Default</span>
             </button>)}
           </div> : <p className={styles.empty}>{layer.name} changes nothing yet. See it on Layout and change a button or a setting there.</p>}
@@ -160,7 +161,7 @@ export function ModeChanges({ layer, index, layers, text, actions, family, defau
               data-caption="Act when you let go · The button works the other way round: on while it is up"
               onClick={() => { if (mine.length && !disabled) actWhenLetGo(!releasedAll) }}>
               <span className={styles.rowIcon} aria-hidden="true"><Icon name="undo" size={18} /></span>
-              <span className={styles.rowText}><b>Act when you let go</b><span>{primary ? `On while ${name(primary.input.replace(/^!/, ''))} is up, off while you hold it` : 'Turns the layer’s buttons the other way round'}</span></span>
+              <span className={styles.rowText}><b>Act when you let go</b><span><InputText text={primary ? `On while ${name(primary.input.replace(/^!/, ''))} is up, off while you hold it` : 'Turns the layer’s buttons the other way round'} /></span></span>
               <span className={styles.switch} data-on={releasedAll ? 'true' : undefined} aria-hidden="true"><span /></span>
             </button>
             <button type="button" className={styles.row} aria-disabled={disabled ? 'true' : undefined} data-hints="A:Add a button;X:Edit each one;B:Back to Layers"
@@ -188,7 +189,7 @@ export function ModeChanges({ layer, index, layers, text, actions, family, defau
               onClick={bringIn}>
               <span className={styles.rowIcon} aria-hidden="true"><Icon name="modeshift" size={18} /></span>
               <span className={styles.rowText}><b>Bring in chords</b><span>A held button’s chords and mode shifts move here, then it holds {layer.name}</span></span>
-              <span className={styles.rowValue}>{chosen ? <>From <button type="button" tabIndex={-1} data-nav-skip aria-label="Previous button" className={styles.arrowBtn} onClick={event => { event.stopPropagation(); setSource(value => (Math.min(value, sources.length - 1) - 1 + sources.length) % sources.length) }}>◂</button> {name(chosen.command)} <button type="button" tabIndex={-1} data-nav-skip aria-label="Next button" className={styles.arrowBtn} onClick={event => { event.stopPropagation(); setSource(value => (Math.min(value, sources.length - 1) + 1) % sources.length) }}>▸</button> · {chosen.count}</> : 'None'}</span>
+              <span className={styles.rowValue}>{chosen ? <>From <button type="button" tabIndex={-1} data-nav-skip aria-label="Previous button" className={styles.arrowBtn} onClick={event => { event.stopPropagation(); setSource(value => (Math.min(value, sources.length - 1) - 1 + sources.length) % sources.length) }}>◂</button> {<InputText text={name(chosen.command)} />} <button type="button" tabIndex={-1} data-nav-skip aria-label="Next button" className={styles.arrowBtn} onClick={event => { event.stopPropagation(); setSource(value => (Math.min(value, sources.length - 1) + 1) % sources.length) }}>▸</button> · {chosen.count}</> : 'None'}</span>
             </div>
           </section>
         </div>
@@ -203,7 +204,7 @@ export function ModeChanges({ layer, index, layers, text, actions, family, defau
               <Icon name="details" size={18} /><b>Rename</b><small>Opens the keyboard</small>
             </button>
             <button type="button" className={styles.mi} data-hints="A:Open;B:Back to Layers" onClick={onOpenHow}>
-              <Icon name="layers" size={18} /><b>How it turns on and off</b><small>{primary ? `${({ hold: 'Hold', toggle: 'Tap', apply: 'Turn on', remove: 'Turn off' })[primary.verb]} ${name(primary.input.replace(/^!/, ''))}` : 'Not on a button yet'} ▸</small>
+              <Icon name="layers" size={18} /><b>How it turns on and off</b><small><InputText text={primary ? `${({ hold: 'Hold', toggle: 'Tap', apply: 'Turn on', remove: 'Turn off' })[primary.verb]} ${name(primary.input.replace(/^!/, ''))}` : 'Not on a button yet'} /> ▸</small>
             </button>
             <div className={styles.mi} tabIndex={0} role="slider" data-arrows="horizontal" aria-valuemin={1} aria-valuemax={layers.length} aria-valuenow={index + 1} aria-valuetext={`${ordinal(index + 1)} of ${layers.length}`}
               aria-label="Move in order" data-hints="MOVE:Move;B:Back to Layers" data-caption="Move in order · Its place is its colour and where it sits on the layer strip"
@@ -220,7 +221,7 @@ export function ModeChanges({ layer, index, layers, text, actions, family, defau
             </button>
           </> : <div ref={guard.ref} onKeyDown={guard.onKeyDown} className={styles.deletePanel} role="alertdialog" data-focus-trap="true" aria-labelledby="mode-delete-title" aria-describedby="mode-delete-body">
             <h3 id="mode-delete-title"><Icon name="remove" size={20} /> Delete {layer.name}?</h3>
-            <p id="mode-delete-body">{rows.length ? `Its ${rows.length} change${rows.length === 1 ? '' : 's'} go with it. ` : ''}{primary ? `${name(primary.input.replace(/^!/, ''))} keeps its other actions. ` : ''}Nothing leaves the file until you save.</p>
+            <p id="mode-delete-body">{rows.length ? `Its ${rows.length} change${rows.length === 1 ? '' : 's'} go with it. ` : ''}{primary ? <InputText text={`${name(primary.input.replace(/^!/, ''))} keeps its other actions. `} /> : ''}Nothing leaves the file until you save.</p>
             <button type="button" className={styles.keep} data-keep="" data-modal-close data-hints="A:Keep it;B:Keep it" onClick={() => setDeleting(false)}><b>Keep it</b><small>Nothing changes.</small></button>
             <button type="button" className={styles.deleteButton} data-delete="" data-hints="A:Delete;B:Keep it" onClick={onDelete}>Delete {layer.name}</button>
           </div>}

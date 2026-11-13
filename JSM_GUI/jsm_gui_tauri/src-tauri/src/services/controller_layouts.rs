@@ -5,6 +5,9 @@ pub fn model(device: &Value) -> String {
     if device["type"].as_i64() == Some(5) && device["vid"].as_i64() == Some(0x054c) && device["pid"].as_i64() == Some(0x0df2) { return "type-5-edge".into(); }
     format!("type-{}", device["type"].as_i64().unwrap_or(0))
 }
+pub fn target(device: &Value) -> String {
+    device["controllerId"].as_str().filter(|id| !id.is_empty()).map(str::to_owned).unwrap_or_else(|| model(device))
+}
 pub fn translate(key: &str, left: bool) -> String {
     fn token(t: &str, left: bool) -> String {
         let side = if left { "LEFT_" } else { "RIGHT_" };
@@ -22,6 +25,17 @@ pub fn translate(key: &str, left: bool) -> String {
     } out
 }
 pub fn project(text: &str, model: &str) -> String {
+    if let Some((base_model, _)) = model.split_once("-device-") {
+        let pad_prefix = format!("# @controller-pad {model} ");
+        let inherited_source = if let Some(side) = text.lines().filter_map(|line| line.trim().strip_prefix(&pad_prefix)).last() {
+            format!("{text}\n# @controller-pad {base_model} {side}")
+        } else { text.to_owned() };
+        let inherited = project(&inherited_source, base_model);
+        let prefix = format!("# @controller {model} ");
+        let device_rows = text.lines().filter_map(|line| line.trim().strip_prefix(&prefix))
+            .map(|value| format!("# @controller {base_model} {value}")).collect::<Vec<_>>().join("\n");
+        return project(&format!("{inherited}\n{device_rows}"), base_model);
+    }
     let prefix = format!("# @controller {model} ");
     let pad_prefix = format!("# @controller-pad {model} ");
     let left = text.lines().filter_map(|line| line.trim().strip_prefix(&pad_prefix)).last()==Some("left");
@@ -55,6 +69,14 @@ pub fn project(text: &str, model: &str) -> String {
     result.join("\n")
 }
 #[cfg(test)] mod tests {use super::*;
+#[test] fn identical_controllers_keep_separate_gyro_and_layers() {
+ let a="type-24-device-0000000000000001"; let b="type-24-device-0000000000000002";
+ let text=format!("GYRO_SENS = 2\nS = SPACE\n# @controller type-24 S = ENTER\n# @controller {b} GYRO_SENS = 0\n# @controller {b} # @layer {{\"id\":\"drive\",\"name\":\"Driving\",\"overrides\":{{\"S\":\"J\"}}}}");
+ let first=project(&text,a); let second=project(&text,b);
+ assert!(!first.contains("GYRO_SENS = 0")); assert!(first.contains("S = ENTER")); assert!(!first.contains("Driving"));
+ assert!(second.contains("GYRO_SENS = 0")); assert!(second.contains("Driving"));
+ assert_eq!(target(&serde_json::json!({"type":24,"handle":99,"controllerId":b})),b);
+}
 #[test] fn variants_and_pad_fallback_preserve_source() {
  let text="RIGHT_TOUCHPAD_MODE = MOUSE\nRT1 = J\nLT1 = K\nS = SPACE\n# @controller type-5 S = ENTER\n# @controller type-24 S = F";
  let ds=project(text,"type-5");assert!(ds.contains("TOUCHPAD_MODE =  MOUSE"));assert!(ds.ends_with("S = ENTER"));assert!(ds.contains("T1 =  J"));

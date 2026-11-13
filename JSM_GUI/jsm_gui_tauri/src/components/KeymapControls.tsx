@@ -6,7 +6,7 @@ import { InputModeshifts } from './keymap/InputModeshifts'
 import { modeshiftsOn, padModeshiftSettings, stickModeshiftSettings, type ModeshiftSummary, type ModeshiftTarget } from '../utils/modeshift'
 import { getButtonDescription } from '../keymap/schema'
 import { ConfigScope } from './ConfigScope'
-import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { formatStickModeLabel, STICK_MODE_VALUES, stickModeDirectionUse } from '../constants/sticks'
 import {
@@ -92,6 +92,17 @@ import { normalizeTouchpadMode, type TouchpadWarning } from '../utils/touchpadCo
 import { Icon } from './icons/Icon'
 
 
+function InlineBindingHost({ children, onClose }: { children: ReactNode; onClose?: () => void }) {
+  const root = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const node = root.current
+    const close = (event: Event) => { if (event.target instanceof HTMLDetailsElement && !event.target.open) onClose?.() }
+    node?.addEventListener('toggle', close, true)
+    return () => node?.removeEventListener('toggle', close, true)
+  }, [onClose])
+  return <div ref={root} className="layout-inline-binding">{children}</div>
+}
+
 function sectionScope(section: string): RegExp {
   const patterns: Record<string, RegExp> = {
     'touch-sensors': /^TOUCHPAD_(MIN_CUTOFF|SPEED_COEFF|D_CUTOFF|MOVEMENT_|CLICK_DAMPEN|LIFT_|TRACKBALL_)/,
@@ -107,7 +118,7 @@ function sectionScope(section: string): RegExp {
     leftStick: /^(L[LRUDSR]|LEFT_(STICK|RING)|STICK_|FLICK_|MOUSE_RING|SCROLL_)/,
     rightStick: /^(R[LRUDSR]|RIGHT_(STICK|RING)|STICK_|FLICK_|MOUSE_RING|SCROLL_)/,
     paddles: /^(LPAD|RPAD|P[1-4]|[LR][1-4])$/,
-    extra: /^(MISC|EXTRA)/,
+    extra: /^(MISC|EXTRA|JOY)/,
     motion: /^(MUP|MDOWN|MLEFT|MRIGHT|MRING|LEAN_|TILT_|MOTION_|CONTROLLER_ORIENTATION)/,
     global: /^(HOLD_PRESS|DOUBLE_PRESS|SIM_PRESS|TRIGGER_|ADAPTIVE_TRIGGER|LIGHT_BAR|LED_BRIGHTNESS)/,
   }
@@ -174,6 +185,8 @@ export type KeymapControlsProps = {
   onTriggerThresholdChange: (value: string) => void
   view?: 'full' | 'touchpad'
   lockMessage?: string
+  inlineCommand?: string
+  onInlineClose?: () => void
   visibleSections?: string[]
   touchpadMode?: string
   touchpadMinCutoff?: number
@@ -517,6 +530,8 @@ export function KeymapControls({
   view = 'full',
   lockMessage,
   visibleSections,
+  inlineCommand,
+  onInlineClose,
   touchpadMode: touchpadModeProp = '',
   gripSensorRange,
   touchpadDualStageMode = '',
@@ -654,8 +669,8 @@ export function KeymapControls({
   // telemetry array, which is a new object every frame.
   const primaryDevice = devices?.[0]
   const inputDevice = useMemo<TelemetryDevice | undefined>(
-    () => primaryDevice ? { handle: primaryDevice.handle, type: primaryDevice.type, supportedButtons: primaryDevice.supportedButtons } : undefined,
-    [primaryDevice?.handle, primaryDevice?.type, primaryDevice?.supportedButtons] // eslint-disable-line react-hooks/exhaustive-deps
+    () => primaryDevice ? { handle: primaryDevice.handle, type: primaryDevice.type, vid: primaryDevice.vid, pid: primaryDevice.pid, supportedButtons: primaryDevice.supportedButtons } : undefined,
+    [primaryDevice?.handle, primaryDevice?.type, primaryDevice?.vid, primaryDevice?.pid, primaryDevice?.supportedButtons] // eslint-disable-line react-hooks/exhaustive-deps
   )
   const deviceTypes = devices?.[0]?.type?.toString() ?? ''
 
@@ -765,12 +780,12 @@ export function KeymapControls({
   const controllerFamily = controllerVisualFamily(devices?.[0]?.type)
 
   const modifierOptions = useMemo(() => {
-    return buildModifierOptions(gridActive, configuredGridButtons, touchpadGridCommands).map(option => ({
+    return buildModifierOptions(gridActive, configuredGridButtons, touchpadGridCommands).filter(option => controllerSupportsInput(inputDevice, option.value)).map(option => ({
       value: option.value,
       label: resolveModifierOptionLabel(option, t, controllerFamily),
       disabled: option.disabled,
     }))
-  }, [configuredGridButtons, controllerFamily, gridActive, t, touchpadGridCommands])
+  }, [configuredGridButtons, controllerFamily, gridActive, t, touchpadGridCommands, inputDevice])
 
   const bindingRowsByButton = useMemo(() => {
     const record: Record<string, ButtonBindingRow[]> = {}
@@ -823,8 +838,8 @@ export function KeymapControls({
       : focusedMappingGroups.map(key => [key, MAPPING_BUTTON_GROUPS[key]] as const)
     return entries.map(([key, group]) => [key, {
       ...group,
-      buttons: visibleButtonsForGroup(key, group.buttons.filter(button => controllerSupportsInput(inputDevice, button.command) || isCommandBound(button.command)), leftStickModeForVisibility, rightStickModeForVisibility),
-    }] as const)
+      buttons: visibleButtonsForGroup(key, group.buttons.filter(button => controllerSupportsInput(inputDevice, button.command)), leftStickModeForVisibility, rightStickModeForVisibility),
+    }] as const).filter(([, group]) => group.buttons.length > 0)
   }, [focusedMappingGroups, leftStickModeForVisibility, rightStickModeForVisibility, isCommandBound, inputDevice])
 
   const visualMappingButtons = useMemo(
@@ -1256,7 +1271,7 @@ export function KeymapControls({
       }
     : undefined
   // The controller the live meters read from.
-  const liveDevice = devices?.find(device => device.status)
+  const liveDevice = devices?.[0]
 
   const gripCapable = Boolean(liveDevice) && controllerSupportsInput(liveDevice, 'MISC5')
   const groupFor = <G extends { titleKey: string; descriptionKey?: string; buttons: ButtonDefinition[] }>(key: string, group: G): G => {
@@ -1269,6 +1284,11 @@ export function KeymapControls({
     return { ...group, buttons, ...(grips && gripCapable ? { titleKey: 'keymap.gripsTitle', descriptionKey: 'keymap.gripsDescription' } : {}) }
   }
 
+
+  if (inlineCommand) {
+    const button = visualButtonByCommand[inlineCommand.toUpperCase()]
+    return button ? <InlineBindingHost onClose={onInlineClose}>{renderButtonCard(button, { defaultOpen: true, modeshifts: true })}</InlineBindingHost> : null
+  }
 
   return (
     <Card
@@ -1356,7 +1376,7 @@ export function KeymapControls({
                   >
                     <KeymapSection
                       className={['face', 'bumpers', 'center', 'dpad', 'paddles', 'extra', 'motion'].includes(groupKey) ? keymapStyles.groupEyebrow : groupKey === 'triggers' || groupKey === 'leftStick' || groupKey === 'rightStick' ? keymapStyles.groupNoHeader : undefined}
-                      title={t(group.titleKey)}
+                      title={groupKey === 'extra' && liveDevice?.type === 25 ? 'Cyborg buttons' : t(group.titleKey)}
                       description={group.descriptionKey && groupKey !== 'dpad' ? t(group.descriptionKey) : undefined}
                       icon={group.icon}
                       count={group.buttons.length}
@@ -1423,7 +1443,7 @@ export function KeymapControls({
               const buttons = side === 'left' ? LEFT_STICK_BUTTONS : RIGHT_STICK_BUTTONS
               const find = (command: string) => buttons.find(button => button.command === command)
               const S = side === 'left' ? 'L' : 'R'
-              const supported = (button?: ButtonDefinition) => button && (controllerSupportsInput(inputDevice, button.command) || isCommandBound(button.command)) ? button : undefined
+              const supported = (button?: ButtonDefinition) => button && controllerSupportsInput(inputDevice, button.command) ? button : undefined
               return [side, {
                 directions: ['UP', 'LEFT', 'DOWN', 'RIGHT'].map(direction => find(`${S}${direction}`)).filter((button): button is ButtonDefinition => Boolean(button)),
                 rotation: [find(`${S}LEFT`), find(`${S}RIGHT`)].filter((button): button is ButtonDefinition => Boolean(button)),
@@ -1438,7 +1458,7 @@ export function KeymapControls({
                 id: groupKey, title: t(MAPPING_BUTTON_GROUPS[groupKey].titleKey),
                 settings: stickModeshiftSettings(SIDE),
                 buttons: MAPPING_BUTTON_GROUPS[groupKey].buttons
-                  .filter(button => controllerSupportsInput(inputDevice, button.command) || isCommandBound(button.command))
+                  .filter(button => controllerSupportsInput(inputDevice, button.command))
                   .map(button => ({ command: button.command, label: getButtonDescription(button, t), definition: button })),
                 mode: { key: `${SIDE}_STICK_MODE`, defaultValue: 'NO_MOUSE', options: STICK_MODE_VALUES.map(value => ({ value, label: formatStickModeLabel(value, t) })) },
               }

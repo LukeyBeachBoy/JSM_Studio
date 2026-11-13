@@ -84,11 +84,14 @@ export function PermissionIntroduction({ onOpenSettings }: { onOpenSettings: () 
     } catch (error) { showToast(String(error), 'error') } finally { setBusy(false) }
   }
   if (!status || status.introductionSeen) return null
-  return <Dialog className="permission-dialog" title="You're in control of permissions" eyebrow="Welcome to JSM Evolved" width={600} onClose={() => void finish(false)}
-    actions={<><button className="button button--secondary" disabled={busy} onClick={() => void finish(true)}>Review startup settings</button><button className="button button--primary" disabled={busy} onClick={() => void finish(false)}>Get started</button></>}>
-    <p>JSM Evolved starts with normal Windows access by default. You can edit configurations and use ordinary games without approving an admin prompt each time.</p>
-    <p>HidHide changes and some games may need administrator access. You can restart with approval from <strong>Settings → Startup</strong>, or choose to request it on future manual launches.</p>
-    <p>Start by connecting your controller, choosing a configuration in Library, and testing its output. Driver installation is optional. Controller input on the Windows lock screen stays off unless you enable it separately in <strong>Settings → Startup → Windows sign-in</strong>.</p>
+  return <Dialog className="permission-dialog" title="Welcome to JSM Evolved" width={600} onClose={() => void finish(false)}
+    actions={<><button type="button" className="button button--primary" data-autofocus="" disabled={busy} onClick={() => void finish(false)}>Get started</button><button type="button" className="button button--secondary" disabled={busy} onClick={() => void finish(true)}>Startup settings</button></>}>
+    <ol style={{ margin: 0, padding: '0 24px 16px 48px', display: 'grid', gap: 16 }}>
+      <li><strong>Connect your controller.</strong> Keep it nearby while you set up.</li>
+      <li><strong>Pick a game.</strong> Choose New for a game on Home or import a layout.</li>
+      <li><strong>Try it.</strong> See what each button sends, then change anything you like.</li>
+    </ol>
+    <p>Normal Windows access works for most games. Administrator access, optional drivers and lock-screen input are explained in <strong>Settings → Startup</strong>.</p>
     {status.elevated && <p>This session was opened as administrator. Quit from the tray and reopen normally to use normal access.</p>}
   </Dialog>
 }

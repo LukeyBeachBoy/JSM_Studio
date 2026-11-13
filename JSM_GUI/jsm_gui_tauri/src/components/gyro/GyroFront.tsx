@@ -43,7 +43,7 @@ export function GyroFront({ onFineTune, onWhenOn, onCalibrate, onMatchTurn }: Pr
   const combined = gyroConditions(activation.button)
   const speed = readGyroSpeed(gyro.text)
   const omega = liveOmega(gyro.sample)
-  const history = useHistory(omega)
+  const history = useHistory(omega, 2000, gyro.sample?.devices?.[0]?.handle)
   const tryIt = gyro.callbacks.onTryIt
   const pressed = pressedNow(gyro.sample?.devices?.[0])
   const onNow = isActiveNow(activation, pressed)
@@ -80,7 +80,7 @@ export function GyroFront({ onFineTune, onWhenOn, onCalibrate, onMatchTurn }: Pr
     else setActivation('hold_on', q1 === 'unless' && activation.button ? activation.button : holdButton)
   }
   const cards: { value: Q1; label: string; caption: string }[] = [
-    { value: 'always', label: 'Always', caption: 'Simplest. Lift the controller to stop.' },
+    { value: 'always', label: 'Always', caption: 'Gyro responds continuously; use a hold mode to pause it.' },
     { value: 'hold', label: 'While I hold…', caption: q1 === 'hold' ? heldText : 'A button you choose' },
     { value: 'unless', label: 'Unless I hold…', caption: q1 === 'unless' ? heldText : 'Hold to reposition, like lifting a mouse' },
     { value: 'aiming', label: 'Only while aiming', caption: `While ${inputName('ZL', gyro.family)} is pulled` },
@@ -122,19 +122,19 @@ export function GyroFront({ onFineTune, onWhenOn, onCalibrate, onMatchTurn }: Pr
         <div className={p4.frontRows}>
           {held && <OpenRow label={q1 === 'unless' ? 'Gyro pauses while I hold' : 'Gyro is on while I hold'} hint={combined ? 'Several inputs · When is gyro on?' : 'A pad, a grip, any button'} value={heldText}
             hints={`A:${combined ? 'Open' : 'Change button'};${stepHints}`} data={{ 'data-hold-button': '' }} onOpen={pickHold} disabled={gyro.locked} />}
-          <ValueRow hero label="Turn speed" setting={speed.mode === 'static' ? 'GYRO_SENS' : 'MIN_GYRO_SENS'} value={Number(speed.base.toFixed(2))} min={0} max={30} step={0.1} fineStep={0.01}
+          <ValueRow hero label="Real-world sensitivity (RWS)" setting={speed.mode === 'static' ? 'GYRO_SENS' : 'MIN_GYRO_SENS'} value={Number(speed.base.toFixed(2))} min={0} max={30} step={0.1} fineStep={0.01}
             format={value => `${Number(value.toFixed(2))}×`} disabled={speedReason ?? gyro.locked}
-            caption={speed.mode === 'accel' ? 'Speed-up is on: fast turns go further. Slow · precise ↔ Fast · twitchy' : 'Slow · precise ↔ Fast · twitchy'}
+            caption="Real-world sensitivity is camera rotation ÷ controller rotation. With matching game calibration, 4× maps a 90° controller turn to a 360° camera turn."
             onChange={value => gyro.setText(previous => writeTurnSpeed(previous, value, '', gyro.text))}
             onReset={() => gyro.setText(previous => writeTurnSpeed(previous, 1, '', gyro.text))}
             onX={tryIt ? { label: 'Try it in Test', run: tryIt } : undefined} extraHints={stepHints}
             data={{ 'data-setting': 'GYRO_SENS' }} />
-          <OpenRow label="Aim drifts when still" hint={`Recalibrate · set it down for ${gyro.num('GYRO_CALIBRATION_TIME', 5)} s`} value="Run" onOpen={onCalibrate} hints={`A:Run;${stepHints}`} />
-          <OpenRow label="Match a full turn" hint="Turn once in game; the speed is set for you" onOpen={onMatchTurn}
-            value={gyro.get('REAL_WORLD_CALIBRATION') ? 'Matched' : undefined}
+          <OpenRow label="Recalibrate gyro" hint={`Correct sensor drift · set it down for ${gyro.num('GYRO_CALIBRATION_TIME', 5)}\u00a0s`} value="Run" onOpen={onCalibrate} hints={`A:Run;${stepHints}`} />
+          <OpenRow label="Real-world calibration" hint="Calibrate mouse output so RWS matches camera rotation" onOpen={onMatchTurn}
+            value={gyro.get('REAL_WORLD_CALIBRATION') ? 'Configured' : undefined}
             disabled={output !== 'MOUSE' ? 'Only while gyro sends the mouse: a stick’s speed is its game turn rate (Fine-tune ▸ Direction ▸ Stick settings).' : undefined}
             hints={`A:Start;${stepHints}`} />
-          <OpenRow label="Fine-tune" hint="Speed, steadiness, direction, tilt, rumble" onOpen={onFineTune} hints={`A:Open;${stepHints}`} data={{ 'data-gyro-fine-tune': '' }} />
+          <OpenRow label="Fine-tune" hint="Sensitivity, acceleration, filters, gyro space, tilt and rumble" onOpen={onFineTune} hints={`A:Open;${stepHints}`} data={{ 'data-gyro-fine-tune': '' }} />
         </div>
       </div>
 

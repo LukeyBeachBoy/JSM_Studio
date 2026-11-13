@@ -57,6 +57,7 @@ const PROFILE = ['RESET_MAPPINGS', 'N = SPACE', 'RSR,N = C', 'E = A', 'R+E = TAB
     // --- Also send ▸ the key picker's Listen adds a command (1) ----------------
     const listenFor = async key => {
       await sheet.getByRole('button', { name: 'Also send' }).click();
+      await page.locator('[data-picker="action-type"] [data-kind="key"]').click();
       const picker = page.getByRole('dialog', { name: /Pick a key/ });
       await picker.waitFor();
       await page.keyboard.press('x');

@@ -55,15 +55,15 @@ export function TriggerFineTune(props: Props) {
     id: 'press', label: 'Press points', status: pressStatus, changed: isSet(readText, 'TRIGGER_THRESHOLD', 'TRIGGER_HYSTERESIS'),
     description: 'Where a pull counts, and where it lets go.',
     content: <>
-      <SegmentedRow label="Fires at" setting="TRIGGER_THRESHOLD" value={hair ? 'hair' : 'point'} disabled={props.disabled ? 'Calibrating' : undefined}
+      <SegmentedRow label="Activation mode" setting="TRIGGER_THRESHOLD" value={hair ? 'hair' : 'point'} disabled={props.disabled ? 'Calibrating' : undefined}
         options={[{ value: 'point', label: 'A set point', caption: 'Fires once the pull passes the half-press point.' }, { value: 'hair', label: 'Hair trigger', caption: 'Hair trigger fires as you squeeze and lets go as you ease off.' }]}
         onChange={value => props.onThresholdChange(value === 'hair' ? '-1' : '0')} onReset={() => writeKey(setText, 'TRIGGER_THRESHOLD', null)} />
-      <ValueRow hero label="Half-press point" setting="TRIGGER_THRESHOLD" value={hair ? 0 : Math.round(threshold * 1000) / 10} min={0} max={100} step={1} fineStep={0.1}
+      <ValueRow hero label="Trigger threshold" setting="TRIGGER_THRESHOLD" value={hair ? 0 : Math.round(threshold * 1000) / 10} min={0} max={100} step={1} fineStep={0.1}
         format={value => `${value}%`} disabled={hair ? 'A hair trigger has no set point. Choose A set point above.' : undefined}
         caption="Default fires on the lightest touch. Raise it if resting your finger starts aiming."
         onChange={value => props.onThresholdChange(String(Number((value / 100).toFixed(4))))} onReset={() => writeKey(setText, 'TRIGGER_THRESHOLD', null)}
         onX={{ label: 'Try it', run: () => window.dispatchEvent(new Event('jsm:start-test')) }} />
-      <ValueRow label="Release margin" hint={`Lets go ${Math.round(margin * 100)}% below the press point, so a shaky finger can’t flicker it`} setting="TRIGGER_HYSTERESIS"
+      <ValueRow label="Trigger hysteresis" hint={`Lets go ${Math.round(margin * 100)}% below the press point, so a shaky finger can’t flicker it`} setting="TRIGGER_HYSTERESIS"
         value={Math.round(margin * 1000) / 10} min={0} max={100} step={0.5} fineStep={0.1} format={value => `${value}%`}
         disabled={hair ? 'A hair trigger lets go as you ease off; it has no margin.' : undefined}
         onChange={value => writeKey(setText, 'TRIGGER_HYSTERESIS', Number((value / 100).toFixed(6)))} onReset={() => writeKey(setText, 'TRIGGER_HYSTERESIS', null)} />
@@ -104,7 +104,7 @@ export function TriggerFineTune(props: Props) {
     description: 'How the trigger pushes back against your finger.',
     content: <>
       <SegmentedRow label="Trigger" value={effectSide} options={[{ value: 'left', label: 'Left trigger' }, { value: 'right', label: 'Right trigger' }]} onChange={value => setEffectSide(value as TriggerSide)} />
-      {props.onAdaptiveChange && <SummaryRow label="Push back on the triggers" hint="Both triggers. While on, a hair trigger fires at 0% instead." setting="ADAPTIVE_TRIGGER"
+      {props.onAdaptiveChange && <SummaryRow label="Adaptive triggers" hint="Both triggers. While on, a hair trigger fires at 0% instead." setting="ADAPTIVE_TRIGGER"
         toggle={{ on: adaptiveOn, onChange: on => props.onAdaptiveChange?.(on ? '' : 'OFF') }} />}
       <ModeCards columns={5} className={styles.effectCards} value={effect?.mode ?? ''} useLabel={card => `Use ${card.label}`} hints={feelAction ? 'X:Feel it' : undefined}
         options={EFFECT_ORDER.map(value => ({ value, label: TRIGGER_EFFECT_CARDS[value].label, caption: TRIGGER_EFFECT_CARDS[value].caption, art: <EffectArt mode={value} /> }))}

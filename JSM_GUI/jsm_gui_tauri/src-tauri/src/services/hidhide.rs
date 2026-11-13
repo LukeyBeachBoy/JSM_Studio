@@ -42,6 +42,7 @@ pub struct HidHideStatus {
     pub managed_instance_ids: Vec<String>,
     pub whitelist_synced: bool,
     pub requires_elevation: bool,
+    pub auto_hide_azeron: Option<bool>,
     /// HidHide's application list (console v2: "Apps that can still see
     /// them"). With `inverse` on, these are the apps the controllers are
     /// hidden from instead.
@@ -126,8 +127,60 @@ pub fn open_configuration_client(app: &AppHandle) -> Result<(), String> {
     imp::open_configuration_client(app)
 }
 
+/// Runs before the mapper starts, and again for devices attached later. The
+/// driver retains these instance IDs across reboots; the watcher adds new IDs
+/// when an enrolled keypad moves to another USB port.
+pub fn sync_azeron_native_interfaces(app: &AppHandle) -> Result<bool, String> {
+    imp::sync_azeron_native_interfaces(app)
+}
+
+pub fn start_azeron_guard(app: AppHandle) {
+    #[cfg(target_os = "windows")]
+    std::thread::spawn(move || {
+        let mut last_error = None;
+        loop {
+            std::thread::sleep(std::time::Duration::from_secs(5));
+            match sync_azeron_native_interfaces(&app) {
+                Ok(_) => last_error = None,
+                Err(error) => {
+                    if last_error.as_ref() != Some(&error) {
+                        eprintln!("Could not hide enrolled Azeron native controllers: {error}");
+                    }
+                    last_error = Some(error);
+                }
+            }
+        }
+    });
+    #[cfg(not(target_os = "windows"))]
+    let _ = app;
+}
+
+fn azeron_enrolled(policy: &str) -> bool {
+    policy.lines().any(|line| line.split('#').next().unwrap_or("").trim().eq_ignore_ascii_case("16d0:12f7"))
+}
+
+fn is_azeron_instance(instance: &str) -> bool {
+    let mut path = instance.split('\\');
+    let bus = path.next().unwrap_or("");
+    if !bus.eq_ignore_ascii_case("HID") && !bus.eq_ignore_ascii_case("USB") { return false; }
+    let mut ids = path.next().unwrap_or("").split('&');
+    ids.next().is_some_and(|v| v.eq_ignore_ascii_case("VID_16D0"))
+        && ids.next().is_some_and(|v| v.eq_ignore_ascii_case("PID_12F7"))
+}
+
+fn is_azeron_xinput_interface(instance: &str, class: &str) -> bool {
+    instance.to_ascii_lowercase().starts_with("usb\\")
+        && is_azeron_instance(instance)
+        && class.eq_ignore_ascii_case("{D61CA365-5AF4-4486-998B-9DB4734C6CA3}")
+}
+
 fn canonicalize_instance_id(value: &str) -> String {
     value.trim().to_ascii_lowercase()
+}
+
+fn same_instance_ids(left: &[String], right: &[String]) -> bool {
+    left.iter().map(|id| canonicalize_instance_id(id)).collect::<BTreeSet<_>>()
+        == right.iter().map(|id| canonicalize_instance_id(id)).collect::<BTreeSet<_>>()
 }
 
 fn canonicalize_value(value: &str) -> String {
@@ -398,6 +451,8 @@ mod imp {
         Win32::{
             Devices::{
                 DeviceAndDriverInstallation::{
+                    CM_Get_DevNode_Registry_PropertyW, CM_Get_Device_IDW, CM_Get_Parent,
+                    CM_DRP_CLASSGUID, CR_SUCCESS,
                     SetupDiDestroyDeviceInfoList, SetupDiEnumDeviceInterfaces,
                     SetupDiGetClassDevsW, SetupDiGetDeviceInstanceIdW,
                     SetupDiGetDeviceInterfaceDetailW, SetupDiGetDevicePropertyW,
@@ -482,6 +537,7 @@ mod imp {
     const HIDHIDE_ACCESS_DENIED_MESSAGE: &str =
         "Access denied opening the HidHide control device. Run JSM Evolved as administrator.";
     const HIDHIDE_INSTALLER_REBOOT_REQUIRED_EXIT_CODE: i32 = 3010;
+    static DEVICE_POLICY_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
     enum ControlDeviceStatus {
         Ready,
@@ -567,6 +623,8 @@ mod imp {
         latest_packet: Option<&Value>,
     ) -> Result<HidHideStatus, String> {
         let managed_state = runtime::read_hidhide_state(app)?;
+        let auto_hide_azeron = fs::read_to_string(runtime::runtime_dir(app)?.join("ManagedControllers.txt"))
+            .ok().filter(|policy| azeron_enrolled(policy)).map(|_| managed_state.auto_hide_azeron);
         let mut managed_instance_ids = managed_state.managed_instance_ids;
         sort_case_insensitive(&mut managed_instance_ids);
 
@@ -582,6 +640,7 @@ mod imp {
                     managed_instance_ids,
                     whitelist_synced: false,
                     requires_elevation: false,
+                    auto_hide_azeron,
                     app_list: Vec::new(),
                 });
             }
@@ -596,6 +655,7 @@ mod imp {
                     managed_instance_ids,
                     whitelist_synced: false,
                     requires_elevation: true,
+                    auto_hide_azeron,
                     app_list: Vec::new(),
                 });
             }
@@ -624,6 +684,7 @@ mod imp {
                 inverse,
             ),
             requires_elevation: false,
+            auto_hide_azeron,
             app_list: app_list(&whitelist, &required_whitelist_entries),
         })
     }
@@ -633,6 +694,7 @@ mod imp {
         active: bool,
         latest_packet: Option<&Value>,
     ) -> Result<HidHideStatus, String> {
+        let _guard = DEVICE_POLICY_LOCK.lock().map_err(|e| e.to_string())?;
         ensure_control_device_ready()?;
 
         if active {
@@ -640,6 +702,9 @@ mod imp {
         }
 
         set_active_flag(active)?;
+        let mut saved = runtime::read_hidhide_state(app)?;
+        saved.auto_hide_azeron = active;
+        runtime::write_hidhide_state(app, &saved)?;
         get_status(app, latest_packet)
     }
 
@@ -649,6 +714,7 @@ mod imp {
         hidden: bool,
         latest_packet: Option<&Value>,
     ) -> Result<HidHideStatus, String> {
+        let _guard = DEVICE_POLICY_LOCK.lock().map_err(|e| e.to_string())?;
         ensure_control_device_ready()?;
 
         let trimmed_instance_id = instance_id.trim();
@@ -657,12 +723,20 @@ mod imp {
         }
 
         let managed_state = runtime::read_hidhide_state(app)?;
+        let previous_auto_hide_azeron = managed_state.auto_hide_azeron;
         let previous_managed = managed_state.managed_instance_ids;
         let blacklist = get_blacklist()?;
         let likely_pairs = parse_likely_pairs(latest_packet);
         let grouped_devices = enumerate_devices(&previous_managed, &blacklist, &likely_pairs)?;
 
         let target_instance_ids = controller_interface_ids(&grouped_devices, trimmed_instance_id);
+        // Clearing a stale port entry is not an instruction to show a
+        // currently connected keypad or disable its future automatic repair.
+        let auto_hide_azeron = if is_azeron_instance(instance_id) && target_instance_ids.is_some() {
+            hidden
+        } else {
+            previous_auto_hide_azeron
+        };
 
         let Some(target_instance_ids) = target_instance_ids.or_else(|| {
             if hidden {
@@ -694,10 +768,63 @@ mod imp {
             app,
             &runtime::HidHideState {
                 managed_instance_ids: next_managed,
+                auto_hide_azeron,
             },
         )?;
 
         get_status(app, latest_packet)
+    }
+
+    pub fn sync_azeron_native_interfaces(app: &AppHandle) -> Result<bool, String> {
+        // Enrollment is the ownership boundary: merely plugging in a keypad
+        // must not make JSM take it away from another mapper.
+        let policy_path = runtime::runtime_dir(app)?.join("ManagedControllers.txt");
+        let policy = match fs::read_to_string(policy_path) {
+            Ok(policy) => policy,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+            Err(error) => return Err(error.to_string()),
+        };
+        if !azeron_enrolled(&policy) { return Ok(false); }
+        let _guard = DEVICE_POLICY_LOCK.lock().map_err(|e| e.to_string())?;
+        let mut saved = runtime::read_hidhide_state(app)?;
+        if !saved.auto_hide_azeron { return Ok(false); }
+        let previous_managed = saved.managed_instance_ids.clone();
+        let changed = reconcile_azeron_rules(&policy, &mut saved, &required_whitelist_entries(app)?)?;
+        if saved.managed_instance_ids != previous_managed {
+            runtime::write_hidhide_state(app, &saved)?;
+        }
+        Ok(changed)
+    }
+
+    fn reconcile_azeron_rules(policy: &str, saved: &mut runtime::HidHideState, required_apps: &[String]) -> Result<bool, String> {
+        if !azeron_enrolled(policy) || !saved.auto_hide_azeron { return Ok(false); }
+        match control_device_status()? {
+            ControlDeviceStatus::Missing => return Ok(false),
+            ControlDeviceStatus::AccessDenied => return Err(HIDHIDE_ACCESS_DENIED_MESSAGE.into()),
+            ControlDeviceStatus::Ready => {}
+        }
+        if get_inverse()? {
+            return Err("Automatic Azeron hiding needs HidHide's normal application-list mode. Change it in Hide controllers settings.".into());
+        }
+        // Grant mapper/editor access before hiding any device. Handles, device
+        // enumeration and profile application continue working while hidden.
+        ensure_application_access(required_apps)?;
+        let blacklist = get_blacklist()?;
+        let managed = saved.managed_instance_ids.iter().map(|id| canonicalize_instance_id(id)).collect();
+        let blacklisted = blacklist.iter().map(|id| canonicalize_instance_id(id)).collect();
+        let devices = enumerate_present_hid_devices(&managed, &blacklisted, &HashSet::new(), true)?;
+        let targets = unique_values(&devices.into_iter().map(|d| d.instance_id).collect::<Vec<_>>());
+        if targets.is_empty() { return Ok(false); }
+        let next_managed = update_managed_instance_ids(&saved.managed_instance_ids, &targets, true);
+        let next_blacklist = merge_blacklist(&blacklist, &saved.managed_instance_ids, &next_managed);
+        let blacklist_changed = !same_instance_ids(&next_blacklist, &blacklist);
+        let changed = blacklist_changed || next_managed != saved.managed_instance_ids || !get_active()?;
+        if blacklist_changed { set_blacklist(&next_blacklist)?; }
+        if !get_active()? { set_active_flag(true)?; }
+        if next_managed != saved.managed_instance_ids {
+            saved.managed_instance_ids = next_managed;
+        }
+        Ok(changed)
     }
 
     pub fn sync_whitelist(
@@ -846,7 +973,7 @@ mod imp {
             .map(|value| canonicalize_instance_id(value))
             .collect::<HashSet<_>>();
 
-        let raw_devices = enumerate_present_hid_devices(&managed, &blacklisted, likely_pairs)?;
+        let raw_devices = enumerate_present_hid_devices(&managed, &blacklisted, likely_pairs, false)?;
         let mut groups = HashMap::<String, Vec<RawHidDevice>>::new();
         for raw in raw_devices {
             groups.entry(raw.group_key.clone()).or_default().push(raw);
@@ -958,6 +1085,7 @@ mod imp {
         managed: &HashSet<String>,
         blacklisted: &HashSet<String>,
         likely_pairs: &HashSet<(u16, u16)>,
+        azeron_only: bool,
     ) -> Result<Vec<RawHidDevice>, String> {
         let mut hid_guid = GUID::default();
         unsafe {
@@ -1058,6 +1186,8 @@ mod imp {
             let Some(instance_id) = get_device_instance_id(device_info_set, &devinfo_data) else {
                 continue;
             };
+            let azeron = is_azeron_instance(&instance_id);
+            if azeron_only && !azeron { continue; }
             let canonical_instance_id = canonicalize_instance_id(&instance_id);
             let hidden = blacklisted.contains(&canonical_instance_id);
             let managed_by_app = managed.contains(&canonical_instance_id);
@@ -1089,6 +1219,11 @@ mod imp {
             );
 
             let hid_details = read_hid_details(&device_path).unwrap_or_default();
+            // An Azeron is a composite keyboard/mouse/configurator as well as
+            // two game controllers. Hiding its whole container breaks those
+            // unrelated interfaces. Only game-controller collections belong
+            // in its HidHide group.
+            if azeron && !hid_details.gaming_device { continue; }
             let (parsed_vid, parsed_pid) = parse_vid_pid_from_instance_id(&instance_id);
             let vendor_id = hid_details.vendor_id.or(parsed_vid);
             let product_id = hid_details.product_id.or(parsed_pid);
@@ -1130,7 +1265,7 @@ mod imp {
                 .map(|guid| format!("container:{}", guid_to_string(&guid)))
                 .unwrap_or_else(|| format!("instance:{canonical_instance_id}"));
 
-            devices.push(RawHidDevice {
+            let raw = RawHidDevice {
                 instance_id,
                 group_key,
                 display_hint,
@@ -1144,10 +1279,41 @@ mod imp {
                 likely_current_controller,
                 vendor_id,
                 product_id,
-            });
+            };
+            if azeron {
+                if let Some(parent) = azeron_xinput_parent(devinfo_data.DevInst) {
+                    let mut xinput = raw.clone();
+                    xinput.hidden = blacklisted.contains(&canonicalize_instance_id(&parent));
+                    xinput.managed_by_app = managed.contains(&canonicalize_instance_id(&parent));
+                    xinput.instance_id = parent;
+                    devices.push(xinput);
+                }
+            }
+            devices.push(raw);
         }
 
         Ok(devices)
+    }
+
+    fn azeron_xinput_parent(mut node: u32) -> Option<String> {
+        // Hiding the HID compatibility child does not block XInput. Walk its
+        // actual PnP ancestors to the XnaComposite interface, never the USB
+        // composite parent or hub. No instance ID, port or MI number is fixed.
+        for _ in 0..6 {
+            let mut parent = 0;
+            if unsafe { CM_Get_Parent(&mut parent, node, 0) } != CR_SUCCESS { break; }
+            node = parent;
+            let mut id = [0u16; 512];
+            if unsafe { CM_Get_Device_IDW(node, id.as_mut_ptr(), id.len() as u32, 0) } != CR_SUCCESS { continue; }
+            let id = String::from_utf16_lossy(&id[..id.iter().position(|c| *c == 0).unwrap_or(id.len())]);
+            if !is_azeron_instance(&id) { break; }
+            let mut class = [0u16; 64];
+            let mut bytes = std::mem::size_of_val(&class) as u32;
+            if unsafe { CM_Get_DevNode_Registry_PropertyW(node, CM_DRP_CLASSGUID, null_mut(), class.as_mut_ptr().cast(), &mut bytes, 0) } != CR_SUCCESS { continue; }
+            let class = String::from_utf16_lossy(&class[..class.iter().position(|c| *c == 0).unwrap_or(class.len())]);
+            if is_azeron_xinput_interface(&id, &class) { return Some(id); }
+        }
+        None
     }
 
     #[derive(Default)]
@@ -1598,12 +1764,16 @@ mod imp {
 
     fn sync_whitelist_entries(app: &AppHandle) -> Result<(), String> {
         let required = required_whitelist_entries(app)?;
+        ensure_application_access(&required)
+    }
+
+    fn ensure_application_access(required: &[String]) -> Result<(), String> {
         if required.is_empty() {
             return Err("No JoyShockMapper executables were found to whitelist.".to_string());
         }
 
         let whitelist = get_whitelist()?;
-        let merged = application_list_with_access(&whitelist, &required, get_inverse()?);
+        let merged = application_list_with_access(&whitelist, required, get_inverse()?);
         if merged != whitelist {
             set_whitelist(&merged)?;
         }
@@ -2050,6 +2220,53 @@ mod imp {
     }
 
     #[test]
+    #[ignore = "Reads the connected Azeron and temporarily allows this test executable through HidHide"]
+    fn live_azeron_targets_include_xinput_usb_but_no_keyboard_or_mouse() {
+        struct Restore { whitelist: Vec<String>, blacklist: Vec<String> }
+        impl Drop for Restore {
+            fn drop(&mut self) {
+                set_whitelist(&self.whitelist).expect("restore app list");
+                set_blacklist(&self.blacklist).expect("restore device list");
+            }
+        }
+        ensure_control_device_ready().unwrap();
+        assert!(get_active().unwrap(), "run this check with HidHide already enabled");
+        let restore = Restore { whitelist: get_whitelist().unwrap(), blacklist: get_blacklist().unwrap() };
+        let image = full_image_name(&std::env::current_exe().unwrap()).unwrap();
+        let allowed = application_list_with_access(&restore.whitelist, &[image], get_inverse().unwrap());
+        set_whitelist(&allowed).unwrap();
+        let blacklist = get_blacklist().unwrap();
+        let blacklisted = blacklist.iter().map(|id| canonicalize_instance_id(id)).collect();
+        let began = std::time::Instant::now();
+        let targets = enumerate_present_hid_devices(&HashSet::new(), &blacklisted, &HashSet::new(), true).unwrap();
+        let ids = unique_values(&targets.iter().map(|d| d.instance_id.clone()).collect::<Vec<_>>());
+        assert_eq!(ids.len(), 3, "expected two HID game controllers and their XInput USB interface: {ids:?}");
+        assert!(ids.iter().all(|id| is_azeron_instance(id)));
+        assert!(ids.iter().any(|id| id.to_ascii_lowercase().starts_with("usb\\")));
+        assert!(ids.iter().all(|id| !id.to_ascii_lowercase().contains("mi_01") && !id.to_ascii_lowercase().contains("mi_02") && !id.to_ascii_lowercase().contains("mi_04")));
+        let groups = enumerate_devices(&ids, &blacklist, &HashSet::new()).unwrap();
+        let azeron = groups.iter().find(|g| g.device.vendor_id == Some(0x16d0)).unwrap();
+        assert_eq!(unique_values(&azeron.child_instance_ids), ids);
+        // Exercise the same repair used on startup/reconnect against the
+        // existing live rules, without temporarily exposing the real device.
+        assert!(targets.iter().all(|d| d.hidden), "run this check after hiding the native interfaces");
+        let mut saved = runtime::HidHideState::default();
+        let required = [full_image_name(&std::env::current_exe().unwrap()).unwrap()];
+        let before = get_blacklist().unwrap();
+        assert!(reconcile_azeron_rules("16d0:12f7", &mut saved, &required).unwrap());
+        assert_eq!(saved.managed_instance_ids, ids);
+        assert_eq!(get_blacklist().unwrap(), before, "adopting saved rules must not rewrite other devices");
+        let serialized = serde_json::to_string(&saved).unwrap();
+        let mut restarted: runtime::HidHideState = serde_json::from_str(&serialized).unwrap();
+        assert!(!reconcile_azeron_rules("16d0:12f7", &mut restarted, &required).unwrap(), "restart with saved rules is a no-op");
+        restarted.auto_hide_azeron = false;
+        assert!(!reconcile_azeron_rules("16d0:12f7", &mut restarted, &[]).unwrap(), "opt-out skips even driver/whitelist access");
+        assert!(!reconcile_azeron_rules("28de:1304", &mut saved, &[]).unwrap(), "unenrolled devices are never taken over");
+        println!("Azeron native hiding targets ({:?}): {ids:?}", began.elapsed());
+        drop(restore);
+    }
+
+    #[test]
     #[ignore = "Temporarily hides the physical device specified by JSM_HIDHIDE_TEST_PATH"]
     fn live_controller_group_blocks_unapproved_access() {
         let path =
@@ -2127,6 +2344,8 @@ mod imp {
 mod imp {
     use super::*;
 
+    pub fn sync_azeron_native_interfaces(_app: &AppHandle) -> Result<bool, String> { Ok(false) }
+
     fn unsupported_status() -> HidHideStatus {
         HidHideStatus {
             supported: false,
@@ -2138,6 +2357,7 @@ mod imp {
             managed_instance_ids: Vec::new(),
             whitelist_synced: false,
             requires_elevation: false,
+            auto_hide_azeron: None,
             app_list: Vec::new(),
         }
     }
@@ -2192,6 +2412,46 @@ mod imp {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn automatic_hiding_requires_explicit_azeron_enrollment() {
+        assert!(azeron_enrolled("# keypad\n28de:1304\n16D0:12F7 # Cyborg\n"));
+        for policy in ["", "# 16d0:12f7\n28de:1304", "16d0:12f70", "16d0:*", "16d0:12f7 garbage"] {
+            assert!(!azeron_enrolled(policy), "{policy}");
+        }
+    }
+
+    #[test]
+    fn automatic_hiding_migrates_old_state_and_preserves_opt_out() {
+        let legacy: runtime::HidHideState = serde_json::from_str(r#"{"managedInstanceIds":["HID\\OLD"]}"#).unwrap();
+        assert!(legacy.auto_hide_azeron);
+        assert!(runtime::HidHideState::default().auto_hide_azeron);
+        let disabled: runtime::HidHideState = serde_json::from_str(r#"{"autoHideAzeron":false}"#).unwrap();
+        let saved = serde_json::to_string(&disabled).unwrap();
+        assert!(!serde_json::from_str::<runtime::HidHideState>(&saved).unwrap().auto_hide_azeron);
+    }
+
+    #[test]
+    fn xinput_target_requires_azeron_usb_and_xna_class() {
+        let class = "{d61ca365-5af4-4486-998b-9db4734c6ca3}";
+        assert!(is_azeron_xinput_interface(r"USB\VID_16D0&PID_12F7&MI_00\new-port", class));
+        assert!(!is_azeron_xinput_interface(r"HID\VID_16D0&PID_12F7&IG_00\child", class));
+        assert!(!is_azeron_xinput_interface(r"USB\VID_045E&PID_028E\virtual", class));
+        assert!(!is_azeron_xinput_interface(r"USB\VID_16D0&PID_12F70\different", class));
+        assert!(!is_azeron_xinput_interface(r"USB\VID_16D0&PID_12F7\composite-parent", "{36fc9e60-c465-11cf-8056-444553540000}"));
+    }
+
+    #[test]
+    fn reconnect_adds_new_port_without_losing_saved_or_external_rules() {
+        let previous: Vec<String> = vec![r"HID\VID_28DE&PID_1304\steam".into(), r"HID\VID_16D0&PID_12F7\old-port".into()];
+        let live = vec![previous[0].clone(), previous[1].clone(), "HID\\EXTERNAL".into()];
+        let targets = vec![r"HID\VID_16D0&PID_12F7\new-port".into(), r"USB\VID_16D0&PID_12F7&MI_00\new-port".into()];
+        let next = update_managed_instance_ids(&previous, &targets, true);
+        let hidden = merge_blacklist(&live, &previous, &next);
+        assert!(live.iter().chain(&targets).all(|id| hidden.contains(id)));
+        assert_eq!(update_managed_instance_ids(&next, &targets, true), next);
+        assert_eq!(merge_blacklist(&hidden, &next, &next), hidden, "repeated guard passes do not rewrite rules");
+    }
 
     #[test]
     fn empty_multi_string_is_double_terminated() {

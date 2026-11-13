@@ -94,13 +94,13 @@ export function AppearancePage() {
             const selected = id === accent
             return (
               <button key={id} type="button" role="radio" aria-checked={selected} className={styles.swatch} data-accent={id} data-selected={selected}
-                data-hints={`A:Use ${item.name};MOVE:Compare;B:Home`} data-caption={`${item.name} · ${item.hex}`}
+                data-hints={`A:Use ${item.name};MOVE:Compare;B:Home`} data-caption={`${item.name} · accent colour`}
                 onFocus={() => { setPreviewAccent(id); paintAccent(id) }}
                 onClick={() => { setAccent(id); setPreviewAccent(null) }}>
                 <BrandMark accent={id} size={56} className={styles.swatchMark} />
                 <span className={styles.swatchText}>
                   <b>{item.name}</b>
-                  <span className={styles.swatchHex}>{resolved === 'light' ? item.ink : item.hex}</span>
+                  <span className={styles.swatchHex}>{selected ? 'Selected' : 'Accent colour'}</span>
                 </span>
                 <span className={styles.swatchDot} style={{ background: item.hex }} aria-hidden="true" />
               </button>

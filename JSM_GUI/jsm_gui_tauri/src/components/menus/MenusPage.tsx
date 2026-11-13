@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import type { TelemetrySample } from '../../hooks/useTelemetry'
 import type { ConfigLayer } from '../../utils/layers'
 import { layerHue, layerSlotOf } from '../../utils/layers'
-import { controllerHasTwoTrackpads, controllerVisualFamily } from '../../utils/controllerStatus'
+import { controllerVisualFamily } from '../../utils/controllerStatus'
 import { createVirtualMenu, readVirtualMenus, writeVirtualMenus, virtualMenuProblem, type MenuAttachment, type MenuType, type VirtualMenu } from '../../utils/virtualMenus'
 import { readVirtualSetting } from '../../utils/virtualStickSettings'
 import { analyzeVirtualControllerConfig, type VirtualControllerType } from '../../utils/virtualController'
@@ -24,7 +24,7 @@ import { MoreChip } from '../modes/MoreChip'
 import { MenuDetails } from './MenuDetails'
 import { MenuPositionPage } from './MenuPositionPage'
 import { menuSlotApi } from './menuSlotApi'
-import { behaviourSentence, menuOpeners, selectionLabel, SOURCE_LABEL, TYPE_CAPTION, TYPE_LABEL, unitOf } from './menuText'
+import { behaviourSentence, menuOpeners, selectionLabel, menuSourceAvailable, menuSourceLabel, TYPE_CAPTION, TYPE_LABEL, unitOf } from './menuText'
 import styles from './Menus.module.css'
 
 // Menus (console v2, MenuEditor.dc.html): the rail of menus (LT/RT), the menu
@@ -114,7 +114,7 @@ export function MenusPage({ text, setText, configName, deviceType, sample, initi
     const next = template.build(`menu${index}`, name)
     // A source another menu already owns is taken; fall back to the first free pad or stick.
     const taken = new Set(catalog.menus.flatMap(item => item.attachments.filter(a => a.activation === 'ALWAYS').map(a => a.source)))
-    next.attachments = next.attachments.map(a => taken.has(a.source) ? { ...a, source: (['RIGHT', 'RSTICK', 'LSTICK', 'LEFT'] as const).find(source => !taken.has(source)) ?? a.source } : a)
+    next.attachments = next.attachments.map(a => !menuSourceAvailable(a.source, deviceType) ? { ...a, source: 'LSTICK' } : taken.has(a.source) ? { ...a, source: (['RIGHT', 'RSTICK', 'LSTICK', 'LEFT'] as const).find(source => menuSourceAvailable(source, deviceType) && !taken.has(source)) ?? a.source } : a)
     if (update([...catalog.menus, next])) { setSelected(next.id); setCreating(false); requestAnimationFrame(() => preview.current?.focus()) }
   }
   const renameMenu = (target: VirtualMenu) => requestValueEntry({
@@ -231,7 +231,7 @@ export function MenusPage({ text, setText, configName, deviceType, sample, initi
     else if (event.key === 'y' || event.key === 'Y') { event.preventDefault(); setSheet('name') }
   }
 
-  const sourceName = (attachment?: MenuAttachment) => attachment ? (attachment.source === 'RIGHT' && deviceType !== undefined && !controllerHasTwoTrackpads(deviceType) ? 'Touchpad' : SOURCE_LABEL[attachment.source]) : 'Nothing yet'
+  const sourceName = (attachment?: MenuAttachment) => attachment ? menuSourceLabel(attachment.source, deviceType) : 'Nothing yet'
   const showHint = onShowInGame ? (showReason ? '' : 'X:Show in game;') : ''
 
   // The empty state (Kit: "Empty state · Menus tab, nothing made yet").
@@ -240,7 +240,7 @@ export function MenusPage({ text, setText, configName, deviceType, sample, initi
       <section className={styles.emptyState} aria-label="Start a menu">
         <p>Virtual menus are reusable wheels, grids and strips opened by a button or attached to an input. Trackpad “Zones you bind” belong to the pad and are edited on Trackpads; their on-screen overlay is separate.</p>
         <p>Hold a button, point at what you want, let go. Good for weapons, emotes and build items. Start from a shape:</p>
-        <TemplateCards onPick={create} />
+        <TemplateCards onPick={create} deviceType={deviceType} />
       </section>
       {editProblem && <p role="alert" className={styles.alert}>{editProblem}</p>}
     </div>
@@ -256,7 +256,7 @@ export function MenusPage({ text, setText, configName, deviceType, sample, initi
           const openedIn = (openers.get(item.id) ?? []).find(opener => opener.layer)
           const attachment = item.attachments[0]
           return <div key={item.id} className="more-host" style={{ position: 'relative' }}><button type="button" className={styles.railItem} data-menu-id={item.id} aria-current={menu?.id === item.id ? 'true' : undefined}
-            data-hints={`A:Edit;Y:Rename;${showHint}LT/RT:Menu;B:Back`} data-caption={`${item.name} · ${behaviourSentence(item)}`}
+            data-hints={`A:Edit;Y:Rename;${showHint}LT/RT:Menu;B:Back`} data-caption={`${item.name} · ${behaviourSentence(item, deviceType)}`}
             onClick={() => { setSelected(item.id); requestAnimationFrame(() => preview.current?.focus()) }} onFocus={() => setSelected(item.id)}>
             <b>{item.name}</b>
             <span>
@@ -275,8 +275,12 @@ export function MenusPage({ text, setText, configName, deviceType, sample, initi
 
       <section className={styles.centre} aria-label={menu?.name ?? 'Menu'}>
         {catalog.problem ? <p role="alert" className={styles.alert}>{catalog.problem}</p> : menu && <>
-          <header className={styles.title}><h2>{menu.name}</h2><span>{behaviourSentence(menu)}</span></header>
+          <header className={styles.title}><h2>{menu.name}</h2><span>{behaviourSentence(menu, deviceType)}</span></header>
           {editProblem && <p role="alert" className={styles.alert}>{editProblem}</p>}
+          {deviceType === 25 && menu.attachments.some(a => !menuSourceAvailable(a.source, deviceType)) && <div className={styles.alert} role="alert">
+            <p>This menu uses an input the Azeron does not have. Use its thumbstick to pick a slice.</p>
+            <button type="button" onClick={() => change({ attachments: menu.attachments.map(a => menuSourceAvailable(a.source, deviceType) ? a : { ...a, source: 'LSTICK' }) })}>Use thumbstick</button>
+          </div>}
           <div ref={preview} className={styles.preview} role="button" tabIndex={0} data-menu-preview="" data-preview-navigation="" data-arrows="horizontal"
             aria-label={`${menu.name}, ${isCentre ? 'centre' : `slice ${slotIndex + 1} of ${menu.actions.length}`}: ${action?.label || describeBinding(action?.binding ?? '', t) || 'nothing'}`}
             data-hints={`MOVE:Slice;A:Change action;${showHint}Y:Icon and name;LT/RT:Menu;B:Back`}
@@ -363,7 +367,7 @@ export function MenusPage({ text, setText, configName, deviceType, sample, initi
         <section className={styles.emptyState} aria-label="Start a menu">
           <p>Virtual menus are reusable wheels, grids and strips opened by a button or attached to an input. Trackpad “Zones you bind” belong to the pad and are edited on Trackpads; their on-screen overlay is separate.</p>
         <p>Hold a button, point at what you want, let go. Good for weapons, emotes and build items. Start from a shape:</p>
-          <TemplateCards onPick={create} />
+          <TemplateCards onPick={create} deviceType={deviceType} />
         </section>
       </SubPage>}
       <span hidden data-config-name={configName} />
@@ -371,13 +375,13 @@ export function MenusPage({ text, setText, configName, deviceType, sample, initi
   )
 }
 
-function TemplateCards({ onPick }: { onPick: (template: Template) => void }) {
+function TemplateCards({ onPick, deviceType }: { onPick: (template: Template) => void; deviceType?: number }) {
   const art = (template: Template) => {
     const sample = template.build('preview', template.label)
     // The well wears the theme's tokens (the kit's art well is one dark colour).
-    return <span className={styles.templateArt}><MenuPreview menu={namedMenuOverlay({ ...sample, placement: { ...sample.placement, size: 220, labelFontSize: 14, outputFontSize: 13 } })} aspect={sample.type === 'HOTBAR' ? 5 : 1} maxHeight={150} /></span>
+    return <span className={styles.templateArt}><MenuPreview menu={namedMenuOverlay({ ...sample, placement: { ...sample.placement, size: 150, labelFontSize: 16, outputFontSize: 16, ...(template.key === 'empty' ? { showLabels: false, showKeys: false } : {}) } })} aspect={sample.type === 'HOTBAR' ? 5 : 1} maxHeight={150} /></span>
   }
-  return <ModeCards options={MENU_TEMPLATES.map(template => ({ value: template.key, label: template.label, caption: template.caption, art: art(template) }))} value=""
+  return <ModeCards options={MENU_TEMPLATES.map(template => ({ value: template.key, label: template.label, caption: deviceType === 25 && template.key === 'quick' ? '4 big slices on the thumbstick' : template.caption, art: art(template) }))} value=""
     onChange={key => { const template = MENU_TEMPLATES.find(item => item.key === key); if (template) onPick(template) }} useLabel={card => card.value === 'empty' ? 'Start empty' : `Start a ${card.label.toLowerCase()}`} />
 }
 

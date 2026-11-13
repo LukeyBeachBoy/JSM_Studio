@@ -59,13 +59,16 @@ type ConfigurationMenuProps = {
 const keepInView = (event: { currentTarget: HTMLElement }) => event.currentTarget.scrollIntoView({ block: 'nearest' })
 
 export function ConfigurationMenu({ open, configName, status, items, onClose }: ConfigurationMenuProps) {
+  const [group, setGroup] = useState<'file' | 'controller'>('file')
+  const controllerKeys = new Set(['configuration', 'output', 'mapping', 'controllerLayout', 'inherit'])
+  const shownItems = items.filter(item => controllerKeys.has(item.key) === (group === 'controller'))
   const [viewing, setViewing] = useState<string | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
   // The item a list was opened from, to land on when stepping back.
   const cameFrom = useRef<string | null>(null)
   const sub = viewing ? items.find(item => item.key === viewing && item.choices) : undefined
 
-  useEffect(() => { if (!open) { setViewing(null); cameFrom.current = null } }, [open])
+  useEffect(() => { if (!open) { setGroup('file'); setViewing(null); cameFrom.current = null } }, [open])
 
   // Changing view moves focus into it: onto the current choice in a list,
   // back onto the item the list came from in the menu. Only when the view
@@ -97,13 +100,17 @@ export function ConfigurationMenu({ open, configName, status, items, onClose }: 
       onKeyDown={event => { if (event.key === 'Escape' && sub) { event.preventDefault(); event.stopPropagation(); back() } }}>
       <div className="config-menu" role="dialog" aria-modal="true" aria-labelledby="config-menu-title">
         <div className="config-menu__header">
-          <span className="eyebrow">{sub ? 'Configuration menu' : 'Configuration'}</span>
+
           <b id="config-menu-title" className="config-menu__title">{sub ? sub.label : configName}</b>
           {!sub && status && <span className="config-menu__status">{status}</span>}
           <button type="button" className="sheet__close" tabIndex={-1} data-nav-skip data-modal-close aria-label="Close" onClick={onClose}>
             <Icon name="close" size={18} />
           </button>
         </div>
+        {!sub && <nav className="config-menu__groups" aria-label="Options groups">
+          <button type="button" aria-pressed={group === 'file'} onClick={() => setGroup('file')}>Configuration</button>
+          <button type="button" aria-pressed={group === 'controller'} onClick={() => setGroup('controller')}>Controller & mapping</button>
+        </nav>}
         {sub ? (
           <div ref={listRef} className="config-menu__items config-menu__items--choices" role="radiogroup" aria-labelledby="config-menu-title">
             <button type="button" className="config-menu__item config-menu__back" data-hints="A:Back;B:Back" onClick={back}>
@@ -125,7 +132,7 @@ export function ConfigurationMenu({ open, configName, status, items, onClose }: 
           </div>
         ) : (
           <div ref={listRef} className="config-menu__items" role="group" aria-labelledby="config-menu-title">
-            {items.map(item => (
+            {shownItems.map(item => (
               <button key={item.key} type="button" data-key={item.key} className={`config-menu__item${item.divider ? ' config-menu__item--divided' : ''}`}
                 aria-disabled={item.idle ? true : undefined} data-reason={item.idle ? item.meta : undefined}
                 aria-haspopup={item.choices ? 'true' : undefined} data-autofocus={item === landing ? '' : undefined} onFocus={keepInView}

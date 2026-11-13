@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode, type R
 import { useTranslation } from 'react-i18next'
 import { SubPage, OpenRow, ValueRow } from '../ui/console'
 import { PAD_EVENT, type PadEventDetail } from '../../nav/useControllerNavigation'
-import { controllerHasTwoTrackpads, type ControllerVisualFamily } from '../../utils/controllerStatus'
+import { type ControllerVisualFamily } from '../../utils/controllerStatus'
 import { MENU_SELECTIONS, MENU_SOURCES, virtualMenuProblem, type MenuAttachment, type VirtualMenu } from '../../utils/virtualMenus'
 import { namedMenuOverlay } from '../../utils/namedMenuOverlay'
 import { inputDisplayName } from '../../keymap/inputNames'
@@ -12,7 +12,7 @@ import { ButtonCapture } from '../modes/ButtonCapture'
 import { useDeleteGuard } from '../modes/deleteGuard'
 import { InputGlyph } from '../glyphs/InputGlyph'
 import { Icon } from '../icons/Icon'
-import { ACTIVATION_CAPTION, ACTIVATION_LABEL, NAVIGATION_CAPTION, NAVIGATION_LABEL, REVEAL_CAPTION, REVEAL_LABEL, selectionCaption, selectionLabel, SOURCE_CAPTION, SOURCE_LABEL, TYPE_LABEL } from './menuText'
+import { ACTIVATION_CAPTION, ACTIVATION_LABEL, NAVIGATION_CAPTION, NAVIGATION_LABEL, REVEAL_CAPTION, REVEAL_LABEL, selectionCaption, selectionLabel, SOURCE_CAPTION, menuSourceAvailable, menuSourceLabel, TYPE_LABEL } from './menuText'
 import styles from './Menus.module.css'
 
 // A menu's two sub-pages (console v2, MenuEditorMore): "Opened by" -- how it
@@ -113,8 +113,10 @@ function OpenedByPage({ menu, menus, deviceType, family, onChange, onClose }: Pr
 
   const changeAttachment = (patch: Partial<MenuAttachment>) => onChange({ attachments: menu.attachments.map((old, i) => i === index ? { ...old, ...patch } : old) })
   const removeControls = () => { if (!attachment) return; onChange({ attachments: menu.attachments.filter((_, i) => i !== index) }); setControls(Math.max(0, index - 1)) }
-  const sources = MENU_SOURCES.filter(source => (menu.type === 'HOTBAR' || !['DPAD', 'ABXY'].includes(source.value)) && (deviceType === undefined || controllerHasTwoTrackpads(deviceType) || source.value !== 'LEFT'))
-    .map(source => ({ value: source.value, label: SOURCE_LABEL[source.value], caption: SOURCE_CAPTION[source.value] }))
+  const sources = MENU_SOURCES.filter(source => (menu.type === 'HOTBAR' || !['DPAD', 'ABXY'].includes(source.value)) && menuSourceAvailable(source.value, deviceType))
+    .map(source => ({ value: source.value, label: menuSourceLabel(source.value, deviceType), caption: deviceType === 25 && source.value === 'LSTICK' ? 'Tilt the thumbstick toward a slice.' : SOURCE_CAPTION[source.value] }))
+  const unavailable = attachment && !menuSourceAvailable(attachment.source, deviceType)
+  const sourceOptions = unavailable ? [{ value: attachment.source, label: menuSourceLabel(attachment.source, deviceType), caption: 'Choose an input this controller has.' }, ...sources] : sources
   const addControls = () => {
     const free = sources.filter(source => !['DPAD', 'ABXY'].includes(source.value) && !menu.attachments.some(old => old.source === source.value))
     const source = free[0] ?? sources[0]
@@ -153,7 +155,7 @@ function OpenedByPage({ menu, menus, deviceType, family, onChange, onClose }: Pr
         <section className={styles.detailPanel} data-panel="opened" aria-label="Opened by">
           <header className={styles.panelHead}><h2>Opened by</h2><span>Controls {attachment ? index + 1 : 0} of {menu.attachments.length}</span></header>
           {menu.attachments.length > 1 && <StepRow label="Controls" hint="Each way to open it has its own controls" value={String(index)}
-            options={menu.attachments.map((item, i) => ({ value: String(i), label: `${i + 1} of ${menu.attachments.length} · ${SOURCE_LABEL[item.source]}` }))} onChange={value => setControls(Number(value))} />}
+            options={menu.attachments.map((item, i) => ({ value: String(i), label: `${i + 1} of ${menu.attachments.length} · ${menuSourceLabel(item.source, deviceType)}` }))} onChange={value => setControls(Number(value))} />}
           {problem && <p role="alert" className={styles.alert}>{problem}</p>}
           {attachment ? <>
             <span className={styles.eyebrow}>How it opens</span>
@@ -176,7 +178,7 @@ function OpenedByPage({ menu, menus, deviceType, family, onChange, onClose }: Pr
                 onChange={value => changeAttachment({ input: (value === 'released' ? '!' : '') + attachment.input.replace(/^!/, '') })} />
             </>}
             <span className={styles.eyebrow}>Pick with</span>
-            <StepRow label="Navigate with" value={attachment.source} options={sources} onChange={source => changeAttachment({
+            <StepRow label="Navigate with" value={attachment.source} options={sourceOptions} onChange={source => changeAttachment({
               source: source as MenuAttachment['source'],
               ...(!['LSTICK', 'RSTICK'].includes(source) ? { navigation: undefined } : {}),
               ...(['DPAD', 'ABXY'].includes(source) && attachment.selection === 'TOUCH_RELEASE' ? { selection: 'CLICK' as const } : {}),
@@ -193,7 +195,7 @@ function OpenedByPage({ menu, menus, deviceType, family, onChange, onClose }: Pr
           </> : <p className={styles.note}>Nothing opens {menu.name} yet. Add a pad or stick for it below.</p>}
           <OpenRow icon={<Icon name="add" size={20} />} label="Another way to open it" hint="Pad or stick" onOpen={addControls} hints="A:Add;B:Back to the menu" />
           {attachment && <button type="button" className={`${styles.stepRow} ${styles.dangerRow}`} data-hints="A:Remove;B:Back to the menu"
-            data-caption={`Remove these controls · ${SOURCE_LABEL[attachment.source]} stops opening ${menu.name}`} onClick={removeControls}>
+            data-caption={`Remove these controls · ${menuSourceLabel(attachment.source, deviceType)} stops opening ${menu.name}`} onClick={removeControls}>
             <span className={styles.stepText}><b><Icon name="remove" size={18} /> Remove these controls</b></span>
             <span className={styles.stepValue}><span className={styles.key}>Y</span></span>
           </button>}

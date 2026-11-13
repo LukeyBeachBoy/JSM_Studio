@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { accelSensitivityAt, type AccelCurveParams } from '../../utils/accelCurve'
+import { accelCurveSettleSpeed, accelSensitivityAt, type AccelCurveParams } from '../../utils/accelCurve'
+import { niceCeil } from '../../utils/niceNumbers'
+import { SteadyingModel, type SteadyingSettings } from '../../utils/gyroSteadiness'
 import { STEAM_BACK_ART, STEAM_FRONT_ART } from '../controllerArt'
 import type { TelemetrySample } from '../../hooks/useTelemetry'
 import styles from './Gyro.module.css'
@@ -7,20 +9,26 @@ import styles from './Gyro.module.css'
 // The live visuals of the console v2 Gyro screens (Gyro*.dc.html), flat per
 // design/console-v2/STYLE-FLAT.md: 2px strokes, the accent for what is in
 // force, #808c99 dashes for alternatives, --telemetry for anything live, the
-// app's own controller art. Everything here is drawn from the settings being
-// edited plus telemetry; nothing is a canned picture.
+// app's own controller art. Response graphs use the edited settings; live
+// signals use selected-controller telemetry. Example motions are labeled.
 
 const fmt = (value: number, digits = 1) => String(Number(value.toFixed(digits)))
 
 /** The controller's turning speed now, °/s (telemetry omega). */
-export const liveOmega = (sample: TelemetrySample | null) => (typeof sample?.omega === 'number' && Number.isFinite(sample.omega) ? sample.omega : null)
+export const liveOmega = (sample: TelemetrySample | null) => {
+  const value = sample?.devices?.[0]?.status?.motion?.omega ?? sample?.omega
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
 
 /** The first device's raw gyro, °/s. */
 export const liveGyro = (sample: TelemetrySample | null) => sample?.devices?.[0]?.status?.gyro ?? null
 
 /** The last `ms` of a live value, sampled at most every 30 ms. */
-export function useHistory(value: number | null, ms = 2000) {
+export function useHistory(value: number | null, ms = 2000, source?: number) {
   const history = useRef<{ at: number; value: number }[]>([])
+  const previousSource = useRef(source)
+  if (previousSource.current !== source || value === null) history.current = []
+  previousSource.current = source
   const now = performance.now()
   if (value !== null) {
     const last = history.current[history.current.length - 1]
@@ -36,19 +44,59 @@ export function useHistory(value: number | null, ms = 2000) {
  * integration step.
  */
 export function useTurned(sample: TelemetrySample | null, axis: 'x' | 'y' | 'z' = 'y') {
-  const total = useRef(0)
+  const [degrees, setDegrees] = useState(0)
   const last = useRef<number | null>(null)
-  const [, force] = useState(0)
+  const source = sample?.devices?.[0]?.handle
+  const previousSource = useRef(source)
   const gyro = liveGyro(sample)
+  const timestamp = sample?.devices?.[0]?.status?.motion?.timestampMs ?? sample?.ts
   useEffect(() => {
-    const now = performance.now()
-    if (gyro && last.current !== null) {
-      const dt = Math.min(0.1, (now - last.current) / 1000)
-      total.current += (gyro[axis] ?? 0) * dt
+    if (!gyro || previousSource.current !== source) {
+      previousSource.current = source
+      last.current = null
+      setDegrees(0)
     }
-    last.current = now
-  })
-  return { degrees: total.current, reset: () => { total.current = 0; force(value => value + 1) } }
+    const now = timestamp ?? performance.now()
+    if (gyro && last.current !== null && now > last.current) {
+      const dt = (now - last.current) / 1000
+      // Do not integrate across a disconnect, suspended view or missing packet.
+      if (dt <= 0.1) setDegrees(value => value + (gyro[axis] ?? 0) * dt)
+    }
+    last.current = gyro ? now : null
+  }, [gyro, axis, source, timestamp])
+  return { degrees, reset: () => { last.current = null; setDegrees(0) } }
+}
+
+/** Replay the selected controller's recent mapped samples through the current
+ * smoothing settings. Replaying lets a settings edit redraw immediately;
+ * this is a sampled preview, not the native output or a synthetic hand. */
+export function useLiveSweep(sample: TelemetrySample | null, settings: SteadyingSettings) {
+  const history = useRef<{ at: number; x: number; y: number }[]>([])
+  const source = sample?.devices?.[0]?.handle
+  const previousSource = useRef(source)
+  const motion = sample?.devices?.[0]?.status?.motion
+  if (source !== previousSource.current || !motion) history.current = []
+  previousSource.current = source
+  if (!motion) return null
+  const last = history.current[history.current.length - 1]
+  if (last && (motion.timestampMs < last.at || motion.timestampMs - last.at > 250)) history.current = []
+  if (!last || motion.timestampMs !== last.at) history.current.push({ at: motion.timestampMs, ...motion.input })
+  history.current = history.current.filter(entry => motion.timestampMs - entry.at <= 2000)
+  const frames = history.current
+  const model = new SteadyingModel({ ...settings, cutoff: 0, recovery: 0 })
+  const raw: [number, number][] = [[0, 0]], out: [number, number][] = [[0, 0]]
+  let frame = 0, rx = 0, ry = 0, ox = 0, oy = 0
+  const start = frames[0]?.at ?? motion.timestampMs
+  for (let at = start; at <= motion.timestampMs; at += settings.tickMs) {
+    while (frame + 1 < frames.length && frames[frame + 1].at <= at) frame++
+    const input = frames[frame]
+    if (!input) break
+    const [x, y] = model.step(input.x, input.y)
+    const dt = settings.tickMs / 1000
+    rx += input.x * dt; ry += input.y * dt; ox += x * dt; oy += y * dt
+    raw.push([rx, ry]); out.push([ox, oy])
+  }
+  return { raw, out }
 }
 
 // ---- Graph frame.
@@ -60,7 +108,7 @@ const py = (f: Frame, y: number, yMax: number) => f.h - f.bottom - (y / yMax) * 
 function Axes({ f, xLabel, yLabel, xTicks }: { f: Frame; xLabel: string; yLabel: string; xTicks?: { at: number; label: string }[] }) {
   return <g className={styles.axes}>
     <path d={`M${f.left} ${f.top} V${f.h - f.bottom} H${f.w - f.right}`} />
-    {xTicks?.map(tick => <text key={tick.label} x={tick.at} y={f.h - f.bottom + 14} textAnchor="middle">{tick.label}</text>)}
+    {xTicks?.map(tick => <text key={tick.label} x={tick.at} y={f.h - f.bottom + 14} textAnchor={tick.at >= f.w - f.right ? 'end' : tick.at <= f.left ? 'start' : 'middle'}>{tick.label}</text>)}
     <text x={(f.left + f.w - f.right) / 2} y={f.h - 4} textAnchor="middle">{xLabel}</text>
     <text x={10} y={(f.top + f.h - f.bottom) / 2} transform={`rotate(-90 10 ${(f.top + f.h - f.bottom) / 2})`} textAnchor="middle">{yLabel}</text>
   </g>
@@ -72,13 +120,14 @@ const pathOf = (points: [number, number][]) => points.map(([x, y], i) => `${i ? 
 export function SpeedResponse({ params, compare = [], live, caption }: {
   params: AccelCurveParams; compare?: { label: string; params: AccelCurveParams }[]; live: number | null; caption?: string
 }) {
-  const xMax = 120
   const all = [params, ...compare.map(item => item.params)]
+  const xMax = niceCeil(Math.max(120, ...all.map(p => accelCurveSettleSpeed(p) * 1.1), params.steadying?.recovery ?? 0))
   const yMax = Math.max(0.5, ...all.map(p => Math.max(p.minSens, p.maxSens))) * 1.25
   const line = (p: AccelCurveParams) => pathOf(Array.from({ length: 61 }, (_, i) => { const s = (xMax * i) / 60; return [px(FRAME, s, xMax), py(FRAME, accelSensitivityAt(s, p), yMax)] }))
   const liveSpeed = live === null ? null : Math.min(xMax, live)
-  return <svg className={styles.graph} viewBox={`0 0 ${FRAME.w} ${FRAME.h}`} role="img" aria-label={caption ?? 'How your aim responds'}>
-    <Axes f={FRAME} xLabel="How fast you turn the controller →" yLabel="Aim speed →" xTicks={[0, 40, 80, 120].map(v => ({ at: px(FRAME, v, xMax), label: v === 120 ? '120 °/s' : String(v) }))} />
+  return <svg className={styles.graph} viewBox={`0 0 ${FRAME.w} ${FRAME.h}`} role="img" aria-label={`${caption ?? 'How your aim responds'}${live === null ? '' : `. Live: ${fmt(live)} degrees per second, ${fmt(accelSensitivityAt(live, params), 2)} RWS`}.
+    Controller rotation speed from 0 to ${fmt(xMax)} degrees per second; sensitivity from 0 to ${fmt(yMax, 2)} RWS.`}>
+    <Axes f={FRAME} xLabel="Controller rotation speed →" yLabel="Sensitivity (RWS) →" xTicks={[0, xMax / 3, xMax * 2 / 3, xMax].map(v => ({ at: px(FRAME, v, xMax), label: `${fmt(v)}${v === xMax ? ' °/s' : ''}` }))} />
     <path className={styles.area} d={`${line(params)}L${px(FRAME, xMax, xMax)},${py(FRAME, 0, yMax)}L${px(FRAME, 0, xMax)},${py(FRAME, 0, yMax)}Z`} />
     {compare.map(item => <g key={item.label}>
       <path className={styles.alt} d={line(item.params)} />
@@ -86,7 +135,7 @@ export function SpeedResponse({ params, compare = [], live, caption }: {
     </g>)}
     <path className={styles.curve} d={line(params)} />
     <text className={styles.curveLabel} x={FRAME.left + 8} y={py(FRAME, accelSensitivityAt(0, params), yMax) - 8}>{caption}</text>
-    {liveSpeed !== null && <circle className={styles.liveDot} cx={px(FRAME, liveSpeed, xMax)} cy={py(FRAME, accelSensitivityAt(liveSpeed, params), yMax)} r={5} />}
+    {liveSpeed !== null && <circle className={styles.liveDot} data-live-speed={live} cx={px(FRAME, liveSpeed, xMax)} cy={py(FRAME, accelSensitivityAt(live!, params), yMax)} r={5}><title>{fmt(live!)} °/s · {fmt(accelSensitivityAt(live!, params), 2)} RWS{live! > xMax ? ' · beyond chart range' : ''}</title></circle>}
   </svg>
 }
 
@@ -94,25 +143,27 @@ export function SpeedResponse({ params, compare = [], live, caption }: {
 export function LiveTrace({ history, max = 60, label }: { history: { at: number; value: number }[]; max?: number; label: ReactNode }) {
   const now = performance.now()
   const w = 360, h = 70
-  const points: [number, number][] = history.map(entry => [w - ((now - entry.at) / 2000) * w, h - 8 - (Math.min(max, entry.value) / max) * (h - 16)])
+  const ceiling = niceCeil(Math.max(max, ...history.map(entry => entry.value)))
+  const points: [number, number][] = history.map(entry => [w - ((now - entry.at) / 2000) * w, h - 8 - (entry.value / ceiling) * (h - 16)])
   return <div className={styles.trace}>
     <span className={styles.traceLabel}>{label}</span>
-    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" aria-hidden="true">{points.length > 1 && <path d={pathOf(points)} />}</svg>
+    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" role="img" aria-label={`Rotation speed, last 2 seconds, 0 to ${ceiling} degrees per second`} data-max={ceiling}>{points.length > 1 && <path d={pathOf(points)} />}</svg>
   </div>
 }
 
 /** A fraction against speed (Ignore jitter / Smoothing / Adaptive filter graphs). */
-export function FractionGraph({ curves, xMax, live, yLabel, marks = [], bands = [] }: {
+export function FractionGraph({ curves, xMax, live, yLabel, marks = [], bands = [], xLabel = 'Controller rotation speed →', unit = '°/s' }: {
   curves: { label?: string; fn: (speed: number) => number; tone?: 'main' | 'alt' }[]
   xMax: number; live: number | null; yLabel: string
   marks?: { at: number; label: string }[]
   bands?: { from: number; to: number; label: string }[]
+  xLabel?: string; unit?: string
 }) {
   const main = curves.find(curve => curve.tone !== 'alt') ?? curves[0]
   const line = (fn: (speed: number) => number) => pathOf(Array.from({ length: 81 }, (_, i) => { const s = (xMax * i) / 80; return [px(FRAME, s, xMax), py(FRAME, fn(s), 1.1)] }))
-  return <svg className={styles.graph} viewBox={`0 0 ${FRAME.w} ${FRAME.h}`} role="img" aria-label={yLabel}>
-    <Axes f={FRAME} xLabel="How fast you turn the controller →" yLabel={yLabel} xTicks={[{ at: px(FRAME, 0, xMax), label: '0' }, { at: px(FRAME, xMax, xMax), label: `${fmt(xMax)} °/s` }]} />
-    {bands.map(band => <text key={band.label} className={styles.bandLabel} x={(px(FRAME, band.from, xMax) + px(FRAME, band.to, xMax)) / 2} y={FRAME.top + 14} textAnchor="middle">{band.label}</text>)}
+  return <svg className={styles.graph} viewBox={`0 0 ${FRAME.w} ${FRAME.h}`} role="img" aria-label={`${yLabel}. ${xLabel}, 0 to ${fmt(xMax)} ${unit}.${live === null ? '' : ` Live: ${fmt(live)} ${unit}, ${fmt(main.fn(live) * 100)}%.`}`}>
+    <Axes f={FRAME} xLabel={xLabel} yLabel={yLabel} xTicks={[{ at: px(FRAME, 0, xMax), label: '0' }, { at: px(FRAME, xMax, xMax), label: `${fmt(xMax)} ${unit}` }]} />
+    {bands.map((band, index) => <text key={band.label} className={styles.bandLabel} x={Math.max(band.label.length * 3, Math.min(FRAME.w - band.label.length * 3, (px(FRAME, band.from, xMax) + px(FRAME, band.to, xMax)) / 2))} y={FRAME.top + 14 + (index % 2) * 14} textAnchor="middle">{band.label}</text>)}
     {marks.map(mark => <g key={mark.label}>
       <path className={styles.mark} d={`M${px(FRAME, mark.at, xMax)} ${FRAME.top} V${FRAME.h - FRAME.bottom}`} />
       <text className={styles.markLabel} x={px(FRAME, mark.at, xMax)} y={FRAME.h - FRAME.bottom - 6} textAnchor="middle">{mark.label}</text>
@@ -122,11 +173,11 @@ export function FractionGraph({ curves, xMax, live, yLabel, marks = [], bands = 
       <path className={curve.tone === 'alt' ? styles.alt : styles.curve} d={line(curve.fn)} />
       {curve.label && <text className={curve.tone === 'alt' ? styles.altLabel : styles.curveLabel} x={px(FRAME, xMax * (curve.tone === 'alt' ? 0.75 : 0.5), xMax)} y={py(FRAME, curve.fn(xMax * (curve.tone === 'alt' ? 0.75 : 0.5)), 1.1) - 8} textAnchor="middle">{curve.label}</text>}
     </g>)}
-    {live !== null && <circle className={styles.liveDot} cx={px(FRAME, Math.min(xMax, live), xMax)} cy={py(FRAME, main.fn(Math.min(xMax, live)), 1.1)} r={5} />}
+    {live !== null && <circle className={styles.liveDot} data-live-value={live} cx={px(FRAME, Math.min(xMax, live), xMax)} cy={py(FRAME, main.fn(live), 1.1)} r={5}><title>{fmt(live)} {unit}{live > xMax ? ' · beyond chart range' : ''}</title></circle>}
   </svg>
 }
 
-/** Jitter › Smooth › Adaptive › Snap/brake, each stage with its status. */
+/** Smooth › Adaptive › Jitter › Snap/brake, each stage with its status. */
 export function PipelineStrip({ stages, current, caption }: { stages: { id: string; label: string; status: string }[]; current: string; caption?: ReactNode }) {
   return <div className={styles.pipeline}>
     <ol>{stages.map((stage, index) => <li key={stage.id} data-current={stage.id === current ? 'true' : undefined}>
@@ -138,7 +189,7 @@ export function PipelineStrip({ stages, current, caption }: { stages: { id: stri
 }
 
 /** Raw vs steadied aim on a slow sweep onto a target (GyroSteadiness). */
-export function SteadySweep({ raw, out, label }: { raw: [number, number][]; out: [number, number][]; label: string }) {
+export function SteadySweep({ raw, out, label, live = false }: { raw: [number, number][]; out: [number, number][]; label: string; live?: boolean }) {
   const all = [...raw, ...out]
   const minX = Math.min(...all.map(p => p[0])), maxX = Math.max(...all.map(p => p[0]))
   const minY = Math.min(...all.map(p => p[1])), maxY = Math.max(...all.map(p => p[1]))
@@ -147,15 +198,15 @@ export function SteadySweep({ raw, out, label }: { raw: [number, number][]; out:
   const map = ([x, y]: [number, number]): [number, number] => [pad + (x - minX) * scale, h - pad - 20 - (y - minY) * scale]
   const end = map(out[out.length - 1] ?? [0, 0])
   return <figure className={styles.sweep}>
-    <svg className={styles.graph} viewBox={`0 0 ${w} ${h}`} role="img" aria-label={`A slow sweep onto a target, raw and ${label}`}>
-      <circle className={styles.target} cx={end[0]} cy={end[1]} r={16} />
+    <svg className={styles.graph} viewBox={`0 0 ${w} ${h}`} role="img" aria-label={`${live ? 'Recent controller motion' : 'Simulated sweep'}, raw and ${label}`} data-live-sweep={live}>
+      {!live && <><circle className={styles.target} cx={end[0]} cy={end[1]} r={16} />
       <path className={styles.target} d={`M${end[0] - 24} ${end[1]} H${end[0] + 24} M${end[0]} ${end[1] - 24} V${end[1] + 24}`} />
-      <text className={styles.markLabel} x={end[0]} y={end[1] - 30} textAnchor="middle">Target</text>
+      <text className={styles.markLabel} x={end[0]} y={end[1] - 30} textAnchor="middle">Target</text></>}
       <path className={styles.raw} d={pathOf(raw.map(map))} />
       <path className={styles.curve} d={pathOf(out.map(map))} />
-      <text className={styles.markLabel} x={pad} y={h - 8}>A slow sweep onto a target, last 2 s</text>
+      <text className={styles.markLabel} x={pad} y={h - 8}>{live ? 'Recent motion · last 2 s' : 'Simulated slow sweep · 2 s'}</text>
     </svg>
-    <figcaption className={styles.legend}><span><i data-key="raw" />Raw, as you hold it</span><span><i data-key="curve" />{label}</span></figcaption>
+    <figcaption className={styles.legend}><span><i data-key="raw" />{live ? 'Before smoothing' : 'Simulated input'}</span><span><i data-key="curve" />{label}</span></figcaption>
   </figure>
 }
 
@@ -238,7 +289,7 @@ export function BrakeIllustration({ strength }: { strength: number }) {
   return <svg className={styles.graph} viewBox={`0 0 ${w} ${h}`} role="img" aria-label="End of a flick">
     <path className={styles.axes} d={`M20 ${h - 30} H${w - 20}`} />
     <path className={styles.raw} d={curve(0)} />
-    <path className={strength > 0 ? styles.curve : styles.alt} d={curve(Math.max(0.5, strength))} strokeDasharray={strength > 0 ? undefined : '6 6'} />
+    <path className={strength > 0 ? styles.curve : styles.alt} d={curve(strength > 0 ? strength : 0.5)} strokeDasharray={strength > 0 ? undefined : '6 6'} />
     <text className={styles.markLabel} x={w - 24} y={24} textAnchor="end">overshoot</text>
   </svg>
 }
@@ -272,18 +323,21 @@ export function VirtualStickResponse({ curve, inner, live, label }: { curve: (x:
   const f = FRAME
   const line = (fn: (x: number) => number) => pathOf(Array.from({ length: 101 }, (_, i) => { const x = i / 100; return [px(f, x, 1), py(f, fn(x), 1.05)] }))
   const liveRadius = live ? Math.min(1, Math.hypot(live.x, live.y)) : null
-  return <svg className={styles.graph} viewBox={`0 0 ${f.w} ${f.h}`} role="img" aria-label={label}>
+  return <svg className={styles.graph} viewBox={`0 0 ${f.w} ${f.h}`} role="img" aria-label={`${label}${liveRadius === null ? '' : `. Measured output: ${Math.round(liveRadius * 100)}%. Requested input is not reported.`}`}>
     <Axes f={f} xLabel="Camera speed you ask for →" yLabel="Stick sent ↑" />
     {inner > 0 && <rect className={styles.deadzone} x={f.left} y={py(f, inner, 1.05)} width={f.w - f.left - f.right} height={py(f, 0, 1.05) - py(f, inner, 1.05)} />}
     {inner > 0 && <text className={styles.markLabel} x={f.w - f.right - 4} y={py(f, inner, 1.05) - 4} textAnchor="end">Game ignores the striped middle</text>}
     <path className={styles.alt} d={line(x => x)} />
     <path className={styles.curve} d={line(curve)} />
     {inner > 0 && <text className={styles.curveLabel} x={f.left + 6} y={py(f, inner, 1.05) - 6}>jumps to {Math.round(inner * 100)}%</text>}
-    {liveRadius !== null && <circle className={styles.liveDot} cx={px(f, Math.min(1, liveRadius), 1)} cy={py(f, liveRadius, 1.05)} r={5} />}
+    {liveRadius !== null && <g data-live-output={liveRadius}>
+      <path className={styles.liveLine} d={`M${f.left} ${py(f, liveRadius, 1.05)} H${f.w - f.right}`} strokeDasharray="3 3" />
+      <circle className={styles.liveDot} cx={f.w - f.right} cy={py(f, liveRadius, 1.05)} r={5}><title>Measured output: {Math.round(liveRadius * 100)}%. Requested input is not reported.</title></circle>
+    </g>}
   </svg>
 }
 
-/** One turn: a compass that fills as you turn (Match a full turn). */
+/** One turn: a compass that fills as you turn (Real-world calibration). */
 export function TurnCompass({ degrees, label }: { degrees: number; label: string }) {
   const cx = 150, cy = 150, r = 110
   const sweep = Math.min(359.9, Math.abs(degrees) % 720 > 360 ? 359.9 : Math.abs(degrees) % 360)

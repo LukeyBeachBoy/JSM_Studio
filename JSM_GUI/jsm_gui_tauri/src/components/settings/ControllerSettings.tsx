@@ -1,10 +1,15 @@
 import { useState } from 'react'
+import { useTelemetry } from '../../hooks/useTelemetry'
+import { selectedController } from '../../utils/controllerSelection'
+import { controllerModelKey, controllerTargetKey, controllerVariantLabel, controllerLayoutDevice } from '../../utils/controllerLayouts'
+import { controllerNavigationEnabled, anyControllerNavigation } from '../../utils/controllerNavigation'
+import { CyborgStickDefaults } from '../sticks/CyborgStickDefaults'
 import { desktopBridge } from '../../platform/desktopBridge'
 import { patchRuntimePreferences, usePreferences } from '../../platform/preferenceStore'
 import { showToast } from '../../utils/toast'
 import { padFeedback, setFeedbackStrength, useFeedbackStrength, type FeedbackStrength } from '../../nav/feedback'
 import { useDensity, type Density } from '../../hooks/useDisplayPrefs'
-import { OpenRow, SegmentedRow } from '../ui/console'
+import { OpenRow, SegmentedRow, ValueRow } from '../ui/console'
 import { CalibrationAndLight, ControllerSounds, DefaultLightRow, HardwareCalibrationRow, TrackpadRotation } from '../ControllerPreferences'
 import { VirtualKeyboardSettings } from '../VirtualKeyboardSettings'
 import { SettingsSection, SwitchRow } from './SettingsKit'
@@ -19,24 +24,36 @@ import styles from './Settings.module.css'
  *  configuration while the app is in front so the pad drives it. */
 function NavigateRow() {
   const { runtime } = usePreferences()
+  const { sample } = useTelemetry(true)
+  const devices = sample?.devices ?? []
+  const [chosen, setChosen] = useState(() => selectedController() || 'type-24')
+  const target = chosen || controllerTargetKey(devices[0]) || 'type-24'
+  const targets = [...new Set([...devices.map(controllerTargetKey), target, ...Object.keys(runtime?.controllerNavOverrides ?? {}), 'type-24', 'type-25'])]
   const [pending, setPending] = useState(false)
   const change = async (next: boolean) => {
+    if (pending) return
     setPending(true)
-    const previous = runtime?.controllerNavEnabled ?? !next
-    patchRuntimePreferences({ controllerNavEnabled: next })
     try {
-      const state = await desktopBridge.setControllerNavEnabled(next)
-      patchRuntimePreferences({ controllerNavEnabled: state.controllerNavEnabled })
-      window.dispatchEvent(new CustomEvent('jsm:controller-nav', { detail: state.controllerNavEnabled }))
+      const state = await desktopBridge.setControllerNavEnabled(next, target)
+      patchRuntimePreferences(state)
+      window.dispatchEvent(new CustomEvent('jsm:controller-nav', { detail: anyControllerNavigation(state) }))
     } catch {
-      patchRuntimePreferences({ controllerNavEnabled: previous })
       showToast('Could not change controller navigation.', 'error')
     } finally {
       setPending(false)
     }
   }
-  return <SwitchRow label="Navigate this app with the controller" hint="While the app is in front, the controller moves around it instead of playing the live configuration"
-    on={runtime ? runtime.controllerNavEnabled : null} pending={pending} onChange={next => void change(next)} onReset={() => void change(true)} />
+  return <>
+    <SegmentedRow label="Controller for app navigation" hint="Choose the controller whose navigation preference you want to change. Saved across all configurations."
+      value={target} options={targets.map(value => {
+        const device = controllerLayoutDevice(value, devices)
+        const siblings = devices.filter(candidate => controllerModelKey(candidate) === controllerModelKey(device))
+        const index = siblings.findIndex(candidate => controllerTargetKey(candidate) === value)
+        return { value, label: controllerVariantLabel(device && !value.includes('-device-') ? { ...device, controllerId: undefined } : device) + (siblings.length > 1 && index >= 0 ? ` · Controller ${index + 1}` : !value.includes('-device-') ? ' defaults' : '') }
+      })} onChange={setChosen} disabled={pending ? 'Saving navigation preference' : undefined} />
+    <SwitchRow label="Navigate this app with the controller" hint="Applies only to the controller chosen above. When off, its normal configuration stays active while this app is in front."
+      on={runtime ? controllerNavigationEnabled(runtime, target) : null} pending={pending} onChange={next => void change(next)} onReset={() => void change(target.split('-device-')[0] !== 'type-25')} />
+  </>
 }
 
 /** Show where my thumb is on the trackpads: the always-on-top overlay. */
@@ -97,25 +114,69 @@ export function ScreenDistanceRow() {
  *  event, so whoever listens takes it. */
 const openLightAndSounds = () => { window.dispatchEvent(new CustomEvent('jsm:open-light-sounds', { cancelable: true })) }
 
+function ControllerPolling() {
+  const { runtime } = usePreferences()
+  const [pending, setPending] = useState(false)
+  const interval = runtime?.defaultPollingMs ?? 3
+  const change = async (value: number) => {
+    if (pending) return
+    setPending(true)
+    try { patchRuntimePreferences(await desktopBridge.setDefaultPollingMs(value)) }
+    catch (error) { showToast(`Could not save controller polling: ${error instanceof Error ? error.message : String(error)}`, 'error') }
+    finally { setPending(false) }
+  }
+  return <SettingsSection title="Controller input">
+    <ValueRow global setting="TICK_TIME" label="Controller polling" value={interval} min={1} max={100} step={1} fineStep={0.5}
+      hint={`Shared default for all controller inputs · approximately ${Math.round(1000 / interval)} reads per second`}
+      caption="This is the mapper's read interval, not the controller's hardware report rate. Configurations can override it."
+      format={value => `Every ${value} ms`} disabled={!runtime ? 'Loading controller settings…' : pending ? 'Saving controller polling…' : undefined}
+      onChange={value => void change(value)} onReset={() => void change(3)} data={{ 'data-controller-polling': '' }} />
+    <OpenRow label="This configuration’s polling override" hint="Open Buttons → Configuration timing. Existing overrides stay unchanged."
+      onOpen={() => window.dispatchEvent(new Event('jsm:open-configuration-timing'))} />
+  </SettingsSection>
+}
+
+const CONTROLLER_AREAS = [
+  ['navigation', 'App navigation'], ['overlays', 'Overlays & light'], ['keyboard', 'On-screen keyboard'],
+  ['calibration', 'Calibration'], ['sounds', 'Sounds'], ['trackpads', 'Trackpads'], ['cyborg', 'Cyborg defaults'],
+] as const
+
 export function ControllerSettings({ controllerType }: { controllerType?: number }) {
+  const [area, setArea] = useState<string>(() => { try { const saved = sessionStorage.getItem('jsm:controller-settings-area'); return CONTROLLER_AREAS.some(([value]) => value === saved) ? saved! : 'navigation' } catch { return 'navigation' } })
+  const chooseArea = (value: string) => { setArea(value); try { sessionStorage.setItem('jsm:controller-settings-area', value) } catch { /* Storage may be disabled. */ } }
   return (
     <div className={styles.mainColumn} style={{ maxWidth: 980 }}>
-      <div className={styles.sectionBody}>
-        <NavigateRow />
-        <RumbleRow />
-        <HardwareCalibrationRow />
-        <ThumbOverlayRow />
-        <CountdownRow />
-        <DefaultLightRow />
-        <OpenRow label="This configuration’s light and sounds" hint="The light and sounds this configuration sets for itself; the ones above apply when it sets none"
-          onOpen={openLightAndSounds} hints="A:Open;B:Back" data={{ 'data-open-light-sounds': '' }} />
+      <ControllerPolling />
+      <nav className={styles.areaNav} aria-label="Controller settings groups">
+        {CONTROLLER_AREAS.map(([value, label]) => <button type="button" key={value} aria-pressed={area === value}
+          aria-controls={`controller-area-${value}`} onClick={() => chooseArea(value)}>{label}</button>)}
+      </nav>
+      <div id="controller-area-navigation" hidden={area !== 'navigation'}>
+        <SettingsSection title="App navigation"><NavigateRow /><RumbleRow /></SettingsSection>
       </div>
-      <VirtualKeyboardSettings controllerType={controllerType} />
-      <CalibrationAndLight />
-      <ControllerSounds />
-      <TrackpadRotation />
+      <div id="controller-area-overlays" hidden={area !== 'overlays'}>
+        <SettingsSection title="Overlays & light">
+          <ThumbOverlayRow /><CountdownRow /><DefaultLightRow />
+          <OpenRow label="This configuration’s light and sounds" hint="Overrides the default light and sounds for this configuration"
+            onOpen={openLightAndSounds} hints="A:Open;B:Back" data={{ 'data-open-light-sounds': '' }} />
+        </SettingsSection>
+      </div>
+      <div id="controller-area-keyboard" hidden={area !== 'keyboard'}><VirtualKeyboardSettings controllerType={controllerType} /></div>
+      <div id="controller-area-calibration" hidden={area !== 'calibration'}>
+        <SettingsSection title="Hardware calibration"><HardwareCalibrationRow /></SettingsSection>
+        <CalibrationAndLight />
+      </div>
+      <div id="controller-area-sounds" hidden={area !== 'sounds'}><ControllerSounds /></div>
+      <div id="controller-area-trackpads" hidden={area !== 'trackpads'}><TrackpadRotation /></div>
+      <div id="controller-area-cyborg" hidden={area !== 'cyborg'}><LiveCyborgDefaults /></div>
     </div>
   )
 }
 
 export { SettingsSection }
+
+function LiveCyborgDefaults() {
+  const { sample } = useTelemetry()
+  const device = sample?.devices?.find(device => device.type === 25)
+  return <CyborgStickDefaults raw={device?.status?.leftStick ?? null} />
+}

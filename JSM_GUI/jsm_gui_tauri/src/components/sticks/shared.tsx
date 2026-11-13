@@ -117,7 +117,6 @@ export function WhileHoldingPage({ open, onClose, trail, children }: { open: boo
   return (
     <SubPage open={open} onClose={onClose} trail={trail} title="Mode shift" backLabel={`Back to ${trail[trail.length - 1] ?? 'page'}`}>
       <div className={styles.whileHolding}>
-          <p className={styles.lede}>Choose a button to hold, then configure what this input does while it is held. Release it to return to the normal controls.</p>
         {children}
       </div>
     </SubPage>

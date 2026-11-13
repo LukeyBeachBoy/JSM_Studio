@@ -4,23 +4,23 @@
 .bindRow { min-width: 0; }
 .visualStack { display: flex; flex-direction: column; gap: var(--sp-4); }
 .inlineArt { width: 100%; height: auto; }
-.calibrationVisual { display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-5); border-radius: var(--r-card, 16px); background: var(--surface-row); }
+.calibrationVisual { display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-4); border-radius: var(--r-card, 16px); background: var(--surface-row); }
 .calibrationVisual svg { width: 100%; height: auto; }
 .calibrationVisual p { margin: 0; color: var(--text-2); font-size: var(--fs-hint); }
 
 /* Calibrate. */
 .calibrate { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-6); align-items: start; max-width: 1360px; }
 @media (max-width: 1100px) { .calibrate { grid-template-columns: minmax(0, 1fr); } }
-.calibrateVisual { display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-5); border-radius: var(--r-card, 16px); background: var(--surface-row); }
+.calibrateVisual { display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-4); border-radius: var(--r-card, 16px); background: var(--surface-row); }
 .calibrateVisual header { display: flex; justify-content: space-between; }
 .calibrateVisual svg { width: 100%; height: auto; }
 .live { color: var(--telemetry, #a6d65a); font-variant-numeric: tabular-nums; font-size: var(--fs-hint); }
 .calibrateProgress { display: flex; justify-content: space-between; align-items: baseline; color: var(--text-2); }
-.calibrateProgress b { color: var(--text-1); font-size: 32px; }
+.calibrateProgress b { color: var(--text-1); font-size: var(--fs-page); }
 .bar { height: 8px; border-radius: 4px; background: rgba(255, 255, 255, .08); overflow: hidden; }
 .bar span { display: block; height: 100%; background: var(--accent); }
 .calibrateSteps { display: flex; flex-direction: column; gap: var(--sp-3); }
-.calibrateSteps h1 { margin: 0; font-size: var(--fs-title, 32px); line-height: 1.15; }
+.calibrateSteps h1 { margin: 0; font-size: var(--fs-page); line-height: 1.15; }
 .calibrateSteps p { margin: 0; color: var(--text-2); font-size: var(--fs-body); }
 .calibrateTabs { display: flex; gap: var(--sp-5); color: var(--text-3); font-size: var(--fs-label); }
 .calibrateTabs b[data-current='true'] { color: var(--text-1); }

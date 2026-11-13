@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { ButtonDefinition } from '../../keymap/schema'
 import type { TelemetryDevice } from '../../hooks/useTelemetry'
 import { modeshiftTriggers, triggerModeshiftSettings, type ModeshiftTarget } from '../../utils/modeshift'
-import { ModeCards, OpenRow } from '../ui/console'
+import { ModeCards, OpenRow, SubPage } from '../ui/console'
 import { isSet, readNumber, useFocusCurrentCard, useInheritedKeys, ModeShiftRow, MoreMenu, usePadButton, WhileHoldingPage, InputSideProxies, type SetText } from '../sticks/shared'
 import { useInputSide, takeFineTuneRequest, useFineTuneRequestVersion } from '../sticks/inputSide'
 import { TriggerBlade } from './TriggerBlade'
@@ -51,6 +51,7 @@ export function TriggersPage(props: TriggersPageProps) {
   const root = useRef<HTMLDivElement>(null)
   const [fineTune, setFineTune] = useState<string | null>(null)
   const [more, setMore] = useState(false)
+  const [moreModes, setMoreModes] = useState(false)
   const [holding, setHolding] = useState(false)
   const [calibrating, setCalibrating] = useState(false)
   const mode = (side === 'left' ? zlMode : zrMode) || 'NO_FULL'
@@ -110,8 +111,9 @@ export function TriggersPage(props: TriggersPageProps) {
         <SettingOrigin setting={side === 'left' ? 'ZL_MODE' : 'ZR_MODE'} />
         <span>Changes apply live.</span>
       </header>
-      <ModeCards options={options} value={card} onChange={choose} columns={4} className={styles.cards} hints={stepHints}
-        label={undefined} useLabel={option => `Use ${option.label}`} />
+      <ModeCards options={options.filter(option => option.value === 'NO_FULL' || option.value === 'NO_SKIP')} value={card} onChange={choose} columns={3} className={styles.cards} hints={stepHints}
+        label={undefined} useLabel={option => `Use ${option.label}`}
+        more={{ label: 'More trigger modes', caption: card !== 'NO_FULL' && card !== 'NO_SKIP' ? `In use: ${TRIGGER_MODE_NAMES[card]?.label || card}` : 'Replace half press, quick pulls, analog output', count: options.length - 2, current: card !== 'NO_FULL' && card !== 'NO_SKIP', onOpen: () => setMoreModes(true) }} />
       <div className={p4.frontLower} data-wide-visual="true">
         <div className={p4.frontRows}>
           {gamepad && virtualControllerType === 'NONE' && (
@@ -136,6 +138,9 @@ export function TriggersPage(props: TriggersPageProps) {
           twoStep={hasFullPress(mode)} gamepad={gamepad} />
       </div>
 
+      <SubPage open={moreModes} onClose={() => setMoreModes(false)} trail={['Triggers', name]} title="More trigger modes" backLabel="Back to Triggers">
+        <ModeCards options={options.filter(option => option.value !== 'NO_FULL' && option.value !== 'NO_SKIP')} value={card} onChange={value => { choose(value); setMoreModes(false) }} columns={3} className={styles.cards} label="How half and full press interact" />
+      </SubPage>
       <MoreMenu open={more} onClose={() => setMore(false)} eyebrow={`Triggers · ${name}`} title="More"
         items={[
           { id: 'calibrate', label: 'Calibrate triggers', hint: 'Find where a DualSense trigger starts to push back', onSelect: () => setCalibrating(true),

@@ -78,6 +78,27 @@ export const upsertFlagCommand = (text: string, key: string, enabled: boolean) =
   return lines.join('\n')
 }
 
+// These macros affect the whole mapper configuration, not a controller or
+// action layer. Fold their edits into shared text without treating arbitrary
+// bare commands (imports, resets, calibration actions) as editable settings.
+const SHARED_FLAG_GROUPS = [
+  ['ONE_EURO_FILTER'],
+  ['COUNTER_OS_MOUSE_SPEED', 'IGNORE_OS_MOUSE_SPEED'],
+] as const
+export function foldSharedFlagCommands(text: string, before: string, after: string) {
+  let lines = text.split(/\r?\n/)
+  let changed = false
+  for (const keys of SHARED_FLAG_GROUPS) {
+    const pattern = new RegExp(`^\\s*(?:${keys.join('|')})\\s*(?:#.*)?$`, 'i')
+    const flags = (value: string) => value.split(/\r?\n/).filter(line => pattern.test(line))
+    const old = flags(before), next = flags(after)
+    if (old.join('\n') === next.join('\n')) continue
+    changed = true
+    lines = [...lines.filter(line => !pattern.test(line)), ...next]
+  }
+  return changed ? lines.join('\n') : text
+}
+
 export function osMouseSpeedCompensated(text: string) {
   let enabled = false
   for (const line of text.split(/\r?\n/)) {

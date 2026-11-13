@@ -14,6 +14,7 @@ export default defineConfig({
         overlay: resolve(__dirname, 'overlay.html'),
         // The calibration HUD, likewise its own document.
         hud: resolve(__dirname, 'hud.html'),
+        slottoast: resolve(__dirname, 'slottoast.html'),
         // The tray icon's right-click menu (services/tray_menu.rs).
         traymenu: resolve(__dirname, 'traymenu.html'),
         // Drawing a trackpad's mouse area on the screen (services/area_picker.rs).

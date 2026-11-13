@@ -40,6 +40,9 @@ type CurvePlotProps = {
   levels?: { sens: number; label: string }[]
   disabled?: boolean
   ariaLabel: string
+  /** A normalised output-speed trace has a different scale from sensitivity. */
+  showOutputSpeed?: boolean
+  outputLabel?: string
   /** A drag began or ended, for the view to hold its layout still meanwhile. */
   onDragChange?: (dragging: boolean) => void
 }
@@ -56,7 +59,7 @@ const tickText = (value: number, step: number) => {
   return value.toFixed(Math.min(4, decimals))
 }
 
-export function CurvePlot({ params, secondary, unit, formatOutput, xMax, liveSpeed, trail = [], handles, markers, levels = [], disabled, ariaLabel, onDragChange }: CurvePlotProps) {
+export function CurvePlot({ params, secondary, unit, formatOutput, xMax, liveSpeed, trail = [], handles, markers, levels = [], disabled, ariaLabel, showOutputSpeed = true, outputLabel, onDragChange }: CurvePlotProps) {
   const host = useRef<HTMLDivElement>(null)
   const svg = useRef<SVGSVGElement>(null)
   const [size, setSize] = useState({ width: 0, height: 0 })
@@ -165,7 +168,7 @@ export function CurvePlot({ params, secondary, unit, formatOutput, xMax, liveSpe
 
     const bubble = (x: number, y: number, text: string, tone: 'live' | 'hover' | 'handle') => {
       const width = text.length * 6.7 + 16
-      const left = x + 12 + width > MARGIN.left + plotW ? x - 12 - width : x + 12
+      const left = clamp(x + 12 + width > MARGIN.left + plotW ? x - 12 - width : x + 12, 0, Math.max(0, size.width - width))
       const top = clamp(y - 30, MARGIN.top - 26, MARGIN.top + plotH - 24)
       return (
         <g className="curve-plot__bubble" data-tone={tone} pointerEvents="none">
@@ -194,6 +197,7 @@ export function CurvePlot({ params, secondary, unit, formatOutput, xMax, liveSpe
           {xTicks.map(v => <line key={`x${v}`} x1={toX(v)} x2={toX(v)} y1={MARGIN.top} y2={MARGIN.top + plotH} />)}
         </g>
         <g className="curve-plot__ticks">
+          {outputLabel && <text className="curve-plot__axis-name" x={MARGIN.left} y={14}>{outputLabel}</text>}
           {yTicks.map(v => <text key={`y${v}`} x={MARGIN.left - 8} y={toY(v) + 4} textAnchor="end">{tickText(v, yStep)}</text>)}
           {xTicks.map(v => <text key={`x${v}`} x={toX(v)} y={MARGIN.top + plotH + 18} textAnchor="middle">{tickText(v, xStep)}</text>)}
           <text className="curve-plot__axis-name" x={MARGIN.left + plotW} y={MARGIN.top + plotH + 34} textAnchor="end">{unit}</text>
@@ -213,9 +217,9 @@ export function CurvePlot({ params, secondary, unit, formatOutput, xMax, liveSpe
           </g>
         ))}
         <path className="curve-plot__area" d={area} />
-        <path className="curve-plot__output" d={output} />
-        {secondaryCurve && <path className="curve-plot__secondary" d={secondaryCurve} />}
-        <path className="curve-plot__curve" d={curve} data-curve={params.curveType} />
+        {showOutputSpeed && <path className="curve-plot__output" d={output}><title>Output speed, normalised to the chart height; does not use the sensitivity axis.</title></path>}
+        {secondaryCurve && <path className="curve-plot__secondary" d={secondaryCurve}><title>{params.steadying ? 'Vertical sensitivity after steadying' : 'Vertical sensitivity'}</title></path>}
+        <path className="curve-plot__curve" d={curve} data-curve={params.curveType}><title>{params.steadying ? 'Horizontal sensitivity after steadying' : 'Sensitivity'}</title></path>
 
         {trail.map((entry, index) => (
           <line key={index} className="curve-plot__rug" x1={toX(entry.speed)} x2={toX(entry.speed)} y1={MARGIN.top + plotH - 10} y2={MARGIN.top + plotH}
@@ -245,7 +249,7 @@ export function CurvePlot({ params, secondary, unit, formatOutput, xMax, liveSpe
           </g>
         ))}
 
-        {held && bubble(toX(handleSpeed(held)), toY(held.sens), held.axis === 'y' ? `${held.label} · ${formatOutput(held.sens)}` : `${held.label} · ${readout(held.speed)}`, 'handle')}
+        {held && bubble(toX(handleSpeed(held)), toY(held.sens), held.axis === 'y' ? `${held.label} · ${formatOutput(held.sens)}` : `${held.label} · ${tickText(held.speed, held.speed >= 100 ? 1 : 0.1)} ${unit} → ${formatOutput(held.sens)}`, 'handle')}
         {!held && hover !== null && bubble(toX(hover), toY(at(hover)), readout(hover), 'hover')}
         {!held && hover === null && live !== null && bubble(toX(live), toY(at(live)), `${liveOff ? '› ' : ''}Now ${readout(live)}`, 'live')}
       </>

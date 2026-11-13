@@ -15,7 +15,7 @@
 }
 
 .steamDivider {
-  fill: color-mix(in srgb, var(--accent) 55%, transparent);
+  fill: color-mix(in srgb, var(--input-color, var(--accent)) 55%, transparent);
   opacity: 0.55;
 }
 
@@ -36,9 +36,9 @@
    signal and telling them apart by colour taught the reader nothing. Distinct
    from .controlPressed, which is a physical press. */
 .capSenseActive {
-  fill: color-mix(in srgb, var(--accent) 22%, transparent);
-  stroke: var(--accent);
-  filter: drop-shadow(0 0 13px color-mix(in srgb, var(--accent) 36%, transparent));
+  fill: color-mix(in srgb, var(--input-color, var(--accent)) 22%, transparent);
+  stroke: var(--input-color, var(--accent));
+  filter: drop-shadow(0 0 13px color-mix(in srgb, var(--input-color, var(--accent)) 36%, transparent));
 }
 
 .gripSenseText {
@@ -61,13 +61,13 @@
 .interactive:hover .control,
 .interactive:hover .triggerTrack,
 .interactive:hover .stickBase {
-  stroke: var(--accent);
-  filter: drop-shadow(0 0 12px color-mix(in srgb, var(--accent) 28%, transparent));
+  stroke: var(--input-color, var(--accent));
+  filter: drop-shadow(0 0 12px color-mix(in srgb, var(--input-color, var(--accent)) 28%, transparent));
 }
 
 .shell {
   fill: color-mix(in srgb, var(--bg-btn-hover) 72%, rgba(255, 255, 255, 0.08));
-  stroke: color-mix(in srgb, var(--accent) 22%, var(--border-strong));
+  stroke: color-mix(in srgb, var(--input-color, var(--accent)) 22%, var(--border-strong));
   stroke-width: 3;
   vector-effect: non-scaling-stroke;
   filter: drop-shadow(0 24px 28px rgba(0, 0, 0, 0.32));
@@ -75,7 +75,7 @@
 
 .shellLine {
   fill: none;
-  stroke: color-mix(in srgb, var(--accent) 24%, var(--border-strong));
+  stroke: color-mix(in srgb, var(--input-color, var(--accent)) 24%, var(--border-strong));
   stroke-width: 3;
   vector-effect: non-scaling-stroke;
   filter: drop-shadow(0 18px 24px rgba(0, 0, 0, 0.24));
@@ -97,18 +97,18 @@
 }
 
 .triggerTrackBound {
-  fill: color-mix(in srgb, var(--accent) 14%, transparent);
-  stroke: color-mix(in srgb, var(--accent) 86%, white 8%);
+  fill: color-mix(in srgb, var(--input-color, var(--accent)) 14%, transparent);
+  stroke: color-mix(in srgb, var(--input-color, var(--accent)) 86%, white 8%);
 }
 
 .triggerTrackSelected {
-  fill: color-mix(in srgb, var(--accent) 20%, transparent);
-  stroke: var(--accent);
-  filter: drop-shadow(0 0 12px color-mix(in srgb, var(--accent) 34%, transparent));
+  fill: color-mix(in srgb, var(--input-color, var(--accent)) 20%, transparent);
+  stroke: var(--input-color, var(--accent));
+  filter: drop-shadow(0 0 12px color-mix(in srgb, var(--input-color, var(--accent)) 34%, transparent));
 }
 
 .triggerFill {
-  fill: color-mix(in srgb, var(--accent) 82%, var(--accent));
+  fill: color-mix(in srgb, var(--input-color, var(--accent)) 82%, var(--input-color, var(--accent)));
 }
 
 .triggerLabel,
@@ -124,7 +124,7 @@
 }
 
 .triggerLabelSelected {
-  fill: var(--accent);
+  fill: var(--input-color, var(--accent));
 }
 
 .controlTextCompact {
@@ -154,25 +154,25 @@
 }
 
 .controlBound {
-  fill: color-mix(in srgb, var(--accent) 14%, transparent);
-  stroke: color-mix(in srgb, var(--accent) 86%, white 8%);
+  fill: color-mix(in srgb, var(--input-color, var(--accent)) 14%, transparent);
+  stroke: color-mix(in srgb, var(--input-color, var(--accent)) 86%, white 8%);
 }
 
 .controlSelected {
-  fill: color-mix(in srgb, var(--accent) 20%, transparent);
-  stroke: var(--accent);
-  filter: drop-shadow(0 0 13px color-mix(in srgb, var(--accent) 36%, transparent));
+  fill: color-mix(in srgb, var(--input-color, var(--accent)) 20%, transparent);
+  stroke: var(--input-color, var(--accent));
+  filter: drop-shadow(0 0 13px color-mix(in srgb, var(--input-color, var(--accent)) 36%, transparent));
 }
 
 .controlPressed {
-  fill: color-mix(in srgb, var(--accent) 20%, transparent);
-  stroke: var(--accent);
-  filter: drop-shadow(0 0 13px color-mix(in srgb, var(--accent) 36%, transparent));
+  fill: color-mix(in srgb, var(--input-color, var(--accent)) 20%, transparent);
+  stroke: var(--input-color, var(--accent));
+  filter: drop-shadow(0 0 13px color-mix(in srgb, var(--input-color, var(--accent)) 36%, transparent));
 }
 
 .controlTextSelected,
 .controlTextPressed {
-  fill: var(--accent);
+  fill: var(--input-color, var(--accent));
 }
 
 .stickBase {
@@ -183,14 +183,14 @@
 }
 
 .stickBaseBound {
-  fill: color-mix(in srgb, var(--accent) 14%, transparent);
-  stroke: color-mix(in srgb, var(--accent) 86%, white 8%);
+  fill: color-mix(in srgb, var(--input-color, var(--accent)) 14%, transparent);
+  stroke: color-mix(in srgb, var(--input-color, var(--accent)) 86%, white 8%);
 }
 
 .stickBaseSelected {
-  fill: color-mix(in srgb, var(--accent) 20%, transparent);
-  stroke: var(--accent);
-  filter: drop-shadow(0 0 13px color-mix(in srgb, var(--accent) 36%, transparent));
+  fill: color-mix(in srgb, var(--input-color, var(--accent)) 20%, transparent);
+  stroke: var(--input-color, var(--accent));
+  filter: drop-shadow(0 0 13px color-mix(in srgb, var(--input-color, var(--accent)) 36%, transparent));
 }
 
 .stickRing {
@@ -201,7 +201,7 @@
 }
 
 .stickRingBound {
-  stroke: color-mix(in srgb, var(--accent) 70%, transparent);
+  stroke: color-mix(in srgb, var(--input-color, var(--accent)) 70%, transparent);
 }
 
 .stickKnob {
@@ -214,8 +214,8 @@
 
 .stickKnobSelected,
 .stickKnobPressed {
-  fill: color-mix(in srgb, var(--accent) 20%, transparent);
-  stroke: var(--accent);
+  fill: color-mix(in srgb, var(--input-color, var(--accent)) 20%, transparent);
+  stroke: var(--input-color, var(--accent));
 }
 
 .sideMuted {
@@ -238,7 +238,7 @@
 :global(:root[data-theme='light']) .control,
 :global(:root[data-theme='light']) .stickBase {
   fill: #eef3f7;
-  stroke: color-mix(in srgb, var(--accent) 36%, var(--border-1));
+  stroke: color-mix(in srgb, var(--input-color, var(--accent)) 36%, var(--border-1));
 }
 
 :global(:root[data-theme='light']) .stickRing {
@@ -247,7 +247,7 @@
 
 :global(:root[data-theme='light']) .stickKnob {
   fill: #263746;
-  stroke: color-mix(in srgb, var(--accent) 40%, var(--border-1));
+  stroke: color-mix(in srgb, var(--input-color, var(--accent)) 40%, var(--border-1));
 }
 
 /* Drawn button markings -- PlayStation's shapes, the Steam button, Quick Access
@@ -258,7 +258,7 @@
 }
 
 .controlMarkActive {
-  color: var(--accent);
+  color: var(--input-color, var(--accent));
 }
 
 /* ============ Steam Controller, live (Controller Live.dc.html) ============
@@ -299,7 +299,7 @@
 .steamLive .stickBaseSelected,
 .steamLive .triggerTrackSelected,
 .steamLive .interactive:hover .controlSelected {
-  fill: color-mix(in srgb, var(--accent) 35%, transparent);
+  fill: color-mix(in srgb, var(--input-color, var(--accent)) 35%, transparent);
   stroke: var(--focus-controller);
   stroke-width: 2;
   filter: none;
@@ -368,9 +368,9 @@
   transition: fill var(--dur-1) var(--ease-standard);
 }
 .backSpot:hover { fill: var(--accent-soft); }
-.backSpotBound { stroke: var(--text-3); stroke-dasharray: none; }
+.backSpotBound { stroke: var(--input-color, var(--text-3)); stroke-dasharray: none; }
 .backSpotPressed { fill: color-mix(in srgb, var(--telemetry) 30%, transparent); stroke: var(--telemetry); stroke-width: 2.5; stroke-dasharray: none; }
-.backSpotSelected { fill: color-mix(in srgb, var(--accent) 35%, transparent); stroke: var(--focus-controller); stroke-width: 3; stroke-dasharray: none; }
+.backSpotSelected { fill: color-mix(in srgb, var(--input-color, var(--accent)) 35%, transparent); stroke: var(--input-color, var(--focus-controller)); stroke-width: 3; stroke-dasharray: none; }
 /* Bumpers and triggers on the back view fill the art's own outlines. A bumper
    press matches the front view's; a trigger fills with its pull (--pull, 0..1),
    reaching the same strength at a full pull. */
@@ -387,7 +387,7 @@
 .backTriggerLive,
 .backTriggerLive:hover { fill: var(--telemetry); fill-opacity: calc(.1 + var(--pull, 0) * .45); }
 .backPartSelected { stroke: var(--focus-controller); stroke-width: 3; }
-.backPartSelected:not(.backPartPressed):not(.backTriggerLive) { fill: color-mix(in srgb, var(--accent) 35%, transparent); }
+.backPartSelected:not(.backPartPressed):not(.backTriggerLive) { fill: color-mix(in srgb, var(--input-color, var(--accent)) 35%, transparent); }
 /* The legend's rows come and go with what is held, and the whole back view is
    centred beside the front art -- so the rows' space is reserved up front
    (the title plus the four hotspot rows, two more with Details on), or the
@@ -405,7 +405,7 @@
 }
 .backLegendDetailed { --legend-rows: 6; }
 .backLegendTitle { letter-spacing: var(--tracking-eyebrow); font-weight: var(--fw-semibold); text-transform: uppercase; }
-.backLegendItem { display: flex; align-items: center; gap: 6px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.backLegendItem { display: flex; align-items: baseline; gap: var(--sp-2); min-width: 0; white-space: normal; overflow-wrap: anywhere; }
 .backLegendMark { width: 8px; height: 8px; flex: none; border-radius: 2px; background: var(--text-3); }
 .backLegendMarkLive { border-radius: 50%; background: var(--telemetry); }
 
@@ -427,3 +427,16 @@
 .backViewFocus .backArt { width: 200px; }
 .viewCaption { font-size: var(--fs-caption, 14px); line-height: 1.2; letter-spacing: .08em; text-transform: uppercase; color: var(--text-3); font-weight: var(--fw-semibold); white-space: nowrap; }
 @media (max-width: 1100px) { .backViewFocus { display: flex; width: 150px; } .backViewFocus .backArt { width: 150px; } }
+
+.backPart[data-layer-override="true"]:not(.backPartPressed):not(.backTriggerLive) { fill: color-mix(in srgb, var(--input-color) 18%, transparent); stroke: var(--input-color); }
+
+/* Configuration source is separate from live press/touch feedback. */
+[data-binding-source] :is(.controlBound, .stickBaseBound, .stickRingBound, .triggerTrackBound):not(.controlPressed):not(.capSenseActive),
+.controlBound[data-binding-source]:not(.controlPressed):not(.capSenseActive), .backSpotBound[data-binding-source]:not(.backSpotPressed) {
+  stroke: var(--input-color); stroke-dasharray: var(--input-dash, none);
+}
+[data-binding-source='base'] :is(.controlBound, .stickBaseBound, .triggerTrackBound):not(.controlPressed):not(.capSenseActive),
+.controlBound[data-binding-source='base']:not(.controlPressed):not(.capSenseActive) { fill: color-mix(in srgb, var(--input-color) 4%, transparent); }
+.backPart:is([data-binding-source='base'], [data-binding-source='game'], [data-binding-source='mixed']):not(.backPartPressed):not(.backTriggerLive) {
+  fill: color-mix(in srgb, var(--input-color) 12%, transparent); stroke: var(--input-color); stroke-dasharray: var(--input-dash, none);
+}

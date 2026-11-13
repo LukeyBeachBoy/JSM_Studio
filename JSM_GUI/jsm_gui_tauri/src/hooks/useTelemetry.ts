@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
+import { selectedController, subscribeControllerSelection, selectedControllerSample } from '../utils/controllerSelection'
 import { desktopBridge, type CalibrationStatus } from '../platform/desktopBridge'
 
 export type TelemetryPadState = {
@@ -7,6 +8,8 @@ export type TelemetryPadState = {
   touched: boolean
   pressure?: number
   speed?: number
+  /** Rotation already applied by the mapper, in clockwise degrees. */
+  rotation?: number
 }
 
 export type TelemetryGripState = {
@@ -19,10 +22,29 @@ export type TelemetryDeviceStatus = {
   buttons: number
   leftStick: { x: number; y: number }
   rightStick: { x: number; y: number }
+  /** Input after profile rotation/ring scaling, before deadzones and mode output. */
+  adjustedLeftStick?: { x: number; y: number }
+  adjustedRightStick?: { x: number; y: number }
   triggers: { left: number; right: number }
   gyro: { x: number; y: number; z: number }
+  /** Controller-local pipeline measurements, available with current mappers. */
+  motion?: {
+    timestampMs: number
+    input: { x: number; y: number }
+    filtered: { x: number; y: number }
+    derivative: { x: number; y: number }
+    snapInput: { x: number; y: number }
+    omega: number
+    sensX: number
+    sensY: number
+    sampleHz?: number
+    tiltAngle: number
+  }
   leftPad?: TelemetryPadState
   rightPad?: TelemetryPadState
+  /** Unrotated sensor coordinates, before square-edge clamping. */
+  leftPadRaw?: { x: number; y: number }
+  rightPadRaw?: { x: number; y: number }
   leftGrip?: TelemetryGripState
   rightGrip?: TelemetryGripState
   // Capacitive thumbstick contact -- the same family of signal as a pad touch or
@@ -35,7 +57,10 @@ export type TelemetryDeviceStatus = {
 }
 
 export type TelemetryDevice = {
+  controllerId?: string
+  persistentIdentity?: boolean
   activeProfile?: string
+  nativeInputStatus?: string
   handle: number
   type: number
   supportedButtons?: number
@@ -55,6 +80,8 @@ export type TelemetryDevice = {
 
 export type TelemetrySample = {
   omega?: number
+  ts?: number
+  /** Normalized acceleration-curve position, not a timestamp. */
   t?: number
   u?: number
   sensX?: number
@@ -70,7 +97,8 @@ export type TelemetrySample = {
 // via requestAnimationFrame, which is the panel's own clock -- 60 Hz, 144 Hz or
 // whatever this monitor runs at -- rather than the fixed 60 Hz this used to be.
 // No rendering work happens at all while another app has focus.
-export function useTelemetry() {
+export function useTelemetry(allDevices = false) {
+  useSyncExternalStore(subscribeControllerSelection, selectedController, selectedController)
   const [sample, setSample] = useState<TelemetrySample | null>(null)
   const [isCalibrating, setIsCalibrating] = useState(false)
   const [countdown, setCountdown] = useState<number | null>(null)
@@ -156,5 +184,5 @@ export function useTelemetry() {
     }
   }, [])
 
-  return { sample, isCalibrating, countdown }
+  return { sample: allDevices ? sample : selectedControllerSample(sample), isCalibrating, countdown }
 }

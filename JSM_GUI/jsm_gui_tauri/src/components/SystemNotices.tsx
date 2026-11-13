@@ -66,14 +66,21 @@ type ConfigErrorsProps = {
   appliedText?: string | null
   onOpenSource: (error: ConfigError) => void
   onDismiss: () => void
+  compact?: boolean
 }
 
 // Couldn't load a line (System States 17e): which line, why, the lines around
 // it, and a way straight to it. JoyShockMapper skips a line it cannot use and
 // applies the rest, so this says exactly that rather than "nothing applied".
-export function ConfigErrors({ errors, appliedText, onOpenSource, onDismiss }: ConfigErrorsProps) {
+export function ConfigErrors({ errors, appliedText, onOpenSource, onDismiss, compact }: ConfigErrorsProps) {
   const first = errors[0]
   if (!first) return null
+  if (compact) return <section className={styles.banner} role="alert" aria-label="Configuration errors">
+    <Icon name="error" size={20} />
+    <span className={styles.bannerText}><b>{fileName(first.profile)}: {errors.length === 1 ? 'a line was skipped' : `${errors.length} lines were skipped`}.</b> {first.reason}</span>
+    <button type="button" className="button button--primary button--sm" onClick={() => onOpenSource(first)}>Fix line {first.line}</button>
+    <button type="button" className="button button--secondary button--sm" onClick={() => { onDismiss(); focusPageStart() }}>Dismiss</button>
+  </section>
   const inProfile = first.file === first.profile
   const lines = inProfile && appliedText ? appliedText.split(/\r?\n/) : null
   const from = Math.max(1, first.line - 2)

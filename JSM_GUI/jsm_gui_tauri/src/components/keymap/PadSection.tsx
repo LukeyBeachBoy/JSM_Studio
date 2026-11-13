@@ -201,7 +201,7 @@ export function PadSection({
         )}
         {feedback && <SummaryRow label="Feedback" hint="Movement ticks, click and release pulses" value={feedback.value} onActivate={() => setSheet('feedback')} />}
         {mode === 'MOUSE' && config.onOpenTuning && (
-          <SummaryRow label="Trackpad feel" hint={mouseFeel ?? 'Mouse output tuning and shared feedback'} onActivate={config.onOpenTuning} />
+          <SummaryRow label="Trackpad tuning" hint={mouseFeel ?? 'Mouse output tuning and shared feedback'} onActivate={config.onOpenTuning} />
         )}
 
         {otherControllers && (
@@ -263,7 +263,7 @@ export function PadSection({
         description="Feedback on this pad’s actuator. Movement ticks apply to Mouse mode; click and release work in every mode.">
         {feedback?.editor}
         {feedback?.value === 'Shared' && config.onOpenTuning && <SummaryRow size="sheet"
-          label="Edit shared feedback" hint="Open the shared feedback defaults in Trackpad feel"
+          label="Edit shared feedback" hint="Open the shared feedback defaults in Trackpad tuning"
           onActivate={() => { setSheet(null); config.onOpenTuning?.() }} />}
       </Sheet>
 

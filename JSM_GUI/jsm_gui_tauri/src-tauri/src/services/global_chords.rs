@@ -10,7 +10,27 @@ use crate::{runtime, services::{app_state::AppState, jsm_process, telemetry, con
 static LAYER_STACK: std::sync::Mutex<Option<Value>> = std::sync::Mutex::new(None);
 
 static CANCEL_GLOBAL:std::sync::atomic::AtomicBool=std::sync::atomic::AtomicBool::new(false);
+static LAYER_REMOVALS: std::sync::Mutex<Vec<(i64, String)>> = std::sync::Mutex::new(Vec::new());
+pub fn request_layer_removal(owner: i64, id: &str) {
+    if owner <= 0 || id.is_empty() || id.len() > 64 || !id.as_bytes()[0].is_ascii_alphabetic() || !id.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-') { return; }
+    if let Ok(mut pending) = LAYER_REMOVALS.lock() {
+        if pending.len() < 64 && !pending.iter().any(|(handle, layer)| *handle == owner && layer == id) { pending.push((owner, id.to_string())); }
+    }
+}
 pub fn consume_until_release() {CANCEL_GLOBAL.store(true,std::sync::atomic::Ordering::Relaxed);}
+
+/// Windows' physical side-button state remains available when Studio is hidden.
+pub fn mouse_side_buttons() -> Vec<String> {
+    #[cfg(target_os = "windows")]
+    {
+        use windows_sys::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, VK_XBUTTON1, VK_XBUTTON2};
+        [(VK_XBUTTON1, "MOUSE_BACK"), (VK_XBUTTON2, "MOUSE_FORWARD")].into_iter()
+            .filter(|(key, _)| unsafe { GetAsyncKeyState(*key as i32) } < 0)
+            .map(|(_, name)| name.to_string()).collect()
+    }
+    #[cfg(not(target_os = "windows"))]
+    { Vec::new() }
+}
 
 #[derive(Default)]
 struct FocusHandover {
@@ -50,7 +70,7 @@ fn publish_layer_stack(app: &AppHandle, profile: &str, layers: &[config_layers::
 
 #[derive(Default)]
 struct DeviceRuntime {
-    active: Option<String>, source: String, loaded_base: String, model: String,
+    active: Option<String>, source: String, loaded_base: String, loaded_source: String, model: String,
     layers: Vec<config_layers::PreparedLayer>, activation: LayerActivation,
     composed_ids: Vec<String>, composed_path: Option<String>,
     cancelled: bool, begun: Option<Instant>, acknowledged: bool,
@@ -58,7 +78,9 @@ struct DeviceRuntime {
 pub fn start(app: AppHandle, state: AppState) {
     thread::spawn(move || {
         let mut controllers = std::collections::BTreeMap::<i64, DeviceRuntime>::new();
+        let mut slots=super::slots::Worker::default();
         let mut chords=Vec::new();let mut enabled=false;
+        let mut navigation_state = None;
         let mut revision=config_layers::revision();let mut next_reload=Instant::now();
         loop {
             if crate::services::virtual_keyboard::take_toggle() {
@@ -74,25 +96,36 @@ pub fn start(app: AppHandle, state: AppState) {
             }
             if Instant::now()>=next_reload {
                 if let Ok(next)=runtime::read_global_chords(&app) {chords=next;}
-                enabled=runtime::read_runtime_mapping_state(&app).map(|s|s.mapping_enabled).unwrap_or(false);
+                navigation_state=runtime::read_runtime_mapping_state(&app).ok();
+                enabled=navigation_state.as_ref().is_some_and(|s|s.mapping_enabled);
                 next_reload=Instant::now()+Duration::from_millis(480);
             }
             let packet=telemetry::latest_packet(&state).ok().flatten();
             let devices=packet.as_ref().and_then(|p|p["devices"].as_array()).cloned().unwrap_or_default();
+            if slots.tick(&app,&state,&devices,enabled) {
+                controllers.clear();revision=config_layers::revision();
+                thread::sleep(Duration::from_millis(48));continue;
+            }
             let base=packet.as_ref().and_then(|p|p["activeProfile"].as_str()).unwrap_or("").replace('\\',"/");
+            let removals = LAYER_REMOVALS.lock().map(|mut queue| std::mem::take(&mut *queue)).unwrap_or_default();
             let mut any_global=false;let mut visible_layers=Vec::new();let mut visible_ids=Vec::new();
             for device in &devices {
                 let Some(id)=device["handle"].as_i64() else {continue;};
-                let model=super::controller_layouts::model(device);
+                let model=super::controller_layouts::target(device);
+                // Restore the applied configuration for controllers opted out
+                // of navigation, using an isolated per-device mapper context.
+                let navigation_fallback = navigation_state.as_ref()
+                    .and_then(|prefs| runtime::controller_navigation_fallback(prefs, &base, &model));
+                let device_base = navigation_fallback.as_deref().unwrap_or(&base);
                 let controller=controllers.entry(id).or_default();
-                let held=global_profile(&chords,Some(&vec![device.clone()]),true);
+                let held=global_profile(&chords,Some(&vec![device.clone()]),enabled);
                 if cancel {controller.cancelled=true;}
                 let live=device["activeProfile"].as_str().unwrap_or(&base).replace('\\',"/");
                 if controller.active.as_deref()==Some(live.as_str()) {controller.acknowledged=true;}
                 let late=controller.active.is_some() && !controller.acknowledged && controller.begun.is_some_and(|begun|begun.elapsed()<BEGIN_ACK_WAIT);
-                if !base.is_empty() && (controller.loaded_base!=base || controller.model!=model) {
-                    controller.loaded_base=base.clone();controller.source=base.clone();controller.model=model.clone();controller.activation.reset();controller.composed_ids.clear();controller.composed_path=None;
-                    controller.layers=config_layers::prepare_for_model(&app,&base,&model).unwrap_or_else(|error|{eprintln!("Layers: {error}");Vec::new()});
+                if !device_base.is_empty() && (controller.loaded_base!=base || controller.model!=model || controller.loaded_source!=device_base) {
+                    controller.loaded_base=base.clone();controller.loaded_source=device_base.to_string();controller.source=device_base.to_string();controller.model=model.clone();controller.activation.reset();controller.composed_ids.clear();controller.composed_path=None;
+                    controller.layers=config_layers::prepare_for_model(&app,device_base,&model).unwrap_or_else(|error|{eprintln!("Layers: {error}");Vec::new()});
                 }
                 if !late && binding_chose_profile(controller.active.as_deref(),held.as_deref(),&live,&controller.source) {
                     controller.cancelled=true;
@@ -106,13 +139,18 @@ pub fn start(app: AppHandle, state: AppState) {
                     crate::commands::adopt_profile_loaded_by_binding(&app,&state,&live);
                 }
                 let global=eligible_global_profile(held,&mut controller.cancelled);any_global|=global.is_some();
+                if global.is_none() && enabled {
+                    for (_, layer) in removals.iter().filter(|(owner, _)| *owner == id) {
+                        if controller.layers.iter().any(|candidate| &candidate.id == layer) { controller.activation.remove(layer); }
+                    }
+                }
                 let keyboard=crate::services::virtual_keyboard::requested();
                 let ids=if keyboard {controller.composed_ids.clone()} else {controller.activation.update(&controller.layers,std::slice::from_ref(device),enabled,global.is_some())};
                 visible_layers.extend(controller.layers.clone());visible_ids.extend(ids.clone());
                 if ids!=controller.composed_ids {
                     match config_layers::compose(&app,&controller.layers,&ids) {Ok(path)=>{controller.composed_ids=ids;controller.composed_path=path;},Err(error)=>eprintln!("Layers: {error}")}
                 }
-                let desired=global.or_else(||keyboard.then(||crate::services::virtual_keyboard::CAPTURE.to_string())).or_else(||controller.composed_path.clone());
+                let desired=global.or_else(||keyboard.then(||crate::services::virtual_keyboard::CAPTURE.to_string())).or_else(||controller.composed_path.clone()).or(navigation_fallback);
                 if desired!=controller.active {
                     let released=controller.active.is_none() || jsm_process::inject_console_command(&app,&state,&format!("STUDIO_DEVICE_CHORD_END {id}")).unwrap_or(false);
                     if released {
@@ -145,9 +183,15 @@ fn global_profile(chords: &[runtime::GlobalChord], devices: Option<&Vec<Value>>,
 }
 
 fn chord_matches(chord:&runtime::GlobalChord,device:&Value)->bool {
-    if chord.controller_model.as_deref().is_some_and(|model| model != super::controller_layouts::model(device)) {return false;}
-    if chord.trigger_groups.is_empty() {return !chord.buttons.is_empty() && chord.buttons.iter().all(|b|pressed(device,b));}
-    chord.trigger_groups.iter().any(|group|!group.is_empty() && group.iter().all(|b|pressed(device,b)))
+    chord_matches_with_mouse(chord, device, &mouse_side_buttons())
+}
+fn chord_matches_with_mouse(chord:&runtime::GlobalChord,device:&Value,mouse:&[String])->bool {
+    if chord.controller_model.as_deref().is_some_and(|model| model != super::controller_layouts::model(device) && model != super::controller_layouts::target(device)) {return false;}
+    let down = |button: &String| if matches!(button.as_str(), "MOUSE_BACK" | "MOUSE_FORWARD") { mouse.contains(button) } else { pressed(device,button) };
+    // A full slot hotkey is handled first by slots.tick. Its prefix may still
+    // open a global chord (Quick Access, then D-pad Up/Down to choose a slot).
+    if chord.trigger_groups.is_empty() {return !chord.buttons.is_empty() && chord.buttons.iter().all(down);}
+    chord.trigger_groups.iter().any(|group|!group.is_empty() && group.iter().all(down))
 }
 /// How long a packet naming the previous configuration counts as late after
 /// STUDIO_CHORD_BEGIN. Past it, a mapper that refused the chord is believed.
@@ -176,7 +220,14 @@ fn eligible_global_profile(detected: Option<String>, blocked_until_release: &mut
 }
 
 pub(super) fn pressed(device: &Value, button: &str) -> bool {
+    if matches!(button, "MOUSE_BACK" | "MOUSE_FORWARD") { return mouse_side_buttons().iter().any(|held| held == button); }
     let status = &device["status"];
+    if device["type"].as_u64() == Some(25) {
+        let bit = button.strip_prefix("JOY").and_then(|n| n.parse::<u32>().ok())
+            .filter(|n| (1..=32).contains(n)).map(|n| n - 1)
+            .or_else(|| match button { "UP" => Some(32), "RIGHT" => Some(33), "DOWN" => Some(34), "LEFT" => Some(35), _ => None });
+        return bit.is_some_and(|bit| status["buttons"].as_u64().unwrap_or(0) & (1u64 << bit) != 0);
+    }
     let bit = match button {
         "UP" => 0, "DOWN" => 1, "LEFT" => 2, "RIGHT" => 3,
         "+" => 4, "-" => 5, "L3" => 6, "R3" => 7, "L" => 8, "R" => 9,
@@ -263,6 +314,22 @@ mod tests {
     use super::*;
     use serde_json::json;
     #[test]
+    fn mouse_side_buttons_hold_release_and_respect_controller_scope() {
+        let mut chord = runtime::default_global_chord();
+        chord.controller_model = Some("type-25".into());
+        chord.trigger_groups = vec![vec!["MOUSE_BACK".into()]];
+        let cyborg = json!({"type":25,"status":{"buttons":1}});
+        let steam = json!({"type":24,"status":{"buttons":1}});
+        let back = vec!["MOUSE_BACK".into()];
+        assert!(chord_matches_with_mouse(&chord,&cyborg,&back));
+        assert!(!chord_matches_with_mouse(&chord,&cyborg,&[]));
+        assert!(!chord_matches_with_mouse(&chord,&steam,&back));
+        assert!(!chord_matches_with_mouse(&chord,&cyborg,&["MOUSE_FORWARD".into()]));
+        chord.trigger_groups[0].push("JOY1".into());
+        assert!(chord_matches_with_mouse(&chord,&cyborg,&back));
+        assert!(!chord_matches_with_mouse(&chord,&json!({"type":25,"status":{"buttons":0}}),&back));
+    }
+    #[test]
     fn focus_handover_waits_for_chord_release_and_uses_latest_focus() {
         let mut handover = FocusHandover::default();
         assert!(!handover.defer(true));
@@ -283,6 +350,20 @@ mod tests {
         assert!(chord_matches(&chord,&ds)); assert!(!chord_matches(&chord,&xbox));
         assert_eq!(global_profile(&[chord.clone()],Some(&vec![ds]),true).as_deref(),Some("dual.txt"));
         assert!(global_profile(&[chord],Some(&vec![xbox]),true).is_none());
+    }
+    #[test]
+    fn quick_access_chord_supports_device_scope_and_slot_prefix() {
+        let steam=json!({"handle":1,"type":24,"controllerId":"type-24-device-4626365e1020c0e2","status":{"buttons":1u64<<27}});
+        let chord=runtime::GlobalChord {controller_model:Some("type-24-device-4626365e1020c0e2".into()),trigger_groups:vec![vec!["MISC1".into()]],..runtime::default_global_chord()};
+        assert!(chord_matches_with_mouse(&chord,&steam,&[]));
+        let mut other=steam.clone();other["controllerId"]=json!("type-24-device-0000000000000002");
+        assert!(!chord_matches_with_mouse(&chord,&other,&[]));
+        let mut selected=steam;selected["status"]["buttons"]=json!((1u64<<27)|1);
+        assert!(chord_matches_with_mouse(&chord,&selected,&[]),"matching the prefix is independent of the full slot hotkey handled first by the worker");
+        let mut cancelled=true;
+        assert!(eligible_global_profile(Some(chord.profile_path.clone()),&mut cancelled).is_none(),"a slot choice prevents the chord reopening while Quick Access is held");
+        assert!(eligible_global_profile(None,&mut cancelled).is_none());
+        assert!(eligible_global_profile(Some(chord.profile_path),&mut cancelled).is_some());
     }
     #[test]
     fn layer_regions_match_default_grid_geometry_and_release() {
@@ -368,5 +449,42 @@ mod tests {
         assert!(!pressed(&device, "HOME"));
         assert!(pressed(&device, "ZLF"));
         assert!(!pressed(&device, "ZR"));
+    }
+}
+
+#[cfg(test)]
+mod azeron_tests {
+    use super::pressed;
+    use serde_json::json;
+    #[test]
+    fn cyborg_driving_toggle_ignores_steam_and_releases_on_disconnect() {
+        use crate::services::{config_layers::PreparedLayer, layer_activation::LayerActivation};
+        let layer = PreparedLayer { id: "cyborg-driving".into(), name: "Driving".into(),
+            holds: vec![], applies: vec![], removes: vec![], toggles: vec!["JOY22".into()],
+            profile_path: "driving.txt".into(), base: String::new(),
+            overrides: [("LEFT_STICK_MODE".into(), "LEFT_STICK".into()), ("LUP".into(), "NONE".into())].into(), suppress_holds: false };
+        let layers = vec![layer];
+        let mut state = LayerActivation::default();
+        let idle = json!({"handle":25,"type":25,"status":{"buttons":0}});
+        let held = json!({"handle":25,"type":25,"status":{"buttons":1u64 << 21}});
+        assert!(state.update(&layers, &[idle.clone()], true, false).is_empty());
+        assert!(state.update(&layers, &[json!({"handle":24,"type":24,"status":{"buttons":1u64 << 21}}), idle.clone()], true, false).is_empty());
+        assert_eq!(state.update(&layers, &[held.clone()], true, false), vec!["cyborg-driving"]);
+        assert_eq!(state.update(&layers, &[held.clone()], true, false), vec!["cyborg-driving"]);
+        assert_eq!(state.update(&layers, &[idle.clone()], true, false), vec!["cyborg-driving"]);
+        assert!(state.update(&layers, &[held.clone()], true, false).is_empty());
+        state.update(&layers, &[idle], true, false);
+        assert_eq!(state.update(&layers, &[held], true, false), vec!["cyborg-driving"]);
+        assert!(state.update(&layers, &[], true, false).is_empty());
+    }
+    #[test]
+    fn numbered_buttons_do_not_trigger_gamepad_chords() {
+        for i in 0..32 {
+            let device = json!({"type":25,"status":{"buttons":1u64 << i}});
+            assert!(pressed(&device, &format!("JOY{}",i+1)));
+            for command in ["HOME", "S", "MISC6", "ZL"] { assert!(!pressed(&device,command)); }
+        }
+        assert!(pressed(&json!({"type":25,"status":{"buttons":1u64 << 35}}),"LEFT"));
+        assert!(!pressed(&json!({"type":24,"status":{"buttons":1}}),"JOY1"));
     }
 }

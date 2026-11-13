@@ -7,7 +7,7 @@ const {chromium}=require('C:/Users/luker/.cache/codex-runtimes/codex-primary-run
 (async()=>{const browser=await chromium.launch({channel:'msedge',headless:true});try{
  const page=await browser.newPage({viewport:{width:1440,height:1000}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.route('**/src/platform/desktopBridge.ts*',async route=>{const response=await route.fetch();await route.fulfill({response,body:(await response.text())+'\nwindow.__chordTestBridge=desktopBridge; if(window.__installChordFixture) window.__installChordFixture(desktopBridge);\n'});});
- await page.goto('http://127.0.0.1:1420/?mock');
+ await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420/?mock');
  const onboarding=page.getByRole('dialog',{name:'Controller power-on sound'});if(await onboarding.waitFor({state:'visible',timeout:3000}).then(()=>true).catch(()=>false))await onboarding.getByRole('button',{name:'Keep them',exact:true}).click();
  await page.evaluate(async()=>{
   const install=bridge=>{
@@ -33,8 +33,38 @@ const {chromium}=require('C:/Users/luker/.cache/codex-runtimes/codex-primary-run
  assert.equal(await page.getByText('Built-in',{exact:true}).count(),1);
  assert.doesNotMatch(await page.locator('.main-pane').innerText(),/chord|combo|Default Global Chords/i,'Hold to swap never says chord or combo');
  assert.match(await page.locator('.main-pane').innerText(),/When two match, the higher card wins/);
- // A on a card listens for the buttons: press A and B together, let go.
+ // Mouse-clicking the footer Cancel must bypass the capture navigation gate.
+ const beforeCancel=await page.evaluate(()=>JSON.stringify(window.testChords));
  await cards.nth(1).click();
+ const picker=page.getByRole('dialog',{name:/Choose inputs to hold/});await picker.waitFor();
+ assert.equal(await page.evaluate(()=>document.body.dataset.padListening==='true'),false,'Visual picking opens without listening');
+ await picker.getByRole('combobox',{name:'Controller picture',exact:true}).selectOption('type-25');
+ await picker.locator('[data-command="JOY21"]').click();
+ await page.waitForFunction(()=>window.testChords.find(c=>c.id==='photo').triggerGroups[0].includes('JOY21'));
+ await picker.locator('[data-command="JOY21"]').click();
+ await page.waitForFunction(()=>!window.testChords.find(c=>c.id==='photo').triggerGroups[0].includes('JOY21'));
+ await picker.locator('[data-command="JOY20"]').click();
+ const nub=picker.getByRole('region',{name:'Five-way nub inputs',exact:true});await nub.waitFor();
+ assert(!await page.evaluate(()=>window.testChords.find(c=>c.id==='photo').triggerGroups[0].includes('JOY20')),'Opening the grouped nub does not assign click automatically');
+ await nub.getByRole('button',{name:'Up',exact:true}).click();
+ await page.waitForFunction(()=>window.testChords.find(c=>c.id==='photo').triggerGroups[0].includes('UP'));
+ await nub.getByRole('button',{name:'Up',exact:true}).click();
+ await page.waitForFunction(()=>!window.testChords.find(c=>c.id==='photo').triggerGroups[0].includes('UP'));
+ await picker.locator('[data-mouse-input="MOUSE_BACK"]').click();
+ await page.waitForFunction(()=>window.testChords.find(c=>c.id==='photo').triggerGroups[0].includes('MOUSE_BACK'));
+ await picker.locator('[data-mouse-input="MOUSE_BACK"]').click();
+ await page.waitForFunction(()=>!window.testChords.find(c=>c.id==='photo').triggerGroups[0].includes('MOUSE_BACK'));
+ require('node:fs').mkdirSync('build-jsm-sdl/hold-picker-acceptance',{recursive:true});
+ await page.screenshot({path:'build-jsm-sdl/hold-picker-acceptance/visual-picker.png'});
+ await picker.getByRole('button',{name:'Listen for input instead'}).click();
+ await page.waitForFunction(()=>document.body.dataset.padListening==='true');
+ await page.locator('[data-subpage] .hint-capsule [data-hint-press="B"]').click();
+ await page.waitForFunction(()=>document.body.dataset.padListening!=='true');
+ assert.equal(await page.locator('[data-subpage]').count(),0,'Cancel closes the capture sheet');
+ assert.equal(await page.evaluate(()=>JSON.stringify(window.testChords)),beforeCancel,'Cancel preserves the saved trigger');
+ // Listening remains an explicit option: press A and B together, let go.
+ await cards.nth(1).click();
+ await picker.getByRole('button',{name:'Listen for input instead'}).click();
  await page.waitForFunction(()=>document.body.dataset.padListening==='true');
  await page.evaluate(()=>window.__pad.hold(['S','E']));await page.waitForTimeout(250);await page.evaluate(()=>window.__pad.release());
  await page.waitForFunction(()=>{const groups=window.testChords.find(c=>c.id==='photo').triggerGroups;return groups.length===1&&[...groups[0]].sort().join()==='E,S'});
@@ -43,7 +73,15 @@ const {chromium}=require('C:/Users/luker/.cache/codex-runtimes/codex-primary-run
  const entry=page.locator('[data-subpage]');await entry.waitFor();
  assert.match(await entry.innerText(),/Make your own copy/);
  assert.match(await entry.innerText(),/Order · higher wins/);
- await entry.getByRole('button',{name:'Choose from a list'}).first().click();
+ await entry.getByRole('button',{name:/^Another way to hold it/}).click();
+ await picker.waitFor();
+ assert.equal(await page.evaluate(()=>document.body.dataset.padListening==='true'),false,'Another way also opens visual picking');
+ await picker.getByRole('button',{name:'Back',exact:true}).click();
+ const configChoices=entry.getByRole('radiogroup',{name:'Configuration'});
+ const spacing=await configChoices.locator(':scope > button').evaluateAll(buttons=>buttons.slice(1).map((button,i)=>button.getBoundingClientRect().top-buttons[i].getBoundingClientRect().bottom));
+ assert(spacing.length>0 && spacing.every(gap=>gap>=7),'Configuration choices have visible space between rows');
+
+ await entry.getByRole('button',{name:/^One way/}).first().click();
  const list=page.getByRole('group',{name:'Buttons to hold together'});await list.waitFor();
  await list.getByRole('button',{name:/^A$|A button|^A /}).first().click().catch(async()=>{await list.locator('button').first().click()});
  await page.waitForFunction(()=>window.testChords.find(c=>c.id==='builtin-default').triggerGroups[0].length===2);
@@ -70,5 +108,5 @@ const {chromium}=require('C:/Users/luker/.cache/codex-runtimes/codex-primary-run
  const reset=page.getByRole('alertdialog');await reset.waitFor();
  await page.waitForFunction(()=>/Cancel/.test(document.activeElement?.textContent??''));
  await page.evaluate(()=>window.__pad.press(['E']));await reset.waitFor({state:'hidden'});
- assert.deepEqual(errors,[]);console.log('PASS: Hold to swap cards, Quick tools, buttons by pressing and from a list, higher card wins, Make my own copy, remove, Reset with Cancel first.');
+ assert.deepEqual(errors,[]);console.log('PASS: visual controller/mouse picking by default, optional listening, footer Cancel, configuration spacing, priority, copy and removal.');
  }finally{await browser.close()}})().catch(e=>{console.error(e);process.exitCode=1});

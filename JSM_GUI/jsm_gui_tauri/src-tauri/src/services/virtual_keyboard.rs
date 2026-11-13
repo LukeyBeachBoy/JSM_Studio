@@ -468,6 +468,8 @@ fn stable_wheel(x:f64,y:f64,previous:Option<usize>)->Option<usize> {
     if off.abs()<=TAU/16.0+BAND {Some(previous)} else {wheel(x,y)}
 }
 pub(super) fn physical_mask(d:&Value)->u64 {
+    // Numbered DirectInput buttons are not gamepad keyboard shortcuts.
+    if d["type"].as_u64() == Some(25) { return 0; }
     let mut b=d["status"]["buttons"].as_u64().unwrap_or(0);
     if pressed(d,"ZL") {b|=1<<40;} if pressed(d,"ZR") {b|=1<<41;}
     b

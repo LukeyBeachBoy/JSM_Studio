@@ -100,7 +100,13 @@ export const RIGHT_STICK_BUTTONS: ButtonDefinition[] = [
   { command: 'RTOUCH', descriptionKey: 'buttons.descriptions.rightStickTouch', playstation: 'RS Touch', xbox: 'RS Touch' },
 ]
 
+export const AZERON_BUTTONS: ButtonDefinition[] = Array.from({ length: 32 }, (_, index) => ({
+  command: `JOY${index + 1}`, descriptionKey: `Joystick button ${index + 1}`,
+  playstation: `Button ${index + 1}`, xbox: `Button ${index + 1}`,
+}))
+
 export const MISC_BUTTONS: ButtonDefinition[] = [
+  ...AZERON_BUTTONS,
   { command: 'MISC2', descriptionKey: 'buttons.descriptions.extraButton2', playstation: 'Misc 2', xbox: 'Misc 2', steam: 'Right pad click' },
   { command: 'MISC3', descriptionKey: 'buttons.descriptions.extraButton3', playstation: 'Misc 3', xbox: 'Misc 3', steam: 'Left pad click' },
   { command: 'MISC4', descriptionKey: 'buttons.descriptions.extraButton4', playstation: 'Misc 4', xbox: 'Misc 4', steam: 'Left pad touch' },

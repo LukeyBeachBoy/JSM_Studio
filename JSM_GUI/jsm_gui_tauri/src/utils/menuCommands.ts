@@ -10,5 +10,5 @@ export function parseMenuCommand(value: string) {
 }
 export function menuCommandLabel(value: string, name?: string) {
   const command = parseMenuCommand(value)
-  return command ? `${MENU_COMMANDS.find(item => item.verb === command.verb)?.label} menu · ${name ?? command.id}` : null
+  return command ? `${command.verb === 'HOLD' ? 'Virtual menu while held' : `${MENU_COMMANDS.find(item => item.verb === command.verb)?.label} virtual menu`} · ${name ?? command.id}` : null
 }

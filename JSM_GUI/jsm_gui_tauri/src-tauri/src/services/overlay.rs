@@ -16,9 +16,9 @@
 //! foreground window's display every time it is placed, instead of staying on
 //! whichever monitor it happened to be created on.
 
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicBool, Ordering};
 
-use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 
 use crate::services::app_state::{AppState, DEFAULT_OVERLAY_INTERVAL_US};
 
@@ -28,6 +28,151 @@ pub const OVERLAY_LABEL: &str = "overlay";
 /// throttle the overlay below what a 60 Hz panel needs.
 const MIN_HZ: u32 = 30;
 const MAX_HZ: u32 = 1000;
+static DISPLAY_SETTLING: AtomicBool = AtomicBool::new(false);
+
+#[cfg(target_os = "windows")]
+mod display_layout {
+    use std::time::{Duration, Instant};
+    use windows_sys::Win32::{
+        Foundation::{HWND, LPARAM, RECT},
+        Graphics::Gdi::{EnumDisplayMonitors, HDC, HMONITOR},
+        UI::WindowsAndMessaging::{ShowWindowAsync, SW_HIDE, SW_SHOWNOACTIVATE},
+    };
+
+    type Layout = Vec<(i32, i32, i32, i32)>;
+    #[derive(Default)]
+    pub(super) struct Settling { last: Option<Layout>, changed_at: Option<Instant> }
+    impl Settling {
+        // A burst of monitor changes is one transition. The initial snapshot
+        // does not show a disabled overlay or disturb its startup placement.
+        pub(super) fn observe(&mut self, next: Layout, now: Instant) -> Option<bool> {
+            if self.last.as_ref() != Some(&next) {
+                let initial = self.last.is_none();
+                self.last = Some(next);
+                if initial { return None; }
+                let began = self.changed_at.is_none();
+                self.changed_at = Some(now);
+                return began.then_some(false);
+            }
+            if self.changed_at.is_some_and(|at| now.duration_since(at) >= Duration::from_millis(750)) {
+                self.changed_at = None;
+                return Some(true);
+            }
+            None
+        }
+    }
+    pub(super) fn snapshot() -> Option<Layout> {
+        unsafe extern "system" fn visit(_: HMONITOR, _: HDC, rect: *mut RECT, data: LPARAM) -> i32 {
+            let rect = unsafe { *rect };
+            unsafe { &mut *(data as *mut Layout) }.push((rect.left, rect.top, rect.right, rect.bottom));
+            1
+        }
+        let mut layout = Layout::new();
+        // GDI rectangles only: no WebView monitor enumeration, display-mode
+        // queries, device reconnection, or controller locks in this path.
+        if unsafe { EnumDisplayMonitors(std::ptr::null_mut(), std::ptr::null(), Some(visit), &mut layout as *mut _ as LPARAM) } == 0 {
+            return None;
+        }
+        layout.sort_unstable();
+        Some(layout)
+    }
+    pub(super) fn show(hwnd: HWND, visible: bool) {
+        unsafe { ShowWindowAsync(hwnd, if visible { SW_SHOWNOACTIVATE } else { SW_HIDE }); }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        #[test]
+        fn hdmi_burst_hides_once_and_recovers_only_after_settling() {
+            let mut state = Settling::default();
+            let now = Instant::now();
+            let desk = vec![(0, 0, 2560, 1440)];
+            let tv = vec![(0, 0, 2560, 1440), (2560, 0, 6400, 2160)];
+            assert_eq!(state.observe(desk.clone(), now), None);
+            assert_eq!(state.observe(tv, now + Duration::from_millis(250)), Some(false));
+            assert_eq!(state.observe(desk.clone(), now + Duration::from_millis(500)), None);
+            assert_eq!(state.observe(desk.clone(), now + Duration::from_millis(1000)), None);
+            assert_eq!(state.observe(desk.clone(), now + Duration::from_millis(1250)), Some(true));
+            assert_eq!(state.observe(desk, now + Duration::from_secs(3)), None);
+        }
+    }
+}
+
+/// Watch actual profile writes, including imported files edited outside Studio.
+/// The blocking directory read belongs to its own thread, never the WebView or
+/// the mapper. Non-config writes (calibration, icons, diagnostics) are ignored.
+pub fn start_config_watch(app: AppHandle) {
+    #[cfg(target_os = "windows")]
+    std::thread::spawn(move || {
+        use std::os::windows::ffi::OsStrExt;
+        use windows_sys::Win32::{
+            Foundation::{CloseHandle, INVALID_HANDLE_VALUE},
+            Storage::FileSystem::{CreateFileW, ReadDirectoryChangesW, FILE_FLAG_BACKUP_SEMANTICS,
+                FILE_LIST_DIRECTORY, FILE_NOTIFY_CHANGE_FILE_NAME, FILE_NOTIFY_CHANGE_LAST_WRITE,
+                FILE_SHARE_DELETE, FILE_SHARE_READ, FILE_SHARE_WRITE, OPEN_EXISTING},
+        };
+        let Ok(root) = crate::runtime::runtime_dir(&app) else { return };
+        let path: Vec<u16> = root.as_os_str().encode_wide().chain(Some(0)).collect();
+        unsafe {
+            let directory = CreateFileW(path.as_ptr(), FILE_LIST_DIRECTORY,
+                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, std::ptr::null(),
+                OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, std::ptr::null_mut());
+            if directory == INVALID_HANDLE_VALUE { eprintln!("Could not watch overlay configurations: {}", std::io::Error::last_os_error()); return; }
+            let mut buffer = [0u32; 4096];
+            loop {
+                let mut bytes = 0;
+                if ReadDirectoryChangesW(directory, buffer.as_mut_ptr().cast(), std::mem::size_of_val(&buffer) as u32,
+                    1, FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_LAST_WRITE,
+                    &mut bytes, std::ptr::null_mut(), None) == 0 { break; }
+                let notifications = std::slice::from_raw_parts(buffer.as_ptr().cast::<u8>(), bytes as usize);
+                if config_notifications(notifications) {
+                    let _ = app.emit_to(OVERLAY_LABEL, "overlay-config-changed", ());
+                }
+            }
+            CloseHandle(directory);
+        }
+    });
+    #[cfg(not(target_os = "windows"))]
+    let _ = app;
+}
+
+#[cfg(any(target_os = "windows", test))]
+fn config_notifications(bytes: &[u8]) -> bool {
+    // An overflow has no records: invalidate once rather than miss a change.
+    if bytes.is_empty() { return true; }
+    let mut offset = 0;
+    while let Some(header) = bytes.get(offset..offset + 12) {
+        let next = u32::from_le_bytes(header[0..4].try_into().unwrap()) as usize;
+        let length = u32::from_le_bytes(header[8..12].try_into().unwrap()) as usize;
+        let Some(name) = bytes.get(offset + 12..offset + 12 + length) else { return true };
+        let name: Vec<u16> = name.chunks_exact(2).map(|c| u16::from_le_bytes([c[0], c[1]])).collect();
+        if String::from_utf16_lossy(&name).to_ascii_lowercase().ends_with(".txt") { return true; }
+        if next == 0 { break; }
+        if next < 12 { return true; }
+        offset += next;
+    }
+    false
+}
+
+#[cfg(test)]
+mod config_watch_tests {
+    use super::config_notifications;
+    #[test]
+    fn refreshes_imports_but_ignores_runtime_diagnostics() {
+        let record = |name: &str| {
+            let name: Vec<u8> = name.encode_utf16().flat_map(u16::to_le_bytes).collect();
+            let mut bytes = vec![0; 12];
+            bytes[8..12].copy_from_slice(&(name.len() as u32).to_le_bytes());
+            bytes.extend(name);
+            bytes
+        };
+        assert!(config_notifications(&record("bases\\Shared.TXT")));
+        assert!(!config_notifications(&record("window-icons.json")));
+        assert!(!config_notifications(&record("GyroCalibration.dat")));
+        assert!(config_notifications(&[]));
+    }
+}
 
 // TOPMOST is a band, not a promise to stay above every other topmost window.
 // When a borderless-fullscreen game takes focus the shell promotes it to the
@@ -38,9 +183,27 @@ const MAX_HZ: u32 = 1000;
 // reliably rescue itself.
 pub fn start_stacking_guard(app: AppHandle) {
     #[cfg(target_os = "windows")]
-    std::thread::spawn(move || loop {
-        refresh_stacking(&app);
-        std::thread::sleep(std::time::Duration::from_millis(250));
+    std::thread::spawn(move || {
+        let mut layout = display_layout::Settling::default();
+        loop {
+            if let Some(monitors) = display_layout::snapshot() {
+                if let Some(ready) = layout.observe(monitors, std::time::Instant::now()) {
+                    DISPLAY_SETTLING.store(!ready, Ordering::Relaxed);
+                    reset_refresh(&app.state::<AppState>());
+                    // Never wait on the WebView's UI thread from this guard or
+                    // the foreground hook. HDMI/DPI transitions can stall it.
+                    if let Some(window) = app.get_webview_window(OVERLAY_LABEL) {
+                        if let Ok(hwnd) = window.hwnd() {
+                            let enabled = app.state::<AppState>().overlay_active.load(Ordering::Relaxed);
+                            display_layout::show(hwnd.0 as _, ready && enabled);
+                        }
+                    }
+                    let _ = app.emit_to(OVERLAY_LABEL, "overlay-display-ready", ready);
+                }
+            }
+            refresh_stacking(&app);
+            std::thread::sleep(std::time::Duration::from_millis(250));
+        }
     });
     #[cfg(not(target_os = "windows"))]
     let _ = app;
@@ -48,12 +211,13 @@ pub fn start_stacking_guard(app: AppHandle) {
 
 /// Every window of ours that must stay above a game. Hidden ones are skipped
 /// inside `repair`, so this is cheap while nothing is on screen.
-const TOPMOST_LABELS: [&str; 3] = [OVERLAY_LABEL, crate::services::hud::HUD_LABEL, crate::services::virtual_keyboard::LABEL];
+const TOPMOST_LABELS: [&str; 4] = [OVERLAY_LABEL, crate::services::hud::HUD_LABEL, crate::services::virtual_keyboard::LABEL, crate::services::slot_toast::LABEL];
 
 /// Raise any of our topmost windows that another window has climbed above.
 /// Never shows a hidden window or moves keyboard focus; when nothing covers
 /// them it only reads the z-order.
 pub fn refresh_stacking(app: &AppHandle) {
+    if DISPLAY_SETTLING.load(Ordering::Relaxed) { return; }
     #[cfg(target_os = "windows")]
     for label in TOPMOST_LABELS {
         if let Some(window) = app.get_webview_window(label) {
@@ -72,7 +236,7 @@ pub fn refresh_stacking(app: &AppHandle) {
 mod stacking {
     use windows_sys::Win32::{Foundation::{HWND, RECT}, UI::WindowsAndMessaging::{
         GetWindow, GetWindowLongPtrW, GetWindowRect, IsIconic, IsWindowVisible,
-        SetWindowPos, GWL_EXSTYLE, GW_HWNDPREV, HWND_TOPMOST, SWP_NOACTIVATE,
+        SetWindowPos, GWL_EXSTYLE, GW_HWNDPREV, HWND_TOPMOST, SWP_ASYNCWINDOWPOS, SWP_NOACTIVATE,
         SWP_NOMOVE, SWP_NOSIZE, WS_EX_TOPMOST, WS_EX_TRANSPARENT,
     }};
 
@@ -106,7 +270,7 @@ mod stacking {
             }
             if !covered { return Ok(false); }
             if SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0,
-                SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE) == 0 {
+                SWP_ASYNCWINDOWPOS | SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE) == 0 {
                 return Err(std::io::Error::last_os_error());
             }
             Ok(true)
@@ -201,7 +365,7 @@ pub fn ensure(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
 pub fn set_enabled(app: &AppHandle, state: &AppState, enabled: bool) -> Result<(), String> {
     if enabled {
         let window = ensure(app)?;
-        let _ = window.show();
+        if !DISPLAY_SETTLING.load(Ordering::Relaxed) { let _ = window.show(); }
         let _ = window.set_ignore_cursor_events(true);
         // set_always_on_top(true) would be a no-op here: the flag never went
         // away. What can have changed is the z-order under it.
@@ -237,7 +401,22 @@ pub fn reset_refresh(state: &AppState) {
 /// Position and size in physical screen pixels, so a config can pin each pad's
 /// menu wherever the user wants it rather than assuming one blob in the middle.
 pub fn set_bounds(app: &AppHandle, x: i32, y: i32, width: u32, height: u32) -> Result<(), String> {
-    let window = ensure(app)?;
+    if DISPLAY_SETTLING.load(Ordering::Relaxed) { return Err("Display layout is changing".into()); }
+    let window = app.get_webview_window(OVERLAY_LABEL).ok_or("Overlay is not prepared")?;
+    #[cfg(target_os = "windows")]
+    {
+        use windows_sys::Win32::UI::WindowsAndMessaging::{SetWindowPos, SWP_ASYNCWINDOWPOS,
+            SWP_NOACTIVATE, SWP_NOOWNERZORDER, SWP_NOZORDER};
+        let hwnd = window.hwnd().map_err(|error| error.to_string())?;
+        // One asynchronous move+resize, not three synchronous cross-thread
+        // requests while Windows is negotiating the new HDMI mode and DPI.
+        let ok = unsafe { SetWindowPos(hwnd.0 as _, std::ptr::null_mut(), x, y,
+            width.clamp(64, i32::MAX as u32) as i32, height.clamp(64, i32::MAX as u32) as i32,
+            SWP_ASYNCWINDOWPOS | SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER) };
+        return if ok != 0 { Ok(()) } else { Err(std::io::Error::last_os_error().to_string()) };
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
     let position = tauri::PhysicalPosition::new(x, y);
     window
         .set_position(position)
@@ -250,6 +429,7 @@ pub fn set_bounds(app: &AppHandle, x: i32, y: i32, width: u32, height: u32) -> R
     // already overrides that; this puts the position back too.
     let _ = window.set_position(position);
     Ok(())
+    }
 }
 
 /// The display the player is looking at: the one holding the foreground window
@@ -257,7 +437,28 @@ pub fn set_bounds(app: &AppHandle, x: i32, y: i32, width: u32, height: u32) -> R
 /// Physical pixels, plus the display's scale factor so the caller can size a
 /// menu for the display it is about to land on rather than the one it left.
 pub fn workarea(app: &AppHandle) -> Result<(i32, i32, u32, u32, f64), String> {
-    let window = ensure(app)?;
+    if DISPLAY_SETTLING.load(Ordering::Relaxed) { return Err("Display layout is changing".into()); }
+    let window = app.get_webview_window(OVERLAY_LABEL).ok_or("Overlay is not prepared")?;
+    #[cfg(target_os = "windows")]
+    {
+        use windows_sys::Win32::{Graphics::Gdi::{GetMonitorInfoW, MonitorFromWindow,
+            MONITORINFO, MONITOR_DEFAULTTONEAREST}, UI::{HiDpi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI},
+            WindowsAndMessaging::GetForegroundWindow}};
+        let hwnd = window.hwnd().map_err(|error| error.to_string())?;
+        let foreground = unsafe { GetForegroundWindow() };
+        let target = if foreground.is_null() { hwnd.0 as _ } else { foreground };
+        let monitor = unsafe { MonitorFromWindow(target, MONITOR_DEFAULTTONEAREST) };
+        let mut info: MONITORINFO = unsafe { std::mem::zeroed() };
+        info.cbSize = std::mem::size_of::<MONITORINFO>() as u32;
+        if unsafe { GetMonitorInfoW(monitor, &mut info) } == 0 { return Err(std::io::Error::last_os_error().to_string()); }
+        let (mut dpi_x, mut dpi_y) = (96, 96);
+        unsafe { GetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &mut dpi_x, &mut dpi_y); }
+        let bounds = info.rcMonitor;
+        return Ok((bounds.left, bounds.top, (bounds.right - bounds.left).max(1) as u32,
+            (bounds.bottom - bounds.top).max(1) as u32, dpi_x as f64 / 96.0));
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
     let monitor = target_monitor(app, &window)
         .ok_or_else(|| "No monitor reported for the overlay.".to_string())?;
     let position = monitor.position();
@@ -269,6 +470,7 @@ pub fn workarea(app: &AppHandle) -> Result<(i32, i32, u32, u32, f64), String> {
         size.height,
         monitor.scale_factor(),
     ))
+    }
 }
 
 /// Shared with the calibration HUD, which wants the same display.

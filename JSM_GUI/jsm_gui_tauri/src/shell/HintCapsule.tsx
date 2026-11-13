@@ -1,3 +1,4 @@
+import { inputContent } from '../components/glyphs/InputText'
 import { useEffect, useState, type MouseEvent, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { ControllerVisualFamily } from '../utils/controllerStatus'
@@ -93,7 +94,7 @@ const withStepping = (hints: Hint[]): Hint[] => {
   // Category, Topic); on the Settings rail itself they step categories.
   const inRail = Boolean(document.activeElement?.closest('.section-list'))
   const stepping = inRail && shell?.dataset.hub === 'settings' ? 'Category' : shell?.dataset.stepLabel ?? 'Section'
-  const steps = Boolean(document.querySelector('.section-list')) || shell?.dataset.steps === 'true'
+  const steps = (document.querySelector('.section-list')?.querySelectorAll('button').length ?? 0) > 1 || shell?.dataset.steps === 'true'
   // Settings has no tabs: its categories are the rail (V6), so LB/RB do nothing.
   const tabs = shell?.dataset.hub !== 'settings'
   return [
@@ -112,7 +113,7 @@ const withHome = (hints: Hint[]): Hint[] => {
   if (overlayOpen()) return hints
   const group = pageGroup()
   if (group === 'studio') return hints.map(hint => hint.button === 'B' && hint.label === 'Back' ? { ...hint, label: 'Home' } : hint)
-  if (group === 'home' && !hints.some(hint => hint.button === 'MENU')) return [...hints, { button: 'MENU', label: 'Tap: options · hold: save & make live' }]
+  if (group === 'home' && !hints.some(hint => hint.button === 'MENU')) return [...hints, { button: 'MENU', label: 'Options' }]
   return hints
 }
 
@@ -236,7 +237,7 @@ export function HintCapsule({ width, family, controller: connected, override, wh
   // Declared hints arrive de-duplicated; the shell's own and an override may not.
   const shown = { ...base, hints: onePerButton([...base.hints, ...(extraHints ?? []).filter(extra => !base.hints.some(hint => hint.button === extra.button))]) }
   // At 1024 the stepping hints keep their glyphs but drop their labels.
-  const quiet = (button: HintButton) => width !== 'wide' && (button === 'LB/RB' || button === 'LT/RT')
+  void width
   // Console v2 Kit: "Order never changes: A, X, Y, triggers, bumpers, B" -- with
   // ◂ ▸ first where a row takes it, and View / Menu before B.
   const ordered = [...shown.hints].sort((a, b) => HINT_ORDER.indexOf(a.button) - HINT_ORDER.indexOf(b.button))
@@ -253,23 +254,23 @@ export function HintCapsule({ width, family, controller: connected, override, wh
               <HalfBadge button={half} family={family} controller={controller} />
             </button>
           ))}
-          {!quiet(hint.button) && <span>{label}</span>}
+          <span>{inputContent(label)}</span>
         </span>
       )
     }
     if (single || hint.button === 'VIEW+MENU') {
       return (
         <button key={hint.button} type="button" tabIndex={-1} className="hint-capsule__item hint-capsule__press" data-hint-press={hint.button}
-          onMouseDown={keepFocus} onClick={() => pressPadButton(single ? { button: single } : { exitTest: true })}>
+          aria-label={label} onMouseDown={keepFocus} onClick={() => pressPadButton(single ? { button: single } : { exitTest: true })}>
           <Badge button={hint.button} family={family} controller={controller} />
-          {!quiet(hint.button) && <span>{label}</span>}
+          <span>{inputContent(label)}</span>
         </button>
       )
     }
     return (
       <span key={hint.button} className="hint-capsule__item">
         <Badge button={hint.button} family={family} controller={controller} />
-        {!quiet(hint.button) && <span>{label}</span>}
+        <span>{inputContent(label)}</span>
       </span>
     )
   }
@@ -280,11 +281,11 @@ export function HintCapsule({ width, family, controller: connected, override, wh
     <div className="hint-capsule" data-focusable="false" role="status" aria-live="off" aria-label={t('hints.Controls', 'Controls')}>
       {caption
         ? <span className="hint-capsule__where hint-capsule__where--caption" data-focus-caption="">
-            {caption.label && <b className="hint-capsule__caption-label">{caption.label}</b>}
-            <span className="hint-capsule__caption-help">{caption.help}</span>
+            {caption.label && <b className="hint-capsule__caption-label">{inputContent(caption.label)}</b>}
+            <span className="hint-capsule__caption-help">{inputContent(caption.help)}</span>
           </span>
-        : <span className="hint-capsule__where">{where}</span>}
-      {mode && <span className="hint-capsule__mode" data-mode=""><span className="hint-capsule__mode-dot" style={{ background: mode.color }} aria-hidden="true" />{mode.name} layer</span>}
+        : <span className="hint-capsule__where">{inputContent(where)}</span>}
+      {mode && <span className="hint-capsule__mode" data-mode=""><span className="hint-capsule__mode-dot" style={{ background: mode.color }} aria-hidden="true" />{mode.name}</span>}
       {shown.message && <span className="hint-capsule__message">{translateHintLabel(t, shown.message)}</span>}
       {ordered.map(render)}
     </div>

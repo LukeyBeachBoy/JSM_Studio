@@ -16,6 +16,7 @@ type GlyphProps = {
 }
 
 const SMALL_CUT_MAX = 20
+const MOUSE_BUTTONS: Record<string, string> = { MOUSE_BACK: 'back', BMOUSE: 'back', MOUSE_FORWARD: 'forward', FMOUSE: 'forward', LMOUSE: 'left', RMOUSE: 'right', MMOUSE: 'middle', SCROLLUP: 'up', SCROLLDOWN: 'down' }
 
 const TEXT_ATTRS = `text-anchor="middle" dominant-baseline="central" font-family="Geist, 'Segoe UI', system-ui" font-weight="700"`
 const label = (x: number, y: number, size: number, text: string, fill = 'currentColor') =>
@@ -82,6 +83,22 @@ const NINTENDO_SMALL_LETTERS: Record<string, string> = { S: 'B', E: 'A', W: 'Y',
  * instead of falling through to a lettered disc that read "LT" for a region.
  */
 const patternGlyph = (key: string, small: boolean): string | null => {
+  const paddle = ({ LSL: 'L4', LSR: 'L5', RSR: 'R4', RSL: 'R5' } as Record<string, string>)[key]
+  if (paddle) return `<rect x="2" y="2" width="20" height="20" rx="6" fill="none" stroke="currentColor" stroke-width="2"/>` + label(12, 12, small ? 10 : 9, paddle)
+  // Shared mouse silhouette. The filled region identifies the button; side
+  // buttons sit front/back on the thumb edge, rather than reading as "MO".
+  const mouse = MOUSE_BUTTONS[key]
+  if (mouse) {
+    const body = '<path d="M7 10V8a7 7 0 0 1 14 0v8a7 7 0 0 1-14 0v-2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M14 2v7M8 10h12" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/>'
+    const side = `<rect x="3" y="8" width="4" height="5" rx="1.5" fill="${mouse === 'forward' ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.3"/><rect x="3" y="15" width="4" height="5" rx="1.5" fill="${mouse === 'back' ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.3"/>`
+    const pressed = mouse === 'left' ? '<path d="M9 9V8a5 5 0 0 1 4-4.9V9Z" fill="currentColor"/>'
+      : mouse === 'right' ? '<path d="M15 3.1A5 5 0 0 1 19 8v1h-4Z" fill="currentColor"/>'
+      : mouse === 'middle' ? '<rect x="12.3" y="4" width="3.4" height="5" rx="1.7" fill="currentColor"/>'
+      : mouse === 'up' || mouse === 'down' ? `<path d="${mouse === 'up' ? 'M14 19v-6m-3 3 3-3 3 3' : 'M14 13v6m-3-3 3 3 3-3'}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>` : ''
+    return body + side + pressed
+  }
+  const joystick = key.match(/^JOY([1-9]|[12]\d|3[0-2])$/)
+  if (joystick) return `<rect x="2" y="2" width="20" height="20" rx="5" fill="currentColor"/>` + label(12, 12, small ? 11 : 10, joystick[1], 'var(--glyph-ink)')
   const region = key.match(/^([LR]?)T(\d+)$/)
   if (region) {
     const n = region[2]
@@ -156,6 +173,8 @@ export const glyphMarkup = (command: string, family: ControllerVisualFamily = 'g
     if (svg) return svg
   }
 
+  if (['LSL', 'LSR', 'RSR', 'RSL'].includes(key)) return patternGlyph(key, small)!
+
   if (STICK_CLICKS[key]) return stickClick(STICK_CLICKS[key], small)
 
   if (small) {
@@ -175,6 +194,8 @@ export const glyphMarkup = (command: string, family: ControllerVisualFamily = 'g
 }
 
 export function InputGlyph({ command, family = 'generic', size = 16, className, title }: GlyphProps) {
+  const mouse = MOUSE_BUTTONS[command.toUpperCase()]
+  title ??= mouse ? (mouse === 'up' || mouse === 'down' ? `Scroll ${mouse}` : `Mouse ${mouse[0].toUpperCase()}${mouse.slice(1)}`) : undefined
   const markup = (title ? `<title>${title.replace(/[<&]/g, c => (c === '<' ? '&lt;' : '&amp;'))}</title>` : '') + glyphMarkup(command, family, size)
   return (
     <svg

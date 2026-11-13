@@ -1,3 +1,4 @@
+import { inputContent } from '../../glyphs/InputText'
 import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from 'react'
 import { SubPage } from '../../ui/console'
 import { ButtonGlyph } from '../../glyphs/ButtonGlyph'
@@ -92,8 +93,8 @@ export function PickerPage({ onClose, input, lead, eyebrow, title, where, header
         <header className={styles.header}>
           <span className={styles.lead} aria-hidden="true">{lead ?? (input ? <InputGlyph command={input} family={family} size={48} /> : null)}</span>
           <div className={styles.titles}>
-            <span className={styles.eyebrow}>{eyebrow}</span>
-            <h2 id={titleId} className={styles.title}>{title}</h2>
+            <span className={styles.eyebrow}>{inputContent(eyebrow)}</span>
+            <h2 id={titleId} className={styles.title}>{inputContent(title)}</h2>
           </div>
           {headerAction && (
             <button type="button" className={styles.headerAction} tabIndex={-1} onClick={headerAction.onPress} data-nav-skip>
@@ -141,7 +142,7 @@ export function PickerAside({ eyebrow = 'Selected', art, name, scope, children, 
 }) {
   return (
     <>
-      <span className={styles.lbl}>{eyebrow}</span>
+      <span className={styles.lbl}>{inputContent(eyebrow)}</span>
       {art && <div className={styles.asideArt}>{art}</div>}
       <div className={styles.asideName}>
         <span className={styles.asideTitle}>{name}</span>

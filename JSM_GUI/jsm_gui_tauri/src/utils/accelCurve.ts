@@ -103,7 +103,9 @@ export function accelSensitivityAt(speed: number, p: AccelCurveParams): number {
   const base = baseAccelSensitivityAt(speed, p)
   if (factor >= 1) return base
   const floor = Number.isFinite(s.floor) ? Math.min(Math.max(0, s.floor), Math.max(0, base)) : 0
-  return floor + factor * (base - floor)
+  // Match gyroSteadyingSensitivity: C2-continuous, stateless floor recovery.
+  const blend = clampUnit(factor * factor * factor * (10 + factor * (-15 + 6 * factor)))
+  return floor + blend * (base - floor)
 }
 
 function baseAccelSensitivityAt(speed: number, p: AccelCurveParams): number {

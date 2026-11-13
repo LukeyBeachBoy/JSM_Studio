@@ -1,4 +1,4 @@
-import { menuCommandLabel } from './menuCommands'
+import { menuCommandLabel, parseMenuCommand } from './menuCommands'
 import type { TFunction } from 'i18next'
 import { parseBindingExpression, type BindingToken } from './keymap'
 import { loadConfigBindingName } from './loadConfigBinding'
@@ -45,6 +45,10 @@ const SPECIAL_OUTPUT_LABEL_KEYS: Record<string, string> = {
 
 /** What one output token is called, before any modifier is applied to it. */
 const outputName = (value: string, t: TFunction): string => {
+  if (/^"?LAYER_(REMOVE|APPLY|TOGGLE|HOLD)\s+/i.test(value)) {
+    const verb = /^"?LAYER_(\w+)/i.exec(value)?.[1].toUpperCase()
+    return `${({ REMOVE: 'Turn off', APPLY: 'Turn on', TOGGLE: 'Toggle', HOLD: 'Hold' } as Record<string, string>)[verb ?? ''] ?? 'Change'} layer`
+  }
   const rumble = parseRumbleBinding(value)
   if (rumble) return t('bindingText.output.rumbleStrength', { defaultValue: 'Rumble · small {{small}}%, big {{big}}%', small: Math.round(rumble.small * 100 / 255), big: Math.round(rumble.big * 100 / 255) })
   const menu = menuCommandLabel(value); if (menu) return menu
@@ -157,6 +161,9 @@ const parseTokens = (value: string): BindingToken[] => {
  * token this does not model is still shown rather than swallowed.
  */
 export const describeBinding = (value: string, t: TFunction): string => {
+  // Console commands already parsed by the binding editor arrive without
+  // quotes. Keep their argument together; it is not another keyboard key.
+  if (/^"?LAYER_(REMOVE|APPLY|TOGGLE|HOLD)\s+[^"\s]+"?$/i.test(value.trim())) return outputName(value.trim(), t)
   const menu = menuCommandLabel(value); if (menu) return menu
   const sound = playSoundLabel(value)
   if (sound) return sound
@@ -221,7 +228,15 @@ export const explainLayerAction = (action: LayerAction, inputName: string, t: TF
 
 /** A command's output in words, whatever its source: the row, the summary
  *  and the sheet title all read from here so they cannot disagree. */
-export const describeCommandOutput = (command: BindingCommand, layers: readonly Pick<ConfigLayer, 'id' | 'name'>[], t: TFunction): string => {
+export const describeCommandOutput = (command: BindingCommand, layers: readonly Pick<ConfigLayer, 'id' | 'name'>[], t: TFunction, menus: readonly { id: string; name: string }[] = []): string => {
+  const layerCommand = /^"?LAYER_(REMOVE|APPLY|TOGGLE|HOLD)\s+([^"\s]+)"?$/i.exec(command.outputValue.trim())
+  if (layerCommand) {
+    const name = layers.find(layer => layer.id === layerCommand[2])?.name ?? 'layer'
+    const verb = { REMOVE: 'Turn off', APPLY: 'Turn on', TOGGLE: 'Toggle', HOLD: 'Hold' }[layerCommand[1].toUpperCase()]
+    return `${verb} ${name}`
+  }
+  const menu = parseMenuCommand(command.outputValue)
+  if (menu) return menuCommandLabel(command.outputValue, menus.find(item => item.id === menu.id)?.name)!
   if (command.source.kind === 'heldLed') return t('bind.lightWhileHeld', 'Light while held')
   if (/^LIGHT_BAR\s*=/i.test(command.outputValue)) return 'Change light colour'
   if (command.source.kind === 'layerAction') return describeLayerAction(command.source.action, layers, t)

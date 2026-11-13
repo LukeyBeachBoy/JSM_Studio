@@ -22,6 +22,7 @@ import { LibraryCover } from './library/LibraryCover'
 import { MoreSheet, BasePickerSheet, type MoreItem } from './library/LibrarySheets'
 import styles from './library/Library.module.css'
 import { landOn } from '../nav/landing'
+import { SlotAssignment } from './SlotsPage'
 import { SubPage } from './ui/console'
 import { windowsSignInGuide } from '../utils/windowsSignInGuide'
 import steamFrontArt from '../assets/steam-controller-front.svg?raw'
@@ -79,6 +80,12 @@ export function ProfileManager(props: ProfileManagerProps) {
   const { graph, texts, rules, fallback, chords, meta, builtinBases } = data
   const now = useClock()
   const [selected, setSelected] = useState<string | null>(null)
+  const [configDirectory, setConfigDirectory] = useState<string | null>(null)
+  useEffect(() => {
+    let active = true
+    desktopBridge.getConfigDirectory().then(path => { if (active) setConfigDirectory(path) }).catch(error => showToast(String(error), 'error'))
+    return () => { active = false }
+  }, [])
   const [moreFor, setMoreFor] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [baseFor, setBaseFor] = useState<string | null>(null)
@@ -118,7 +125,7 @@ export function ProfileManager(props: ProfileManagerProps) {
     if (name === desktopName) return 'When no game matches'
     const facts = graph.configs[name]
     const rule = ruleFor(name)
-    return baseText(facts) ?? (rule && !rule.paused ? 'Launches with game' : rule ? 'Art only' : facts?.sends ?? 'Configuration')
+    return baseText(facts) ?? (rule && !rule.paused ? 'Switches for game' : rule ? 'Art only' : facts?.sends ?? 'Configuration')
   }
 
   const games = useMemo(() => {
@@ -162,7 +169,7 @@ export function ProfileManager(props: ProfileManagerProps) {
   const rename = (name: string) => {
     setMoreFor(null)
     requestValueEntry({
-      title: 'Rename', eyebrow: `Library · ${name}`, value: name, hint: 'The file is renamed too; Launch with game and Hold to swap follow it.',
+      title: 'Rename', eyebrow: `Library · ${name}`, value: name, hint: 'The file is renamed too; Auto-switch and Hold to swap follow it.',
       onDone: next => { const trimmed = next.trim(); if (trimmed && trimmed !== name) void Promise.resolve(onRename(name, trimmed)).then(libraryChanged) },
     })
   }
@@ -196,7 +203,7 @@ export function ProfileManager(props: ProfileManagerProps) {
       { key: 'duplicate', icon: 'copy', label: 'Duplicate', note: 'A copy, opened to edit', run: () => void duplicate(name) },
       { key: 'rename', icon: 'details', label: 'Rename', run: () => rename(name) },
       { key: 'base', icon: 'base', label: 'Change base', note: facts?.base ? baseLabel(facts.base, builtinBases) : 'Nothing', run: () => { setMoreFor(null); setBaseFor(name) } },
-      ...(isBase ? [] : [{ key: 'game', icon: 'associations' as const, label: 'Launch with game', note: rule ? exeFileName(rule.processName) : 'None', run: () => { setMoreFor(null); setGameFor(name) } }]),
+      ...(isBase ? [] : [{ key: 'game', icon: 'associations' as const, label: 'Auto-switch', note: rule ? exeFileName(rule.processName) : 'None', run: () => { setMoreFor(null); setGameFor(name) } }]),
       { key: 'folder', icon: 'folder', label: 'Show in folder', run: () => { setMoreFor(null); onShowInFolder() } },
       { key: 'source', icon: 'source', label: 'Edit the file directly', note: 'For experts', run: () => { setMoreFor(null); onEditSource(name) } },
     ]
@@ -296,7 +303,7 @@ export function ProfileManager(props: ProfileManagerProps) {
             <div key={game} role="listitem" className={styles.coverWrap} data-profile={game} data-editing={game === currentProfileName ? 'true' : undefined}>
               <LibraryCover name={game} sub={coverSub(game)} live={liveState(game)} compact={compact} current={game === current}
                 steamAppId={graph.configs[game]?.game?.steamAppId} exePath={gameRule?.exePath} desktop={game === desktopName}
-                hints="A:Edit;X:Make live;Y:More;B:Home"
+                hints={liveState(game) === 'live' ? 'A:Edit;Y:More;B:Home' : 'A:Edit;X:Make live;Y:More;B:Home'}
                 onFocus={() => setSelected(game)} onClick={event => { setSelected(game); if (event.detail === 0) edit(game) }} onDoubleClick={() => edit(game)} />
             </div>
           )
@@ -334,12 +341,13 @@ export function ProfileManager(props: ProfileManagerProps) {
               <span className={styles.detailFile}>{name}.txt{meta[name] ? ` · saved ${relativeTime(meta[name].modifiedAtMs, now)}` : ''}</span>
             </div>
             {signInHelp(name)}
+            <SlotAssignment profileName={name} />
             <dl className={styles.facts}>
               <div><dt>Controller</dt><dd>{controllerName ?? 'Any'}</dd></div>
               <div><dt>Sends</dt><dd>{facts.sends}</dd></div>
               <div><dt>Built on</dt><dd data-warn={problem ? 'true' : undefined}>{baseName ?? 'Nothing'}{problem?.cyclic.length ? ' · loop' : problem?.missing.length ? ' · missing' : ''}</dd></div>
               <div><dt>Layers</dt><dd><span className={styles.modeDots}>{facts.modes.map((mode, index) => <i key={mode.name} style={{ background: layerHue(layerSlotOf(index)) }} />)}{facts.modes.length}</span></dd></div>
-              {rule && <div><dt>Launches with</dt><dd className={styles.mono}>{exeFileName(rule.processName)}{rule.paused ? ' · art only' : ''}</dd></div>}
+              {rule && <div><dt>Switches for</dt><dd className={styles.mono}>{exeFileName(rule.processName)}{rule.paused ? ' · art only' : ''}</dd></div>}
             </dl>
             {name === desktopName
               ? <p className={styles.sentence}>Goes live when no game with its own configuration is in front.</p>
@@ -376,7 +384,7 @@ export function ProfileManager(props: ProfileManagerProps) {
             <button type="button" className={styles.act} data-primary="true" data-hints="A:Edit;X:Make live;Y:More;B:Home" onClick={() => edit(name)}>
               <ButtonGlyph button="A" size={26} family={family} pad />Edit
             </button>
-            <button type="button" className={styles.act} data-hints="A:Make live;Y:More;B:Home" aria-disabled={live === 'live' || isCalibrating || undefined}
+            <button type="button" className={styles.act} data-hints={live === 'live' ? 'Y:More;B:Home' : 'A:Make live;Y:More;B:Home'} aria-disabled={live === 'live' || isCalibrating || undefined}
               data-reason={live === 'live' ? 'It’s live now' : isCalibrating ? 'Calibrating' : undefined} onClick={() => { if (live !== 'live') makeLive(name) }}>
               <ButtonGlyph button="X" size={26} family={family} pad />{live === 'older' ? 'Make this version live' : live === 'live' ? 'Live now' : 'Make live'}
               {live === 'older' && <small>The live copy is from before your last save.</small>}
@@ -516,6 +524,11 @@ export function ProfileManager(props: ProfileManagerProps) {
   const deletable = moreName && moreName !== BUILTIN_CHORD_NAME
   return (
     <div className={styles.page} ref={pageRef} aria-busy={libraryLoading || data.loading || undefined} data-library-view={view}>
+      {configDirectory && <details className={styles.note} data-config-directory>
+        <summary>Configuration folder</summary>
+        <p style={{ overflowWrap: 'anywhere' }}>{configDirectory}</p>
+        <button type="button" className={styles.act} onClick={onShowInFolder} data-hints="A:Open folder;B:Home">Open folder</button>
+      </details>}
       {view === 'games' ? renderGames() : renderBases()}
       <SubPage open={signInGuideOpen} onClose={() => setSignInGuideOpen(false)} crumbRoot="Library" trail={['Windows Sign-in']} title="Button reference" backLabel="Back">
         <div className={styles.signInGuide} data-sign-in-guide="" dangerouslySetInnerHTML={{ __html: signInReference }} />

@@ -1,0 +1,9 @@
+.strip { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); padding: 0; margin: 0; background: transparent; }
+.label { color: var(--text-3); font-size: var(--fs-hint); margin-right: 4px; }
+.strip button { display: inline-flex; align-items: center; gap: var(--sp-2); border: 1px solid transparent; border-radius: var(--r-pill); padding: var(--sp-2) var(--sp-3); background: var(--surface-row); color: var(--text-2); font: inherit; cursor: pointer; }
+.strip button[aria-pressed='true'] { color: var(--surface-frame); border-color: transparent; background: var(--text-1); font-weight: var(--fw-semibold); }
+.strip button:focus-visible { outline: 3px solid var(--focus-controller, var(--accent)); outline-offset: 3px; }
+.strip button:hover:not(:disabled) { background: var(--surface-row-hover); }
+.strip button:disabled { opacity: .5; cursor: default; }
+.strip button { min-height: 36px; }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--layer-color); }

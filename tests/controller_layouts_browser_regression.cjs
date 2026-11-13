@@ -37,7 +37,7 @@ const { chromium } = require('C:/Users/luker/.cache/codex-runtimes/codex-primary
       assert.notEqual(body, original, 'mock telemetry must use DualSense')
       await route.fulfill({ response, body })
     })
-    await page.goto('http://127.0.0.1:1420/?mock')
+    await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420/?mock')
     const onboarding = page.getByRole('dialog', { name: 'Controller power-on sound' })
     if (await onboarding.waitFor({ state: 'visible', timeout: 3000 }).then(() => true).catch(() => false)) {
       await onboarding.getByRole('button', { name: 'Keep them', exact: true }).click()
@@ -61,7 +61,8 @@ const { chromium } = require('C:/Users/luker/.cache/codex-runtimes/codex-primary
     assert(saved.includes('LEFT_TOUCHPAD_MODE = GRID_AND_STICK'));
     assert(saved.includes('LT1 = ENTER'));
     // What DualSense lacks is listed; Pick a button moves it, for DualSense only.
-    const missing = variant.getByRole('region', { name: /DualSense doesn't have/ });
+    const missing = variant.locator('details').filter({has:page.locator('summary',{hasText:'Review controls from the shared layout'})});
+    await missing.locator('summary').click();
     const grip = missing.locator('button:has(svg[data-glyph="MISC5"])').first();
     await grip.click();
     const capture = page.getByRole('dialog', { name: /Pick a button$/ });

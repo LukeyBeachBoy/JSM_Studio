@@ -34,8 +34,14 @@ export function SectionList({ sections, ariaLabel, stepLabel = 'Section' }: Sect
   const count = sections.length
   useEffect(() => { window.dispatchEvent(new Event('jsm:interaction-hint')) }, [count])
   return (
-    <nav className="section-list" data-focus-scope="sections" aria-label={ariaLabel}>
-      <span className="section-list__keys" aria-hidden="true"><ButtonGlyph button="LT" size={20} /><span>{stepLabel}</span><ButtonGlyph button="RT" size={20} /></span>
+    <nav className={`section-list${ariaLabel === 'Settings categories' ? ' section-list--settings' : ''}`} data-focus-scope="sections" aria-label={ariaLabel}>
+      {ariaLabel === 'Settings categories' && <label className="section-list__picker">Settings category
+        <select aria-label="Settings category" value={sections.find(section => section.active)?.id ?? ''}
+          onChange={event => sections.find(section => section.id === event.target.value)?.onSelect()}>
+          {sections.map(section => <option key={section.id} value={section.id}>{section.label}</option>)}
+        </select>
+      </label>}
+      {count > 1 && <span className="section-list__keys" aria-hidden="true"><ButtonGlyph button="LT" size={20} /><span>{stepLabel}</span><ButtonGlyph button="RT" size={20} /></span>}
       {sections.map(section => (
         <button key={section.id} type="button" className="section-item" data-state={section.active ? 'current' : undefined} data-divider={section.divider ? 'true' : undefined}
           aria-current={section.active ? 'true' : undefined} onClick={section.onSelect}>

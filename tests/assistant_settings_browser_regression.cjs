@@ -41,7 +41,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
     assert.match(await page.locator('[role="status"]').filter({ hasText: 'Currently' }).innerText(), /not connected/);
 
     // ChatGPT: reachable, and says why it can't be used yet.
-    await page.getByRole('radio', { name: /^Continue with ChatGPT/ }).click();
+    await page.getByRole('button', { name: 'ChatGPT connection details', exact: true }).click();
     const signIn = page.getByRole('button', { name: 'Continue with ChatGPT', exact: true });
     assert.equal(await signIn.getAttribute('aria-disabled'), 'true');
     assert.match(await signIn.getAttribute('data-reason'), /OpenAI’s approval/);

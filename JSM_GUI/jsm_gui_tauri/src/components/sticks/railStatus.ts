@@ -18,12 +18,17 @@ const firstBinding = (text: string, command: string) => {
   return raw ? raw.trim() : ''
 }
 
-export function inputRailItems(page: InputSidePage, text: string, t: TFunction, twoPads: boolean): InputRailItem[] {
+export function inputRailItems(page: InputSidePage, text: string, t: TFunction, twoPads: boolean, deviceType?: number): InputRailItem[] {
   if (page === 'joysticks') {
-    return (['left', 'right'] as const).map(side => {
+    const sides: InputSide[] = deviceType === 25 ? ['left'] : ['left', 'right']
+    return sides.map(side => {
       const mode = getKeymapValue(text, `${side === 'left' ? 'LEFT' : 'RIGHT'}_STICK_MODE`) ?? ''
+      const directional = !mode.trim() || mode.trim().toUpperCase() === 'NO_MOUSE'
+      const prefix = side === 'left' ? 'L' : 'R'
+      const boundDirections = ['UP', 'DOWN', 'LEFT', 'RIGHT'].map(direction => firstBinding(text, prefix + direction)).filter(binding => binding && binding.toUpperCase() !== 'NONE')
+      const modeLabel = directional && !boundDirections.length ? 'Directions · not bound' : stickModeName(mode)
       const wheel = mode.trim().toUpperCase() === 'RADIAL_MENU' ? ` · ${getKeymapValue(text, `${side === 'left' ? 'LEFT' : 'RIGHT'}_STICK_MENU_SIZE`) ?? 8} slices` : ''
-      return { id: `stick-${side}`, side, label: side === 'left' ? 'Left stick' : 'Right stick', status: `${stickModeName(mode)}${wheel}` }
+      return { id: `stick-${side}`, side, label: deviceType === 25 ? 'Analog stick' : side === 'left' ? 'Left stick' : 'Right stick', status: `${modeLabel}${wheel}` }
     })
   }
   if (page === 'triggers') {

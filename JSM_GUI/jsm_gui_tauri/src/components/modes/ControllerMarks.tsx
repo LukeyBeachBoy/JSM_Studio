@@ -74,18 +74,21 @@ type Props = {
 export function ControllerMarks({ device, marks, width = 140, className, label }: Props) {
   const id = useId().replace(/:/g, '')
   const key = device ? controllerArtworkModel(device) : undefined
-  const model = key ? (models as unknown as Record<string, { front: string; controls: { command: string; tag: string; attrs: Record<string, string | undefined> }[]; sticks: number[][] }>)[key] : undefined
+  const model = key ? (models as unknown as Record<string, { viewBox?: string; front: string; controls: { command: string; tag: string; attrs: Record<string, string | undefined> }[]; sticks: number[][] }>)[key] : undefined
+  const viewBox = model?.viewBox ?? '0 0 1117 750'
+  const [, , artWidth, artHeight] = viewBox.split(' ').map(Number)
   const art = useMemo(() => {
     const markup = model ? model.front : STEAM_FRONT_ART
     return { __html: markup.replace(/id="([^"]+)"/g, `id="${id}-$1"`).replace(/url\(#([^)]+)\)/g, `url(#${id}-$1)`) }
   }, [id, model])
   return (
-    <svg className={`${styles.art} ${className ?? ''}`.trim()} viewBox="0 0 1117 750" width={width} height={width * 750 / 1117}
+    <svg className={`${styles.art} ${className ?? ''}`.trim()} viewBox={viewBox} width={width} height={width * artHeight / artWidth}
       role={label ? 'img' : undefined} aria-label={label} aria-hidden={label ? undefined : true}>
       <g dangerouslySetInnerHTML={art} />
       {marks.map((mark, index) => {
         if (model) {
-          const command = mark.command.replace(/^!/, '').toUpperCase()
+          const input = mark.command.replace(/^!/, '').toUpperCase()
+          const command = key === 'azeron-cyborg' && ['UP', 'DOWN', 'LEFT', 'RIGHT'].includes(input) ? 'JOY20' : input
           const stick = /^(L3|LUP|LDOWN|LLEFT|LRIGHT|LRING|LTOUCH)$/.test(command) ? model.sticks[0] : /^(R3|RUP|RDOWN|RLEFT|RRIGHT|RRING|RTOUCH)$/.test(command) ? model.sticks[1] : undefined
           if (stick) return <ShapeMark key={index} shape={{ kind: 'circle', cx: stick[0], cy: stick[1], r: stick[2] }} color={mark.color} ring={mark.ring} />
           const control = model.controls.find(item => item.command === command)
@@ -93,8 +96,8 @@ export function ControllerMarks({ device, marks, width = 140, className, label }
           const a = control.attrs
           const shape: Shape | null = control.tag === 'circle' ? { kind: 'circle', cx: Number(a.cx), cy: Number(a.cy), r: Number(a.r) }
             : control.tag === 'rect' ? { kind: 'rect', x: Number(a.x), y: Number(a.y), w: Number(a.width), h: Number(a.height), rx: Number(a.rx ?? 8) } : null
-          if (!shape) return <path key={index} d={a.d ?? ''} fill={mark.color} fillOpacity={.85} stroke={mark.color} strokeWidth={3} />
-          return <ShapeMark key={index} shape={shape} color={mark.color} ring={mark.ring} />
+          if (!shape) return <path key={index} transform={a.transform} d={a.d ?? ''} fill={mark.color} fillOpacity={.85} stroke={mark.color} strokeWidth={3} />
+          return <g key={index} transform={a.transform}><ShapeMark shape={shape} color={mark.color} ring={mark.ring} /></g>
         }
         const where = steamKey(mark.command)
         return where ? <ShapeMark key={index} shape={STEAM[where]} color={mark.color} ring={mark.ring} /> : null

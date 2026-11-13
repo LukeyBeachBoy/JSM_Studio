@@ -1597,8 +1597,11 @@ LINEAR, NATURAL, POWER, QUADRATIC, SIGMOID, JUMP and static sensitivity.
 Zero on both axes retains the original velocity attenuation, including its effect
 on the speed entering acceleration. When either axis has a positive floor, the
 normal curve is evaluated at the unattenuated speed, then both axes use
-`floor + factor * (curveSensitivity - floor)` with the existing linear recovery
-factor `clamp((speed - cutoff) / (recovery - cutoff), 0, 1)`.
+`floor + blend * (curveSensitivity - floor)`, where
+`t = clamp((speed - cutoff) / (recovery - cutoff), 0, 1)` and
+`blend = 6*t^5 - 15*t^4 + 10*t^3`. This smooth S-shaped blend has zero slope
+and curvature at its endpoints, joining the normal curve without a corner
+at recovery. The zero-floor legacy path still uses its original linear factor.
 No extra filtering, latency or sample history is added.
 
 A positive `GYRO_CUTOFF_SPEED` still suppresses output at/below the cutoff when

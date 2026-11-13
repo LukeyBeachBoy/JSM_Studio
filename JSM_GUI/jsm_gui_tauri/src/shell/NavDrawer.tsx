@@ -1,13 +1,14 @@
 import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Icon } from '../components/icons/Icon'
-import { CONTROL_PAGES, STUDIO_PAGES, isStudioPage, pageMeta, type PrimaryTab } from './pages'
+import { controllerPageAvailable, CONTROL_PAGES, STUDIO_PAGES, isStudioPage, pageMeta, type PrimaryTab } from './pages'
 import type { ShellSection } from './SectionList'
 import type { ControllerStatus } from './PageTabs'
 
 type NavDrawerProps = {
   open: boolean
   onClose: () => void
+  deviceType?: number
   current: PrimaryTab
   onSelect: (tab: PrimaryTab) => void
   onHome: () => void
@@ -22,7 +23,7 @@ type NavDrawerProps = {
  * current page's sections unfolded under it, and Home. It traps focus and closes on B / Esc, returning focus to the button
  * that opened it.
  */
-export function NavDrawer({ open, onClose, current, onSelect, onHome, sections, eyebrow, status }: NavDrawerProps) {
+export function NavDrawer({ open, onClose, current, onSelect, onHome, sections, eyebrow, status, deviceType }: NavDrawerProps) {
   const { t } = useTranslation()
   const panel = useRef<HTMLElement>(null)
   const opener = useRef<HTMLElement | null>(null)
@@ -60,7 +61,7 @@ export function NavDrawer({ open, onClose, current, onSelect, onHome, sections, 
       <div className="shell-drawer__scrim" data-modal-close onClick={onClose} />
       <aside id="shell-drawer" ref={panel} className="drawer" role="dialog" aria-modal="true" aria-label="Navigation" data-focus-scope="drawer" data-hints="MOVE:Move;A:Go;B:Close">
         <div className="drawer__eyebrow">{eyebrow}</div>
-        {(isStudioPage(current) ? STUDIO_PAGES : CONTROL_PAGES).map(item => {
+        {(isStudioPage(current) ? STUDIO_PAGES : CONTROL_PAGES).filter(item => controllerPageAvailable(item.tab, deviceType)).map(item => {
           const selected = item.tab === current
           return (
             <div key={item.tab} className="drawer__group">

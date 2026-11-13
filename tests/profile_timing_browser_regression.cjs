@@ -67,7 +67,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
       // Console v2: modes are chosen on Layout's mode strip (the title bar's
       // Editing layer dropdown is gone), then back to Buttons.
       await page.locator('.page-tabs').getByRole('button', { name: 'Layout', exact: true }).click()
-      await page.getByRole('group', { name: 'Showing layer' }).getByRole('button', { name: new RegExp(`^${name}`) }).first().click()
+      await page.getByRole('group', { name: 'Editing layer' }).getByRole('button', { name: new RegExp(`^${name}`) }).first().click()
       await page.locator('.page-tabs').getByRole('button', { name: 'Buttons', exact: true }).click()
     }
     await chooseLayer('Vehicle')

@@ -1,3 +1,5 @@
+import { InputText } from '../glyphs/InputText'
+import { selectedControllerSample } from '../../utils/controllerSelection'
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Dialog } from '../ui/Dialog'
@@ -72,7 +74,7 @@ export function AddModeshiftSheet({ inputName, command, family, modifiers, taken
   useEffect(() => {
     let previous = new Set<string>()
     return desktopBridge.onTelemetrySample(payload => {
-      const device = (payload as { devices?: TelemetryDevice[] } | null)?.devices?.[0]
+      const device = selectedControllerSample(payload as { devices?: TelemetryDevice[] } | null)?.devices?.[0]
       if (!device) return
       if (typeof device.supportedButtons === 'number' && device.supportedButtons > 0) {
         const all = getPressedControllerCommandSet({ ...device, status: { ...device.status, buttons: device.supportedButtons } } as TelemetryDevice)
@@ -159,7 +161,7 @@ export function AddModeshiftSheet({ inputName, command, family, modifiers, taken
                     aria-pressed={!disabled && selected === value} aria-disabled={disabled ? 'true' : undefined} data-reason={disabled ? (value === self ? 'This is the input being changed' : 'Already has a change while this is held') : undefined} data-caption={option.label}
                     data-hints="MOVE:Move;A:Next;B:Cancel" onClick={event => { if (!disabled) choose(value)(event) }}>
                     <InputGlyph command={value} family={family} size={28} className={styles.holdGlyph} />
-                    <span className={styles.holdName}>{name(option, group.key === OTHER_GROUP.key)}</span>
+                    <span className={styles.holdName}><InputText text={name(option, group.key === OTHER_GROUP.key)} /></span>
                     {sublabel(option) && <span className={styles.holdSub}>{sublabel(option)}</span>}
                   </button>
                 )

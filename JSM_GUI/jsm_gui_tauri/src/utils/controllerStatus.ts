@@ -37,6 +37,7 @@ const CONTROLLER_TYPES = {
   FLYDIGI_VADER5_PRO: 22,
   SWITCH2_PRO_CONTROLLER: 23,
   STEAM_CONTROLLER_2026: 24,
+  AZERON_CYBORG: 25,
 } as const
 
 const SPLIT_TYPES = {
@@ -210,6 +211,7 @@ export const controllerVisualFamily = (type?: number): ControllerVisualFamily =>
 }
 
 const CONTROLLER_NAMES: Record<number, string> = {
+  25: 'Azeron Cyborg 2',
   [CONTROLLER_TYPES.XBOXONE]: 'Xbox One controller',
   [CONTROLLER_TYPES.JOYCON_LEFT]: 'Joy-Con (L)',
   [CONTROLLER_TYPES.JOYCON_RIGHT]: 'Joy-Con (R)',
@@ -327,6 +329,7 @@ const BUTTON_GLYPHS: Record<ControllerVisualFamily, Partial<Record<string, strin
 }
 
 export const controllerButtonGlyph = (type: number | undefined, command: string) => {
+  if (type === 25 && /^JOY\d+$/.test(command)) return command.slice(3)
   const family = controllerVisualFamily(type)
   return BUTTON_GLYPHS[family][command] ?? command
 }
@@ -335,6 +338,11 @@ export const getPressedControllerCommandSet = (device?: TelemetryDevice) => {
   const rawButtons = device?.status?.buttons
   const buttons = typeof rawButtons === 'number' && Number.isFinite(rawButtons) ? Math.max(0, rawButtons) : 0
   const commands = new Set<string>()
+  if (device?.type === CONTROLLER_TYPES.AZERON_CYBORG) {
+    for (let i = 0; i < 32; i++) addIfPressed(commands, buttons, `JOY${i + 1}`, i)
+    ;['UP', 'RIGHT', 'DOWN', 'LEFT'].forEach((command, i) => addIfPressed(commands, buttons, command, 32 + i))
+    return commands
+  }
   // Preview raw contact from telemetry even when no digital button is down.
   // The native stage policy remains authoritative for emitted bindings.
   if (device?.type === CONTROLLER_TYPES.STEAM_CONTROLLER_2026) {
@@ -509,10 +517,29 @@ export const getPressedControllerButtons = (device?: TelemetryDevice) => {
 // retain the generic editor; confirmed devices expose only usable controls.
 export const controllerSupportsInput = (device: TelemetryDevice | undefined, command: string): boolean => {
   if (!device || !device.type) return true
+  if (device.type === CONTROLLER_TYPES.AZERON_CYBORG) {
+    if (['LUP', 'LDOWN', 'LLEFT', 'LRIGHT', 'LRING'].includes(command) || /^LM[0-9]+$/.test(command)) return true
+    return getPressedControllerCommandSet({ ...device, status: { buttons: device.supportedButtons ?? 0xf03ffffff } as NonNullable<TelemetryDevice['status']> }).has(command)
+  }
+  if (/^JOY[0-9]+$/.test(command)) return false
   if (/^[LR]M[0-9]+$/.test(command)) return true
-  if (['MUP', 'MDOWN', 'MLEFT', 'MRIGHT', 'MRING', 'LEAN_LEFT', 'LEAN_RIGHT'].includes(command)) return true
+  if (['MUP', 'MDOWN', 'MLEFT', 'MRIGHT', 'MRING', 'LEAN_LEFT', 'LEAN_RIGHT'].includes(command)) return ![6, 7, 8].includes(device.type)
   if (/^(ZL|ZR|LUP|LDOWN|LLEFT|LRIGHT|LRING|RUP|RDOWN|RLEFT|RRIGHT|RRING)/.test(command)) return true
   if (device.type === 24 && ['LTOUCH', 'RTOUCH', 'MISC4', 'TOUCH'].includes(command)) return true
   if (/^(TOUCH|TUP|TDOWN|TLEFT|TRIGHT|TRING|LT[0-9]|RT[0-9]|T[0-9])/.test(command)) return [4, 5, 24].includes(device.type)
-  return getPressedControllerCommandSet({ ...device, status: { ...device.status, buttons: device.supportedButtons ?? 2 ** 33 - 1 } as NonNullable<TelemetryDevice['status']> }).has(command)
+  // An offline model has no live capability mask. Default to its actual common
+  // controls, rather than inventing every extra button in the protocol.
+  if (device.supportedButtons === undefined) {
+    if (['S','E','W','N','UP','DOWN','LEFT','RIGHT','L','R','+','-','HOME','L3','R3'].includes(command)) return true
+    if (command === 'CAPTURE') return [1,3,4,5,8,23].includes(device.type)
+    if (command === 'MIC') return device.type === 5
+    if (['LSL','LSR','RSL','RSR'].includes(command)) {
+      if (device.type === 5) return device.vid === 0x054c && device.pid === 0x0df2
+      if (FOUR_PADDLE_CONTROLLER_TYPES.has(device.type)) return true
+      return TWO_PADDLE_CONTROLLER_TYPES.has(device.type) && ['LSL','RSR'].includes(command)
+    }
+    if (device.type === 24 && /^MISC[1-6]$/.test(command)) return true
+    if ([3,4,5,6,7,8,24].includes(device.type)) return false
+  }
+  return getPressedControllerCommandSet({ ...device, status: { buttons: device.supportedButtons ?? 2 ** 33 - 1 } as NonNullable<TelemetryDevice['status']> }).has(command)
 }

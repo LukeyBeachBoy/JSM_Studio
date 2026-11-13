@@ -4,6 +4,8 @@ import {
   GYRO_ACCEL_DEFAULTS,
   GYRO_OUTPUT_DEFAULTS,
   normalizeAccelCurveType,
+  normalizeAccelCurveLink,
+  TOUCHPAD_ACCEL_DEFAULTS,
   type AccelCurveParams,
   type AccelCurveType,
 } from './accelCurve'
@@ -103,6 +105,37 @@ export function gyroCurveParams(text: string, prefix = '', axis: 'x' | 'y' = 'x'
     return { curveType: 'LINEAR', minSens: value, maxSens: value, minThreshold: 0, maxThreshold: 0, ...shape }
   }
   return { curveType: speed.curve, minSens: speed.min[i], maxSens: speed.max[i], minThreshold: speed.minThreshold, maxThreshold: speed.maxThreshold, ...shape }
+}
+
+/** Effective sensitivity, including shared curve shape and jitter recovery.
+ * Keep both gyro charts on the same model as the mapper. `rootText` supplies
+ * configuration-wide shape sharing while held settings stay in `text`. */
+export function effectiveGyroCurveParams(text: string, rootText = text, axis: 'x' | 'y' = 'x'): AccelCurveParams {
+  let params = gyroCurveParams(text, '', axis)
+  const speed = readGyroSpeed(text)
+  if (speed.mode !== 'static' && normalizeAccelCurveLink(readVirtualSetting(rootText, 'ACCEL_CURVE_LINK')) === 'GYRO_USES_TOUCHPAD') {
+    const n = (key: string, fallback: number) => readNumber(rootText, key, fallback)
+    params = {
+      ...params,
+      curveType: normalizeAccelCurveType(readVirtualSetting(rootText, 'TOUCHPAD_ACCEL_CURVE')),
+      minThreshold: n('TOUCHPAD_ACCEL_MIN_SPEED', TOUCHPAD_ACCEL_DEFAULTS.minThreshold),
+      maxThreshold: n('TOUCHPAD_ACCEL_MAX_SPEED', TOUCHPAD_ACCEL_DEFAULTS.maxThreshold),
+      naturalVHalf: n('TOUCHPAD_ACCEL_NATURAL_VHALF', TOUCHPAD_ACCEL_DEFAULTS.naturalVHalf),
+      powerVRef: n('TOUCHPAD_ACCEL_POWER_VREF', TOUCHPAD_ACCEL_DEFAULTS.powerVRef),
+      powerExponent: n('TOUCHPAD_ACCEL_POWER_EXPONENT', TOUCHPAD_ACCEL_DEFAULTS.powerExponent),
+      sigmoidMid: n('TOUCHPAD_ACCEL_SIGMOID_MID', TOUCHPAD_ACCEL_DEFAULTS.sigmoidMid),
+      sigmoidWidth: n('TOUCHPAD_ACCEL_SIGMOID_WIDTH', TOUCHPAD_ACCEL_DEFAULTS.sigmoidWidth),
+      jumpTau: n('TOUCHPAD_ACCEL_JUMP_TAU', TOUCHPAD_ACCEL_DEFAULTS.jumpTau),
+      ownRange: { min: speed.minThreshold, max: speed.maxThreshold },
+    }
+  }
+  const floor = readPair(text, 'GYRO_STEADYING_FLOOR') ?? [0, 0]
+  return { ...params, steadying: {
+    cutoff: readNumber(text, 'GYRO_CUTOFF_SPEED', 0),
+    recovery: readNumber(text, 'GYRO_CUTOFF_RECOVERY', 0),
+    floor: floor[axis === 'x' ? 0 : 1],
+    enabled: floor.some(value => value > 0),
+  } }
 }
 
 /** Turn speed: scales whatever is in force, keeping up/down and the fast speed in proportion. */

@@ -85,9 +85,9 @@ export function SpeedCurve({ inner, outer, power, sens, push, alternatives }: { 
 
 /** Speed-up: turn speed against seconds held at full tilt. */
 export function SpeedUpChart({ sens, rate, cap, held, presets }: { sens: number; rate: number; cap: number; held: number; presets: { label: string; rate: number; cap: number }[] }) {
-  const seconds = 3
-  const top = Math.max(sens * 3.2, sens * Math.min(cap, 4))
+  const seconds = Math.max(3, Math.min(60, rate > 0 ? (cap - 1) / rate : 3))
   const speed = (t: number, r: number, c: number) => sens * Math.min(c, 1 + r * t)
+  const top = Math.max(1, speed(seconds, rate, cap), speed(held, rate, cap), ...presets.map(p => speed(seconds, p.rate, p.cap))) * 1.1
   const path = (r: number, c: number) => Array.from({ length: 61 }, (_, index) => { const t = (index / 60) * seconds; return `${index ? 'L' : 'M'}${40 + (t / seconds) * 320},${200 - (speed(t, r, c) / top) * 170}` }).join(' ')
   const at = Math.min(held, seconds)
   return (
@@ -95,8 +95,8 @@ export function SpeedUpChart({ sens, rate, cap, held, presets }: { sens: number;
       <path d="M40 30 V200 H360" stroke={GRID} strokeWidth="1.5" fill="none" />
       {presets.map(preset => <g key={preset.label}><path d={path(preset.rate, preset.cap)} stroke={ALT} strokeWidth="1.5" strokeDasharray="4 4" fill="none" /><text x="358" y={200 - (speed(seconds, preset.rate, preset.cap) / top) * 170 - 6} fill={ALT} fontSize="10" textAnchor="end">{preset.label}</text></g>)}
       <path d={path(rate, cap)} stroke={ACCENT} strokeWidth="2" fill="none" />
-      <circle cx={40 + (at / seconds) * 320} cy={200 - (speed(held, rate, cap) / top) * 170} r="5" fill={LIVE} stroke={LINE} strokeWidth="2" />
-      {[1, 2].map(s => <text key={s} x={40 + (s / seconds) * 320} y="214" fill={ALT} fontSize="10" textAnchor="middle">{s} s</text>)}
+      <circle cx={40 + (at / seconds) * 320} cy={200 - (speed(held, rate, cap) / top) * 170} r="5" fill={LIVE} stroke={LINE} strokeWidth="2"><title>{held.toFixed(1)} s{held > seconds ? ' · beyond chart range' : ''}</title></circle>
+      {[seconds / 3, seconds * 2 / 3, seconds].map(s => <text key={s} x={40 + (s / seconds) * 320} y="214" fill={ALT} fontSize="10" textAnchor="middle">{Number(s.toFixed(1))} s</text>)}
       <text x="36" y={200 - (sens / top) * 170 + 4} fill={ALT} fontSize="10" textAnchor="end">{Math.round(sens)}</text>
       <text x="200" y="228" fill={ALT} fontSize="10" textAnchor="middle">Seconds held at full tilt →</text>
     </svg>

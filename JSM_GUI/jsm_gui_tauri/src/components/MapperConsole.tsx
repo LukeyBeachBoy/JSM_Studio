@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { desktopBridge } from '../platform/desktopBridge'
 import { shellBridge, appVersion } from '../platform/shellBridge'
+import { ButtonGlyph } from './glyphs/ButtonGlyph'
 import { PAD_EVENT, type PadEventDetail } from '../nav/useControllerNavigation'
 import { requestValueEntry } from '../nav/textEntry'
 import { showToast } from '../utils/toast'
@@ -150,7 +151,7 @@ export function MapperConsole({ consoleText, log: shared, onMore }: MapperConsol
         <span className={styles.meta} data-paused={log.paused ? 'true' : undefined}>{log.paused ? 'Paused · new lines wait' : 'Live'}</span>
         <span className={styles.meta}>Newest at the bottom · last {MAX_LINES} lines</span>
         <span className={styles.toolbarSpacer} />
-        <button type="button" className="button button--ghost button--sm" tabIndex={-1} onClick={() => log.setPaused(value => !value)}>X {log.paused ? 'Resume' : 'Pause'}</button>
+        <button type="button" className="button button--ghost button--sm" tabIndex={-1} onClick={() => log.setPaused(value => !value)}><ButtonGlyph button="X" size={20} pad /> {log.paused ? 'Resume' : 'Pause'}</button>
       </div>
       <div ref={viewport} className={styles.log} tabIndex={0} role="log" aria-live="polite" aria-label="JoyShockMapper live log" data-hints={hints('MOVE:Scroll')}
         onScroll={event => { const element = event.currentTarget; follow.current = element.scrollTop + element.clientHeight >= element.scrollHeight - 8 }}>

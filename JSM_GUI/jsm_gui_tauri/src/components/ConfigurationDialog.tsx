@@ -48,7 +48,7 @@ function ConfigurationSurface({ mode, profileName, title, onClose, onKeyDown, ac
   onKeyDown: (event: KeyboardEvent<HTMLElement>) => void; actions: ReactNode; children: ReactNode
 }) {
   if (mode === 'create') return <Dialog onClose={onClose} width={560} title={title} onKeyDown={onKeyDown} actions={actions}>{children}</Dialog>
-  return <SubPage open onClose={onClose} crumbRoot="Library" trail={['Games', profileName ?? 'Configuration']} title="Launch with game" backLabel="Back to Library">
+  return <SubPage open onClose={onClose} crumbRoot="Library" trail={['Games', profileName ?? 'Configuration']} title="Auto-switch" backLabel="Back to Library">
     <div style={{ maxWidth: 760, margin: '0 auto' }} onKeyDown={onKeyDown}>{children}<div className="confirm-dialog__actions">{actions}</div></div>
   </SubPage>
 }
@@ -191,10 +191,10 @@ export function ConfigurationDialog({ mode, profileName, rule, onClose, onCreate
 
         <div className={`setting-row setting-row--compact ${styles.autoApplyRow}`} data-disabled={game ? undefined : ''}>
           <span className={styles.autoApplyText}>
-            <span>Launch with game</span>
+            <span>Auto-switch</span>
             <small>{autoApply ? 'Goes live when the game is in front' : 'Uses the game’s art; launched manually'}</small>
           </span>
-          <Switch on={!!game && autoApply} label="Launch with game" disabled={busy || !game} onChange={setAutoApply} />
+          <Switch on={!!game && autoApply} label="Auto-switch" disabled={busy || !game} onChange={setAutoApply} />
         </div>
       </div>
     </ConfigurationSurface>

@@ -105,7 +105,7 @@ export function KeyPicker(props: KeyPickerProps) {
  * toggles, the key under them, Y for the right-hand modifiers. B is Done: the
  * combo is written as JoyShockMapper spells one, every key on the same event.
  */
-function KeyComboPicker(props: KeyPickerProps & { onBack: () => void }) {
+export function KeyComboPicker(props: KeyPickerProps & { onBack: () => void }) {
   const { inputLabel, command, onSelect, onClose, onBack } = props
   const { t } = useTranslation()
   const words = usePickerWords(inputLabel, command)
@@ -134,11 +134,12 @@ function KeyComboPicker(props: KeyPickerProps & { onBack: () => void }) {
     return <KeyPicker {...props} chooseOnly={{ title: t('pickers.comboKeyTitle', 'Key for the combo'), current: key, onChoose: token => { setKey(token); setChoosing(false) } }} onClose={() => setChoosing(false)} />
   }
   return (
-    <PickerPage kind="combo" onClose={done} backLabel={t('pickers.done', 'Done')} input={command.physicalInput} eyebrow={words.eyebrow}
+    <PickerPage kind="combo" onClose={onBack} backLabel={t('common.cancel', 'Cancel')} input={command.physicalInput} eyebrow={words.eyebrow}
       title={t('pickers.comboTitle', 'Key combo')} where={words.where(t('pickers.comboTitle', 'Key combo'))}
       hints={[{ button: 'Y', label: right ? t('pickers.leftHand', 'Left-hand keys') : t('pickers.rightHand', 'Right-hand keys') }]}
       onPad={button => {
         if (button === 'Y') { setRight(value => !value); return true }
+        if (button === 'MENU') { done(); return true }
         if (button === 'X') { onBack(); return true }
         return false
       }}>
@@ -158,6 +159,7 @@ function KeyComboPicker(props: KeyPickerProps & { onBack: () => void }) {
           <span>{t('pickers.comboKey', 'Key')}</span><b>{keyCap(key)}</b><i>{t('pickers.changeArrow', 'Change ▸')}</i>
         </button>
         <KeyComboArt keys={caps} />
+        <button type="button" className="console-btn console-btn--primary" data-combo-use data-hints="A:Use combo;B:Cancel" onClick={done}>{t('pickers.useCombo', 'Use combo')}</button>
         <p className={styles.searchNote}>{tokens.length > 1
           ? t('pickers.comboNote', '{{input}} sends {{combo}} together.', { input: words.input, combo: caps.join(' + ') })
           : t('pickers.comboNoMods', 'Nothing held: {{input}} sends {{key}} alone.', { input: words.input, key: keyCap(key) })}</p>

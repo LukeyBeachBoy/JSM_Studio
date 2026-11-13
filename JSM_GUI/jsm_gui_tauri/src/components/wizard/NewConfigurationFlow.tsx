@@ -29,7 +29,7 @@ import styles from './NewConfiguration.module.css'
 //
 //   1 Game         running games first, then recent Steam games, or an .exe,
 //                  or no game. Its name and art come along; Y renames, X turns
-//                  Launch with game on (off: it only wears the game's art).
+//                  Auto-switch on (off: it only wears the game's art).
 //   2 How you play one card per play style, built on the shipped preset bases
 //                  (the variant for the connected controller); "Start from…"
 //                  for another configuration, a Steam layout, a file or blank.
@@ -60,7 +60,7 @@ type Props = {
   onTry: (text: string) => Promise<boolean>
   /** Leave Test mode; `restore` puts the previously live configuration back. */
   onEndTry: (restore: boolean) => Promise<void>
-  /** Make the file (and its Launch with game rule); its name, or null. */
+  /** Make the file (and its Auto-switch rule); its name, or null. */
   onCreate: (draft: NewConfigurationDraft) => Promise<string | null>
   /** After Keep it: open it on Layout, or listen for a button to change. */
   onFinish: (name: string, next: 'layout' | 'change', text: string) => void
@@ -197,7 +197,6 @@ export function NewConfigurationFlow(props: Props) {
     if (!picked) return
     const app = await steamAppFor(picked)
     pickGame({ kind: 'exe', processName: processStemOf(picked), exePath: picked, steamAppId: app?.appId, name: app?.name ?? suggestedName(picked) })
-    setStep(2)
   }
   const rename = () => requestValueEntry({
     title: 'Name', eyebrow: 'New configuration', value: name || game?.name || '',
@@ -411,13 +410,14 @@ export function NewConfigurationFlow(props: Props) {
       })}
     </span>
   )
-  const header = <header className={styles.head}><b>New configuration</b>{stepper}</header>
+  const header = <header className={styles.head}><b>New configuration</b>{stepper}{step === 1 && <button type="button" className="button button--primary" disabled={!game} data-hints="A:Next;B:Cancel" onClick={() => setStep(2)}>Next: how you play</button>}</header>
   const gameName = game && game.kind !== 'none' ? game.name : 'this game'
 
   const stepOne = () => {
     const games = running?.filter(process => process.kind !== 'app') ?? []
     const apps = running?.filter(process => process.kind === 'app').slice(0, Math.max(0, 2 - games.length)) ?? []
     const list = [...games, ...apps].slice(0, 4)
+    const recentGames = (recent ?? []).filter(entry => !list.some(process => process.steamAppId === entry.appId || fromRunning(process).name.toLowerCase() === entry.name.toLowerCase()))
     const heroArt = headerArt(game)
     return (
       <div className={styles.layout}>
@@ -433,7 +433,7 @@ export function NewConfigurationFlow(props: Props) {
                 const thumb = headerArt(candidate)
                 return (
                   <button key={`${process.processName}-${process.pid}`} type="button" className={styles.game} aria-current={current || undefined} data-autofocus={index === 0 ? '' : undefined}
-                    data-hints="A:Choose & next;X:Launch with game;Y:Rename;B:Cancel" onFocus={() => pickGame(candidate)} onClick={() => { pickGame(candidate); setStep(2) }}>
+                    data-hints="A:Select game;X:Auto-switch;Y:Rename;B:Cancel" onFocus={() => pickGame(candidate)} onClick={() => pickGame(candidate)}>
                     <span className={styles.thumb}>{thumb ? <img className={styles.thumb} src={thumb} alt="" /> : <Icon name="associations" size={22} />}</span>
                     <span><b>{candidate.name}</b><small>{exeFileName(process.processName)}</small></span>
                     {current && <p>Selected game</p>}
@@ -442,16 +442,16 @@ export function NewConfigurationFlow(props: Props) {
               })}
             </div>
           </>}
-          {recent && recent.length > 0 && <>
+          {recentGames.length > 0 && <>
             <p className={styles.eyebrow}>Recent Steam games</p>
             <div className={styles.recent}>
-              {recent.slice(0, 4).map((entry, index) => {
+              {recentGames.slice(0, 4).map((entry, index) => {
                 const candidate = fromSteam(entry)
                 const thumb = entry.hasHeader || entry.hasCapsule ? headerArt(candidate) : null
                 return (
                   <button key={entry.appId} type="button" className={styles.cap} aria-current={game?.steamAppId === entry.appId && game.kind === 'steam' || undefined}
                     data-autofocus={!list.length && index === 0 ? '' : undefined}
-                    data-hints="A:Choose & next;Y:Rename;B:Cancel" onFocus={() => pickGame(candidate)} onClick={() => { pickGame(candidate); setStep(2) }}>
+                    data-hints="A:Select game;Y:Rename;B:Cancel" onFocus={() => pickGame(candidate)} onClick={() => pickGame(candidate)}>
                     {thumb ? <img className={styles.capArt} src={thumb} alt="" /> : <span className={styles.capArt}><Icon name="library" size={24} /></span>}
                     <span><b>{entry.name}</b><small>{playedAgo(entry.lastPlayed)}</small></span>
                   </button>
@@ -461,11 +461,11 @@ export function NewConfigurationFlow(props: Props) {
           </>}
           <div className={styles.alts}>
             <button type="button" className={styles.alt} data-alt="" aria-current={game?.kind === 'exe' || undefined} data-hints="A:Browse;B:Cancel" onClick={() => void browse()}
-              data-autofocus={!list.length && !recent?.length ? '' : undefined}>
+              data-autofocus={!list.length && !recentGames.length ? '' : undefined}>
               <Icon name="folder" size={24} /><span><b>Browse for an .exe…</b><small>For games outside Steam</small></span>
             </button>
-            <button type="button" className={styles.alt} data-alt="" aria-current={game?.kind === 'none' || undefined} data-hints="A:Choose & next;Y:Rename;B:Cancel"
-              onFocus={() => pickGame({ kind: 'none', name: '' })} onClick={() => { pickGame({ kind: 'none', name: '' }); setStep(2) }}>
+            <button type="button" className={styles.alt} data-alt="" aria-current={game?.kind === 'none' || undefined} data-hints="A:Select game;Y:Rename;B:Cancel"
+              onFocus={() => pickGame({ kind: 'none', name: '' })} onClick={() => pickGame({ kind: 'none', name: '' })}>
               <Icon name="remove" size={24} /><span><b>No specific game</b><small>Gets a plain icon. Add a game later.</small></span>
             </button>
           </div>
@@ -478,8 +478,8 @@ export function NewConfigurationFlow(props: Props) {
           </button>
           {nameConflict}
           <div className={styles.toggleRow}>
-            <span><b>Launch with game</b><small>{launch ? 'Goes live when this game is in front.' : 'Uses the game’s name and art.'}{launchReason && game?.kind === 'steam' ? ` ${launchReason}.` : ''}</small></span>
-            <Switch on={canLaunch && launch} label="Launch with game" disabled={!canLaunch} onChange={setLaunch} />
+            <span><b>Auto-switch</b><small>{launch ? 'Goes live when this game is in front.' : 'Uses the game’s name and art.'}{launchReason && game?.kind === 'steam' ? ` ${launchReason}.` : ''}</small></span>
+            <Switch on={canLaunch && launch} label="Auto-switch" disabled={!canLaunch} onChange={setLaunch} />
           </div>
           <p className={styles.foot}>Next, pick how you want to play. Importing from Steam or a file is there too.</p>
         </aside>
@@ -505,6 +505,7 @@ export function NewConfigurationFlow(props: Props) {
               data-caption={choice.unavailable ? `${choice.title} · ${choice.unavailable}` : `${choice.title} · ${choice.blurb}`}
               onClick={() => void choosePreset(choice)}>
               {choice.preset === best && <span className={styles.best}>Best with your controller</span>}
+              <span className={styles.presetArt} aria-hidden="true">{whatYouGet(choice.base.text, tt).slice(0, 3).map(row => <InputGlyph key={row.input} command={row.input} family={family} size={40} />)}</span>
               <b>{choice.title}</b>
               <p>{choice.unavailable ?? choice.blurb}</p>
             </button>
@@ -578,9 +579,9 @@ export function NewConfigurationFlow(props: Props) {
             ))}
           </ul>
           <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {choice('S', 'Keep it', 'Saves it and opens Layout', true, 'Hold to choose. A quick tap is tested like any other button.')}
-            {choice('W', 'Change something', 'Hold · pick a button to change')}
-            {choice('E', 'Back', 'Hold · try another way to play')}
+            {choice('S', 'Keep it', 'Saves it and opens Layout', true, 'Controller: hold A to choose; tap to test. Mouse: click to keep.')}
+            {choice('W', 'Change something', 'Controller: hold X · click to choose')}
+            {choice('E', 'Back', 'Controller: hold B · click to choose')}
           </div>
         </aside>
       </div>
@@ -588,13 +589,13 @@ export function NewConfigurationFlow(props: Props) {
   }
 
   const hints = step === 1
-    ? [{ button: 'A' as const, label: 'Choose & next' }, { button: 'X' as const, label: 'Launch with game' }, { button: 'Y' as const, label: 'Rename' }]
+    ? [{ button: 'A' as const, label: 'Select game' }, { button: 'X' as const, label: 'Auto-switch' }, { button: 'Y' as const, label: 'Rename' }]
     : step === 2 ? [{ button: 'A' as const, label: 'Choose & try it' }, { button: 'Y' as const, label: 'Show every binding' }]
       : [{ button: 'A' as const, label: 'Hold: Keep it' }, { button: 'X' as const, label: 'Hold: Change something' }]
   const everyBinding = preset ?? shown
   return (
     <SubPage open onClose={() => { if (step === 1) void cancel(); else if (step === 2) setStep(1); else void back() }}
-      trail={[]} title="New configuration" bare backLabel={step === 1 ? 'Cancel' : step === 2 ? 'Back to game' : 'Hold: Back'}
+      crumbRoot="New configuration" trail={[]} title="New configuration" bare backLabel={step === 1 ? 'Cancel' : step === 2 ? 'Back to game' : 'Back'}
       where={step === 3 ? 'Step 3 of 3 · tap to test, hold to choose' : `Step ${step} of 3`} hints={hints}>
       <div data-new-configuration="" data-step={step} style={{ height: '100%' }}>
         {header}

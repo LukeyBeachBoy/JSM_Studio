@@ -1,4 +1,4 @@
-import { useEffect, useRef, type KeyboardEvent, type ReactNode } from 'react'
+import { useEffect, useRef, type ComponentPropsWithoutRef, type KeyboardEvent, type ReactNode } from 'react'
 import { ButtonGlyph } from '../../glyphs/ButtonGlyph'
 import { useShell } from '../../../shell/ShellContext'
 import { directionalTarget, NAV_SKIP_SELECTOR } from '../../../hooks/useKeyboardNav'
@@ -49,6 +49,13 @@ export const stepGroup = (groups: { id: string }[], active: string, direction: -
 }
 
 const FOCUSABLE = 'button:not([disabled]), [tabindex="0"], input:not([disabled]), select:not([disabled]), summary'
+
+/** A settings wrapper owns its children's gaps. Use this when a data marker or
+ * conditional group needs a wrapper inside FineTune; the parent's gap only
+ * separates direct children, not the settings inside that wrapper. */
+export function SettingRows({ className, ...props }: ComponentPropsWithoutRef<'div'>) {
+  return <div {...props} className={[styles.rows, className].filter(Boolean).join(' ')} />
+}
 
 /**
  * The D-pad stays inside the rail, the settings and the visual: a sideways
@@ -129,7 +136,7 @@ export function FineTune({ groups, active, onActive, railNote, railLabel = 'Grou
             <h1>{open.title ?? open.label}</h1>
             {open.description && <p>{open.description}</p>}
           </header>
-          <div className={styles.rows}>{open.content}</div>
+          <SettingRows>{open.content}</SettingRows>
         </div>
         {open.visual && <aside className={styles.visual}>{open.visual}</aside>}
       </section>
@@ -156,7 +163,7 @@ export function AdvancedParts({ parts, active, onActive }: { parts: AdvancedPart
           <div className={styles.partEyebrow}>{index + 1} · {part.eyebrow}</div>
           <h2>{part.title}</h2>
           {part.description && <p>{part.description}</p>}
-          <div className={styles.rows}>{part.content}</div>
+          <SettingRows>{part.content}</SettingRows>
         </section>
       ))}
     </div>

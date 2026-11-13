@@ -1,3 +1,4 @@
+import { selectedControllerSample } from '../utils/controllerSelection'
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { desktopBridge, type GlobalTiming } from '../platform/desktopBridge'
 import { patchRuntimePreferences, usePreferences } from '../platform/preferenceStore'
@@ -172,7 +173,7 @@ export function TimingPage({ onRemoveLines, libraryKey, configName, onOpenConfig
     let ready = false
     const record = (attempt: Omit<Attempt, 'at'>) => setAttempts(list => [...list.slice(-11), { ...attempt, at: performance.now() + Math.random() }])
     const unsubscribe = desktopBridge.onTelemetrySample(payload => {
-      const sample = payload as TelemetrySample
+      const sample = selectedControllerSample(payload as TelemetrySample)
       // Only A, B and X count: a thumb resting on a trackpad is not a press.
       const pressed = new Set<string>([...getPressedControllerCommandSet(sample?.devices?.[0])].filter(command => command === 'S' || command === 'E' || command === 'W'))
       const now = performance.now()

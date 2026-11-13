@@ -3,9 +3,20 @@
 .view svg { display: block; width: 100%; height: auto; overflow: visible; }
 .art { pointer-events: none; }
 .input { cursor: pointer; outline: none; }
-.hit { fill: var(--accent); stroke: var(--accent); stroke-width: 3; vector-effect: non-scaling-stroke; pointer-events: all; }
+.hit { fill: var(--input-color, var(--accent)); stroke: var(--input-color, var(--accent)); stroke-width: 3; vector-effect: non-scaling-stroke; pointer-events: all; }
+.input[data-binding-source='base'] .hit, .input[data-binding-source='mixed'] .hit { stroke-dasharray: var(--input-dash); }
+.input[data-binding-source='base']:not([data-active='true']) .hit { fill-opacity: .04 !important; }
 .input:hover .hit, .input:focus-visible .hit { stroke-opacity: 1 !important; }
 .stickDot { fill: var(--accent); stroke: var(--art-line); stroke-width: 2; pointer-events: none; }
+.vectors, .adjustedDot { pointer-events: none; }
+.stickAxes { stroke: var(--art-detail); stroke-width: 1; opacity: .35; fill: none; }
+.rawVector { stroke: var(--art-detail); stroke-width: 2; stroke-dasharray: 4 3; }
+.rawDot { fill: var(--art-well); stroke: var(--art-detail); stroke-width: 1.5; }
+.adjustedVector { stroke: var(--telemetry, #a6d65a); stroke-width: 2.5; }
+.adjustedDot { fill: var(--telemetry, #a6d65a); stroke: var(--art-well); stroke-width: 2; }
+.stickNumber { font-family: system-ui, sans-serif; font-size: 18px; font-weight: 500; fill: var(--art-line); stroke: var(--art-cap); stroke-width: 3; paint-order: stroke fill; }
+.views[data-controller-model='azeron-cyborg'] .input[data-active='true'] .hit { fill: var(--telemetry, #a6d65a); stroke: var(--telemetry, #a6d65a); }
+.views[data-controller-model='azeron-cyborg'] :is([data-command='UP'], [data-command='DOWN'], [data-command='LEFT'], [data-command='RIGHT'], [data-command='JOY20'], [data-command='JOY21'], [data-command='LUP']) .hit { stroke-width: 1.25; }
 .caption { color: var(--text-muted); font-size: .7rem; }
 @media (max-width: 540px) { .views { flex-direction: column; } .view { width: 100%; } }
 
@@ -16,3 +27,6 @@
 .views[data-back-view='focus'] .view[data-view='front'] { flex: none; width: min(460px, calc(100% - 216px)); }
 .views[data-back-view='focus'] .view[data-view='back'] { flex: 0 1 200px; }
 .views[data-back-view='focus'] .caption { font-size: var(--fs-caption, 14px); letter-spacing: .08em; text-transform: uppercase; color: var(--text-3); font-weight: var(--fw-semibold); }
+
+.views[data-single-view='true'] .view[data-view='front'] { width: 100%; max-width: 740px; flex: 1; }
+.views[data-controller-model='azeron-cyborg'] .view svg { max-height: 480px; }

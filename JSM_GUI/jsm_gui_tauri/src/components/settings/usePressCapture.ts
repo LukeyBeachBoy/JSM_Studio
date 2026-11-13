@@ -1,3 +1,4 @@
+import { selectedControllerSample } from '../../utils/controllerSelection'
 import { useEffect, useRef, useState } from 'react'
 import { desktopBridge } from '../../platform/desktopBridge'
 import { controllerHasTwoTrackpads, getPressedControllerCommandSet } from '../../utils/controllerStatus'
@@ -16,7 +17,7 @@ const NOT_BUTTONS = /^(L|R)(UP|DOWN|LEFT|RIGHT|RING)$|^(LEFT|RIGHT)_?(TOUCH|PAD)
 const CONTACTS = new Set(['LTOUCH', 'RTOUCH', 'TOUCH'])
 const STEAM_CONTACTS = new Set(['MISC4', 'MISC5', 'MISC6'])
 
-export function usePressCapture(onDone: (buttons: string[]) => void, { buttonsOnly = false } = {}) {
+export function usePressCapture(onDone: (buttons: string[]) => void, { buttonsOnly = false, mouseButtons = false } = {}) {
   const [capturing, setCapturing] = useState(false)
   const [held, setHeld] = useState<string[]>([])
   const done = useRef(onDone)
@@ -41,17 +42,12 @@ export function usePressCapture(onDone: (buttons: string[]) => void, { buttonsOn
     let idle = window.setTimeout(() => finish(null), 8000)
     const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); finish(null) } }
     window.addEventListener('keydown', onKey, true)
-    const unsubscribe = desktopBridge.onTelemetrySample(payload => {
-      const device = (payload as TelemetrySample)?.devices?.[0]
-      if (finished || !device?.status) return
-      // A thumb resting on a trackpad is contact, not a press.
-      const status = { ...device.status, leftPad: device.status.leftPad && { ...device.status.leftPad, touched: false }, rightPad: device.status.rightPad && { ...device.status.rightPad, touched: false } }
-      const pressed = [...getPressedControllerCommandSet({ ...device, status })].map(command => command.toUpperCase()).filter(command =>
-        !NOT_BUTTONS.test(command) && !command.startsWith('GRIP_') &&
-        (!buttonsOnly || (!CONTACTS.has(command) && !(controllerHasTwoTrackpads(device.type) && STEAM_CONTACTS.has(command)))))
-      // Trigger values are analog; the runtime uses the same half-pull threshold.
-      if (device.status.triggers?.left >= 0.5) pressed.push('ZL')
-      if (device.status.triggers?.right >= 0.5) pressed.push('ZR')
+    let controllerHeld: string[] = [], mouseHeld: string[] = []
+    const nativeMouse = mouseButtons && '__TAURI_INTERNALS__' in window
+    let controllerReady = false, mouseReady = !nativeMouse
+    const sample = () => {
+      if (finished || !controllerReady || !mouseReady) return
+      const pressed = [...new Set([...controllerHeld, ...mouseHeld])]
       if (!ready) { if (pressed.length === 0) ready = true; return }
       if (gathered.length && gathered.some(command => !pressed.includes(command))) releasing = true
       if (!releasing && pressed.length) {
@@ -64,7 +60,42 @@ export function usePressCapture(onDone: (buttons: string[]) => void, { buttonsOn
       } else if (releasing && gathered.every(command => !pressed.includes(command))) {
         finish(gathered)
       }
+    }
+    const unsubscribe = desktopBridge.onTelemetrySample(payload => {
+      const device = selectedControllerSample(payload as TelemetrySample)?.devices?.[0]
+      if (finished) return
+      controllerReady = true
+      if (!device?.status) { controllerHeld = []; sample(); return }
+      // A thumb resting on a trackpad is contact, not a press.
+      const status = { ...device.status, leftPad: device.status.leftPad && { ...device.status.leftPad, touched: false }, rightPad: device.status.rightPad && { ...device.status.rightPad, touched: false } }
+      const pressed = [...getPressedControllerCommandSet({ ...device, status })].map(command => command.toUpperCase()).filter(command =>
+        !NOT_BUTTONS.test(command) && !command.startsWith('GRIP_') &&
+        (!buttonsOnly || (!CONTACTS.has(command) && !(controllerHasTwoTrackpads(device.type) && STEAM_CONTACTS.has(command)))))
+      // Trigger values are analog; the runtime uses the same half-pull threshold.
+      if (device.status.triggers?.left >= 0.5) pressed.push('ZL')
+      if (device.status.triggers?.right >= 0.5) pressed.push('ZR')
+      controllerHeld = pressed
+      sample()
     })
+
+    let polling = false
+    const pollMouse = async () => {
+      if (polling || finished || !nativeMouse) return
+      polling = true
+      try { mouseHeld = await desktopBridge.mouseSideButtons(); mouseReady = true; sample() } catch { /* retry while listening */ }
+      finally { polling = false }
+    }
+    const mouseTimer = nativeMouse ? window.setInterval(() => void pollMouse(), 16) : undefined
+    void pollMouse()
+    const onMouse = (event: MouseEvent) => {
+      if (!mouseButtons || (event.button !== 3 && event.button !== 4)) return
+      event.preventDefault(); event.stopPropagation()
+      const command = event.button === 3 ? 'MOUSE_BACK' : 'MOUSE_FORWARD'
+      mouseHeld = event.type === 'mousedown' ? [...new Set([...mouseHeld, command])] : mouseHeld.filter(button => button !== command)
+      sample()
+    }
+    window.addEventListener('mousedown', onMouse, true)
+    window.addEventListener('mouseup', onMouse, true)
     return () => {
       finished = true
       delete document.body.dataset.padListening
@@ -72,9 +103,12 @@ export function usePressCapture(onDone: (buttons: string[]) => void, { buttonsOn
       window.clearTimeout(idle)
       window.removeEventListener('keydown', onKey, true)
       unsubscribe()
+      window.clearInterval(mouseTimer)
+      window.removeEventListener('mousedown', onMouse, true)
+      window.removeEventListener('mouseup', onMouse, true)
       window.dispatchEvent(new Event('jsm:interaction-hint'))
     }
-  }, [capturing, buttonsOnly])
+  }, [capturing, buttonsOnly, mouseButtons])
 
   return { capturing, held, start: () => setCapturing(true), cancel: () => setCapturing(false) }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { ButtonDefinition } from '../../keymap/schema'
 import type { TelemetryDevice } from '../../hooks/useTelemetry'
 import { modeshiftTriggers, type ModeshiftTarget } from '../../utils/modeshift'
@@ -14,11 +14,17 @@ import { InputSideProxies, ModeShiftRow, MoreMenu, readWord, useFocusCurrentCard
 import { peekModeshiftRequest, takeFineTuneRequest, useFineTuneRequestVersion, useInputSide, useModeshiftRequestVersion } from './inputSide'
 import { MORE_MODES, StickCardArt, moreModeOf, stickCardOf, stickModeName, type StickCard } from './stickModes'
 import { StickAdvanced, StickFineTune, StickMoreModes } from './StickFineTune'
-import { stickDeadzones, type StickCtx } from './stickGroups'
+import { directionsGroup, stickDeadzones, type StickCtx } from './stickGroups'
 import { MatchFullTurn } from './MatchFullTurn'
 import { GameStickMatchGuide } from './GameStickMatchGuide'
-import { StickDiagram } from './visuals'
-import { SettingOrigin } from '../SettingOrigin'
+import { SettingOrigin, SettingOrigins } from '../SettingOrigin'
+import { ModelControllerSvg } from '../ModelControllerSvg'
+import { readStickGeometry, transformStickGeometry } from '../../utils/stickGeometry'
+import { StickGeometryControls } from './StickGeometryControls'
+import { StickGeometryPreview } from './StickGeometryPreview'
+import { CyborgStickDefaults } from './CyborgStickDefaults'
+import { withCyborgDefaults } from '../../utils/stickGeometry'
+import { usePreferences } from '../../platform/preferenceStore'
 import styles from './P4.module.css'
 
 // Sticks (console v2, Sticks.dc.html): one stick at a time, chosen on the rail
@@ -54,15 +60,15 @@ export type SticksPageProps = {
 const CARD_ORDER: StickCard[] = ['MOVING', 'LOOK', 'FLICK', 'WHEEL', 'GAMEPAD']
 const CARD_TEXT: Record<StickCard, { label: string; caption: string }> = {
   MOVING: { label: 'Moving', caption: 'Sends W A S D' },
-  LOOK: { label: 'Looking around', caption: 'Moves the mouse' },
-  FLICK: { label: 'Flick to turn', caption: 'Point to face that way' },
-  WHEEL: { label: 'Picking from a wheel', caption: 'Up to 8 slices' },
+  LOOK: { label: 'Mouse aim', caption: 'Moves the mouse' },
+  FLICK: { label: 'Flick stick', caption: 'Point to face that way' },
+  WHEEL: { label: 'Radial menu', caption: 'Up to 8 slices' },
   GAMEPAD: { label: 'Gamepad stick', caption: 'For games with pad support' },
   MORE: { label: 'More', caption: '' },
 }
 const FINE_TUNE_HINT: Record<StickCard, string> = {
   MOVING: 'Walk on a light push, outer edge, diagonals, touch',
-  LOOK: 'Speed, speed-up, dead zone, mouse-like feel, direction',
+  LOOK: 'Speed, acceleration, dead zone, hybrid aim, direction',
   FLICK: 'Flick time, snap, turning output, dead zone, direction',
   WHEEL: 'Slices, push before a slice is picked, on-screen wheel',
   GAMEPAD: 'Match the game, dead zone, direction',
@@ -71,11 +77,14 @@ const FINE_TUNE_HINT: Record<StickCard, string> = {
 
 export function SticksPage(props: SticksPageProps) {
   useInheritedKeys()
-  const { readText, setText, liveDevice } = props
+  const { setText, liveDevice } = props
+  const { runtime } = usePreferences()
+  const origins = useContext(SettingOrigins)
+  const readText = liveDevice?.type === 25 ? withCyborgDefaults(props.readText, runtime?.cyborgStickDefaults) : props.readText
   const selectedSide = useInputSide('joysticks')
-  const side = props.modeShift?.side ?? selectedSide
+  const side = liveDevice?.type === 25 ? 'left' : props.modeShift?.side ?? selectedSide
   const SIDE = side === 'left' ? 'LEFT' : 'RIGHT'
-  const name = side === 'left' ? 'Left stick' : 'Right stick'
+  const name = liveDevice?.type === 25 ? 'Analog stick' : side === 'left' ? 'Left stick' : 'Right stick'
   const root = useRef<HTMLDivElement>(null)
   const [fineTune, setFineTune] = useState<string | null>(null)
   const [advanced, setAdvanced] = useState<string | null>(null)
@@ -95,13 +104,18 @@ export function SticksPage(props: SticksPageProps) {
   useEffect(() => { if (peekModeshiftRequest('joysticks', side)) setHolding(true) }, [shiftRequest, side])
 
   const mode = readWord(readText, `${SIDE}_STICK_MODE`) || 'NO_MOUSE'
-  const live = liveDevice?.status ? (side === 'left' ? liveDevice.status.leftStick : liveDevice.status.rightStick) : null
+  const geometry = useMemo(() => readStickGeometry(readText, SIDE), [readText, SIDE])
+  const raw = liveDevice?.status ? (side === 'left' ? liveDevice.status.leftStick : liveDevice.status.rightStick) : null
+  const live = raw ? transformStickGeometry(raw, geometry) : null
+  const cyborg = liveDevice?.type === 25
+  // Preview the edited layout immediately, even while another game/profile is active.
+  const previewDevice = liveDevice?.status && live ? { ...liveDevice, status: { ...liveDevice.status, adjustedLeftStick: live } } : liveDevice
   const menuConfig: StickMenuConfig | undefined = props.menuConfig ?? (setText ? { text: readText, onChange: setText } : undefined)
   const reservedLink = stickMenuLinks(menuConfig?.text ?? readText, side).find(link => isDirectStickMenu(link.attachment, props.modeShift?.trigger))
   const reserved = reservedLink ? { id: reservedLink.menu.id, name: reservedLink.menu.name } : undefined
   const inputs = props.inputs[side]
   const ctx: StickCtx = {
-    side, SIDE, name, text: readText, setText, disabled: props.disabled, mode, live,
+    side, SIDE, name, text: readText, setText, disabled: props.disabled, mode, live, singleStick: cyborg, controllerHandle: liveDevice?.handle,
     // Moving is written as NO_MOUSE, not by deleting the line: a configuration that
     // includes a base, or a layout for one controller, would otherwise hand the
     // base's mode straight back when Moving is chosen.
@@ -118,7 +132,9 @@ export function SticksPage(props: SticksPageProps) {
   }
   const card: StickCard = reserved ? 'WHEEL' : stickCardOf(mode)
   const { inner, outer, scope } = stickDeadzones(readText, SIDE)
-  const innerKey = scope === 'side' ? `${SIDE}_STICK_DEADZONE_INNER` : 'STICK_DEADZONE_INNER'
+  const innerKey = cyborg || scope === 'side' ? `${SIDE}_STICK_DEADZONE_INNER` : 'STICK_DEADZONE_INNER'
+  const outerKey = cyborg || scope === 'side' ? `${SIDE}_STICK_DEADZONE_OUTER` : 'STICK_DEADZONE_OUTER'
+  const unavailable = props.disabled || !setText ? 'This layout is read-only' : undefined
 
   const choose = (value: string) => {
     const next = value as StickCard
@@ -131,14 +147,18 @@ export function SticksPage(props: SticksPageProps) {
   }
   const moreEntry = moreModeOf(mode)
   // Y is More on every row (console v2); B on a top-level tab goes to Layout (App), so the footer says so.
-  const stepHints = 'Y:More;LT/RT:Other stick;B:Layout'
+  const stepHints = cyborg ? 'Y:More;B:Layout' : 'Y:More;LT/RT:Other stick;B:Layout'
 
   usePadButton(root, 'Y', () => setMore(true))
   useFocusCurrentCard(root, side)
   const push = live ? Math.hypot(live.x, live.y) : 0
+  const movingBindings = inputs.directions.map(input => props.describe(input.command).binding).filter(binding => binding && !/^(NONE|Unbound|Not set)$/i.test(binding))
+  const movingCaption = movingBindings.length ? `Sends ${movingBindings.join(' · ')}` : 'No direction bindings yet'
   const clickInfo = inputs.click ? props.describe(inputs.click.command) : null
 
   return (
+    <SettingOrigins.Provider value={cyborg ? { ...origins, base: withCyborgDefaults(origins.base, runtime?.cyborgStickDefaults),
+      origins: { ...Object.fromEntries(Object.keys(runtime?.cyborgStickDefaults ?? {}).map(key => [key, 'Global Cyborg stick defaults'])), ...origins.origins } } : origins}>
     <div ref={root} className={styles.front} id={`mapping-section-${side}Stick`} data-stick-page={side}>
       <InputSideProxies page="joysticks" side={side} commands={{ left: ['L3', 'LUP', 'LDOWN', 'LLEFT', 'LRIGHT', 'LRING', 'LTOUCH'], right: ['R3', 'RUP', 'RDOWN', 'RLEFT', 'RRIGHT', 'RRING', 'RTOUCH'] }}
         reveal={{
@@ -156,24 +176,40 @@ export function SticksPage(props: SticksPageProps) {
       <ModeCards columns={6} value={card} onChange={choose} hints={stepHints}
         options={CARD_ORDER.map(value => ({ value, label: CARD_TEXT[value].label, art: <StickCardArt card={value} />,
           // A card keeps its own caption when current; only a variant of it (Aim + flick under Looking around) says which.
-          caption: value === 'WHEEL' && reserved ? `Menu · ${reserved.name}` : value === 'WHEEL' && card === 'WHEEL' ? `${props.wheelSegments[side].length || 8} slices`
+          caption: value === 'MOVING' && card === 'MOVING' ? movingCaption : value === 'WHEEL' && reserved ? `Menu · ${reserved.name}` : value === 'WHEEL' && card === 'WHEEL' ? `${props.wheelSegments[side].length || 8} slices`
             : value === card && card !== 'MOVING' && stickModeName(mode) !== CARD_TEXT[value].label ? stickModeName(mode) : CARD_TEXT[value].caption }))}
-        more={{ label: moreEntry ? stickModeName(mode) : 'More', caption: moreEntry ? `In use · ${MORE_MODES.length - 1} more` : `${MORE_MODES.length} modes · mouse ring, scroll wheel, steering…`,
+        more={{ label: moreEntry ? stickModeName(mode) : 'More stick modes', caption: moreEntry ? `In use · ${MORE_MODES.length - 1} more` : `${MORE_MODES.length} modes · mouse ring, scroll wheel, steering…`,
           count: moreEntry ? MORE_MODES.length - 1 : MORE_MODES.length, current: card === 'MORE', onOpen: () => setMoreModes(true) }} />
-      <div className={styles.frontLower}>
-        <div className={styles.stickPanel}>
+      <div className={styles.frontLower} data-cyborg={cyborg || undefined}>
+        <div className={cyborg ? styles.cyborgPanel : styles.stickPanel}>
+          {cyborg && previewDevice && <ModelControllerSvg device={previewDevice} backView="focus" frontCaption="Azeron Cyborg 2 · live inputs" />}
           {card === 'WHEEL' && ctx.wheel.menu
             ? <MenuPreview menu={ctx.wheel.menu} aspect={1} fill livePoint={live && push > 0.02 ? { x: live.x, y: -live.y } : null} />
-            : <StickDiagram live={live} inner={inner} outer={outer} />}
-          {card === 'WHEEL' && ctx.wheel.menu ? <div className={styles.stickLegend}><span>Point to light a slice</span></div> : <div className={styles.stickLegend}><span>Inner ring · ignored</span><span>Dashed · full speed</span></div>}
+            : <StickGeometryPreview raw={raw} adjusted={live} geometry={geometry} inner={inner} outer={outer} />}
+          {card === 'WHEEL' && ctx.wheel.menu && <div className={styles.stickLegend}><span>Point to light a slice</span></div>}
         </div>
         <div className={styles.frontRows}>
+          {cyborg && <CyborgStickDefaults raw={raw} />}
           {reserved && <OpenRow label={`Reserved for menu · ${reserved.name}`} hint="The stick picks from the menu; it doesn’t move or look around while the menu has it." value="Edit menu"
             hints={`A:Edit menu;${stepHints}`} onOpen={() => window.dispatchEvent(new CustomEvent('jsm:virtual-menu', { detail: reserved.id }))} />}
-          <ValueRow hero label="Ignore small movement" setting={innerKey} value={Math.round(inner * 100)} min={0} max={90} step={1} fineStep={0.1} format={value => `${value}%`}
+          <section className={styles.setupSection} aria-label="Deadzones">
+          <h2>Deadzones</h2>
+          <ValueRow hero label="Inner deadzone" setting={innerKey} value={Math.round(inner * 100)} min={0} max={90} step={1} fineStep={0.1} format={value => `${value}%`} disabled={unavailable}
             caption={card === 'WHEEL' ? 'Push this far before a slice is picked.' : card === 'LOOK' || card === 'FLICK' ? 'Raise it if the view creeps when you let go.' : 'Raise it if your character drifts when you let go.'} extraHints={stepHints}
             onChange={value => writeKey(setText, innerKey, Number((value / 100).toFixed(4)))} onReset={() => writeKey(setText, innerKey, null)} />
-          {inputs.click && props.renderButton(inputs.click, { label: `Push in (${side === 'left' ? 'L3' : 'R3'})`, subtitle: clickInfo?.label ?? 'What clicking the stick does' })}
+          <ValueRow label="Outer deadzone" setting={outerKey} value={Number((outer * 100).toFixed(1))} min={0} max={90} step={1} fineStep={.1} format={value => `${value}%`} disabled={unavailable}
+            caption={`Full output starts at ${Number(((1 - outer) * 100).toFixed(1))}% travel. Raise this if you cannot reach full speed at the edge.`}
+            onChange={value => writeKey(setText, outerKey, Number((value / 100).toFixed(4)))} onReset={() => writeKey(setText, outerKey, null)} />
+          </section>
+          <section className={styles.setupSection} aria-label="Physical setup">
+          <h2>Physical setup</h2>
+          <StickGeometryControls side={SIDE} geometry={geometry} raw={raw} setText={setText} cyborg={cyborg} disabled={props.disabled} />
+          </section>
+          {card === 'MOVING' && <section className={styles.setupSection} aria-label="Keyboard direction response">
+            <h2>Keyboard direction response</h2>
+            {directionsGroup(ctx, { bindings: false }).content}
+          </section>}
+          {inputs.click && props.renderButton(inputs.click, { label: `Push in (${cyborg ? '21' : side === 'left' ? 'L3' : 'R3'})`, subtitle: clickInfo?.label ?? 'What clicking the stick does' })}
           {!props.modeShift && <ModeShiftRow count={modeshiftTriggers(readText, props.modeshiftTarget(side)).length} onOpen={() => setHolding(true)} />}
           <OpenRow label="Fine-tune" hint={FINE_TUNE_HINT[card]} value="Open" hints={`A:Open;${stepHints}`} data={{ 'data-stick-fine-tune-row': side }} onOpen={() => setFineTune('')} />
         </div>
@@ -210,5 +246,6 @@ export function SticksPage(props: SticksPageProps) {
       <MatchFullTurn open={matchTurn} onClose={() => setMatchTurn(false)} text={readText} setText={setText} trail={['Sticks', name]} />
       {gameStick && <GameStickMatchGuide open onClose={() => setGameStick(null)} text={readText} setText={setText} target={gameStick} trail={['Sticks', name, 'Fine-tune']} live={push} />}
     </div>
+    </SettingOrigins.Provider>
   )
 }

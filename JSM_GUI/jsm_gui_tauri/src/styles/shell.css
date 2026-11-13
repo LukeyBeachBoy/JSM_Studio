@@ -28,7 +28,7 @@
   font-size: var(--fs-hint);
   user-select: none;
 }
-.titlebar:not([data-frameless]) { padding-right: var(--sp-4); }
+
 
 .titlebar__brand {
   flex: none;
@@ -173,9 +173,10 @@ body[data-input-source='controller'] .titlebar :is(button, [role='button']):focu
 .titlebar__history { display: flex; align-items: center; gap: var(--sp-1); padding: 0 var(--sp-1); }
 .titlebar .button--primary { padding: 0 var(--sp-4); }
 
-.window-controls { display: flex; align-self: stretch; margin-left: var(--sp-3); color: var(--text-3); }
+.window-controls { position: absolute; top: 0; right: 0; display: flex; height: 44px; color: var(--text-3); }
 .window-controls button {
   width: 46px;
+  flex: none;
   display: grid;
   place-items: center;
   border: 0;
@@ -666,7 +667,8 @@ body[data-input-source='controller'] .test-banner__stop:focus { box-shadow: 0 0 
 .titlebar .page-tab { height: var(--bar-control-h); }
 .titlebar .titlebar__drag { min-width: var(--sp-2); }
 /* The game chip: art, the configuration, the controller under it. */
-.game-chip.context-segment { height: calc(var(--bar-control-h) + 12px); max-width: 320px; padding: 0 var(--sp-3) 0 6px; gap: var(--sp-3); background: var(--surface-row); border-radius: var(--r-card); }
+/* Keep the two-line chip's inset above the generic title-bar button rules. */
+.titlebar .game-chip.context-segment { height: calc(var(--bar-control-h) + 8px); max-width: 320px; padding: 6px 10px 6px 6px; gap: 10px; background: var(--surface-row); border-radius: var(--r-row); }
 .game-chip__art { width: 36px; height: 36px; flex: none; display: grid; place-items: center; overflow: hidden; border-radius: var(--r-row); background: var(--accent-soft); color: var(--accent); font-size: var(--fs-label); font-weight: var(--fw-bold); }
 .game-chip__art img { width: 30px; height: 30px; }
 .game-chip__text { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; line-height: 1.2; }
@@ -708,8 +710,7 @@ body[data-input-source='controller'] .menu-chip:focus { box-shadow: 0 0 0 2px va
 .page-tabs[data-fit='icons'] .page-tab[aria-current='page'] .page-tab__icon { display: none; }
 .page-tabs[data-fit='icons'] .page-tab__icon,
 .page-tabs:is([data-fit='tight'], [data-fit='squeeze']) .page-tab__icon { display: block; }
-.page-tabs[data-fit='icons'] .page-tab:not([aria-current='page']) .page-tab__label,
-.page-tabs:is([data-fit='tight'], [data-fit='squeeze']) .page-tab__label { display: none; }
+.page-tabs .page-tab__label { display: inline; }
 .titlebar .page-tabs[data-fit='icons'] .page-tab:not([aria-current='page']),
 .titlebar .page-tabs:is([data-fit='tight'], [data-fit='squeeze']) .page-tab { padding: 0 10px; }
 .titlebar .page-tabs:is([data-fit='tight'], [data-fit='squeeze']) .page-tabs__list { gap: 0; }
@@ -723,3 +724,67 @@ body[data-input-source='controller'] .menu-chip:focus { box-shadow: 0 0 0 2px va
 .titlebar[data-squeeze] .game-chip__controller { max-width: 110px; }
 :root[data-density='couch'] .titlebar { gap: var(--sp-3); }
 :root[data-density='couch'] .game-chip.context-segment { max-width: 260px; }
+
+/* Editor navigation owns a stable row; status and translated configuration
+   names cannot squeeze the labels into anonymous icons. */
+.app-shell[data-page-group='controls'] { --titlebar-h: 112px; }
+.titlebar { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: 64px; gap: 0; padding: 0; }
+.titlebar[data-variant='editing'] { grid-template-rows: 64px 48px; gap: 0; }
+.titlebar__primary { display: flex; align-items: center; min-width: 0; gap: var(--sp-4); height: 64px; padding: 0 var(--sp-4); }
+.titlebar[data-frameless] .titlebar__primary { padding-right: calc(3 * 46px + var(--sp-3)); }
+.titlebar[data-variant='editing'] > .page-tabs { min-width: 0; width: 100%; height: 48px; justify-content: flex-start; padding: 0 var(--sp-4); }
+.titlebar[data-variant='editing'] .page-tabs__list { flex: 1 1 auto; }
+.titlebar[data-variant='editing'] .titlebar__drag { flex: 1 1 0; }
+.titlebar[data-variant='editing'] .page-tab { font-size: var(--fs-body); padding: 0 var(--sp-3); }
+.titlebar__save { display: inline-flex; align-items: center; gap: var(--sp-2); flex: none; min-height: 40px; padding: var(--sp-2) var(--sp-3); border: 0; border-radius: var(--r-md); background: var(--surface-control); color: var(--text-1); font: inherit; cursor: pointer; }
+.titlebar__save:hover { background: var(--surface-control-hover); }
+.titlebar__save kbd { color: var(--text-2); font: inherit; font-size: var(--fs-hint); }
+.titlebar__save[aria-disabled='true'] { color: var(--text-3); cursor: default; }
+.titlebar__controller[data-state='searching'] { color: var(--text-2); }
+.titlebar__controller[data-state='searching'] .controller-status__dot { background: var(--text-3); }
+.editor-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3) var(--sp-6); margin-bottom: var(--sp-4); }
+.layout-inline-binding > details > summary { display: none; }
+.layout-inline-binding .sheet-layer { z-index: var(--z-dialog); }
+.hint-capsule__message { max-width: min(52vw, 660px); white-space: normal; overflow-wrap: anywhere; }
+.hint-capsule__item { flex-shrink: 0; }
+.hint-capsule__where { flex-basis: 100px; }
+.shell-scroll { overscroll-behavior: contain; }
+@media (max-width: 1100px) {
+  .titlebar__primary { gap: var(--sp-2); }
+  .titlebar .game-chip.context-segment { max-width: 240px; }
+  .titlebar__save kbd { display: none; }
+  .titlebar[data-frameless] .titlebar__save-label { display: none; }
+  .titlebar[data-frameless] .titlebar__save { padding: var(--sp-2); }
+  .titlebar[data-frameless] .home-chip > span:not([class]) { display: none; }
+  .titlebar__live-profile { max-width: 140px; }
+  .hint-capsule { gap: var(--sp-2); padding: 0 var(--sp-4); font-size: var(--fs-hint); }
+  .app-shell[data-width='compact'] .hint-capsule { gap: var(--sp-2); padding: 0 var(--sp-4); }
+  .hint-capsule__where:has(+ .hint-capsule__mode) { display: none; }
+}
+@media (max-width: 899px) {
+  .titlebar[data-variant='editing'] .game-chip__controller { display: none; }
+  .shell-body[data-width='narrow'] .section-list { flex-wrap: wrap; max-height: 180px; overflow-y: auto; overflow-x: hidden; }
+}
+
+.editor-sources { position: relative; margin-left: auto; flex: none; font-size: var(--fs-hint); color: var(--text-2); }
+.editor-sources summary { cursor: pointer; padding: var(--sp-2); border-radius: var(--r-md); }
+.editor-sources summary:hover { background: var(--surface-row-hover); }
+.editor-sources[open] .binding-source-legend { position: absolute; right: 0; top: 100%; z-index: var(--z-sticky); min-width: 260px; padding: var(--sp-4); border-radius: var(--r-md); background: var(--surface-raised); box-shadow: var(--shadow-menu); }
+.editor-sources .binding-source-legend-label { display: none; }
+@media (max-height: 700px) { .page { padding: var(--sp-4) var(--sp-6); } .page-header { margin-bottom: var(--sp-4); } }
+
+.configuration-mark { display: grid; place-items: center; width: 30px; height: 30px; border-radius: var(--r-md); color: #fff; font-size: var(--fs-label); font-weight: var(--fw-semibold); }
+
+.section-list__picker { display: none; }
+@media (max-width: 1000px) {
+  .shell-body:has(> .section-list--settings) { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .shell-body[data-width] .section-list--settings { padding: var(--sp-3) var(--sp-6); overflow: visible; }
+  .section-list--settings > .section-item, .section-list--settings > .section-list__keys { display: none; }
+  .section-list__picker { display: flex; align-items: center; gap: var(--sp-3); color: var(--text-2); font-size: var(--fs-hint); }
+  .section-list__picker select { min-width: 0; flex: 1; max-width: 420px; min-height: 36px; padding: var(--sp-2) var(--sp-3); border: 1px solid var(--line-2); border-radius: var(--r-md); background: var(--surface-control); color: var(--text-1); font: inherit; }
+}
+
+.titlebar__primary .titlebar__live-profile { flex: 0 1 180px; }
+.titlebar .game-chip .game-chip__text { flex: 1; min-width: 0; overflow: hidden; }
+.titlebar .game-chip .game-chip__text > :is(b, span) { max-width: 100%; }
+@media (max-width: 1250px) { .titlebar__primary .titlebar__live-profile { display: none; } }

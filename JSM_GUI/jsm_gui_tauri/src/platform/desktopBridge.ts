@@ -51,6 +51,7 @@ export type RuntimeMappingState = {
   /** Built-in AutoLoad rule that lets the controller drive JSM Evolved itself. */
   defaultPollingMs?: number
   controllerNavEnabled: boolean
+  controllerNavOverrides?: Record<string, boolean>
   trackpadOverlayEnabled?: boolean
   gyroCalibrationSeconds?: number
   gyroCalibrationDelay?: number
@@ -69,6 +70,7 @@ export type RuntimeMappingState = {
   simPressMs?: number
   turboPeriodMs?: number
   /** Trackpad orientation, degrees per pad, positive clockwise as seen by the user. */
+  cyborgStickDefaults?: Record<string, string>
   leftPadRotation?: number
   rightPadRotation?: number
   /** The controller's own power jingle volume: 2 normal, 1 quiet, 0 off, -1 leave it. */
@@ -144,6 +146,7 @@ export type ControllerPreferences = {
 }
 
 export type AutoloadRule = {
+  slot?: number | null
   processName: string
   fileName: string
   kind: 'profile' | 'advanced' | string
@@ -171,6 +174,7 @@ export type AppIcon = {
 
 /** What saving a rule may also set; either left out leaves it as it was. */
 export type SaveAutoloadRuleOptions = {
+  slot?: number
   /** The executable to remember for the icon. */
   exePath?: string
   /** false saves the rule paused: associated, not applied automatically. */
@@ -305,6 +309,7 @@ export type HidHideStatus = {
   managedInstanceIds: string[]
   whitelistSynced: boolean
   requiresElevation: boolean
+  autoHideAzeron?: boolean | null
   /** HidHide's application list ("Apps that can still see them"). */
   appList?: HidHideApp[]
 }
@@ -427,7 +432,19 @@ export type MouseAreaPickRequest = {
 
 export type MouseAreaPickResult = { pad: string; area: MouseAreaRect | null }
 
+export type SlotHotkey = { buttons: string[]; controllerModel: string | null }
+export type ConfigSlot = SlotHotkey & { id: number; name: string; profileName: string | null; additionalHotkeys?: SlotHotkey[] }
+export type ConfigSlots = { enabled: boolean; showNotifications?: boolean; activeSlot: number; slots: ConfigSlot[] }
+let mockSlots: ConfigSlots = { enabled: false, showNotifications: true, activeSlot: 1, slots: [1, 2, 3, 4].map(id => ({ id, name: `Slot ${id}`, profileName: null, buttons: [], controllerModel: null })) }
+const mockSlotChange = (config: ConfigSlots) => { mockSlots = structuredClone(config); window.dispatchEvent(new CustomEvent('jsm:slots', { detail: mockSlots })); return mockSlots }
+
 export interface DesktopBridge {
+  getSlots: () => Promise<ConfigSlots>
+  saveSlots: (config: ConfigSlots) => Promise<ConfigSlots>
+  activateSlot: (id: number) => Promise<ConfigSlots>
+  assignSlot: (id: number, profileName: string) => Promise<ConfigSlots>
+  onSlotsChanged: (callback: (config: ConfigSlots) => void) => () => void
+  onSlotError: (callback: (error: string) => void) => () => void
   launchJSM: (calibrationSeconds?: number) => Promise<void>
   terminateJSM: () => Promise<void>
   minimizeTemporarily: () => Promise<void>
@@ -437,6 +454,8 @@ export interface DesktopBridge {
   setAutoloadEnabled: (enabled: boolean) => Promise<RuntimeMappingState>
   setDefaultPollingMs: (value: number) => Promise<RuntimeMappingState>
   /** The global timing store; saved and handed to the running mapper at once. */
+  mouseSideButtons: () => Promise<string[]>
+  setCyborgStickDefaults: (values: Record<string, string>) => Promise<RuntimeMappingState>
   setGlobalTiming: (timing: GlobalTiming) => Promise<RuntimeMappingState>
   setControllerPreferences: (preferences: ControllerPreferences) => Promise<RuntimeMappingState>
   /** gain: dB, 0 = as recorded; omitted plays at the saved level. With a
@@ -455,7 +474,7 @@ export interface DesktopBridge {
   soundLibrarySetGain: (id: string, gainDb: number) => Promise<SoundEntry>
   /** Also clears the sound from connect / shutdown when it was chosen there. */
   soundLibraryDelete: (id: string) => Promise<void>
-  setControllerNavEnabled: (enabled: boolean) => Promise<RuntimeMappingState>
+  setControllerNavEnabled: (enabled: boolean, controller?: string) => Promise<RuntimeMappingState>
   /** Ends Test mode: loads Studio's navigation profile so the pad drives Studio again. */
   resumeStudioNavigation: () => Promise<boolean>
   setStudioTesting: (testing: boolean) => Promise<void>
@@ -527,6 +546,7 @@ export interface DesktopBridge {
   setAutostartEnabled: (enabled: boolean) => Promise<boolean>
   openExternal: (url: string) => Promise<void>
   openConfigDirectory: () => Promise<void>
+  getConfigDirectory: () => Promise<string | null>
   onUpdateAvailable: (callback: (version: string) => void) => Unsubscribe
   onUpdateDownloaded: (callback: () => void) => Unsubscribe
   onUpdateDownloadProgress: (callback: (percent: number) => void) => Unsubscribe
@@ -720,6 +740,17 @@ const listenTauri = <T>(eventName: string, callback: (payload: T) => void): Unsu
 }
 
 export const desktopBridge: DesktopBridge = {
+  async getSlots() { return isTauriWindow() ? invokeTauri<ConfigSlots>('get_slots') : mockSlots },
+  async saveSlots(config) { return isTauriWindow() ? invokeTauri<ConfigSlots>('save_slots', { config }) : mockSlotChange(config) },
+  async activateSlot(id) { return isTauriWindow() ? invokeTauri<ConfigSlots>('activate_slot', { id }) : mockSlotChange({ ...mockSlots, activeSlot: id }) },
+  async assignSlot(id, profileName) { return isTauriWindow() ? invokeTauri<ConfigSlots>('assign_slot', { id, profileName }) : mockSlotChange({ ...mockSlots, slots: mockSlots.slots.map(s => s.id === id ? { ...s, profileName } : s) }) },
+  onSlotsChanged(callback) {
+    if (isTauriWindow()) return listenTauri<ConfigSlots>('slots-changed', callback)
+    const listener = (event: Event) => callback((event as CustomEvent<ConfigSlots>).detail)
+    window.addEventListener('jsm:slots', listener)
+    return () => window.removeEventListener('jsm:slots', listener)
+  },
+  onSlotError(callback) { return isTauriWindow() ? listenTauri<string>('slot-error', callback) : noop },
   async launchJSM(calibrationSeconds = 5) {
     if (isTauriWindow()) {
       await invokeTauri<void>('launch_jsm', { calibrationSeconds })
@@ -793,6 +824,14 @@ export const desktopBridge: DesktopBridge = {
 
   async setDefaultPollingMs(value: number): Promise<RuntimeMappingState> {
     return desktopBridge.setGlobalTiming({ pollingMs: value })
+  },
+  async mouseSideButtons() {
+    return isTauriWindow() ? invokeTauri<string[]>('mouse_side_buttons') : []
+  },
+  async setCyborgStickDefaults(values: Record<string, string>) {
+    if (isTauriWindow()) return invokeTauri<RuntimeMappingState>('set_cyborg_stick_defaults', { values })
+    previewRuntime.cyborgStickDefaults = values
+    return { ...previewRuntime }
   },
   async setGlobalTiming(timing: GlobalTiming): Promise<RuntimeMappingState> {
     if (isTauriWindow()) return invokeTauri<RuntimeMappingState>('set_global_timing', { timing })
@@ -876,11 +915,13 @@ export const desktopBridge: DesktopBridge = {
     if (previewRuntime.connectSoundFile === id) previewRuntime.connectSoundFile = null
     if (previewRuntime.shutdownSoundFile === id) previewRuntime.shutdownSoundFile = null
   },
-  async setControllerNavEnabled(enabled) {
+  async setControllerNavEnabled(enabled, controller) {
     if (isTauriWindow()) {
-      return invokeTauri<RuntimeMappingState>('set_controller_nav_enabled', { enabled })
+      return invokeTauri<RuntimeMappingState>('set_controller_nav_enabled', { enabled, controller })
     }
-    return { activeProfilePath: 'profiles-library/Profile 1.txt', mappingEnabled: true, autoloadEnabled: true, controllerNavEnabled: enabled }
+    if (controller) previewRuntime.controllerNavOverrides = { ...previewRuntime.controllerNavOverrides, [controller]: enabled }
+    else previewRuntime.controllerNavEnabled = enabled
+    return { ...previewRuntime }
   },
   async setStudioTesting(testing) {
     if (isTauriWindow()) await invokeTauri<void>('set_studio_testing', { testing }).catch(() => {})
@@ -945,7 +986,7 @@ export const desktopBridge: DesktopBridge = {
   },
   async saveAutoloadRule(processName, profileName, options) {
     if (isTauriWindow()) {
-      return invokeTauri<AutoloadRule>('save_autoload_rule', { processName, profileName, exePath: options?.exePath, autoApply: options?.autoApply }).catch(() => null)
+      return invokeTauri<AutoloadRule>('save_autoload_rule', { processName, profileName, exePath: options?.exePath, autoApply: options?.autoApply, slot: options?.slot }).catch(() => null)
     }
     return (await mockAssociationApi()?.saveAutoloadRule?.(processName, profileName, options)) ?? null
   },
@@ -1208,6 +1249,9 @@ export const desktopBridge: DesktopBridge = {
       await invokeTauri<void>('open_config_directory')
       return
     }
+  },
+  async getConfigDirectory() {
+    return isTauriWindow() ? invokeTauri<string>('get_config_directory') : null
   },
   onUpdateAvailable(callback) {
     if (isTauriWindow()) {

@@ -1,0 +1,15 @@
+const assert=require('node:assert/strict');const fs=require('node:fs');const path=require('node:path');const Module=require('node:module');const ts=require('../JSM_GUI/jsm_gui_tauri/node_modules/typescript');
+const cache=new Map();function load(file){file=path.resolve(file);if(cache.has(file))return cache.get(file).exports;const mod=new Module(file);cache.set(file,mod);mod.filename=file;mod.paths=Module._nodeModulePaths(path.dirname(file));mod.require=n=>n.startsWith('.')?load(path.resolve(path.dirname(file),n+'.ts')):require(n);mod._compile(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText,file);return mod.exports}
+const {createBindingProvenance}=load('JSM_GUI/jsm_gui_tauri/src/utils/bindingProvenance.ts');
+const {projectController}=load('JSM_GUI/jsm_gui_tauri/src/utils/controllerLayouts.ts');
+const base='N = SPACE\nE = F\nW = Q\nS = NONE\nSL = R\nLEFT_STICK_MODE = NO_MOUSE\nLUP = W';
+const own='W = Q\nE = NONE\nLSL = C\nLEFT_STICK_DEADZONE_INNER = 0.25\n# @label N = Jump\n# @layer-action JOY25 = toggle driving';
+const layers=[{id:'driving',name:'Driving',overrides:{N:'NONE',JOY2:'S'}}];
+const resolve=selected=>createBindingProvenance({ownText:own,baseText:base,baseOrigins:{N:'profiles-library/FPS.txt'},gameName:'Cyberpunk',selected,layers});
+const initial=resolve();assert.equal(initial.input('N').kind,'base');assert.match(initial.input('N').label,/FPS/);assert.equal(initial.input('W').kind,'game','Explicit identical output still belongs to the game');assert.equal(initial.input('E').kind,'game','Game clears a base binding');assert.equal(initial.input('S').kind,'unset','Unused defaults stay quiet');assert.equal(initial.input('LSL').kind,'game');assert.equal(initial.input('RSL').kind,'base','Shared alias splits without changing its other target');assert.equal(initial.input('JOY25').kind,'game','Layer activation belongs to its config');assert.equal(initial.input('L3').kind,'mixed');assert.equal(initial.group(['N','W']).kind,'mixed');
+const driving=resolve(layers[0]);assert.equal(driving.input('N').kind,'layer','A layer clear is an override');assert.equal(driving.input('W').kind,'game');assert.equal(driving.input('RSL').kind,'base');assert.equal(driving.input('JOY2').kind,'layer');assert.equal(initial.input('JOY2').kind,'unset','Inactive layers do not affect source');
+const file='# @controller type-25 JOY1 = Q\n# @controller type-25-device-1111111111111111 JOY2 = E';
+const baseFile='# @controller type-25 JOY2 = SPACE\n# @controller type-24 N = SPACE';
+const forDevice=id=>createBindingProvenance({ownText:projectController(file,id),baseText:projectController(baseFile,id)});
+assert.equal(forDevice('type-25-device-1111111111111111').input('JOY2').kind,'game');assert.equal(forDevice('type-25-device-2222222222222222').input('JOY2').kind,'base');assert.equal(forDevice('type-24').input('JOY1').kind,'unset');
+console.log('PASS: base/game/layer ownership, aliases, clears, annotations, mixed controls, inactive layers and identical-controller isolation');

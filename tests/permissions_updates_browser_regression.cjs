@@ -15,9 +15,9 @@ const base = process.env.JSM_TEST_URL || 'http://127.0.0.1:1420'
       await page.evaluate(() => window.dispatchEvent(new CustomEvent('jsm:navigate-page', { detail: 'startup' })))
     }
     await page.goto(`${base}/?mock&update&onboarding`)
-    const intro = page.getByRole('dialog', { name: "You're in control of permissions" })
+    const intro = page.getByRole('dialog', { name: 'Welcome to JSM Evolved' })
     await intro.waitFor()
-    assert.match(await intro.innerText(), /stays off unless you enable it separately/)
+    assert.match(await intro.innerText(), /Connect your controller[\s\S]*Pick a game[\s\S]*Try it/); assert.equal(await intro.getByRole('button', { name: 'Get started', exact: true }).evaluate(el => el === document.activeElement), true)
     await intro.getByRole('button', { name: 'Get started', exact: true }).click()
     await go()
     const signIn = page.getByRole('switch', { name: /^Controller input on the Windows lock screen/ })

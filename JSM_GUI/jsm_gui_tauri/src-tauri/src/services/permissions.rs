@@ -3,7 +3,7 @@
 //! lock, so accepting UAC cannot create a second mapper or lose the restart.
 use serde::{Deserialize, Serialize};
 use std::{fs, path::PathBuf};
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -25,7 +25,7 @@ pub struct PermissionStatus {
 }
 
 fn settings_path(app: &AppHandle) -> Result<PathBuf, String> {
-    app.path().app_data_dir().map(|p| p.join("permissions.json")).map_err(|e| e.to_string())
+    crate::runtime::app_data_dir(app).map(|p| p.join("permissions.json"))
 }
 
 const SIGN_IN_CONSENT: &str = "enabled-v1\n";

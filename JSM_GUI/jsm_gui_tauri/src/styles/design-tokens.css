@@ -69,14 +69,14 @@
   /* Type */
   --font-ui: "Geist", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
   --font-mono: "Geist Mono", "Cascadia Mono", Consolas, monospace;
-  --fs-display: 32px; --lh-display: 38px;
+  --fs-display: 40px; --lh-display: 48px;
   --fs-page: 28px;    --lh-page: 34px;
-  --fs-section: 17px; --lh-section: 24px;
-  --fs-label: 15px;   --lh-label: 20px;
+  --fs-section: 20px; --lh-section: 28px;
+  --fs-label: 16px;   --lh-label: 22px;
   --fs-body: 14px;    --lh-body: 20px;
   --fs-hint: 13px;    --lh-hint: 18px;
-  --fs-eyebrow: 11px; --lh-eyebrow: 14px;
-  --fs-micro: 11px;
+  --fs-eyebrow: 12px; --lh-eyebrow: 16px;
+  --fs-micro: 12px;
   --fw-regular: 400; --fw-medium: 500; --fw-semibold: 600; --fw-bold: 700;
   --tracking-eyebrow: .12em;
   --tracking-title: -.015em;
@@ -86,7 +86,7 @@
   --sp-6: 24px; --sp-7: 32px; --sp-8: 40px; --sp-9: 48px; --sp-10: 64px;
 
   /* Radii */
-  --r-xs: 4px; --r-sm: 6px; --r-md: 8px; --r-row: 10px; --r-card: 14px; --r-pill: 999px;
+  --r-xs: 4px; --r-sm: 4px; --r-md: 8px; --r-row: 8px; --r-card: 16px; --r-pill: 999px;
 
   /* Dimensions */
   --titlebar-h: 44px;

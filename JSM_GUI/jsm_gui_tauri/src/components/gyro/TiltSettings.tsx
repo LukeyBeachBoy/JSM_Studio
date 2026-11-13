@@ -1,12 +1,12 @@
+import { useEffect, useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { SubPage, FineTune, stepGroup, ModeCards, ValueRow, SegmentedRow, OpenRow, type FineTuneGroup } from '../ui/console'
+import { SubPage, FineTune, SettingRows, stepGroup, ModeCards, ValueRow, SegmentedRow, OpenRow, type FineTuneGroup } from '../ui/console'
 import { SourceModeTuning } from '../SourceModeTuning'
 import { STICK_MODE_VALUES, formatStickModeLabel } from '../../constants/sticks'
 import { parseGyroActivation, parseTiltActivation } from '../../utils/gyroActivation'
 import { readVirtualSetting, writeVirtualSetting } from '../../utils/virtualStickSettings'
 import { useGyro, KeyNumberRow, KeyChoiceRow, Note, RowLabel, VisualTitle } from './GyroContext'
 import { ActivationEditor, WhenOnVisual } from './WhenOn'
-import { liveGyro } from './visuals'
 import styles from './Gyro.module.css'
 
 // Tilt (D6): Gyro ▸ Fine-tune ▸ Direction ▸ Advanced ▸ Tilt, a sub-page on the
@@ -45,7 +45,7 @@ const DESCRIPTIONS: Record<string, string> = {
 export const TILT_LABELS: Record<string, string> = {
   NO_MOUSE: 'Directional actions', AIM: 'Tilt to mouse', LEFT_STICK: 'Tilt → left stick', RIGHT_STICK: 'Tilt → right stick',
   LEFT_STEER_X: 'Steering → left stick', RIGHT_STEER_X: 'Steering → right stick',
-  FLICK: 'Flick to turn', FLICK_ONLY: 'Flick only', ROTATE_ONLY: 'Turn only', HYBRID_AIM: 'Aim + flick', MOUSE_AREA: 'Mouse area', MOUSE_RING: 'Mouse ring',
+  FLICK: 'Flick stick', FLICK_ONLY: 'Flick only', ROTATE_ONLY: 'Rotate only', HYBRID_AIM: 'Hybrid aim', MOUSE_AREA: 'Mouse area', MOUSE_RING: 'Mouse ring',
   SCROLL_WHEEL: 'Scroll wheel', INNER_RING: 'Directions + inner ring', OUTER_RING: 'Directions + outer ring',
   LEFT_ANGLE_TO_X: 'Angle → left stick X', LEFT_ANGLE_TO_Y: 'Angle → left stick Y', RIGHT_ANGLE_TO_X: 'Angle → right stick X', RIGHT_ANGLE_TO_Y: 'Angle → right stick Y',
   LEFT_WIND_X: 'Wind-up steering → left stick', RIGHT_WIND_X: 'Wind-up steering → right stick',
@@ -54,7 +54,8 @@ const LABELS = TILT_LABELS
 const GROUPS = [
   { label: 'Button actions', test: (mode: string) => ['NO_MOUSE', 'INNER_RING', 'OUTER_RING', 'SCROLL_WHEEL'].includes(mode) },
   { label: 'Mouse and camera', test: (mode: string) => ['AIM', 'HYBRID_AIM', 'FLICK', 'FLICK_ONLY', 'ROTATE_ONLY', 'MOUSE_AREA', 'MOUSE_RING'].includes(mode) },
-  { label: 'Virtual stick and steering', test: (mode: string) => mode.startsWith('LEFT_') || mode.startsWith('RIGHT_') },
+  { label: 'Virtual stick', test: (mode: string) => ['LEFT_STICK', 'RIGHT_STICK', 'LEFT_ANGLE_TO_X', 'LEFT_ANGLE_TO_Y', 'RIGHT_ANGLE_TO_X', 'RIGHT_ANGLE_TO_Y'].includes(mode) },
+  { label: 'Steering', test: (mode: string) => ['LEFT_STEER_X', 'RIGHT_STEER_X', 'LEFT_WIND_X', 'RIGHT_WIND_X'].includes(mode) },
 ]
 const MOUNTING = [{ value: 'FORWARD', label: 'Forward' }, { value: 'LEFT', label: 'Left' }, { value: 'RIGHT', label: 'Right' }, { value: 'BACKWARD', label: 'Backward' }, { value: 'JOYCON_SIDEWAYS', label: 'Sideways Joy-Con pair' }]
 
@@ -64,6 +65,11 @@ export function TiltSettings({ open, onClose, trail, part, onPart, onWhileHoldin
   const gyro = useGyro()
   const { t } = useTranslation()
   const mode = (gyro.get('MOTION_STICK_MODE') ?? 'NO_MOUSE').toUpperCase()
+  const tabsId = useId()
+  const selectedCategory = Math.max(0, GROUPS.findIndex(group => group.test(mode)))
+  const [category, setCategory] = useState(selectedCategory)
+  // Follow a changed configuration, but retain browsing when moving between parts.
+  useEffect(() => { setCategory(selectedCategory) }, [mode, selectedCategory])
   const label = (value: string) => LABELS[value] ?? formatStickModeLabel(value, t)
   const inner = gyro.num('MOTION_DEADZONE_INNER', 15)
   const outer = gyro.num('MOTION_DEADZONE_OUTER', 135)
@@ -101,13 +107,31 @@ export function TiltSettings({ open, onClose, trail, part, onPart, onWhileHoldin
       id: 'behaviour', label: 'Behaviour', status: label(mode), changed: gyro.changed('MOTION_STICK_MODE'),
       detail: 'What tilting does: actions, mouse, a stick or steering',
       description: DESCRIPTIONS[mode] ?? 'This configuration uses a custom tilt behaviour.',
-      content: <div data-tilt-behaviour="">
+      content: <div className={styles.frontCards} data-tilt-behaviour="">
         {warnings}
-        {GROUPS.map(group => (
-          <ModeCards key={group.label} label={group.label} columns={3} value={mode} useLabel={card => `Use ${card.label}`}
+        <div className={styles.tiltTabs} role="tablist" aria-label="Tilt behaviour categories">
+          {GROUPS.map((group, index) => <button key={group.label} type="button" role="tab"
+            id={`${tabsId}-tab-${index}`} aria-controls={`${tabsId}-panel`} aria-selected={category === index}
+            className={styles.partTab} data-current={category === index ? 'true' : undefined}
+            data-hints="A:Show category;B:Back" onClick={() => setCategory(index)}
+            onKeyDown={event => {
+              const next = event.key === 'ArrowRight' ? (index + 1) % GROUPS.length
+                : event.key === 'ArrowLeft' ? (index + GROUPS.length - 1) % GROUPS.length
+                : event.key === 'Home' ? 0 : event.key === 'End' ? GROUPS.length - 1 : null
+              if (next === null) return
+              event.preventDefault()
+              event.stopPropagation()
+              setCategory(next)
+              document.getElementById(`${tabsId}-tab-${next}`)?.focus()
+            }}>
+            <b>{group.label}</b><span>{group.test(mode) ? 'Current behaviour' : 'Browse behaviours'}</span>
+          </button>)}
+        </div>
+        <div id={`${tabsId}-panel`} role="tabpanel" aria-labelledby={`${tabsId}-tab-${category}`}>
+          <ModeCards label={GROUPS[category].label} columns={3} value={mode} useLabel={card => `Use ${card.label}`}
             onChange={value => gyro.set('MOTION_STICK_MODE', value)}
-            options={modes.filter(group.test).map(value => ({ value, label: label(value), caption: DESCRIPTIONS[value], unavailable: gyro.locked }))} />
-        ))}
+            options={modes.filter(GROUPS[category].test).map(value => ({ value, label: label(value), caption: DESCRIPTIONS[value], unavailable: gyro.locked }))} />
+        </div>
         <Note>Bind Set tilt neutral under Buttons to capture your comfortable holding angle as the centre.</Note>
       </div>,
     },
@@ -129,12 +153,12 @@ export function TiltSettings({ open, onClose, trail, part, onPart, onWhileHoldin
       id: 'tuning', label: 'Tuning', status: `For ${label(mode).toLowerCase()}`, changed: gyro.changed('STICK_SENS', 'STICK_POWER', 'STICK_ACCELERATION_RATE', 'STICK_ACCELERATION_CAP', 'FLICK_TIME', 'MOUSE_RING_RADIUS', 'SCROLL_SENS'),
       detail: 'Speed, response, flick and output for the behaviour',
       description: `Tilt tuning · ${label(mode)}`,
-      content: <div data-tilt-tuning="">
+      content: <SettingRows data-tilt-tuning="">
         {['AIM', 'HYBRID_AIM'].includes(mode) && <>
           {pairRow('STICK_SENS', 'Left/right tilt mouse speed', 0, 360, 0, 1200, 1, ' °/s', 'Camera speed at full tilt')}
           {pairRow('STICK_SENS', 'Up/down tilt mouse speed', 1, 360, 0, 1200, 1, ' °/s')}
-          <KeyNumberRow k="STICK_ACCELERATION_RATE" label="Speed-up rate" hint="How fast holding full tilt speeds up; 0 is off" fallback={0} min={0} max={50} step={0.1} />
-          <KeyNumberRow k="STICK_ACCELERATION_CAP" label="Speed-up cap" hint="The most it speeds up" fallback={1000000} min={1} max={1000000} step={1} />
+          <KeyNumberRow k="STICK_ACCELERATION_RATE" label="Acceleration rate" hint="How fast holding full tilt increases sensitivity; 0 is off" fallback={0} min={0} max={50} step={0.1} />
+          <KeyNumberRow k="STICK_ACCELERATION_CAP" label="Acceleration cap" hint="Maximum acceleration multiplier" fallback={1000000} min={1} max={1000000} step={1} />
         </>}
         {['AIM', 'HYBRID_AIM', 'LEFT_STEER_X', 'RIGHT_STEER_X'].includes(mode) && <KeyNumberRow k="STICK_POWER" label="Tilt response curve" hint="1 is straight; higher is gentler near neutral" fallback={1} min={0.01} max={8} step={0.1} fineStep={0.01} />}
         {['FLICK', 'FLICK_ONLY'].includes(mode) && <>
@@ -155,7 +179,7 @@ export function TiltSettings({ open, onClose, trail, part, onPart, onWhileHoldin
         </>}
         <SourceModeTuning mode={mode} configText={gyro.text} onConfigTextChange={gyro.setText} disabled={Boolean(gyro.locked)} />
         <Note>Aim, flick and output tuning is shared with the sticks that use the same behaviour. Held settings apply while their button is held.</Note>
-      </div>,
+      </SettingRows>,
     },
     {
       id: 'orientation', label: 'Orientation', status: `${axis[0] === 'INVERTED' || axis[1] === 'INVERTED' ? 'Inverted' : 'Normal'} · ${MOUNTING.find(item => item.value === (gyro.get('CONTROLLER_ORIENTATION') ?? 'FORWARD').toUpperCase())?.label ?? 'Custom'}`,
@@ -167,14 +191,14 @@ export function TiltSettings({ open, onClose, trail, part, onPart, onWhileHoldin
           <ValueRowChoice key={name} label={`${name} tilt direction`} value={(axis[index] ?? axis[0]) === 'INVERTED' ? 'INVERTED' : 'STANDARD'}
             onChange={next => { const pair = [axis[0] ?? 'STANDARD', axis[1] ?? axis[0] ?? 'STANDARD']; pair[index] = next; gyro.set('MOTION_STICK_AXIS', pair.join(' ')) }} />
         ))}
-        <KeyChoiceRow k="CONTROLLER_ORIENTATION" label="Controller mounting direction" hint="Which way the controller faces; gyro’s Turn using is separate" fallback="FORWARD" options={MOUNTING} />
+        <KeyChoiceRow k="CONTROLLER_ORIENTATION" label="Controller mounting direction" hint="Which way the controller faces; gyro space is separate" fallback="FORWARD" options={MOUNTING} />
       </>,
     },
     {
       id: 'when', label: 'When tilt is on', status: tiltOn.mode === 'always_on' ? 'Always' : tiltOn.mode === 'always_off' ? 'Off' : tiltOn.mode === 'hold_on' ? 'While I hold…' : 'Unless I hold…',
       changed: gyro.changed('TILT_ON', 'TILT_OFF'),
       detail: 'Tilt activation and combined inputs',
-      description: 'Tilt has its own on and off, separate from gyro.',
+      description: 'Tilt is off by default and independent of gyro. Choose Always or a hold condition to enable it; your behaviour and bindings are kept while it is off.',
       content: <ActivationEditor source="tilt" />,
       visual: <WhenOnVisual source="tilt" />,
     },
@@ -191,13 +215,13 @@ export function TiltSettings({ open, onClose, trail, part, onPart, onWhileHoldin
       where={`${trail.join(' · ')} · Tilt · ${groups.find(group => group.id === active)?.label ?? ''}`}>
       <div data-tilt="" id="gyro-motion">
         <FineTune railLabel="Part" groups={groups} active={active} onActive={id => onPart(id as TiltPart)}
-          railNote={<>Tilt uses your angle from neutral; gyro uses how fast you turn. Both can run together. Live: {tiltText(liveGyro(gyro.sample))}</>} />
+          railNote={<>Tilt uses your angle from neutral; gyro uses how fast you turn. Both can run together. {tiltText(gyro.sample?.devices?.[0]?.status?.motion?.tiltAngle)}</>} />
       </div>
     </SubPage>
   )
 }
 
-const tiltText = (gyro: { x: number; y: number; z: number } | null) => (gyro ? `${Math.round(Math.abs(gyro.x) + Math.abs(gyro.z))} °/s of tilting` : 'no controller')
+const tiltText = (angle?: number) => Number.isFinite(angle) ? `Live: ${angle!.toFixed(1)}° from neutral.` : 'Live angle unavailable.'
 
 function ValueRowChoice({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
   const gyro = useGyro()
@@ -211,21 +235,26 @@ function RowLabelOpen({ onOpen }: { onOpen: () => void }) {
   </>
 }
 
-/** Angles: the deadzone and full-output angle as a tilt dial. */
+/** Normalised tilt input after its deadzones, before the selected behaviour. */
 export function TiltAngleVisual({ inner, full }: { inner: number; full: number }) {
   const gyro = useGyro()
-  const cx = 210, cy = 210, r = 170
-  const at = (deg: number) => { const a = ((deg - 90) * Math.PI) / 180; return [cx + r * Math.cos(a), cy + r * Math.sin(a)] }
-  const arc = (from: number, to: number) => { const [x1, y1] = at(from), [x2, y2] = at(to); return `M${cx} ${cy} L${x1} ${y1} A${r} ${r} 0 ${Math.abs(to - from) > 180 ? 1 : 0} 1 ${x2} ${y2} Z` }
-  const clampDeg = (deg: number) => Math.min(90, Math.max(0, deg))
+  const angle = gyro.sample?.devices?.[0]?.status?.motion?.tiltAngle
+  const live = Number.isFinite(angle) ? Math.max(0, Math.min(180, angle!)) : null
+  const output = (degrees: number) => degrees <= inner ? 0 : full <= inner ? 1 : Math.min(1, (degrees - inner) / (full - inner))
+  const x = (degrees: number) => 42 + degrees / 180 * 360
+  const y = (fraction: number) => 196 - fraction * 160
+  const path = Array.from({ length: 181 }, (_, i) => `${i ? 'L' : 'M'}${x(i)},${y(output(i))}`).join(' ')
   return <>
-    <VisualTitle title="How far you tilt" live={gyro.sample ? true : undefined} />
-    <svg className={styles.graph} viewBox="0 0 420 240" role="img" aria-label={`Nothing below ${inner}°, full at ${full}°`}>
-      <path className={styles.band} d={arc(-clampDeg(inner), clampDeg(inner))} />
-      <path className={styles.area} d={arc(clampDeg(inner), clampDeg(full))} />
-      <path className={styles.area} d={arc(-clampDeg(full), -clampDeg(inner))} />
-      <text className={styles.markLabel} x={cx} y={cy - r - 6 + 20} textAnchor="middle">Dead below {inner}°</text>
-      <text className={styles.markLabel} x={cx} y={234} textAnchor="middle">Full past {full}°</text>
+    <VisualTitle title="Tilt input after deadzones" live={live === null ? undefined : `${live.toFixed(1)}°`} />
+    <svg className={styles.graph} viewBox="0 0 420 240" role="img" aria-label={`Tilt input: nothing below ${inner}°, full at ${full}°.${live === null ? '' : ` Live: ${live.toFixed(1)}° from neutral, ${Math.round(output(live) * 100)}% input.`}`}>
+      <path className={styles.axes} d="M42 36 V196 H402" />
+      <path className={styles.curve} d={path} />
+      {[0, 90, 180].map(degrees => <text key={degrees} className={styles.markLabel} x={x(degrees)} y={214} textAnchor="middle">{degrees}°</text>)}
+      <text className={styles.markLabel} x={38} y={40} textAnchor="end">100%</text>
+      <text className={styles.markLabel} x={38} y={196} textAnchor="end">0%</text>
+      <text className={styles.markLabel} x={222} y={234} textAnchor="middle">Angle from neutral →</text>
+      {live !== null && <circle className={styles.liveDot} data-tilt-angle={live} cx={x(live)} cy={y(output(live))} r={5} />}
     </svg>
+    <Note>Deadzone: {inner}°. Full input: {full}°. Behaviour and tuning determine the final mouse or stick output.</Note>
   </>
 }

@@ -1,3 +1,4 @@
+import { InputText } from '../glyphs/InputText'
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SubPage, OpenRow } from '../ui/console'
@@ -126,7 +127,7 @@ export function ModeHow({ layer, index, layers, actions, family, defaults, onCha
                 <b><Icon name={tile.icon} size={18} /> {tile.label}</b><span>{tile.caption}</span>
               </button>)}
             </div>
-            <p className={styles.helpLine}>{helpLine}</p>
+            <p className={styles.helpLine}><InputText text={helpLine} /></p>
           </section> : <section className={styles.panel} aria-label="Turned on by several buttons">
             <h2>Turned on by {on.length} buttons</h2>
             <p className={styles.helpLine}>Each button has its own way. ◂ ▸ changes it; X takes the button off.</p>
@@ -163,7 +164,7 @@ export function ModeHow({ layer, index, layers, actions, family, defaults, onCha
                 onClick={() => { if (!disabled) setCapture({ purpose: 'off' }) }}
                 data-off-tile="">
                 <b>{off.length > 0 && <span aria-hidden="true">✓ </span>}Another button</b>
-                <span>{off.length ? `${listWords([...new Set(off.map(action => name(action.input.replace(/^!/, ''))))])} turns it off` : 'e.g. View leaves the map'}</span>
+                <span><InputText text={off.length ? `${listWords([...new Set(off.map(action => name(action.input.replace(/^!/, ''))))])} turns it off` : 'e.g. View leaves the map'} /></span>
               </button>
             </div>
             {verb === 'apply' && !off.length && <p className={styles.warn} role="status">Nothing turns {layer.name} off yet. Choose Another button.</p>}

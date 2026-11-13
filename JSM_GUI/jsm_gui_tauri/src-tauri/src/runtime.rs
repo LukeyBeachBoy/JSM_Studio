@@ -150,10 +150,13 @@ pub struct RuntimeMappingState {
     pub applied_preview_path: Option<String>,
     pub mapping_enabled: bool,
     pub autoload_enabled: bool,
-    /// Whether the built-in AutoLoad rule that lets the controller drive JSM
-    /// Studio itself is installed. Only has an effect while AutoLoad is on.
+    /// Legacy navigation default. Per-controller overrides take precedence;
+    /// the AutoLoad rule stays installed while any controller can navigate.
     #[serde(default = "default_true")]
     pub controller_nav_enabled: bool,
+    /// Overrides keyed by persistent controller identity or model.
+    #[serde(default)]
+    pub controller_nav_overrides: HashMap<String, bool>,
     /// Whether the trackpad overlay window is shown. Persisted because it is a
     /// feature you turn on once for a game and expect to still be on the next
     /// time you launch -- it used to reset to off on every start, which read as
@@ -218,6 +221,8 @@ pub struct RuntimeMappingState {
     pub left_pad_rotation: f64,
     #[serde(default)]
     pub right_pad_rotation: f64,
+    #[serde(default)]
+    pub cyborg_stick_defaults: std::collections::BTreeMap<String, String>,
     /// The Steam Controller's own power-on / power-off jingle volume, which the
     /// controller stores itself: 2 normal, 1 quiet, 0 off, -1 leave it alone.
     #[serde(default = "no_sound")]
@@ -340,6 +345,8 @@ pub struct AutoloadFallback {
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AutoloadRule {
+    /// Destination when configuration slots are enabled; legacy rules use 1.
+    pub slot: Option<u8>,
     pub process_name: String,
     pub file_name: String,
     pub kind: String,
@@ -380,11 +387,21 @@ pub struct DeletedProfile {
     pub fallback: Option<(String, String)>,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HidHideState {
     #[serde(default)]
     pub managed_instance_ids: Vec<String>,
+    #[serde(default = "default_auto_hide_azeron")]
+    pub auto_hide_azeron: bool,
+}
+
+fn default_auto_hide_azeron() -> bool { true }
+
+impl Default for HidHideState {
+    fn default() -> Self {
+        Self { managed_instance_ids: Vec::new(), auto_hide_azeron: true }
+    }
 }
 
 /// One global chord: hold any button in `buttons`, the configuration at
@@ -716,6 +733,7 @@ pub fn rename_library_profile(
     }
 
     update_autoload_profile_references(app, &old_relative, &new_relative)?;
+    crate::services::slots::rename_profile(app,&safe_old,&safe_new)?;
     let mut chords = list_global_chords(app)?;
     for chord in &mut chords {
         if chord.profile_path.eq_ignore_ascii_case(&old_relative) { chord.profile_path = new_relative.clone(); }
@@ -815,6 +833,18 @@ pub fn calibration_profile_relative() -> String {
 pub fn get_runtime_mapping_state(app: &AppHandle) -> Result<RuntimeMappingState, String> {
     ensure_required_files(app)?;
     read_runtime_mapping_state(app)
+}
+
+pub fn restore_mapping_state(app:&AppHandle,state:&RuntimeMappingState)->Result<(),String> {
+    persist_runtime_mapping_state(app,state)?;
+    write_startup_file(app,state)
+}
+pub fn set_slot_profile(app:&AppHandle,source:&str,snapshot:&str)->Result<RuntimeMappingState,String> {
+    let source=normalize_relative_profile_path(Some(source)).ok_or("Invalid slot source")?;
+    let snapshot=normalize_relative_profile_path(Some(snapshot)).ok_or("Invalid slot snapshot")?;
+    let mut state=read_runtime_mapping_state(app)?;
+    state.active_profile_path=source;state.applied_preview_path=Some(snapshot);
+    restore_mapping_state(app,&state)?;Ok(state)
 }
 
 pub fn set_mapping_enabled(app: &AppHandle, enabled: bool) -> Result<RuntimeMappingState, String> {
@@ -935,6 +965,7 @@ fn write_autoload_rule_file(
     let remembered = existing
         .and_then(|path| fs::read_to_string(path).ok())
         .and_then(|content| parse_autoload_exe_path(&content));
+    let remembered_slot=existing.and_then(|path|fs::read_to_string(path).ok()).and_then(|content|parse_autoload_slot(&content));
     let exe = exe_path
         .map(str::trim)
         .filter(|value| !value.is_empty())
@@ -947,7 +978,9 @@ fn write_autoload_rule_file(
     };
     let (target, stale) = if paused { (parked, active) } else { (active, parked) };
     ensure_parent_dir(&target)?;
-    write_file_atomically(&target, autoload_rule_text(profile_relative, exe.as_deref()))
+    let mut text=autoload_rule_text(profile_relative,exe.as_deref());
+    if let Some(slot)=remembered_slot {text.push_str(&format!("# slot: {slot}\n"));}
+    write_file_atomically(&target, text)
         .map_err(|error| format!("Failed to save AutoLoad rule: {error}"))?;
     if stale.exists() {
         fs::remove_file(&stale).map_err(|error| format!("Failed to replace AutoLoad rule: {error}"))?;
@@ -962,6 +995,19 @@ fn autoload_rule_text(profile_relative: &str, exe_path: Option<&str>) -> String 
         Some(exe) => format!("{profile_relative}\n# exe: {exe}\n"),
         None => format!("{profile_relative}\n"),
     }
+}
+
+fn parse_autoload_slot(content:&str)->Option<u8> {
+    content.lines().find_map(|line|line.trim().strip_prefix("# slot:").and_then(|value|value.trim().parse::<u8>().ok())).filter(|id|(1..=4).contains(id))
+}
+pub fn set_autoload_rule_slot(app:&AppHandle,rule:&AutoloadRule,slot:u8)->Result<AutoloadRule,String> {
+    if !(1..=4).contains(&slot) {return Err("Invalid slot".into());}
+    let path=autoload_dir(app)?.join(&rule.file_name);
+    let text=fs::read_to_string(&path).map_err(|e|e.to_string())?;
+    let mut lines:Vec<_>=text.lines().filter(|line|!line.trim().starts_with("# slot:")).map(str::to_owned).collect();
+    lines.push(format!("# slot: {slot}"));
+    write_file_atomically(&path,lines.join("\n")+"\n")?;
+    autoload_rule_from_path(app,&path)
 }
 
 /// The `# exe: <path>` line of a rule file, if it has one.
@@ -1365,7 +1411,10 @@ fn ensure_file(path: &Path, default_content: &str) -> Result<(), String> {
         .map_err(|error| format!("Failed to initialize file {}: {error}", path.display()))
 }
 
-fn app_data_dir(app: &AppHandle) -> Result<PathBuf, String> {
+pub fn app_data_dir(app: &AppHandle) -> Result<PathBuf, String> {
+    #[cfg(windows)]
+    return crate::services::storage_context::data_directory(&app.config().identifier);
+    #[cfg(not(windows))]
     app.path()
         .app_data_dir()
         .map_err(|error| format!("Failed to resolve app data directory: {error}"))
@@ -1588,7 +1637,7 @@ fn sync_app_navigation_rule(app: &AppHandle, state: &RuntimeMappingState) -> Res
         }
     }
     let path = autoload_rule_path(app, &stem)?;
-    if state.controller_nav_enabled {
+    if any_controller_navigation(state) {
         ensure_parent_dir(&path)?;
         write_file_if_changed(&path, format!("{APP_NAVIGATION_FILE_NAME}\n"))
             .map_err(|error| format!("Failed to write controller navigation rule: {error}"))
@@ -1600,13 +1649,40 @@ fn sync_app_navigation_rule(app: &AppHandle, state: &RuntimeMappingState) -> Res
     }
 }
 
+pub fn controller_navigation_enabled(state: &RuntimeMappingState, target: &str) -> bool {
+    state.controller_nav_overrides.get(target)
+        .or_else(|| state.controller_nav_overrides.get(target.split("-device-").next().unwrap_or(target)))
+        .copied().unwrap_or(state.controller_nav_enabled && target.split("-device-").next() != Some("type-25"))
+}
+
+/// The global navigation profile pauses all devices; opted-out devices keep
+/// their applied profile in an isolated context until that profile is left.
+pub fn controller_navigation_fallback(state: &RuntimeMappingState, base: &str, target: &str) -> Option<String> {
+    (state.mapping_enabled && state.autoload_enabled
+        && base.replace('\\', "/").rsplit('/').next() == Some(APP_NAVIGATION_FILE_NAME)
+        && !controller_navigation_enabled(state, target))
+        .then(|| effective_profile_for_state(state))
+}
+
+pub fn any_controller_navigation(state: &RuntimeMappingState) -> bool {
+    state.controller_nav_enabled || state.controller_nav_overrides.values().any(|enabled| *enabled)
+}
+
 pub fn set_controller_nav_enabled(
     app: &AppHandle,
     enabled: bool,
+    controller: Option<String>,
 ) -> Result<RuntimeMappingState, String> {
     ensure_required_files(app)?;
     let mut state = read_runtime_mapping_state(app)?;
-    state.controller_nav_enabled = enabled;
+    if let Some(target) = controller {
+        if !target.starts_with("type-") || target.len() > 80 || !target.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
+            return Err("Invalid controller identity".into());
+        }
+        state.controller_nav_overrides.insert(target, enabled);
+    } else {
+        state.controller_nav_enabled = enabled;
+    }
     persist_runtime_mapping_state(app, &state)?;
     sync_app_navigation_rule(app, &state)?;
     Ok(state)
@@ -1819,7 +1895,7 @@ fn startup_file_text(state: &RuntimeMappingState) -> String {
         lines.push("AUTOCONNECT = ON".to_string());
         lines.push(format!(
             "AUTOLOAD = {}",
-            if state.autoload_enabled { "ON" } else { "OFF" }
+            if state.autoload_enabled && !crate::services::slots::enabled() { "ON" } else { "OFF" }
         ));
     } else {
         lines.push("AUTOCONNECT = ON".to_string());
@@ -1831,6 +1907,42 @@ fn startup_file_text(state: &RuntimeMappingState) -> String {
 
 fn mapping_disabled_text() -> String {
     MAPPING_DISABLED_LINES.join("\n") + "\n"
+}
+
+pub fn set_cyborg_stick_defaults(app: &AppHandle, values: std::collections::BTreeMap<String, String>) -> Result<RuntimeMappingState, String> {
+    for (key, value) in &values {
+        let valid = match key.as_str() {
+            "LEFT_STICK_MODE" => ["NO_MOUSE", "AIM", "FLICK", "LEFT_STICK", "RIGHT_STICK"].contains(&value.as_str()),
+            "LEFT_STICK_RESTRICTOR_RING" | "LEFT_STICK_CALIBRATION" => ["ON", "OFF"].contains(&value.as_str()),
+            _ => {
+                let bounds = match key.as_str() {
+                    "LEFT_STICK_CALIBRATION_UP_ANGLE" => Some((-40.0, 40.0)),
+                    "LEFT_STICK_CALIBRATION_UP_RANGE" => Some((0.1, 1.0)),
+                    "LEFT_STICK_CALIBRATION_RIGHT_ANGLE" => Some((-40.0, 40.0)),
+                    "LEFT_STICK_CALIBRATION_RIGHT_RANGE" => Some((0.1, 1.0)),
+                    "LEFT_STICK_CALIBRATION_DOWN_ANGLE" => Some((-40.0, 40.0)),
+                    "LEFT_STICK_CALIBRATION_DOWN_RANGE" => Some((0.1, 1.0)),
+                    "LEFT_STICK_CALIBRATION_LEFT_ANGLE" => Some((-40.0, 40.0)),
+                    "LEFT_STICK_CALIBRATION_LEFT_RANGE" => Some((0.1, 1.0)),
+                    "LEFT_STICK_ROTATION" => Some((-180.0, 180.0)),
+                    "LEFT_STICK_RESTRICTOR_RANGE" => Some((0.1, 1.0)),
+                    "LEFT_STICK_DEADZONE_INNER" | "LEFT_STICK_DEADZONE_OUTER" => Some((0.0, 0.9)),
+                    "LEFT_STICK_DIRECTION_DEADZONE" => Some((0.0, 0.95)),
+                    "LEFT_STICK_DIRECTION_RELEASE_MARGIN" => Some((0.0, 0.5)),
+                    "LEFT_STICK_CARDINAL_WIDTH" => Some((10.0, 90.0)),
+                    "LEFT_STICK_DIRECTION_HYSTERESIS" => Some((0.0, 15.0)),
+                    _ => None,
+                };
+                bounds.is_some_and(|(min,max)| value.parse::<f64>().is_ok_and(|n| n.is_finite() && n >= min && n <= max))
+            }
+        };
+        if !valid { return Err(format!("Invalid Cyborg stick default: {key}")); }
+    }
+    let mut state = read_runtime_mapping_state(app)?;
+    state.cyborg_stick_defaults = values;
+    persist_runtime_mapping_state(app, &state)?;
+    ensure_runtime_support_files(app, &read_backend_choice(app)?)?;
+    Ok(state)
 }
 
 fn studio_defaults_text(state: &RuntimeMappingState) -> String {
@@ -1857,7 +1969,7 @@ fn studio_defaults_text(state: &RuntimeMappingState) -> String {
         validated_sound_actuators(&state.sound_actuators).to_ascii_uppercase(),
         state.led_color.trim_start_matches('#'),
         state.led_brightness,
-    )
+    ) + &state.cyborg_stick_defaults.iter().map(|(key,value)| format!("# @controller-default type-25 {key} = {value}\n")).collect::<String>()
 }
 
 /// The value of a `*_SOUND_FILE` line. NONE is written, not omitted, when no
@@ -2109,6 +2221,7 @@ fn default_runtime_mapping_state(app: &AppHandle) -> Result<RuntimeMappingState,
         mapping_enabled,
         autoload_enabled: get_startup_autoload_enabled(app)?.unwrap_or(true),
         controller_nav_enabled: true,
+        controller_nav_overrides: HashMap::new(),
         trackpad_overlay_enabled: false,
         gyro_calibration_seconds: default_calibration_seconds(),
         gyro_calibration_delay: 0.0,
@@ -2126,6 +2239,7 @@ fn default_runtime_mapping_state(app: &AppHandle) -> Result<RuntimeMappingState,
         turbo_period_ms: default_turbo_period_ms(),
         left_pad_rotation: 0.0,
         right_pad_rotation: 0.0,
+        cyborg_stick_defaults: Default::default(),
         boot_sound_level: -1,
         firmware_sound_prompt_done: false,
         connect_sound_file: None,
@@ -2220,10 +2334,12 @@ fn autoload_rule_from_path(app: &AppHandle, path: &Path) -> Result<AutoloadRule,
     let content = fs::read_to_string(path).unwrap_or_default();
     let built_in = app_process_stem().is_some_and(|stem| stem.eq_ignore_ascii_case(&process_name));
     let exe_path = parse_autoload_exe_path(&content);
+    let slot=content.lines().find_map(|line|line.trim().strip_prefix("# slot:").and_then(|v|v.trim().parse::<u8>().ok())).filter(|n|(1..=4).contains(n));
 
     if let Some(profile_path) = parse_linked_autoload_profile(&content) {
         let missing_profile = !absolute_profile_path(app, &profile_path)?.exists();
         return Ok(AutoloadRule {
+            slot,
             process_name,
             file_name,
             kind: "profile".to_string(),
@@ -2238,6 +2354,7 @@ fn autoload_rule_from_path(app: &AppHandle, path: &Path) -> Result<AutoloadRule,
     }
 
     Ok(AutoloadRule {
+        slot,
         process_name,
         file_name,
         kind: "advanced".to_string(),
@@ -2482,6 +2599,35 @@ fn normalize_backend_choice(choice: &str) -> &'static str {
 mod tests {
     use super::*;
 
+    #[test]
+    fn controller_navigation_preferences_are_independent_and_persisted() {
+        let mut state: RuntimeMappingState = serde_json::from_str(r#"{"activeProfilePath":"profiles-library/Game.txt","mappingEnabled":true,"autoloadEnabled":true}"#).unwrap();
+        let cyborg = "type-25-device-0000000000000001";
+        let steam = "type-24-device-0000000000000002";
+        assert!(!controller_navigation_enabled(&state, cyborg), "Azeron defaults to normal bindings inside Studio");
+        state.controller_nav_overrides.insert("type-25".into(), false);
+        assert!(!controller_navigation_enabled(&state, cyborg));
+        assert!(controller_navigation_enabled(&state, steam));
+        assert_eq!(controller_navigation_fallback(&state, APP_NAVIGATION_FILE_NAME, cyborg), Some("profiles-library/Game.txt".into()));
+        assert_eq!(controller_navigation_fallback(&state, APP_NAVIGATION_FILE_NAME, steam), None);
+        assert_eq!(controller_navigation_fallback(&state, "profiles-library/Game.txt", cyborg), None);
+        state.controller_nav_overrides.insert(cyborg.into(), true);
+        assert!(controller_navigation_enabled(&state, cyborg));
+        assert!(!controller_navigation_enabled(&state, "type-25-device-0000000000000003"));
+        state.controller_nav_enabled = false;
+        assert!(any_controller_navigation(&state));
+        assert!(!controller_navigation_enabled(&state, steam));
+        let saved = serde_json::to_string(&state).unwrap();
+        let restored: RuntimeMappingState = serde_json::from_str(&saved).unwrap();
+        assert_eq!(restored.controller_nav_overrides, state.controller_nav_overrides);
+        state.controller_nav_overrides.insert(cyborg.into(), false);
+        state.autoload_enabled = false;
+        assert_eq!(controller_navigation_fallback(&state, APP_NAVIGATION_FILE_NAME, cyborg), None);
+        state.autoload_enabled = true;
+        state.mapping_enabled = false;
+        assert_eq!(controller_navigation_fallback(&state, APP_NAVIGATION_FILE_NAME, cyborg), None);
+    }
+
     #[test] fn legacy_keyboard_comment_becomes_regular_binding_without_overwriting_custom_actions() {
         let migrated=migrate_keyboard_command("# @keyboard-open W\nW = NONE # Open controller keyboard (Studio)\nS = ENTER\n").unwrap();
         assert_eq!(migrated,"W = \"OPEN_KEYBOARD\"\nS = ENTER\n");
@@ -2535,6 +2681,7 @@ mod tests {
         ).unwrap();
         assert_eq!(state.led_color, "#ffffff");
         assert_eq!(state.led_brightness, 100);
+        assert!(state.cyborg_stick_defaults.is_empty());
         let defaults = studio_defaults_text(&state);
         assert!(defaults.contains("LIGHT_BAR = xffffff\nLED_BRIGHTNESS = 100\n"));
         assert_eq!(validated_led_color("#A1b2C3").unwrap(), "#a1b2c3");
@@ -2560,6 +2707,22 @@ mod tests {
         let sim = text.find("SIM_PRESS_WINDOW").unwrap();
         let hold = text.find("HOLD_PRESS_TIME").unwrap();
         assert!(sim < hold, "the simultaneous-press window must be set before the hold time");
+    }
+
+    #[test]
+    fn cyborg_defaults_round_trip_and_remain_model_fallbacks() {
+        let state: RuntimeMappingState = serde_json::from_str(
+            r#"{"activeProfilePath":"profiles-library/Game.txt","mappingEnabled":true,"autoloadEnabled":false,"cyborgStickDefaults":{"LEFT_STICK_ROTATION":"-12.5","LEFT_STICK_RESTRICTOR_RING":"ON","LEFT_STICK_CALIBRATION":"ON","LEFT_STICK_CALIBRATION_RIGHT_ANGLE":"15","LEFT_STICK_CALIBRATION_LEFT_RANGE":"0.75"}}"#,
+        ).unwrap();
+        let restored: RuntimeMappingState = serde_json::from_str(&serde_json::to_string(&state).unwrap()).unwrap();
+        assert_eq!(restored.cyborg_stick_defaults, state.cyborg_stick_defaults);
+        let text = studio_defaults_text(&restored);
+        assert!(text.contains("# @controller-default type-25 LEFT_STICK_ROTATION = -12.5\n"));
+        assert!(text.contains("# @controller-default type-25 LEFT_STICK_RESTRICTOR_RING = ON\n"));
+        for assignment in ["CALIBRATION = ON", "CALIBRATION_RIGHT_ANGLE = 15", "CALIBRATION_LEFT_RANGE = 0.75"] {
+            assert!(text.contains(&format!("# @controller-default type-25 LEFT_STICK_{assignment}\n")));
+        }
+        assert!(!text.lines().any(|line| line.starts_with("LEFT_STICK_")));
     }
 
     /// Trackpad orientation and the controller's jingle volume are global too:
@@ -2790,17 +2953,21 @@ mod tests {
         assert!(parked.exists() && !active.exists(), "an icon-only association must be the paused twin");
         assert_eq!(parse_autoload_exe_path(&fs::read_to_string(&parked).unwrap()).as_deref(), Some(r"C:\Games\DOOM.exe"));
 
+        fs::write(&parked,format!("{}# slot: 2\n",fs::read_to_string(&parked).unwrap())).unwrap();
+
         // Changing what it loads, without saying anything about the exe or
         // auto-apply, keeps both.
         write_autoload_rule_file(&dir, "Doom", "profiles-library/FPS.txt", None, None).expect("retarget");
         assert!(parked.exists() && !active.exists());
         let text = fs::read_to_string(&parked).unwrap();
         assert_eq!(parse_linked_autoload_profile(&text).as_deref(), Some("profiles-library/FPS.txt"));
+        assert_eq!(parse_autoload_slot(&text),Some(2));
         assert_eq!(parse_autoload_exe_path(&text).as_deref(), Some(r"C:\Games\DOOM.exe"));
 
         // Turning auto-apply on makes it live; off parks it again.
         let written = write_autoload_rule_file(&dir, "Doom", "profiles-library/FPS.txt", None, Some(true)).expect("resume");
         assert_eq!(written, active);
+        assert_eq!(parse_autoload_slot(&fs::read_to_string(&active).unwrap()),Some(2));
         assert!(active.exists() && !parked.exists());
         assert_eq!(parse_autoload_exe_path(&fs::read_to_string(&active).unwrap()).as_deref(), Some(r"C:\Games\DOOM.exe"));
         write_autoload_rule_file(&dir, "Doom", "profiles-library/FPS.txt", Some("  "), Some(false)).expect("pause");

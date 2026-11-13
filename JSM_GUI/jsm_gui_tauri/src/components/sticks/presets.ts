@@ -10,9 +10,9 @@ export const STICK_POWER_PRESETS = [
   { value: 'precise', label: 'Precise centre', power: 2, caption: 'Precise centre slows small pushes so fine aim is easier.' },
 ] as const
 
-/** "Speed-up · How much" → STICK_ACCELERATION_RATE and _CAP (JSM default 0 and 1000000, i.e. off). */
+/** "Acceleration preset" → STICK_ACCELERATION_RATE and _CAP (JSM default 0 and 1000000, i.e. off). */
 export const STICK_SPEEDUP_PRESETS = [
-  { value: 'off', label: 'Off', rate: 0, cap: 1000000, caption: 'No speed-up: full tilt always turns at your turn speed.' },
+  { value: 'off', label: 'Off', rate: 0, cap: 1000000, caption: 'Acceleration off: full tilt always turns at your turn speed.' },
   { value: 'gentle', label: 'Gentle', rate: 1, cap: 2, caption: 'Builds by one turn speed a second, up to 2×.' },
   { value: 'strong', label: 'Strong', rate: 2, cap: 3, caption: 'Builds by two turn speeds a second, up to 3×.' },
 ] as const
@@ -37,7 +37,7 @@ export const UNPOWER_PRESETS = [
   { value: 'square', label: 'Undo square', unpower: 2, caption: 'Undo square: for a game that is slow near the centre.' },
 ] as const
 
-/** Trackpad "Speed up fast swipes" → TOUCHPAD_ACCEL_* (JSM default: min and max gain 1, off). */
+/** Trackpad "Acceleration" → TOUCHPAD_ACCEL_* (JSM default: min and max gain 1, off). */
 export const TOUCHPAD_ACCEL_PRESETS = [
   { value: 'off', label: 'Off', curve: 'LINEAR', minSpeed: 0, maxSpeed: 2000, minGain: 1, maxGain: 1, caption: 'Off: the same distance at every speed.' },
   { value: 'gentle', label: 'Gentle', curve: 'NATURAL', minSpeed: 0, maxSpeed: 2000, minGain: 1, maxGain: 1.6, caption: 'Gentle: quick flicks go up to 1.6× further.' },

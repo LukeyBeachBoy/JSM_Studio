@@ -4,6 +4,7 @@ import { Icon } from '../icons/Icon'
 import { LayerUsageContext } from '../LayerBar'
 import { layerSlot, layerVerbKeys, type LayerVerb } from '../../utils/layers'
 import styles from './ConceptTiles.module.css'
+import { InputText } from '../glyphs/InputText'
 
 // The concept tiles (binding card refresh §1-§3): one look each for a
 // modeshift, a layer and a command's output, shared by the compact row, the
@@ -15,7 +16,7 @@ export { layerSlot }
 
 /** The held input drawn as a white rounded cap: the L4 of "L4 + A". */
 export function TriggerCap({ label, size = 'sm' }: { label: string; size?: 'sm' | 'md' | 'lg' }) {
-  return <span className={styles.triggerCap} data-size={size}>{label}</span>
+  return <span className={styles.triggerCap} data-size={size}><InputText text={label} /></span>
 }
 
 /** "L4 → V": a shift on the compact row. */

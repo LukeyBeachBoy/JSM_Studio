@@ -1,0 +1,19 @@
+.preview { display: flex; align-items: center; justify-content: center; gap: var(--sp-4); margin: 0; width: 100%; }
+.preview svg { flex: 0 1 190px; width: 50%; min-width: 0; }
+.preview figcaption { display: flex; flex-direction: column; gap: var(--sp-2); color: var(--text-2); font-size: var(--fs-hint); min-width: 0; }
+.preview strong { color: var(--text-1); font-variant-numeric: tabular-nums; font-weight: var(--fw-semibold); }
+.preview small { color: var(--text-3); }
+.gate { fill: var(--art-well, #0e1419); stroke: var(--art-detail, #aebbc8); stroke-width: 1.5; }
+.axis { stroke: var(--text-3); opacity: .25; fill: none; }
+.ring { fill: none; stroke: var(--text-3); stroke-dasharray: 3 4; }
+.deadzone { fill: color-mix(in srgb, var(--accent) 12%, transparent); stroke: var(--accent); stroke-width: 1; }
+.edge { fill: none; stroke: var(--accent); stroke-dasharray: 4 5; opacity: .5; }
+.labels { fill: var(--text-3); font-size: 11px; text-anchor: middle; }
+.raw { stroke: var(--text-3); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.rawDot { fill: var(--art-well, #0e1419); stroke: var(--text-3); stroke-width: 1.5; }
+.adjusted { stroke: var(--telemetry, #a6d65a); stroke-width: 2; }
+.adjustedDot { fill: var(--telemetry, #a6d65a); }
+.legend { display: flex; flex-wrap: wrap; gap: var(--sp-3); font-size: var(--fs-caption); }
+.legend span::before { content: ''; display: inline-block; width: 14px; border-top: 2px dashed var(--text-3); margin-right: 5px; vertical-align: middle; }
+.legend [data-vector='adjusted']::before { border-top: 2px solid var(--telemetry, #a6d65a); }
+@media (max-width: 480px) { .preview { gap: var(--sp-2); } }

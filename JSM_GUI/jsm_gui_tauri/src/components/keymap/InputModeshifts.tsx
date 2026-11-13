@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { SubPage, OpenRow, SegmentedRow } from '../ui/console'
 import { PAD_EVENT, type PadEventDetail } from '../../nav/useControllerNavigation'
 import { AddModeshiftSheet } from './AddModeshiftSheet'
+import { AdvancedDisclosure } from '../AdvancedDisclosure'
 import { Icon } from '../icons/Icon'
 import { getBindingLabel, setBindingLabel, parseBindingLabels } from '../../utils/bindingLabels'
 import { parseBindingIcons, setBindingIcon } from '../../utils/bindingIcons'
@@ -501,7 +502,7 @@ export function InputModeshifts(props: InputModeshiftsProps & { heading?: ReactN
   const remove = (trigger: string) => { setEditing(current => current === trigger ? null : current); props.onChange(previous => removeModeshift(previous, target, trigger)) }
 
   // X removes a shift and Y changes its button, from the list.
-  const latest = useRef({ remove, openPicker: (_trigger: string) => {} })
+  const latest = useRef<{ remove: (trigger: string) => void; openPicker: (trigger: string) => void }>({ remove, openPicker: () => {} })
   latest.current = { remove, openPicker: trigger => { setEditing(trigger); setPicking('change') } }
   useEffect(() => {
     const node = anchor.current
@@ -536,11 +537,25 @@ export function InputModeshifts(props: InputModeshiftsProps & { heading?: ReactN
   const rebinding = picking === 'change' && editing ? editing : null
   return (
     <section ref={anchor} className={styles.list} aria-label={`${target.title} mode shifts`} data-modeshift-list={target.id}>
-      {typeof props.heading === 'string' && <h3 className={styles.listHeading}>{props.heading}</h3>}
-      {triggers.length === 0 && <p className={styles.hint}>{t('keymap.modeshiftNone', 'None yet. Add a button to hold, then change how this works while it is held.')}</p>}
-      {triggers.map(trigger => <ShiftRow key={trigger} {...props} trigger={trigger} onOpen={() => setEditing(trigger)} />)}
-      <OpenRow label={t('keymap.modeshiftAddButton', 'Add a button')} hint="Pick the button to hold" onOpen={() => setPicking('new')} hints="A:Pick button;B:Back" data={{ 'data-add-modeshift': '' }} />
-      <OpenRow label="Add a button to let go of" hint="Changes this while the button is up, like a binding's Let go" onOpen={() => setPicking('new-released')} hints="A:Pick button;B:Back" data={{ 'data-add-modeshift-released': '' }} />
+      <header className={styles.listHeader}>
+        <h1 className={styles.listTitle}>{props.heading ?? t('keymap.inputModeshiftHeading', '{{input}} mode shifts', { input: target.title })}</h1>
+        <p className={styles.listDescription}>{t('keymap.inputModeshiftDescription', 'Hold another button to use alternate controls for this input. Release it to return to the normal controls.')}</p>
+      </header>
+      <div className={styles.entries}>
+        <h2 className={styles.listHeading}>{triggers.length
+          ? t('keymap.inputModeshiftConfigured', 'Configured mode shifts')
+          : t('keymap.inputModeshiftEmpty', 'No mode shifts yet')}</h2>
+        {triggers.map(trigger => <ShiftRow key={trigger} {...props} trigger={trigger} onOpen={() => setEditing(trigger)} />)}
+        <OpenRow label={t('keymap.inputModeshiftAdd', 'Add mode shift')}
+          hint={t('keymap.inputModeshiftAddHint', 'Choose a button to hold, then configure its alternate controls')}
+          icon={<Icon name="add" size={20} />} onOpen={() => setPicking('new')} hints="A:Pick button;B:Back" data={{ 'data-add-modeshift': '' }} />
+      </div>
+      <AdvancedDisclosure className={styles.activationOptions} label={t('keymap.inputModeshiftAdvanced', 'Advanced activation')}
+        summary={t('keymap.inputModeshiftAdvancedSummary', 'Apply a mode shift while a button is released')}>
+        <OpenRow label={t('keymap.inputModeshiftReleasedAdd', 'Add released-button mode shift')}
+          hint={t('keymap.inputModeshiftReleasedHint', 'Alternate controls apply whenever the chosen button is not held')}
+          onOpen={() => setPicking('new-released')} hints="A:Pick button;B:Back" data={{ 'data-add-modeshift-released': '' }} />
+      </AdvancedDisclosure>
       {editing && triggers.includes(editing) && (
         <ShiftEditor {...props} trigger={editing} triggers={triggers} onRename={rename} onClose={() => setEditing(null)}
           onRemove={() => remove(editing)} onPickButton={() => setPicking('change')} />

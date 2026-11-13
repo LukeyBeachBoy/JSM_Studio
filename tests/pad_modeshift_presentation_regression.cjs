@@ -64,7 +64,7 @@ const WARDOGS = [
     // --- 1 and 2: the right pad and its click shift -------------------------
     // Console v2 (P4): one pad at a time on the rail; the pad's changes while
     // another button is held are a sub-page (D11), here reached from the
-    // mouse pad's Click zones row.
+    // mouse pad's Mode shift row.
     await page.getByRole('button', { name: 'Trackpads', exact: true }).click();
     await page.locator('.section-item').filter({ hasText: 'Right pad' }).click();
     const right = page.locator('#trackpad-right');
@@ -72,10 +72,13 @@ const WARDOGS = [
     assert.equal(await right.locator('[role="radio"][data-current="true"]').getAttribute('data-value'), 'MOUSE', 'the right pad is a mouse pad');
     assert.equal(await right.getByRole('button', { name: /^RT1:/ }).count(), 0, 'with the shift closed, the mouse pad must not draw any menu region');
     assert.equal(await page.getByText('Click regions', { exact: true }).count(), 0, 'the "Click regions" row and card title are gone');
-    await right.locator('button').filter({ hasText: /^Click zones/ }).click();
+    assert.equal(await right.getByRole('button', { name: /^Click zones/ }).count(), 0, 'the redundant Click zones shortcut is gone');
+    await right.locator('[data-mode-shift-entry]').click();
     const holding = page.locator('[data-subpage]').first();
     // The shifts are a "<pad> while holding" list of rows; each opens its own editor page.
     const list = holding.locator('[data-modeshift-list]');
+    await list.getByRole('heading', { level: 1, name: 'Right trackpad mode shifts', exact: true }).waitFor();
+    await list.getByRole('heading', { level: 2, name: 'Configured mode shifts', exact: true }).waitFor();
     assert.match(await list.getAttribute('aria-label'), /mode shifts$/, 'the shifts are one labelled list');
     assert.equal(await list.locator('[data-modeshift]').count(), 1, 'with one row per shift');
     const shiftRow = list.locator('[data-modeshift="MISC2"]');

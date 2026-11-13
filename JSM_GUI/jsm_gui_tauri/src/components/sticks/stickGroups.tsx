@@ -35,8 +35,10 @@ export type StickCtx = {
   text: string
   setText?: SetText
   disabled?: boolean
+  singleStick?: boolean
   mode: string
   live: { x: number; y: number } | null
+  controllerHandle?: number
   onModeChange: (value: string) => void
   renderButton: RenderRow
   describe: (command: string) => { binding: string; label?: string }
@@ -84,15 +86,16 @@ export function speedGroup(ctx: StickCtx): FineTuneGroup {
       <ValueRow hero label="Turn speed" setting="STICK_SENS" value={sens.x} min={0} max={1200} step={30} fineStep={1} format={value => `${value}°/s`}
         caption={`A full push turns you ${sens.x}° every second.`} onX={tryIt}
         onChange={value => writeSens(value, sens.own ? sens.y : undefined)} onReset={() => writeKey(ctx.setText, 'STICK_SENS', null)} />
-      <SegmentedRow label="How a push becomes speed" setting="STICK_POWER" value={preset?.value ?? 'custom'} onX={tryIt}
+      <SegmentedRow label="Response curve" setting="STICK_POWER" value={preset?.value ?? 'custom'} onX={tryIt}
         options={[...STICK_POWER_PRESETS.map(item => ({ value: item.value, label: item.label, caption: item.caption })), { value: 'custom', label: 'Custom', caption: `Custom curve number ${power}: set it under Advanced.` }]}
         onChange={value => { const found = STICK_POWER_PRESETS.find(item => item.value === value); if (found) writeChoice(ctx.setText, { STICK_POWER: found.power === 1 ? null : found.power }, { STICK_POWER: 1 }); else ctx.open.advanced('curve') }}
         onReset={() => writeKey(ctx.setText, 'STICK_POWER', null)} />
-      <SummaryRow label="Up and down speed" hint={sens.own ? 'Its own speed' : 'Same as left/right'} setting="STICK_SENS"
+      <SummaryRow label="Vertical sensitivity" hint={sens.own ? 'Its own speed' : 'Same as left/right'} setting="STICK_SENS"
         toggle={{ on: sens.own, onChange: on => writeSens(sens.x, on ? Math.round(sens.x * 0.75) : undefined) }} />
       {sens.own && <ValueRow label="Up and down" setting="STICK_SENS" value={sens.y} min={0} max={1200} step={30} fineStep={1} format={value => `${value}°/s`}
         onChange={value => writeSens(sens.x, value)} onReset={() => writeSens(sens.x)} />}
-      <OpenRow label="Advanced" hint="Exact curve number, Match a full turn (360°)" onOpen={() => ctx.open.advanced('curve')} />
+      <OpenRow label="Real-world calibration (RWC)" hint="Makes turn speeds true to the game. Also used by flicks and gyro." value={isSet(ctx.text, 'REAL_WORLD_CALIBRATION') ? 'Set' : 'Start'} onOpen={ctx.open.matchFullTurn} />
+      <OpenRow label="Advanced" hint="Exact curve number" onOpen={() => ctx.open.advanced('curve')} />
     </>,
     visual: <VisualPanel title="How a push becomes turning" chip={ctx.live ? `live ${Math.round(aimSpeed(push, inner, outer, power, sens.x))} °/s` : 'no controller'}
       caption="Dashed: Quick start and Precise centre."
@@ -120,12 +123,12 @@ function SpeedUpVisual({ ctx, rate, cap }: { ctx: StickCtx; rate: number; cap: n
   const sens = sensPair(ctx.text).x
   const { outer } = stickDeadzones(ctx.text, ctx.SIDE)
   const push = ctx.live ? Math.hypot(ctx.live.x, ctx.live.y) : 0
-  const held = useHeldSeconds(push, 1 - outer - 0.01)
+  const held = useHeldSeconds(push, 1 - outer)
   const now = sens * Math.min(cap, 1 + rate * held)
   const topAt = rate > 0 && cap < NO_SPEEDUP_CAP ? (cap - 1) / rate : null
   return (
-    <VisualPanel title="Speed while you hold full tilt" chip={`${held.toFixed(1)} s · ${Math.round(now)} °/s`}
-      caption="Seconds held at full tilt, left to right. Hold the stick out to watch the dot climb."
+    <VisualPanel title="Predicted speed at full tilt" chip={`${held.toFixed(1)} s · ${Math.round(now)} °/s`}
+      caption="Uses the time held at full tilt observed on this page and the settings being edited. Hold the stick out to watch the dot climb."
       legend={[{ mark: '◷', label: 'Held at full tilt', detail: `${held.toFixed(1)} s` }, ...(topAt !== null ? [{ mark: '▲', label: 'At top speed', detail: held >= topAt ? `since ${topAt.toFixed(1)} s` : `from ${topAt.toFixed(1)} s` }] : [])]}>
       <SpeedUpChart sens={sens} rate={rate} cap={cap} held={held} presets={STICK_SPEEDUP_PRESETS.filter(item => item.rate > 0).map(item => ({ label: `${item.label} · ${item.cap}×`, rate: item.rate, cap: item.cap }))} />
     </VisualPanel>
@@ -139,29 +142,29 @@ export function speedUpGroup(ctx: StickCtx): FineTuneGroup {
   const preset = STICK_SPEEDUP_PRESETS.find(item => near(item.rate, rate) && (item.rate === 0 || near(item.cap, cap)))
   const capShown = cap >= NO_SPEEDUP_CAP ? 11 : Math.min(10, cap)
   return {
-    id: 'speedup', label: 'Speed-up', title: 'Speed-up', description: 'Hold the stick all the way out and the turn keeps getting faster.',
+    id: 'speedup', label: 'Acceleration', title: 'Acceleration', description: 'Hold the stick all the way out and the turn keeps getting faster.',
     status: rate <= 0 ? 'Off' : `Changed: ${preset?.label ?? 'Custom'} · up to ${cap >= NO_SPEEDUP_CAP ? 'no limit' : `${cap}×`}`, changed: isSet(ctx.text, 'STICK_ACCELERATION_RATE', 'STICK_ACCELERATION_CAP'),
     content: <>
-      <SegmentedRow label="How much" hint="Only builds while the stick is pushed fully." setting="STICK_ACCELERATION_RATE" value={preset?.value ?? 'custom'}
+      <SegmentedRow label="Acceleration preset" hint="Only builds while the stick is pushed fully." setting="STICK_ACCELERATION_RATE" value={preset?.value ?? 'custom'}
         options={[...STICK_SPEEDUP_PRESETS.map(item => ({ value: item.value, label: item.label, caption: item.caption })), { value: 'custom', label: 'Custom', caption: 'Custom: set how fast it builds and the top speed below.' }]}
         onChange={value => { const found = STICK_SPEEDUP_PRESETS.find(item => item.value === value); if (found) writeChoice(ctx.setText, { STICK_ACCELERATION_RATE: found.rate || null, STICK_ACCELERATION_CAP: found.rate ? found.cap : null }, { STICK_ACCELERATION_RATE: 0, STICK_ACCELERATION_CAP: NO_SPEEDUP_CAP }) }}
         onReset={() => writeKeys(ctx.setText, { STICK_ACCELERATION_RATE: null, STICK_ACCELERATION_CAP: null })} onX={tryIt} />
-      <ValueRow hero label="How fast it builds" setting="STICK_ACCELERATION_RATE" value={rate} min={0} max={10} step={0.1} fineStep={0.01} format={value => `${value.toFixed(1)}× / s`}
+      <ValueRow hero label="Acceleration rate" setting="STICK_ACCELERATION_RATE" value={rate} min={0} max={10} step={0.1} fineStep={0.01} format={value => `${value.toFixed(1)}× / s`}
         caption={`Adds another ${sens}°/s for every second you hold full tilt. Default is off (0).`}
         onChange={value => writeKey(ctx.setText, 'STICK_ACCELERATION_RATE', value || null)} onReset={() => writeKey(ctx.setText, 'STICK_ACCELERATION_RATE', null)} onX={tryIt} />
-      <ValueRow label="Top speed" hint="Stops building here. Default: no limit" setting="STICK_ACCELERATION_CAP" value={capShown} min={1} max={11} step={0.5} fineStep={0.1}
+      <ValueRow label="Acceleration cap" hint="Stops building here. Default: no limit" setting="STICK_ACCELERATION_CAP" value={capShown} min={1} max={11} step={0.5} fineStep={0.1}
         format={value => value >= 11 ? 'No limit' : `${value}× · ${Math.round(value * sens)}°/s`}
         onChange={value => writeKey(ctx.setText, 'STICK_ACCELERATION_CAP', value >= 11 ? null : value)} onReset={() => writeKey(ctx.setText, 'STICK_ACCELERATION_CAP', null)} />
       <Note>Ease off the edge and you drop straight back to your normal speed.</Note>
     </>,
-    visual: <SpeedUpVisual ctx={ctx} rate={rate} cap={cap} />,
+    visual: <SpeedUpVisual key={`${ctx.controllerHandle}:${ctx.side}`} ctx={ctx} rate={rate} cap={cap} />,
   }
 }
 
 // ---------------------------------------------------------------- Dead zone & edge
 export function deadZoneGroup(ctx: StickCtx, options: { flicks?: boolean } = {}): FineTuneGroup {
   const { inner, outer, scope } = stickDeadzones(ctx.text, ctx.SIDE)
-  const target = (key: 'INNER' | 'OUTER') => scope === 'side' ? `${ctx.SIDE}_STICK_DEADZONE_${key}` : `STICK_DEADZONE_${key}`
+  const target = (key: 'INNER' | 'OUTER') => ctx.singleStick || scope === 'side' ? `${ctx.SIDE}_STICK_DEADZONE_${key}` : `STICK_DEADZONE_${key}`
   const setScope = (next: string) => {
     if (next === scope) return
     if (next === 'both') writeKeys(ctx.setText, { STICK_DEADZONE_INNER: inner, STICK_DEADZONE_OUTER: outer, LEFT_STICK_DEADZONE_INNER: null, LEFT_STICK_DEADZONE_OUTER: null, RIGHT_STICK_DEADZONE_INNER: null, RIGHT_STICK_DEADZONE_OUTER: null })
@@ -170,20 +173,20 @@ export function deadZoneGroup(ctx: StickCtx, options: { flicks?: boolean } = {})
   const push = ctx.live ? Math.min(1, Math.hypot(ctx.live.x, ctx.live.y)) : 0
   const ring = readWord(ctx.text, `${ctx.SIDE}_RING_MODE`)
   return {
-    id: 'deadzone', label: 'Dead zone & edge', title: 'Dead zone & edge', description: 'How far the stick moves before it counts, and where full tilt starts.',
+    id: 'deadzone', label: 'Deadzones & ring', title: 'Deadzones & ring', description: 'How far the stick moves before it counts, and where full tilt starts.',
     status: options.flicks ? `Flicks past ${Math.round((1 - outer) * 100)}%` : `Ignore ${Math.round(inner * 100)}% · full past ${Math.round((1 - outer) * 100)}%`,
     changed: isSet(ctx.text, `${ctx.SIDE}_STICK_DEADZONE_INNER`, `${ctx.SIDE}_STICK_DEADZONE_OUTER`, 'STICK_DEADZONE_INNER', 'STICK_DEADZONE_OUTER', `${ctx.SIDE}_RING_MODE`),
     content: <>
-      <SegmentedRow label="Applies to" hint="Split them if one stick is worn and drifts more." value={scope}
+      {!ctx.singleStick && <SegmentedRow label="Applies to" hint="Split them if one stick is worn and drifts more." value={scope}
         options={[{ value: 'both', label: 'Both sticks', caption: 'One dead zone for both sticks.' }, { value: 'side', label: `${ctx.side === 'left' ? 'Left' : 'Right'} stick only`, caption: 'This stick has its own dead zone.' }]}
-        onChange={setScope} />
-      <ValueRow hero label="Ignore small movement" setting={target('INNER')} value={Math.round(inner * 100)} min={0} max={90} step={1} fineStep={0.1} format={value => `${value}%`}
+        onChange={setScope} />}
+      <ValueRow hero label="Inner deadzone" setting={target('INNER')} value={Math.round(inner * 100)} min={0} max={90} step={1} fineStep={0.1} format={value => `${value}%`}
         caption="Raise it if the view drifts when you let go of the stick." onChange={value => writeKey(ctx.setText, target('INNER'), Number((value / 100).toFixed(4)))}
         onReset={() => writeKey(ctx.setText, target('INNER'), null)} />
-      <ValueRow label="Full tilt starts at" hint="Lower it if you can’t reach top speed. Default 90%" setting={target('OUTER')} value={Math.round((1 - outer) * 100)} min={10} max={100} step={1} fineStep={0.1}
+      <ValueRow label="Full-output threshold" hint="Lower it if you can’t reach top speed. Default 90%" setting={target('OUTER')} value={Math.round((1 - outer) * 100)} min={10} max={100} step={1} fineStep={0.1}
         format={value => `${value}%`} onChange={value => writeKey(ctx.setText, target('OUTER'), Number(((100 - value) / 100).toFixed(4)))} onReset={() => writeKey(ctx.setText, target('OUTER'), null)} />
       <SubHead>Light-push ring</SubHead>
-      <SegmentedRow label="The ring binding fires" setting={`${ctx.SIDE}_RING_MODE`} value={ring === 'INNER' ? 'INNER' : 'OUTER'}
+      <SegmentedRow label="Ring mode" setting={`${ctx.SIDE}_RING_MODE`} value={ring === 'INNER' ? 'INNER' : 'OUTER'}
         options={[{ value: 'INNER', label: 'On a light push', caption: 'Inner: the ring binding is held while the stick is pushed only a little.' }, { value: 'OUTER', label: 'On a full push', caption: 'Outer (default): the ring binding is held while the stick is pushed fully.' }]}
         onChange={value => writeKey(ctx.setText, `${ctx.SIDE}_RING_MODE`, value === 'OUTER' ? null : value)} onReset={() => writeKey(ctx.setText, `${ctx.SIDE}_RING_MODE`, null)} />
       {ctx.buttons.ring && ctx.renderButton(ctx.buttons.ring, { label: 'Ring action', subtitle: 'Fires in every stick mode' })}
@@ -232,26 +235,26 @@ export function mouseLikeGroup(ctx: StickCtx): FineTuneGroup {
   const write = (meta: typeof xMeta, value: number) => ctx.setText?.(previous => writeModeNumber(previous, meta, value, ctx.text))
   const push = ctx.live ? Math.hypot(ctx.live.x, ctx.live.y) : 0
   return {
-    id: 'mouselike', label: 'Mouse-like feel', title: 'Mouse-like feel', description: 'Move the stick and the view moves like a mouse; hold it out to keep turning.',
+    id: 'mouselike', label: 'Hybrid aim', title: 'Hybrid aim', description: 'Move the stick and the view moves like a mouse; hold it out to keep turning.',
     status: on ? `Changed: on · ${x === y ? `${x} both ways` : `${x} · ${y}`}` : 'Off · plain stick aim', changed: on,
     content: <>
-      <SummaryRow label="Mouse-like feel" hint="Small moves for precise aim, plus normal stick turning" setting={`${ctx.SIDE}_STICK_MODE`}
+      <SummaryRow label="Hybrid aim" hint="Small moves for precise aim, plus normal stick turning" setting={`${ctx.SIDE}_STICK_MODE`}
         toggle={{ on, onChange: next => ctx.onModeChange(next ? 'HYBRID_AIM' : 'AIM') }} />
       {on && <>
         <SubHead>Speed</SubHead>
-        <ValueRow hero label="Mouse-like speed, left and right" setting="MOUSELIKE_FACTOR" value={x} min={xMeta.min} max={xMeta.max} step={5} fineStep={1}
+        <ValueRow hero label="Horizontal mouse-like sensitivity" setting="MOUSELIKE_FACTOR" value={x} min={xMeta.min} max={xMeta.max} step={5} fineStep={1}
           caption="How far the view moves per move of the stick." onChange={value => write(xMeta, value)} onReset={() => writeKey(ctx.setText, 'MOUSELIKE_FACTOR', null)} onX={tryIt} />
         <SummaryRow label="Up and down" hint={x === y ? 'Same as left/right' : 'Its own mouse-like speed'} setting="MOUSELIKE_FACTOR" toggle={{ on: x !== y, onChange: own => write(yMeta, own ? Math.max(0, x - 15) : x) }} />
-        {x !== y && <ValueRow label="Up and down speed" setting="MOUSELIKE_FACTOR" value={y} min={yMeta.min} max={yMeta.max} step={5} fineStep={1} onChange={value => write(yMeta, value)} />}
+        {x !== y && <ValueRow label="Vertical sensitivity" setting="MOUSELIKE_FACTOR" value={y} min={yMeta.min} max={yMeta.max} step={5} fineStep={1} onChange={value => write(yMeta, value)} />}
         <SubHead>Coming back to centre</SubHead>
-        <SummaryRow label="Ignore the way back" hint="Letting go doesn’t drag the view backwards" setting="RETURN_DEADZONE_IS_ACTIVE"
+        <SummaryRow label="Return deadzone" hint="Letting go doesn’t drag the view backwards" setting="RETURN_DEADZONE_IS_ACTIVE"
           toggle={{ on: returnOn, onChange: next => ctx.setText?.(previous => writeVirtualSetting(previous, 'RETURN_DEADZONE_IS_ACTIVE', next ? '' : 'OFF')) }} />
         {returnOn && <>
-          <ValueRow label="Fully ignored within" setting="RETURN_DEADZONE_ANGLE" value={angle} min={0} max={89} step={1} format={value => `${value}°`} onChange={value => write(angleMeta, value)} onReset={() => writeKey(ctx.setText, 'RETURN_DEADZONE_ANGLE', null)} />
-          <ValueRow label="Back to normal by" setting="RETURN_DEADZONE_ANGLE_CUTOFF" value={cutoff} min={1} max={90} step={1} format={value => `${value}°`} onChange={value => write(cutoffMeta, value)} onReset={() => writeKey(ctx.setText, 'RETURN_DEADZONE_ANGLE_CUTOFF', null)} />
+          <ValueRow label="Return deadzone angle" setting="RETURN_DEADZONE_ANGLE" value={angle} min={0} max={89} step={1} format={value => `${value}°`} onChange={value => write(angleMeta, value)} onReset={() => writeKey(ctx.setText, 'RETURN_DEADZONE_ANGLE', null)} />
+          <ValueRow label="Return deadzone cutoff" setting="RETURN_DEADZONE_ANGLE_CUTOFF" value={cutoff} min={1} max={90} step={1} format={value => `${value}°`} onChange={value => write(cutoffMeta, value)} onReset={() => writeKey(ctx.setText, 'RETURN_DEADZONE_ANGLE_CUTOFF', null)} />
         </>}
         <SubHead>At the edge</SubHead>
-        <SummaryRow label="Keep turning at the edge" hint="Hold the stick out and the turn carries on" setting="EDGE_PUSH_IS_ACTIVE"
+        <SummaryRow label="Edge push" hint="Hold the stick out and the turn carries on" setting="EDGE_PUSH_IS_ACTIVE"
           toggle={{ on: edgeOn, onChange: next => ctx.setText?.(previous => writeVirtualSetting(previous, 'EDGE_PUSH_IS_ACTIVE', next ? '' : 'OFF')) }} />
       </>}
     </>,
@@ -290,7 +293,7 @@ export function flickGroup(ctx: StickCtx): FineTuneGroup {
         onChange={value => { const found = FLICK_EXPONENT_PRESETS.find(item => item.value === value); if (found) writeChoice(ctx.setText, { FLICK_TIME_EXPONENT: found.exponent || null }, { FLICK_TIME_EXPONENT: 0 }) }}
         onReset={() => writeKey(ctx.setText, 'FLICK_TIME_EXPONENT', null)} />
       {preset === undefined && <ValueRow label="Small-flick exponent" setting="FLICK_TIME_EXPONENT" value={exponent} min={0} max={4} step={0.1} fineStep={0.01} onChange={value => writeKey(ctx.setText, 'FLICK_TIME_EXPONENT', value)} />}
-      <OpenRow label="Advanced" hint="Match a full turn (360°), smoothing for tiny turns" onOpen={() => ctx.open.advanced('smoothing')} />
+      <OpenRow label="Advanced" hint="Smoothing for tiny turns" onOpen={() => ctx.open.advanced('smoothing')} />
     </>,
     visual: <VisualPanel title="Where a flick takes you" chip={angle === null ? (ctx.live ? 'centred' : 'no controller') : `live ${Math.round(angle > 180 ? 360 - angle : angle)}° ${angle > 180 ? 'left' : 'right'}`}
       caption={`Point and you face that way in ${time.toFixed(2)} s. Keep rolling the stick and the view keeps turning with it.`}>
@@ -308,17 +311,17 @@ export function snapGroup(ctx: StickCtx): FineTuneGroup {
   const angle = liveAngle(ctx.live, outer)
   const landed = angle === null || snap === 'NONE' ? angle : Math.round(angle / (360 / Number(snap))) * (360 / Number(snap))
   return {
-    id: 'snap', label: 'Snap & forward zone', title: 'Snap & forward zone', description: 'Land flicks on clean angles, and push forward without turning.',
+    id: 'snap', label: 'Flick snapping & deadzone', title: 'Flick snapping & deadzone', description: 'Land flicks on clean angles, and push forward without turning.',
     status: snap === 'NONE' && forward === 0 ? 'Snap off · no forward zone' : `Changed: ${snap === 'NONE' ? 'snap off' : `${snap} ways`} · ${forward ? `${forward}° forward` : 'no forward zone'}`,
     changed: isSet(ctx.text, 'FLICK_SNAP_MODE', 'FLICK_SNAP_STRENGTH', 'FLICK_DEADZONE_ANGLE'),
     content: <>
-      <SegmentedRow label="Snap to" setting="FLICK_SNAP_MODE" value={snap}
+      <SegmentedRow label="Flick snap mode" setting="FLICK_SNAP_MODE" value={snap}
         options={[{ value: 'NONE', label: 'Off', caption: 'Off: flicks land wherever you point.' }, { value: '4', label: '4 directions', caption: '4: forward, left, right, behind.' }, { value: '8', label: '8 directions', caption: '8 adds the diagonals.' }]}
         onChange={value => writeKey(ctx.setText, 'FLICK_SNAP_MODE', value === 'NONE' ? null : value)} onReset={() => writeKey(ctx.setText, 'FLICK_SNAP_MODE', null)} />
-      <ValueRow hero label="Snap strength" setting="FLICK_SNAP_STRENGTH" value={Math.round(strength * 100)} min={0} max={100} step={5} fineStep={1} format={value => `${value}%`}
+      <ValueRow hero label="Flick snap strength" setting="FLICK_SNAP_STRENGTH" value={Math.round(strength * 100)} min={0} max={100} step={5} fineStep={1} format={value => `${value}%`}
         disabled={snap === 'NONE' ? 'Snap strength is used once Snap to is 4 or 8 directions.' : undefined}
         caption="100% always lands on a snap point. Lower lets a flick land in between." onChange={value => writeKey(ctx.setText, 'FLICK_SNAP_STRENGTH', Number((value / 100).toFixed(3)))} onReset={() => writeKey(ctx.setText, 'FLICK_SNAP_STRENGTH', null)} />
-      <ValueRow label="Forward zone" hint="Push roughly forward to turn without a flick. Default: off" setting="FLICK_DEADZONE_ANGLE" value={forward} min={0} max={90} step={1} format={value => value === 0 ? 'Off' : `${value}° each side`}
+      <ValueRow label="Forward deadzone angle" hint="Push roughly forward to turn without a flick. Default: off" setting="FLICK_DEADZONE_ANGLE" value={forward} min={0} max={90} step={1} format={value => value === 0 ? 'Off' : `${value}° each side`}
         onChange={value => writeKey(ctx.setText, 'FLICK_DEADZONE_ANGLE', value || null)} onReset={() => writeKey(ctx.setText, 'FLICK_DEADZONE_ANGLE', null)} />
     </>,
     visual: <VisualPanel title="Where a flick lands" chip={angle === null ? (ctx.live ? 'centred' : 'no controller') : `push ${Math.round(angle)}° · lands ${Math.round(landed ?? angle)}°`}
@@ -337,11 +340,12 @@ export function outputGroup(ctx: StickCtx): FineTuneGroup {
     status: output === 'MOUSE' ? 'Mouse' : `Changed: ${output === 'LEFT_STICK' ? 'left' : 'right'} gamepad stick`, changed: isSet(ctx.text, 'FLICK_STICK_OUTPUT', 'VIRTUAL_STICK_CALIBRATION'),
     content: <>
       <ModeCards variant="compare" columns={3} value={output} useLabel={card => `Use ${card.label}`}
-        options={[{ value: 'MOUSE', label: 'Mouse', caption: 'Most precise. Uses Match a full turn (360°).' }, { value: 'LEFT_STICK', label: 'Left gamepad stick', caption: 'For a game that turns with the left stick' }, { value: 'RIGHT_STICK', label: 'Right gamepad stick', caption: 'The usual camera stick' }]}
+        options={[{ value: 'MOUSE', label: 'Mouse', caption: 'Most precise. Uses real-world calibration (RWC).' }, { value: 'LEFT_STICK', label: 'Left gamepad stick', caption: 'For a game that turns with the left stick' }, { value: 'RIGHT_STICK', label: 'Right gamepad stick', caption: 'The usual camera stick' }]}
         onChange={value => ctx.setText?.(previous => writeVirtualSetting(previous, 'FLICK_STICK_OUTPUT', value === 'MOUSE' ? '' : value))} />
+      {output === 'MOUSE' && <OpenRow label="Real-world calibration (RWC)" hint="Calibrate mouse turns to the game. Shared with looking around and gyro." value={isSet(ctx.text, 'REAL_WORLD_CALIBRATION') ? 'Set' : 'Start'} onOpen={ctx.open.matchFullTurn} />}
       {target && <>
         {vcWarning(ctx, 'A gamepad stick output')}
-        <ValueRow hero label="Game’s top turn speed" setting="VIRTUAL_STICK_CALIBRATION" value={speed} min={30} max={20000} step={30} fineStep={1}
+        <ValueRow hero label="Maximum game turn rate" setting="VIRTUAL_STICK_CALIBRATION" value={speed} min={30} max={20000} step={30} fineStep={1}
           format={value => `${value}°/s`} hint={`One full turn in ${(360 / speed).toFixed(2)} s`} caption="Hold the game’s stick fully and time one full turn. Shared with gyro to joystick."
           onChange={value => writeKey(ctx.setText, 'VIRTUAL_STICK_CALIBRATION', value)} onReset={() => writeKey(ctx.setText, 'VIRTUAL_STICK_CALIBRATION', null)} />
         <OpenRow label="Find the game’s dead zone" hint="Guided, about a minute" value="Start" onOpen={() => ctx.open.gameStick(target)} />
@@ -473,18 +477,49 @@ function OpenInMenusRow({ side, config }: { side: StickSide; config: StickMenuCo
 }
 
 // ---------------------------------------------------------------- Moving
-export function directionsGroup(ctx: StickCtx): FineTuneGroup {
+export function directionsGroup(ctx: StickCtx, options: { bindings?: boolean } = {}): FineTuneGroup {
   const summary = ctx.buttons.directions.map(button => ctx.describe(button.command).binding || '—')
+  const prefix = `${ctx.SIDE}_STICK_`
+  const width = readNumber(ctx.text, `${prefix}CARDINAL_WIDTH`, 53.130102)
+  const stability = readNumber(ctx.text, `${prefix}DIRECTION_HYSTERESIS`, 0)
+  const activation = Math.max(stickDeadzones(ctx.text, ctx.SIDE).inner, readNumber(ctx.text, `${prefix}DIRECTION_DEADZONE`, 0))
+  const margin = readNumber(ctx.text, `${prefix}DIRECTION_RELEASE_MARGIN`, 0)
+  const release = Math.max(0, activation - margin)
+  const unavailable = ctx.disabled || !ctx.setText ? 'This layout is read-only' : undefined
+  const rays = [0, 90, 180, 270].flatMap(angle => [angle - width / 2, angle + width / 2])
   return {
-    id: 'directions', label: 'Directions', title: 'Directions', description: 'What up, left, down and right send. Push between two and both fire.',
+    id: 'directions', label: 'Directions', title: 'Directions', description: 'Choose your keys and make single directions easier to hit.',
     status: summary.some(value => value !== '—') ? summary.join(' · ') : 'Unbound',
     changed: summary.some(value => value !== '—'),
     content: <>
-      {ctx.buttons.directions.map(button => <div key={button.command}>{ctx.renderButton(button)}</div>)}
-      {ctx.onBindWasd && <OpenRow label="Bind to W A S D" hint="Points up, left, down and right at W, A, S and D" onOpen={ctx.onBindWasd} />}
-      <Note>Diagonals: hold two directions and both keys are sent. A binding sheet’s “Stick diagonal” gives a diagonal its own action.</Note>
+      <ValueRow label="Cardinal direction width" setting={`${prefix}CARDINAL_WIDTH`} value={width} min={10} max={90} step={1} fineStep={.1}
+        format={value => value >= 90 ? '90° · four-way' : `${Number(value.toFixed(1))}°`} disabled={unavailable}
+        caption="Wider zones make a single direction easier to hold. Diagonals remain between them; 90° sends only one direction."
+        onChange={value => writeKey(ctx.setText, `${prefix}CARDINAL_WIDTH`, value)} onReset={() => writeKey(ctx.setText, `${prefix}CARDINAL_WIDTH`, null)} />
+      <ValueRow label="Direction stability" setting={`${prefix}DIRECTION_HYSTERESIS`} value={stability} min={0} max={15} step={1} fineStep={.1}
+        format={value => `${value}°`} disabled={unavailable}
+        caption="Keep the current direction through small boundary movements. No timed delay; narrow diagonals limit the margin automatically."
+        onChange={value => writeKey(ctx.setText, `${prefix}DIRECTION_HYSTERESIS`, value)} onReset={() => writeKey(ctx.setText, `${prefix}DIRECTION_HYSTERESIS`, null)} />
+      <ValueRow label="Start keyboard movement" setting={`${prefix}DIRECTION_DEADZONE`} value={Number((activation * 100).toFixed(1))} min={Math.min(95, stickDeadzones(ctx.text, ctx.SIDE).inner * 100)} max={95} step={1} fineStep={.1}
+        format={value => `${value}%`} disabled={unavailable}
+        caption="Push this far to start a direction. Increase it to reject the opposite-direction bounce when releasing the stick. Analogue output is unchanged."
+        onChange={value => writeKey(ctx.setText, `${prefix}DIRECTION_DEADZONE`, Number((value / 100).toFixed(3)))} onReset={() => writeKey(ctx.setText, `${prefix}DIRECTION_DEADZONE`, null)} />
+      <ValueRow label="Release margin" setting={`${prefix}DIRECTION_RELEASE_MARGIN`} value={Number((margin * 100).toFixed(1))} min={0} max={50} step={1} fineStep={.1}
+        format={value => `${value}%`} disabled={unavailable}
+        caption={`Movement stops below ${Math.round(release * 100)}% travel. A different direction still needs ${Math.round(activation * 100)}%; this prevents rapid on/off chatter near the centre.`}
+        onChange={value => writeKey(ctx.setText, `${prefix}DIRECTION_RELEASE_MARGIN`, Number((value / 100).toFixed(3)))} onReset={() => writeKey(ctx.setText, `${prefix}DIRECTION_RELEASE_MARGIN`, null)} />
+      {options.bindings !== false && ctx.buttons.directions.map(button => <div key={button.command}>{ctx.renderButton(button)}</div>)}
+      {options.bindings !== false && ctx.onBindWasd && <OpenRow label="Bind to W A S D" hint="Points up, left, down and right at W, A, S and D" onOpen={ctx.onBindWasd} />}
+      <Note>{width >= 90 ? 'Four-way movement sends one direction at a time. Reduce the cardinal width to enable diagonals.' : 'Diagonals send both direction keys. A binding sheet’s “Stick diagonal” gives a diagonal its own action.'}</Note>
     </>,
-    visual: <StickPanel title={`Your ${ctx.name.toLowerCase()}, live`} live={ctx.live} {...stickDeadzones(ctx.text, ctx.SIDE)} />,
+    visual: <VisualPanel title="Keyboard direction zones" caption={`Start at ${Math.round(activation * 100)}% · release below ${Math.round(release * 100)}%. The live vector includes your rotation and restrictor settings.`}>
+      <StickDiagram live={ctx.live} inner={activation} outer={0} wedge={<>
+        {rays.map((angle, index) => <line key={index} x1={110 + Math.sin(angle * Math.PI / 180) * 90 * activation} y1={110 - Math.cos(angle * Math.PI / 180) * 90 * activation}
+          x2={110 + Math.sin(angle * Math.PI / 180) * 90} y2={110 - Math.cos(angle * Math.PI / 180) * 90}
+          stroke="var(--text-3)" strokeOpacity=".5" strokeDasharray="3 4" />)}
+        <circle cx="110" cy="110" r={release * 90} fill="none" stroke="var(--text-3)" strokeDasharray="3 4" />
+      </>} />
+    </VisualPanel>,
   }
 }
 

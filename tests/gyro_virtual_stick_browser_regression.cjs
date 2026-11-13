@@ -33,8 +33,8 @@ const { assert, prepare, openGyro, top, openFineTune, openRow, openPart, valueRo
     })
     await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1421')
     await openGyro(page)
-    // A stick output has no mouse calibration: Match a full turn says why.
-    const match = page.locator('[data-gyro-front] button').filter({ hasText: 'Match a full turn' })
+    // A stick output has no mouse calibration: Real-world calibration says why.
+    const match = page.locator('[data-gyro-front] button').filter({ hasText: 'Real-world calibration' })
     assert.equal(await match.getAttribute('aria-disabled'), 'true')
     assert.match(await match.getAttribute('data-reason'), /Only while gyro sends the mouse/)
 
@@ -107,9 +107,9 @@ const { assert, prepare, openGyro, top, openFineTune, openRow, openPart, valueRo
     await top(page).locator('[data-held="L"]').click()
     await top(page).locator('button[data-group="steadiness"]').click()
     await openRow(page, 'Advanced')
-    await openPart(page, 'Adaptive filter')
-    const cutoff = valueRow(top(page), 'Smoothing at rest')
-    const coefficient = valueRow(top(page), 'How fast it lets go')
+    await openPart(page, 'One Euro filter')
+    const cutoff = valueRow(top(page), 'Minimum cutoff frequency')
+    const coefficient = valueRow(top(page), 'Speed coefficient (beta)')
     assert.equal(await valueText(cutoff), '0.5 Hz')
     await step(cutoff, 1, 1) // 0.5 → 1
     await step(coefficient, 1, 2) // 0.1 → 0.2
@@ -125,9 +125,9 @@ const { assert, prepare, openGyro, top, openFineTune, openRow, openPart, valueRo
     // Base values are untouched.
     await openFineTune(page, 'steadiness')
     await openRow(page, 'Advanced')
-    await openPart(page, 'Adaptive filter')
-    assert.equal(await valueText(valueRow(top(page), 'Smoothing at rest')), '6 Hz')
-    assert.equal(await valueText(valueRow(top(page), 'How fast it lets go')), '0.3')
+    await openPart(page, 'One Euro filter')
+    assert.equal(await valueText(valueRow(top(page), 'Minimum cutoff frequency')), '6 Hz')
+    assert.equal(await valueText(valueRow(top(page), 'Speed coefficient (beta)')), '0.3')
     await page.keyboard.press('Escape')
     await save(page, /L,ONE_EURO_MIN_CUTOFF = 1\b/)
     const filtered = await page.evaluate(() => window.__paritySaved)
@@ -146,7 +146,7 @@ const { assert, prepare, openGyro, top, openFineTune, openRow, openPart, valueRo
     await top(page).getByText(/The real gyro and accelerometer go to a virtual PlayStation 4 controller/).waitFor()
     await top(page).getByText('Motion to game needs the PlayStation 4 virtual pad. Set Virtual pad to PlayStation 4.', { exact: true }).waitFor()
     await top(page).locator('button[data-group="speed"]').click()
-    assert.match(await valueRow(top(page), 'Turn speed').getAttribute('data-reason'), /Motion to game sends the raw motion/)
+    assert.match(await valueRow(top(page), 'Real-world sensitivity (RWS)').getAttribute('data-reason'), /Motion to game sends the raw motion/)
     await page.keyboard.press('Escape')
     await page.locator('[data-gyro-front]').getByText('Motion to game always sends the motion; this turns Rumble while aiming on and off.', { exact: true }).waitFor()
 

@@ -153,7 +153,6 @@ export function TrackpadsPage(props: TrackpadsPageProps) {
   const area = pad.card.mouseArea ?? null
   const fit = pad.card.mouseAreaFit ?? 'STRETCH'
   const areaCursor = card === 'MOUSE_AREA' && livePoint ? mapTouchToArea(toUnit(livePoint.x), toUnit(livePoint.y), area ?? { x: 0, y: 0, w: 1, h: 1 }, fit, props.padAspect, 16 / 9) : null
-  const clickShift = pad.click ? modeshiftTriggers(readText, pad.modeshiftTarget).includes(pad.click.command) : false
   const shifts = modeshiftTriggers(readText, pad.modeshiftTarget)
   // The live chip names the zone under the thumb (hit-tested), not the selected row.
   const hitZone = card === 'ZONES' && livePoint && pad.menu ? regions[hitIndex(pad.menu, livePoint)] ?? null : null
@@ -191,7 +190,6 @@ export function TrackpadsPage(props: TrackpadsPageProps) {
       <SegmentedRow label="2 · Fit the pad to your box" hint="Stretch reaches every corner; keep pad shape avoids stretching movement in a wide box" setting={`${P}TOUCHPAD_AREA_FIT`} value={fit} extraHints={stepHints}
         options={MOUSE_AREA_FIT_OPTIONS.map(option => ({ value: option.value, label: option.value === 'STRETCH' ? 'Stretch to fill' : 'Keep pad shape' }))}
         onChange={value => pad.card.onMouseAreaFitChange?.(value)} />
-      {!props.modeShift && pad.click && <OpenRow label="Click zones" hint={clickShift ? 'Zones while the pad is pressed in' : 'Press the pad in to use zones instead'} value={clickShift ? 'Set' : 'None'} hints={`A:Open;${stepHints}`} onOpen={() => setHolding(true)} />}
       {touchClickRows}
     </>
   } else if (card === 'MOUSE') {
@@ -199,7 +197,6 @@ export function TrackpadsPage(props: TrackpadsPageProps) {
       <ValueRow hero label="Sensitivity" setting={`${P}TOUCHPAD_SENS`} value={readNumber(readText, `${P}TOUCHPAD_SENS`, 1)} min={0} max={10} step={0.05} fineStep={0.01} format={value => `${value.toFixed(2)}×`}
         caption="How far the cursor goes for a swipe across the pad." extraHints={stepHints}
         onChange={value => { const y = readNumber(readText, `${P}TOUCHPAD_SENS`, NaN, 1); writeKeys(setText, { [`${P}TOUCHPAD_SENS`]: Number.isFinite(y) && y !== value ? `${value} ${y}` : value }) }} />
-      {!props.modeShift && pad.click && <OpenRow label="Click zones" hint={clickShift ? 'Zones while the pad is pressed in' : 'Press the pad in to use zones instead'} value={clickShift ? 'Set' : 'None'} hints={`A:Open;${stepHints}`} onOpen={() => setHolding(true)} />}
       {touchClickRows}
     </>
   } else if (card === 'TOUCH_STICK') {
@@ -244,19 +241,19 @@ export function TrackpadsPage(props: TrackpadsPageProps) {
           {card === 'ZONES' && <p className={styles.zoneExplanation}>Zones belong to this trackpad and fire its bindings when touched or clicked. Their overlay mirrors the pad. Reusable menus opened by buttons live on the Virtual menus page.</p>}
           {rows}
           {!props.modeShift && <ModeShiftRow count={shifts.length} onOpen={() => setHolding(true)} />}
-          <OpenRow label="Fine-tune" hint={card === 'ZONES' ? 'Zone shape, centre dead zone, touch and click, touch stick, feel' : card === 'MOUSE_AREA' ? 'Touch and click, click damping, lift-off, feel' : card === 'MOUSE' ? 'Speed and curve, glide, click, feel' : 'Touch and click, touch stick, feel'}
+          <OpenRow label="Fine-tune" hint={card === 'ZONES' ? 'Zone shape, touch stick, orientation, haptics and bindings' : card === 'MOUSE_AREA' ? 'Mouse area and pad fit, click, orientation, haptics and bindings' : card === 'MOUSE' ? 'Sensitivity, trackball, click, orientation, haptics and bindings' : 'Touch stick, orientation, haptics and bindings'}
             value="Open" hints={`A:Open;${stepHints}`} data={{ 'data-trackpad-fine-tune': side }} onOpen={() => setFineTune(card === 'MOUSE' ? 'speed' : card === 'MOUSE_AREA' ? 'area' : card === 'TOUCH_STICK' ? 'zones:stick' : 'zones')} />
         </div>
       </div>
 
       <MoreMenu open={more} onClose={() => setMore(false)} eyebrow={`Trackpads · ${name}`} title="More"
         items={[
-          ...(!props.modeShift ? [{ id: 'holding', label: 'Mode shift', hint: 'Hold another button to change this pad (click zones too)', onSelect: () => setHolding(true) }] : []),
+          ...(!props.modeShift ? [{ id: 'holding', label: 'Mode shift', hint: 'Hold another button to use alternate pad controls', onSelect: () => setHolding(true) }] : []),
           ...(pad.touch ? [{ id: 'touch', label: 'Touch', hint: 'Your thumb on the pad', value: props.describe(pad.touch.command).binding || 'Unbound', onSelect: () => setFineTune('more') }] : []),
           ...(pad.click ? [{ id: 'click', label: 'Click', hint: 'Pressing the pad in', value: props.describe(pad.click.command).binding || 'Unbound', onSelect: () => setFineTune('more') }] : []),
           { id: 'directions', label: 'Touch-stick directions', hint: 'Up, down, left, right and ring, shared by every touch stick', onSelect: () => setDirections(true) },
           ...(pad.other?.length ? [{ id: 'other', label: 'Other controller types', hint: `${pad.other.length} bindings for inputs this pad doesn’t have`, onSelect: () => setOthers(true) }] : []),
-          { id: 'fine-tune', label: 'Fine-tune', hint: 'Speed, glide, zones, click, feel', onSelect: () => setFineTune(card === 'MOUSE' ? 'speed' : 'zones') },
+          { id: 'fine-tune', label: 'Fine-tune', hint: 'Sensitivity, trackball, zones, click, orientation, haptics and bindings', onSelect: () => setFineTune(card === 'MOUSE' ? 'speed' : 'zones') },
         ]} />
       <WhileHoldingPage open={holding} onClose={() => setHolding(false)} trail={['Trackpads', name]}>{props.renderModeshifts(pad.modeshiftTarget)}</WhileHoldingPage>
       <SubPage open={directions} onClose={() => setDirections(false)} trail={['Trackpads', name]} title="Touch-stick directions" backLabel="Back to Trackpads">

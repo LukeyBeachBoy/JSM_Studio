@@ -144,9 +144,9 @@ export function ControllerActionPicker(props: ActionPickerProps & { onSearch?: (
       t('pickers.gyroOnText', 'Turns gyro on while you hold {{input}}, even where the Gyro tab has it off. Other controllers stay as they are.', { input }), howChips(['Normal', 'Toggle'], value === 'GYRO_ON' ? behaviour : 'Normal'), conflict('GYRO_ON'))
     gyro('GYRO_OFF', t('pickers.gyroOff', 'Gyro off'), t('pickers.thisController', 'This controller'), 'gyroOff', onOff, t('pickers.thisControllerOnly', 'This controller only'),
       t('pickers.gyroOffText', 'Turns gyro off while you hold {{input}}, even where the Gyro tab has it on. Other controllers stay as they are.', { input }), howChips(['Normal', 'Toggle'], value === 'GYRO_OFF' ? behaviour : 'Normal'), conflict('GYRO_OFF'))
-    gyro('GYRO_ON_ALL', t('pickers.gyroOnAll', 'Gyro on everywhere'), t('pickers.everyController', 'Every connected controller'), 'gyroOnAll', onOff, t('pickers.everyController', 'Every connected controller'),
+    gyro('GYRO_ON_ALL', t('pickers.allControllersGyroOn', 'Enable gyro on all controllers'), t('pickers.everyController', 'Every connected controller'), 'gyroOnAll', onOff, t('pickers.everyController', 'Every connected controller'),
       t('pickers.gyroOnAllText', 'Turns gyro on for every connected controller while you hold {{input}}.', { input }), howChips(['Normal', 'Toggle'], value === 'GYRO_ON_ALL' ? behaviour : 'Normal'))
-    gyro('GYRO_OFF_ALL', t('pickers.gyroOffAll', 'Gyro off everywhere'), t('pickers.everyController', 'Every connected controller'), 'gyroOffAll', onOff, t('pickers.everyController', 'Every connected controller'),
+    gyro('GYRO_OFF_ALL', t('pickers.allControllersGyroOff', 'Disable gyro on all controllers'), t('pickers.everyController', 'Every connected controller'), 'gyroOffAll', onOff, t('pickers.everyController', 'Every connected controller'),
       t('pickers.gyroOffAllText', 'Turns gyro off for every connected controller while you hold {{input}}.', { input }), howChips(['Normal', 'Toggle'], value === 'GYRO_OFF_ALL' ? behaviour : 'Normal'))
     const whileHeld = t('pickers.whileHeldScope', 'While held · back to normal when you let go')
     gyro('GYRO_INVERT', t('pickers.invertBoth', 'Invert both ways'), t('pickers.invertBothSub', 'Left-right and up-down'), 'invert', held, whileHeld, t('pickers.invertBothText', 'Turning and looking both go the other way while you hold {{input}}.', { input }), howChips(['While held', 'Toggle'], value === 'GYRO_INVERT' && behaviour === 'Toggle' ? 'Toggle' : 'While held'))
@@ -276,7 +276,7 @@ export function ControllerActionPicker(props: ActionPickerProps & { onSearch?: (
     for (const side of ['LEFT', 'RIGHT'] as const) {
       other(`stickShift${side}`, side === 'LEFT' ? t('pickers.leftStickShift', 'Left stick mode shift') : t('pickers.rightStickShift', 'Right stick mode shift'),
         t('pickers.stickShiftSub', 'Sticks ▸ Mode shift, with {{input}} held', { input }), 'stick', command.source.kind === 'stickShift' && command.source.target === side,
-        () => { onClose(); requestModeshift({ page: 'joysticks', side: side === 'LEFT' ? 'left' : 'right', trigger: command.physicalInput, create: true }) },
+        () => { (props.onNavigate ?? onClose)(); requestModeshift({ page: 'joysticks', side: side === 'LEFT' ? 'left' : 'right', trigger: command.physicalInput, create: true }) },
         { scope: t('pickers.whileHeld', 'While held'), text: t('pickers.stickShiftText', 'A stick works another way while {{input}} is held: aim instead of move, flick, a scroll wheel. Set on the stick’s Mode shift page.', { input }), art: <OtherArt name="stick" /> },
         !onAddStickShift ? t('pickers.stickShiftCannot', 'A stick mode shift is set on the Sticks tab: Mode shift') : undefined)
     }
@@ -284,7 +284,7 @@ export function ControllerActionPicker(props: ActionPickerProps & { onSearch?: (
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, command.source.kind, command.outputKind, command.outputBehavior, command.physicalInput, family, text, sounds, connected, specialOptions, allowedOutputKinds, defaultLedColor, onAddHeldLed, onAddStickShift, input, t])
 
-  const groupOf = (): GroupId => items.find(item => item.current)?.group ?? 'gyro'
+  const groupOf = (): GroupId => ({ Gyro: 'gyro', Calibrate: 'calibrate', Rumble: 'rumble', Light: 'light', Other: 'other' } as Record<string, GroupId>)[props.initialCategory ?? ''] ?? items.find(item => item.current)?.group ?? 'gyro'
   const [group, setGroup] = useState<GroupId>(groupOf)
   const [focusedId, setFocusedId] = useState<string | null>(() => items.find(item => item.current)?.id ?? null)
   const grid = useRef<HTMLDivElement>(null)

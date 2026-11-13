@@ -16,6 +16,17 @@ function load(file) {
 
 
 const layouts=load('JSM_GUI/jsm_gui_tauri/src/utils/controllerLayouts.ts');
+const player1='type-24-device-0000000000000001', player2='type-24-device-0000000000000002';
+const game='S = SPACE\nGYRO_SENS = 2\n# @controller type-24 S = ENTER\n';
+const beforePlayer2=layouts.projectController(game,player2);
+const individual=layouts.foldController(game,player2,beforePlayer2,beforePlayer2+'\nGYRO_SENS = 0\nS = J\n',layouts.sharedController(game,player2));
+assert.equal(load('JSM_GUI/jsm_gui_tauri/src/utils/layers.ts').layerEntries(layouts.projectController(individual,player1)).GYRO_SENS,'2');
+assert.equal(load('JSM_GUI/jsm_gui_tauri/src/utils/layers.ts').layerEntries(layouts.projectController(individual,player1)).S,'ENTER');
+assert.equal(load('JSM_GUI/jsm_gui_tauri/src/utils/layers.ts').layerEntries(layouts.projectController(individual,player2)).GYRO_SENS,'0');
+assert.equal(load('JSM_GUI/jsm_gui_tauri/src/utils/layers.ts').layerEntries(layouts.projectController(individual,player2)).S,'J');
+assert(layouts.hasControllerVariant(individual,player2));
+assert.equal(layouts.controllerEditorDevices(player2,[{type:24,handle:9,controllerId:player1},{type:24,handle:4,controllerId:player2}])[0].handle,4);
+assert.equal(layouts.controllerEditorDevices(player2,[{type:24,handle:9,controllerId:player1}])[0].handle,0);
 const {layerEntries,readLayers,writeLayers,readLayerActions}=load('JSM_GUI/jsm_gui_tauri/src/utils/layers.ts');
 const {serializeConfig,parseConfigText}=load('JSM_GUI/jsm_gui_tauri/src/utils/configSerializer.ts');
 const source='RESET_MAPPINGS\nS = SPACE\nLEFT_TOUCHPAD_MODE = GRID_AND_STICK\nLEFT_GRID_REQUIRES_CLICK = ON\nRIGHT_TOUCHPAD_MODE = MOUSE\nRT1 = J\nLT1 = K\nMISC3,S = L\nMISC5 = U\n# @layer {"id":"map","name":"Map","overrides":{"RT1":"M"}}\n# @layer-action MISC2 = hold map\n';
@@ -139,4 +150,35 @@ assert.equal(layerEntries(layouts.projectController(layouts.setControllerPadSour
   assert.ok(!/@icon/.test(saved.split('\n').filter(line=>line.startsWith('# @controller')).join('\n')),'and the same for its icon');
   assert.equal(setBindingLabel(before,'W','').split('\n').filter(line=>/^# @label W/.test(line)).length,0,'clearing a name removes every copy of it');
 }
-console.log('PASS: controller fallback, scoped edits, save/reload, layer deletion, unsupported inputs, reset, original Steam layout preservation, and shared on-screen menu lines, and values set back to the shared layout');
+// Bare configuration-wide macros survive edits from a controller and action layer.
+{
+  const {upsertFlagCommand,writeOsMouseSpeedCompensation}=load('JSM_GUI/jsm_gui_tauri/src/utils/config.ts');
+  const {foldLayer,projectLayer,readLayers,writeLayers}=load('JSM_GUI/jsm_gui_tauri/src/utils/layers.ts');
+  const doc=writeLayers('RESET_MAPPINGS\nCUSTOM_MACRO\nCOUNTER_OS_MOUSE_SPEED # keep me\nGYRO_SENS = 2\n# @controller type-24 GYRO_SENS = 3\n# @controller type-5 GYRO_SENS = 4\n', [{id:'aim',name:'Aim',overrides:{GYRO_SENS:'1'}}]);
+  const before=layouts.projectController(doc,'type-24');
+  const enabled=layouts.foldController(doc,'type-24',before,upsertFlagCommand(before,'ONE_EURO_FILTER',true));
+  assert.match(enabled,/^ONE_EURO_FILTER$/m,'enabling from a controller writes the shared macro');
+  assert.doesNotMatch(enabled,/@controller[^\n]*ONE_EURO_FILTER/);
+  assert.match(layouts.projectController(enabled,'type-5'),/^ONE_EURO_FILTER$/m,'another controller sees the global state');
+  assert.match(enabled,/^COUNTER_OS_MOUSE_SPEED # keep me$/m);
+  assert.match(enabled,/^CUSTOM_MACRO$/m);
+  assert.deepEqual(layouts.controllerOverrides(enabled,'type-24'),layouts.controllerOverrides(doc,'type-24'));
+  assert.deepEqual(layouts.controllerOverrides(enabled,'type-5'),layouts.controllerOverrides(doc,'type-5'));
+  const enabledView=layouts.projectController(enabled,'type-24');
+  const disabled=layouts.foldController(enabled,'type-24',enabledView,upsertFlagCommand(enabledView,'ONE_EURO_FILTER',false));
+  assert.doesNotMatch(disabled,/^ONE_EURO_FILTER$/m,'turning it off removes the shared macro');
+  const layerBefore=projectLayer(before,'aim');
+  const layerEdited=foldLayer(before,'aim',upsertFlagCommand(layerBefore,'ONE_EURO_FILTER',true),layerBefore);
+  const layered=layouts.foldController(doc,'type-24',before,layerEdited);
+  assert.match(layered,/^ONE_EURO_FILTER$/m,'action-layer edits also reach shared text');
+  assert.deepEqual(readLayers(layered),readLayers(doc),'global toggles do not create layer overrides');
+  const layerOn=projectLayer(layerEdited,'aim');
+  const layerOff=foldLayer(layerEdited,'aim',upsertFlagCommand(layerOn,'ONE_EURO_FILTER',false),layerOn);
+  assert.doesNotMatch(layerOff,/^ONE_EURO_FILTER$/m);
+  const compensated=layouts.foldController(doc,'type-24',before,writeOsMouseSpeedCompensation(before,false));
+  assert.match(compensated,/^IGNORE_OS_MOUSE_SPEED$/m);
+  assert.doesNotMatch(compensated,/^COUNTER_OS_MOUSE_SPEED\b/m);
+  assert.doesNotMatch(compensated,/@controller[^\n]*OS_MOUSE_SPEED/);
+  assert.equal(layouts.foldController(doc,'type-24',before,before+'\nUNKNOWN_MACRO\n'),doc,'unrelated bare commands are not promoted by the flag editor');
+}
+console.log('PASS: controller fallback, scoped edits, save/reload, layer deletion, unsupported inputs, reset, original Steam layout preservation, shared overlays and flag macros, and values set back to the shared layout');

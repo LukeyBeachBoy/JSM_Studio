@@ -30,10 +30,13 @@
 .panel { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-6); align-items: start; }
 .panel[data-has-visual='true'] { grid-template-columns: minmax(0, 1fr) 470px; }
 @media (max-width: 1279px) { .panel[data-has-visual='true'] { grid-template-columns: minmax(0, 1fr) 360px; } }
+@media (max-width: 1099px) { .panel[data-has-visual='true'] { grid-template-columns: minmax(0, 1fr); } }
 .content { min-width: 0; display: flex; flex-direction: column; gap: var(--sp-4); }
 .heading h1 { margin: 0; font-size: var(--fs-section, 26px); font-weight: var(--fw-semibold); }
 .heading p { margin: var(--sp-1) 0 0; color: var(--text-2); font-size: var(--fs-body); }
-.rows { display: flex; flex-direction: column; gap: var(--sp-2); }
+.rows { min-width: 0; display: flex; flex-direction: column; gap: var(--sp-2); }
+/* Conditional tuning can render no controls; it must not leave a phantom gap. */
+.rows:empty { display: none; }
 .visual { position: sticky; top: 0; padding: var(--sp-5); border-radius: var(--r-card, 16px); background: var(--surface-sunken); box-shadow: inset 0 0 0 1px var(--line-1); }
 
 /* Advanced: parts side by side. */

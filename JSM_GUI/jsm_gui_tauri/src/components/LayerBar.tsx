@@ -1,3 +1,4 @@
+import { useLayerPresentation } from './useLayerPresentation'
 import { createContext, useContext } from 'react'
 import { inputUses, type ConfigLayer, type LayerAction } from '../utils/layers'
 import { type ControllerVisualFamily } from '../utils/controllerStatus'
@@ -31,10 +32,10 @@ export function useInputUses(command?: string) {
 
 /** "Changed" or "Default" beside a value while a mode is being edited. */
 export function LayerValueBadge({ command }: { command?: string }) {
-  const { selected } = useContext(LayerUsageContext)
+  const { selected, overrides, color } = useLayerPresentation()
   if (!selected || !command) return null
   const side = command === 'LEFT_PAD' ? 'LEFT' : command === 'RIGHT_PAD' ? 'RIGHT' : null
-  const overridden = Object.keys(selected.overrides).some(key => key === command || key.endsWith(`,${command}`) ||
+  const overridden = overrides(command) || Object.keys(selected.overrides).some(key => key === command || key.endsWith(`,${command}`) ||
     (side && key.startsWith(`${side}_`)) || (command === 'L3' && key.startsWith('LEFT_STICK_')) || (command === 'R3' && key.startsWith('RIGHT_STICK_')))
-  return <small className="layer-value-badge" data-caption={overridden ? `Changed in ${selected.name}` : 'From Default'}>{overridden ? 'Changed' : 'Default'}</small>
+  return <small className="layer-value-badge" style={overridden ? { color } : undefined} data-caption={overridden ? `Changed in ${selected.name}` : 'From Default'}>{overridden ? 'Override' : 'From Default'}</small>
 }

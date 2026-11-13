@@ -19,6 +19,7 @@ export type OriginInfo = {
   resetLabel: string
   reset: (() => void) | null
   disabled: boolean
+  editSource: (() => void) | null
 }
 
 const has = (entries: Readonly<Record<string, string>>, key: string) => Object.prototype.hasOwnProperty.call(entries, key)
@@ -72,6 +73,8 @@ export function useSettingOriginInfo(setting?: string): OriginInfo | null {
     resetLabel: context.layer ? 'Use Default' : 'Use the base',
     reset: canReset && context.reset ? () => context.reset?.(setting) : null,
     disabled: Boolean(context.disabled),
+    editSource: !own && !context.layer && context.editSource && context.sourceTargets && has(context.sourceTargets, setting)
+      ? () => context.editSource?.(setting) : null,
   }
 }
 

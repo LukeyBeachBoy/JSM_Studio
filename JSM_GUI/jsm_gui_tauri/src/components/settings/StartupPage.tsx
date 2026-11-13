@@ -80,7 +80,7 @@ export function StartupPage({ libraryProfiles, liveName, hasPendingChanges = fal
           onChange={value => { if (value === 'named') setPicking(true); else void saveStartup({ startupProfile: value }) }}
           options={[
             { value: 'last', label: 'Last one live', caption: liveName ? `${liveName}, today` : 'Whatever was live last', unavailable: waiting },
-            { value: 'fallback', label: fallback ?? 'Desktop gamepad', caption: fallback ? 'When no game matches' : 'For Windows itself · set one in Launch with game', unavailable: waiting ?? (fallback ? undefined : 'Choose a configuration for “When nothing matches” in Library ▸ Launch with game first') },
+            { value: 'fallback', label: fallback ?? 'Desktop gamepad', caption: fallback ? 'When no game matches' : 'For Windows itself · set one in Auto-switch', unavailable: waiting ?? (fallback ? undefined : 'Choose a configuration for “When nothing matches” in Library ▸ Auto-switch first') },
             { value: 'named', label: named ?? 'Pick another', caption: named ? 'Chosen from your library · A picks again' : 'From your library', unavailable: waiting },
           ]} />
       </SettingsSection>

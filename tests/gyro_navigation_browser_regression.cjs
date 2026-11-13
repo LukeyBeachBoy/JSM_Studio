@@ -15,6 +15,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
     page.setDefaultTimeout(12000)
     const errors = []
     page.on('pageerror', error => errors.push(error.message))
+    await page.addInitScript(() => { document.hasFocus = () => true })
     await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1420/?mock')
     await page.getByRole('button', { name: 'Keep them', exact: true }).click().catch(() => {})
     const press = async key => {
@@ -33,6 +34,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
     void active
     assert.match(await page.locator('[data-gyro-front] h1').innerText(), /^Gyro is on/)
     await page.locator('[data-q1="always"]').focus()
+    await page.waitForFunction(() => [...document.querySelectorAll('.hint-capsule')].at(-1)?.textContent.includes('More'))
     assert.match(await hints(), /More/)
     assert.doesNotMatch(await hints(), /Question|Pick button/)
     // A chooses a card; A again on the current hold card picks the input to hold.
@@ -52,7 +54,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
     await picker.waitFor()
     await press('E')
     await picker.waitFor({ state: 'detached' })
-    // ◂ ▸ on Turn speed changes it, Y is Use Default.
+    // ◂ ▸ on Real-world sensitivity (RWS) changes it, Y is Use Default.
     await page.locator('[role="slider"][data-hero]').first().focus()
     const speed = await page.locator('[data-gyro-front] [role="slider"]').first().getAttribute('aria-valuetext')
     await press('RIGHT')
@@ -75,7 +77,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
     assert.equal(await group(), 'rumble')
     await tap('right')
     assert.equal(await group(), 'speed', 'the groups wrap, as the kit steps them')
-    const advancedRow = page.locator('[data-subpage] button').filter({ hasText: /^AdvancedExact speeds/ }).first()
+    const advancedRow = page.locator('[data-subpage] button').filter({ hasText: /^AdvancedSensitivity/ }).first()
     await advancedRow.focus()
     await press('S')
     const advanced = page.locator('[data-speed-advanced]')

@@ -18,8 +18,9 @@ type Props = {
   onSelect?: (command: string) => void
   selectedCommand?: string | null
   managedFocus?: boolean
+  preview?: boolean
 }
-export function MenuDrawing({ menu, icons, onRegionRef, onDotRef, onSelect, selectedCommand, managedFocus }: Props) {
+export function MenuDrawing({ menu, icons, onRegionRef, onDotRef, onSelect, selectedCommand, managedFocus, preview }: Props) {
  const { t } = useTranslation()
  return (
         <div
@@ -27,6 +28,7 @@ export function MenuDrawing({ menu, icons, onRegionRef, onDotRef, onSelect, sele
           // Separate variables let menu names and output bindings scale
           // independently; the window is already sized to the pad's aspect.
           style={{
+            fontFamily: preview ? 'var(--font-ui)' : undefined,
             // Rows MUST be explicit equal fractions. Left to `auto` they size to
             // content, so one region with an icon grew taller and pushed the
             // boundary down into the next row -- while the hit test still split
@@ -73,7 +75,7 @@ export function MenuDrawing({ menu, icons, onRegionRef, onDotRef, onSelect, sele
                   <span className={styles.label}>{region.label || outputLabel || '—'}</span>
                 )}
                 {menu.placement.showKeys && region.binding && (
-                  <span className={styles.binding}>
+                  <span className={styles.binding} style={preview ? { fontFamily: 'var(--font-ui)' } : undefined}>
                     {outputLabel}
                   </span>
                 )}

@@ -1,3 +1,4 @@
+import { inputContent } from './glyphs/InputText'
 import { useEffect, useState, type ReactNode } from 'react'
 import type { TelemetryDevice } from '../hooks/useTelemetry'
 import { ControllerStatusSvg } from './ControllerStatusSvg'
@@ -48,7 +49,7 @@ export function PressToFind({ device, listening, onListen, onStop }: Props) {
             ? <ControllerStatusSvg device={device} selectedCommand={input} />
             : <div className={styles.asideFallback}>{input && <InputGlyph command={input} family={family} size={64} />}<span>Connect a controller to see where it is.</span></div>}
         </div>
-        <span className={styles.asideCaption}>{input ? `${inputDisplayName(input, family)} · where it is on your controller` : 'Where it is on your controller'}</span>
+        <span className={styles.asideCaption}>{inputContent(input ? `${inputDisplayName(input, family)} · where it is on your controller` : 'Where it is on your controller')}</span>
       </div>
       <button type="button" className={styles.pressCard} data-listening={listening ? 'true' : undefined} data-press-to-find=""
         aria-disabled={device ? undefined : 'true'} data-reason={device ? undefined : 'Connect a controller first'}

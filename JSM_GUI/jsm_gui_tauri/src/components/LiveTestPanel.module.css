@@ -1,0 +1,8 @@
+.panel { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 1fr); align-items: start; gap: var(--sp-6); margin-bottom: var(--sp-6); padding: var(--sp-4); border-radius: var(--r-card); background: var(--surface-row); }
+.controller { max-width: 440px; min-width: 0; }
+.feedback h2 { margin: 0 0 var(--sp-2); font-size: var(--fs-section); }
+.feedback p { margin: 0 0 var(--sp-3); color: var(--text-2); font-size: var(--fs-hint); }
+.feedback ul { display: flex; flex-direction: column; gap: var(--sp-2); margin: 0; padding: 0; list-style: none; }
+.feedback li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--sp-2); overflow-wrap: anywhere; font-size: var(--fs-body); }
+.feedback li span { color: var(--text-2); }
+@media (max-width: 1000px) { .panel { grid-template-columns: minmax(0, 1fr); } .controller { max-width: 280px; } }

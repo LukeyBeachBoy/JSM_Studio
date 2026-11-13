@@ -1,0 +1,24 @@
+RESET_MAPPINGS
+VIRTUAL_CONTROLLER = XBOX
+LEFT_STICK_MODE = LEFT_STICK
+N = X_Y
+# @controller type-24 MIN_GYRO_SENS = 2
+# @controller-layout type-25
+# @controller type-25 LEFT_STICK_MODE = NO_MOUSE
+# @controller type-25 LUP = W
+# @controller type-25 LDOWN = S
+# @controller type-25 LLEFT = A
+# @controller type-25 LRIGHT = D
+# @controller type-25 JOY1 = LCONTROL
+# @controller type-25 # @label JOY1 = Dodge
+# @controller type-25 JOY2 = LSHIFT
+# @controller type-25 # @label JOY2 = Sprint
+# @controller type-25 JOY3 = SPACE
+# @controller type-25 JOY4 = C
+# @controller type-25 JOY6 = X
+# @controller type-25 JOY25 = NONE
+# @controller type-25 # @layer-action JOY25 = toggle cyborg-driving
+# @controller type-25 # @layer-action MOUSE_BACK = hold cyborg-weapons
+# @controller type-25 # @layer-action MOUSE_BACK = remove cyborg-driving
+# @controller type-25 # @layer {"id":"cyborg-driving","name":"Driving","overrides":{"JOY2":"SPACE","JOY3":"S","JOY4":"W","LEFT_STICK_MODE":"LEFT_STICK"}}
+# @controller type-25 # @layer {"id":"cyborg-weapons","name":"Weapons · mouse Back","overrides":{"JOY6":"1","JOY7":"2","JOY8":"3","JOY9":"4"}}

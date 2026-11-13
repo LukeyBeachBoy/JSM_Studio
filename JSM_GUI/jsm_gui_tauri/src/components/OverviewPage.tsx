@@ -1,6 +1,8 @@
+import { BindingSourceMark, useBindingProvenance } from './BindingProvenance'
+import { inputContent } from './glyphs/InputText'
 import { stickMenuLinks } from '../utils/stickMenus'
 import { LayerUsageContext } from './LayerBar'
-import { inputUsage, configuredInputs, readableSetting, layerEntries, layerHue, layerSlotOf, describeLayerActivation, type ConfigLayer, type LayerAction, type LayerVerb } from '../utils/layers'
+import { inputUsage, configuredInputs, readableSetting, layerEntries, layerHue, layerSlotOf, type ConfigLayer, type LayerAction, type LayerVerb } from '../utils/layers'
 import { describeBinding, explainBinding } from '../utils/bindingDescription'
 import type { TFunction } from 'i18next'
 import { useContext, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react'
@@ -10,7 +12,7 @@ import { BatteryIndicator } from './BatteryIndicator'
 import { InputGlyph } from './glyphs/InputGlyph'
 import { controllerVisualFamily, controllerButtonLabel, controllerDisplayName, getPressedControllerCommandSet, type ControllerVisualFamily } from '../utils/controllerStatus'
 import { Sheet } from './ui/Sheet'
-import { inputDisplayName, inputLongName } from '../keymap/inputNames'
+import { inputLongName } from '../keymap/inputNames'
 import { presetsForInput, requestPaste, setBindingClipboard, useBindingClipboard } from '../utils/bindingClipboard'
 import { commandTokenPreview } from '../utils/bindingCommands'
 import { showToast } from '../utils/toast'
@@ -128,7 +130,7 @@ const NAVIGATION = new Set(['S', 'E', 'W', 'N', 'UP', 'DOWN', 'LEFT', 'RIGHT', '
 const CONTACT = new Set(['MISC4', 'TOUCH', 'LTOUCH', 'RTOUCH'])
 
 // What a stick or pad mode is called on its callout ("Move · WASD", "Radial menu · 8 slices").
-const STICK_MODES: Record<string, string> = { NO_MOUSE: 'Directions', AIM: 'Aim', HYBRID_AIM: 'Aim + flick', FLICK: 'Flick to turn', FLICK_ONLY: 'Flick only', ROTATE_ONLY: 'Turn only', MOUSE_RING: 'Mouse ring', MOUSE_AREA: 'Mouse area', SCROLL_WHEEL: 'Scroll wheel', RADIAL_MENU: 'Radial menu', LEFT_STICK: 'Gamepad left stick', RIGHT_STICK: 'Gamepad right stick', INNER_RING: 'Inner ring', OUTER_RING: 'Outer ring' }
+const STICK_MODES: Record<string, string> = { NO_MOUSE: 'Directions', AIM: 'Aim', HYBRID_AIM: 'Hybrid aim', FLICK: 'Flick stick', FLICK_ONLY: 'Flick only', ROTATE_ONLY: 'Turn only', MOUSE_RING: 'Mouse ring', MOUSE_AREA: 'Mouse area', SCROLL_WHEEL: 'Scroll wheel', RADIAL_MENU: 'Radial menu', LEFT_STICK: 'Gamepad left stick', RIGHT_STICK: 'Gamepad right stick', INNER_RING: 'Inner ring', OUTER_RING: 'Outer ring' }
 const PAD_MODES: Record<string, string> = { MOUSE: 'Look', GRID_AND_STICK: 'Button pad', MOUSE_RING: 'Mouse ring', MOUSE_JOYSTICK: 'Mouse joystick', MOUSE_AREA: 'Mouse area', NO_MOUSE: 'Directions', SCROLL_WHEEL: 'Scroll wheel', RADIAL_MENU: 'Radial menu', PORTED: 'Touch stick' }
 const STICK_EXPLAIN: Record<string, string> = {
   AIM: 'Aims like a mouse: push further to turn faster.',
@@ -233,7 +235,7 @@ const QM_ICON = {
   gyro: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M12 3a9 9 0 0 1 9 9M12 21a9 9 0 0 1-9-9" /><path d="M19 9l2 3 2-3M5 15l-2-3-2 3" /></svg>,
 }
 
-export function OverviewPage({ onConfigTextChange, devices, configText, onSelectCommand, onSelectLayer, disabled, onRecalibrate, recalibrating, configName, virtualOutput, onTryIt, tryItReason, controllerScope }: OverviewPageProps) {
+export function OverviewPage({ onConfigTextChange, devices, configText, onSelectCommand,  onRecalibrate, recalibrating, configName, virtualOutput, onTryIt, tryItReason, controllerScope }: OverviewPageProps) {
   const { t } = useTranslation()
   const shell = useShell()
   const device = devices?.[0]
@@ -255,6 +257,7 @@ export function OverviewPage({ onConfigTextChange, devices, configText, onSelect
   }, [present])
   const { layers, selected, actions } = useContext(LayerUsageContext)
   const origins = useContext(SettingOrigins)
+  const provenance = useBindingProvenance()
   const text = configText ?? ''
   // Glyphs and names follow the controller in front of you (Kit): the live
   // one, or the shell's family while none is connected.
@@ -277,10 +280,22 @@ export function OverviewPage({ onConfigTextChange, devices, configText, onSelect
   const clipboard = useBindingClipboard()
 
   // Inputs Hold to swap holds: they read "Hold to swap".
-  const [reserved, setReserved] = useState<Set<string>>(() => new Set())
+  const [reservedNames, setReservedNames] = useState<Record<string, string[]>>({})
+  const reserved = new Set(Object.keys(reservedNames))
   useEffect(() => {
     let live = true
-    desktopBridge.listGlobalChords().then(chords => { if (live) setReserved(new Set(chords.flatMap(chord => (chord.triggerGroups?.flat() ?? chord.buttons).map(button => button.toUpperCase())))) }).catch(() => {})
+    desktopBridge.listGlobalChords().then(chords => {
+      if (!live) return
+      const names: Record<string, string[]> = {}
+      for (const chord of chords) {
+        const name = chord.profilePath.split(/[\\/]/).pop()?.replace(/\.txt$/i, '') || 'a configuration'
+        for (const button of chord.triggerGroups?.flat() ?? chord.buttons) {
+          const key = button.toUpperCase()
+          names[key] = [...new Set([...(names[key] ?? []), name])]
+        }
+      }
+      setReservedNames(names)
+    }).catch(() => {})
     return () => { live = false }
   }, [])
 
@@ -428,6 +443,13 @@ export function OverviewPage({ onConfigTextChange, devices, configText, onSelect
     // A group's click goes to its first bound member, so "ABXY · Space" opens the button that sends Space (or the default when none is set).
     const groupTarget = (kind: SlotKind, inputs: string[], fallback: string) => kind === 'face' || kind === 'dpad' ? inputs.find(input => { const v = value(input).toUpperCase(); return v !== '' && v !== 'NONE' }) ?? fallback : fallback
     const group = (id: string, kind: SlotKind, inputs: string[], glyph: string, target: string, settingPrefix: string[] = [], menuSource?: string): Slot => ({ id, kind, inputs, glyph, target: groupTarget(kind, inputs, target), settingPrefix, primary: true, menuSource })
+    if (device?.type === 25) {
+      const keys = Array.from({ length: 32 }, (_, i) => single(`JOY${i + 1}`, true)).filter(slot => controllerSupportsInput(device, slot.target))
+      return {
+        left: [group('left-stick', 'stick', ['LUP', 'LDOWN', 'LLEFT', 'LRIGHT', 'LRING'], 'LS', 'LUP', ['LEFT_STICK_', 'LEFT_RING_', 'STICK_'], 'LSTICK'), ...keys.slice(0, 16)],
+        right: [group('dpad', 'dpad', ['UP', 'DOWN', 'LEFT', 'RIGHT'], 'DPAD', 'UP', [], 'DPAD'), ...keys.slice(16)],
+      }
+    }
     const left: Slot[] = [
       single('ZL', true, ['ZL', 'ZLF']), single('L'), single('LSL'), single('-'),
       group('left-stick', 'stick', [...LEFT_STICK_BUTTONS.map(b => b.command), ...numbered(numberedPattern('LM'))], 'LS', 'L3', ['LEFT_STICK_', 'LEFT_RING_', 'STICK_'], 'LSTICK'),
@@ -445,7 +467,7 @@ export function OverviewPage({ onConfigTextChange, devices, configText, onSelect
     ]
     return { left, right }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- numbered reads bindings
-  }, [bindings, steamPads, sharedPad])
+  }, [bindings, steamPads, sharedPad, device?.type, device?.supportedButtons])
   const allSlots = useMemo(() => [...slots.left, ...slots.right], [slots])
   const slotOf = (command: string) => allSlots.find(slot => slot.inputs.includes(command) || slot.target === command)
 
@@ -471,7 +493,7 @@ export function OverviewPage({ onConfigTextChange, devices, configText, onSelect
   type Said = { title: string; output: string; unset: boolean; tint?: number; shifted?: boolean; holding?: boolean }
   const saySingle = (command: string): Said => {
     const entry = bindings[command]
-    if (!entry) return { title: 'Not set', output: '', unset: true }
+    if (!entry) return reserved.has(command) ? { title: 'Hold to swap', output: 'reserved', unset: false } : { title: 'Not set', output: '', unset: true }
     const plain = entry.lines.filter(line => !line.kind)
     const primary = plain.find(line => !line.text.includes(': ')) ?? plain[0]
     const primaryValue = primary ? primary.text.replace(/^[^:]+:\s*/, '') : ''
@@ -626,13 +648,15 @@ export function OverviewPage({ onConfigTextChange, devices, configText, onSelect
   const singleInput = focusSlot?.kind === 'single' ? focusSlot.inputs[0] : null
 
   // ---- The focus card's words.
-  const modeStatus = (slot: Slot): { text: string; tone: 'same' | 'changed' | 'none'; hue?: number } => {
+  const modeStatus = (slot: Slot): { text: string; tone: 'same' | 'changed' | 'none'; hue?: number; color?: string } => {
+    const bindingSource = provenance?.group(slot.inputs, slot.settingPrefix)
+    if (bindingSource && bindingSource.kind !== 'unset') return { text: bindingSource.label, tone: 'same', color: bindingSource.color }
     const changing = modesChanging(slot)
     const source = slot.kind === 'single' ? importedFrom(slot.inputs[0]) : null
     if (!layers.length) return source ? { text: `From ${source}`, tone: 'none' } : { text: '', tone: 'none' }
     if (!changing.length) return { text: 'Same in every layer', tone: 'same' }
-    if (selected && changing.some(layer => layer.id === selected.id)) return { text: `Changed in ${selected.name}`, tone: 'changed', hue: layerSlotOf(layerIndex(selected.id)) }
-    return { text: `Changed in ${changing.map(layer => layer.name).join(', ')}`, tone: 'changed', hue: layerSlotOf(layerIndex(changing[0].id)) }
+    if (selected && changing.some(layer => layer.id === selected.id)) return { text: 'Override', tone: 'changed', hue: layerSlotOf(layerIndex(selected.id)) }
+    return { text: selected ? 'From Default' : '', tone: 'same' }
   }
   const describeAction = (action: LayerAction, input: string) => {
     const name = layerName(action.layerId)
@@ -669,7 +693,7 @@ export function OverviewPage({ onConfigTextChange, devices, configText, onSelect
       if (full) out.push(`A full press: ${full.text}.`)
     }
     entry?.lines.filter(line => line.kind === 'relation' || line.kind === 'setting').forEach(line => { if (!/^(Enable|Disable) gyro/.test(line.text) || !gyro) out.push(sentence(line.text)) })
-    if (!out.length) out.push(reserved.has(command) ? 'Reserved by Hold to swap, so it is kept free. Change that in Settings ▸ Hold to swap.' : 'Nothing on it yet.')
+    if (!out.length) out.push(reserved.has(command) ? `Reserved to swap to ${reservedNames[command]?.join(' or ') || 'another configuration'} while held. Change or remove that shortcut in Settings ▸ Hold to swap to free this input.` : 'Nothing on it yet.')
     return out
   }
   const groupDescription = (slot: Slot): string[] => {
@@ -790,14 +814,6 @@ export function OverviewPage({ onConfigTextChange, devices, configText, onSelect
 
   // ---- The mode strip (P6): Default, then each mode with its swatch and how
   // it turns on, in quiet text ("hold L4", "tap R5"). LT / RT step it (App).
-  const activationWords = (layerId: string) => {
-    const mine = actions.filter(action => action.layerId === layerId)
-    const on = mine.filter(action => action.verb !== 'remove')
-    if (!on.length) return mine.length ? 'off only' : 'no button'
-    const verb = on[0].verb
-    const inputs = [...new Set(on.filter(action => action.verb === verb).map(action => inputDisplayName(action.input, family)))]
-    return `${VERB_WORD[verb]} ${inputs.slice(0, 2).join(' or ')}${inputs.length > 2 ? ` +${inputs.length - 2}` : ''}`
-  }
   const filtersOn = Boolean(query || onlyChanges || modifier || showUnbound)
   const clearFilters = () => { setQuery(''); setOnlyChanges(false); setModifier(''); setShowUnbound(false) }
   // "2 free": callouts with nothing on them, as the picture counts them.
@@ -818,10 +834,12 @@ export function OverviewPage({ onConfigTextChange, devices, configText, onSelect
     const pull = trigger ? (first === 'ZL' ? device?.status?.triggers.left : device?.status?.triggers.right) ?? 0 : 0
     // The accessible name is the full account: a group names every member's.
     const members = slot.kind === 'dpad' || slot.kind === 'face' ? ` — ${slot.inputs.map(input => `${inputName(input)}: ${labels[input] ?? 'Not set'}`).join('; ')}` : ''
-    const label = slot.kind === 'single' ? labels[first] ?? said.title : `${said.title}${said.output ? ` · ${said.output}` : ''}${members}`
+    const label = slot.kind === 'single' ? reservedHere ? `Hold to swap to ${reservedNames[first]?.join(' or ') || 'another configuration'}; reserved` : labels[first] ?? said.title : `${said.title}${said.output ? ` · ${said.output}` : ''}${members}`
     // No focus caption: the focus card under the art is this callout's
     // caption, and the footer keeps saying where you are (and in which mode).
-    const tintStyle = said.tint ? { '--callout-tint': layerHue(said.tint) } as CSSProperties : undefined
+    const shownTint = selected && changedHere(slot) ? layerSlotOf(layerIndex(selected.id)) : said.tint
+    const source = provenance?.group(slot.inputs, slot.settingPrefix)
+    const tintStyle = source && source.kind === 'layer' ? { '--callout-tint': source.color } as CSSProperties : shownTint ? { '--callout-tint': layerHue(shownTint) } as CSSProperties : undefined
     return (
       <button key={slot.id} type="button" className={styles.callout}
         data-overview-input={slot.kind === 'single' ? first : slot.target}
@@ -832,11 +850,12 @@ export function OverviewPage({ onConfigTextChange, devices, configText, onSelect
         data-current={focusSlot?.id === slot.id ? 'true' : undefined}
         data-shifted={said.shifted ? 'true' : undefined}
         data-holding={said.holding ? 'true' : undefined}
-        data-tinted={said.tint ? 'true' : undefined}
+        data-tinted={tintStyle ? 'true' : undefined} data-binding-source={source?.kind} title={source?.label}
         style={tintStyle}
         data-hints={hints(slot)}
         data-reserved={reservedHere ? 'true' : undefined}
-        aria-label={`${slot.kind === 'single' ? first : slotName(slot)}: ${label}`}
+        aria-label={`${slotName(slot)}: ${label}`}
+        data-caption={`${slotName(slot)} · ${label}`}
         onClick={() => { if (reservedHere) openReserved(); else onSelectCommand?.(slot.target) }}
         onFocus={() => { setFocusId(slot.id); setHoverId(null) }}
         onMouseEnter={() => setHoverId(slot.id)}>
@@ -845,9 +864,10 @@ export function OverviewPage({ onConfigTextChange, devices, configText, onSelect
             ? <span className={styles.faceCluster}>{['N', 'W', 'E', 'S'].map(command => <InputGlyph key={command} command={command} family={family} size={13} className={styles.faceGlyph} />)}</span>
             : <InputGlyph command={slot.glyph} family={family} size={28} className={styles.glyph} />}
         </span>
-        <span key={said.shifted ? 'shifted' : 'base'} className={`${styles.title} ${styles.swap}`}>{said.title}</span>
-        {said.output && <span key={`o:${said.output}`} className={`${styles.output} ${styles.swap}`}>{said.output}</span>}
-        {trigger && device && (
+        {source && <BindingSourceMark source={source} />}
+        <span key={said.shifted ? 'shifted' : 'base'} className={`${styles.title} ${styles.swap}`}>{inputContent(said.title)}</span>
+        {said.output && <span key={`o:${said.output}`} className={`${styles.output} ${styles.swap}`}>{inputContent(said.output)}</span>}
+        {trigger && device && pull > 0 && (
           <span className={styles.triggerMeter} aria-hidden="true">
             <span className={styles.triggerMeterFill} style={{ transform: `scaleX(${Math.max(0, Math.min(1, pull))})` }} />
             {triggerThreshold > 0 && <span className={styles.triggerMeterTick} style={{ left: `${Math.min(100, triggerThreshold * 100)}%` }} />}
@@ -879,27 +899,7 @@ export function OverviewPage({ onConfigTextChange, devices, configText, onSelect
   return (
     <div className={styles.page} ref={pageRef} data-layout-page="">
       {/* The mode strip (Layout.dc.html): LT / RT flip which mode the picture shows. */}
-      <div className={styles.modeStrip} role="group" aria-label="Showing layer" data-nav-entry-skip="">
-        <ButtonGlyph button="LT" family={family} size={22} />
-        <span className={styles.modeStripLabel}>Showing layer</span>
-        <button type="button" className={styles.modePill} aria-pressed={!selected}
-          aria-disabled={disabled ? 'true' : undefined} data-reason={disabled ? 'Wait for calibration to finish' : undefined}
-          aria-description="What every input does when no layer is on"
-          onClick={() => { if (!disabled) onSelectLayer?.('') }}>Default</button>
-        {layers.map((layer, index) => (
-          <button key={layer.id} type="button" className={styles.modePill} aria-label={layer.name} aria-pressed={selected?.id === layer.id}
-            aria-disabled={disabled ? 'true' : undefined} data-reason={disabled ? 'Wait for calibration to finish' : undefined}
-            // No focus caption, so the footer keeps saying where you are and
-            // in which mode; the full activation is the pill's description.
-            aria-description={`${describeLayerActivation(actions, layer.id, input => inputDisplayName(input, family), 'Not on a button yet')}`}
-            onClick={() => { if (!disabled) onSelectLayer?.(layer.id) }}>
-            <span className={styles.modeSwatch} style={{ background: layerHue(layerSlotOf(index)) }} aria-hidden="true" />
-            {layer.name}
-            <span className={styles.modeActivation} aria-hidden="true">{activationWords(layer.id)}</span>
-          </button>
-        ))}
-        {!layers.length && <span className={styles.modeNone}>No layers yet · make one on the Layers tab</span>}
-        <ButtonGlyph button="RT" family={family} size={22} />
+      <div hidden={!filtersOn} className={styles.modeStrip}>
         {filtersOn && (
           <span className={styles.filterNote} role="status">
             Showing {[onlyChanges ? (selected ? `${selected.name}'s changes` : 'this configuration\'s changes') : '', modifier ? `changed by ${inputName(modifier)}` : '', query ? `matching “${query}”` : '', showUnbound ? 'unused inputs too' : ''].filter(Boolean).join(' · ')}
@@ -943,9 +943,9 @@ export function OverviewPage({ onConfigTextChange, devices, configText, onSelect
                     : <InputGlyph command={focusSlot.glyph} family={family} size={30} />}
                 </span>
                 <span className={styles.focusName}>{slotName(focusSlot)}</span>
-                {status?.text && <span className={styles.focusStatus} data-tone={status.tone} style={status.hue ? { '--status-hue': layerHue(status.hue) } as CSSProperties : undefined}>{status.text}</span>}
+                {status?.text && <span className={styles.focusStatus} data-tone={status.tone} style={{ ...(status.hue ? { '--status-hue': layerHue(status.hue) } : {}), ...(status.color ? { color: status.color } : {}) } as CSSProperties}>{status.text}</span>}
               </div>
-              <p className={styles.focusText}>{description.slice(0, 3).join(' ')}</p>
+              <p className={styles.focusText}>{inputContent(description.slice(0, 3).join(' '))}</p>
               <div className={styles.focusHints}>
                 <button type="button" tabIndex={-1} data-nav-skip="" onClick={() => { if (isReservedSlot(focusSlot)) openReserved(); else onSelectCommand?.(focusSlot.target) }}><ButtonGlyph button="A" family={family} size={26} />{isReservedSlot(focusSlot) ? 'Open Hold to swap' : 'Change'}</button>
                 <button type="button" tabIndex={-1} data-nav-skip="" aria-disabled={tryItReason ? 'true' : undefined} data-caption={tryItReason ?? undefined} onClick={() => tryIt(focusSlot)}><ButtonGlyph button="X" family={family} size={26} />Try it</button>
@@ -1035,7 +1035,7 @@ export function OverviewPage({ onConfigTextChange, devices, configText, onSelect
         <div className={styles.missingList} data-overview-group="other-hardware">
           {missing.map(command => (
             <button key={command} type="button" className={styles.callout} data-overview-input={command} data-overview-slot={`missing:${command}`} data-hints="A:Change;B:Close"
-              aria-label={`${command}: ${labels[command]}`} onClick={() => { setMissingOpen(false); onSelectCommand?.(command) }}>
+              aria-label={`${longName(command)}: ${labels[command]}`} onClick={() => { setMissingOpen(false); onSelectCommand?.(command) }}>
               <span className={styles.pill} aria-hidden="true"><InputGlyph command={command} family={family} size={28} className={styles.glyph} /></span>
               <span className={styles.title}>{saySingle(command).title}</span>
               <span className={styles.output}>{longName(command)}</span>

@@ -19,29 +19,36 @@
 .open { cursor: pointer; }
 .open[data-pressed='true'] { background: var(--accent); color: var(--on-accent, #07131d); }
 .main { display: flex; align-items: center; gap: var(--sp-4); min-width: 0; }
-.icon { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: #0f151b; color: var(--text-2); }
+.icon { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: var(--surface-sunken); color: var(--text-2); }
 .labelBlock { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 2px; }
 .label { font-size: var(--fs-body); font-weight: var(--fw-semibold); }
 .hint { color: var(--text-2); font-size: var(--fs-hint); }
 .valueBlock { flex: none; display: flex; align-items: center; gap: var(--sp-2); }
+/* Labels and source chips need separate lines in narrow Advanced columns. */
+.row:is([role='slider'], [role='radiogroup']) .main { flex-wrap: wrap; }
+.row:is([role='slider'], [role='radiogroup']) .labelBlock { flex: 1 1 160px; }
+.row[role='slider'] .valueBlock { max-width: 100%; flex-wrap: wrap; }
+.row:is([role='slider'], [role='radiogroup']) .tag { max-width: 100%; overflow-wrap: anywhere; }
 /* Values read in the same sans as their labels, with tabular figures so they don't jitter as they change (UX review: mono read like a debugger). */
 .value { min-width: 4ch; text-align: center; font-variant-numeric: tabular-nums; font-size: var(--fs-body); font-weight: var(--fw-semibold); }
 .stepper { width: 28px; height: 28px; border: 0; border-radius: 8px; background: transparent; color: var(--text-3); font: inherit; cursor: pointer; }
 .stepper:hover { background: var(--surface-row-hover); color: var(--text-1); }
 .tag { padding: 2px var(--sp-2); border-radius: var(--r-pill); background: rgba(255, 255, 255, .06); color: var(--text-2); font-size: var(--fs-hint); }
-.tag[data-tone='changed'] { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+.tag[data-tone='changed'] { background: color-mix(in srgb, var(--layer-color, var(--accent)) 18%, transparent); color: var(--layer-color, var(--accent)); }
 /* The chip is the mouse's reset: hovering says what a click does. */
-.tagButton { border: 0; font: inherit; font-size: var(--fs-hint); cursor: pointer; }
+.tagButton { border: 0; font: inherit; font-size: var(--fs-hint); cursor: pointer; display: inline-grid; }
+.tagButton > span, .tagButton::after { grid-area: 1 / 1; }
+.tagButton::after { content: attr(data-hover-text); visibility: hidden; }
 .tagButton:hover { background: var(--accent); color: var(--on-accent, #07131d); }
-.tagButton:hover span { display: none; }
-.tagButton:hover::after { content: attr(data-hover-text); }
+.tagButton:hover span { visibility: hidden; }
+.tagButton:hover::after { visibility: visible; }
 .caption { color: var(--text-2); font-size: var(--fs-hint); }
 .openValue { color: var(--text-2); font-size: var(--fs-label); }
 .chevron { color: var(--text-3); }
 
 /* Hero: the big value (StickFineTuneAim "Turn speed · Default · 360°/s"). */
-.row[data-hero='true'] { padding: var(--sp-4) var(--sp-5); }
-.row[data-hero='true'] .value { font-size: 32px; }
+.row[data-hero='true'] { padding: var(--sp-3) var(--sp-4); }
+.row[data-hero='true'] .value { font-size: var(--fs-body); }
 .bar { height: 10px; border-radius: 3px; background: rgba(255, 255, 255, .08); overflow: hidden; }
 .bar span { display: block; height: 100%; background: var(--accent); }
 
@@ -53,7 +60,7 @@
 /* Mouse: click the value to type it, click or drag the bar to set it (console v2). */
 .value[data-clickable='true'] { cursor: text; border-radius: 6px; padding: 0 4px; }
 .value[data-clickable='true']:hover { background: rgba(255, 255, 255, .08); }
-.valueInput { width: 9ch; height: 32px; padding: 0 var(--sp-2); border: 0; border-radius: 6px; background: #0f151b; box-shadow: inset 0 0 0 2px var(--accent); color: var(--text-1); font: inherit; font-variant-numeric: tabular-nums; font-weight: var(--fw-semibold); text-align: center; }
+.valueInput { width: 9ch; height: 32px; padding: 0 var(--sp-2); border: 0; border-radius: 6px; background: var(--surface-sunken); box-shadow: inset 0 0 0 2px var(--accent); color: var(--text-1); font: inherit; font-variant-numeric: tabular-nums; font-weight: var(--fw-semibold); text-align: center; }
 .bar { position: relative; cursor: pointer; touch-action: none; }
 .bar[data-compact='true'] { height: 8px; margin-top: var(--sp-1); }
 .bar[data-disabled='true'] { cursor: default; }

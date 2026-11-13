@@ -35,7 +35,7 @@ const fs = require('node:fs');
  await modes.waitFor();
  const add = modes.getByRole('listitem', { name: 'Add a layer' });
  assert.match(await add.innerText(), /New layer/);
- assert.match(await add.innerText(), /Start from/, 'the Build / Photo chips are labelled, inside the tile');
+ assert.match(await add.innerText(), /Empty layer:/, 'the Build / Photo chips describe that they name an empty layer');
  assert.deepEqual((await add.getByRole('button').allInnerTexts()).map(text => text.replace(/\s+/g, ' ').trim()), ['+ New layer Name it, then pick its button', 'Build', 'Photo']);
  // Cards: plain state lines, no control-explaining feet; the "⋯" is the mouse's way to X / Y.
  assert.doesNotMatch(await modes.innerText(), /see it on Layout|X to choose one|A to change buttons/);

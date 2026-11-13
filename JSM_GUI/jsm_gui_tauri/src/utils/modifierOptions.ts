@@ -10,6 +10,7 @@ export type ModifierSelectOption = {
 }
 
 const BASE_MODIFIER_OPTIONS: ModifierSelectOption[] = [
+  ...Array.from({ length: 32 }, (_, i) => ({ value: `JOY${i + 1}`, labelKey: `Button ${i + 1}` })),
   { value: 'UP', labelKey: 'modifiers.up' },
   { value: 'DOWN', labelKey: 'modifiers.down' },
   { value: 'LEFT', labelKey: 'modifiers.left' },

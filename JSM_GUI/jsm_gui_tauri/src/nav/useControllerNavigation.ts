@@ -1,3 +1,6 @@
+import { getPreferenceSnapshot } from '../platform/preferenceStore'
+import { controllerNavigationEnabled } from '../utils/controllerNavigation'
+import { controllerTargetKey } from '../utils/controllerLayouts'
 import { useEffect, useRef } from 'react'
 import { desktopBridge } from '../platform/desktopBridge'
 import { getPressedControllerCommandSet } from '../utils/controllerStatus'
@@ -222,7 +225,17 @@ export function useControllerNavigation(options: Options) {
         if (testing) onExitTest()
         return
       }
+      // Calibration reads the physical stick; it must not also move focus or
+      // adjust the selected control. Mouse/keyboard and virtual footer stay usable.
+      if (!virtual && document.querySelector('[data-stick-calibration]')) return
       if (action.kind === 'scroll') { setInputSource('controller'); scroll(action.dx, action.dy); return }
+      // Footer Cancel is a mouse action, not a physical button to capture.
+      // Send the same Escape handled by the active capture before its input gate.
+      if (virtual && action.kind === 'press' && action.button === 'B'
+        && (document.body.dataset.padListening === 'true' || document.body.dataset.bindingCapture === 'true')) {
+        sendKey('Escape', document.body)
+        return
+      }
       // A capture is waiting for a key: nothing but the hold-B escape may
       // reach it, or A would be captured as Enter.
       if (document.body.dataset.bindingCapture === 'true' && action.kind !== 'hold') return
@@ -290,6 +303,9 @@ export function useControllerNavigation(options: Options) {
           void goHome()
           return
         case 'MENU': {
+          // Parameter editors and text entry use Menu for Done. Let the
+          // active overlay commit before the shell considers its options menu.
+          if (overlayOpen()) { if (sendPad(action.button)) padFeedback('select'); return }
           // Tap opens configuration options; hold saves from any page.
           padFeedback(latest.current.onMenu() === false ? 'edge' : 'titleBar', 'right')
           return
@@ -396,10 +412,13 @@ export function useControllerNavigation(options: Options) {
     window.addEventListener(VIRTUAL_PAD_EVENT, onVirtual)
 
     let heldKey = ''
+    let navigationOwner: number | undefined
     const dispose = desktopBridge.onTelemetrySample(payload => {
+      if (document.body.dataset.identifyingController === 'true') { navigator.reset(true); return }
       const { enabled, testing } = latest.current
       const sample = payload as TelemetrySample | null
       const physicalActivity = sample?.devices?.some(device => {
+        if (!controllerNavigationEnabled(getPreferenceSnapshot().runtime, controllerTargetKey(device))) return false
         const status = device.status
         return status && ((status.buttons ?? 0) !== 0 || status.leftPad?.touched || status.rightPad?.touched ||
           Math.hypot(status.leftStick.x, status.leftStick.y) > 0.25 || Math.hypot(status.rightStick.x, status.rightStick.y) > 0.25 ||
@@ -415,8 +434,13 @@ export function useControllerNavigation(options: Options) {
       // (or a test of the configuration) owns the pad; otherwise the profile
       // is live and reading it here would act twice.
       if ((!enabled && !testing) || document.hidden || !document.hasFocus()) { navigator.reset(true); return }
-      const device = sample?.devices?.find(candidate => candidate.status)
-      if (!testing && !overlayOpen() && padOwnedElsewhere(device?.activeProfile ?? sample?.activeProfile)) { navigator.reset(true); return }
+      const candidates = sample?.devices?.filter(candidate => candidate.status && controllerNavigationEnabled(getPreferenceSnapshot().runtime, controllerTargetKey(candidate))) ?? []
+      const device = candidates.find(candidate => {
+        const status = candidate.status!
+        return status.buttons || Math.hypot(status.leftStick.x, status.leftStick.y) > 0.25 || Math.hypot(status.rightStick.x, status.rightStick.y) > 0.25 || status.triggers.left > 0.15 || status.triggers.right > 0.15
+      }) ?? candidates.find(candidate => candidate.handle === navigationOwner) ?? candidates[0]
+      if (navigationOwner !== device?.handle) { navigator.reset(true); navigationOwner = device?.handle }
+      if (!testing && padOwnedElsewhere(device?.activeProfile ?? sample?.activeProfile)) { navigator.reset(true); return }
       if (!device?.status) { navigator.reset(true); return }
       const status = device.status
       // An entered radial preview reads the full stick angle before page

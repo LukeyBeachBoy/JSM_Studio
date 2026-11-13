@@ -22,7 +22,7 @@
   align-items: center;
   column-gap: var(--sp-4);
   min-height: 64px;
-  padding: var(--sp-3) var(--sp-5) var(--sp-3) var(--sp-4);
+  padding: var(--sp-3) 64px var(--sp-3) var(--sp-4);
   border-radius: var(--r-row);
   background: var(--surface-row);
   color: var(--text-1);
@@ -50,6 +50,13 @@
 .previewLine { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-1) var(--sp-5); }
 .previewItem { display: inline-flex; align-items: center; gap: 6px; color: var(--text-1); }
 .previewItem small { color: var(--text-3); font-size: inherit; }
+.rowContext { color: var(--text-3); font-size: var(--fs-hint); }
+.layerPreview { display: flex; align-items: baseline; gap: 8px; overflow-wrap: anywhere; }
+.layerPreview .swatch { flex-shrink: 0; }
+.layerPreview strong { font-weight: var(--fw-semibold); }
+.layerPreview svg, .rowLabel svg, .rowKey svg { vertical-align: middle; }
+.otherLayers { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.otherLayers > button { align-self: flex-start; border: 0; background: none; padding: 2px 0; font: inherit; color: var(--text-3); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .scopeLine { color: var(--text-2); }
 
 /* The Buttons page: the list, and "Where it is on your controller" beside it. */
@@ -267,7 +274,9 @@ button.detailRow:hover { background: var(--surface-row-hover); }
 :global(.sheet__header[data-lead='true'] .sheet__lead svg) { width: 48px; height: 48px; }
 :global(.sheet__header[data-lead='true'] .eyebrow) { text-transform: none; letter-spacing: 0; color: var(--text-2); font-size: var(--fs-hint); font-weight: var(--fw-regular); }
 :global(.sheet__header[data-lead='true'] .sheet__description:has(.binding-summary-input:empty)) { display: none; }
-.menuAnchor { position: absolute; top: 8px; right: 24px; width: 1px; height: 1px; padding: 0; border: 0; opacity: 0; pointer-events: none; }
+.menuAnchor { position: absolute; top: 16px; right: 16px; width: 32px; height: 32px; display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--r-sm); background: var(--surface-control); color: var(--text-2); cursor: pointer; }
+.menuAnchor:hover { background: var(--surface-control-hover); color: var(--text-1); }
+.rowKey { display: inline-flex; align-items: center; gap: var(--sp-2); background: var(--surface-control); font-family: var(--font-ui); }
 details:has(> .row) { position: relative; }
 /* A choice with many values (a sound, a stick mode): ◂ value ▸, not every segment. */
 .soundRow [role='radiogroup'] > div[aria-hidden='true'] { display: none; }
@@ -278,3 +287,23 @@ details:has(> .row) { position: relative; }
 .stickCards [role='radiogroup'] > button > span:first-child { aspect-ratio: 4 / 3; }
 .mouseHelp { display: none; color: var(--text-3); font-size: var(--fs-hint); }
 :global(body[data-input-source='mouse']) .mouseHelp { display: block; }
+
+/* Actions stay visible; the catalogue appears only when adding. */
+.sends { display: flex; flex-direction: column; align-items: stretch; gap: var(--sp-2); }
+.actionRow { display: flex; align-items: stretch; min-width: 0; border-radius: var(--r-row); background: var(--surface-row); }
+.actionRow .chip { flex: 1; min-width: 0; max-width: none; height: auto; min-height: 76px; padding: var(--sp-4); text-align: left; background: transparent; }
+.actionRow .chip > svg { flex: none; color: var(--accent); }
+.actionRow .actionText { flex: 1; display: flex; flex-direction: column; gap: 6px; white-space: normal; overflow-wrap: anywhere; }
+.actionText strong { font-size: var(--fs-body); }
+.actionText small { line-height: 1.4; }
+.editLabel { color: var(--text-2); font-size: var(--fs-hint); font-weight: var(--fw-regular); }
+.removeAction { flex: none; align-self: center; display: grid; place-items: center; width: 40px; height: 40px; margin-right: var(--sp-2); border: 0; border-radius: 8px; background: transparent; color: var(--text-3); cursor: pointer; }
+.removeAction:hover { background: var(--surface-row-hover); color: var(--text-1); }
+.quietNote { margin: 0; color: var(--text-2); font-size: var(--fs-hint); line-height: 1.5; }
+.actionTypes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); max-width: 960px; margin-top: var(--sp-4); }
+.actionType { display: flex; align-items: center; gap: var(--sp-4); min-width: 0; min-height: 88px; padding: var(--sp-4); border: 0; border-radius: var(--r-row); background: var(--surface-row); color: var(--text-1); font: inherit; text-align: left; cursor: pointer; }
+.actionType:hover { background: var(--surface-row-hover); }
+.actionType > svg { flex: none; color: var(--text-2); }
+.actionType > span:first-of-type { flex: 1; display: flex; flex-direction: column; gap: var(--sp-1); }
+.actionType small { color: var(--text-2); line-height: 1.4; }
+@media (max-width: 640px) { .actionTypes { grid-template-columns: 1fr; } .editLabel { display: none; } .whenTile { padding: var(--sp-3) var(--sp-2); } }

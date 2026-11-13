@@ -66,8 +66,8 @@ const fixture = [
     await shifted.getByRole('radio', { name: /^Mouse\s/ }).first().click();
     await shifted.getByRole('button', { name: /^Fine-tune/ }).click();
     await page.locator('[data-trackpad-fine-tune-page="right"]').waitFor();
-    await page.getByRole('button', { name: /^Glide/ }).click();
-    await page.getByText('How quickly smoothing reacts to speed', { exact: true }).waitFor();
+    await page.getByRole('button', { name: /^Momentum/ }).click();
+    await page.getByText('Derivative cutoff frequency', { exact: true }).waitFor();
     assert.equal(await page.getByText('How soon flicks escape', { exact: true }).count(), 0);
     await page.screenshot({ path: 'tools/desktop-config-20261020/shared-shift-glide-1440.png' });
     // Close tuning, the shift editor and its list; the original pad stays Mouse.
@@ -95,8 +95,8 @@ const fixture = [
     };
     await setNumber('Flick time', '0.23');
     await page.locator('button[data-group="snap"]').click();
-    await page.getByRole('radiogroup', { name: 'Snap to', exact: true }).focus(); await page.keyboard.press('ArrowRight');
-    await setNumber('Snap strength', '65');
+    await page.getByRole('radiogroup', { name: 'Flick snap mode', exact: true }).focus(); await page.keyboard.press('ArrowRight');
+    await setNumber('Flick snap strength', '65');
     await page.keyboard.press('Control+s');
     await page.waitForFunction(() => /L,FLICK_TIME = 0.23/.test(window.__saved) && /L,FLICK_SNAP_STRENGTH = 0.65/.test(window.__saved));
     assert.doesNotMatch(await page.evaluate(() => window.__saved), /^FLICK_TIME =/m, 'shifted stick tuning must leave default tuning unchanged');
@@ -107,9 +107,10 @@ const fixture = [
     await page.locator('[data-modeshift="R"]').click();
     const triggerShift = page.locator('[data-modeshift-editor="R"] [data-trigger-page="left"]');
     await triggerShift.waitFor();
-    await triggerShift.locator('[role="radio"][data-value="MUST_SKIP"]').click();
+    await triggerShift.getByRole('button', { name: /More trigger modes/ }).click();
+    await page.locator('[data-subpage]').last().locator('[role="radio"][data-value="MUST_SKIP"]').click();
     await triggerShift.getByRole('button', { name: /^Fine-tune/ }).click();
-    await setNumber('Half-press point', '35');
+    await setNumber('Trigger threshold', '35');
     await page.keyboard.press('Control+s');
     await page.waitForFunction(() => /R,ZL_MODE = MUST_SKIP/.test(window.__saved) && /R,TRIGGER_THRESHOLD = 0.35/.test(window.__saved));
     assert.match(await page.evaluate(() => window.__saved), /^ZL_MODE = NO_FULL$/m);

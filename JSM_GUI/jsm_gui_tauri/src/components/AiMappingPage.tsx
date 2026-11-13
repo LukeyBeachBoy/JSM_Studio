@@ -146,11 +146,11 @@ export function AiMappingPage({ onOpenAssistant }: AiMappingPageProps) {
     <span className={styles.cardHead}><span className={styles.badge} data-tone={tone}>{badge}</span><span>{text}</span></span>
   )
   const cards: ModeCard[] = [
-    { value: 'chatgpt', label: 'Continue with ChatGPT', caption: card(settings.chatgpt.available ? 'Uses your ChatGPT plan · preview' : settings.chatgpt.reason ?? 'Needs OpenAI’s approval for this app', undefined, 'Sign in once in your browser. Requests count against your ChatGPT plan; no key to copy.') },
+    { value: 'chatgpt', label: 'Continue with ChatGPT', unavailable: settings.chatgpt.available ? undefined : settings.chatgpt.reason ?? 'Not available for this app yet', caption: card(settings.chatgpt.available ? 'Uses your ChatGPT plan · preview' : settings.chatgpt.reason ?? 'Needs OpenAI’s approval for this app', undefined, 'Sign in once in your browser. Requests count against your ChatGPT plan; no key to copy.') },
     { value: 'anthropic', label: 'Claude, with an API key', caption: card('Billed to your Claude Console account', undefined, 'We open the key page and test the key for you. Claude doesn’t offer subscription sign-in for other apps.') },
     { value: 'openai_compatible', label: 'OpenAI or another provider, with a key', caption: card('Any OpenAI-compatible service', undefined, 'Key, model and address, with a Test button.') },
     { value: 'local', label: 'On this PC', caption: card('Free · no account', 'free', `Uses Ollama or LM Studio if one is running. Found: ${local === null ? 'looking…' : localFound.length ? localFound.slice(0, 2).join(', ') + (localFound.length > 2 ? ` and ${localFound.length - 2} more` : '') : 'none yet'}.`) },
-  ]
+  ].sort((a, b) => Number(a.value === 'chatgpt' && !settings.chatgpt.available) - Number(b.value === 'chatgpt' && !settings.chatgpt.available))
 
   const testLine = (provider: AiProvider) => {
     const result = test[provider]
@@ -319,7 +319,8 @@ export function AiMappingPage({ onOpenAssistant }: AiMappingPageProps) {
       data-hints="Y:Sign out · forget keys">
       <ModeCards variant="compare" columns={2} options={cards} value={settings.provider ?? ''}
         onChange={choose}
-        useLabel={option => option.value === 'chatgpt' ? 'Continue with ChatGPT' : option.value === settings.provider ? 'Set it up' : `Use ${option.value === 'anthropic' ? 'Claude' : option.value === 'local' ? 'this PC' : 'this provider'}`} />
+        useLabel={option => option.value === 'chatgpt' ? settings.chatgpt.available ? 'Continue with ChatGPT' : 'Not available yet' : option.value === settings.provider ? 'Set it up' : `Use ${option.value === 'anthropic' ? 'Claude' : option.value === 'local' ? 'this PC' : 'this provider'}`} />
+      {!settings.chatgpt.available && <button type="button" className="button button--secondary" onClick={() => choose('chatgpt')}>ChatGPT connection details</button>}
       {setup()}
       <div className={styles.extension}>
         <span className={styles.plug} aria-hidden="true"><Icon name="connected" size={22} /></span>
@@ -330,7 +331,7 @@ export function AiMappingPage({ onOpenAssistant }: AiMappingPageProps) {
       <div className={styles.statusLine}>
         <span role="status">Currently: <b>{settings.connected ? settings.status : 'not connected'}</b>
           {settings.connected && onOpenAssistant && <button type="button" className={styles.linkButton} onClick={onOpenAssistant}>Ask the assistant ▸</button>}</span>
-        <div style={{ minWidth: 420 }}>
+        <div style={{ minWidth: 0, flex: '1 1 360px' }}>
           <SegmentedRow label="How careful the assistant is" value={settings.careful}
             options={[
               { value: 'careful', label: 'Careful', caption: 'Thinks longest before changing anything (Claude: high effort)' },

@@ -191,7 +191,7 @@ export function TextEntryOverlay() {
   const keyHints = 'A:Type;X:Backspace;Y:Space;MENU:Done;B:Cancel'
   const shown = (key: string) => upper ? key.toUpperCase() : key
   const footer: [PadButtonName, string][] = [['A', 'Type'], ['X', 'Backspace'], ['Y', 'Space'], ['LT', 'Shift'], ['RT', 'Enter'], ['LB', 'Symbols']]
-  const panelStyle = { transform: `translate(${frame.x}px, ${frame.y}px)`, left: 120 - frame.w / 2, right: 120 - frame.w / 2, top: 36 - frame.h / 2, bottom: 92 - frame.h / 2 }
+  const panelStyle = { transform: `translate(${frame.x}px, ${frame.y}px)`, left: 120 - frame.w / 2, right: 120 - frame.w / 2, top: 36 - frame.h / 2, bottom: 'auto', height: frame.h ? `calc(100vh - ${128 - frame.h}px)` : 'auto', maxHeight: `calc(100vh - ${128 - frame.h}px)` }
   const live = showsKeys ? `Shift for a capital · Caps Lock ${caps ? 'on' : 'off'}` : focusedKey
     ? `A types ${focusedKey === ' ' ? 'a space' : shown(focusedKey)} · hold LT for a capital · L3 ${caps ? 'unlocks' : 'locks'} caps`
     : `Hold LT for a capital · L3 ${caps ? 'unlocks' : 'locks'} caps`

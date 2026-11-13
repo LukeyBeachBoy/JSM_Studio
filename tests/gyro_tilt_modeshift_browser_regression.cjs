@@ -53,6 +53,7 @@ const { assert, prepare, openGyro, top, openFineTune, openRow, openPart, segment
     const held = top(page)
     await held.locator('#gyro-motion').waitFor()
     assert.equal(await held.locator('button[role="radio"][data-value="PS_MOTION"]').count(), 0)
+    await held.getByRole('tab', { name: 'Steering' }).click()
     await held.locator('button[role="radio"][data-value="LEFT_STEER_X"]').click()
     await openPart(page, 'When tilt is on')
     await segment(segmentRow(held, 'Tilt is on'), 'Off')

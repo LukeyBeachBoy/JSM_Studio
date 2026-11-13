@@ -22,7 +22,7 @@ import styles from './gyro/Gyro.module.css'
 
 // The Gyro tab (console v2, Gyro*.dc.html): the three questions on the front,
 // Fine-tune ▸ (Speed, Steadiness, Direction, Rumble, each with its Advanced),
-// When is gyro on?, While holding…, Recalibrate and Match a full turn as
+// When is gyro on?, While holding…, Recalibrate and Real-world calibration as
 // sub-pages over it. App passes the configuration and its writer; every screen
 // reads and writes keys directly (components/gyro/*), so a held variant can
 // run the same screens on its projection.
@@ -147,7 +147,7 @@ function GyroBody({ isCalibrating, countdown }: { isCalibrating: boolean; countd
     { id: 'when-on', label: 'When is gyro on?', hint: 'Combine inputs, and see whether gyro is on right now', onSelect: () => setOverlay({ view: 'when-on' }) },
     { id: 'while-holding', label: 'Mode shift', hint: 'Hold a button: slower while aiming, off in menus, a stick when driving', onSelect: () => { setOverlay({ view: 'when-on' }); setHolding(true) } },
     { id: 'recalibrate', label: 'Recalibrate', hint: 'Fix aim that slowly drifts on its own', onSelect: () => setOverlay({ view: 'calibrate' }) },
-    { id: 'match-turn', label: 'Match a full turn (360°)', hint: 'Turn once in game and the speed is set for you', onSelect: () => setOverlay({ view: 'match-turn' }) },
+    { id: 'match-turn', label: 'Real-world calibration (RWC)', hint: 'Calibrate mouse output so RWS matches camera rotation', onSelect: () => setOverlay({ view: 'match-turn' }) },
     { id: 'tilt', label: 'Tilt', hint: 'What tilting the controller does, and when', onSelect: () => openFine('tilt') },
   ])
 

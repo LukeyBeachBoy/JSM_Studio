@@ -1,3 +1,4 @@
+import { inputContent } from './glyphs/InputText'
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
@@ -29,8 +30,11 @@ const isBinding = (key: string) => isInput(targetOf(key)) || targetOf(key).split
 
 /** Friendlier names for the settings people change most (V8 vocabulary). */
 const SETTING_NAMES: Record<string, string> = {
+  LEFT_STICK_ROTATION: 'Left stick rotation', RIGHT_STICK_ROTATION: 'Right stick rotation',
+  LEFT_STICK_RESTRICTOR_RING: 'Left stick restrictor ring', RIGHT_STICK_RESTRICTOR_RING: 'Right stick restrictor ring',
+  LEFT_STICK_RESTRICTOR_RANGE: 'Left stick ring travel', RIGHT_STICK_RESTRICTOR_RANGE: 'Right stick ring travel',
   GYRO_SENS: 'Turn speed', MIN_GYRO_SENS: 'Turn speed, slow', MAX_GYRO_SENS: 'Turn speed, fast', IN_GAME_SENS: 'Game sensitivity',
-  REAL_WORLD_CALIBRATION: 'Match a full turn (360°)', COUNTER_OS_MOUSE_SPEED: 'Ignore Windows pointer speed', IGNORE_OS_MOUSE_SPEED: 'Ignore Windows pointer speed',
+  REAL_WORLD_CALIBRATION: 'Real-world calibration (RWC)', COUNTER_OS_MOUSE_SPEED: 'Ignore Windows pointer speed', IGNORE_OS_MOUSE_SPEED: 'Ignore Windows pointer speed',
   GYRO_ON: 'Gyro on while holding', GYRO_OFF: 'Gyro off while holding', HOLD_PRESS_TIME: 'Hold time', DBL_PRESS_WINDOW: 'Double-tap window', SIM_PRESS_WINDOW: 'Press together window',
   LIGHT_BAR: 'Controller light', LED_BRIGHTNESS: 'Light brightness', LEFT_TOUCHPAD_ROTATION: 'Left pad rotation', RIGHT_TOUCHPAD_ROTATION: 'Right pad rotation',
   RIGHT_TOUCHPAD_SENS: 'Right pad speed', LEFT_TOUCHPAD_SENS: 'Left pad speed', TOUCHPAD_SENS: 'Touchpad speed', VIRTUAL_CONTROLLER: 'Controller output',
@@ -186,7 +190,7 @@ export function ChangeReview(props: Props) {
   // Modes as the file has them, including those a controller's own layout
   // carries ("# @controller type-5 # @layer {…}"), so every change can name its mode.
   const layers = useMemo(() => {
-    const unwrap = (text: string) => text.split(/\r?\n/).map(line => line.replace(/^\s*#\s*@controller\s+type-\d+(?:-edge)?\s+/, '')).join('\n')
+    const unwrap = (text: string) => text.split(/\r?\n/).map(line => line.replace(/^\s*#\s*@controller\s+type-\d+(?:-edge)?(?:-device-[a-f0-9]{16})?\s+/, '')).join('\n')
     const found: ConfigLayer[] = []
     for (const text of [props.text, props.baseline]) for (const layer of readLayers(unwrap(text))) if (!found.some(item => item.id === layer.id)) found.push(layer)
     return found
@@ -268,12 +272,12 @@ export function ChangeReview(props: Props) {
                 onClick={() => props.onGoTo?.(change)}>
                 <span className={styles.what}>
                   {row.input ? <span className={styles.glyph}><InputGlyph command={row.input} family={props.family} size={24} /></span> : row.icon ? <span className={styles.glyph}><Icon name={row.icon} size={20} /></span> : null}
-                  <span className={styles.name}><b>{row.name}</b>{row.modifier && <small>{row.modifier}</small>}</span>
+                  <span className={styles.name}><b>{inputContent(row.name)}</b>{row.modifier && <small>{inputContent(row.modifier)}</small>}</span>
                 </span>
                 <span className={styles.values}>
-                  <s className={styles.before} data-unset={row.beforeUnset ? 'true' : undefined}>{row.before}</s>
+                  <s className={styles.before} data-unset={row.beforeUnset ? 'true' : undefined}>{inputContent(row.before)}</s>
                   <span className={styles.arrow} aria-hidden="true">→</span>
-                  <b className={styles.after}>{row.after}</b>
+                  <b className={styles.after}>{inputContent(row.after)}</b>
                 </span>
                 <span className={styles.revert} role="button" tabIndex={-1} aria-label={label} data-nav-skip
                   onClick={event => { event.stopPropagation(); if (!props.disabled) props.onRevert(change) }}><span className={styles.revertKey} aria-hidden="true">X</span>Revert</span>

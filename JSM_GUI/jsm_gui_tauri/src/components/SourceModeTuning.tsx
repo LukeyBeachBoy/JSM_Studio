@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react'
 import { SummaryRow } from './ui/SummaryRow'
+import { SettingRows } from './ui/console'
 import { modeNumberFields, readModeNumber, writeModeNumber } from '../utils/sourceModeSettings'
 import { readVirtualSetting, writeVirtualSetting, VIRTUAL_STICK_FIELDS, writeVirtualStickNumber, type VirtualStickTarget } from '../utils/virtualStickSettings'
 import { VirtualStickProbe } from './VirtualStickProbe'
@@ -30,7 +31,7 @@ export function SourceModeTuning({ mode, configText: text = '', onConfigTextChan
     return <SummaryRow key={key} setting={key} label={label} helpDialog help={help} value={options.find(option => option.value === value)?.label ?? value}
       disabled={disabled} adjust={{ kind: 'choice', value, options, onChange: next => setText(previous => writeVirtualSetting(previous, key, next)) }} />
   }
-  return <div data-source-mode-tuning={mode}>
+  return <SettingRows data-source-mode-tuning={mode}>
     {target && controller === 'NONE' && <p role="status">This mode requires a virtual controller. Enable Xbox or DS4 output in the controller output settings.</p>}
     {mode.includes('_ANGLE_TO_') && <p>Source direction sets one virtual axis. Position around the circle determines output; stick distance controls engagement.</p>}
     {mode.endsWith('_WIND_X') && <p>Rotate the source to accumulate steering on the virtual horizontal axis.</p>}
@@ -58,5 +59,5 @@ export function SourceModeTuning({ mode, configText: text = '', onConfigTextChan
         adjust={{ kind: 'number', value: value * meta.factor, min: meta.min * meta.factor, max: meta.max * meta.factor, step: meta.step * meta.factor,
           onChange: next => setText(previous => writeVirtualStickNumber(previous, correctionTarget, key as keyof typeof VIRTUAL_STICK_FIELDS, next / meta.factor, text)) }} />
     })}
-  </div>
+  </SettingRows>
 }

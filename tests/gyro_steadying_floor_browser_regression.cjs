@@ -1,6 +1,6 @@
 // Renderer-only interaction and focus tests. No controller or runtime is started.
 // Console v2 (P5): the steadying floor is "Keep at least" in Gyro ▸ Fine-tune ▸
-// Steadiness ▸ Advanced ▸ Ignore jitter; brake and press steadying are Snap & brake.
+// Steadiness ▸ Advanced ▸ Deadzone & steadying; brake and press steadying are Angle snapping & braking.
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright')
 const { assert, prepare, openGyro, top, openFineTune, openRow, openPart, valueRow, save, valueText, eff, typeValue } = require('./gyro_v2_helpers.cjs')
 ;(async () => {
@@ -33,19 +33,19 @@ const { assert, prepare, openGyro, top, openFineTune, openRow, openPart, valueRo
     await openGyro(page)
     await openFineTune(page, 'steadiness')
     await openRow(page, 'Advanced')
-    await openPart(page, 'Ignore jitter')
-    const floorX = valueRow(top(page), 'Keep at least, left/right')
-    const floorY = valueRow(top(page), 'Keep at least, up/down')
+    await openPart(page, 'Deadzone & steadying')
+    const floorX = valueRow(top(page), 'Steadying floor, horizontal (RWS)')
+    const floorY = valueRow(top(page), 'Steadying floor, vertical (RWS)')
     assert.equal(await valueText(floorX), '2')
     assert.equal(await valueText(floorY), '1.5')
     await top(page).screenshot({ path: 'tmp/gyro-steadying-floor.png' })
     await typeValue(floorX, '2.1')
     await save(page, /GYRO_STEADYING_FLOOR = 2.1 1.5/)
     // The floor needs a fade-in band above the cutoff: without one it is kept but unavailable.
-    const recovery = valueRow(top(page), 'Fade back in by')
+    const recovery = valueRow(top(page), 'Steadying recovery threshold')
     await typeValue(recovery, '0')
     assert.equal(await floorX.getAttribute('aria-disabled'), 'true')
-    assert.match(await floorX.getAttribute('data-reason'), /Fade back in/)
+    assert.match(await floorX.getAttribute('data-reason'), /steadying recovery threshold/)
     assert.equal(await valueText(floorX), '2.1')
     await typeValue(recovery, '5')
     assert.equal(await floorX.getAttribute('aria-disabled'), null)
@@ -56,15 +56,15 @@ const { assert, prepare, openGyro, top, openFineTune, openRow, openPart, valueRo
     await top(page).locator('[data-held="L"]').click()
     await top(page).locator('button[data-group="steadiness"]').click()
     await openRow(page, 'Advanced')
-    await openPart(page, 'Ignore jitter')
-    await typeValue(valueRow(top(page), 'Keep at least, left/right'), '1')
+    await openPart(page, 'Deadzone & steadying')
+    await typeValue(valueRow(top(page), 'Steadying floor, horizontal (RWS)'), '1')
     await save(page, /L,GYRO_STEADYING_FLOOR = 1 1.5/)
     assert.equal(eff(await page.evaluate(() => window.__paritySaved), 'L,GYRO_STEADYING_FLOOR'), '1 1.5')
-    // Snap & brake owns brake and press steadying, not the floor.
-    await openPart(page, 'Snap & brake')
-    const rows = await top(page).locator('[data-part], section[aria-label="Snap & brake"]').last().locator('[role="slider"], [role="switch"]').evaluateAll(nodes => nodes.map(node => node.querySelector('span span')?.textContent?.trim() ?? node.textContent.trim().slice(0, 20)))
-    assert.deepEqual(rows.filter(label => /Keep at least/.test(label)), [])
-    for (const label of ['Snap within', 'Brake after flicks', 'Brake trigger', 'Steady while clicking', 'Coast slowdown']) await valueRow(top(page), label).waitFor()
+    // Angle snapping & braking owns brake and press steadying, not the floor.
+    await openPart(page, 'Angle snapping & braking')
+    const rows = await top(page).locator('[data-part], section[aria-label="Angle snapping & braking"]').last().locator('[role="slider"], [role="switch"]').evaluateAll(nodes => nodes.map(node => node.querySelector('span span')?.textContent?.trim() ?? node.textContent.trim().slice(0, 20)))
+    assert.deepEqual(rows.filter(label => /Steadying floor/.test(label)), [])
+    for (const label of ['Angle snapping threshold', 'Deceleration brake strength', 'Deceleration brake threshold', 'Click damping', 'Trackball decay']) await valueRow(top(page), label).waitFor()
     await top(page).screenshot({ path: 'tmp/gyro-dampening-section.png' })
     for (let n = 0; n < 4; n++) await page.keyboard.press('Escape')
     // The curve editor (Speed ▸ Advanced) draws the floor on the curve.
@@ -73,6 +73,6 @@ const { assert, prepare, openGyro, top, openFineTune, openRow, openPart, valueRo
     await top(page).locator('[data-speed-advanced]').waitFor()
     await top(page).screenshot({ path: 'tmp/gyro-steadying-curve.png' })
     assert.deepEqual(errors, [])
-    console.log('PASS: Ignore jitter owns the steadying floor; Snap & brake owns brake/press steadying; floor editing, held axes and saving pass')
+    console.log('PASS: Deadzone & steadying owns the steadying floor; Angle snapping & braking owns brake/press steadying; floor editing, held axes and saving pass')
   } finally { await browser.close() }
 })().catch(error => { console.error(error); process.exitCode = 1 })

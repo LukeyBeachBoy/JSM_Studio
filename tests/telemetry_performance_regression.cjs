@@ -36,6 +36,7 @@ const win = target('win:');
 
 let stateIndex = 0;
 const react = {
+  useSyncExternalStore: (_subscribe, getSnapshot) => getSnapshot(),
   useEffect: fn => { const undo = fn(); if (undo) cleanups.push(undo); },
   useState: initial => {
     const index = stateIndex++;
@@ -56,7 +57,12 @@ new Function(
   'setTimeout', 'clearTimeout', 'requestAnimationFrame', 'cancelAnimationFrame', compiled,
 )(
   exportsForHook,
-  name => (name === 'react' ? react : { desktopBridge: bridge }),
+  name => name === 'react' ? react
+    : name.endsWith('/controllerSelection') ? {
+      subscribeControllerSelection: () => () => {},
+      selectedController: () => '',
+      selectedControllerSample: value => value,
+    } : { desktopBridge: bridge },
   doc, win, { now: () => now },
   schedule, id => timers.delete(id),
   // A frame lands at the next boundary of this display's cadence.

@@ -35,6 +35,7 @@ export function useProfileLibrary({ resetConfigHistory, configText, setConfigTex
   const [runtimeConfig, setRuntimeConfig] = useState<string | null>(null)
   const [appliedProfileName, setAppliedProfileName] = useState<string | null>(null)
   const drafts = useRef(new Map<string, string>())
+  const savedContents = useRef(new Map<string, string>())
   const selection = useRef(0)
   const editor = useRef({ configText, currentLibraryProfile })
   editor.current = { configText, currentLibraryProfile }
@@ -60,24 +61,50 @@ export function useProfileLibrary({ resetConfigHistory, configText, setConfigTex
   // Profiles that appear without the app's help: a .txt copied into the folder
   // by hand, one deleted outside the app, or a sync client.
   useEffect(() => desktopBridge.onLibraryProfilesChanged(applyLibraryProfileList), [applyLibraryProfileList])
-  // A binding on the controller loaded a configuration (QAM + Steam loading
-  // Gamepad), which is now the applied one. What is being edited stays put.
-  useEffect(() => desktopBridge.onAppliedProfileChanged(profile => {
-    setAppliedProfileName(profile.name)
-    setRuntimeConfig(profile.content)
-  }), [])
   const selectProfile = useCallback((profile: NamedProfile, discardPrevious = false) => {
     const previous = editor.current
     if (previous.currentLibraryProfile) {
       if (discardPrevious) drafts.current.delete(previous.currentLibraryProfile)
-      else drafts.current.set(previous.currentLibraryProfile, previous.configText)
+      else if (previous.configText !== savedContents.current.get(previous.currentLibraryProfile)) drafts.current.set(previous.currentLibraryProfile, previous.configText)
+      else drafts.current.delete(previous.currentLibraryProfile)
     }
     resetPendingSensitivityChanges()
     setCurrentLibraryProfile(profile.name)
     setActiveProfilePath(profile.path)
+    // Only unsaved edits are drafts. Caching an unchanged editor here masks a
+    // newer file on the next open (for example a restored controller layout).
+    savedContents.current.set(profile.name, profile.content)
     resetConfigHistory(drafts.current.get(profile.name) ?? profile.content)
     setAppliedConfig(profile.content)
   }, [resetPendingSensitivityChanges, setAppliedConfig, resetConfigHistory])
+  // A slot can load a file repaired outside the editor. Refresh an unchanged
+  // editor from its saved source, never from the runtime snapshot. Do not
+  // replace another selection or edits made before/during the disk read.
+  useEffect(() => {
+    let revision = 0
+    let disposed = false
+    const refreshCleanEditor = async () => {
+      const request = ++revision
+      const selected = selection.current
+      const { currentLibraryProfile: name, configText: before } = editor.current
+      if (!name || before !== savedContents.current.get(name)) return
+      try {
+        const profile = await desktopBridge.loadLibraryProfile(name)
+        if (disposed || request !== revision || selected !== selection.current
+          || editor.current.currentLibraryProfile !== name || editor.current.configText !== before
+          || savedContents.current.get(name) !== before || !profile || profile.name !== name) return
+        if (profile.content !== before) selectProfile({ ...profile, path: `profiles-library/${name}.txt` })
+      } catch { /* Retain the open document when a file is temporarily unavailable. */ }
+    }
+    const focus = () => { void refreshCleanEditor() }
+    window.addEventListener('focus', focus)
+    const unsubscribe = desktopBridge.onAppliedProfileChanged(profile => {
+      setAppliedProfileName(profile.name)
+      setRuntimeConfig(profile.content)
+      if (editor.current.currentLibraryProfile === profile.name) void refreshCleanEditor()
+    })
+    return () => { disposed = true; window.removeEventListener('focus', focus); unsubscribe() }
+  }, [selectProfile])
   // The library and the active profile have both answered once: Home can
   // tell a first run (nothing to edit) from a library still loading.
   const [libraryReady, setLibraryReady] = useState(false)
@@ -103,6 +130,7 @@ export function useProfileLibrary({ resetConfigHistory, configText, setConfigTex
     return profile.content
   }
   const finishSave = (name: string | null, text: string, source: string) => {
+    if (name) savedContents.current.set(name, text)
     if (name && drafts.current.get(name) === source) drafts.current.delete(name)
     // A slow disk write must not replace a different profile selected meanwhile,
     // or erase additional edits made while the save was in flight.
@@ -183,6 +211,8 @@ export function useProfileLibrary({ resetConfigHistory, configText, setConfigTex
     if (!result) { report(t('messages.renameProfileFailed'), true); return }
     const draft = drafts.current.get(name)
     if (draft !== undefined) { drafts.current.delete(name); drafts.current.set(result.name, draft) }
+    const saved = savedContents.current.get(name)
+    if (saved !== undefined) { savedContents.current.delete(name); savedContents.current.set(result.name, saved) }
     if (editor.current.currentLibraryProfile === name) {
       setCurrentLibraryProfile(result.name)
       setActiveProfilePath(result.path)
@@ -195,6 +225,7 @@ export function useProfileLibrary({ resetConfigHistory, configText, setConfigTex
     const result = await desktopBridge.deleteLibraryProfile(name)
     if (!result.success) { report(t('messages.deleteProfileInUse'), true); return }
     drafts.current.delete(name)
+    savedContents.current.delete(name)
     const names = await refreshLibraryProfiles()
     if (name === editor.current.currentLibraryProfile) {
       // Do not preserve the deleted editor as a draft.

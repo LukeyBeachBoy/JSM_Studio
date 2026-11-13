@@ -94,7 +94,7 @@ assert.match(registry, /let go, but nothing was being held/)
 assert.match(registry, /_deferredAutoLoad\.defer\(\);/)
 assert.match(between(registry, 'if (trimmedLine.rfind(deviceEnd, 0) == 0) {', 'if (trimmedLine.rfind(deviceBegin'), /if \(held\) _deferredAutoLoad\.release\(!deviceProfiles\.empty\(\) \|\| !_chordRestore\.empty\(\)\);/)
 assert.match(between(registry, 'if (trimmedLine == "STUDIO_CHORD_END")', 'if (trimmedLine == "RESET_MAPPINGS")'), /_deferredAutoLoad\.release\(!deviceProfiles\.empty\(\)\);/)
-assert.match(load, /if \(_loadingFiles\.empty\(\) && !_chordLoading\) _deferredAutoLoad\.cancel\(\);/)
+assert.match(load, /if \(_loadingFiles\.empty\(\) && !_chordLoading\)\s*\{\s*_deferredAutoLoad\.cancel\(\);\s*_pendingFocusProfile\.clear\(\);/)
 assert.match(read('JoyShockMapper/JoyShockMapper/src/AutoLoad.cpp'), /windowModule != lastModuleName \|\| retry/)
 
 // 5. Rotation stays global (also covered by the C++ test).

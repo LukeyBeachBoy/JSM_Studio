@@ -4,7 +4,7 @@ import { desktopBridge, type HidHideDevice, type HidHideStatus } from '../platfo
 import { showToast } from '../utils/toast'
 import { getVirtualControllerType, type VirtualControllerType } from '../utils/virtualController'
 import { runLongOperation } from './LongOperation'
-import { OpenRow, SubPage } from './ui/console'
+import { OpenRow, SettingRows, SubPage } from './ui/console'
 import { SettingsNote, SettingsSection, StatusStrip, SwitchRow, usePadButton } from './settings/SettingsKit'
 import styles from './settings/Settings.module.css'
 
@@ -20,7 +20,8 @@ const HIDHIDE_RELEASES_URL = 'https://github.com/nefarius/HidHide/releases/lates
 const ART = import.meta.glob('../assets/controllers/*-front.svg', { query: '?raw', import: 'default', eager: true }) as Record<string, string>
 const artFor = (device: HidHideDevice) => {
   const name = `${device.displayName} ${device.product}`.toLowerCase()
-  const key = /steam|28de/.test(name) || device.vendorId === 0x28de ? 'steam'
+  const key = device.vendorId === 0x16d0 && device.productId === 0x12f7 ? 'azeron-cyborg'
+    : /steam|28de/.test(name) || device.vendorId === 0x28de ? 'steam'
     : /dualsense edge/.test(name) ? 'dualsense-edge' : /dualsense|0ce6/.test(name) || device.vendorId === 0x054c && device.productId === 0x0ce6 ? 'dualsense'
       : /dualshock|ds4/.test(name) || device.vendorId === 0x054c ? 'dualshock-4'
         : /elite/.test(name) ? 'xbox-elite-2' : /switch|pro controller/.test(name) || device.vendorId === 0x057e ? 'switch-pro'
@@ -187,7 +188,12 @@ export function HidHidePage({ telemetryDevices, virtualOutput, onOpenStartup }: 
         onChange={next => void run('active', () => desktopBridge.setHidHideActive(next), next ? 'Hiding is on.' : 'Hiding is off.')} />
 
       <SettingsSection title="Controllers">
-        <div className={styles.list}>
+        {devices.some(device => device.vendorId === 0x16d0 && device.productId === 0x12f7) && typeof status?.autoHideAzeron === 'boolean' && (
+          <SettingsNote>{status?.autoHideAzeron
+            ? 'Automatic Azeron hiding is on. JSM keeps its native controller interfaces hidden at startup and on reconnect. Keyboard, mouse and configuration access stay available. Choose Show to games to turn automatic hiding off.'
+            : 'Automatic Azeron hiding is off. Choose Hide from games on the Azeron to enable it again.'}</SettingsNote>
+        )}
+        <SettingRows>
           {devices.length === 0 && !loading && <SettingsNote>No game controllers were found.</SettingsNote>}
           {devices.map(device => {
             const busy = busyKey === `device:${device.instanceId}`
@@ -216,11 +222,11 @@ export function HidHidePage({ telemetryDevices, virtualOutput, onOpenStartup }: 
               <span className={styles.tag}>Virtual</span>
             </div>
           )}
-        </div>
+        </SettingRows>
       </SettingsSection>
 
       <SettingsSection title={status?.inverse ? 'Apps they are hidden from' : 'Apps that can still see them'}>
-        <div className={styles.list}>
+        <SettingRows>
           {appList.length === 0 && <SettingsNote>{status?.whitelistSynced ? 'Only JSM.' : 'JSM isn’t on HidHide’s list yet. Advanced repairs it.'}</SettingsNote>}
           {appList.map(app => (
             <div key={app.path} className={styles.card} style={{ cursor: 'default' }} data-hidhide-app={app.name}>
@@ -233,7 +239,7 @@ export function HidHidePage({ telemetryDevices, virtualOutput, onOpenStartup }: 
               {app.steam && <span className={styles.tag} data-tone="warn">Steam</span>}
             </div>
           ))}
-        </div>
+        </SettingRows>
       </SettingsSection>
 
       {(status?.inverse || ambiguous || external.length > 0 || stale.length > 0) && (

@@ -12,6 +12,8 @@ import { AppIconImage } from './AppIconImage'
 import { MoreSheet } from './library/LibrarySheets'
 import styles from './AssociationsPage.module.css'
 import lib from './library/Library.module.css'
+import { useSlots } from '../hooks/useSlots'
+import { Select } from './ui/Select'
 
 type AssociationsPageProps = {
   libraryProfiles: string[]
@@ -20,7 +22,7 @@ type AssociationsPageProps = {
   onAutoloadEnabledChange: (enabled: boolean) => void
   /** The configuration the mapper runs now. */
   appliedProfileName?: string | null
-  /** The footer's "where" after "Library · Launch with game". */
+  /** The footer's "where" after "Library · Auto-switch". */
   onWhere?: (where: string | null) => void
   /** The header's count: "4 apps". */
   onCount?: (count: string | null) => void
@@ -40,12 +42,13 @@ const exeName = (processName: string) => (/\.exe$/i.test(processName) ? processN
 const same = (a: string, b: string) => processStemOf(a).toLowerCase() === processStemOf(b).toLowerCase()
 const swatch = (name: string) => <i style={{ background: `hsl(${nameHue(name)} 55% 60%)` }} />
 
-// Launch with game (console v2: LibraryTabs): when a game comes to the front,
+// Auto-switch (console v2: LibraryTabs): when a game comes to the front,
 // its configuration goes live. The master switch comes first; then each app,
 // what it loads (A picks another), on or off (X), and the rest under Y More
 // (remove, change the executable). The desktop fallback is last. Beside them:
 // who is in front right now, and the apps running now with + Add.
 export function AssociationsPage({ libraryProfiles, autoloadEnabled, runtimeBusy, onAutoloadEnabledChange, appliedProfileName, onWhere, onCount }: AssociationsPageProps) {
+  const slots = useSlots()
   const [rules, setRules] = useState<AutoloadRule[]>([])
   const [fallback, setFallback] = useState<AutoloadFallback | null>(null)
   const [loading, setLoading] = useState(true)
@@ -154,7 +157,7 @@ export function AssociationsPage({ libraryProfiles, autoloadEnabled, runtimeBusy
   // A paused rule made from an executable only lends its art (TODO-46).
   const describe = (rule: AutoloadRule) =>
     inFront(rule) && !rule.paused && autoloadEnabled ? (rule.profileName === appliedProfileName ? 'In front now · live' : 'In front now')
-      : rule.paused ? (rule.exePath ? 'Art only · not launched automatically' : 'Off')
+      : rule.paused ? (rule.exePath ? 'Art only · does not switch automatically' : 'Off')
         : rule.missingProfile ? 'Its configuration is missing'
           : rule.kind === 'advanced' ? 'Runs its own commands'
             : rule.lastMatchedAtMs ? `Last matched ${relativeTime(rule.lastMatchedAtMs, now)}` : 'Not matched yet'
@@ -184,8 +187,14 @@ export function AssociationsPage({ libraryProfiles, autoloadEnabled, runtimeBusy
                     <span><span className={lib.appName}>{exeName(rule.processName)}</span><span className={lib.appStatus} data-live={live || undefined} style={{ display: 'block' }}>{describe(rule)}</span></span>
                   </button>
                   <span className={lib.loads}>loads<span className={lib.loadsChip}>{rule.kind === 'profile' && rule.profileName ? <>{swatch(rule.profileName)}{rule.profileName}{rule.missingProfile ? ' (missing)' : ''}</> : 'Custom'}</span></span>
-                  <Switch on={!rule.paused} label={`${exeName(rule.processName)} on`} disabled={runtimeBusy} onChange={on => void setPaused(rule, !on)} />
-                  {live && <p className={lib.appHint}>Goes live when this game is in front.</p>}
+                  <Switch on={!rule.paused} label={`Auto-switch for ${exeName(rule.processName)}`} disabled={runtimeBusy} onChange={on => void setPaused(rule, !on)} />
+                  {slots?.enabled && rule.profileName && <Select ariaLabel={`${exeName(rule.processName)} destination slot`} value={String(rule.slot ?? 1)} disabled={runtimeBusy}
+                    options={slots.slots.map(slot => ({ value: String(slot.id), label: `Slot ${slot.id} · ${slot.name}` }))}
+                    onValueChange={value => { void desktopBridge.saveAutoloadRule(rule.processName, rule.profileName!, { slot: Number(value) }).then(saved => {
+                      if (!saved) throw new Error('Could not save the destination slot')
+                      setRules(previous => previous.map(item => item.processName === saved.processName ? saved : item))
+                    }).catch(error => showToast(String(error), 'error')) }} />}
+                  {live && <p className={lib.appHint}>{slots?.enabled ? `Updates Slot ${rule.slot ?? 1} when this game is in front. Goes live when that slot is active.` : 'Goes live when this game is in front.'}</p>}
                 </li>
               )
             })}
@@ -205,10 +214,10 @@ export function AssociationsPage({ libraryProfiles, autoloadEnabled, runtimeBusy
               <button type="button" className={lib.appButton} data-hints="A:What it loads;X:On · off;B:Home" onFocus={() => setFocused('Desktop and other apps')} onBlur={() => setFocused(null)}
                 aria-label={`Desktop and other apps · loads ${fallback.profileName ?? 'nothing'}`} onClick={() => setPicker('__fallback__')}>
                 <span className={lib.appIcon} aria-hidden="true"><Icon name="overview" size={20} /></span>
-                <span><b style={{ fontSize: 17 }}>Desktop and other apps</b><span className={lib.appStatus} style={{ display: 'block' }}>{fallback.enabled ? 'Used when no app above is in front' : 'Off · the live configuration stays'}</span></span>
+                <span><b style={{ fontSize: 17 }}>Desktop and other apps</b><span className={lib.appStatus} style={{ display: 'block' }}>{slots?.enabled ? 'Paused while slots are on · switch to your Desktop slot instead' : fallback.enabled ? 'Used when no app above is in front' : 'Off · the live configuration stays'}</span></span>
               </button>
               <span className={lib.loads}>loads<span className={lib.loadsChip}>{fallback.profileName ? <>{swatch(fallback.profileName)}{fallback.profileName}</> : 'Nothing'}</span></span>
-              <Switch on={fallback.enabled} label="Desktop and other apps on" disabled={runtimeBusy} onChange={enabled => void changeFallback({ ...fallback, enabled })} />
+              <Switch on={fallback.enabled && !slots?.enabled} label="Auto-switch for Desktop and other apps" disabled={runtimeBusy || slots?.enabled} onChange={enabled => void changeFallback({ ...fallback, enabled })} />
             </li>
           </ul>
         </>}
@@ -219,10 +228,11 @@ export function AssociationsPage({ libraryProfiles, autoloadEnabled, runtimeBusy
         <div className={lib.rightNow} aria-hidden="true">
           <span className={lib.screen}>{front ? exeName(front.processName) : 'Desktop'}</span>
           <span style={{ color: 'var(--accent)' }}>→</span>
-          <span className={lib.liveBox}>{frontRule?.profileName ?? (fallback?.enabled ? fallback.profileName : null) ?? appliedProfileName ?? 'Nothing'}<small style={{ color: 'var(--ok)' }}>● Live</small></span>
+          <span className={lib.liveBox}>{slots?.enabled ? slots.slots.find(s => s.id === slots.activeSlot)?.profileName ?? appliedProfileName : frontRule?.profileName ?? (fallback?.enabled ? fallback.profileName : null) ?? appliedProfileName ?? 'Nothing'}<small style={{ color: 'var(--ok)' }}>● Live</small></span>
         </div>
         <p className={lib.sentence}>
-          {!autoloadEnabled ? <>Switching is off, so <b>{appliedProfileName ?? 'the live configuration'}</b> stays live.</>
+          {slots?.enabled ? <>Slot {slots.activeSlot} is active. {frontRule ? <>{exeName(frontRule.processName)} updates Slot {frontRule.slot ?? 1}; other slots keep their configurations.</> : 'No matching game changes the configurations stored in your slots.'}</>
+            : !autoloadEnabled ? <>Switching is off, so <b>{appliedProfileName ?? 'the live configuration'}</b> stays live.</>
             : frontRule ? <><b>{exeName(frontRule.processName)}</b> is in front, so <b>{frontRule.profileName}</b> is live.</>
               : front ? <><b>{exeName(front.processName)}</b> has no configuration, so {fallback?.enabled && fallback.profileName ? <><b>{fallback.profileName}</b> is live.</> : <>the live one stays.</>}</>
                 : <>Nothing is in front yet.</>}
@@ -247,7 +257,7 @@ export function AssociationsPage({ libraryProfiles, autoloadEnabled, runtimeBusy
       </aside>
 
       {picker && (
-        <Sheet open onClose={() => setPicker(null)} eyebrow="Library · Launch with game" title={picker === '__fallback__' ? 'Desktop and other apps loads…' : `${exeName(picker)} loads…`}
+        <Sheet open onClose={() => setPicker(null)} eyebrow="Library · Auto-switch" title={picker === '__fallback__' ? 'Desktop and other apps loads…' : `${exeName(picker)} loads…`}
           description="The configuration that goes live when it comes to the front." hints={[{ button: 'A', label: 'Choose' }, { button: 'B', label: 'Back' }]} width={520}>
           {picker === '__fallback__' && (
             <button type="button" className={lib.pickRow} role="menuitemradio" aria-checked={!fallback?.profileName} onClick={() => void change('__fallback__', '')}><span>Nothing</span><span>The live one stays</span></button>
@@ -264,7 +274,7 @@ export function AssociationsPage({ libraryProfiles, autoloadEnabled, runtimeBusy
         </Sheet>
       )}
       {moreFor && (
-        <MoreSheet open onClose={() => setMoreFor(null)} eyebrow="Library · Launch with game" title={exeName(moreFor.processName)} file={moreFor.exePath}
+        <MoreSheet open onClose={() => setMoreFor(null)} eyebrow="Library · Auto-switch" title={exeName(moreFor.processName)} file={moreFor.exePath}
           items={[
             ...(moreFor.kind === 'profile' ? [{ key: 'loads', icon: 'library' as const, label: 'What it loads', note: moreFor.profileName ?? undefined, run: () => { setMoreFor(null); setPicker(moreFor.processName) } }] : []),
             { key: 'toggle', icon: 'apply', label: moreFor.paused ? 'Turn on' : 'Turn off', note: moreFor.paused ? 'Goes live when it comes to the front' : 'Keeps its art; doesn’t go live', run: () => { setMoreFor(null); void setPaused(moreFor, !moreFor.paused) } },
@@ -272,7 +282,7 @@ export function AssociationsPage({ libraryProfiles, autoloadEnabled, runtimeBusy
           ]}
           remove={{ label: `Remove ${exeName(moreFor.processName)}`, body: <>{moreFor.profileName ? <><b>{moreFor.profileName}</b> no longer goes live when {exeName(moreFor.processName)} comes to the front. The configuration stays in your library.</> : `${exeName(moreFor.processName)} no longer runs anything when it comes to the front.`}</>, run: () => { const rule = moreFor; setMoreFor(null); void remove(rule) } }} />
       )}
-      <Sheet open={addOpen} onClose={() => setAddOpen(false)} eyebrow="Library · Launch with game" title="Add app" description="Pick one that’s running, or browse for an .exe. It loads the configuration with its name, or the live one; A on it changes that."
+      <Sheet open={addOpen} onClose={() => setAddOpen(false)} eyebrow="Library · Auto-switch" title="Add app" description="Pick one that’s running, or browse for an .exe. It loads the configuration with its name, or the live one; A on it changes that."
         hints={[{ button: 'A', label: 'Add' }, { button: 'B', label: 'Back' }]} width={560}>
         {running?.map(process => {
           const already = added(process)

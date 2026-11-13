@@ -41,7 +41,7 @@ use windows_sys::Win32::{
         JobObjects::{
             AssignProcessToJobObject, CreateJobObjectW, JobObjectExtendedLimitInformation,
             SetInformationJobObject, JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
-            JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
+            JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE, JOB_OBJECT_LIMIT_BREAKAWAY_OK,
         },
         Threading::{
             CreateProcessW, OpenProcess, QueryFullProcessImageNameW, TerminateProcess,
@@ -532,7 +532,9 @@ fn create_kill_on_close_job(child: &ManagedProcess) -> Result<JobObject, String>
     }
 
     let mut limits = JOBOBJECT_EXTENDED_LIMIT_INFORMATION::default();
-    limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+    // Azeron's recovery helper must survive a GUI/mapper crash to restore the
+    // keypad's onboard mode. Only that helper requests CREATE_BREAKAWAY_FROM_JOB.
+    limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE | JOB_OBJECT_LIMIT_BREAKAWAY_OK;
 
     let set_result = unsafe {
         SetInformationJobObject(

@@ -1,9 +1,17 @@
 /* Layout for this controller (console v2, ControllerVariant.dc.html). */
-.page { display: flex; flex-direction: column; gap: var(--sp-5); }
+.page { display: flex; flex-direction: column; gap: var(--sp-4); max-width: 980px; margin: 0 auto; }
+.controllerHeading { display: flex; align-items: center; gap: var(--sp-4); }
+.controllerArt { width: 90px; flex: 0 0 90px; }
+.controllerArt svg { max-width: 100%; height: auto; }
+.controllerHeading b { font-size: var(--fs-section); }
+.controllerHeading p { margin-top: var(--sp-2); }
+.disclosure { border-radius: var(--r-row); background: var(--surface-row); padding: var(--sp-4); }
+.disclosure > summary, .missing > summary { cursor: pointer; font-weight: var(--fw-semibold); }
+.disclosure[open] > summary, .missing[open] > summary { margin-bottom: var(--sp-3); }
 .eyebrow { color: var(--text-3); font-size: var(--fs-eyebrow); font-weight: var(--fw-semibold); letter-spacing: .08em; text-transform: uppercase; }
 .note { margin: 0; color: var(--text-2); font-size: var(--fs-hint); }
 .cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-5); }
-.card { display: flex; flex-direction: column; gap: var(--sp-2); padding: var(--sp-5); border: 0; border-radius: 20px; background: var(--surface-row); color: var(--text-1); font: inherit; text-align: left; cursor: pointer; }
+.card { display: flex; flex-direction: column; gap: var(--sp-2); padding: var(--sp-4); border: 0; border-radius: var(--r-card); background: var(--surface-row); color: var(--text-1); font: inherit; text-align: left; cursor: pointer; }
 .card[data-current='true'] { box-shadow: inset 0 0 0 2px var(--accent); }
 .card[aria-disabled='true'] { opacity: .55; cursor: default; }
 .cardArt { display: flex; align-items: center; justify-content: center; gap: var(--sp-2); padding: var(--sp-3); border-radius: 14px; background: var(--surface-sunken); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06); }
@@ -16,7 +24,8 @@
 .cardText b { font-size: var(--fs-section); }
 .inUse { color: var(--accent); font-weight: var(--fw-semibold); }
 .cardCaption { color: var(--text-2); font-size: var(--fs-body); }
-.columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-5); align-items: start; }
+.columns { display: flex; flex-direction: column; gap: var(--sp-4); }
+.columns > * { width: 100%; box-sizing: border-box; }
 @media (max-width: 1000px) { .columns, .cards { grid-template-columns: minmax(0, 1fr); } }
 .rows { display: flex; flex-direction: column; gap: var(--sp-2); }
 .row { display: flex; align-items: center; gap: var(--sp-3); min-height: 64px; padding: var(--sp-2) var(--sp-4); border: 0; border-radius: var(--r-row); background: var(--surface-row); color: var(--text-1); font: inherit; text-align: left; cursor: pointer; }
@@ -31,7 +40,8 @@
 .keep small { color: var(--accent); }
 .resetButton { border: 0; border-radius: var(--r-row); background: #e5484d; color: #fff; font: inherit; font-weight: var(--fw-semibold); text-align: left; padding: 0 var(--sp-4); cursor: pointer; }
 .saved { display: flex; flex-direction: column; gap: var(--sp-2); margin-top: var(--sp-3); }
-.missing { display: flex; flex-direction: column; gap: var(--sp-2); padding: var(--sp-4); border-radius: 20px; background: var(--surface-row); }
+.missing { padding: var(--sp-4); border-radius: var(--r-row); background: var(--surface-row); }
+.missingRow { width: 100%; margin-top: var(--sp-2); }
 .missing header { display: flex; justify-content: space-between; align-items: baseline; gap: var(--sp-3); margin-bottom: var(--sp-2); }
 .missing header small { color: var(--text-2); }
 .missingRow { display: flex; align-items: center; gap: var(--sp-3); min-height: 52px; padding: 0 var(--sp-3); border: 0; border-radius: var(--r-row); background: var(--surface-canvas); color: var(--text-1); font: inherit; text-align: left; cursor: pointer; }
@@ -40,3 +50,12 @@
 .missingText { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: var(--sp-3); }
 .missingText small { color: var(--text-2); }
 .pick { color: var(--accent); font-weight: var(--fw-semibold); }
+
+.addLayout { padding-top: var(--sp-2); }
+.addLayout label { display: block; font-weight: 600; margin-bottom: 10px; }
+.addLayout > div { display: flex; gap: 10px; flex-wrap: wrap; }
+.addLayout select, .addLayout button { min-height: 42px; padding: var(--sp-2) var(--sp-3); border: 1px solid var(--line-1); border-radius: var(--r-row); color: var(--text-1); background: var(--surface-control); font: inherit; }
+.addLayout button { background: var(--accent); color: var(--text-on-accent); font-weight: var(--fw-semibold); cursor: pointer; }
+.addLayout select:focus-visible, .addLayout button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.addLayout select { flex: 1; min-width: 160px; }
+.addLayout p { color: var(--text-3); line-height: 1.5; margin: 12px 0 0; }

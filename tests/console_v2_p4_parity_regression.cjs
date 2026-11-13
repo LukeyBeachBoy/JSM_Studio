@@ -25,7 +25,14 @@ const homes = [
   'utils/sourceModeSettings.ts',
   'utils/virtualStickSettings.ts',
 ]
-const source = homes.map(read).join('\n')
+// Calibration rows compose side, direction and field separately. Expand the
+// helper's actual direction list so the audit sees those keys without a whitelist.
+const geometry = read('utils/stickGeometry.ts')
+const directions = /export const calibrationDirections = \[([^\]]+)\]/.exec(geometry)
+assert.ok(directions, 'stick geometry declares calibration directions')
+const calibrationHomes = [...directions[1].matchAll(/'([A-Z]+)'/g)]
+  .map(([, direction]) => geometry.replaceAll('${direction}', direction))
+const source = [...homes.map(read), ...calibrationHomes].join('\n')
 // Settings the shell or the hooks write for these screens (the rail's mode
 // handlers, App's grip handlers) are homed through the props they pass in.
 const viaProps = read('components/KeymapControls.tsx') + read('App.tsx') + read('hooks/useGripConfig.ts')

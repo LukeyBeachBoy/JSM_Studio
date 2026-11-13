@@ -28,7 +28,7 @@ type Props = {
 }
 
 /** The smallest name that still reads once the preview is scaled down. */
-const MIN_LABEL_PX = 9
+const MIN_LABEL_PX = 12
 
 /**
  * The names as the preview can afford them. The drawing is the overlay's at
@@ -79,10 +79,15 @@ export function MenuPreview({ menu, aspect = 1, selectedCommand, onSelect, liveP
   })
   const height = menu.placement.size / (menu.shape === 'RADIAL' || menu.shape === 'EIGHT_WAY' ? 1 : aspect)
   const scale = Math.min(fill ? width / menu.placement.size : Math.min(1, width / menu.placement.size), maxHeight === undefined ? Infinity : Math.max(1, maxHeight) / height)
-  const drawn = fitLabels(menu, scale)
+  const fitted = fitLabels(menu, scale)
+  // Counter the editor preview's CSS scale, keeping retained keycaps readable.
+  // This changes only previews; the overlay keeps the player's own font sizes.
+  const drawn = { ...fitted, placement: { ...fitted.placement,
+    outputFontSize: Math.max(fitted.placement.outputFontSize ?? fitted.placement.fontSize, MIN_LABEL_PX / Math.max(.1, scale) / .78),
+  } }
   return <div ref={host} style={{ width: '100%', maxWidth: fill || maxHeight !== undefined ? undefined : 520, margin: fill ? 0 : '16px auto', height: height * scale, position: 'relative' }}>
     <div style={{ position: 'absolute', width: menu.placement.size, height, left: '50%', marginLeft: -menu.placement.size / 2, transform: `scale(${scale})`, transformOrigin: 'top center' }}>
-      <MenuDrawing menu={drawn} icons={icons} managedFocus={managedFocus} selectedCommand={hotCommand ?? selectedCommand} onSelect={onSelect} onDotRef={livePoint ? element => { dot.current = element } : undefined} />
+      <MenuDrawing preview menu={drawn} icons={icons} managedFocus={managedFocus} selectedCommand={hotCommand ?? selectedCommand} onSelect={onSelect} onDotRef={livePoint ? element => { dot.current = element } : undefined} />
     </div>
   </div>
 }

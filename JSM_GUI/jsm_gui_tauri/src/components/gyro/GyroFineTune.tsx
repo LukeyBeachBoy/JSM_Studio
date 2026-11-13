@@ -14,7 +14,7 @@ import { GyroMore, type MoreEntry } from './GyroMore'
 
 // Gyro ▸ Fine-tune (GyroFineTune): the rail of five groups (Speed, Steadiness,
 // Direction, Tilt, Rumble), one open at a time beside its live visual; LT / RT
-// step the groups. Advanced, Match a full turn, Tilt's parts and Stick settings
+// step the groups. Advanced, Real-world calibration, Tilt's parts and Stick settings
 // open as sub-pages over it and stack: B goes back one.
 
 /** The sub-pages a route opens, bottom first (Tilt's parts open over the Tilt group). */
@@ -56,12 +56,12 @@ export function GyroFineTune({ open, onClose, trail, group, onGroup, initialSub,
     const subTrail = [...fineTrail, labelOf(group)]
     switch (sub.view) {
       case 'speed-advanced':
-        return <SpeedAdvanced key={index} open onClose={close} trail={[...fineTrail, 'Speed']} part={(sub.part ?? 'speeds') as SpeedPart}
+        return <SpeedAdvanced key={index} open onClose={close} trail={[...fineTrail, 'Sensitivity']} part={(sub.part ?? 'speeds') as SpeedPart}
           onPart={part => replaceTop({ view: 'speed-advanced', part })} onMatchTurn={() => push({ view: 'match-turn' })} />
       case 'match-turn':
-        return <MatchFullTurn key={index} open onClose={close} trail={[...fineTrail, 'Speed']} />
+        return <MatchFullTurn key={index} open onClose={close} trail={[...fineTrail, 'Sensitivity']} />
       case 'steadiness-advanced':
-        return <SteadinessAdvanced key={index} open onClose={close} trail={[...fineTrail, 'Steadiness']} part={(sub.part ?? 'smoothing') as SteadinessPart}
+        return <SteadinessAdvanced key={index} open onClose={close} trail={[...fineTrail, 'Filters']} part={(sub.part ?? 'smoothing') as SteadinessPart}
           onPart={part => replaceTop({ view: 'steadiness-advanced', part })} />
       case 'direction-advanced':
         return <DirectionAdvanced key={index} open onClose={close} trail={[...fineTrail, 'Direction']} onTilt={() => push({ view: 'tilt' })} tiltUnavailable={tiltHeld} />

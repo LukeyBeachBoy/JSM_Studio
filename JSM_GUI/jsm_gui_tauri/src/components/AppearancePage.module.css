@@ -94,7 +94,7 @@
 .cards[data-columns='2'] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .card { display: flex; flex-direction: column; align-items: stretch; gap: var(--sp-2); padding: var(--sp-3); border: 0; border-radius: var(--r-card); background: var(--surface-row); color: var(--text-1); font: inherit; font-size: var(--fs-label); text-align: left; cursor: pointer; }
 .card:hover { background: var(--surface-row-hover); }
-.card[data-current='true'] { box-shadow: inset 0 0 0 2px var(--accent); }
+.card[data-current='true'] { background: var(--surface-selected); box-shadow: inset 0 0 0 1px var(--line-2); }
 .cardArt { display: grid; place-items: center; aspect-ratio: 3 / 2; border-radius: 12px; background: var(--surface-sunken); overflow: hidden; }
 .cardArt svg { width: 100%; height: 100%; }
 .languageGlyph { font-size: 34px; font-weight: var(--fw-semibold); color: var(--text-2); }

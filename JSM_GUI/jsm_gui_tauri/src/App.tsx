@@ -1,4 +1,8 @@
+import { anyControllerNavigation } from './utils/controllerNavigation'
+import { BindingProvenanceProvider, BindingSourceLegend } from './components/BindingProvenance'
+import { LayerSelector } from './components/LayerSelector'
 import { LayerUsageContext } from './components/LayerBar'
+import { SlotsBar, SlotsPage } from './components/SlotsPage'
 import { InputUsageInspector } from './components/InputUsageInspector'
 import { ModesPage, ModesCallout } from './components/modes/ModesPage'
 import { AssociationsPage } from './components/AssociationsPage'
@@ -13,11 +17,11 @@ import { StartupPage } from './components/settings/StartupPage'
 import { BuiltinConfigurationDialog, BUILTIN_CHORD_NAME } from './components/BuiltinConfigurationDialog'
 import { PermissionIntroduction } from './components/settings/PermissionSettings'
 import { flushSync } from 'react-dom'
-import { activeControllerProfilePath, appliedProfileLabel, isStudioNavigationProfile } from './utils/appliedProfile'
+import { activeControllerProfilePath, resolveAppliedProfile, isStudioNavigationProfile } from './utils/appliedProfile'
+import { useSlots } from './hooks/useSlots'
 import { ConfigScope } from './components/ConfigScope'
 import { GYRO_TUNING_KEYS } from './utils/gyroSettingsScope'
 import { gyroRouteForKey, requestGyroRoute } from './utils/gyroRoutes'
-import { gyroRailStatus } from './components/gyro/rail'
 import { ConfigBaseline } from './hooks/configContext'
 import './App.css'
 import { padAspectFromDevices } from './utils/padGeometry'
@@ -32,7 +36,7 @@ import { ButtonsPageLayout, FindButtonBar, ListeningBanner, PressToFind } from '
 import { AppearancePage } from './components/AppearancePage'
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useTelemetry } from './hooks/useTelemetry'
+import { useTelemetry, type TelemetrySample } from './hooks/useTelemetry'
 import miscStyles from './components/Misc.module.css'
 import { SectionActions } from './components/SectionActions'
 import { NumberField } from './components/NumberField'
@@ -43,7 +47,10 @@ import { useProfileLibrary } from './hooks/useProfileLibrary'
 import { changeBase as changeLibraryBase, duplicateConfiguration, libraryChanged } from './hooks/useLibraryGraph'
 import { setBaseInclude, setGameMeta, describeConfig } from './utils/libraryGraph'
 import { ControllerLayoutScope } from './components/ControllerLayoutScope'
-import { controllerModelKey, foldController, projectController, controllerBase, resetControllerAssignment, sharedController } from './utils/controllerLayouts'
+import { controllerSettingOrigins } from './utils/controllerSettingOrigins'
+import { controllerEditorDevices, controllerTargetKey, foldController, projectController, controllerBase, resetControllerAssignment, sharedController } from './utils/controllerLayouts'
+import { ControllerSelector } from './components/ControllerSelector'
+import { selectController, selectedControllerSample } from './utils/controllerSelection'
 import { useKeymapConfig } from './hooks/useKeymapConfig'
 import { useCalibration } from './hooks/useCalibration'
 import { ToastHost } from './components/ToastHost'
@@ -66,6 +73,8 @@ import { useSectionScrollSpy } from './hooks/useSectionScrollSpy'
 import { TitleBar, layerColor, OUTPUT_LABELS, OUTPUT_DESCRIPTIONS, type MappingPlateState, type StateButton, type TitleBarProfile, type VirtualOutput } from './shell/TitleBar'
 import { ConfigurationMenu, type ConfigurationMenuItem } from './shell/ConfigurationMenu'
 import { CreditsPage } from './components/CreditsPage'
+import { CommandPalette } from './shell/CommandPalette'
+import { LiveTestPanel } from './components/LiveTestPanel'
 import { HomePage } from './components/HomePage'
 import { homeQuickTune, summarizeConfiguration, writeGyroSpeed } from './utils/configSummary'
 import { OnScreenMenus } from './components/keymap/OnScreenMenus'
@@ -75,7 +84,7 @@ import { readVirtualMenus, writeVirtualMenus } from './utils/virtualMenus'
 import { AccelCurveView, type CurveSide } from './components/AccelCurveView'
 import { GripSensorsSheet } from './components/keymap/GripSensorsSheet'
 import { TextEntryOverlay } from './components/TextEntryOverlay'
-import { hasControllerVariant, controllerVariantLabel, controllerOverrides } from './utils/controllerLayouts'
+import { hasEffectiveControllerVariant, controllerVariantLabel, controllerOverrides } from './utils/controllerLayouts'
 import { ButtonGlyph } from './components/glyphs/ButtonGlyph'
 import { countChanges, describeChange, revertConfigChange } from './utils/configChanges'
 import { ChangeReview } from './components/ChangeReview'
@@ -92,7 +101,7 @@ import { HintCapsule } from './shell/HintCapsule'
 import { useShellWidth } from './shell/useShellWidth'
 import { isFramelessWindow } from './shell/windowControls'
 import { useControllerNavigation } from './nav/useControllerNavigation'
-import { ALL_PAGES, HUB_TITLE, SETTINGS_PAGES, SETTINGS_REFERENCE_START, isHomePage, isStudioPage, pageMeta, pageOrder, slideOrder, stepLabel, studioHub, type ControlTab, type PrimaryTab } from './shell/pages'
+import { controllerPageAvailable, ALL_PAGES, HUB_TITLE, SETTINGS_PAGES, SETTINGS_REFERENCE_START, isHomePage, isStudioPage, pageMeta, pageOrder, slideOrder, stepLabel, studioHub, type ControlTab, type PrimaryTab } from './shell/pages'
 import { claimStep } from './shell/stepClaims'
 import { preloadedLazy } from './utils/preloadedLazy'
 
@@ -239,8 +248,10 @@ void primePreferences()
 
 function App() {
   const { t } = useTranslation()
-  const { sample: rawSample, isCalibrating, countdown } = useTelemetry()
-  const [controllerEditingTarget, setControllerEditingTarget] = useState<string | null>(null)
+  const { sample: rawSample, isCalibrating, countdown } = useTelemetry(true)
+  const [controllerEditingTarget, setControllerEditingTarget] = useState<string | null>(() => {
+    try { return localStorage.getItem('jsm.editingController') } catch { return null }
+  })
   // Console v2 (V4): the controller scope lives in a sheet from the
   // configuration menu, not in a bar on every page.
   const [controllerLayoutOpen, setControllerLayoutOpen] = useState(false)
@@ -250,13 +261,16 @@ function App() {
     window.addEventListener('jsm:open-controller-layout', open)
     return () => window.removeEventListener('jsm:open-controller-layout', open)
   }, [])
-  const editingControllerModel = controllerEditingTarget ?? controllerModelKey(rawSample?.devices?.[0])
-  const sample = useMemo(() => {
-    if (!rawSample || !editingControllerModel) return rawSample
-    const devices = [...(rawSample.devices ?? [])]
-    devices.sort((a, b) => Number(controllerModelKey(b) === editingControllerModel) - Number(controllerModelKey(a) === editingControllerModel))
-    return { ...rawSample, devices }
-  }, [rawSample, editingControllerModel])
+  // Lock the edit destination once chosen: disconnecting or reordering pads must
+  // never redirect a pending edit into another controller's layout.
+  const automaticModel = controllerTargetKey(rawSample?.devices?.find(device => device.type === 25) ?? rawSample?.devices?.[0])
+  useEffect(() => { if (controllerEditingTarget === null && automaticModel) setControllerEditingTarget(automaticModel) }, [automaticModel, controllerEditingTarget])
+  const editingControllerModel = controllerEditingTarget ?? automaticModel
+  useEffect(() => {
+    selectController(editingControllerModel)
+    if (controllerEditingTarget !== null) { try { localStorage.setItem('jsm.editingController', editingControllerModel) } catch { /* Storage can be disabled. */ } }
+  }, [editingControllerModel, controllerEditingTarget])
+  const sample = useMemo<TelemetrySample>(() => ({ ...selectedControllerSample(rawSample, editingControllerModel), devices: controllerEditorDevices(editingControllerModel, rawSample?.devices) }), [rawSample, editingControllerModel])
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
   const [recalibrating, setRecalibrating] = useState(false)
   const [isProfileModalOpen, setProfileModalOpen] = useState(false)
@@ -373,21 +387,28 @@ function App() {
   const [pageDirection, setPageDirection] = useState<'forward' | 'back'>('forward')
   // The configuration page B on Home (and Continue editing) returns to.
   const lastEditingPage = useRef<PrimaryTab>('overview')
+  const pageRef = useRef(primaryTab)
   const setPrimaryTab = useCallback((next: PrimaryTab | ((previous: PrimaryTab) => PrimaryTab)) => {
-    setPrimaryTabState(previous => {
-      const target = typeof next === 'function' ? next(previous) : next
-      if (target !== previous) {
-        if (previous === 'virtualMenus') menuReturn.current = null
-        const order = slideOrder(previous)
-        setPageDirection(order.indexOf(target) < order.indexOf(previous) ? 'back' : 'forward')
-        if (pageMeta(previous).group === 'controls') lastEditingPage.current = previous
-        // Toasts belong to the page they were raised on; one raised by the
-        // action that changed page (a copy made, a game opened) stays.
-        clearToasts(400)
-      }
-      return target
-    })
+    const previous = pageRef.current
+    const target = typeof next === 'function' ? next(previous) : next
+    if (target === previous) return
+    if (previous === 'virtualMenus') menuReturn.current = null
+    const order = slideOrder(previous)
+    setPageDirection(order.indexOf(target) < order.indexOf(previous) ? 'back' : 'forward')
+    if (pageMeta(previous).group === 'controls') lastEditingPage.current = previous
+    // Events and sibling state updates belong to the action, never a React updater.
+    clearToasts(400)
+    pageRef.current = target
+    setPrimaryTabState(target)
   }, [])
+  useEffect(() => {
+    const pane = document.querySelector('.shell-scroll')
+    if (pane) pane.scrollTop = 0
+  }, [primaryTab])
+  const [paletteOpen, setPaletteOpen] = useState(false)
+  const [paletteConfigurationsOnly, setPaletteConfigurationsOnly] = useState(false)
+  const [inlineBinding, setInlineBinding] = useState<string | null>(null)
+  const inlineBindingReturn = useRef<HTMLElement | null>(null)
   const returnToInput = useRef<(() => void) | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   // Controller light & sounds (ControllerLight.dc.html): a sub-page opened from
@@ -410,13 +431,13 @@ function App() {
     // A page can take LB/RB for itself (Guides search steps its matches).
     if (claimStep('jsm:page-step', delta)) return
     setPrimaryTab(prev => {
-      const order = pageOrder(prev)
+      const order = pageOrder(prev).filter(tab => controllerPageAvailable(tab, sample?.devices?.[0]?.type))
       const index = Math.max(0, order.indexOf(prev))
       // The strip has ends: LT on Overview stays put rather than wrapping to
       // the last Tuning page, which is behind a menu and read as a random jump.
       return order[Math.min(order.length - 1, Math.max(0, index + delta))]
     })
-  }, [setPrimaryTab])
+  }, [setPrimaryTab, sample?.devices?.[0]?.type])
   const closeFloatingWindows = useCallback(() => {
     if (isConfigDrawerOpen) {
       setConfigDrawerOpen(false)
@@ -457,14 +478,17 @@ function App() {
   }, [])
   const [selectedMappingCommand, setSelectedMappingCommand] = useState<string | null>('N')
   // Find a button: while asked to listen, a real press jumps to its row (console v2, ButtonList).
-  const pressToFind = usePressToFind({ page: primaryTab, device: rawSample?.devices?.[0], onPage: setPrimaryTab })
+  const pressToFind = usePressToFind({ page: primaryTab, device: sample?.devices?.[0], onPage: setPrimaryTab })
+  const listenForInput = pressToFind.listen
+  useEffect(() => { if (primaryTab !== 'overview') setInlineBinding(null) }, [primaryTab])
   const [inputRequest, setInputRequest] = useState<{ command: string; open?: boolean } | null>(null)
   // Modes ▸ What changes and Review changes: A goes to the input or setting, in
   // its mode, with a button's binding sheet open (console v2, P6).
   const goToModeChange = (id: string, key: string) => {
     if (id !== layerId) selectLayer(id)
     const target = key.split(',').pop() ?? key
-    if (/^(LIGHT_BAR|LED_BRIGHTNESS|(LEFT|RIGHT)_TOUCHPAD_ROTATION)$/.test(target)) { setLightSoundsOpen(true); return }
+    if (/^(LIGHT_BAR|LED_BRIGHTNESS)$/.test(target)) { setLightSoundsOpen(true); return }
+    if (/^(LEFT|RIGHT)_TOUCHPAD_ROTATION$/.test(target)) { navigateInput(target); return }
     // A gyro or tilt setting held on a button ("L,GYRO_SENS") opens that button's variant;
     // one in a mode lands on the Fine-tune group or Advanced part that edits it (utils/gyroRoutes).
     // (The virtual-stick keys named for a stick, RIGHT_STICK_UNDEADZONE_INNER…, stay with the stick.)
@@ -473,10 +497,16 @@ function App() {
     const input = overrideInput(key)
     navigateInput(input ?? target, Boolean(input && inputPage(normalizePreviewInput(input)) === 'buttons'))
   }
+  const [padRotationRoute, setPadRotationRoute] = useState<string | null>(null)
   const navigateInput = (raw: string, open = false) => {
+    if (raw.split(',').pop()?.trim().toUpperCase() === 'TICK_TIME') { openConfigurationTiming(); return }
     const from = primaryTab, scroll = document.querySelector('.shell-scroll')?.scrollTop ?? 0, fromLayer = layerId
     returnToInput.current = () => { selectLayer(fromLayer); setPrimaryTab(from); requestAnimationFrame(() => { const pane = document.querySelector('.shell-scroll'); if (pane) pane.scrollTop = scroll; document.querySelector<HTMLElement>(`[data-overview-input="${CSS.escape(raw)}"]`)?.focus({ preventScroll: true }) }) }
-    returnToInputCommand.current = from === 'overview' ? raw.toUpperCase() : null
+    if (/^(LEFT|RIGHT)_TOUCHPAD_ROTATION$/.test(raw)) {
+      setInputSide('touchpad', raw.startsWith('LEFT') ? 'left' : 'right')
+      setPadRotationRoute(raw)
+      setPrimaryTab('touchpad'); return
+    }
     if (/^(GYRO_|MIN_GYRO|MAX_GYRO|ACCEL_(CURVE|NATURAL|POWER|SIGMOID|JUMP)|ONE_EURO_|DECEL_BRAKE|REAL_WORLD_CALIBRATION$|IN_GAME_SENS$|ROLL_CONTRIBUTION$|MOUSE_[XY]_FROM_GYRO_AXIS$|TILT_O|MOTION_|LEAN_THRESHOLD$|JOYCON_|AUTO_CALIBRATE_GYRO$|TRACKBALL_DECAY$)/.test(raw)) {
       // Lands on the Fine-tune group or Advanced part that edits the key.
       const route = gyroRouteForKey(raw)
@@ -489,24 +519,9 @@ function App() {
     setPrimaryTab(inputPage(command))
     setInputRequest({ command, open })
   }
-  // Layout ▸ A on a callout opens the input's binding sheet on Buttons; closing
-  // that sheet goes straight back to Layout with the same callout focused
-  // (UX review 2026-10-09, L4), rather than leaving the pad on the Buttons row.
-  const returnToInputCommand = useRef<string | null>(null)
-  useEffect(() => {
-    const back = (event: Event) => {
-      const closed = ((event as CustomEvent<string>).detail ?? '').toUpperCase()
-      const wanted = returnToInputCommand.current
-      if (!wanted || !returnToInput.current) return
-      if (closed !== wanted && normalizePreviewInput(closed) !== normalizePreviewInput(wanted)) return
-      returnToInputCommand.current = null
-      const restore = returnToInput.current
-      returnToInput.current = null
-      restore()
-    }
-    window.addEventListener('jsm:binding-closed', back)
-    return () => window.removeEventListener('jsm:binding-closed', back)
-  }, [])
+  // A binding sheet is a layer over the input page. Dismissing it leaves that
+  // page and its scroll/focus in place; only a subsequent page-level Back uses
+  // returnToInput to return to the originating Layout callout.
   useEffect(() => {
     if (!inputRequest) return
     const pane = document.querySelector('.main-pane')
@@ -773,6 +788,14 @@ function App() {
     handleScrollSensChange,
     resetPendingSensitivityChanges,
   } = useKeymapConfig(editingControllerModel)
+  // Deliver after the destination's scope/page commit. A Review link can switch
+  // controller and layer together; an immediate request could be taken by the
+  // outgoing pad editor and lost when the destination mounts.
+  useEffect(() => {
+    if (!padRotationRoute || primaryTab !== 'touchpad') return
+    requestFineTune('touchpad', 'orientation')
+    setPadRotationRoute(null)
+  }, [padRotationRoute, primaryTab, layerId, editingControllerModel])
   // What activates a layer lives on the inputs, so it is read from the text
   // rather than from the layers themselves.
   const setControllerDocument = (next: string | ((previous: string) => string)) => setDocumentText(previous => {
@@ -856,7 +879,7 @@ function App() {
       const first = sample?.devices?.[0]
       const grips = Boolean(first) && controllerSupportsInput(first, 'MISC5')
       // Buttons' rail counts ("Menu buttons · 1 of 4", console v2 ButtonList).
-      return SUB_NAV_GROUPS[primaryTab as ControlTab].map(({ key, titleKey }) => ({ id: `mapping-section-${key}`, label: key === 'extra' && grips ? t('keymap.gripsTitle', 'Grips') : t(titleKey), count: primaryTab === 'buttons' ? formatSectionCount(sectionCounts[key]) : undefined }))
+      return SUB_NAV_GROUPS[primaryTab as ControlTab].filter(({ key }) => primaryTab !== 'buttons' || (sectionCounts[key]?.total ?? 0) > 0).map(({ key, titleKey }) => ({ id: `mapping-section-${key}`, label: key === 'extra' && first?.type === 25 ? 'Cyborg buttons' : key === 'extra' && grips ? t('keymap.gripsTitle', 'Grips') : t(titleKey), count: primaryTab === 'buttons' ? formatSectionCount(sectionCounts[key]) : undefined }))
     }
     return []
   }, [primaryTab, stickModes, t, sample?.devices, sectionCounts])
@@ -876,11 +899,12 @@ function App() {
     // with its status line, instead of scroll-spying one long column.
     if (primaryTab === 'joysticks' || primaryTab === 'triggers' || primaryTab === 'touchpad') {
       const page = primaryTab
-      return inputRailItems(page, effectiveConfigText, t, hasTwoTrackpads).map(item => ({ id: item.id, label: item.label, status: item.status,
-        active: item.side === 'single' || inputSides[page] === item.side, onSelect: () => { if (item.side !== 'single') setInputSide(page, item.side) } }))
+      const items = inputRailItems(page, effectiveConfigText, t, hasTwoTrackpads, sample?.devices?.[0]?.type)
+      return items.map(item => ({ id: item.id, label: item.label, status: item.status,
+        active: items.length === 1 || item.side === 'single' || inputSides[page] === item.side, onSelect: () => { if (item.side !== 'single') setInputSide(page, item.side) } }))
     }
     // Gyro (console v2, after the UX review): the same frame as the other input fronts, with a one-item rail.
-    if (primaryTab === 'gyro') return [{ id: 'gyro', label: 'Gyro', status: gyroRailStatus(effectiveConfigText, controllerVisualFamily(sample?.devices?.[0]?.type)), active: true, onSelect: () => {} }]
+    if (primaryTab === 'gyro') return []
     return spiedSections.map(section => ({ ...section, active: activeSectionId === section.id, onSelect: () => scrollToSection(section.id) }))
   }, [spiedSections, activeSectionId, primaryTab, t, setPrimaryTab, effectiveConfigText, hasTwoTrackpads, inputSides, sample])
   const currentSection = shellSections.find(section => section.active)
@@ -1149,7 +1173,7 @@ function App() {
       if (disposed) return
       setMappingEnabled(state.mappingEnabled)
       setAutoloadEnabled(state.autoloadEnabled)
-      setControllerNavEnabled(state.controllerNavEnabled)
+      setControllerNavEnabled(anyControllerNavigation(state))
       }).catch(error => {
       console.error('Failed to load runtime mapping state', error)
     })
@@ -1278,26 +1302,24 @@ function App() {
 
   // ---- Shell context: what the title bar, tabs and capsule describe.
   const device = sample?.devices?.[0]
+  useEffect(() => { if (!controllerPageAvailable(primaryTab, device?.type)) setPrimaryTab('buttons') }, [primaryTab, device?.type, setPrimaryTab])
   const controllerFamily = controllerVisualFamily(device?.type)
   const liveProfilePath = activeControllerProfilePath(sample)
-  const appliedName = mappingEnabled ? appliedProfileLabel(liveProfilePath, appliedProfileName)?.replace(/\.txt$/i, '') ?? null : null
-  // What games get. While Studio is in front the mapper runs AppNavigation,
-  // which is Studio's own and never shown; the configuration behind it is the
-  // one that counts as running.
-  const runningProfilePath = isStudioNavigationProfile(liveProfilePath)
-    ? (appliedProfileName ? `profiles-library/${appliedProfileName.replace(/\.txt$/i, '')}.txt` : '')
-    : liveProfilePath
+  const slots = useSlots()
+  const liveProfile = resolveAppliedProfile(liveProfilePath, appliedProfileName, slots?.slots)
+  const appliedName = mappingEnabled ? liveProfile.name : null
+  const runningProfilePath = liveProfile.readPath
   const [controllerRuntimeConfig, setControllerRuntimeConfig] = useState<{ path: string; text: string } | null>(null)
   useEffect(() => {
     let cancelled = false
     setControllerRuntimeConfig(null)
-    if (runningProfilePath && appliedName !== appliedProfileName) {
+    if (runningProfilePath) {
       void desktopBridge.readConfigFile(runningProfilePath).then(text => {
         if (!cancelled && text != null) setControllerRuntimeConfig({ path: runningProfilePath, text })
       }).catch(() => {})
     }
     return () => { cancelled = true }
-  }, [runningProfilePath, appliedName, appliedProfileName])
+  }, [runningProfilePath, appliedName, appliedProfileName, runtimeConfig])
   // What this configuration's imports alone produce, and which import each
   // value came from: the value an override replaces, and whose it was.
   const importedBase = useMemo(() => {
@@ -1307,13 +1329,15 @@ function App() {
   // What this configuration itself says (its own lines, plus this controller's
   // own layout). projectedDocument already holds the imports' values when a
   // controller is connected, so it cannot say what is inherited and what is owned.
-  const ownDefaultText = useMemo(() => defaultLayer(editingControllerModel ? projectController(documentText, editingControllerModel) : projectedDocument), [documentText, editingControllerModel, projectedDocument])
+  const ownDefaultText = useMemo(() => defaultLayer(editingControllerModel ? projectController(documentText, editingControllerModel) : documentText), [documentText, editingControllerModel])
+  const visualBase = useMemo(() => editingControllerModel ? projectController(importedBase.text, editingControllerModel, importedBase.text) : importedBase.text, [importedBase.text, editingControllerModel])
+  const settingSources = useMemo(() => controllerSettingOrigins(documentText, editingControllerModel, importedBase.text, importedBase.origins), [documentText, editingControllerModel, importedBase])
   const templateNames = useMemo(() => new Set(configIncludes.imports.map(includeDisplayName)), [configIncludes.imports])
   const titleBarProfiles = useMemo<TitleBarProfile[]>(() => libraryProfiles.map(name => ({
     name,
     template: templateNames.has(name),
     description: name === currentLibraryProfile
-      ? [configIncludes.imports.length ? `Built on ${configIncludes.imports.map(includeDisplayName).join(', ')}` : '', layers.length ? `${layers.length} mode${layers.length === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · ') || undefined
+      ? [configIncludes.imports.length ? `Built on ${configIncludes.imports.map(includeDisplayName).join(', ')}` : '', layers.length ? `${layers.length} layer${layers.length === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · ') || undefined
       : templateNames.has(name) && currentLibraryProfile ? `${currentLibraryProfile} is built on it` : undefined,
   })), [libraryProfiles, templateNames, currentLibraryProfile, configIncludes.imports, layers.length])
   const [testing, setTesting] = useState(false)
@@ -1367,9 +1391,12 @@ function App() {
   const baseName = (path: string) => path.split(/[\\/]/).pop()?.toLowerCase() ?? ''
   const configErrors = useMemo(() => {
     const reported = (sample?.configErrors as ConfigError[] | undefined) ?? []
-    const running = runningProfilePath ? baseName(runningProfilePath) : ''
-    return running ? reported.filter(error => baseName(error.profile) === running) : []
-  }, [sample?.configErrors, runningProfilePath])
+    // readPath is deliberately null when this is the already-applied config.
+    // Error ownership follows its identity, not whether another read is needed.
+    const paths = [runningProfilePath, isStudioNavigationProfile(liveProfilePath) ? null : liveProfilePath, appliedName ? `${appliedName}.txt` : null]
+    const running = new Set(paths.filter((path): path is string => Boolean(path)).map(baseName))
+    return reported.filter(error => running.has(baseName(error.profile)))
+  }, [sample?.configErrors, runningProfilePath, liveProfilePath, appliedName])
   const configErrorsKey = configErrors.map(error => `${error.file}:${error.line}:${error.text}`).join('|')
   const [dismissedConfigErrors, setDismissedConfigErrors] = useState('')
   const openSourceAtError = (error: ConfigError) => {
@@ -1422,18 +1449,20 @@ function App() {
     requestAnimationFrame(() => { if (back?.isConnected) back.focus({ preventScroll: true }) })
   }, [])
   const startTest = async () => {
+    if (isCalibrating || actionInFlight.current || mapperExit || configErrors.length) return
     testReturnFocus.current = lastPageFocus.current
-    // Told first, so this Apply leaves the configuration with the controller.
-    await desktopBridge.setStudioTesting(true)
-    // Test it applies what is on screen without saving it, so no "is live"
-    // toast: the banner says what is running (UX review, B1).
-    if (!isCalibrating && !actionInFlight.current) {
-      actionInFlight.current = true
-      setEditorBusy(true)
-      try { await applyConfig({ textOverride: finalizePendingValues?.() ?? configText, profileNameOverride: currentLibraryProfile ?? undefined, quiet: true }) }
-      finally { actionInFlight.current = false; setEditorBusy(false) }
+    actionInFlight.current = true
+    setEditorBusy(true)
+    let started = false
+    try {
+      await desktopBridge.setStudioTesting(true)
+      started = await applyConfig({ textOverride: finalizePendingValues?.() ?? configText, profileNameOverride: currentLibraryProfile ?? undefined, quiet: true })
+      if (started) setTesting(true)
+    } finally {
+      if (!started) { await desktopBridge.setStudioTesting(false); await desktopBridge.resumeStudioNavigation() }
+      actionInFlight.current = false
+      setEditorBusy(false)
     }
-    setTesting(true)
   }
   // Try it / Show in game (console v2, D13): Test mode with a text of its own --
   // a mode folded into Default, a menu shown on a button. When the test ends,
@@ -1446,8 +1475,9 @@ function App() {
     tryRestore.current = runtimeConfig ? { text: runtimeConfig, name: appliedProfileName ?? undefined } : null
     setTestNote(note)
     await desktopBridge.setStudioTesting(true)
-    await applyConfig({ textOverride: text, profileNameOverride: currentLibraryProfile ?? undefined, quiet: true })
-    setTesting(true)
+    const started = await applyConfig({ textOverride: text, profileNameOverride: currentLibraryProfile ?? undefined, quiet: true })
+    if (started) setTesting(true)
+    else { setTestNote(null); tryRestore.current = null; await desktopBridge.setStudioTesting(false); await desktopBridge.resumeStudioNavigation() }
   }
   // A menu's Show in game: it is always ready on its first pad or stick and
   // shows as soon as the test starts; other menus give that pad or stick up.
@@ -1541,19 +1571,19 @@ function App() {
   // it moved (the strip has ends) for the haptic.
   const stepPageFromPad = useCallback((delta: 1 | -1) => {
     if (claimStep('jsm:page-step', delta)) return true
-    const order = pageOrder(primaryTab)
+    const order = pageOrder(primaryTab).filter(tab => controllerPageAvailable(tab, sample?.devices?.[0]?.type))
     const index = Math.max(0, order.indexOf(primaryTab))
     const next = order[Math.min(order.length - 1, Math.max(0, index + delta))]
     if (next === primaryTab) return false
     setPrimaryTab(next)
     return true
-  }, [primaryTab, setPrimaryTab])
+  }, [primaryTab, setPrimaryTab, sample?.devices?.[0]?.type])
 
   // Hints draw the pad's buttons only while one is connected (nav/inputSource.ts).
-  const padConnected = Boolean(device)
+  const padConnected = Boolean(device?.handle && device.status)
   useEffect(() => { document.body.dataset.padConnected = String(padConnected) }, [padConnected])
   useControllerNavigation({
-    enabled: mappingPlate === 'studio',
+    enabled: mappingEnabled && autoloadEnabled && controllerNavEnabled,
     testing,
     onPageStep: stepPageFromPad,
     onSectionStep: stepSection,
@@ -1575,7 +1605,7 @@ function App() {
     },
   })
 
-  const controllerStatus: ControllerStatus = device
+  const controllerStatus: ControllerStatus = device?.handle && device.status
     ? {
         kind: 'connected',
         name: controllerDisplayName(device.type),
@@ -1585,8 +1615,7 @@ function App() {
       }
     : { kind: 'searching' }
   const editApplied = () => {
-    const name = appliedProfileLabel(liveProfilePath, appliedProfileName)
-    if (name) requestLoadProfile(name.replace(/.txt$/i, ''))
+    if (appliedName) requestLoadProfile(appliedName)
     else showToast('The applied profile source is unavailable.', 'error')
   }
   const calibratingReason = `Calibrating${countdown != null ? ` · ${countdown}s` : '…'}`
@@ -1599,7 +1628,7 @@ function App() {
   // edit that was never applied reads "Apply Wardogs".
   const changeCount = useMemo(() => hasPendingChanges ? Math.max(1, countChanges(appliedConfig, documentText)) : 0, [hasPendingChanges, appliedConfig, documentText])
   const asWritten = useCallback((text: string) => serializeConfig(parseConfigText(ensureHeaderLines(text))), [])
-  const liveRuntimeConfig = appliedName === appliedProfileName ? runtimeConfig
+  const liveRuntimeConfig = !runningProfilePath ? runtimeConfig
     : controllerRuntimeConfig?.path === runningProfilePath ? controllerRuntimeConfig.text : null
   const editingIsRunning = useMemo(() => Boolean(currentLibraryProfile) && currentLibraryProfile === appliedName && !!liveRuntimeConfig
     && countChanges(asWritten(liveRuntimeConfig), asWritten(documentText)) === 0, [currentLibraryProfile, appliedName, liveRuntimeConfig, documentText, asWritten])
@@ -1626,7 +1655,7 @@ function App() {
     resetPendingSensitivityChanges()
     setChangeReviewOpen(true)
   }
-  const testReason = !device ? 'Connect a controller to test' : mappingPlate !== 'studio' ? 'Test it runs while the app has the controller' : !currentLibraryProfile ? 'Choose a configuration to test' : null
+  const testReason = mapperExit ? 'The mapper is stopped. Restart mapper to test.' : configErrors.length ? 'Fix the configuration errors before testing.' : !device ? 'Connect a controller to test' : mappingPlate !== 'studio' ? 'Test it runs while the app has the controller' : !currentLibraryProfile ? 'Choose a configuration to test' : null
   // What the title bar holds, reachable from the pad through Menu: Apply,
   // then the configuration, layer and output being worked on, then mapping.
   // Console v2 (V3): ☰ opens the configuration menu: Review changes, Undo,
@@ -1660,7 +1689,7 @@ function App() {
       meta: mappingPlate === 'off' ? 'Mapping is off' : 'Mapping is on', idle: runtimeMappingBusy,
       onSelect: () => { void handleToggleMappingEnabled() } },
     // One name on Home and in the editor (UX review, S1): "This controller only", Off or On.
-    { key: 'controllerLayout', icon: 'connected', label: 'This controller only', meta: hasControllerVariant(documentText, editingControllerModel ?? '') ? `On · ${device ? controllerVariantLabel(device) : 'this controller'}` : 'Off', idle: !currentLibraryProfile, onSelect: () => setControllerLayoutOpen(true) },
+    { key: 'controllerLayout', icon: 'connected', label: 'Controller layouts', meta: hasEffectiveControllerVariant(documentText, editingControllerModel ?? '') ? `On · ${device ? controllerVariantLabel(device) : 'this controller'}` : 'Off', idle: !currentLibraryProfile, onSelect: () => setControllerLayoutOpen(true) },
   ]
   // The status (Live · saved, Unsaved, Testing) is the menu's header line, not
   // an item: only an action that can be taken is listed (UX review, S1).
@@ -1671,12 +1700,12 @@ function App() {
     : stateButton.reason
   const configMenuItems: ConfigurationMenuItem[] = [
     { key: 'review', icon: 'buttons', label: 'Review changes', meta: changeCount ? `${changeCount} unsaved ${changeCount === 1 ? 'change' : 'changes'}` : 'Nothing unsaved', idle: isCalibrating, defaultFocus: changeCount > 0, onSelect: openChangeReview },
-    { key: 'undo', icon: 'undo', label: 'Undo', meta: canUndo && !isCalibrating ? describeChange(undoTarget, documentText) ?? 'Last change' : 'Nothing to undo', idle: !canUndo || isCalibrating, onSelect: undo },
+    { key: 'undo', icon: 'undo', label: 'Undo', meta: canUndo && !isCalibrating ? `Last change · ${describeChange(undoTarget, documentText) ?? 'configuration'}` : 'Nothing to undo', idle: !canUndo || isCalibrating, onSelect: undo },
     { key: 'redo', icon: 'redo', label: 'Redo', meta: canRedo && !isCalibrating ? describeChange(documentText, redoTarget ?? documentText) ?? 'Last undo' : 'Nothing to redo', idle: !canRedo || isCalibrating, onSelect: redo },
     ...(stateButton.kind === 'changes' || stateButton.kind === 'apply' || stateButton.kind === 'testing'
       ? [{ key: 'apply', icon: 'apply' as const, label: stateLabel, divider: true, meta: stateButton.kind === 'testing' ? undefined : 'Ctrl+Shift+A', onSelect: pressStateButton }]
       : []),
-    { key: 'save', icon: 'save', label: 'Save, not live yet', divider: stateButton.kind === 'applied' || stateButton.kind === 'idle', meta: saveIdleReason ?? 'Ctrl+S', idle: Boolean(saveIdleReason), onSelect: () => void runEditorAction('save') },
+    { key: 'save', icon: 'save', label: 'Save', divider: stateButton.kind === 'applied' || stateButton.kind === 'idle', meta: saveIdleReason ?? 'Ctrl+S', idle: Boolean(saveIdleReason), onSelect: () => void runEditorAction('save') },
     { key: 'copy', icon: 'copy', label: 'Save as copy…', idle: !currentLibraryProfile || isCalibrating, meta: !currentLibraryProfile ? 'Choose a configuration first' : undefined, onSelect: () => void handleSaveAsCopy(finalizePendingValues?.() ?? configText) },
     { key: 'discard', icon: 'remove', label: hasPendingChanges ? `Discard ${changeCount} ${changeCount === 1 ? 'change' : 'changes'}` : 'Discard changes', idle: !hasPendingChanges || isCalibrating, meta: hasPendingChanges ? undefined : 'Nothing unsaved', onSelect: handleCancel },
     { key: 'test', icon: 'test', label: 'Test it', idle: Boolean(testReason) || testing, meta: testing ? 'Testing now' : testReason ?? undefined, onSelect: () => void startTest() },
@@ -1693,18 +1722,20 @@ function App() {
       onHome={() => setPrimaryTab('home')}
       controllerLabel={{ text: controllerStatus.kind === 'connected' ? `${controllerStatus.name}${controllerStatus.battery ? ` · ${controllerStatus.battery}` : ''}` : 'No controller · searching', connected: controllerStatus.kind === 'connected' }}
       onOpenConfigMenu={() => setConfigMenuOpen(true)}
-      controllerScope={!editingControllerModel ? 'Shared layout' : hasControllerVariant(documentText, editingControllerModel) ? `Only for ${device ? controllerVariantLabel(device) : 'this controller'}` : 'Shared layout'}
+      controllerScope={!editingControllerModel ? 'Shared layout' : hasEffectiveControllerVariant(documentText, editingControllerModel) ? `Only for ${device ? controllerVariantLabel(device) : 'this controller'}` : 'Shared layout'}
       onOpenControllerLayout={() => setControllerLayoutOpen(true)}
       // Console v2 (V3/V4): the game chip names the controller, and says so
       // when this configuration has a layout only for it.
       // "Its own layout" whenever edits go to this controller's variant (a
       // controller connected, or chosen), the same truth Layout's quick menu
       // reports (UX review 2026-10-09, L1); the rows badge only what differs.
-      chipController={device ? `${controllerDisplayName(device.type)}${editingControllerModel ? ' · its own layout' : ''}` : 'No controller'}
+      chipController={device ? `${controllerVariantLabel(device)} · ${editingControllerModel && hasEffectiveControllerVariant(documentText, editingControllerModel) ? 'controller layout' : 'shared layout'}` : 'No controller'}
+      controllerSelector={<ControllerSelector devices={rawSample?.devices} target={editingControllerModel} text={documentText} onSelect={next => { if (next === editingControllerModel) return; setDocumentText(finalizePendingValues()); resetPendingSensitivityChanges(); setControllerEditingTarget(next) }} />}
       modeName={layerId ? layers.find(layer => layer.id === layerId)?.name ?? null : null}
       modeColor={layerId ? layerColor(Math.max(0, layers.findIndex(layer => layer.id === layerId))) : undefined}
       // One header row (V3): the tabs sit between the game chip and the status chip.
       tabs={!isHomePage(primaryTab) && studioHub(primaryTab) !== 'settings' ? <PageTabs
+        deviceType={device?.type}
         width={shellWidth}
         current={primaryTab}
         onSelect={setPrimaryTab}
@@ -1725,8 +1756,26 @@ function App() {
       mapping={mappingPlate}
       state={stateButton}
       onStatePress={pressStateButton}
+      onSave={() => void runEditorAction('save')} saveReason={saveIdleReason}
+      onSearch={() => { setPaletteConfigurationsOnly(false); setPaletteOpen(true) }}
     />
   )
+
+  useEffect(() => {
+    const shortcut = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey)) return
+      if (event.key.toLowerCase() === 'k') {
+        if (testing || document.querySelector('[data-subpage], .sheet-overlay, .modal-overlay')) return
+        event.preventDefault(); event.stopPropagation(); setPaletteConfigurationsOnly(false); setPaletteOpen(open => !open)
+      } else if (event.shiftKey && event.key.toLowerCase() === 'f') {
+        if (testing || document.querySelector('[data-focus-trap="true"], .modal-overlay')) return
+        event.preventDefault(); event.stopPropagation()
+        if (device) listenForInput(); else showToast('Connect a controller to find a button.')
+      }
+    }
+    window.addEventListener('keydown', shortcut, true)
+    return () => window.removeEventListener('keydown', shortcut, true)
+  }, [testing, device, listenForInput])
 
   // Timing lines an older file still sets (2f). The file being edited is
   // changed in the editor, and saved at once unless it has other unsaved edits.
@@ -1775,7 +1824,7 @@ function App() {
         applied={editingIsRunning && !mapperExit}
         summary={currentLibraryProfile ? summarizeConfiguration(effectiveConfigText, layers.length, controllerFamily) : ''}
         changeCount={changeCount}
-        onSwitch={() => setPrimaryTab('configurations')}
+        onSwitch={() => { setPaletteConfigurationsOnly(true); setPaletteOpen(true) }}
         // A edits the layout: the Layout tab, where every input is.
         onContinue={() => setPrimaryTab('overview')}
         onTest={() => void startTest()}
@@ -1823,6 +1872,13 @@ function App() {
         onGoTo={change => {
           setChangeReviewOpen(false)
           if (change.kind === 'menu') { window.dispatchEvent(new CustomEvent('jsm:virtual-menu', { detail: change.menuId })); return }
+          if (change.kind === 'controller' && change.model && /^(LEFT|RIGHT)_TOUCHPAD_ROTATION$/.test(change.key)) {
+            selectLayer('')
+            if (change.model !== editingControllerModel) {
+              setDocumentText(finalizePendingValues()); resetPendingSensitivityChanges(); setControllerEditingTarget(change.model)
+            }
+            navigateInput(change.key); return
+          }
           if (change.kind === 'controller') { window.dispatchEvent(new Event('jsm:open-controller-layout')); return }
           if (change.kind === 'layer' || change.kind === 'order' || change.kind === 'property' || /^#\s*@layer-action/.test(change.key)) { setPrimaryTab('layers'); return }
           goToModeChange(change.layerId ?? '', change.key.replace(/^#\s*@(label|icon)\s+/i, '').split('::')[0])
@@ -1973,156 +2029,29 @@ function App() {
     exitTest()
   }
 
-  const renderPrimaryContent = () => {
-    if (primaryTab === 'home') return renderHome()
-    if (primaryTab === 'credits') return <CreditsPage />
-    if (primaryTab === 'configurations') return <div className="settings-page configuration-library">
-      <Suspense fallback={<LazyPanelFallback title="Games" />}>{renderProfileManager('games')}</Suspense>
-    </div>
-    if (primaryTab === 'bases') return <div className="settings-page configuration-library">
-      <Suspense fallback={<LazyPanelFallback title="Bases" />}>{renderProfileManager('bases')}</Suspense>
-    </div>
-    if (primaryTab === 'associations') return <AssociationsPage libraryProfiles={libraryProfiles} autoloadEnabled={autoloadEnabled}
-      runtimeBusy={runtimeMappingBusy} onAutoloadEnabledChange={handleAutoloadEnabledChange}
-      appliedProfileName={mappingEnabled && !mapperExit ? appliedProfileName : null} onWhere={setLibraryWhere} onCount={setLibraryCount} />
-    // Menus always save to Default (console v2, D16), whichever mode is chosen.
-    if (primaryTab === 'virtualMenus') return <MenusPage initialMenuId={virtualMenuId} text={defaultText} setText={setDefaultConfigText} configName={configName} deviceType={sample?.devices?.[0]?.type} sample={sample}
-      layers={layers} showReason={testReason} onShowInGame={showMenuInGame} />
-    if (primaryTab === 'layers') {
-      // Live only when the mapper is running the configuration on this page.
-      const running = runningProfilePath
-      const runningName = running.split(/[\\/]/).pop()?.replace(/\.txt$/i, '') ?? ''
-      const isThis = !!currentLibraryProfile && runningName.toLowerCase() === currentLibraryProfile.toLowerCase()
-      const stack = isThis ? (layerStack && layerStack.profile.split(/[\\/]/).pop()?.replace(/\.txt$/i, '').toLowerCase() === runningName.toLowerCase() ? layerStack : { profile: running, layers: [] }) : null
-      return <ModesPage text={projectedDocument} layers={layers} selected={layerId} defaultText={defaultText} onChange={setControllerDocument}
-        onEditOnLayout={id => { selectLayer(id); setPrimaryTab('overview') }} onGoTo={goToModeChange}
-        onTry={id => void tryConfiguration(projectLayer(finalizePendingValues?.() ?? documentText, id), `Trying ${layers.find(layer => layer.id === id)?.name ?? 'this layer'}`)} tryReason={testReason}
-        disabled={isCalibrating} family={controllerVisualFamily(sample?.devices?.[0]?.type)} device={sample?.devices?.[0]}
-        liveStack={mapperExit ? null : stack} liveProfileName={!isThis && runningName ? runningName : null} />
+  const openConfigurationTiming = useCallback(() => {
+    setPrimaryTab('buttons')
+    const reveal = (tries: number) => {
+      const summary = Array.from(document.querySelectorAll<HTMLElement>('.main-pane summary')).find(node => /Configuration timing/i.test(node.textContent ?? ''))
+      if (!summary) { if (tries > 0) window.setTimeout(() => reveal(tries - 1), 100); return }
+      const details = summary.closest('details')
+      if (details) details.open = true
+      const polling = details?.querySelector<HTMLElement>('button[aria-label^="Controller polling"]')
+      const target = polling ?? summary
+      target.scrollIntoView({ block: 'center' })
+      target.focus({ preventScroll: true })
     }
-    // Appearance: theme, language and the accent (components/AppearancePage).
-    if (primaryTab === 'appearance') return <AppearancePage />
-    // Settings ▸ Controller and Settings ▸ Startup (console v2, V6): separate
-    // categories now (components/settings).
-    if (primaryTab === 'settings') return <ControllerSettings controllerType={sample?.devices?.[0]?.type} />
-    if (primaryTab === 'startup') return <StartupPage libraryProfiles={libraryProfiles.filter(name => !templateNames.has(name))} liveName={appliedName} hasPendingChanges={hasPendingChanges} />
+    window.setTimeout(() => reveal(20), 100)
+  }, [setPrimaryTab])
+  useEffect(() => {
+    window.addEventListener('jsm:open-configuration-timing', openConfigurationTiming)
+    return () => window.removeEventListener('jsm:open-configuration-timing', openConfigurationTiming)
+  }, [openConfigurationTiming])
 
-    if (primaryTab === 'gyro') {
-      // The settings-page template (Gyro.dc.html): GyroPage draws the seven
-      // sections; each carries data-section, which is how the section list
-      // finds them.
-      return (
-        <Suspense fallback={<LazyPanelFallback title={t(pageMeta('gyro').labelKey, pageMeta('gyro').label)} />}>
-          <GyroPage
-            configText={effectiveConfigText}
-            setConfigText={setConfigText}
-            devices={sample?.devices}
-            sensitivity={sensitivity}
-            modeshiftSensitivity={modeshiftSensitivity}
-            gyroActivationMode={gyroActivation.mode}
-            gyroActivationButton={gyroActivation.button}
-            touchpadMode={touchpadModeValue}
-            touchpadGridCells={gyroGridCommands.length}
-            touchpadGridCommands={gyroGridCommands}
-            isCalibrating={isCalibrating}
-            statusMessage={statusMessage}
-            ignoredDevices={ignoredGyroDevices}
-            onToggleIgnoreDevice={handleToggleIgnoreGyroDevice}
-            onInGameSensChange={handleInGameSensChange}
-            onRealWorldCalibrationChange={handleRealWorldCalibrationChange}
-            onGyroSpaceChange={handleGyroSpaceChange}
-            onGyroAxisXChange={handleGyroAxisXChange}
-            onGyroAxisYChange={handleGyroAxisYChange}
-            onGyroOutputChange={handleGyroOutputChange}
-            onGyroActivationModeChange={handleGyroActivationModeChange}
-            onGyroActivationButtonChange={handleGyroActivationButtonChange}
-            counterOsMouseSpeed={counterOsMouseSpeedEnabled}
-            onCounterOsMouseSpeedChange={handleCounterOsMouseSpeedChange}
-            onOpenCalibration={handleOpenCalibration}
-            onTryIt={testReason ? undefined : () => { void startTest() }}
-            onRecalibrate={() => { void handleRecalibrate() }}
-            calibrationCountdown={countdown}
-            onOpenControllerSettings={() => setPrimaryTab('settings')}
-            hasPendingChanges={hasPendingChanges}
-            onApply={handleApplyWithFinalize}
-            onCancel={handleCancel}
-            lockMessage={lockMessage}
-            mode={currentMode}
-            sensitivityView={sensitivityView}
-            sample={sample}
-            telemetry={telemetryValues}
-            onModeChange={(mode: 'static' | 'accel') => handleModeSelection(mode, activeSensitivityPrefix)}
-            onSensitivityViewChange={setSensitivityView}
-            onAccelCurveChange={handleAccelCurveChange}
-            onNaturalVHalfChange={handleNaturalVHalfChange}
-            onPowerVRefChange={handlePowerVRefChange}
-            onPowerExponentChange={handlePowerExponentChange}
-            onSigmoidMidChange={handleSigmoidMidChange}
-            onSigmoidWidthChange={handleSigmoidWidthChange}
-            onJumpTauChange={handleJumpTauChange}
-            onMinThresholdChange={handleThresholdChange('MIN_GYRO_THRESHOLD')}
-            onMaxThresholdChange={handleThresholdChange('MAX_GYRO_THRESHOLD')}
-            onMinSensXChange={handleDualSensChange('MIN_GYRO_SENS', 0)}
-            onMinSensYChange={handleDualSensChange('MIN_GYRO_SENS', 1)}
-            onMaxSensXChange={handleDualSensChange('MAX_GYRO_SENS', 0)}
-            onMaxSensYChange={handleDualSensChange('MAX_GYRO_SENS', 1)}
-            onStaticSensXChange={handleStaticSensChange(0)}
-            onStaticSensYChange={handleStaticSensChange(1)}
-            onRollContributionChange={handleRollContributionChange}
-            modeshiftButton={sensitivityModeshiftButton}
-            onModeshiftButtonChange={handleSensitivityModeshiftButtonChange}
-            accelCurveLink={accelCurveLinkValue}
-            onAccelCurveLinkChange={handleAccelCurveLinkChange}
-            onCutoffSpeedChange={handleCutoffSpeedChange}
-            onCutoffRecoveryChange={handleCutoffRecoveryChange}
-            onSteadyingFloorChange={handleSteadyingFloorChange}
-            onSmoothTimeChange={handleSmoothTimeChange}
-            onSmoothThresholdChange={handleSmoothThresholdChange}
-            onSmoothingDecayChange={handleSmoothingDecayChange}
-            onOneEuroFilterChange={handleOneEuroFilterChange}
-            onOneEuroMinCutoffChange={handleOneEuroMinCutoffChange}
-            onOneEuroSpeedCoeffChange={handleOneEuroSpeedCoeffChange}
-            onAngleSnapChange={handleAngleSnapChange}
-            onAngleSnapSmoothChange={handleAngleSnapSmoothChange}
-            onDecelBrakeStrengthChange={handleDecelBrakeStrengthChange}
-            onDecelBrakeThresholdChange={handleDecelBrakeThresholdChange}
-            onGyroClickDampenChange={handleGyroClickDampenChange}
-          />
-        </Suspense>
-      )
-    }
-
-    if (primaryTab === 'timing') {
-      // Press timing & polling (2f): a Studio page on the global store.
-      return <TimingPage onRemoveLines={removeTimingLines} libraryKey={libraryProfiles.join('|')} configName={currentLibraryProfile}
-        // Press timing ▸ Advanced links to the configuration's own timing, which
-        // stays at the foot of Buttons (BIND's page).
-        onOpenConfigurationTiming={() => {
-          setPrimaryTab('buttons')
-          const reveal = (tries: number) => {
-            const summary = Array.from(document.querySelectorAll<HTMLElement>('.main-pane summary, .main-pane [data-nav-disclosure-trigger], .main-pane button')).find(node => /Configuration timing|own timing/i.test(node.textContent ?? ''))
-            if (!summary) { if (tries > 0) window.setTimeout(() => reveal(tries - 1), 150); return }
-            summary.scrollIntoView({ block: 'center' })
-            summary.focus({ preventScroll: true })
-          }
-          window.setTimeout(() => reveal(20), 200)
-        }} />
-    }
-
-    if (primaryTab in CONTROL_TAB_SECTIONS) {
-      const controlTab = primaryTab as ControlTab
-      const sections = CONTROL_TAB_SECTIONS[controlTab]
-      return (
-        <Suspense fallback={<LazyPanelFallback title={t(`app.nav.${controlTab}`)} />}>
-          {/* Buttons (console v2, ButtonList): the list, and "Where it is on
-              your controller · Press it now" beside it. Rows read whether they
-              are this controller's own from the variant scope. */}
-          <VariantScopeContext.Provider value={editingControllerModel ? { model: editingControllerModel, label: device ? controllerVariantLabel(device) : 'This controller', text: documentText } : null}>
-          <ButtonsPageLayout aside={controlTab === 'buttons' ? <PressToFind device={device} listening={pressToFind.listening} onListen={pressToFind.listen} onStop={pressToFind.stop} /> : undefined}>
-          {controlTab === 'buttons' && <FindButtonBar device={device} listening={pressToFind.listening} onListen={pressToFind.listen} onStop={pressToFind.stop} />}
-          <KeymapControls
+  const renderKeymap = (sections: string[]) => (
+    <KeymapControls
             onConfigTextChange={setConfigText}
-            visibleSections={sections}
+            visibleSections={sections} inlineCommand={inlineBinding ?? undefined} onInlineClose={() => { setInlineBinding(null); requestAnimationFrame(() => requestAnimationFrame(() => inlineBindingReturn.current?.focus({ preventScroll: true }))) }}
             bindingLabels={bindingLabels}
             onBindingLabelChange={handleBindingLabelChange}
             bindingIcons={bindingIcons}
@@ -2273,6 +2202,147 @@ function App() {
             onBindGamepadPassthrough={handleBindGamepadPassthrough}
             onBindDirectionsToWasd={handleBindDirectionsToWasd}
           />
+  )
+
+  const renderPrimaryContent = () => {
+    if (primaryTab === 'home') return renderHome()
+    if (primaryTab === 'credits') return <CreditsPage />
+    if (primaryTab === 'configurations') return <div className="settings-page configuration-library">
+      <Suspense fallback={<LazyPanelFallback title="Games" />}>{renderProfileManager('games')}</Suspense>
+    </div>
+    if (primaryTab === 'bases') return <div className="settings-page configuration-library">
+      <Suspense fallback={<LazyPanelFallback title="Bases" />}>{renderProfileManager('bases')}</Suspense>
+    </div>
+    if (primaryTab === 'associations') return <AssociationsPage libraryProfiles={libraryProfiles} autoloadEnabled={autoloadEnabled}
+      runtimeBusy={runtimeMappingBusy} onAutoloadEnabledChange={handleAutoloadEnabledChange}
+      appliedProfileName={mappingEnabled && !mapperExit ? appliedProfileName : null} onWhere={setLibraryWhere} onCount={setLibraryCount} />
+    // Menus always save to Default (console v2, D16), whichever mode is chosen.
+    if (primaryTab === 'virtualMenus') return <MenusPage initialMenuId={virtualMenuId} text={defaultText} setText={setDefaultConfigText} configName={configName} deviceType={sample?.devices?.[0]?.type} sample={sample}
+      layers={layers} showReason={testReason} onShowInGame={showMenuInGame} />
+    if (primaryTab === 'layers') {
+      // Live only when the mapper is running the configuration on this page.
+      const runningName = appliedName ?? ''
+      const isThis = !!currentLibraryProfile && runningName.toLowerCase() === currentLibraryProfile.toLowerCase()
+      const stackName = resolveAppliedProfile(layerStack?.profile, appliedProfileName, slots?.slots).name
+      const stack = isThis ? (layerStack && stackName?.toLowerCase() === runningName.toLowerCase() ? layerStack : { profile: liveProfilePath, layers: [] }) : null
+      return <ModesPage text={projectedDocument} layers={layers} selected={layerId} defaultText={defaultText} onChange={setControllerDocument}
+        onEditOnLayout={id => { selectLayer(id); setPrimaryTab('overview') }} onGoTo={goToModeChange}
+        onTry={id => void tryConfiguration(projectLayer(finalizePendingValues?.() ?? documentText, id), `Trying ${layers.find(layer => layer.id === id)?.name ?? 'this layer'}`)} tryReason={testReason}
+        disabled={isCalibrating} family={controllerVisualFamily(sample?.devices?.[0]?.type)} device={sample?.devices?.[0]}
+        liveStack={mapperExit ? null : stack} liveProfileName={!isThis && runningName ? runningName : null} />
+    }
+    // Appearance: theme, language and the accent (components/AppearancePage).
+    if (primaryTab === 'appearance') return <AppearancePage />
+    // Settings ▸ Controller and Settings ▸ Startup (console v2, V6): separate
+    // categories now (components/settings).
+    if (primaryTab === 'settings') return <ControllerSettings controllerType={sample?.devices?.[0]?.type} />
+    if (primaryTab === 'startup') return <StartupPage libraryProfiles={libraryProfiles.filter(name => !templateNames.has(name))} liveName={appliedName} hasPendingChanges={hasPendingChanges} />
+
+    if (primaryTab === 'gyro') {
+      // The settings-page template (Gyro.dc.html): GyroPage draws the seven
+      // sections; each carries data-section, which is how the section list
+      // finds them.
+      return (
+        <Suspense fallback={<LazyPanelFallback title={t(pageMeta('gyro').labelKey, pageMeta('gyro').label)} />}>
+          <GyroPage
+            configText={effectiveConfigText}
+            setConfigText={setConfigText}
+            devices={sample?.devices}
+            sensitivity={sensitivity}
+            modeshiftSensitivity={modeshiftSensitivity}
+            gyroActivationMode={gyroActivation.mode}
+            gyroActivationButton={gyroActivation.button}
+            touchpadMode={touchpadModeValue}
+            touchpadGridCells={gyroGridCommands.length}
+            touchpadGridCommands={gyroGridCommands}
+            isCalibrating={isCalibrating}
+            statusMessage={statusMessage}
+            ignoredDevices={ignoredGyroDevices}
+            onToggleIgnoreDevice={handleToggleIgnoreGyroDevice}
+            onInGameSensChange={handleInGameSensChange}
+            onRealWorldCalibrationChange={handleRealWorldCalibrationChange}
+            onGyroSpaceChange={handleGyroSpaceChange}
+            onGyroAxisXChange={handleGyroAxisXChange}
+            onGyroAxisYChange={handleGyroAxisYChange}
+            onGyroOutputChange={handleGyroOutputChange}
+            onGyroActivationModeChange={handleGyroActivationModeChange}
+            onGyroActivationButtonChange={handleGyroActivationButtonChange}
+            counterOsMouseSpeed={counterOsMouseSpeedEnabled}
+            onCounterOsMouseSpeedChange={handleCounterOsMouseSpeedChange}
+            onOpenCalibration={handleOpenCalibration}
+            onTryIt={testReason ? undefined : () => { void startTest() }}
+            onRecalibrate={() => { void handleRecalibrate() }}
+            calibrationCountdown={countdown}
+            onOpenControllerSettings={() => setPrimaryTab('settings')}
+            hasPendingChanges={hasPendingChanges}
+            onApply={handleApplyWithFinalize}
+            onCancel={handleCancel}
+            lockMessage={lockMessage}
+            mode={currentMode}
+            sensitivityView={sensitivityView}
+            sample={sample}
+            telemetry={telemetryValues}
+            onModeChange={(mode: 'static' | 'accel') => handleModeSelection(mode, activeSensitivityPrefix)}
+            onSensitivityViewChange={setSensitivityView}
+            onAccelCurveChange={handleAccelCurveChange}
+            onNaturalVHalfChange={handleNaturalVHalfChange}
+            onPowerVRefChange={handlePowerVRefChange}
+            onPowerExponentChange={handlePowerExponentChange}
+            onSigmoidMidChange={handleSigmoidMidChange}
+            onSigmoidWidthChange={handleSigmoidWidthChange}
+            onJumpTauChange={handleJumpTauChange}
+            onMinThresholdChange={handleThresholdChange('MIN_GYRO_THRESHOLD')}
+            onMaxThresholdChange={handleThresholdChange('MAX_GYRO_THRESHOLD')}
+            onMinSensXChange={handleDualSensChange('MIN_GYRO_SENS', 0)}
+            onMinSensYChange={handleDualSensChange('MIN_GYRO_SENS', 1)}
+            onMaxSensXChange={handleDualSensChange('MAX_GYRO_SENS', 0)}
+            onMaxSensYChange={handleDualSensChange('MAX_GYRO_SENS', 1)}
+            onStaticSensXChange={handleStaticSensChange(0)}
+            onStaticSensYChange={handleStaticSensChange(1)}
+            onRollContributionChange={handleRollContributionChange}
+            modeshiftButton={sensitivityModeshiftButton}
+            onModeshiftButtonChange={handleSensitivityModeshiftButtonChange}
+            accelCurveLink={accelCurveLinkValue}
+            onAccelCurveLinkChange={handleAccelCurveLinkChange}
+            onCutoffSpeedChange={handleCutoffSpeedChange}
+            onCutoffRecoveryChange={handleCutoffRecoveryChange}
+            onSteadyingFloorChange={handleSteadyingFloorChange}
+            onSmoothTimeChange={handleSmoothTimeChange}
+            onSmoothThresholdChange={handleSmoothThresholdChange}
+            onSmoothingDecayChange={handleSmoothingDecayChange}
+            onOneEuroFilterChange={handleOneEuroFilterChange}
+            onOneEuroMinCutoffChange={handleOneEuroMinCutoffChange}
+            onOneEuroSpeedCoeffChange={handleOneEuroSpeedCoeffChange}
+            onAngleSnapChange={handleAngleSnapChange}
+            onAngleSnapSmoothChange={handleAngleSnapSmoothChange}
+            onDecelBrakeStrengthChange={handleDecelBrakeStrengthChange}
+            onDecelBrakeThresholdChange={handleDecelBrakeThresholdChange}
+            onGyroClickDampenChange={handleGyroClickDampenChange}
+          />
+        </Suspense>
+      )
+    }
+
+    if (primaryTab === 'timing') {
+      // Press timing & polling (2f): a Studio page on the global store.
+      return <TimingPage onRemoveLines={removeTimingLines} libraryKey={libraryProfiles.join('|')} configName={currentLibraryProfile}
+        // Press timing ▸ Advanced links to the configuration's own timing, which
+        // stays at the foot of Buttons (BIND's page).
+        onOpenConfigurationTiming={openConfigurationTiming} />
+    }
+
+    if (primaryTab in CONTROL_TAB_SECTIONS) {
+      const controlTab = primaryTab as ControlTab
+      const sections = CONTROL_TAB_SECTIONS[controlTab]
+      return (
+        <Suspense fallback={<LazyPanelFallback title={t(`app.nav.${controlTab}`)} />}>
+          {/* Buttons (console v2, ButtonList): the list, and "Where it is on
+              your controller · Press it now" beside it. Rows read whether they
+              are this controller's own from the variant scope. */}
+          <VariantScopeContext.Provider value={editingControllerModel ? { model: editingControllerModel, label: device ? controllerVariantLabel(device) : 'This controller', text: documentText } : null}>
+          <ButtonsPageLayout aside={controlTab === 'buttons' ? <PressToFind device={device} listening={pressToFind.listening} onListen={pressToFind.listen} onStop={pressToFind.stop} /> : undefined}>
+          {controlTab === 'buttons' && <FindButtonBar device={device} listening={pressToFind.listening} onListen={pressToFind.listen} onStop={pressToFind.stop} />}
+          {renderKeymap(sections)}
           </ButtonsPageLayout>
           </VariantScopeContext.Provider>
         </Suspense>
@@ -2499,7 +2569,11 @@ function App() {
           disabled={isCalibrating}
           devices={sample?.devices}
           onNavigate={(target) => setPrimaryTab(target)}
-          onSelectCommand={navigateInput}
+          onSelectCommand={raw => {
+            const command = normalizePreviewInput(raw)
+            if (inputPage(command) === 'buttons') { inlineBindingReturn.current = document.activeElement as HTMLElement; setInlineBinding(command); return }
+            navigateInput(raw, true)
+          }}
           onRecalibrate={() => { void handleRecalibrate() }}
           recalibrating={recalibrating || isCalibrating}
           // The diagram is read-only and should show what the controller
@@ -2512,7 +2586,7 @@ function App() {
           // On whenever edits fold into this controller's own layout (setControllerDocument),
           // not only once the first one has: the quick menu, the title bar and the
           // rows then agree (UX review 2026-10-09, L1).
-          controllerScope={{ name: device ? controllerVariantLabel(device) : null, variant: Boolean(editingControllerModel), changes: editingControllerModel ? controllerOverrides(documentText, editingControllerModel).length : 0 }}
+          controllerScope={{ name: device ? controllerVariantLabel(device) : null, variant: Boolean(editingControllerModel && hasEffectiveControllerVariant(documentText, editingControllerModel)), changes: editingControllerModel ? controllerOverrides(documentText, editingControllerModel).length : 0 }}
         />
       )
     }
@@ -2524,6 +2598,8 @@ function App() {
         </Suspense>
       )
     }
+
+    if (primaryTab === 'slots') return <SlotsPage devices={rawSample?.devices} currentName={appliedName ?? currentLibraryProfile} />
 
     if (primaryTab === 'deviceVisibility') {
       return <HidHidePage telemetryDevices={sample?.devices} virtualOutput={virtualControllerType} onOpenStartup={() => setPrimaryTab('startup')} />
@@ -2569,11 +2645,6 @@ function App() {
   const studioPage = isStudioPage(primaryTab)
   const configName = currentLibraryProfile ?? t('app.profileSummary.unsavedProfile', 'Unsaved')
   const hubTitle = studioHub(primaryTab) ? HUB_TITLE[studioHub(primaryTab)!] : 'Studio'
-  const eyebrow = studioPage
-    ? hubTitle
-    : primaryTab === 'overview'
-      ? `${configName} · ${device ? controllerDisplayName(device.type) : 'Controller'}`
-      : `${configName} · Controls`
   // Gyro has no page header (console v2, P5): Recalibrate and Copy / Paste tuning moved into its screens.
   const pageActions = primaryTab === 'layers'
       ? <ModesCallout />
@@ -2611,6 +2682,9 @@ function App() {
         <UpdateBanner />
       </Suspense>
       {renderTitleBar()}
+      <CommandPalette open={paletteOpen} configurationsOnly={paletteConfigurationsOnly} onClose={() => setPaletteOpen(false)} profiles={titleBarProfiles}
+        onNavigate={setPrimaryTab} onProfile={requestLoadProfile}
+        onFind={() => { if (device) listenForInput(); else showToast('Connect a controller to find a button.') }} />
       {testing ? (
         // One exit, named the same way everywhere (pill, banner, footer): B
         // (Esc on the keyboard) stops the test; holding View + Menu does too.
@@ -2635,7 +2709,7 @@ function App() {
           stepLabel={studioHub(primaryTab) === 'settings' ? 'Category' : primaryTab === 'joysticks' ? 'Other stick' : primaryTab === 'triggers' ? 'Other trigger' : primaryTab === 'touchpad' ? 'Other pad' : 'Section'} />}
         <div className="shell-content">
           <div className="shell-scroll">
-            <div key={primaryTab} className={`shell-page page${isHomePage(primaryTab) ? ' shell-page--home' : ''}${['overview', 'virtualMenus', 'layers', 'configurations', 'bases', 'associations'].includes(primaryTab) ? ' page--wide' : ''}${['globalChords', 'deviceVisibility'].includes(primaryTab) ? ' page--narrow' : ''}`} data-direction={pageDirection}>
+            <div key={primaryTab} className={`shell-page page${isHomePage(primaryTab) ? ' shell-page--home' : ''}${['overview', 'virtualMenus', 'layers', 'configurations', 'bases', 'associations'].includes(primaryTab) ? ' page--wide' : ''}`} data-direction={pageDirection}>
               {mapperExit && !studioPage && !isHomePage(primaryTab)
                 ? <MapperDown exit={mapperExit} restarting={mapperRestarting} onRestart={() => void restartMapper()} onOpenConsole={() => setPrimaryTab('debugConsole')} />
                 : <>
@@ -2644,7 +2718,7 @@ function App() {
               {/* Buttons too (ButtonList): its rail and rows say where you are. */}
               {!isHomePage(primaryTab) && !['joysticks', 'triggers', 'touchpad', 'buttons', 'gyro'].includes(primaryTab) && <header className="page-header">
                 <div className="page-header__text">
-                  <span className="page-header__eyebrow">{eyebrow}</span>
+
                   <h1 className="page-header__title">{t(meta.labelKey, meta.label)}</h1>
                   <p className="page-header__purpose">{primaryTab === 'credits' ? t('credits.purpose') : t(`shell.purpose.${primaryTab}`, meta.purpose)}</p>
                 </div>
@@ -2654,23 +2728,28 @@ function App() {
                 </div>}
               </header>}
           <main className={`main-pane page-body${isHomePage(primaryTab) ? ' home-body' : ''}`}>
-            {mapperExit && studioPage && <MapperDown compact exit={mapperExit} restarting={mapperRestarting} onRestart={() => void restartMapper()} onOpenConsole={() => setPrimaryTab('debugConsole')} />}
-            {!studioPage && !isHomePage(primaryTab) && configErrors.length > 0 && dismissedConfigErrors !== configErrorsKey && (
-              <ConfigErrors errors={configErrors} appliedText={runtimeConfig} onOpenSource={openSourceAtError} onDismiss={() => setDismissedConfigErrors(configErrorsKey)} />
+            <SlotsBar />
+            {mapperExit && (studioPage || isHomePage(primaryTab)) && <MapperDown compact exit={mapperExit} restarting={mapperRestarting} onRestart={() => void restartMapper()} onOpenConsole={() => setPrimaryTab('debugConsole')} />}
+            {!studioPage && configErrors.length > 0 && dismissedConfigErrors !== configErrorsKey && (
+              <ConfigErrors compact={isHomePage(primaryTab)} errors={configErrors} appliedText={runtimeConfig} onOpenSource={openSourceAtError} onDismiss={() => setDismissedConfigErrors(configErrorsKey)} />
             )}
+            {testing && <LiveTestPanel device={device} text={effectiveConfigText} />}
             <ConfigBaseline.Provider value={{ text: configText, saved: savedLayerText, onChange: text => { resetPendingSensitivityChanges(); setConfigText(text) } }}>
             {/* Layout for this controller (console v2, ControllerVariant): a full page. */}
-            <ControllerLayoutScope open={controllerLayoutOpen} onClose={() => setControllerLayoutOpen(false)} text={documentText} effectiveText={configIncludes.resolveText(documentText)} devices={sample?.devices} model={editingControllerModel} onModel={next => { if (next === editingControllerModel) return; setDocumentText(finalizePendingValues()); resetPendingSensitivityChanges(); setControllerEditingTarget(next) }} onChange={setDocumentTextAsAction} />
+            <ControllerLayoutScope configName={currentLibraryProfile} open={controllerLayoutOpen} onClose={() => setControllerLayoutOpen(false)} text={documentText} effectiveText={configIncludes.resolveText(documentText)} devices={rawSample?.devices} model={editingControllerModel} onModel={next => { if (next === editingControllerModel) return; setDocumentText(finalizePendingValues()); resetPendingSensitivityChanges(); setControllerEditingTarget(next) }} onChange={setDocumentTextAsAction} />
             {/* Controller light & sounds (console v2, ControllerLight). */}
             <LightSounds open={lightSoundsOpen} fromSettings={studioHub(primaryTab) === 'settings'} onClose={() => setLightSoundsOpen(false)} text={defaultText} onChange={setDefaultConfigText} layers={layers}
               onChangeDocument={setControllerDocument} device={sample?.devices?.[0]} onOpenSettings={() => { setLightSoundsOpen(false); setPrimaryTab('settings') }} />
-            <LayerUsageContext.Provider value={{ text: effectiveConfigText, layers, actions: layerActions, selected: layers.find(layer => layer.id === layerId), onChangeLayers: next => setControllerDocument(previous => writeLayers(previous, next)), onSetActions: (input, next) => setControllerDocument(previous => setLayerActions(previous, input, next)), onSelect: selectLayer, onNavigate: navigateInput, disabled: isCalibrating, family: controllerFamily }}>
-            <SettingOrigins.Provider value={{ config: currentLibraryProfile ?? undefined, text: effectiveConfigText, own: layerId ? Object.entries(layers.find(l => l.id === layerId)?.overrides ?? {}).map(([k,v]) => `${k} = ${v}`).join('\n') : ownDefaultText, base: importedBase.text, baseOrigins: importedBase.origins, origins: configIncludes.resolution?.origins ?? {}, layer: layers.find(l => l.id === layerId)?.name, disabled: isCalibrating, reset: key => { resetPendingSensitivityChanges(); if (editingControllerModel && !layerId) { setDocumentText(previous => resetControllerAssignment(previous, editingControllerModel, key)); return } setControllerDocument(previous => layerId ? writeLayers(previous, layers.map(l => { if(l.id !== layerId) return l; const overrides = {...l.overrides}; delete overrides[key]; return {...l, overrides} })) : previous.split(/\r?\n/).filter(line => !Object.prototype.hasOwnProperty.call(layerEntries(line), key)).join('\n')) } }}>
+            <LayerUsageContext.Provider value={{ text: effectiveConfigText, layers, actions: layerActions, selected: studioPage || isHomePage(primaryTab) ? undefined : layers.find(layer => layer.id === layerId), onChangeLayers: next => setControllerDocument(previous => writeLayers(previous, next)), onSetActions: (input, next) => setControllerDocument(previous => setLayerActions(previous, input, next)), onSelect: selectLayer, onNavigate: navigateInput, disabled: isCalibrating, family: controllerFamily }}>
+            <BindingProvenanceProvider ownText={ownDefaultText} baseText={visualBase} baseOrigins={importedBase.origins} gameName={currentLibraryProfile ?? 'Game config'}>
+            <SettingOrigins.Provider value={{ config: currentLibraryProfile ?? undefined, text: effectiveConfigText, own: layerId ? Object.entries(layers.find(l => l.id === layerId)?.overrides ?? {}).map(([k,v]) => `${k} = ${v}`).join('\n') : settingSources.own, base: layerId ? settingSources.defaultText : settingSources.base, baseOrigins: importedBase.origins, origins: settingSources.origins, sourceTargets: settingSources.sourceTargets, editSource: key => { const target = settingSources.sourceTargets[key]; if (target === undefined) return; setDocumentText(finalizePendingValues()); resetPendingSensitivityChanges(); setControllerEditingTarget(target) }, layer: layers.find(l => l.id === layerId)?.name, disabled: isCalibrating, reset: key => { resetPendingSensitivityChanges(); if (editingControllerModel && !layerId) { setDocumentText(previous => resetControllerAssignment(previous, editingControllerModel, key)); return } setControllerDocument(previous => layerId ? writeLayers(previous, layers.map(l => { if(l.id !== layerId) return l; const overrides = {...l.overrides}; delete overrides[key]; return {...l, overrides} })) : previous.split(/\r?\n/).filter(line => !Object.prototype.hasOwnProperty.call(layerEntries(line), key)).join('\n')) } }}>
             <InputUsageInspector />
-            <ConfigScope match={primaryTab === 'gyro' ? GYRO_TUNING_KEYS : /./}>{renderPrimaryContent()}</ConfigScope>
+            {['overview', 'buttons', 'dpad', 'joysticks', 'triggers', 'touchpad', 'gyro'].includes(primaryTab) && <div className="editor-toolbar"><LayerSelector /><details className="editor-sources"><summary>Binding sources</summary><BindingSourceLegend /></details></div>}
+            <ConfigScope match={primaryTab === 'gyro' ? GYRO_TUNING_KEYS : /./}>{renderPrimaryContent()}{primaryTab === 'overview' && inlineBinding && <Suspense fallback={null}>{renderKeymap(CONTROL_TAB_SECTIONS.buttons)}</Suspense>}</ConfigScope>
             <ConfigScope match={primaryTab === 'gyro' ? GYRO_TUNING_KEYS : /./}><SettingsInventory open={inventoryOpen} onClose={() => setInventoryOpen(false)} pageLabel={studioPage || isHomePage(primaryTab) ? undefined : t(meta.labelKey, meta.label)} /></ConfigScope>
             {renderOverViews()}
             </SettingOrigins.Provider>
+            </BindingProvenanceProvider>
             </LayerUsageContext.Provider>
           </ConfigBaseline.Provider></main>
                 </>}
@@ -2689,9 +2768,10 @@ function App() {
           // The mode being edited, once the title bar's selector is gone (console
           // v2, P6): "Wardogs · Buttons · Face buttons · Vehicles mode".
           : [studioPage ? hubTitle : configName, t(meta.labelKey, meta.label), studioHub(primaryTab) === 'settings' ? undefined : studioHub(primaryTab) === 'library' ? libraryWhere ?? undefined : currentSection?.label].filter(Boolean).join(' · ')}
-        mode={!studioPage && !isHomePage(primaryTab) && layerId ? { name: layers.find(layer => layer.id === layerId)?.name ?? layerId, color: layerColor(Math.max(0, layers.findIndex(layer => layer.id === layerId))) } : null} />
+        mode={!newConfigurationOpen && !assistantOpen && ['overview', 'buttons', 'dpad', 'joysticks', 'triggers', 'touchpad', 'gyro'].includes(primaryTab) ? { name: layerId ? layers.find(layer => layer.id === layerId)?.name ?? layerId : 'Default', color: layerId ? layerColor(Math.max(0, layers.findIndex(layer => layer.id === layerId))) : undefined } : null} />
       {shellWidth === 'narrow' && (
         <NavDrawer
+          deviceType={device?.type}
           open={drawerOpen}
           onClose={() => setDrawerOpen(false)}
           current={primaryTab}

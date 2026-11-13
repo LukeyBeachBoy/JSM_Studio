@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { desktopBridge, DEFAULT_AI_SETTINGS, type AiConversationMessage, type AiGenerateResponse, type AiSettings } from '../../platform/desktopBridge'
 import { SubPage } from '../ui/console'
 import { Sheet } from '../ui/Sheet'
+import { fallbackCover } from '../../hooks/useGameArt'
 import { Icon } from '../icons/Icon'
 import { InputGlyph } from '../glyphs/InputGlyph'
 import { ButtonGlyph } from '../glyphs/ButtonGlyph'
@@ -205,7 +206,7 @@ export function AssistantPage({ open, onClose, configText: editingText, currentP
   }
 
   return (
-    <SubPage open={open} onClose={onClose} trail={[]} title="Assistant" bare backLabel="Home"
+    <SubPage open={open} onClose={onClose} crumbRoot="Assistant" trail={[]} title="Assistant" bare backLabel="Home"
       where={`Assistant · ${workingName ?? 'Unsaved'}`}
       hints={[{ button: 'A', label: 'Ask this' }, { button: 'X', label: 'Speak' }, { button: 'Y', label: 'Type' }]}>
       <div className={styles.page} data-assistant-page="" ref={rootRef}>
@@ -215,7 +216,7 @@ export function AssistantPage({ open, onClose, configText: editingText, currentP
             <b style={{ fontSize: 22 }}>Assistant</b>
             <button type="button" className={styles.working} style={{ marginLeft: 'auto' }} onClick={() => setPickerOpen(true)} data-hints="A:Choose configuration;B:Home"
               data-caption="Working on · the configuration the assistant changes">
-              <span className={styles.swatch} style={{ background: 'var(--layer-1)' }} aria-hidden="true" />Working on <b>{workingName ?? 'Unsaved'}</b>
+              <span className={styles.swatch} style={{ backgroundImage: fallbackCover(workingName ?? '') }} aria-hidden="true" />Working on <b>{workingName ?? 'Unsaved'}</b>
             </button>
           </header>
           <h1>What should change?</h1>
@@ -245,7 +246,7 @@ export function AssistantPage({ open, onClose, configText: editingText, currentP
           {!settings.connected ? (
             <div className={styles.notSet}>
               <b style={{ fontSize: 20 }}>Set up the assistant first</b>
-              <p className={styles.thinking}>Choose how it connects: ChatGPT, Claude with a key, another provider, or a model on this PC. You only do this once.</p>
+              <p className={styles.thinking}>Choose a provider with an API key, or a model on this PC. You only do this once.</p>
               <button type="button" className={`${styles.big} `} data-primary="true" style={{ padding: '0 20px' }} onClick={onOpenSettings}>Set up the assistant ▸</button>
             </div>
           ) : (

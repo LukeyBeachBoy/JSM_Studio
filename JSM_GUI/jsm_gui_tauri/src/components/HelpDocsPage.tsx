@@ -199,7 +199,7 @@ export const GUIDES: Record<string, string> = {
 
 A configuration is everything one game needs: what each button sends, how the sticks, triggers, trackpads and gyro behave, and any modes. JSM Evolved keeps one per game in your library.
 
-Start from **Home ▸ New for a game**: pick the game, pick how you play, try it, then change what you like. When the game comes to the front, its configuration goes live by itself (Library ▸ Launch with game).
+Start from **Home ▸ New for a game**: pick the game, pick how you play, try it, then change what you like. When the game comes to the front, its configuration goes live by itself (Library ▸ Auto-switch).
 
 While the app is in front, your controller drives the app instead of the game. Press **View** to come Home from anywhere and **☰** for Review changes, Undo and Save.`,
   buttons: `## Tap, hold and double-tap
@@ -220,12 +220,12 @@ Adaptive triggers on a DualSense push back; set their feel on the Triggers tab.`
 
 Gyro turns the controller's movement into aim. Answer three questions on the Gyro tab: **when is it on**, **how fast**, and **does it feel right**.
 
-**Match a full turn (360°)** makes one full turn of the controller one full turn in the game, so speed means the same in every game. **Ignore Windows pointer speed** stops Windows' own mouse setting changing it.`,
+**Real-world calibration (RWC)** converts mouse counts into in-game camera rotation. With it calibrated, real-world sensitivity (RWS) sets how far the view turns for each degree of controller rotation. **Ignore Windows pointer speed** stops Windows' own mouse setting changing it.`,
   sticks: `## Flick stick
 
 Flick stick turns the right stick into a direction you point at. Flick it and your view snaps to face that way; keep turning the stick to keep turning.
 
-It needs to know how far one full turn is. Set **Match a full turn (360°)** on Gyro first, and each flick lands where you point.`,
+It needs to know how far one full turn is. Set **Real-world calibration (RWC)** on Gyro first, and each flick lands where you point.`,
   trackpads: `## Trackpads
 
 Each trackpad can be a mouse, a set of buttons in zones, a touch stick, or a menu. Pick the mode on the Trackpads tab, then the zones on the picture.
@@ -270,7 +270,7 @@ export const DOCS_TOPICS: DocsTopic[] = [
   { id: 'buttons', title: 'Buttons and presses', sections: ['Digital Inputs', 'Tap & Hold', 'Binding Modifiers', 'Simultaneous Press', 'Diagonal Press', 'Chorded Press', 'Double Press', 'Gyro Button'], guide: GUIDES.buttons, page: { tab: 'buttons', label: 'Open Buttons' }, also: { tab: 'timing', label: 'Press timing' } },
   { id: 'triggers', title: 'Triggers', sections: ['Analog Triggers', 'Analog to digital', 'Full pull and modes', 'Adaptive Triggers'], guide: GUIDES.triggers, page: { tab: 'triggers', label: 'Open Triggers' } },
   { id: 'gyro', title: 'Gyro', sections: ['Gyro Mouse Inputs', 'Real World Calibration', 'Prerequisites', 'Calculating the real world calibration in a 3D game', 'Calculating the real world calibration in a 2D game'], guide: GUIDES.gyro, page: { tab: 'gyro', label: 'Open Gyro' } },
-  { id: 'sticks', title: 'Sticks and flick stick', sections: ['Stick Configuration', 'Standard AIM mode', 'FLICK mode and variants', 'HYBRID_AIM mode', 'Other mouse modes', 'Digital modes', 'Motion Stick and lean bindings'], guide: GUIDES.sticks, page: { tab: 'joysticks', label: 'Open Sticks' }, also: { tab: 'gyro', label: 'Match a full turn (360°)' } },
+  { id: 'sticks', title: 'Sticks and flick stick', sections: ['Stick Configuration', 'Standard AIM mode', 'FLICK mode and variants', 'HYBRID_AIM mode', 'Other mouse modes', 'Digital modes', 'Motion Stick and lean bindings'], guide: GUIDES.sticks, page: { tab: 'joysticks', label: 'Open Sticks' }, also: { tab: 'gyro', label: 'Real-world calibration (RWC)' } },
   { id: 'trackpads', title: 'Trackpads', sections: ['Touchpad', 'Touch Sticks'], guide: GUIDES.trackpads, page: { tab: 'touchpad', label: 'Open Trackpads' } },
   { id: 'layers', title: 'Layers, chords and mode shifts', sections: ['Modeshifts'], guide: GUIDES.layers, page: { tab: 'layers', label: 'Open Layers' }, also: { tab: 'globalChords', label: 'Hold to swap' } },
   { id: 'virtual', title: 'Virtual controller', sections: ['ViGEm Virtual Controller', 'Xbox bindings', 'DS4 bindings', 'Virtual Controller Gyro'], guide: GUIDES.virtual, also: { tab: 'deviceVisibility', label: 'Hide the real controller' } },

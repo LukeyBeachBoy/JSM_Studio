@@ -1,3 +1,4 @@
+import { inputContent } from '../glyphs/InputText'
 import { useEffect, useId, useRef, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { ButtonGlyph, type PadButtonName } from '../glyphs/ButtonGlyph'
@@ -71,9 +72,9 @@ export function Dialog({ onClose, eyebrow, title, subtitle, lead, aside, toolbar
         <header className="dialog__header">
           {lead}
           <div className="dialog__heading">
-            {eyebrow && <span className="dialog__eyebrow">{eyebrow}</span>}
-            <h2 id={titleId} className="dialog__title">{title}</h2>
-            {subtitle && <span className="dialog__subtitle">{subtitle}</span>}
+            {eyebrow && <span className="dialog__eyebrow">{inputContent(eyebrow)}</span>}
+            <h2 id={titleId} className="dialog__title">{inputContent(title)}</h2>
+            {subtitle && <span className="dialog__subtitle">{inputContent(subtitle)}</span>}
           </div>
           {aside}
           <button type="button" className="dialog__close" tabIndex={-1} data-nav-skip data-modal-close aria-label="Close" onClick={onClose} />
@@ -81,7 +82,7 @@ export function Dialog({ onClose, eyebrow, title, subtitle, lead, aside, toolbar
         {toolbar}
         <div className="dialog__body">{children}</div>
         <footer className="dialog__footer" aria-label="Controls">
-          {footerNote && <span className="dialog__note">{footerNote}</span>}
+          {footerNote && <span className="dialog__note">{inputContent(footerNote)}</span>}
           <span className="dialog__hints">
             {hints.map(hint => (
               <span key={String(hint.button) + hint.label} className="dialog__hint">{(Array.isArray(hint.button) ? hint.button : [hint.button]).map(button => <ButtonGlyph key={button} button={button} size={24} />)}{hint.label}</span>

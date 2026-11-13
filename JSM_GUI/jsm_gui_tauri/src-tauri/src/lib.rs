@@ -20,6 +20,17 @@ fn show_window_at_launch<I: IntoIterator<Item = String>>(arguments: I, start_in_
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let context = tauri::generate_context!();
+    // Before identity/icon files, the single-instance lock, WebViews, settings
+    // initialization or the mapper: all of them must use the normal user view.
+    match services::storage_context::normalize_launch(&context.config().identifier) {
+        Ok(true) => return,
+        Ok(false) => {},
+        Err(error) => { services::storage_context::report_startup_error(&error); return; }
+    }
+    if let Err(error) = services::brand_icon::initialize_identity(&context.config().identifier) {
+        eprintln!("{error}");
+    }
     if let Err(error) = services::permissions::wait_for_previous_instance() {
         eprintln!("{error}");
         return;
@@ -44,9 +55,8 @@ pub fn run() {
                 return Ok(());
             }
             let state = app.state::<AppState>().inner().clone();
-            if let Err(error) = runtime::ensure_required_files(&app.handle()) {
-                eprintln!("Failed to initialize Tauri runtime files: {error}");
-            }
+            runtime::ensure_required_files(&app.handle()).map_err(std::io::Error::other)?;
+            services::slots::initialize(app.handle()).map_err(std::io::Error::other)?;
             telemetry::start(app.handle().clone(), state.clone());
             // Whether Studio is in front, from Windows rather than the
             // window's focus events (services/foreground.rs).
@@ -61,6 +71,7 @@ pub fn run() {
                 eprintln!("Failed to prepare the trackpad overlay: {error}");
             }
             services::overlay::start_stacking_guard(app.handle().clone());
+            services::overlay::start_config_watch(app.handle().clone());
             if let Err(error) = services::hud::ensure(&app.handle()) {
                 eprintln!("Failed to prepare the calibration HUD: {error}");
             }
@@ -78,7 +89,7 @@ pub fn run() {
             services::profile_library::start(app.handle().clone());
             // Settings ▸ Startup ▸ What loads first (console v2, D20): its
             // configuration becomes the live one before the mapper starts.
-            if let Err(error) = runtime::apply_startup_choice(&app.handle()) {
+            if let Err(error) = if services::slots::enabled() {Ok(())} else {runtime::apply_startup_choice(&app.handle())} {
                 eprintln!("Could not load the startup configuration: {error}");
             }
             if let Err(error) = sync_hidhide_whitelist_if_available(&app.handle()) {
@@ -86,9 +97,13 @@ pub fn run() {
                     "Failed to sync HidHide whitelist before launching JoyShockMapper: {error}"
                 );
             }
+            if let Err(error) = hidhide::sync_azeron_native_interfaces(&app.handle()) {
+                eprintln!("Failed to hide enrolled Azeron native controllers before mapper launch: {error}");
+            }
             if let Err(error) = jsm_process::launch_jsm(&app.handle(), &state) {
                 eprintln!("Failed to auto-launch JoyShockMapper from Tauri: {error}");
             }
+            hidhide::start_azeron_guard(app.handle().clone());
 
             // Closing the window (see the on_window_event handler below) hides
             // it rather than quitting -- JoyShockMapper keeps running and the
@@ -109,6 +124,7 @@ pub fn run() {
             std::thread::spawn(move || {
                 // After the window and the mapper, not competing with them.
                 std::thread::sleep(std::time::Duration::from_secs(3));
+                services::brand_icon::record_window_status(&update_app);
                 tauri::async_runtime::block_on(services::updates::check(&update_app));
             });
 
@@ -173,6 +189,8 @@ pub fn run() {
             commands::controller_feedback,
             commands::set_default_polling_ms,
             commands::set_global_timing,
+            commands::set_cyborg_stick_defaults,
+            commands::mouse_side_buttons,
             commands::list_global_chords,
             commands::save_global_chord,
             commands::delete_global_chord,
@@ -221,6 +239,12 @@ pub fn run() {
             commands::open_hidhide_client,
             commands::open_external,
             commands::open_config_directory,
+            commands::get_config_directory,
+            commands::get_slots,
+            commands::save_slots,
+            commands::activate_slot,
+            commands::slot_toast_ready,
+            commands::assign_slot,
             commands::read_config_file,
             commands::start_input_debug_hook,
             commands::stop_input_debug_hook,
@@ -289,7 +313,7 @@ pub fn run() {
                 let _ = window.hide();
             }
         })
-        .build(tauri::generate_context!())
+        .build(context)
         .expect("error while building tauri application");
 
     app.run(|app_handle, event| {

@@ -38,7 +38,7 @@ const removeAllKeymapEntries = (text: string, key: string) => {
   return current
 }
 
-export const parseGyroActivation = (text: string, prefix = '', keys: readonly string[] = GYRO_ACTIVATION_KEYS): GyroActivationConfig => {
+export const parseGyroActivation = (text: string, prefix = '', keys: readonly string[] = GYRO_ACTIVATION_KEYS, defaultMode: 'always_on' | 'always_off' = 'always_on'): GyroActivationConfig => {
   let latest: { key: string; value: string } | null = null
   const pattern = new RegExp(`^\\s*${escapeKey(prefix)}(${keys.map(escapeKey).join('|')})\\s*=\\s*(.+)$`, 'i')
 
@@ -52,7 +52,7 @@ export const parseGyroActivation = (text: string, prefix = '', keys: readonly st
     }
   }
 
-  if (!latest) return prefix ? parseGyroActivation(text, '', keys) : { mode: 'always_on', button: '' }
+  if (!latest) return prefix ? parseGyroActivation(text, '', keys, defaultMode) : { mode: defaultMode, button: '' }
 
   const button = /^(ANY|ALL)\s/i.test(latest.value) ? latest.value.toUpperCase() : latest.value.split(/\s+/).filter(Boolean)[0]?.toUpperCase() ?? ''
   if (latest.key === keys[0]) {
@@ -100,5 +100,5 @@ export function gyroConditionValue(match: 'ANY' | 'ALL', conditions: GyroConditi
 }
 
 const TILT_ACTIVATION_KEYS = ['TILT_ON', 'TILT_OFF'] as const
-export const parseTiltActivation = (text: string, prefix = '') => parseGyroActivation(text, prefix, TILT_ACTIVATION_KEYS)
+export const parseTiltActivation = (text: string, prefix = '') => parseGyroActivation(text, prefix, TILT_ACTIVATION_KEYS, 'always_off')
 export const writeTiltActivation = (text: string, mode: GyroActivationMode, button: string, prefix = '') => writeGyroActivation(text, mode, button, prefix, TILT_ACTIVATION_KEYS)

@@ -1,12 +1,22 @@
 import type { MenuAttachment, MenuSelection, MenuSource, MenuType, VirtualMenu } from '../../utils/virtualMenus'
 import type { ConfigLayer } from '../../utils/layers'
 import { layerEntries, defaultLayer } from '../../utils/layers'
+import { controllerHasTwoTrackpads } from '../../utils/controllerStatus'
 
 // The Menus tab in the player's words (console v2, MenuEditor, MenuEditorMore):
 // every value of the catalogue gets a label here, so the editor never shows
 // TOUCH_RELEASE or ACTIVATION_RELEASE.
 
 export const SOURCE_LABEL: Record<MenuSource, string> = { RIGHT: 'Right pad', LEFT: 'Left pad', RSTICK: 'Right stick', LSTICK: 'Left stick', DPAD: 'D-pad', ABXY: 'Face buttons' }
+export function menuSourceAvailable(source: MenuSource, deviceType?: number) {
+  if (deviceType === 25) return source === 'LSTICK' || source === 'DPAD'
+  return deviceType === undefined || source !== 'LEFT' || controllerHasTwoTrackpads(deviceType)
+}
+export function menuSourceLabel(source: MenuSource, deviceType?: number) {
+  const label = deviceType === 25 && source === 'LSTICK' ? 'Thumbstick'
+    : source === 'RIGHT' && deviceType !== undefined && !controllerHasTwoTrackpads(deviceType) ? 'Touchpad' : SOURCE_LABEL[source]
+  return menuSourceAvailable(source, deviceType) ? label : `${label} (unavailable)`
+}
 export const SOURCE_CAPTION: Record<MenuSource, string> = {
   RIGHT: 'Move your thumb on the right pad to highlight a slice.', LEFT: 'Move your thumb on the left pad to highlight a slice.',
   RSTICK: 'Tilt the right stick toward a slice.', LSTICK: 'Tilt the left stick toward a slice.',
@@ -54,10 +64,12 @@ export const REVEAL_CAPTION: Record<VirtualMenu['placement']['reveal'], string> 
 }
 
 /** "Tilt the right stick to pick, let go to use". */
-export function behaviourSentence(menu: VirtualMenu) {
+export function behaviourSentence(menu: VirtualMenu, deviceType?: number) {
   const attachment = menu.attachments[0]
   if (!attachment) return 'Nothing opens it yet: add a way under Opened by'
-  const pick = isStick(attachment.source) ? `Tilt the ${attachment.source === 'RSTICK' ? 'right' : 'left'} stick to pick`
+  if (!menuSourceAvailable(attachment.source, deviceType)) return 'This input is unavailable on this controller. Choose another under Opened by.'
+  const pick = deviceType === 25 && attachment.source === 'LSTICK' ? 'Tilt the thumbstick to pick'
+    : isStick(attachment.source) ? `Tilt the ${attachment.source === 'RSTICK' ? 'right' : 'left'} stick to pick`
     : attachment.source === 'DPAD' ? 'Step with the D-pad' : attachment.source === 'ABXY' ? 'Step with the face buttons'
     : `Touch the ${attachment.source === 'RIGHT' ? 'right' : 'left'} pad to pick`
   const use = attachment.selection === 'CLICK' ? 'press to use'

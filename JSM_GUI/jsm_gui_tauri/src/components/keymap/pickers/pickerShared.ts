@@ -1,3 +1,4 @@
+import { selectedControllerSample } from '../../../utils/controllerSelection'
 import { useContext, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
@@ -79,7 +80,7 @@ export function useConnectedTypes() {
   const [types, setTypes] = useState<number[]>([])
   useEffect(() => {
     const dispose = desktopBridge.onTelemetrySample(payload => {
-      const devices = (payload as TelemetrySample | null)?.devices ?? []
+      const devices = selectedControllerSample(payload as TelemetrySample | null)?.devices ?? []
       const next = devices.map(device => device.type).filter((type): type is number => typeof type === 'number')
       setTypes(previous => previous.length === next.length && previous.every((type, at) => type === next[at]) ? previous : next)
     })

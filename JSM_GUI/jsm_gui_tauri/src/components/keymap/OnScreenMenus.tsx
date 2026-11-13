@@ -1,3 +1,4 @@
+import { inputContent } from '../glyphs/InputText'
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import { MenuDrawing } from '../../overlay/MenuDrawing'
 import { SummaryRow, ExpandRow } from '../ui/SummaryRow'
@@ -162,7 +163,7 @@ export function OnScreenMenus({ open, onClose, configName, origin, originLayerId
                   return (
                     <button key={entry.id} type="button" role="tab" aria-selected={current} className="menus-chip" data-state={current ? 'selected' : undefined}
                       data-nav-entry-skip="" tabIndex={current ? 0 : -1} onClick={() => setSelectedId(entry.id)} data-hints="A:Select">
-                      <b>{SURFACE_NAMES[pad]}{chord ? ` · ${chordName(chord)}` : ''}</b>
+                      <b>{SURFACE_NAMES[pad]}{chord ? inputContent(` · ${chordName(chord)}`) : ''}</b>
                       <span style={{ color: layerVar(entry.surface.colorIndex) ?? (current ? 'var(--text-2)' : 'var(--text-3)') }}>{entry.surface.layerName}</span>
                     </button>
                   )

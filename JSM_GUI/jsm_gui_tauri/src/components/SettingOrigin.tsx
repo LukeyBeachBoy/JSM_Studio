@@ -1,3 +1,4 @@
+import { useLayerPresentation } from './useLayerPresentation'
 import { createContext, useContext, useState, type ReactNode } from 'react'
 import { layerEntries, readableSetting } from '../utils/layers'
 import { DirtyScope } from '../hooks/configContext'
@@ -11,6 +12,9 @@ export const SettingOrigins = createContext<{
   config?: string
   /** Which import each value in `base` came from, for "Overrides FPS Template". */
   baseOrigins?: Record<string, string>
+  /** Inherited game scopes can be opened, never silently reset from a device. */
+  editSource?: (key: string) => void
+  sourceTargets?: Record<string, string>
   reset?: (key: string) => void; disabled?: boolean
 }>({ text: '', base: '', own: '', origins: {} })
 
@@ -30,6 +34,7 @@ export function useSettingKey(setting?: string) {
 export function SettingOrigin({ setting }: { setting?: string }) {
   const context = useContext(SettingOrigins)
   const prefix = useContext(SettingKeyPrefix)
+  const layer = useLayerPresentation()
   if (!setting) return null
   setting = setting.includes(',') ? setting : prefix + setting
   const literalOwn = Object.prototype.hasOwnProperty.call(layerEntries(context.own), setting)
@@ -42,12 +47,12 @@ export function SettingOrigin({ setting }: { setting?: string }) {
   const resetAvailable = literalOwn && (context.layer || imported || inBase)
   // What the marker says, and the fuller wording a screen reader hears.
   const [kind, shown, spoken] = context.layer
-    ? own ? ['override', `Changed in ${context.layer}`, ''] : ['inherited', 'From Default', 'Same as Default · ']
+    ? own ? ['override', 'Override', ''] : ['inherited', 'From Default', 'Same as Default · ']
     : own
       ? resetAvailable ? ['override', 'Changed here', ''] : ['own', 'This configuration', '']
       : imported ? ['inherited', `From ${imported}`, ''] : ['default', 'App default', '']
   if (kind === 'default' || kind === 'own') return null
-  return <span className="setting-origin origin-marker" data-origin={kind} data-setting-origin={setting}>
+  return <span className="setting-origin origin-marker" data-origin={kind} data-setting-origin={setting} style={kind === 'override' ? layer.style : undefined}>
     <span className="origin-marker__dot" aria-hidden="true" />
     <small>{spoken && <span className="origin-marker__spoken">{spoken}</span>}{shown}</small>
     {resetAvailable && context.reset && <button type="button" className="origin-marker__reset" disabled={context.disabled} data-caption={`Restore ${readableSetting(setting)} from ${context.layer ? 'Default' : 'its source'}`} onClick={event => { event.preventDefault(); event.stopPropagation(); context.reset?.(setting) }}>{context.layer ? 'Use Default' : 'Use the base'}</button>}

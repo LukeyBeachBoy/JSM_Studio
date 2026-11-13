@@ -13,14 +13,14 @@ export type ConfigChange = {
   model?: string
 }
 
-const controllerRow = /^\s*#\s*@controller\s+(type-\d+(?:-edge)?)\s+(.+)$/
-const controllerPad = /^\s*#\s*@controller-pad\s+(type-\d+(?:-edge)?)\s+(left|right)\s*$/
+const controllerRow = /^\s*#\s*@controller\s+(type-\d+(?:-edge)?(?:-device-[a-f0-9]{16})?)\s+(.+)$/
+const controllerPad = /^\s*#\s*@controller-pad\s+(type-\d+(?:-edge)?(?:-device-[a-f0-9]{16})?)\s+(left|right)\s*$/
 const menusLine = /^\s*VIRTUAL_MENUS\s*=/i
 
 /** "DualSense", "DualSense Edge": what a "# @controller type-5" line is for. */
 export const controllerModelLabel = (model: string) => {
   const type = Number(model.match(/type-(\d+)/)?.[1])
-  return controllerDisplayName(Number.isFinite(type) ? type : undefined) + (model.endsWith('-edge') ? ' Edge' : '')
+  return controllerDisplayName(Number.isFinite(type) ? type : undefined) + (model.split('-device-')[0].endsWith('-edge') ? ' Edge' : '') + (model.includes('-device-') ? ` · ${model.slice(-6).toUpperCase()}` : '')
 }
 
 /** A line's identity inside a variant: the key it assigns, or the mode it defines. */

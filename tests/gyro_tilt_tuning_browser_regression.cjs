@@ -31,16 +31,48 @@ const { assert, prepare, openGyro, top, openFineTune, openRow, openPart, valueRo
     })
     await page.goto(process.env.JSM_TEST_URL || 'http://127.0.0.1:1421')
     await openGyro(page)
-    await openFineTune(page, 'direction')
+    await openFineTune(page, 'tilt')
+    const initialActivation = segmentRow(top(page), 'Tilt activation')
+    assert.equal(await initialActivation.locator('button[data-current="true"]').innerText(), 'Off', 'an unset tilt configuration is off')
+    await top(page).getByText(/Tilt is off by default/).waitFor()
+    for (const viewport of [{ width: 1440, height: 1000 }, { width: 900, height: 600 }]) {
+      await page.setViewportSize(viewport)
+      await top(page).screenshot({ path: `tmp/parity-verification/gyro-tilt-default-off-${viewport.width}.png` })
+    }
+    await page.setViewportSize({ width: 1440, height: 1000 })
+    await top(page).locator('button[data-group="direction"]').click()
     await openRow(page, 'Advanced')
     await openRow(page, 'Tilt')
     const motion = top(page).locator('#gyro-motion')
     await motion.locator('button[role="radio"][data-value="ROTATE_ONLY"][data-current="true"]').waitFor()
-    // Every behaviour is a card (21, steering included), each explained.
+    // Only one category is visible; browsing categories preserves the configuration.
     const cards = motion.locator('[data-tilt-behaviour] button[role="radio"]')
-    assert.equal(await cards.count(), 21)
+    const tabs = motion.getByRole('tablist', { name: 'Tilt behaviour categories' })
+    assert.equal(await tabs.getByRole('tab').count(), 4)
+    assert.equal(await cards.count(), 7)
+    await tabs.getByRole('tab', { name: 'Virtual stick' }).click()
+    assert.equal(await cards.count(), 6)
+    await tabs.getByRole('tab', { name: 'Steering' }).click()
+    assert.equal(await cards.count(), 4)
     assert.equal(await cards.filter({ hasText: /like a wheel/ }).count(), 2)
-    assert.equal(await cards.filter({ hasText: 'Bind them under Buttons ▸ Tilt gestures' }).count(), 1)
+    await tabs.getByRole('tab', { name: 'Steering' }).press('Home')
+    assert.equal(await tabs.getByRole('tab', { name: 'Button actions' }).getAttribute('aria-selected'), 'true')
+    assert.equal(await cards.count(), 4)
+    assert.equal(await cards.filter({ hasText: 'Buttons ▸ Tilt gestures' }).count(), 1)
+    await tabs.getByRole('tab', { name: 'Button actions' }).press('ArrowRight')
+    assert.equal(await tabs.getByRole('tab', { name: 'Mouse and camera' }).getAttribute('aria-selected'), 'true')
+    assert.equal(await motion.locator('button[role="radio"][data-value="ROTATE_ONLY"][data-current="true"]').count(), 1)
+    for (const viewport of [{ width: 1440, height: 1000 }, { width: 900, height: 600 }]) {
+      await page.setViewportSize(viewport)
+      await top(page).screenshot({ path: `tmp/parity-verification/gyro-tilt-tabs-${viewport.width}.png` })
+      const geometry = await top(page).evaluate(host => ({
+        width: host.scrollWidth, clientWidth: host.clientWidth,
+        tabs: [...host.querySelectorAll('[role="tab"]')].map(tab => ({ left: tab.getBoundingClientRect().left, right: tab.getBoundingClientRect().right })),
+      }))
+      assert(geometry.width <= geometry.clientWidth + 1, 'Tilt page must not overflow horizontally')
+      assert(geometry.tabs.every(tab => tab.left >= 0 && tab.right <= viewport.width), 'Category tabs must remain reachable')
+    }
+    await page.setViewportSize({ width: 1440, height: 1000 })
     await motion.getByText(/Tilt uses your angle from neutral; gyro uses how fast you turn. Both can run together./).waitFor()
     // Tuning follows the behaviour: Rotate only has rotation smoothing and the flick output.
     await openPart(page, 'Tuning')
@@ -78,6 +110,11 @@ const { assert, prepare, openGyro, top, openFineTune, openRow, openPart, valueRo
     // When tilt is on: its own activation and combined inputs, gyro's untouched.
     await openPart(page, 'When tilt is on')
     const activation = segmentRow(top(page), 'Tilt is on')
+    assert.equal(await activation.locator('button[data-current="true"]').innerText(), 'Off', 'changing behaviour does not implicitly enable tilt')
+    await activation.locator('button').filter({ hasText: /^Always$/ }).focus()
+    await page.keyboard.press('Enter')
+    await save(page, /^(# @controller type-24 )?TILT_OFF = NONE$/)
+    assert.equal(await activation.locator('button[data-current="true"]').innerText(), 'Always')
     await segment(activation, 'Off')
     await save(page, /^(# @controller type-24 )?TILT_ON = NONE$/)
     await top(page).getByText('Choose While I hold or Unless I hold to use these inputs.', { exact: true }).waitFor()

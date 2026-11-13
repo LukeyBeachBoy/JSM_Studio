@@ -1,9 +1,13 @@
+import { useLayerPresentation } from '../../useLayerPresentation'
+import { inputContent } from '../../glyphs/InputText'
 import { createContext, useContext, useEffect, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useShell } from '../../../shell/ShellContext'
 import { HintCapsule } from '../../../shell/HintCapsule'
 import type { Hint } from '../../../shell/hintLabels'
 import { PAD_EVENT, type PadEventDetail } from '../../../nav/useControllerNavigation'
+import { WindowControls } from '../../../shell/NativeWindowControls'
+import { isFramelessWindow } from '../../../shell/windowControls'
 import styles from './SubPage.module.css'
 const SubPageDepth = createContext(0)
 
@@ -53,6 +57,7 @@ type SubPageProps = {
 export function SubPage({ open, onClose, trail, title, badge, where, stepLabel, onStep, backLabel = 'Back', hints, bare, crumbRoot, children }: SubPageProps) {
   const depth = useContext(SubPageDepth)
   const shell = useShell()
+  const layer = useLayerPresentation()
   const root = useRef<HTMLDivElement>(null)
   const latest = useRef(onStep)
   latest.current = onStep
@@ -77,7 +82,7 @@ export function SubPage({ open, onClose, trail, title, badge, where, stepLabel, 
 
   if (!open) return null
   const crumbs = [crumbRoot ?? shell.configName ?? 'Configuration', ...trail]
-  const modeBadge = badge ?? (!crumbRoot && shell.modeName ? `${shell.modeName} · Changed in this layer` : null)
+  const modeBadge = badge ?? (!crumbRoot && shell.configName ? `Editing ${shell.modeName ?? 'Default'}` : null)
   const extra: Hint[] = [
     ...(hints ?? []),
     ...(stepLabel ? [{ button: 'LT/RT' as const, label: stepLabel }] : []),
@@ -91,24 +96,25 @@ export function SubPage({ open, onClose, trail, title, badge, where, stepLabel, 
     </button>
   )
   return createPortal(
-    <SubPageDepth.Provider value={depth + 1}><div ref={root} className={styles.layer} style={{ zIndex: Math.min(45, 41 + depth) }} data-overlay-depth={depth} data-focus-trap="true" data-subpage="" role="dialog" aria-modal="true" aria-label={`${crumbs.join(' · ')} · ${title}`}>
+    <SubPageDepth.Provider value={depth + 1}><div ref={root} className={styles.layer} style={{ zIndex: Math.min(45, 41 + depth) }} data-frameless={isFramelessWindow() ? 'true' : undefined} data-overlay-depth={depth} data-focus-trap="true" data-subpage="" role="dialog" aria-modal="true" aria-label={`${crumbs.join(' · ')} · ${title}`}>
       <main className={styles.body}>{children}</main>
       {!bare && (
         <header className={styles.header}>
           {backButton}
           <span className={styles.crumbs}>
-            {crumbs.map((crumb, index) => <span key={index} className={styles.crumb}>{crumb}</span>)}
+            {crumbs.map((crumb, index) => <span key={index} className={styles.crumb}>{inputContent(crumb)}</span>)}
             <span className={styles.arrow} aria-hidden="true">▸</span>
             <b className={styles.title}>{title}</b>
           </span>
-          {modeBadge && <span className={styles.badge}>{modeBadge}</span>}
+          {modeBadge && <span className={styles.badge} style={!crumbRoot ? { color: layer.color } : undefined}>{inputContent(modeBadge)}</span>}
           <span className={styles.chip}>{shell.statusChip}</span>
         </header>
       )}
       <footer className={styles.footer}>
-        <HintCapsule width={shell.width} family={shell.family} controller={shell.controller} where={where ?? `${crumbs.join(' · ')} · ${title}`} extraHints={extra} />
+        <HintCapsule width={shell.width} family={shell.family} controller={shell.controller} where={where ?? `${crumbs.join(' · ')} · ${title}`} extraHints={extra} mode={!crumbRoot && shell.configName ? { name: shell.modeName ?? 'Default', color: layer.color } : undefined} />
       </footer>
       {bare && backButton}
+      {isFramelessWindow() && <WindowControls />}
     </div></SubPageDepth.Provider>,
     document.body,
   )

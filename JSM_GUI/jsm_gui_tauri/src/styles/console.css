@@ -157,7 +157,7 @@ body[data-input-source='controller'] .summary-row:focus { background: var(--surf
 .summary-row__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 10px 0; }
 .summary-row__label { font-size: var(--fs-label); line-height: var(--lh-label); font-weight: var(--fw-semibold); }
 .summary-row__hint { font-size: var(--fs-hint); line-height: var(--lh-hint); color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.summary-row__hint[data-tone='changed'] { color: var(--accent); }
+.summary-row__hint[data-tone='changed'] { color: var(--layer-color, var(--accent)); }
 .summary-row__hint[data-tone='inherited'] { color: var(--text-3); }
 .summary-row__value {
   flex: none;
@@ -742,3 +742,12 @@ body:has(.curve-view-overlay) .hint-capsule { visibility: hidden; }
    first heading drops the eyebrow's top margin the way a column's own first
    eyebrow does (App.css), keeping both columns' tops on one line. */
 .prefs-column > .prefs-section:first-child > .prefs-eyebrow:first-child { margin-top: 0; }
+
+.config-menu__groups { display: flex; flex-wrap: wrap; gap: var(--sp-2); padding: 0 var(--sp-6) var(--sp-3); }
+.config-menu__groups button { padding: var(--sp-2) var(--sp-3); border: 0; border-radius: var(--r-md); background: var(--surface-row); color: var(--text-2); font: inherit; font-size: var(--fs-body); cursor: pointer; }
+.config-menu__groups button[aria-pressed='true'] { background: var(--surface-selected); color: var(--text-1); }
+.config-menu__groups button:hover { background: var(--surface-row-hover); }
+.config-menu__label { min-width: 0; }
+.config-menu__meta { max-width: 55%; white-space: normal; overflow-wrap: anywhere; text-align: right; }
+.dialog__body { overscroll-behavior: contain; }
+.sheet__body { overscroll-behavior: contain; }

@@ -67,12 +67,12 @@ const { assert, prepare, openGyro, top, openFineTune, openRow, valueRow, switchR
 
     // ---- A row redraws the curve before anything is saved; with up/down
     // speeds separate, one axis leaves the other alone.
-    await switchRow(view, 'Separate up/down speeds').click();
+    await switchRow(view, 'Separate vertical sensitivity').click();
     const before = await curve.getAttribute('d');
-    await typeValue(valueRow(view, 'Fast speed'), '3');
-    assert.equal(await number('Fast speed'), 3);
+    await typeValue(valueRow(view, 'Maximum sensitivity (RWS)'), '3');
+    assert.equal(await number('Maximum sensitivity (RWS)'), 3);
     assert.notEqual(await curve.getAttribute('d'), before, 'the curve redraws as the row changes');
-    assert.equal(await number('Fast speed, up/down'), 2, 'one axis row leaves the other alone');
+    assert.equal(await number('Maximum vertical sensitivity (RWS)'), 2, 'one axis row leaves the other alone');
 
     // ---- Changing the curve brings its own shape handle and rows.
     await view.locator('button[role="radio"][data-value="NATURAL"]').click();
@@ -87,12 +87,12 @@ const { assert, prepare, openGyro, top, openFineTune, openRow, valueRow, switchR
     assert.ok(halfAfter > halfBefore, `dragging the half-way point right raises it (${halfBefore} -> ${halfAfter})`);
 
     // ---- Dragging the slow corner up moves X, and Y with it in proportion.
-    await top(page).locator('[role="tab"]').filter({ hasText: /^Speeds/ }).click();
-    await typeValue(valueRow(view, 'Slow speed'), '1.2');
-    await typeValue(valueRow(view, 'Slow speed, up/down'), '1.2');
+    await top(page).locator('[role="tab"]').filter({ hasText: /^Sensitivity/ }).click();
+    await typeValue(valueRow(view, 'Minimum sensitivity (RWS)'), '1.2');
+    await typeValue(valueRow(view, 'Minimum vertical sensitivity (RWS)'), '1.2');
     await drag('min', 0, -50);
-    const minX = await number('Slow speed');
-    const minY = await number('Slow speed, up/down');
+    const minX = await number('Minimum sensitivity (RWS)');
+    const minY = await number('Minimum vertical sensitivity (RWS)');
     assert.ok(minX > 1.2, `the slow corner lifts the minimum (${minX})`);
     assert.equal(minY, minX, 'equal axes stay equal: both halves of the pair are written');
     await page.keyboard.press('Escape');
@@ -104,8 +104,8 @@ const { assert, prepare, openGyro, top, openFineTune, openRow, valueRow, switchR
     await top(page).locator('[data-held="ZL"]').click();
     await openRow(page, 'Advanced');
     const held = top(page).locator('[data-speed-advanced]');
-    assert.equal(parseFloat(await valueText(valueRow(held, 'Slow speed'))), 0.5, 'the held values show');
-    await typeValue(valueRow(held, 'Fast speed'), '1.5');
+    assert.equal(parseFloat(await valueText(valueRow(held, 'Minimum sensitivity (RWS)'))), 0.5, 'the held values show');
+    await typeValue(valueRow(held, 'Maximum sensitivity (RWS)'), '1.5');
     for (let n = 0; n < 4; n++) await page.keyboard.press('Escape');
 
     // ---- The trackpad's curve stays in the full-window editor; RB no longer switches it.

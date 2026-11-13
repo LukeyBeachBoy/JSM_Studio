@@ -96,6 +96,8 @@ export function inputDisplayName(command: string, family: ControllerVisualFamily
   const chord = raw.length > 1 ? raw.match(/^(.+?)\+(.+)$/) : null
   if (chord) return `${inputDisplayName(chord[1], family)} + ${inputDisplayName(chord[2], family)}`
   const upper = raw.toUpperCase()
+  if (upper === 'MOUSE_BACK') return 'Mouse Back'
+  if (upper === 'MOUSE_FORWARD') return 'Mouse Forward'
   const region = regionName(upper)
   if (region) return region
   const button = ALL_INPUTS.find(b => b.command === upper)

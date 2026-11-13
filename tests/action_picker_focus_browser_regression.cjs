@@ -54,12 +54,12 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
       await page.evaluate(() => { window.__focusButtons = [] })
       await page.waitForTimeout(160)
     }
-    const picker = page.getByRole('dialog', { name: 'Search every action', exact: true })
-    const kindPicker = page.locator('[data-picker="key"]')
+    const picker = page.getByRole('dialog', { name: 'Choose an action', exact: true })
+    const kindPicker = page.locator('[data-picker="actions"]')
     // Open the Keyboard key picker from the sheet, then Y: Search every action.
     const open = async () => {
       if (!(await kindPicker.count())) {
-        await card.locator('[data-kind="key"]').first().click()
+        await page.locator('[data-binding-sheet="N"] [data-chip-command]').first().click()
         await kindPicker.waitFor()
         await page.waitForTimeout(200)
       }
@@ -86,7 +86,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
     await focusedContent()
     await press('R'); await press('R')
     assert.equal(await selected(), 'Open a menu')
-    assert.match(await picker.locator('.action-picker__content').innerText(), /No menus yet/)
+    assert.match(await picker.locator('.action-picker__content').innerText(), /No virtual menus yet/)
     await focusedInside('empty Open a menu must keep controller focus inside the picker')
     await press('R')
     assert.equal(await selected(), 'Switch layer')
@@ -159,12 +159,10 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
     await page.waitForFunction(() => /^Common in games/.test(document.querySelector('.action-group-tab[aria-pressed="true"]')?.textContent ?? ''))
     await page.keyboard.press('Tab')
     await focusedInside('Tab is trapped in the picker')
-    // B leaves Search every action for the kind's own picker.
+    // B closes the one catalogue and restores the binding sheet.
     await press('E')
     await picker.waitFor({ state: 'detached' })
-    await kindPicker.waitFor()
-    await press('E')
-    await kindPicker.waitFor({ state: 'detached' })
+    await page.waitForFunction(() => !document.querySelector('[data-picker="actions"]'))
 
     // Populated menus: Search every action offers Hold/Open/Close/Toggle for each.
     await page.evaluate(() => {

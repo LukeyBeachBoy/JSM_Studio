@@ -19,8 +19,23 @@ const params={curveType:'QUADRATIC',minSens:5,maxSens:21,minThreshold:0,maxThres
 const near=(a,b)=>assert(Math.abs(a-b)<.0001,`${a} != ${b}`)
 const floor=(value,enabled=value>0)=>({...params,steadying:{cutoff:0,recovery:5,floor:value,enabled}})
 near(curves.accelSensitivityAt(0,floor(2)),2)
-near(curves.accelSensitivityAt(1,floor(2)),2.6005)
-near(curves.accelSensitivityAt(3,floor(2)),3.8135)
+near(curves.accelSensitivityAt(1,floor(2)),2.1739048)
+near(curves.accelSensitivityAt(3,floor(2)),4.0630376)
+// Endpoint slope and curvature must join the unmodified Quadratic response.
+const dream=speed=>curves.accelSensitivityAt(speed,floor(2))
+const base=speed=>curves.accelSensitivityAt(speed,params)
+const h=.0001
+assert.ok(Math.abs((dream(h)-dream(0))/h)<1e-6,'flat tangent at the floor')
+assert.ok(Math.abs((dream(5)-dream(5-h))/h-(base(5+h)-base(5))/h)<2e-6,'matching slope at recovery')
+const curvature=(fn,x)=>(fn(x+h)-2*fn(x)+fn(x-h))/(h*h)
+assert.ok(Math.abs(curvature(dream,5)-curvature(base,5))<.0001,'matching curvature at recovery')
+let previous=dream(0)
+for(let i=1;i<=5000;i++){
+ const speed=i/1000,current=dream(speed)
+ assert.ok(current>=previous-1e-12&&current>=2&&current<=base(speed),'bounded monotonic transition without overshoot')
+ previous=current
+}
+for(const speed of [5,5.000001,20,40,60,80,120])assert.equal(dream(speed),base(speed),'fast response is exactly unchanged')
 near(curves.accelSensitivityAt(80,{...params,minThreshold:10}),17.25)
 near(curves.accelSensitivityAt(90,{...params,minThreshold:10}),21)
 for(const invalid of [-1,NaN,Infinity])near(curves.accelSensitivityAt(1,floor(invalid,true)),curves.accelSensitivityAt(1,floor(0,true)))
@@ -49,7 +64,7 @@ const nativeInputs = ['src/main.cpp', 'include/GyroSteadying.h', ...['Natural','
 if (!fs.existsSync(fixture) || nativeInputs.some(p=>fs.statSync(p).mtimeMs>fs.statSync(fixture).mtimeMs)) require('node:child_process').execFileSync(process.env.PYTHON || 'python', [path.resolve(__dirname, '../JoyShockMapper/tests/run_gyro_steadying_harness.py')], { stdio: 'inherit' })
 let count=0
 for(const line of fs.readFileSync(fixture,'utf8').trim().split(/\r?\n/)){
- const [curve,minThreshold,value,speed,expected]=line.split(',').map(Number)
- near(curves.accelSensitivityAt(speed,{...floor(value),curveType:curves.ACCEL_CURVE_TYPES[curve],minThreshold}),expected);count++
+ const [curve,minThreshold,value,speed,expected,minSens=5,maxSens=21]=line.split(',').map(Number)
+ near(curves.accelSensitivityAt(speed,{...floor(value),curveType:curves.ACCEL_CURVE_TYPES[curve],minThreshold,minSens,maxSens}),expected);count++
 }
 console.log(`PASS: ${count} native/frontend parity samples, all curves, legacy behavior, clamping, config round trips and shifted settings`)

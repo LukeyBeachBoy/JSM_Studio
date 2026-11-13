@@ -1,3 +1,4 @@
+import { inputContent } from '../glyphs/InputText'
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { Icon } from '../icons/Icon'
@@ -92,9 +93,9 @@ export function Sheet({ open, onClose, eyebrow, title, description, hints = SHEE
       <aside ref={sheetRef} className="sheet" role="dialog" aria-modal="true" aria-labelledby={titleId} style={{ width }}>
         <header className="sheet__header" data-lead={lead ? 'true' : undefined}>
           {lead && <span className="sheet__lead" aria-hidden="true">{lead}</span>}
-          <span className="eyebrow">{eyebrow}</span>
-          <h2 id={titleId} className="sheet__title">{title}</h2>
-          {description && <p className="sheet__description">{description}</p>}
+          <span className="eyebrow">{inputContent(eyebrow)}</span>
+          <h2 id={titleId} className="sheet__title">{inputContent(title)}</h2>
+          {description && <p className="sheet__description">{inputContent(description)}</p>}
           {actions && <div className="sheet__actions">{actions}</div>}
           <button type="button" className="sheet__close" tabIndex={-1} data-nav-skip data-modal-close aria-label={t('common.close', 'Close')} onClick={onClose}>
             <Icon name="close" size={18} />

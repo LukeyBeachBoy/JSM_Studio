@@ -207,7 +207,7 @@ export function TouchpadModeCard({ config, title }: { config: TouchpadModeCardCo
           {/* How a mouse pad feels is one set of dials shared by every pad
               set to Mouse: a row that opens its sheet (console refinement 2c). */}
           {config.onOpenTuning && (
-            <SummaryRow label="Trackpad feel" hint="Mouse output tuning and shared feedback" onActivate={config.onOpenTuning} />
+            <SummaryRow label="Trackpad tuning" hint="Mouse output tuning and shared feedback" onActivate={config.onOpenTuning} />
           )}
         </>
       )}

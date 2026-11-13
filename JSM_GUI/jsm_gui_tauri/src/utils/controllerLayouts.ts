@@ -6,14 +6,35 @@ import { applyGamepadPassthrough } from './quickBind'
 import { updateKeymapEntry } from './keymap'
 import { readVirtualMenus, writeVirtualMenus } from './virtualMenus'
 import { sameValue } from './inheritedOverrides'
+import { foldSharedFlagCommands } from './config'
 
 export const controllerModelKey = (device?: Pick<TelemetryDevice, 'type' | 'vid' | 'pid'>) =>
   !device?.type ? '' : device.type === 5 && device.vid === 0x054c && device.pid === 0x0df2 ? 'type-5-edge' : `type-${device.type}`
-const row = /^\s*#\s*@controller\s+(type-\d+(?:-edge)?)\s+(.+)$/
-const pad = /^\s*#\s*@controller-pad\s+(type-\d+(?:-edge)?)\s+(left|right)\s*$/
-export const controllerBase = (text: string) => text.split(/\r?\n/).filter(line => !row.test(line) && !pad.test(line)).join('\n')
+export const controllerTargetKey = (device?: TelemetryDevice) => device?.controllerId || controllerModelKey(device)
+export const targetModel = (target: string) => target.split('-device-')[0]
+const row = /^\s*#\s*@controller\s+(type-\d+(?:-edge)?(?:-device-[a-f0-9]{16})?)\s+(.+)$/
+const pad = /^\s*#\s*@controller-pad\s+(type-\d+(?:-edge)?(?:-device-[a-f0-9]{16})?)\s+(left|right)\s*$/
+const declaration = /^\s*#\s*@controller-layout\s+(type-\d+(?:-edge)?(?:-device-[a-f0-9]{16})?)\s*$/
+export const controllerBase = (text: string) => text.split(/\r?\n/).filter(line => !row.test(line) && !pad.test(line) && !declaration.test(line)).join('\n')
+export const savedControllerModels = (text: string) => [...new Set([...text.matchAll(/^\s*#\s*@controller(?:-pad|-layout)?\s+(type-\d+(?:-edge)?(?:-device-[a-f0-9]{16})?)(?:\s|$)/gm)].map(match => match[1]))]
+export const controllerLayoutModels = [24, 25, 5, 4, 3, 6, 7, 8, 15, 18, 23].map(type => `type-${type}`).concat('type-5-edge')
+export function controllerLayoutDevice(model: string, devices: TelemetryDevice[] = []): TelemetryDevice | undefined {
+  return devices.find(device => controllerTargetKey(device) === model || (!model.includes('-device-') && controllerModelKey(device) === model))
+    ?? (model ? { type: Number(model.match(/^type-(\d+)/)?.[1]), handle: 0, ...(model.includes('-device-') ? { controllerId: model } : {}), ...(targetModel(model).endsWith('-edge') ? { vid: 0x054c, pid: 0x0df2 } : {}) } : undefined)
+}
+
+/** Select a layout without changing the physical telemetry or pretending an offline pad is connected. */
+export function controllerEditorDevices(model: string, devices: TelemetryDevice[] = []): TelemetryDevice[] {
+  if (!model) return devices
+  const selected = controllerLayoutDevice(model, devices)
+  return selected ? [selected] : []
+}
+
+export function addControllerLayout(text: string, model: string) {
+  return savedControllerModels(text).includes(model) ? text : `${text.trimEnd()}\n# @controller-layout ${model}\n`
+}
 export const controllerPadSource = (text: string, model: string): 'left' | 'right' => {
-  let source: 'left' | 'right' = 'right'
+  let source: 'left' | 'right' = targetModel(model) !== model ? controllerPadSource(text, targetModel(model)) : 'right'
   for (const line of text.split(/\r?\n/)) { const match = line.match(pad); if (match?.[1] === model) source = match[2] as typeof source }
   return source
 }
@@ -21,7 +42,8 @@ export const controllerOverrides = (text: string, model: string) => text.split(/
   const match = line.match(row)
   return match?.[1] === model ? [match[2]] : []
 })
-export const hasControllerVariant = (text: string, model: string) => controllerOverrides(text, model).length > 0
+export const hasControllerVariant = (text: string, model: string) => savedControllerModels(text).includes(model)
+export const hasEffectiveControllerVariant = (text: string, target: string) => hasControllerVariant(text, target) || (targetModel(target) !== target && hasControllerVariant(text, targetModel(target)))
 
 export function translateControllerToken(token: string, side: 'left' | 'right') {
   const prefix = `${side.toUpperCase()}_`
@@ -33,7 +55,7 @@ export function translateControllerToken(token: string, side: 'left' | 'right') 
   return token
 }
 const translateKey = (key: string, side: 'left' | 'right') => key.replace(/[A-Z][A-Z0-9_]*/g, token => translateControllerToken(token, side))
-const singlePadModel = (model: string) => ['type-4', 'type-5', 'type-5-edge'].includes(model)
+const singlePadModel = (model: string) => ['type-4', 'type-5', 'type-5-edge'].includes(targetModel(model))
 
 /** Derived runtime/editor view. The source text is never rewritten by this. */
 export function adaptControllerBase(text: string, model: string, side: 'left' | 'right' = 'right', forcePad = false) {
@@ -59,7 +81,9 @@ export function adaptControllerBase(text: string, model: string, side: 'left' | 
 
 export function projectController(text: string, model: string, effectiveBase = controllerBase(text)) {
   if (!model) return text
-  const adapted = adaptControllerBase(controllerBase(effectiveBase), model, controllerPadSource(text, model), text.split(/\r?\n/).some(line => line.match(pad)?.[1] === model))
+  const ownPad = text.split(/\r?\n/).some(line => line.match(pad)?.[1] === model)
+  const inherited = targetModel(model) !== model ? projectController(ownPad ? setControllerPadSource(text, targetModel(model), controllerPadSource(text, model)) : text, targetModel(model), effectiveBase) : controllerBase(effectiveBase)
+  const adapted = adaptControllerBase(inherited, model, controllerPadSource(text, model), text.split(/\r?\n/).some(line => line.match(pad)?.[1] === model))
   const overrides = controllerOverrides(effectiveBase, model).concat(controllerOverrides(text, model))
   const baseLayers = readLayers(adapted), variantLayers = [...new Map(overrides.flatMap(line => readLayers(line)).map(layer => [layer.id, layer])).values()]
   const merged = baseLayers.filter(layer => !variantLayers.some(variant => variant.id === layer.id)).concat(variantLayers.filter(layer => !(layer as typeof layer & { deleted?: boolean }).deleted))
@@ -70,6 +94,7 @@ function identity(line: string): string | null {
   const layer = line.match(/^\s*#\s*@layer\s+(.+)$/)
   if (layer) { try { return `@layer:${JSON.parse(layer[1]).id}` } catch { return null } }
   const annotation = line.match(/^\s*#\s*@(label|icon|overlay|layer-action)\s+([^=]+)=/)
+  if (annotation?.[1] === 'layer-action') return `@layer-action:${annotation[2].trim().toUpperCase()}:${line.slice(line.indexOf('=') + 1).trim()}`
   if (annotation) return `@${annotation[1]}:${annotation[2].trim().toUpperCase()}`
   if (line.trim().startsWith('#') || !line.includes('=')) return null
   return commandKey(line)
@@ -131,7 +156,11 @@ function sameAssignment(a: string | undefined, b: string | undefined) {
  *  the shared layout never had removes the override instead of writing NONE. */
 export function foldController(text: string, model: string, before: string, after: string, shared?: string) {
   if (!model) return after
+  const sharedText = foldSharedFlagCommands(text, before, after)
   const old = editableLines(before), next = editableLines(after)
+  const oldOverlays = overlayLines(before), nextOverlays = overlayLines(after)
+  if (old.size === next.size && [...old].every(([key, value]) => next.get(key) === value) &&
+    oldOverlays.size === nextOverlays.size && [...oldOverlays].every(([key, value]) => nextOverlays.get(key) === value)) return sharedText
   const overrides = editableLines(controllerOverrides(text, model).join('\n'))
   const base = shared === undefined ? null : editableLines(shared)
   for (const key of new Set([...old.keys(), ...next.keys()])) {
@@ -149,14 +178,14 @@ export function foldController(text: string, model: string, before: string, afte
     else if (/^@(label|icon):/.test(key)) overrides.set(key, old.get(key)!.split('=')[0].trimEnd() + ' =')
     else overrides.delete(key)
   }
-  const kept = foldSharedOverlays(text.split(/\r?\n/).filter(line => line.match(row)?.[1] !== model), before, after)
+  const kept = foldSharedOverlays(sharedText.split(/\r?\n/).filter(line => line.match(row)?.[1] !== model), before, after)
   return [...kept.filter((line, index, all) => index < all.length - 1 || line.trim()), ...[...overrides.values()].map(line => `# @controller ${model} ${line}`)].join('\n') + '\n'
 }
 export function setControllerPadSource(text: string, model: string, source: 'left' | 'right') {
   return text.split(/\r?\n/).filter(line => line.match(pad)?.[1] !== model).join('\n').trimEnd() + `\n# @controller-pad ${model} ${source}\n`
 }
 export function resetControllerVariant(text: string, model: string) {
-  return text.split(/\r?\n/).filter(line => line.match(row)?.[1] !== model && line.match(pad)?.[1] !== model).join('\n')
+  return text.split(/\r?\n/).filter(line => line.match(row)?.[1] !== model && line.match(pad)?.[1] !== model && line.match(declaration)?.[1] !== model).join('\n')
 }
 /** An assignment the shared layout keeps that this controller has no input for
  *  (ControllerVariant.dc.html "DualSense doesn't have · 5"). `kind` says what
@@ -168,6 +197,7 @@ export function unavailableControllerInputs(text: string, device?: TelemetryDevi
   const model = controllerModelKey(device), side = controllerPadSource(text, model)
   const single = singlePadModel(model)
   const missing = (input: string) => {
+    if (/^JOY[0-9]+$/.test(input) || device.type === 25 && inputDefinitions.some(button => button.command === input)) return !controllerSupportsInput(device, input)
     if (/^(LEFT|RIGHT)_(TOUCH|GRID)/.test(input)) return device.type !== 24 && !(single && input.startsWith(side.toUpperCase()))
     if (single && translateControllerToken(input, side) !== input) return false
     if (/^(TOUCH|T\d|TUP|TDOWN|TLEFT|TRIGHT|TRING)/.test(input)) return ![4, 5, 24].includes(device.type)
@@ -244,7 +274,7 @@ export function rebindForController(text: string, effectiveText: string, model: 
   }
   return foldController(text, model, before, after)
 }
-export const controllerVariantLabel = (device?: TelemetryDevice) => device ? controllerDisplayName(device.type) + (controllerModelKey(device).endsWith('-edge') ? ' Edge' : '') : 'Shared base'
+export const controllerVariantLabel = (device?: TelemetryDevice) => device ? controllerDisplayName(device.type) + (controllerModelKey(device).endsWith('-edge') ? ' Edge' : '') + (device.controllerId && device.type !== 25 ? ` · ${device.controllerId.slice(-6).toUpperCase()}` : '') : 'Shared base'
 
 export function resetControllerAssignment(text: string, model: string, assignment: string) {
   const key = assignment.replace(/\s/g, '').toUpperCase()

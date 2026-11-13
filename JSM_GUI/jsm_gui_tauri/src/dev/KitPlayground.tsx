@@ -30,26 +30,26 @@ export default function KitPlayground() {
             { value: 'tap', label: 'Tap', help: 'Sent once when you press and let go quickly, so a long hold does nothing here, and it never sticks down in the game.' },
             { value: 'double', label: 'Double press', help: 'Sent when you press twice in a row, inside the double-tap time.' },
           ] }} />
-        <OpenRow label="Advanced" hint="Exact curve number, Match a full turn (360°)" onOpen={() => setAdvanced(true)} />
+        <OpenRow label="Advanced" hint="Exact curve number, Real-world calibration (RWC)" onOpen={() => setAdvanced(true)} />
       </>,
       visual: <div style={{ height: 260, display: 'grid', placeItems: 'center', color: '#808c99' }}>live visual</div> },
-    { id: 'speedup', label: 'Speed-up', status: 'Off', content: <SegmentedRow label="Speed-up" value="off" onChange={() => {}} options={[{ value: 'off', label: 'Off' }, { value: 'gentle', label: 'Gentle' }, { value: 'strong', label: 'Strong' }]} /> },
+    { id: 'speedup', label: 'Acceleration', status: 'Off', content: <SegmentedRow label="Acceleration" value="off" onChange={() => {}} options={[{ value: 'off', label: 'Off' }, { value: 'gentle', label: 'Gentle' }, { value: 'strong', label: 'Strong' }]} /> },
     { id: 'deadzone', label: 'Dead zone & edge', status: 'Ignore 15% · full past 90%', content: <ValueRow label="Ignore small movement" value={15} min={0} max={50} step={1} format={v => `${v}%`} onChange={() => {}} /> },
   ]
   return <>
     <SubPage open={open} onClose={() => setOpen(false)} trail={['Sticks', 'Right stick']} title="Fine-tune" stepLabel="Group" backLabel="Back to Sticks"
       onStep={direction => setGroup(current => stepGroup(groups, current, direction))}>
       <ModeCards label="Right stick is for…" note="◂ ▸ to compare · changes are live while you’re here" columns={6} value={mode} onChange={setMode}
-        options={[{ value: 'move', label: 'Moving', caption: 'Sends W A S D' }, { value: 'look', label: 'Looking around', caption: 'Moves the mouse' }, { value: 'flick', label: 'Flick to turn', caption: 'Point to face that way' }]}
+        options={[{ value: 'move', label: 'Moving', caption: 'Sends W A S D' }, { value: 'look', label: 'Mouse aim', caption: 'Moves the mouse' }, { value: 'flick', label: 'Flick stick', caption: 'Point to face that way' }]}
         more={{ label: 'More', caption: 'Mouse area, mouse ring, scroll wheel…', count: 10, onOpen: () => {} }} />
       <div style={{ height: 24 }} />
-      <FineTune groups={groups} active={group} onActive={setGroup} railNote="Speed and speed-up are shared by both sticks and the trackpad sticks." />
+      <FineTune groups={groups} active={group} onActive={setGroup} railNote="Speed and acceleration are shared by both sticks and the trackpad sticks." />
     </SubPage>
     <SubPage open={advanced} onClose={() => setAdvanced(false)} trail={['Sticks', 'Right stick', 'Fine-tune']} title="Advanced" stepLabel="Part" backLabel="Back to Fine-tune"
       onStep={direction => setPart(current => current === 'curve' ? (direction > 0 ? 'smooth' : 'curve') : (direction < 0 ? 'curve' : 'smooth'))}>
       <AdvancedParts active={part} onActive={setPart} parts={[
-        { id: 'curve', eyebrow: 'LT · Looking around · Speed', title: 'Exact curve', description: 'Type the curve’s shape instead of picking a preset.', content: <ValueRow label="Curve number" value={1} min={0.5} max={3} step={0.1} onChange={() => {}} /> },
-        { id: 'smooth', eyebrow: 'RT · Flick to turn · Flick', title: 'Smoothing for tiny turns', content: <SegmentedRow label="Smoothing" value="auto" onChange={() => {}} options={[{ value: 'auto', label: 'Automatic' }, { value: 'off', label: 'Off' }, { value: 'custom', label: 'Custom' }]} /> },
+        { id: 'curve', eyebrow: 'LT · Mouse aim · Speed', title: 'Exact curve', description: 'Type the curve’s shape instead of picking a preset.', content: <ValueRow label="Response curve exponent" value={1} min={0.5} max={3} step={0.1} onChange={() => {}} /> },
+        { id: 'smooth', eyebrow: 'RT · Flick stick · Flick', title: 'Smoothing for tiny turns', content: <SegmentedRow label="Smoothing" value="auto" onChange={() => {}} options={[{ value: 'auto', label: 'Automatic' }, { value: 'off', label: 'Off' }, { value: 'custom', label: 'Custom' }]} /> },
       ]} />
     </SubPage>
   </>

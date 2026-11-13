@@ -7,7 +7,7 @@ import { StatTiles, TurnCompass, useTurned, liveOmega } from './visuals'
 import { pointerNotch, pointerSpeedText, usePointerSpeed } from './usePointerSpeed'
 import styles from './Gyro.module.css'
 
-// Match a full turn (360°) (GyroSpeedGame's guide; was RwcGuideModal and the
+// Real-world calibration (RWC) (GyroSpeedGame's guide; was RwcGuideModal and the
 // manual calibration dialog): one full turn of the controller is one full
 // turn in game, so turn speed then means turns. REAL_WORLD_CALIBRATION and
 // IN_GAME_SENS, three ways to get the number: measure it in game with the
@@ -23,14 +23,14 @@ export function MatchTurnVisual({ pointer, turned }: { pointer: WindowsPointerSp
   const base = readGyroSpeed(gyro.text).base
   const omega = liveOmega(gyro.sample)
   return <div className={styles.matchVisual}>
-    <VisualTitle title="One turn here, one turn there" live={omega === null ? '—' : `${Math.round(omega)} °/s`} />
-    <p className={styles.visualCaption}>{rwc ? 'Matched: one turn of the controller is one turn in game at 1×.' : 'Not matched yet, so turn speed is a plain mouse multiplier.'}</p>
+    <VisualTitle title="Real-world sensitivity and calibration" live={omega === null ? '—' : `${Math.round(omega)} °/s`} />
+    <p className={styles.visualCaption}>{rwc ? 'With correct calibration, RWS 1× maps one controller turn to one camera turn.' : 'Configure the game calibration before interpreting sensitivity as real-world sensitivity (RWS).'}</p>
     <TurnCompass degrees={turned.degrees} label={`You have turned the controller ${Math.round(Math.abs(turned.degrees))}°`} />
     <p className={styles.visualCaption}>Turn the controller once, all the way round. X starts the count again.</p>
     <StatTiles tiles={[
-      { label: 'Full-turn value', value: rwc ?? 'Not set' },
+      { label: 'Calibration factor (RWC)', value: rwc ?? 'Not set' },
       { label: 'In-game sensitivity', value: String(sens) },
-      { label: rwc ? `${Number(base.toFixed(2))}× means` : 'Once matched', value: `${Number(base.toFixed(2))} turn${Number(base.toFixed(2)) === 1 ? '' : 's'}${rwc ? '' : ` at ${Number(base.toFixed(2))}×`}` },
+      { label: 'Physical degrees per 360° (base RWS)', value: base > 0 ? `${Number((360 / base).toFixed(1))}°` : 'No rotation' },
     ]} />
     <p className={styles.pointer} data-fine={pointer && pointer.speed === 10 && !pointer.enhancePrecision ? 'true' : undefined}>
       {pointer ? <b>{pointerNotch(pointer.speed)}</b> : null}{pointerSpeedText(pointer)}
@@ -49,12 +49,12 @@ export function MatchFullTurn({ open, onClose, trail }: { open: boolean; onClose
   const output = (gyro.get('GYRO_OUTPUT') ?? 'MOUSE').toUpperCase()
   const mouseOnly = output !== 'MOUSE' ? 'Only while gyro sends the mouse.' : undefined
   return (
-    <SubPage open={open} onClose={onClose} trail={trail} title="Match a full turn (360°)" backLabel="Back" hints={[{ button: 'X', label: 'Count again' }]}
-      where={`${trail.join(' · ')} · Match a full turn`}>
+    <SubPage open={open} onClose={onClose} trail={trail} title="Real-world calibration (RWC)" backLabel="Back" hints={[{ button: 'X', label: 'Count again' }]}
+      where={`${trail.join(' · ')} · Real-world calibration`}>
       <PadActions x={turned.reset}><div className={styles.split} data-match-turn="">
         <section className={styles.visualCard}><MatchTurnVisual pointer={pointer} turned={turned} /></section>
         <section className={styles.splitRows}>
-          <header className={styles.pageHeading}><h1>Match controller turning to the game</h1><p>Choose how to measure a full turn.</p></header>
+          <header className={styles.pageHeading}><h1>Match controller turning to the game</h1><p>Calibrate mouse counts to camera rotation. RWS is the sensitivity multiplier; physical degrees per 360° is 360 ÷ RWS. If sensitivity varies with turn speed, that angle varies too.</p></header>
           {mouseOnly && <Note tone="warn">{mouseOnly} A stick’s speed is its game turn rate, under Direction ▸ Stick settings.</Note>}
           <KeyNumberRow k="IN_GAME_SENS" label="In-game sensitivity" hint="Set this to the mouse sensitivity inside the game first" fallback={1} min={0} max={100} step={0.1} fineStep={0.01} disabled={mouseOnly} />
           <div className={styles.subhead}>1 · Measure it in game</div>
@@ -63,12 +63,12 @@ export function MatchFullTurn({ open, onClose, trail }: { open: boolean; onClose
           <div className={styles.subhead}>2 · From mouse-sensitivity.com</div>
           <OpenRow label="Open mouse-sensitivity.com" hint="Set Units to Counts, pick your game, enter any sensitivity and DPI" onOpen={() => void desktopBridge.openExternal(MOUSE_SENSITIVITY_URL)} hints="A:Open the site" />
           <ValueRow label="Sensitivity you entered there" value={sens} min={0} max={100} step={0.1} fineStep={0.01} onChange={setCountSens} disabled={mouseOnly} />
-          <ValueRow label="Counts it shows" value={counts} min={0} max={50000} step={100} fineStep={1} format={value => (value > 0 ? String(value) : '—')} onChange={setCounts} disabled={mouseOnly} />
-          <OpenRow label="Use this value" hint={computed !== null ? `Full-turn value ${computed.toFixed(4)} at sensitivity ${sens}` : 'Enter the counts first'}
+          <ValueRow label="Mouse counts per 360°" value={counts} min={0} max={50000} step={100} fineStep={1} format={value => (value > 0 ? String(value) : '—')} onChange={setCounts} disabled={mouseOnly} />
+          <OpenRow label="Use this value" hint={computed !== null ? `Calibration factor (RWC) ${computed.toFixed(4)} at sensitivity ${sens}` : 'Enter the counts first'}
             value={computed !== null ? computed.toFixed(4) : undefined} disabled={computed === null ? 'Enter the counts first.' : mouseOnly}
             onOpen={() => { if (computed === null) return; gyro.set('REAL_WORLD_CALIBRATION', Number(computed.toFixed(4))); gyro.set('IN_GAME_SENS', sens) }} hints="A:Use it" />
           <div className={styles.subhead}>3 · Already know it</div>
-          <KeyNumberRow k="REAL_WORLD_CALIBRATION" label="Full-turn value" hint="Type a value you already know" fallback={0} min={0} max={10000} step={0.1} fineStep={0.01}
+          <KeyNumberRow k="REAL_WORLD_CALIBRATION" label="Calibration factor (RWC)" hint="A known game calibration factor, not physical degrees per 360°" fallback={0} min={0} max={10000} step={0.1} fineStep={0.01}
             format={value => (value > 0 ? String(value) : 'Not set')} disabled={mouseOnly} />
         </section>
       </div></PadActions>

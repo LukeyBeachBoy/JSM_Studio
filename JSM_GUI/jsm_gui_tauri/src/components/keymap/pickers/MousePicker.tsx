@@ -4,6 +4,7 @@ import type { ActionPickerProps } from '../ActionPicker'
 import { PickerPage, useRefocusOn } from './PickerPage'
 import { usePickerWords, useUsedBy } from './pickerShared'
 import { MouseArt } from './PickerArt'
+import { InputGlyph } from '../../glyphs/InputGlyph'
 import styles from './Pickers.module.css'
 
 // Mouse · clicks and wheel (console v2, PickerFamily): the mouse with the
@@ -55,7 +56,7 @@ export function MousePicker(props: ActionPickerProps & { onSearch?: () => void }
                 data-caption={`${label} · ${button.wheel ? t('pickers.wheelCaption', 'one wheel step each time it fires') : t('pickers.clickCaption', 'held for as long as {{input}} is', { input: words.input })}`}
                 onFocus={() => setFocused(button.token)} onMouseEnter={() => { if (document.body.dataset.inputSource === 'mouse') setFocused(button.token) }}
                 onClick={() => choose(button.token, button.wheel)}>
-                {label}{isCurrent && <span className={styles.tileSub}>{t('pickers.current', 'current')}</span>}
+                <InputGlyph command={button.token} size={32} />{label}{isCurrent && <span className={styles.tileSub}>{t('pickers.current', 'current')}</span>}
               </button>
             )
           })}

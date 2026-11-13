@@ -102,7 +102,7 @@ export function homeQuickTune(text: string, family: ControllerVisualFamily, twoP
   const side: 'LEFT' | 'RIGHT' | '' = !twoPads ? '' : rightMode || !leftMode ? 'RIGHT' : 'LEFT'
   return {
     gyroSpeed: speed,
-    gyroSpeedNote: state.mode === 'accel' ? 'Speed-up is on' : undefined,
+    gyroSpeedNote: state.mode === 'accel' ? 'Acceleration is on' : undefined,
     gyroOn: describeGyroOn(text, family),
     pad: { label: side === 'LEFT' ? 'Left trackpad' : side === 'RIGHT' ? 'Right trackpad' : 'Trackpad', value: describeTrackpad(text, side) },
   }

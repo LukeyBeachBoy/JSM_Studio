@@ -12,6 +12,7 @@ import { parseCycleBinding } from '../../../utils/cycleBinding'
 import { parsePlaySound } from '../../../utils/controllerSounds'
 import { parseHapticBinding } from '../../../utils/hapticBindings'
 import { parseRumbleBinding } from '../../../utils/bindingParameters'
+import { parseLayerRemoval } from '../../../utils/layerBinding'
 
 // The binding sheet's model (console v2, BindingSheet / BindingMore): what each
 // way of pressing an input ("When you…") sends, and which of the eight "sends"
@@ -68,7 +69,7 @@ export const commandsFor = (commands: BindingCommand[], activation: ActivationRe
 /** The eight "sends" kinds a command belongs to (pickers/KindPicker SEND_KINDS). */
 export function sendKindOf(command: BindingCommand): SendKind {
   const value = command.outputValue
-  if (command.source.kind === 'layerAction') return 'mode'
+  if (command.source.kind === 'layerAction' || (command.outputKind === 'command' && parseLayerRemoval(value))) return 'mode'
   if (command.source.kind === 'heldLed' || command.source.kind === 'special' || command.triggerKind === 'stickShift') return 'controller'
   if (parseMenuCommand(value)) return 'menu'
   switch (command.outputKind) {
@@ -101,6 +102,7 @@ export function behaviourLimits(command: BindingCommand | undefined): { allowed:
   const all = new Set<BindingCommand['outputBehavior']>(['normal', 'tapOnce', 'toggle', 'releaseOnly'])
   if (!command) return { allowed: new Set(), reason: 'Choose what it sends first' }
   if (command.source.kind !== 'row' || command.triggerKind === 'stickShift') return { allowed: new Set(), reason: 'This one is a setting, not a key: it has no other way of being sent' }
+  if (command.outputKind === 'command' && parseLayerRemoval(command.outputValue)) return { allowed: new Set(['normal']), reason: 'Turns the layer off once when this activator fires. It stays off after release.' }
   if (/^"?\s*(LIGHT_BAR|LED_BRIGHTNESS)\s*=/i.test(command.outputValue)) return { allowed: new Set(['normal']), reason: 'A light change is sent once' }
   if (parseMenuCommand(command.outputValue)) return { allowed: new Set(['normal']), reason: 'A menu opens the way its own How says' }
   if (parseCycleBinding(command.outputValue)) return { allowed: new Set(['normal', 'tapOnce']), reason: 'A cycle sends each step once' }

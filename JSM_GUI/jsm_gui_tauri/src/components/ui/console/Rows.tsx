@@ -1,3 +1,5 @@
+import { useLayerPresentation } from '../../useLayerPresentation'
+import { inputContent } from '../../glyphs/InputText'
 import { useContext, useEffect, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { useSettingOriginInfo } from '../../keymap/settingOriginInfo'
 import { SettingOrigins } from '../../SettingOrigin'
@@ -29,7 +31,8 @@ function useOriginTag(setting?: string): { text: string; tone: 'default' | 'chan
   const context = useContext(SettingOrigins)
   if (!setting) return null
   if (!info || info.kind === 'default') return { text: 'Default', tone: 'default' }
-  if (info.kind === 'override') return { text: context.layer ? `Changed in ${context.layer}` : info.sourceName ? `Changed from ${info.sourceName}` : 'Changed', tone: 'changed' }
+  if (info.sourceName === 'Global Cyborg stick defaults') return { text: info.kind === 'inherited' ? 'Global preferences' : 'Game override', tone: info.kind === 'inherited' ? 'inherited' : 'changed' }
+  if (info.kind === 'override') return { text: context.layer ? 'Override' : info.sourceName ? `Changed from ${info.sourceName}` : 'Changed', tone: 'changed' }
   if (info.kind === 'inherited') return { text: info.sourceName ? `From ${info.sourceName}` : 'Inherited', tone: 'inherited' }
   // Set in this file with nothing underneath: "Changed", so the chip can be the mouse's reset.
   if (info.kind === 'own') return { text: 'Changed', tone: 'changed' }
@@ -63,12 +66,17 @@ function useInSubPage(ref: React.RefObject<HTMLElement | null>) {
 const holdRow = (ref: React.RefObject<HTMLElement | null>) => (event: React.MouseEvent) => { event.preventDefault(); ref.current?.focus({ preventScroll: true }) }
 
 /** The origin tag ("Default", "Changed in Vehicles"): a button that resets the row where there is something to reset. */
-function OriginChip({ origin, reset, disabled, hold }: { origin: ReturnType<typeof useOriginTag>; reset?: () => void; disabled?: boolean; hold: (event: React.MouseEvent) => void }) {
+function OriginChip({ origin, reset, editSource, disabled, hold }: { origin: ReturnType<typeof useOriginTag>; reset?: () => void; editSource?: (() => void) | null; disabled?: boolean; hold: (event: React.MouseEvent) => void }) {
+  const layer = useLayerPresentation()
   if (!origin) return null
-  if (!reset || origin.tone === 'default' || disabled) return <span className={styles.tag} data-tone={origin.tone}>{origin.text}</span>
+  const action = origin.tone === 'inherited' ? editSource : reset
+  const actionLabel = origin.tone === 'inherited' ? 'Edit source layout' : 'Use Default'
+  if (!action || origin.tone === 'default' || disabled) return <span className={styles.tag} data-tone={origin.tone} style={origin.tone === 'changed' ? layer.style : undefined}>{origin.text}</span>
   return (
-    <button type="button" tabIndex={-1} data-nav-skip="" className={`${styles.tag} ${styles.tagButton}`} data-tone={origin.tone} aria-label="Use Default"
-      data-hover-text="Use Default" onMouseDown={hold} onClick={reset}>
+    <button type="button" tabIndex={-1} data-nav-skip="" className={`${styles.tag} ${styles.tagButton}`} data-tone={origin.tone} style={origin.tone === 'changed' ? layer.style : undefined} aria-label={actionLabel}
+      // Focusing on mouse-down can scroll the row in controller-navigation mode
+      // and move the chip away before mouse-up. Focus after the click is secured.
+      data-hover-text={actionLabel} onMouseDown={event => event.preventDefault()} onClick={event => { hold(event); action() }}>
       <span>{origin.text}</span>
     </button>
   )
@@ -126,7 +134,7 @@ export function ValueRow({ label, hint, setting, value, min, max, step, fineStep
   const inSubPage = useInSubPage(ref)
   const info = useSettingOriginInfo(global ? undefined : setting)
   const origin = useOriginTag(global ? undefined : setting)
-  const reset = onReset ?? (info?.canReset && info.reset ? info.reset : undefined)
+  const reset = info?.kind === 'inherited' ? undefined : onReset ?? (info?.canReset && info.reset ? info.reset : undefined)
   const fine = fineStep ?? (Number.isInteger(step) ? 1 : roundTo(step / 10, step / 10))
   const move = (direction: 1 | -1, small: boolean) => {
     if (disabled) return
@@ -178,11 +186,11 @@ export function ValueRow({ label, hint, setting, value, min, max, step, fineStep
       onKeyDown={onKeyDown}>
       <div className={styles.main}>
         <span className={styles.labelBlock}>
-          <span className={styles.label}>{label}{setting && <ConfigName name={setting} />}</span>
-          {hint && <span className={styles.hint}>{hint}</span>}
+          <span className={styles.label}>{inputContent(label)}{setting && <ConfigName name={setting} />}</span>
+          {hint && <span className={styles.hint}>{inputContent(hint)}</span>}
         </span>
         <span className={styles.valueBlock}>
-          <OriginChip origin={origin} reset={reset} disabled={Boolean(disabled)} hold={hold} />
+          <OriginChip origin={origin} reset={reset} editSource={info?.editSource} disabled={Boolean(disabled)} hold={hold} />
           <button type="button" tabIndex={-1} data-nav-skip="" className={styles.stepper} aria-hidden="true" onMouseDown={hold} onClick={() => move(-1, false)}>◂</button>
           {typing === null
             ? <b className={styles.value} data-clickable={disabled ? undefined : 'true'} title={undefined} data-caption="Click to type a number"
@@ -200,7 +208,7 @@ export function ValueRow({ label, hint, setting, value, min, max, step, fineStep
           <span style={{ width: `${fraction * 100}%` }} />
         </div>
       )}
-      {caption && <div className={styles.caption}>{caption}</div>}
+      {caption && <div className={styles.caption}>{inputContent(caption)}</div>}
     </div>
   )
 }
@@ -236,7 +244,7 @@ export function SegmentedRow({ label, hint, setting, value, options, onChange, o
   const info = useSettingOriginInfo(global ? undefined : setting)
   const keyed = useOriginTag(global ? undefined : setting)
   const origin = originTag === undefined ? keyed : originTag
-  const reset = onReset ?? (info?.canReset && info.reset ? info.reset : undefined)
+  const reset = info?.kind === 'inherited' ? undefined : onReset ?? (info?.canReset && info.reset ? info.reset : undefined)
   const index = options.findIndex(option => option.value === value)
   const move = (direction: 1 | -1) => {
     if (disabled) return
@@ -258,10 +266,10 @@ export function SegmentedRow({ label, hint, setting, value, options, onChange, o
       }}>
       <div className={styles.main}>
         <span className={styles.labelBlock}>
-          <span className={styles.label}>{label}{setting && <ConfigName name={setting} />}</span>
-          {(current?.caption ?? hint) && <span className={styles.hint}>{current?.caption ?? hint}</span>}
+          <span className={styles.label}>{inputContent(label)}{setting && <ConfigName name={setting} />}</span>
+          {(current?.caption ?? hint) && <span className={styles.hint}>{inputContent(current?.caption ?? hint)}</span>}
         </span>
-        {origin && origin.tone !== 'default' && <OriginChip origin={origin} reset={reset} disabled={Boolean(disabled)} hold={hold} />}
+        {origin && origin.tone !== 'default' && <OriginChip origin={origin} reset={reset} editSource={info?.editSource} disabled={Boolean(disabled)} hold={hold} />}
       </div>
       <div className={styles.segments} aria-hidden="true">
         {options.map(option => (
@@ -293,11 +301,11 @@ export function OpenRow({ label, hint, value, onOpen, icon, disabled, id, hints,
       <div className={styles.main}>
         {icon && <span className={styles.icon} aria-hidden="true">{icon}</span>}
         <span className={styles.labelBlock}>
-          <span className={styles.label}>{label}{setting && <ConfigName name={setting} />}</span>
-          {hint && <span className={styles.hint}>{hint}</span>}
+          <span className={styles.label}>{inputContent(label)}{setting && <ConfigName name={setting} />}</span>
+          {hint && <span className={styles.hint}>{inputContent(hint)}</span>}
         </span>
         <span className={styles.valueBlock}>
-          {value !== undefined && <span className={styles.openValue}>{value}</span>}
+          {value !== undefined && <span className={styles.openValue}>{inputContent(value)}</span>}
           <span className={styles.chevron} aria-hidden="true">▸</span>
         </span>
       </div>
@@ -310,34 +318,38 @@ export function OpenRow({ label, hint, value, onOpen, icon, disabled, id, hints,
  * required"): the whole row is the switch; A, a click, ◂ or ▸ flip it in one
  * press; Y goes back to the default.
  */
-export function SwitchRow({ label, hint, on, onChange, onReset, disabled, setting, id, caption, extraHints, data }: {
+export function SwitchRow({ label, hint, on, onChange, onReset, disabled, setting, id, caption, extraHints, data, global }: {
   label: ReactNode; hint?: ReactNode; on: boolean; onChange: (next: boolean) => void; onReset?: () => void
-  disabled?: string; setting?: string; id?: string; caption?: string
+  disabled?: string; setting?: string; id?: string; caption?: string; global?: boolean
   /** More hints before B: "Y:More;LT/RT:Other pad". */
   extraHints?: string
   data?: Record<`data-${string}`, string | undefined>
 }) {
   const ref = useRef<HTMLButtonElement>(null)
+  const info = useSettingOriginInfo(global ? undefined : setting)
+  const origin = useOriginTag(global ? undefined : setting)
+  const reset = info?.kind === 'inherited' ? undefined : onReset ?? info?.reset ?? undefined
   const inSubPage = useInSubPage(ref)
-  useRowPad(ref, { Y: onReset ? () => { onReset(); return true } : undefined })
+  useRowPad(ref, { Y: reset ? () => { if (!disabled) reset(); return true } : undefined })
   const flip = () => { if (!disabled) onChange(!on) }
   const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
     if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
       event.preventDefault(); event.stopPropagation()
       const next = event.key === 'ArrowRight'
       if (!disabled && next !== on) onChange(next)
-    } else if ((event.key === 'y' || event.key === 'Y') && onReset) { event.preventDefault(); onReset() }
+    } else if ((event.key === 'y' || event.key === 'Y') && reset) { event.preventDefault(); if (!disabled) reset() }
   }
   return (
     <button ref={ref} type="button" id={id} role="switch" aria-checked={on} className={`${styles.row} ${styles.switchRow}`}
       aria-disabled={disabled ? 'true' : undefined} data-reason={disabled} data-arrows="horizontal" data-setting={setting} {...data}
-      data-hints={rowHints(['A:' + (on ? 'Turn off' : 'Turn on'), onReset ? 'Y:Use Default' : ''], extraHints, inSubPage)}
+      data-hints={rowHints(['A:' + (on ? 'Turn off' : 'Turn on'), reset ? 'Y:Use Default' : ''], extraHints, inSubPage)}
       data-caption={caption ?? (typeof hint === 'string' ? `${typeof label === 'string' ? label : ''} · ${hint}` : undefined)}
       onClick={flip} onKeyDown={onKeyDown}>
       <span className={styles.main}>
         <span className={styles.labelBlock}>
-          <span className={styles.label}>{label}{setting && <ConfigName name={setting} />}</span>
-          {hint && <span className={styles.hint}>{hint}</span>}
+          <span className={styles.label}>{inputContent(label)}{setting && <ConfigName name={setting} />}</span>
+          {hint && <span className={styles.hint}>{inputContent(hint)}</span>}
+          {origin && <span className={styles.hint}>{origin.text}</span>}
         </span>
         <span className={styles.switch} data-on={on ? 'true' : undefined} aria-hidden="true"><span /></span>
       </span>

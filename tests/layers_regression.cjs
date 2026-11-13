@@ -134,3 +134,11 @@ assert.equal(readLayers('# @layer '+JSON.stringify({id:'x',name:'X',overrides:{N
   assert.ok(inputUses('RSR,N = J\nLSL = A\n','RSR').some(v=>v.startsWith('Chord with:')||v.startsWith('Shift trigger:')));
 }
 console.log('PASS: mode order, replacing a mode actions, activation phrases and override inputs; activation belongs to inputs, several may drive one layer, it round-trips through save and import, and a pre-move profile still works and is migrated on write');
+
+// A changed layer binding must not reuse the Default action name.
+const renamedLayer = 'JOY2 = LSHIFT\n# @label JOY2 = Sprint\n# @layer {"id":"drive","name":"Driving","overrides":{"JOY2":"SPACE"}}\n';
+assert.equal(layerEntries(projectLayer(renamedLayer, 'drive'))['# @label JOY2'], undefined);
+assert.equal(layerEntries(projectLayer(renamedLayer, ''))['# @label JOY2'], 'Sprint');
+const ownName = renamedLayer.replace('"JOY2":"SPACE"', '"JOY2":"SPACE","# @label JOY2":"Handbrake"');
+assert.equal(layerEntries(projectLayer(ownName, 'drive'))['# @label JOY2'], 'Handbrake');
+console.log('PASS: layer action names follow their output; Default names stay intact');

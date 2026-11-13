@@ -68,12 +68,12 @@ const TWO_PI = 2 * Math.PI
 class LowPass { y = 0; init = false; run(x: number, a: number) { this.y = this.init ? a * x + (1 - a) * this.y : x; this.init = true; return this.y } }
 class OneEuro {
   x = new LowPass(); dx = new LowPass(); prev = 0; init = false
-  static alpha(cutoff: number, dt: number) { const tau = 1 / (TWO_PI * cutoff); return 1 / (1 + tau / dt) }
+  static alpha(cutoff: number, dt: number) { if (cutoff <= 0) return 0; const tau = 1 / (TWO_PI * cutoff); return 1 / (1 + tau / dt) }
   run(value: number, dt: number, minCutoff: number, beta: number) {
     const d = this.init ? (value - this.prev) / dt : 0
     this.prev = value; this.init = true
     const ed = this.dx.run(d, OneEuro.alpha(1, dt))
-    return this.x.run(value, OneEuro.alpha(Math.max(1e-3, minCutoff + beta * Math.abs(ed)), dt))
+    return this.x.run(value, OneEuro.alpha(Math.max(0, minCutoff + beta * Math.abs(ed)), dt))
   }
 }
 
@@ -101,7 +101,7 @@ export class SteadyingModel {
         x = this.decay[0] + x * (1 - g); y = this.decay[1] + y * (1 - g)
       }
     } else {
-      const samples = Math.round(Math.min(MAX_SAMPLES, Math.max(1, (s.smoothTime * 1000) / s.tickMs)))
+      const samples = Math.floor(Math.min(MAX_SAMPLES, Math.max(1, (s.smoothTime * 1000) / s.tickMs)))
       const bottom = s.smoothThreshold / 2, top = s.smoothThreshold
       let immediate = top <= bottom ? (length < bottom ? 0 : 1) : (length - bottom) / (top - bottom)
       immediate = Math.min(1, Math.max(0, immediate))
@@ -193,8 +193,9 @@ export function sweepPaths(s: SteadyingSettings, seconds = 2) {
 }
 
 /** Fraction of movement that is smoothed at `speed` (Smoothing part's graph). */
-export function smoothedAt(speed: number, s: Pick<SteadyingSettings, 'smoothThreshold' | 'decay'>) {
+export function smoothedAt(speed: number, s: Pick<SteadyingSettings, 'smoothThreshold' | 'decay'> & Partial<Pick<SteadyingSettings, 'smoothTime' | 'tickMs'>>) {
   if (s.smoothThreshold <= 0) return 0
+  if (s.smoothTime !== undefined && (s.smoothTime <= 0 || (!s.decay && s.smoothTime * 1000 < 2 * (s.tickMs ?? 3)))) return 0
   if (s.decay) { const t = Math.min(1, speed / s.smoothThreshold); return (1 - t) * (1 - t) }
   const bottom = s.smoothThreshold / 2
   return 1 - Math.min(1, Math.max(0, (speed - bottom) / (s.smoothThreshold - bottom)))
@@ -207,12 +208,11 @@ export function passedAt(speed: number, cutoff: number, recovery: number) {
 }
 
 /**
- * How much the adaptive filter smooths a movement at `speed` (illustrative:
- * the One Euro cutoff rises with how fast the speed is changing; a turn
- * starting from rest changes about as fast as it is).
+ * Previous-output weight for a given filtered angular acceleration (deg/s²).
+ * One Euro adapts to the per-axis derivative, not angular speed itself.
  */
-export function euroSmoothedAt(speed: number, minCutoff: number, speedCoeff: number, tickMs = 16) {
-  const cutoff = Math.max(1e-3, minCutoff + speedCoeff * Math.abs(speed))
+export function euroSmoothedAt(derivative: number, minCutoff: number, speedCoeff: number, tickMs = 3) {
+  const cutoff = Math.max(0, minCutoff + speedCoeff * Math.abs(derivative))
   return 1 - OneEuro.alpha(cutoff, tickMs / 1000)
 }
 

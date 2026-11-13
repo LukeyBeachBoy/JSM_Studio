@@ -1,3 +1,5 @@
+import { useLayerPresentation } from '../useLayerPresentation'
+import { inputContent } from '../glyphs/InputText'
 import { useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Icon } from '../icons/Icon'
 import { SettingOrigins } from '../SettingOrigin'
@@ -124,7 +126,7 @@ function useOriginLine(setting?: string): { text: string; tone: 'changed' | 'inh
   if (!info || info.kind === 'own') return null
   if (info.kind === 'override') {
     // Console v2 (V8): modes, not layers; a base, not a template.
-    if (context.layer) return { text: `Changed in ${context.layer}`, tone: 'changed' }
+    if (context.layer) return { text: 'Override', tone: 'changed' }
     return { text: info.sourceName ? `Changed from ${info.sourceName}` : 'Changed from the base', tone: 'changed' }
   }
   if (info.kind === 'inherited' && info.sourceName) return { text: `From ${info.sourceName}`, tone: 'inherited' }
@@ -157,6 +159,7 @@ function ChoiceSummaryRow({ adjust, ...props }: SummaryRowProps & { adjust: Extr
   const generatedId = useId()
   const id = props.id ?? generatedId
   const helpId = `${id}-help`
+  const layer = useLayerPresentation()
   const origin = useOriginLine(props.setting)
   const info = useSettingOriginInfo(props.setting)
   const reset = props.onUseDefault ?? (info?.canReset ? info.reset : undefined)
@@ -196,10 +199,10 @@ function ChoiceSummaryRow({ adjust, ...props }: SummaryRowProps & { adjust: Extr
     }}>
     <div className={adjustStyles.choiceHeading}>
       <label htmlFor={id} className="summary-row__label">{props.icon}{props.label}{props.setting && <ConfigName name={props.setting} />}</label>
-      {props.hint && <span className="summary-row__hint" id={helpId}>{props.hint}</span>}
-      {origin && <span className="summary-row__hint" data-tone={origin.tone}>{origin.text}</span>}
+      {props.hint && <span className="summary-row__hint" id={helpId}>{inputContent(props.hint)}</span>}
+      {origin && <span className="summary-row__hint" data-tone={origin.tone} style={origin.tone === 'changed' ? layer.style : undefined}>{origin.text}</span>}
     </div>
-    <Select id={id} ariaDescribedBy={props.hint ? helpId : undefined} value={adjust.value || empty} options={options}
+    <Select id={id} ariaLabel={typeof props.label === 'string' ? props.label : props.setting} ariaDescribedBy={props.hint ? helpId : undefined} value={adjust.value || empty} options={options}
       disabled={disabled} className={adjustStyles.choiceSelect} onValueChange={value => {
         const next = value === empty ? '' : value
         adjust.onChange(next)
@@ -240,6 +243,7 @@ function AdjustableSummaryRow(props: SummaryRowProps) {
   // set to that default, and leave the file dirty for nothing.
   const baseline = useContext(ConfigBaseline)
   const snapshot = useRef<string | null>(null)
+  const layer = useLayerPresentation()
   const origin = useOriginLine(setting)
   const info = useSettingOriginInfo(setting)
   const resetToDefault = onUseDefault ?? (info?.canReset && info.reset ? info.reset : undefined)
@@ -366,6 +370,7 @@ function AdjustableSummaryRow(props: SummaryRowProps) {
         type="button"
         id={id}
         className="summary-row"
+        aria-label={typeof label === 'string' ? `${label}${typeof shownValue === 'string' ? `: ${shownValue}` : ''}` : undefined}
         data-size={size}
         data-adjusting={adjusting ? 'true' : undefined}
         data-stick-adjust={adjust?.kind === 'custom' && adjust.onStick ? 'true' : undefined}
@@ -419,14 +424,14 @@ function AdjustableSummaryRow(props: SummaryRowProps) {
         <span className="summary-row__text">
           <span className="summary-row__label">{label}{setting && <ConfigName name={setting} />}</span>
           {origin
-            ? <span className="summary-row__hint" data-tone={origin.tone}>{origin.text}</span>
-            : hint && <span className="summary-row__hint">{hint}</span>}
+            ? <span className="summary-row__hint" data-tone={origin.tone} style={origin.tone === 'changed' ? layer.style : undefined}>{origin.text}</span>
+            : hint && <span className="summary-row__hint">{inputContent(hint)}</span>}
         </span>
         {shownValue !== undefined && shownValue !== '' && (
           <span className="summary-row__value" data-mono={mono ? 'true' : undefined}>
             {adjusting && adjust?.kind !== 'custom' && <span className="summary-row__step" aria-hidden="true"
               onPointerDown={event => { event.preventDefault(); stepAdjust(-1) }} onClick={event => event.stopPropagation()}><Icon name="chevronDown" size={14} /></span>}
-            {shownValue}
+            {inputContent(shownValue)}
             {adjusting && adjust?.kind !== 'custom' && <span className="summary-row__step summary-row__step--next" aria-hidden="true"
               onPointerDown={event => { event.preventDefault(); stepAdjust(1) }} onClick={event => event.stopPropagation()}><Icon name="chevronDown" size={14} /></span>}
           </span>

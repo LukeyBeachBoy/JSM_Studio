@@ -1,7 +1,7 @@
 // Console v2 (P4): Sticks, Triggers, Trackpads and the grip sheet, driven the
 // way a person drives them. What each card writes, what each named preset
 // writes (D7), "Both sticks" dead zones, the flick-to-gamepad game dead zone,
-// the touch stick (D9) and its shared directions page, "Turn the zones" (D10),
+// the touch stick (D9) and its shared directions page, pad orientation (D10),
 // the trackpad acceleration presets, the Feel strengths, the trigger Advanced
 // Skip window, the grip sheet, and the Home "Trackpad feel" jump.
 //
@@ -92,34 +92,34 @@ const PROFILE = [
     }
     assert.equal(await current(right), 'LOOK')
 
-    // Fine-tune ▸ Speed: "How a push becomes speed" (STICK_POWER 0.5 / 1 / 2).
+    // Fine-tune ▸ Speed: "Response curve" (STICK_POWER 0.5 / 1 / 2).
     await page.locator(`${right} [data-stick-fine-tune-row]`).click()
     await group('speed')
-    await pick('How a push becomes speed', 'Quick start')
+    await pick('Response curve', 'Quick start')
     assert.equal(keyOf(await saved(), 'STICK_POWER'), '0.5', 'Quick start is STICK_POWER 0.5')
-    await pick('How a push becomes speed', 'Precise centre')
+    await pick('Response curve', 'Precise centre')
     assert.equal(keyOf(await saved(), 'STICK_POWER'), '2', 'Precise centre is STICK_POWER 2')
-    await pick('How a push becomes speed', 'Even')
+    await pick('Response curve', 'Even')
     assert.equal(keyOf(await saved(), 'STICK_POWER'), null, 'Even is the default and writes nothing')
     // The old mojibake is gone: speeds read in °/s.
     assert.match(await slider('Turn speed').getAttribute('aria-valuetext'), /^\d+°\/s$/, 'turn speed reads in degrees per second')
     assert.equal(/Â/.test(await sub().innerText()), false, 'no mojibake anywhere in Fine-tune')
 
-    // Speed-up (rate / cap).
+    // Acceleration (rate / cap).
     await group('speedup')
-    await pick('How much', 'Gentle')
+    await pick('Acceleration preset', 'Gentle')
     let text = await saved()
     assert.deepEqual([keyOf(text, 'STICK_ACCELERATION_RATE'), keyOf(text, 'STICK_ACCELERATION_CAP')], ['1', '2'], 'Gentle is rate 1, top 2')
-    await pick('How much', 'Strong')
+    await pick('Acceleration preset', 'Strong')
     text = await saved()
     assert.deepEqual([keyOf(text, 'STICK_ACCELERATION_RATE'), keyOf(text, 'STICK_ACCELERATION_CAP')], ['2', '3'], 'Strong is rate 2, top 3')
-    await pick('How much', 'Off')
+    await pick('Acceleration preset', 'Off')
     text = await saved()
     assert.deepEqual([keyOf(text, 'STICK_ACCELERATION_RATE'), keyOf(text, 'STICK_ACCELERATION_CAP')], [null, null], 'Off removes both')
 
     // Dead zone & edge: Both sticks writes the shared keys, one stick its own.
     await group('deadzone')
-    await slider('Ignore small movement').focus()
+    await slider('Inner deadzone').focus()
     await page.keyboard.press('ArrowRight')
     text = await saved()
     assert.ok(keyOf(text, 'STICK_DEADZONE_INNER') !== null, 'Both sticks (the default) writes STICK_DEADZONE_INNER')
@@ -133,14 +133,14 @@ const PROFILE = [
     assert.ok(keyOf(text, 'STICK_DEADZONE_INNER') !== null && keyOf(text, 'STICK_DEADZONE_OUTER') !== null)
     await shot('sticks-deadzone')
 
-    // Advanced ▸ Exact curve and Match a full turn.
+    // Exact curve stays Advanced; full-turn calibration is directly under Speed.
     await group('speed')
     await sub().locator('button').filter({ hasText: /^Advanced/ }).click()
     const advanced = sub()
     await advanced.getByText('Exact curve', { exact: false }).first().waitFor()
-    await advanced.locator('button').filter({ hasText: /^Match a full turn/ }).first().click()
-    await page.getByText('Match a full turn', { exact: false }).first().waitFor()
     await page.keyboard.press('Escape'); await page.waitForTimeout(250)
+    await sub().locator('button').filter({ hasText: /^Real-world calibration/ }).first().click()
+    await page.getByText('Real-world calibration', { exact: false }).first().waitFor()
     await page.keyboard.press('Escape'); await page.waitForTimeout(250)
     if (await page.locator('[data-subpage]').count()) await closeSub()
 
@@ -170,12 +170,15 @@ const PROFILE = [
     await page.locator('#trigger-left').waitFor()
     assert.equal(await page.locator('.page-header__title').count(), 0, 'no page header on Triggers (D4)')
     assert.equal(await current('#trigger-left'), 'NO_SKIP', 'ZL_MODE = NO_SKIP is Half then full press')
-    for (const value of ['NO_FULL', 'NO_SKIP', 'NO_SKIP_EXCLUSIVE', 'MUST_SKIP', 'MAY_SKIP', 'MUST_SKIP_R', 'MAY_SKIP_R', 'GAMEPAD']) {
-      assert.equal(await card('#trigger-left', value).count(), 1, `trigger card ${value}`)
+    assert.equal(await page.locator('#trigger-left [role="radio"]').count(), 2, 'two common trigger choices are visible first')
+    await page.locator('#trigger-left button').filter({ hasText: /^\+6More trigger modes/ }).click()
+    for (const value of ['NO_SKIP_EXCLUSIVE', 'MUST_SKIP', 'MAY_SKIP', 'MUST_SKIP_R', 'MAY_SKIP_R', 'GAMEPAD']) {
+      assert.equal(await sub().locator(`[data-value="${value}"]`).count(), 1, `advanced trigger card ${value} remains available`)
     }
-    await card('#trigger-left', 'MUST_SKIP').click(); await page.waitForTimeout(150)
+    await sub().locator('[data-value="MUST_SKIP"]').click(); await page.waitForTimeout(150)
     assert.equal(keyOf(await saved(), 'ZL_MODE'), 'MUST_SKIP')
-    await card('#trigger-left', 'GAMEPAD').click(); await page.waitForTimeout(150)
+    await page.locator('#trigger-left button').filter({ hasText: /^\+6More trigger modes/ }).click()
+    await sub().locator('[data-value="GAMEPAD"]').click(); await page.waitForTimeout(150)
     assert.equal(keyOf(await saved(), 'ZL_MODE'), 'X_LT', 'Gamepad trigger sends as the Xbox left trigger')
     await card('#trigger-left', 'NO_SKIP').click(); await page.waitForTimeout(150)
     assert.equal(keyOf(await saved(), 'ZL_MODE'), 'NO_SKIP')
@@ -232,14 +235,14 @@ const PROFILE = [
       assert.equal(keyOf(await saved(), 'LEFT_TOUCHPAD_MODE'), mode, `${value} writes LEFT_TOUCHPAD_MODE = ${mode}`)
     }
     assert.equal(await card(left, 'PS_TOUCHPAD').getAttribute('aria-disabled'), 'true', 'PlayStation touchpad is unavailable on a two-pad controller')
-    // Turn the zones (D10): Zones ▸ Layout.
+    // Pad rotation applies to mouse, zones and touch-stick modes, so it has its own group.
     await page.locator(`${left} [data-trackpad-fine-tune]`).click()
-    await group('zones')
-    const turn = slider('Turn the zones')
+    await group('orientation')
+    const turn = slider('Pad rotation')
     await turn.waitFor()
     await turn.focus(); await page.keyboard.press('ArrowRight')
-    assert.ok(keyOf(await saved(), 'LEFT_TOUCHPAD_ROTATION') !== null, 'Turn the zones writes LEFT_TOUCHPAD_ROTATION')
-    await shot('trackpads-zones-layout')
+    assert.ok(keyOf(await saved(), 'LEFT_TOUCHPAD_ROTATION') !== null, 'Pad rotation writes LEFT_TOUCHPAD_ROTATION')
+    await shot('trackpads-orientation')
     await closeSub()
 
     // Mouse pad: acceleration presets (D7) and the Feel strengths.
@@ -249,19 +252,17 @@ const PROFILE = [
     assert.equal(await current(rightPad), 'MOUSE')
     await page.locator(`${rightPad} [data-trackpad-fine-tune]`).click()
     await group('speed')
-    await pick('Speed up fast swipes', 'Gentle')
+    await pick('Acceleration', 'Gentle')
     text = await saved()
     assert.deepEqual([keyOf(text, 'TOUCHPAD_ACCEL_CURVE'), keyOf(text, 'TOUCHPAD_ACCEL_MAX_GAIN')], ['NATURAL', '1.6'], 'Gentle is a natural curve up to 1.6×')
-    await pick('Speed up fast swipes', 'Strong')
+    await pick('Acceleration', 'Strong')
     assert.equal(keyOf(await saved(), 'TOUCHPAD_ACCEL_MAX_GAIN'), '2.5', 'Strong is up to 2.5×')
-    await pick('Speed up fast swipes', 'Off')
+    await pick('Acceleration', 'Off')
     text = await saved()
     assert.deepEqual([keyOf(text, 'TOUCHPAD_ACCEL_CURVE'), keyOf(text, 'TOUCHPAD_ACCEL_MAX_GAIN')], [null, null], 'Off removes the curve')
     // Advanced: TOUCHPAD_ACCELERATION is reachable.
     await sub().locator('button').filter({ hasText: /^Advanced/ }).click()
-    await sub().last().getByText('TOUCHPAD_ACCELERATION', { exact: false }).first().waitFor().catch(async () => {
-      await sub().last().locator('[role="slider"]').filter({ hasText: /speed-up/i }).first().waitFor()
-    })
+    await sub().last().locator('[role="slider"]').filter({ hasText: 'Legacy acceleration' }).first().waitFor()
     await shot('trackpads-speed-advanced')
     await page.keyboard.press('Escape'); await page.waitForTimeout(250)
     await group('feel')

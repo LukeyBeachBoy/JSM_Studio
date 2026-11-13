@@ -8,7 +8,11 @@ export const NATIVE_INPUTS = [
   'RLEFT', 'RRIGHT', 'RRING', 'MUP', 'MDOWN', 'MLEFT', 'MRIGHT', 'MRING',
   'TOUCH', 'LTOUCH', 'RTOUCH', 'LMINI', 'RMINI', 'MISC1', 'MISC2', 'MISC3',
   'MISC4', 'MISC5', 'MISC6', 'ZLF', 'CAPTURE', 'ZRF', 'TUP', 'TDOWN',
-  'TLEFT', 'TRIGHT', 'TRING', 'T1', 'T2', 'T3', 'T4', 'T5',
+  'TLEFT', 'TRIGHT', 'TRING', 'JOY1', 'JOY2', 'JOY3', 'JOY4', 'JOY5',
+  'JOY6', 'JOY7', 'JOY8', 'JOY9', 'JOY10', 'JOY11', 'JOY12', 'JOY13',
+  'JOY14', 'JOY15', 'JOY16', 'JOY17', 'JOY18', 'JOY19', 'JOY20', 'JOY21',
+  'JOY22', 'JOY23', 'JOY24', 'JOY25', 'JOY26', 'JOY27', 'JOY28', 'JOY29',
+  'JOY30', 'JOY31', 'JOY32', 'T1', 'T2', 'T3', 'T4', 'T5',
   'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12', 'T13',
   'T14', 'T15', 'T16', 'T17', 'T18', 'T19', 'T20', 'T21',
   'T22', 'T23', 'T24', 'T25', 'LT1', 'LT2', 'LT3', 'LT4',
@@ -34,7 +38,11 @@ export const RELEASE_CONDITION_INPUTS = [
   'RRIGHT', 'RRING', 'MUP', 'MDOWN', 'MLEFT', 'MRIGHT', 'MRING', 'TOUCH',
   'LTOUCH', 'RTOUCH', 'LMINI', 'RMINI', 'MISC1', 'MISC2', 'MISC3', 'MISC4',
   'MISC5', 'MISC6', 'ZLF', 'CAPTURE', 'ZRF', 'TUP', 'TDOWN', 'TLEFT',
-  'TRIGHT', 'TRING',
+  'TRIGHT', 'TRING', 'JOY1', 'JOY2', 'JOY3', 'JOY4', 'JOY5', 'JOY6',
+  'JOY7', 'JOY8', 'JOY9', 'JOY10', 'JOY11', 'JOY12', 'JOY13', 'JOY14',
+  'JOY15', 'JOY16', 'JOY17', 'JOY18', 'JOY19', 'JOY20', 'JOY21', 'JOY22',
+  'JOY23', 'JOY24', 'JOY25', 'JOY26', 'JOY27', 'JOY28', 'JOY29', 'JOY30',
+  'JOY31', 'JOY32',
 ] as const
 
 const heldInputs = new Set<string>([...NATIVE_INPUTS, '+', '-'])

@@ -102,6 +102,8 @@ type BasePickerProps = {
 }
 
 export function BasePickerSheet({ open, onClose, name, current, builtin, userBases, loops, onPick }: BasePickerProps) {
+  const [expandedPresets, setExpandedPresets] = useState<string[]>([])
+  useEffect(() => { if (open) setExpandedPresets(builtin.filter(base => base.relativePath.toLowerCase() === current?.toLowerCase()).map(base => base.preset)) }, [open, current, builtin])
   const row = (path: string | null, label: string, note?: string) => {
     const checked = (current ?? '').toLowerCase() === (path ?? '').toLowerCase()
     const loop = path && loops?.(path)
@@ -114,7 +116,9 @@ export function BasePickerSheet({ open, onClose, name, current, builtin, userBas
       </button>
     )
   }
-  // One entry per shipped preset variant, by its file so the variants differ.
+  const presets = new Map<string, BuiltinBase[]>()
+  for (const base of builtin) presets.set(base.preset, [...(presets.get(base.preset) ?? []), base])
+  // Match the Bases tab's play styles while preserving every controller variant.
   return (
     <Sheet open={open} onClose={onClose} eyebrow={`Library · ${name}`} title="Change base"
       description="What it's built on. Anything it leaves alone comes from the base; what it sets wins."
@@ -122,8 +126,13 @@ export function BasePickerSheet({ open, onClose, name, current, builtin, userBas
       {row(null, 'Nothing', 'Every setting is its own')}
       {userBases.length > 0 && <p className={styles.eyebrow} style={{ marginTop: 12 }}>Your bases</p>}
       {userBases.map(base => row(`profiles-library/${base}.txt`, base))}
-      <p className={styles.eyebrow} style={{ marginTop: 12 }}>Built in</p>
-      {builtin.map(base => row(base.relativePath, `${base.title}${base.fileName.includes(' - ') ? ` (${base.fileName.replace(/^.* - /, '').replace(/\.txt$/, '')})` : ''}`, base.blurb))}
+      <p className={styles.eyebrow} style={{ marginTop: 12 }}>Built in · {presets.size} play styles</p>
+      {[...presets.entries()].map(([preset, variants]) => variants.length === 1
+        ? row(variants[0].relativePath, variants[0].title, variants[0].blurb)
+        : <details key={preset} className={styles.baseVariants} open={expandedPresets.includes(preset)} onToggle={event => { const expanded = event.currentTarget.open; setExpandedPresets(previous => expanded ? previous.includes(preset) ? previous : [...previous, preset] : previous.filter(value => value !== preset)) }}>
+            <summary data-hints="A:Show controller variants;B:Back">{variants[0].title}<span>{variants.length} controller variants</span></summary>
+            {variants.map(base => row(base.relativePath, base.fileName.replace(/\.txt$/, ''), base.blurb))}
+          </details>)}
     </Sheet>
   )
 }

@@ -19,7 +19,7 @@ export const MORE_MODE_NAMES: Record<MoreMode, { label: string; caption: string 
   MOUSE_AREA: { label: 'Mouse area', caption: 'The cursor moves as far as the stick does' },
   ANGLE: { label: 'Angle to axis', caption: 'Where you point sets one gamepad axis' },
   STEERING: { label: 'Steering', caption: 'Wind the stick round to steer' },
-  HYBRID_AIM: { label: 'Aim + flick', caption: 'Looking around with a mouse-like feel' },
+  HYBRID_AIM: { label: 'Hybrid aim', caption: 'Looking around with a mouse-like feel' },
   FLICK_ONLY: { label: 'Flick only', caption: 'Point to face that way; no turning' },
   ROTATE_ONLY: { label: 'Turn only', caption: 'Roll round the edge to turn; no flicks' },
 }
@@ -60,12 +60,12 @@ export function stickModeName(mode: string): string {
   const upper = (mode || 'NO_MOUSE').toUpperCase()
   const card = stickCardOf(upper)
   if (card === 'MOVING') return 'Moving'
-  if (upper === 'HYBRID_AIM') return 'Looking around · mouse-like'
-  if (card === 'LOOK') return 'Looking around'
+  if (upper === 'HYBRID_AIM') return 'Mouse aim · hybrid'
+  if (card === 'LOOK') return 'Mouse aim'
   if (upper === 'FLICK_ONLY') return 'Flick only'
   if (upper === 'ROTATE_ONLY') return 'Turn only'
-  if (card === 'FLICK') return 'Flick to turn'
-  if (card === 'WHEEL') return 'Wheel'
+  if (card === 'FLICK') return 'Flick stick'
+  if (card === 'WHEEL') return 'Radial menu'
   if (card === 'GAMEPAD') return `Gamepad stick · ${upper === 'LEFT_STICK' ? 'left' : 'right'}`
   const more = moreModeOf(upper)
   return more ? MORE_MODE_NAMES[more].label : upper.replace(/_/g, ' ').toLowerCase()

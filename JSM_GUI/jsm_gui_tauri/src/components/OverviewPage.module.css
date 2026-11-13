@@ -1,21 +1,7 @@
 /* Layout (console v2, Layout.dc.html): the mode strip, then the controller
    between two 330px columns of one-line callouts, with the focused input's
    card under the art. The quick menu (QuickMenu.dc.html) is a 560px sheet. */
-.page { position: relative; display: flex; flex-direction: column; gap: var(--sp-4); min-height: 100%; }
-
-/* The design has no page header on Layout: the strip sits under the tabs. The
-   shell's header stays in the document (its title names the page for screen
-   readers and the tests) but takes no room. */
-:global(.shell-page:has([data-layout-page])) > :global(.page-header) {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
+.page { position: relative; display: flex; flex-direction: column; gap: var(--sp-4); min-height: 0; padding-bottom: var(--sp-5); }
 
 /* ---- Mode strip: 64 high, LT · Showing mode · pills · RT. */
 .modeStrip {
@@ -23,7 +9,7 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: var(--sp-3);
   padding: var(--sp-2) 0;
   border-bottom: 1px solid var(--line-1);
 }
@@ -37,7 +23,7 @@
   flex: none;
   padding: 0 18px;
   border: 0;
-  border-radius: 20px;
+  border-radius: var(--r-card);
   background: var(--surface-row);
   color: var(--text-1);
   font: inherit;
@@ -51,7 +37,7 @@
 .modePill[aria-pressed='true'] .modeActivation { color: color-mix(in srgb, var(--surface-frame) 65%, transparent); }
 .modePill[aria-disabled='true'] { opacity: var(--disabled-opacity, .5); cursor: default; }
 .modePill:focus-visible { box-shadow: var(--focus-ring-pad); outline: 0; }
-.modeSwatch { width: 10px; height: 10px; flex: none; border-radius: 3px; }
+.modeSwatch { width: 10px; height: 10px; flex: none; border-radius: var(--r-xs); }
 .modeActivation { color: var(--text-3); font-weight: var(--fw-medium); white-space: nowrap; }
 .modeNone { color: var(--text-3); font-size: var(--fs-hint); }
 /* What the quick menu is filtering, when it is: quiet, at the strip's end. */
@@ -74,15 +60,15 @@
 .hero {
   flex: 1;
   display: grid;
-  grid-template-columns: 330px minmax(0, 1fr) 330px;
+  grid-template-columns: minmax(240px, 1fr) minmax(260px, 1.4fr) minmax(240px, 1fr);
   gap: var(--sp-5);
-  align-items: center;
+  align-items: start;
 }
 .noDiagram .centre { justify-content: center; }
-.column { display: flex; flex-direction: column; justify-content: center; gap: 2px; min-width: 0; }
-.centre { display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: var(--sp-5); min-width: 0; align-self: stretch; }
+.column { display: flex; flex-direction: column; justify-content: flex-start; gap: var(--sp-1); min-width: 0; }
+.centre { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: var(--sp-4); min-width: 0; align-self: stretch; }
 .diagram { position: relative; width: 100%; min-width: 0; }
-.diagramStatus { position: absolute; top: 0; right: 0; }
+.diagramStatus { display: flex; justify-content: flex-end; padding-top: var(--sp-2); }
 .empty { margin: 0; color: var(--text-3); text-align: center; }
 
 /* ---- A callout (Layout.dc.html .co): one row, 50 high -- the glyph, what it
@@ -91,14 +77,14 @@
 .callout {
   position: relative;
   width: 100%;
-  height: 50px;
+  min-height: 52px;
   flex: none;
   display: flex;
   align-items: center;
   gap: var(--sp-3);
-  padding: 0 14px;
+  padding: var(--sp-2) var(--sp-3);
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--r-card);
   background: transparent;
   color: var(--text-1);
   font: inherit;
@@ -130,20 +116,19 @@
   font-size: var(--fs-label);
   line-height: var(--lh-label);
   font-weight: var(--fw-semibold);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .callout[data-tinted='true'] .title { color: color-mix(in oklch, var(--callout-tint) 75%, var(--text-1)); }
 .output {
   flex: none;
-  max-width: 45%;
+  max-width: 38%;
   margin-left: auto;
   color: var(--text-3);
   font-size: var(--fs-hint);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: right;
 }
 .callout:focus .output, .callout[data-current='true'] .output { color: var(--text-2); }
 /* A held modeshift swaps the text in place (2g): no reflow, a crimson edge. */
@@ -153,12 +138,12 @@
 .swap { animation: callout-swap var(--dur-1) var(--ease-standard); }
 @keyframes callout-swap { from { opacity: 0; } }
 /* A trigger's pull, live: 3px along the bottom, a tick at the half-press point. */
-.triggerMeter { position: absolute; left: 64px; right: 14px; bottom: 5px; height: 3px; border-radius: 2px; background: var(--surface-sunken); overflow: hidden; }
-.triggerMeterFill { position: absolute; inset: 0; transform-origin: left; background: linear-gradient(90deg, var(--telemetry) 88%, transparent); border-radius: 2px; }
+.triggerMeter { position: absolute; left: 64px; right: 14px; bottom: 5px; height: 3px; border-radius: var(--r-xs); background: var(--surface-sunken); overflow: hidden; }
+.triggerMeterFill { position: absolute; inset: 0; transform-origin: left; background: linear-gradient(90deg, var(--telemetry) 88%, transparent); border-radius: var(--r-xs); }
 .triggerMeterTick { position: absolute; top: -2px; bottom: -2px; width: 1px; background: var(--text-2); }
 
 /* ---- Live readings: the gyro's speed under the art. */
-.live { width: 100%; max-width: 460px; display: flex; flex-direction: column; gap: 4px; }
+.live { width: 100%; max-width: 460px; display: flex; flex-direction: column; gap: var(--sp-1); }
 .liveHead { display: flex; justify-content: space-between; align-items: baseline; color: var(--text-3); font-size: var(--fs-micro); }
 .liveHead b { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--telemetry); }
 .sparkline { width: 100%; height: 40px; display: block; }
@@ -174,14 +159,14 @@
   display: flex;
   flex-direction: column;
   gap: var(--sp-3);
-  padding: 20px 24px;
-  border-radius: 18px;
+  padding: var(--sp-4);
+  border-radius: var(--r-card);
   background: var(--surface-row);
 }
-.focusHead { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.focusHead { display: flex; align-items: center; gap: var(--sp-4); min-width: 0; }
 .focusPill { flex: none; display: grid; place-items: center; min-width: 44px; height: 34px; color: var(--accent); }
-.focusName { min-width: 0; font-size: var(--fs-section); font-weight: var(--fw-semibold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.focusStatus { margin-left: auto; flex: none; font-size: var(--fs-hint); font-weight: var(--fw-semibold); color: var(--text-3); }
+.focusName { min-width: 0; font-size: var(--fs-section); font-weight: var(--fw-semibold); overflow-wrap: anywhere; }
+.focusStatus { margin-left: auto; flex: 0 1 45%; overflow-wrap: anywhere; text-align: right; font-size: var(--fs-hint); font-weight: var(--fw-semibold); color: var(--text-3); }
 .focusStatus[data-tone='same'] { color: var(--ok, #5fd3a0); }
 .focusStatus[data-tone='changed'] { color: color-mix(in oklch, var(--status-hue, var(--accent)) 80%, var(--text-1)); }
 .focusText {
@@ -194,7 +179,7 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.focusHints { display: flex; flex-wrap: wrap; gap: 22px; }
+.focusHints { display: flex; flex-wrap: wrap; gap: var(--sp-6); }
 .focusHints button {
   display: inline-flex;
   align-items: center;
@@ -213,21 +198,21 @@
 /* ---- The quick menu. */
 .quickGroup { margin: var(--sp-3) 0 2px; padding-left: 16px; color: var(--text-3); font-size: var(--fs-eyebrow, 12px); font-weight: var(--fw-semibold); letter-spacing: .08em; text-transform: uppercase; }
 .quickGroup:first-child { margin-top: 0; }
-.quickFor { display: inline-flex; align-items: center; gap: 10px; height: 40px; padding: 0 14px 0 8px; border-radius: 20px; background: var(--surface-row); color: var(--text-1); font-weight: var(--fw-semibold); white-space: nowrap; }
+.quickFor { display: inline-flex; align-items: center; gap: var(--sp-3); height: 40px; padding: 0 14px 0 8px; border-radius: var(--r-card); background: var(--surface-row); color: var(--text-1); font-weight: var(--fw-semibold); white-space: nowrap; }
 .find {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--sp-2);
   margin: 2px 0 6px;
   padding: 10px 16px 12px;
-  border-radius: 12px;
+  border-radius: var(--r-card);
   background: var(--surface-row);
   color: var(--text-1);
 }
 .find:focus-within { background: var(--surface-selected); box-shadow: var(--focus-ring-pad); }
 /* The pad's focus glide rings the field itself (TODO-48): no second ring. */
 :global(body[data-focus-glide]) .find:focus-within { box-shadow: none; }
-.findRow { display: flex; align-items: center; gap: 14px; }
+.findRow { display: flex; align-items: center; gap: var(--sp-4); }
 .findIcon { width: 22px; height: 22px; flex: none; color: var(--text-2); }
 .find input {
   flex: 1;
@@ -250,11 +235,11 @@
   min-height: 52px;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: var(--sp-4);
   padding: 8px 16px;
   box-sizing: border-box;
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--r-card);
   background: transparent;
   color: var(--text-1);
   font: inherit;
@@ -267,17 +252,17 @@
 .qm[aria-disabled='true'] { opacity: .55; cursor: default; }
 .qmIcon { width: 22px; height: 22px; flex: none; display: grid; place-items: center; color: var(--text-2); }
 .qmIcon svg { width: 22px; height: 22px; }
-.qmText { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.qmText { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; }
 .qmLabel { font-size: var(--fs-label); font-weight: var(--fw-semibold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .qmHint { font-size: var(--fs-hint); line-height: 1.35; color: var(--text-3); }
 .qmValue { margin-left: auto; flex: none; max-width: 50%; display: flex; align-items: center; gap: var(--sp-2); color: var(--text-2); font-size: var(--fs-body); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.qmSwitch { position: relative; width: 50px; height: 28px; flex: none; margin-left: auto; border-radius: 14px; background: var(--surface-control); }
+.qmSwitch { position: relative; width: 50px; height: 28px; flex: none; margin-left: auto; border-radius: var(--r-pill); background: var(--surface-control); }
 .qmValue + .qmSwitch { margin-left: 12px; }
 .qmSwitch span { position: absolute; top: 4px; left: 4px; width: 20px; height: 20px; border-radius: 50%; background: var(--text-3); transition: transform var(--dur-1) var(--ease-standard), background var(--dur-1) var(--ease-standard); }
 .qmSwitch[data-on='true'] { background: var(--accent); }
 .qmSwitch[data-on='true'] span { transform: translateX(22px); background: var(--text-on-accent); }
 .lightDot { width: 22px; height: 22px; border-radius: 50%; background: var(--text-1); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .2); }
-.missingList { display: flex; flex-direction: column; gap: 2px; }
+.missingList { display: flex; flex-direction: column; gap: var(--sp-1); }
 
 /* System States 17b: the live art cross-fades in after "Connecting to …". */
 .diagram[data-arrived] > * { animation: arrive var(--dur-3, 240ms) ease-out; }
@@ -285,14 +270,20 @@
 @media (prefers-reduced-motion: reduce) { .diagram[data-arrived] > *, .swap { animation: none; } }
 
 @media (max-width: 1279px) {
-  .hero { grid-template-columns: 280px minmax(0, 1fr) 280px; gap: var(--sp-4); }
+  .hero { grid-template-columns: minmax(220px, 1fr) minmax(200px, 1fr) minmax(220px, 1fr); gap: var(--sp-3); }
 }
 @media (max-width: 1023px) {
   .hero { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .centre { grid-column: 1 / -1; grid-row: 1; }
-  .diagram { max-width: 560px; margin: 0 auto; }
+  .centre { grid-column: 1 / -1; grid-row: 2; flex-direction: row; align-items: flex-start; }
+  .diagram { max-width: 260px; margin: 0; }
+  .focusCard { flex: 1; }
+  .column { grid-row: 1; }
 }
 @media (max-width: 640px) {
   .hero { grid-template-columns: minmax(0, 1fr); }
   .modeStrip { gap: var(--sp-2); }
 }
+
+.modeStrip[hidden] { display: none; }
+
+.focusHints button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }

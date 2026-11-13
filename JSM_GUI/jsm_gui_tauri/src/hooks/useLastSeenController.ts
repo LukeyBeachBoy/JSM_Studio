@@ -1,3 +1,4 @@
+import { selectedControllerSample } from '../utils/controllerSelection'
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { desktopBridge } from '../platform/desktopBridge'
 import type { TelemetrySample } from './useTelemetry'
@@ -14,7 +15,7 @@ const ensureSubscribed = () => {
   if (subscribed) return
   subscribed = true
   desktopBridge.onTelemetrySample(payload => {
-    const device = (payload as TelemetrySample | null)?.devices?.[0]
+    const device = selectedControllerSample(payload as TelemetrySample | null)?.devices?.[0]
     if (!device) return
     lastSeen = { at: Date.now(), type: device.type }
     listeners.forEach(listener => listener())

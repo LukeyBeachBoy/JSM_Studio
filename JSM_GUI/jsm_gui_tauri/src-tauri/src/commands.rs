@@ -140,6 +140,7 @@ pub fn reset_default_settings(app:AppHandle,state:State<'_,AppState>)->CommandRe
 /// Pauses or resumes one association without losing it.
 #[tauri::command]
 pub fn set_autoload_rule_paused(app: AppHandle, process_name: String, paused: bool) -> CommandResult<runtime::AutoloadRule> {
+    crate::services::slots::invalidate_rules();
     runtime::set_autoload_rule_paused(&app, &process_name, paused)
 }
 
@@ -191,6 +192,7 @@ pub fn apply_profile(
     text: String,
 ) -> CommandResult<ApplyProfileResult> {
     let path = runtime::write_active_profile(&app, profile_path.as_deref(), &text)?;
+    crate::services::slots::record_manual_apply(&app,&path)?;
     crate::services::config_layers::prepare(&app, &path)?;
     let runtime_state = runtime::get_runtime_mapping_state(&app)?;
     if !runtime_state.mapping_enabled {
@@ -217,6 +219,7 @@ pub fn apply_profile(
         restarted = true;
     }
 
+    if crate::services::slots::enabled() {let _=jsm_process::inject_console_command(&app,state.inner(),"AUTOLOAD = OFF");}
     crate::services::config_layers::applied();
     Ok(ApplyProfileResult {
         restarted,
@@ -249,7 +252,8 @@ pub fn set_autoload_enabled(
 ) -> CommandResult<runtime::RuntimeMappingState> {
     let runtime_state = runtime::set_autoload_enabled(&app, enabled)?;
     if jsm_process::is_running(state.inner())? {
-        let command = if runtime_state.mapping_enabled && runtime_state.autoload_enabled {
+        crate::services::slots::invalidate_rules();
+        let command = if runtime_state.mapping_enabled && runtime_state.autoload_enabled && !crate::services::slots::enabled() {
             "AUTOLOAD = ON"
         } else {
             "AUTOLOAD = OFF"
@@ -264,13 +268,15 @@ pub fn set_controller_nav_enabled(
     app: AppHandle,
     state: State<'_, AppState>,
     enabled: bool,
+    controller: Option<String>,
 ) -> CommandResult<runtime::RuntimeMappingState> {
-    let runtime_state = runtime::set_controller_nav_enabled(&app, enabled)?;
+    let runtime_state = runtime::set_controller_nav_enabled(&app, enabled, controller)?;
     // The switch is flipped from inside Studio, where AutoLoad will not run
-    // again until the foreground app changes, so it takes effect here: on
-    // hands the pad to Studio, off gives it back to the configuration.
+    // again until the foreground app changes. Keep the navigation rule live
+    // here while any controller uses it. The
+    // per-device worker restores mappings for controllers that opted out.
     if runtime_state.mapping_enabled && jsm_process::is_running(state.inner())? {
-        if enabled {
+        if runtime::any_controller_navigation(&runtime_state) {
             keep_studio_navigation(&app, state.inner(), &runtime_state)?;
         } else {
             let profile = runtime::effective_profile_for_state(&runtime_state);
@@ -334,8 +340,41 @@ pub fn save_autoload_rule(
     profile_name: String,
     exe_path: Option<String>,
     auto_apply: Option<bool>,
+    slot: Option<u8>,
 ) -> CommandResult<runtime::AutoloadRule> {
-    runtime::save_autoload_rule(&app, &process_name, &profile_name, exe_path.as_deref(), auto_apply)
+    if slot.is_some_and(|id|!(1..=4).contains(&id)) {return Err("Choose a slot from 1 to 4".into());}
+    let rule=runtime::save_autoload_rule(&app, &process_name, &profile_name, exe_path.as_deref(), auto_apply)?;
+    let rule=if let Some(slot)=slot {runtime::set_autoload_rule_slot(&app,&rule,slot)?} else {rule};
+    crate::services::slots::invalidate_rules();
+    Ok(rule)
+}
+
+#[tauri::command]
+pub fn get_slots() -> crate::services::slots::Slots {crate::services::slots::get()}
+
+#[tauri::command(async)]
+pub fn save_slots(app:AppHandle,config:crate::services::slots::Slots)->CommandResult<crate::services::slots::Slots> {
+    let before=crate::services::slots::get();
+    let next=crate::services::slots::configure(&app,config)?;
+    let active_changed=before.slots.iter().find(|s|s.id==before.active_slot).and_then(|s|s.profile_name.as_ref())!=next.slots.iter().find(|s|s.id==next.active_slot).and_then(|s|s.profile_name.as_ref());
+    if before.enabled!=next.enabled || (next.enabled && (before.active_slot!=next.active_slot || active_changed)) {crate::services::slots::request(0)} else {Ok(next)}
+}
+
+#[tauri::command(async)]
+pub fn activate_slot(id:u8)->CommandResult<crate::services::slots::Slots> {
+    let config=crate::services::slots::get();
+    if config.enabled && config.active_slot==id {return Ok(config);}
+    crate::services::slots::request(id)
+}
+
+#[tauri::command(async)]
+pub fn assign_slot(app:AppHandle,id:u8,profile_name:String)->CommandResult<crate::services::slots::Slots> {
+    let mut config=crate::services::slots::get();
+    let slot=config.slots.iter_mut().find(|s|s.id==id).ok_or("Slot not found")?;
+    slot.profile_name=Some(profile_name);
+    let config=crate::services::slots::configure(&app,config)?;
+    crate::services::slots::refresh_snapshot(&app,id)?;
+    if config.enabled && config.active_slot==id {crate::services::slots::request(id)} else {Ok(config)}
 }
 
 /// The icon inside an executable, for a configuration associated with it.
@@ -358,6 +397,7 @@ pub fn delete_autoload_rule(
     process_name: String,
 ) -> CommandResult<SimpleSuccessResult> {
     let success = runtime::delete_autoload_rule(&app, &process_name)?;
+    crate::services::slots::invalidate_rules();
     Ok(SimpleSuccessResult { success })
 }
 
@@ -383,7 +423,7 @@ pub(crate) fn apply_runtime_mapping_state(
     }
 
     if runtime_state.mapping_enabled {
-        let autoload_command = if runtime_state.autoload_enabled {
+        let autoload_command = if runtime_state.autoload_enabled && !crate::services::slots::enabled() {
             "AUTOLOAD = ON"
         } else {
             "AUTOLOAD = OFF"
@@ -394,12 +434,30 @@ pub(crate) fn apply_runtime_mapping_state(
     Ok(())
 }
 
+/// Switch a slot in one mapper transaction. Never restart a healthy mapper
+/// because a command could not be delivered: leave the caller to restore state.
+pub(crate) fn apply_slot_mapping_state(
+    app: &AppHandle,
+    state: &AppState,
+    runtime_state: &runtime::RuntimeMappingState,
+) -> CommandResult<()> {
+    if !jsm_process::is_running(state)? {
+        return apply_runtime_mapping_state(app, state, runtime_state);
+    }
+    let target = runtime::effective_profile_for_state(runtime_state);
+    let navigation = if studio_holds_controller(state, runtime_state) { format!("\t{}", runtime::APP_NAVIGATION_FILE_NAME) } else { String::new() };
+    if !inject_console_command_with_retry(app, state, &format!("STUDIO_SLOT_PROFILE {target}{navigation}"))? {
+        return Err("Could not deliver the slot switch. The mapper was kept running.".into());
+    }
+    Ok(())
+}
+
 /// Whether Studio should have the controller right now: its window is in
 /// front, the navigation rule is live, and no Test is running.
 fn studio_holds_controller(state: &AppState, runtime_state: &runtime::RuntimeMappingState) -> bool {
     runtime_state.mapping_enabled
         && runtime_state.autoload_enabled
-        && runtime_state.controller_nav_enabled
+        && runtime::any_controller_navigation(&runtime_state)
         && state.telemetry_ui_active.load(std::sync::atomic::Ordering::Relaxed)
         && !state.studio_testing.load(std::sync::atomic::Ordering::Relaxed)
 }
@@ -410,7 +468,7 @@ fn studio_holds_controller(state: &AppState, runtime_state: &runtime::RuntimeMap
 /// Studio updates what games get; Studio keeps the controller.
 fn keep_studio_navigation(app: &AppHandle, state: &AppState, runtime_state: &runtime::RuntimeMappingState) -> CommandResult<()> {
     if studio_holds_controller(state, runtime_state) {
-        let _ = jsm_process::inject_console_command(app, state, runtime::APP_NAVIGATION_FILE_NAME)?;
+        let _ = inject_focus_profile(app, state, runtime::APP_NAVIGATION_FILE_NAME)?;
     }
     Ok(())
 }
@@ -433,6 +491,10 @@ pub(crate) fn adopt_profile_loaded_by_binding(app: &AppHandle, state: &AppState,
         let _ = app.emit("applied-profile-changed", named_profile(path, content));
     }
     let _ = keep_studio_navigation(app, state, &runtime_state);
+    if crate::services::slots::enabled() {
+        let _=crate::services::slots::record_manual_apply(app,path);
+        let _=jsm_process::inject_console_command(app,state,"AUTOLOAD = OFF");
+    }
 }
 
 /// Studio's window gained or lost focus. AutoLoad only acts when the
@@ -461,6 +523,13 @@ pub(crate) fn studio_focus_changed(app: &AppHandle, focused: bool) {
     if !(runtime_state.mapping_enabled && runtime_state.autoload_enabled) {
         return; // AutoLoad is off: no rule fires and nothing is handed over.
     }
+    if crate::services::slots::enabled() {
+        if runtime::any_controller_navigation(&runtime_state) {
+            let profile = runtime::effective_profile_for_state(&runtime_state);
+            let _ = inject_focus_profile(app, state.inner(), &profile);
+        }
+        return;
+    }
     // Let the new window settle in front before asking who it is.
     std::thread::sleep(std::time::Duration::from_millis(120));
     if state.telemetry_ui_active.load(Relaxed) {
@@ -484,7 +553,7 @@ pub(crate) fn studio_focus_changed(app: &AppHandle, focused: bool) {
         // applied configuration, as before.
         None => (0, String::new()),
     };
-    if !(runtime_state.controller_nav_enabled || runtime_state.autoload_fallback_enabled) {
+    if !(runtime::any_controller_navigation(&runtime_state) || runtime_state.autoload_fallback_enabled) {
         return; // Studio never took the pad and no fallback is wanted.
     }
     // Once per foreground change: a window can lose and regain activation
@@ -500,15 +569,15 @@ pub(crate) fn studio_focus_changed(app: &AppHandle, focused: bool) {
     };
     let loaded = match &fallback {
         Some(path) => {
-            let injected = inject_profile_with_retry(app, state.inner(), path).unwrap_or(false);
+            let injected = inject_focus_profile(app, state.inner(), path).unwrap_or(false);
             eprintln!("AutoLoad fallback for {stem} (pid {pid}): {} {path}", if injected { "loaded" } else { "could not load" });
             injected
         }
         None => false,
     };
-    if !loaded && runtime_state.controller_nav_enabled {
+    if !loaded && runtime::any_controller_navigation(&runtime_state) {
         let profile = runtime::effective_profile_for_state(&runtime_state);
-        let _ = inject_profile_with_retry(app, state.inner(), &profile);
+        let _ = inject_focus_profile(app, state.inner(), &profile);
     }
 }
 
@@ -529,13 +598,13 @@ pub(crate) fn mapper_came_up(app: &AppHandle) {
 fn hand_pad_to_studio(app: &AppHandle) {
     let state = tauri::Manager::state::<AppState>(app);
     let Ok(runtime_state) = runtime::get_runtime_mapping_state(app) else { return };
-    if !(runtime_state.mapping_enabled && runtime_state.autoload_enabled && runtime_state.controller_nav_enabled) {
+    if !(runtime_state.mapping_enabled && runtime_state.autoload_enabled && runtime::any_controller_navigation(&runtime_state)) {
         return;
     }
     if !jsm_process::is_running(state.inner()).unwrap_or(false) {
         return;
     }
-    let _ = inject_profile_with_retry(app, state.inner(), runtime::APP_NAVIGATION_FILE_NAME);
+    let _ = inject_focus_profile(app, state.inner(), runtime::APP_NAVIGATION_FILE_NAME);
 }
 
 /// A tick, click or rumble on the controller for Studio's own UI (selecting,
@@ -567,7 +636,7 @@ pub fn set_studio_testing(state: State<'_, AppState>, testing: bool) {
 #[tauri::command(async)]
 pub fn resume_studio_navigation(app: AppHandle, state: State<'_, AppState>) -> CommandResult<bool> {
     let runtime_state = runtime::get_runtime_mapping_state(&app)?;
-    if !(runtime_state.mapping_enabled && runtime_state.autoload_enabled && runtime_state.controller_nav_enabled) {
+    if !(runtime_state.mapping_enabled && runtime_state.autoload_enabled && runtime::any_controller_navigation(&runtime_state)) {
         return Ok(false);
     }
     if !jsm_process::is_running(state.inner())? {
@@ -579,6 +648,13 @@ pub fn resume_studio_navigation(app: AppHandle, state: State<'_, AppState>) -> C
 fn inject_profile_with_retry(app: &AppHandle, state: &AppState, path: &str) -> CommandResult<bool> {
     let _ = inject_console_command_with_retry(app, state, "STUDIO_CHORD_END")?;
     inject_console_command_with_retry(app, state, path)
+}
+
+// Focus changes are automatic. The mapper knows which mapped modifiers are
+// actually down, including ordinary Alt/Tab bindings outside global chords.
+// Let it finish those shortcuts before a RESET_MAPPINGS can release them.
+fn inject_focus_profile(app: &AppHandle, state: &AppState, path: &str) -> CommandResult<bool> {
+    inject_console_command_with_retry(app, state, &format!("STUDIO_FOCUS_PROFILE {path}"))
 }
 
 fn inject_console_command_with_retry(
@@ -1234,6 +1310,14 @@ pub fn open_external(url: String) -> CommandResult<()> {
 }
 
 #[tauri::command]
+pub fn get_config_directory(app: AppHandle) -> CommandResult<String> {
+    let path = runtime::config_directory(&app)?;
+    let physical = std::fs::canonicalize(path).map_err(|error| format!("Cannot resolve configuration folder: {error}"))?;
+    let path = physical.to_string_lossy();
+    Ok(path.strip_prefix(r"\\?\").unwrap_or(&path).to_string())
+}
+
+#[tauri::command]
 pub fn open_config_directory(app: AppHandle) -> CommandResult<()> {
     let path = runtime::config_directory(&app)?;
     open::that(path).map_err(|error| format!("Failed to open config directory: {error}"))?;
@@ -1300,7 +1384,7 @@ pub fn set_autostart_enabled(enabled: bool) -> CommandResult<()> {
 // The overlay is a separate always-on-top window, not a hook into any game. See
 // services/overlay.rs for why that boundary matters and what it costs.
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn overlay_set_enabled(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -1329,7 +1413,7 @@ pub fn overlay_set_refresh_hz(state: State<'_, AppState>, hz: u32) -> CommandRes
     Ok(())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn overlay_set_bounds(
     app: AppHandle,
     x: i32,
@@ -1350,7 +1434,7 @@ pub struct OverlayWorkarea {
     scale: f64,
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn overlay_workarea(app: AppHandle) -> CommandResult<OverlayWorkarea> {
     let (x, y, width, height, scale) = overlay::workarea(&app)?;
     Ok(OverlayWorkarea { x, y, width, height, scale })
@@ -1479,6 +1563,21 @@ pub fn set_global_timing(
     Ok(saved)
 }
 
+#[tauri::command(async)]
+pub fn set_cyborg_stick_defaults(app: AppHandle, state: State<'_, AppState>, values: std::collections::BTreeMap<String, String>) -> CommandResult<runtime::RuntimeMappingState> {
+    let saved = runtime::set_cyborg_stick_defaults(&app, values)?;
+    if saved.mapping_enabled {
+        let packet = crate::services::telemetry::latest_packet(state.inner()).ok().flatten();
+        let fallback = runtime::effective_profile_for_state(&saved);
+        let profile = packet.as_ref().and_then(|p| p["activeProfile"].as_str()).filter(|s| !s.is_empty()).unwrap_or(&fallback);
+        let _ = inject_profile_with_retry(&app, state.inner(), profile)?;
+    }
+    Ok(saved)
+}
+
+#[tauri::command]
+pub fn mouse_side_buttons() -> Vec<String> { crate::services::global_chords::mouse_side_buttons() }
+
 /// The tray menu has laid out at this size (CSS pixels): place it and show it.
 #[tauri::command]
 pub fn tray_menu_place(app: AppHandle, width: f64, height: f64) -> CommandResult<()> {
@@ -1576,4 +1675,10 @@ pub fn restart_mapper(app: AppHandle, state: State<'_, AppState>) -> CommandResu
     jsm_process::terminate_jsm(&app, state.inner())?;
     jsm_process::launch_jsm(&app, state.inner())?;
     Ok(())
+}
+
+#[tauri::command]
+pub fn slot_toast_ready(app: AppHandle, window: tauri::WebviewWindow) -> Option<crate::services::slot_toast::Payload> {
+    if window.label() != crate::services::slot_toast::LABEL { return None; }
+    crate::services::slot_toast::ready(&app)
 }

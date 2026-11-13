@@ -158,7 +158,9 @@ pub fn prepare_for_model(app: &AppHandle, source: &str, model: &str) -> Result<V
     if layers.is_empty() { return Ok(Vec::new()); }
     let base = snapshot(&root, &text, &mut vec![source.clone()])?;
     let parent = Path::new(&source).file_stem().and_then(|p| p.to_str()).unwrap_or("Profile");
-    let directory = root.join("profiles-library/.layers").join(parent);
+    let scope: String = model.chars().filter(|c| c.is_ascii_alphanumeric() || *c == '-').collect();
+    let parent = if scope.is_empty() { parent.to_owned() } else { format!("{parent}/{scope}") };
+    let directory = root.join("profiles-library/.layers").join(&parent);
     fs::create_dir_all(&directory).map_err(|e| e.to_string())?;
     let mut result = Vec::new();
     let actions = parse_actions(&text, &layers);

@@ -13,6 +13,10 @@ open. Over USB the controller is PID 0x1302 and HidHide does not cloak it; over
 the puck (PID 0x1304) HidHide hides it from anything not on its whitelist, so run
 the probe from a whitelisted path or pause HidHide.
 
+For a puck with several vendor collections, set `SCPROBE_INTERFACE=mi_02`
+(or the connected slot's interface substring from `list`) to avoid querying
+an empty slot. `SCPROBE_PID=1304` selects the puck product ID independently.
+
 ```
 scprobe list                                  every Valve HID collection present
 scprobe cmd <hex cmd> [payload bytes...]      feature report [1][cmd][len][payload], prints the reply

@@ -94,7 +94,7 @@ function GameCover({ name, note, onOpen }: { name: string; note?: string; onOpen
   const game = useProfileAssociation(name)
   const steamAppId = useSteamAppId(name)
   const art = useSteamArt({ steamAppId, exePath: game?.exePath }, ['capsule', 'header']).url
-  const caption = note ?? (game?.exePath ? 'Launches with game' : 'Configuration')
+  const caption = note ?? (game?.exePath ? 'Switches with game' : 'Configuration')
   return (
     <button type="button" className={styles.cover} onClick={onOpen} data-hints="A:Edit;X:Test;Y:Switch game"
       data-caption={`${name} · ${caption}`} style={{ backgroundImage: art ? `url(${art})` : fallbackCover(name) }} data-art={art ? 'steam' : 'flat'}>
@@ -178,7 +178,7 @@ export function HomePage(props: HomePageProps) {
               {props.applied
                 ? <span className={styles.livePill}><span className={styles.liveDot} aria-hidden="true" />Live</span>
                 : <span className={styles.pausedPill}>{unsaved ?? 'Not live'}</span>}
-              {game?.exePath && <span className={styles.launches}>Launches with {exeFileName(game.exePath)}</span>}
+              {game?.exePath && <span className={styles.launches}>Auto-switches with {exeFileName(game.exePath)}</span>}
             </div>
             <h1 id="home-config-title" className={styles.name}>{name}</h1>
             {props.summary && <p className={styles.summary}>{props.summary}</p>}
@@ -192,12 +192,12 @@ export function HomePage(props: HomePageProps) {
             <ButtonGlyph button="A" size={30} family={family} className={styles.primaryGlyph} />Edit layout
           </button>
           <button type="button" className={styles.secondary} onClick={() => { if (!props.testReason) props.onTest() }}
-            aria-disabled={props.testReason ? true : undefined} data-reason={props.testReason ?? undefined}
+            aria-disabled={props.testReason ? true : undefined} data-reason={props.testReason ?? undefined} title={props.testReason ?? undefined}
             data-caption={props.testReason ? undefined : `Test it · play with ${name} while the app stays open; B stops`}
             data-hints={props.testReason ? 'Y:Switch game' : 'A:Test it;Y:Switch game'}>
             <ButtonGlyph button="X" size={26} family={family} className={styles.actionGlyph} />Test it
           </button>
-          {!props.applied && hasConfig && <button type="button" className={styles.secondary} onClick={props.onMakeLive} data-hints="A:Make live" data-caption={`Make ${name} live`}>
+          {!props.applied && hasConfig && <button type="button" className={`${styles.secondary} ${styles.makeLive}`} onClick={props.onMakeLive} data-hints="A:Make live" data-caption={`Make ${name} live`}>
             <Icon name="apply" size={26} />Make live
           </button>}
           <button type="button" className={styles.secondary} onClick={props.onSwitch} data-hints={`A:Switch game${props.testReason ? '' : ';X:Test'}`}
@@ -208,13 +208,11 @@ export function HomePage(props: HomePageProps) {
             data-hints="A:Change base" data-caption="Change the shared base this configuration is built on">
             <Icon name="base" size={26} />Change base
           </button>
-          <button type="button" className={styles.secondary} onClick={() => props.onOpenStudio('configurations')} data-hints="A:Your game configs">
-            <Icon name="library" size={26} />Your game configs
-          </button>
+
         </div>
 
         <div className={styles.tune}>
-          <span className="eyebrow">Quick tune · {props.applied && !props.changeCount ? 'changes apply live' : 'editing this configuration'}</span>
+          <span className={styles.sideTitle}>Quick tune · {props.applied && !props.changeCount ? 'changes apply live' : 'editing this configuration'}</span>
           <div className={styles.tuneGrid}>
             <button type="button" className={styles.tuneTile} data-arrows={speed === null ? undefined : 'horizontal'}
               onKeyDown={onSpeedKey} onClick={() => props.onOpenTune('gyro')}

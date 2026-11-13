@@ -1,3 +1,4 @@
+import { selectedControllerSample } from '../../../utils/controllerSelection'
 import { useEffect, useRef, useState } from 'react'
 import { desktopBridge } from '../../../platform/desktopBridge'
 import { getPressedControllerCommandSet } from '../../../utils/controllerStatus'
@@ -22,7 +23,7 @@ export function usePressedInput(active: boolean, onPress: (input: string) => voi
     let previous: Set<string> | null = null
     setListening(true)
     const stop = desktopBridge.onTelemetrySample(payload => {
-      const device = (payload as { devices?: TelemetryDevice[] } | null)?.devices?.[0]
+      const device = selectedControllerSample(payload as { devices?: TelemetryDevice[] } | null)?.devices?.[0]
       if (!device) return
       if (typeof device.supportedButtons === 'number' && device.supportedButtons > 0) {
         const all = getPressedControllerCommandSet({ ...device, status: { ...device.status, buttons: device.supportedButtons } } as TelemetryDevice)

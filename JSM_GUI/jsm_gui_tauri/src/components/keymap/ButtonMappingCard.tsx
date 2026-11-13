@@ -1,8 +1,12 @@
+import { inputContent } from '../glyphs/InputText'
 import { useContext, useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import keymapStyles from '../Keymap.module.css'
 import { LayerUsageContext } from '../LayerBar'
-import { layerHue, layerSlot } from '../../utils/layers'
+import { layerEntries, layerHue, layerSlot } from '../../utils/layers'
+import { describeValue } from '../modes/modeText'
+import { InputGlyph } from '../glyphs/InputGlyph'
+import { describeOutputValue } from '../../utils/virtualController'
 import { Icon } from '../icons/Icon'
 import { Menu, type MenuItem } from '../ui/Menu'
 import { OriginMarker } from './OriginMarker'
@@ -46,6 +50,11 @@ type ButtonMappingCardProps = {
 }
 
 const NO_SHIFTS: ModeshiftSummary[] = []
+const MOUSE_OUTPUTS = new Map(['LMOUSE', 'RMOUSE', 'MMOUSE', 'BMOUSE', 'FMOUSE', 'SCROLLUP', 'SCROLLDOWN'].map(token => [describeOutputValue(token), token]))
+const outputArt = (value: string) => {
+  const mouse = MOUSE_OUTPUTS.get(value)
+  return mouse ? <><InputGlyph command={mouse} size={24} title={value} /><span>{value}</span></> : inputContent(value)
+}
 
 const isTextEntry = (target: EventTarget | null) => {
   const element = target as HTMLElement | null
@@ -70,7 +79,8 @@ export function ButtonMappingCard({ api, summary, shifts = NO_SHIFTS, rowTitle, 
   const [focused, setFocused] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [details, setDetails] = useState(false)
-  const { layers, selected: mode } = useContext(LayerUsageContext)
+  const [showOtherLayers, setShowOtherLayers] = useState(false)
+  const { text, layers, selected: mode } = useContext(LayerUsageContext)
   const command = api.command
   const origin = useSettingOriginInfo(command)
   const variant = useInputVariant(api.shifted ? undefined : api.button.command)
@@ -112,29 +122,40 @@ export function ButtonMappingCard({ api, summary, shifts = NO_SHIFTS, rowTitle, 
   // what the sheet is for.
   const label = api.label
   const modeChanges = layers.map(layer => ({ layer, value: layer.overrides[inputKey] })).filter(item => item.value !== undefined)
-  const modeOnly = unbound && !mode && modeChanges[0]
   const hueOf = (layerId: string) => layerHue(layerSlot(layers, layerId))
+  const ownLayerColour = mode && Object.prototype.hasOwnProperty.call(mode.overrides, command) ? hueOf(mode.id) : undefined
+  const keyboardNumber = (value: string) => /^\d$/.test(value) ? `Keyboard ${value}` : value
+  const layerPreviews = (focused ? modeChanges : []).filter(({ layer }) => layer.id !== mode?.id).map(({ layer, value }) => {
+    const same = !mode && value?.trim() === layerEntries(text)[inputKey]?.trim()
+    const binding = describeBinding(value!, t)
+    const described = describeValue(inputKey, value, layer.overrides, t)
+    const output = described.endsWith(binding) && binding ? described.slice(0, -binding.length) + keyboardNumber(binding) : described
+    const art = outputArt(binding)
+    return { layer, output: typeof art !== 'string' && output.endsWith(binding) ? <>{output.slice(0, -binding.length)}{art}</> : output, same }
+  })
 
   // The focused row's preview (ButtonList): Hold · not set, Double-tap · not
   // set, the other set activations, While holding, and each mode's change.
   const preview = (() => {
-    const items: { key: string; text: string; value?: string; hue?: string }[] = []
+    const items: { key: string; text: React.ReactNode; value?: string; hue?: string }[] = []
+    items.push({ key: 'primary', text: primary?.trigger ?? 'Press', value: primary ? keyboardNumber(primary.output) : undefined })
     for (const kind of ['hold', 'double'] as const) {
       const set = entries.filter(entry => entry.kind === kind)
-      items.push({ key: kind, text: activationLabel(kind, t), value: set.length ? set.map(entry => entry.output).join(' + ') : undefined })
+      if (set.length && primary?.kind !== kind) items.push({ key: kind, text: activationLabel(kind, t), value: set.map(entry => entry.output).join(' + ') })
     }
     entries.filter(entry => entry !== primary && entry.kind !== 'hold' && entry.kind !== 'double')
       .forEach((entry, index) => items.push({ key: `e${index}`, text: entry.trigger ?? '', value: entry.output }))
     shifts.slice(0, 2).forEach(shift => items.push({
-      key: `s-${shift.trigger}`, text: `With ${inputDisplayName(heldInput(shift.trigger), api.family)} ${isReleasedInput(shift.trigger) ? 'let go' : 'held'}`,
+      key: `s-${shift.trigger}`, text: <>With {/^(MOUSE_BACK|MOUSE_FORWARD)$/.test(heldInput(shift.trigger))
+        ? <InputGlyph command={heldInput(shift.trigger)} size={24} title={inputDisplayName(heldInput(shift.trigger), api.family)} />
+        : inputDisplayName(heldInput(shift.trigger), api.family)} {isReleasedInput(shift.trigger) ? 'let go' : 'held'}</>,
       value: describeBinding(shift.value, t) || t('keymap.rowNone', 'None'),
     }))
     if (shifts.length > 2) items.push({ key: 's-more', text: `+${shifts.length - 2} more chords` })
-    modeChanges.forEach(({ layer, value }) => items.push({ key: `m-${layer.id}`, text: `${layer.name} layer`, value: describeBinding(value!, t), hue: hueOf(layer.id) }))
     return items
   })()
   // The origin dot's words, on the focused row (UX review 2026-10-09: the dot alone was undiscoverable).
-  const scopeLine = variant?.changed
+  const scopeLine = mode ? null : variant?.changed
     ? `Only for ${variant.label}. Other controllers use the shared layout.`
     : origin?.kind === 'inherited' && origin.sourceName ? `From the ${origin.sourceName} base. Change it here and this configuration keeps its own.`
     : origin?.kind === 'override' ? `${origin.shown}${origin.baseValue ? ` · ${origin.sourceName ?? 'the base'} has ${describeBinding(origin.baseValue, t)}` : ''}` : null
@@ -164,7 +185,7 @@ export function ButtonMappingCard({ api, summary, shifts = NO_SHIFTS, rowTitle, 
   }
   const xLabel = api.xAction?.label ?? 'Hold & double-tap'
   const hints = `A:Change;X:${xLabel};Y:Copy · clear · name;B:Back`
-  const caption = `${name}${rowSubtitle ? ` · ${rowSubtitle}` : ''} · ${unbound ? (modeOnly ? `${modeOnly.layer.name} only` : 'not set') : entries.map(entry => `${entry.trigger && entry.kind !== 'regular' ? `${entry.trigger} ` : ''}${entry.output}`).join(', ')}`
+  const caption = `${name}${rowSubtitle ? ` · ${rowSubtitle}` : ''} · ${unbound ? 'not set' : entries.map(entry => `${entry.trigger && entry.kind !== 'regular' ? `${entry.trigger} ` : ''}${entry.output}`).join(', ')}`
   const description = <span className="binding-summary-input"><OriginMarker setting={command} detail={origin?.kind === 'override' && origin.baseValue ? `base: ${describeBinding(origin.baseValue, t)}` : undefined} addressable withReset /></span>
 
   return (
@@ -188,33 +209,27 @@ export function ButtonMappingCard({ api, summary, shifts = NO_SHIFTS, rowTitle, 
         element.parentElement?.closest('.main-pane, body')?.querySelectorAll<HTMLDetailsElement>('details[data-input-command][open]').forEach(other => { if (other !== element && !other.contains(element) && !element.contains(other)) other.open = false })
       } else {
         setInitial(undefined)
-        // Opened from Layout: App goes back there with the callout focused (L4).
-        window.dispatchEvent(new CustomEvent('jsm:binding-closed', { detail: api.button.command }))
+        // Dismiss only this sheet. The focus trap restores the row underneath;
+        // page-level Back is a separate action.
       }
       window.dispatchEvent(new Event('jsm:interaction-hint'))
     }} data-input-command={command} data-card={open ? 'true' : undefined} tabIndex={-1}
+      style={ownLayerColour ? { '--accent': ownLayerColour, '--focus-ring': `0 0 0 2px ${ownLayerColour}`, '--surface-selected': `color-mix(in srgb, ${ownLayerColour} 18%, var(--surface-row))` } as CSSProperties : undefined}
       className={`${keymapStyles.keymapRow} ${isCapturing ? keymapStyles.keymapRowCapturing : ''}`}>
       <summary ref={summaryRef} className={styles.row} data-expanded={focused ? 'true' : undefined} data-hints={hints} data-pad-keys="XY"
         data-caption={caption} onKeyDown={onSummaryKey}
-        onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}>
+        onFocus={() => setFocused(true)} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocused(false) }}>
         <span className={styles.rowGlyph} aria-hidden="true">{api.menuItem?.icon ?? api.glyph}</span>
         <span className={styles.rowName}><span className="binding-summary-label">{name}</span><OriginMarker setting={command} compact /></span>
         <span className={styles.rowRight}>
-          {modeOnly ? (
-            <>
-              <span className={styles.rowLabel}>{label || describeBinding(modeOnly.value!, t)}</span>
-              <span className={styles.modeOnly} style={{ ['--mode-hue' as string]: hueOf(modeOnly.layer.id) } as CSSProperties}>
-                <span className={styles.swatch} aria-hidden="true" />{modeOnly.layer.name} only
-              </span>
-            </>
-          ) : unbound ? (
+          {unbound ? (
             <span className={styles.rowNone}>{api.emptyLabel ?? t('keymap.rowNotSet', 'Not set')}</span>
           ) : (
             <>
               {label && <span className={styles.rowLabel}>{label}</span>}
               {label
-                ? <span className={styles.rowKey} data-row-output="">{primary.output}</span>
-                : <span className={styles.rowLabel} data-row-output="">{primary.kind && primary.kind !== 'regular' ? `${primary.trigger} · ` : ''}{primary.output}</span>}
+                ? <span className={styles.rowKey} data-row-output="">{outputArt(primary.output)}</span>
+                : <span className={styles.rowKey} data-row-output="">{primary.kind && primary.kind !== 'regular' ? `${primary.trigger} · ` : ''}{outputArt(primary.output)}</span>}
               {entries.length > 1 && <span className={styles.rowMore}>+{entries.length - 1}</span>}
             </>
           )}
@@ -225,17 +240,25 @@ export function ButtonMappingCard({ api, summary, shifts = NO_SHIFTS, rowTitle, 
               {preview.map(item => (
                 <span key={item.key} className={styles.previewItem} style={item.hue ? { ['--mode-hue' as string]: item.hue } as CSSProperties : undefined}>
                   {item.hue && <span className={styles.swatch} aria-hidden="true" />}
-                  {item.text}{item.value ? <>: {item.value}</> : <small> · not set</small>}
+                  {item.text}{item.value ? <>: {outputArt(item.value)}</> : <small> · not set</small>}
                 </span>
               ))}
             </span>
+            {layerPreviews.length > 0 && <span className={styles.otherLayers}>
+              <button type="button" aria-expanded={showOtherLayers} onClick={event => { event.preventDefault(); event.stopPropagation(); setShowOtherLayers(value => !value) }}>Other layers ({layerPreviews.length})</button>
+              {showOtherLayers && layerPreviews.map(({ layer, output, same }) => <span key={layer.id} className={styles.layerPreview} style={{ ['--mode-hue' as string]: hueOf(layer.id) } as CSSProperties}>
+                <span className={styles.swatch} aria-hidden="true" /><span><strong>{layer.name}</strong> active: {output}{same && <span className={styles.quiet}> · same as Default</span>}</span>
+              </span>)}
+            </span>}
             {scopeLine && <span className={styles.scopeLine}>{scopeLine}</span>}
-            <span className={styles.mouseHelp}>Right-click for copy, clear and name.</span>
+            <span className={styles.mouseHelp}>Use the row’s options button or right-click to copy, paste, clear and rename.</span>
           </span>
         )}
         <Menu open={menuOpen} onOpenChange={next => { setMenuOpen(next); if (!next) requestAnimationFrame(() => { if (!document.activeElement || document.activeElement === document.body || document.activeElement.closest('[data-menu-anchor]')) summaryRef.current?.focus() }) }} items={menuItems} align="end" ariaLabel={`${name} · Copy, clear, name`}
           returnFocusTo={() => summaryRef.current}
-          trigger={<button type="button" tabIndex={-1} aria-hidden="true" data-nav-skip className={styles.menuAnchor} data-menu-anchor="" onFocus={() => { if (!menuOpen) summaryRef.current?.focus() }} />} />
+          trigger={<button type="button" tabIndex={-1} data-nav-skip className={styles.menuAnchor} data-menu-anchor=""
+            aria-label={`${name} · Copy, paste and more`} title="Copy, paste and more (Y)"
+            onClick={event => { event.preventDefault(); event.stopPropagation(); setMenuOpen(value => !value) }}><Icon name="more" size={18} /></button>} />
       </summary>
       <Sheet inPlace open={open} width={700}
         onClose={() => { if (detailsRef.current) detailsRef.current.open = false }}

@@ -2,7 +2,7 @@ import { MenuDrawing } from './MenuDrawing'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
-import { controllerModelKey, projectController } from '../utils/controllerLayouts'
+import { controllerTargetKey, projectController } from '../utils/controllerLayouts'
 import type { TelemetryDevice } from '../hooks/useTelemetry'
 import { RAW_BUTTONS } from '../utils/controllerStatus'
 import { resolveIncludes } from '../utils/configIncludes'
@@ -71,6 +71,8 @@ type OverlayPacket = {
   touchpadHeight: number
   /** What the mapper is running, which a binding can change without Studio. */
   activeProfile?: string | null
+  controllerId?: string | null
+  deviceType?: number | null
 }
 
 type OverlaySurfaceKey = 'LEFT' | 'RIGHT' | 'LSTICK' | 'RSTICK'
@@ -86,6 +88,8 @@ export function Overlay() {
   const [activeKey, setActiveKey] = useState<string | null>(null)
   const [aspect, setAspect] = useState<number>(FALLBACK_PAD_ASPECT)
   const [icons, setIcons] = useState<Record<string, IconData>>({})
+  const [displayRevision, setDisplayRevision] = useState(0)
+  const displayReadyRef = useRef(true)
 
   const rootRef = useRef<HTMLDivElement | null>(null)
   const dotRef = useRef<HTMLDivElement | null>(null)
@@ -101,6 +105,9 @@ export function Overlay() {
   // still wherever the last menu was, which with several displays can be a
   // different screen entirely, so nothing is drawn before then.
   const placedKeyRef = useRef<string | null>(null)
+  const placementRevisionRef = useRef(0)
+  const controllerIdRef = useRef<string | null | undefined>(undefined)
+  const deviceTypeRef = useRef<number | null | undefined>(undefined)
   menusRef.current = menus
   activeKeyRef.current = activeKey
   const registerDot = useCallback((element: HTMLDivElement | null) => {
@@ -116,6 +123,7 @@ export function Overlay() {
   // emitter is told the real refresh rate and matches it. Measured rather than
   // assumed, because there is no reliable API for it.
   useEffect(() => {
+    if (!displayReadyRef.current) return
     let frames = 0
     let start = 0
     let raf = 0
@@ -130,12 +138,19 @@ export function Overlay() {
     }
     raf = requestAnimationFrame(step)
     return () => cancelAnimationFrame(raf)
-  }, [])
+  }, [displayRevision])
 
   // --- Keep the menu definitions in step with the active profile ------------
   useEffect(() => {
     let cancelled = false
+    let requested = 0
+    let running = false
     const load = async () => {
+      const revision = ++requested
+      // Coalesce saves/profile swaps while imports are being read. An older
+      // response must never replace the configuration requested after it.
+      if (running) return
+      running = true
       try {
         const active = await invoke<{ path?: string; content?: string } | null>('get_active_profile')
         if (!active?.content) return
@@ -182,16 +197,13 @@ export function Overlay() {
         }
         const resolved = resolveIncludes(root, files)
         const telemetry = await invoke<{ devices?: TelemetryDevice[] } | null>('get_latest_telemetry_sample').catch(() => null)
-        const device = telemetry?.devices?.find(item => item.status != null)
+        const device = telemetry?.devices?.find(item => controllerIdRef.current ? item.controllerId === controllerIdRef.current : item.status != null)
         const effective = resolved.effectiveText ?? rootText
-        const projected = projectController(effective, controllerModelKey(device), effective)
-        if (cancelled) return
+        const projected = projectController(effective, controllerTargetKey(device), effective)
+        if (cancelled || revision !== requested) return
         const next = resolveOverlayMenus(projected)
         for (const menu of readVirtualMenus(projected).menus) next[`NAMED:${menu.id}`] = namedMenuOverlay(menu)
-        // This runs every two seconds. Only an actual change is a new menu set:
-        // a fresh object each time re-ran the placement effect below and moved
-        // the always-on-top window every two seconds for as long as a menu was
-        // up, for nothing.
+        // Unchanged definitions must not move an always-on-top window.
         const json = JSON.stringify(next)
         if (json === menusJsonRef.current) return
         menusJsonRef.current = json
@@ -201,19 +213,44 @@ export function Overlay() {
         const names = Object.values(next).flatMap(menu => [...menu.regions, ...(menu.centerRegion ? [menu.centerRegion] : [])].map(r => r.icon))
         if (names.some(Boolean)) {
           const art = await resolveIcons(names)
-          if (!cancelled) setIcons(previous => ({ ...previous, ...art }))
+          if (!cancelled && revision === requested) setIcons(previous => ({ ...previous, ...art }))
         }
       } catch {
         /* A profile that cannot be read simply shows no overlay. */
+      } finally {
+        running = false
+        if (!cancelled && revision !== requested) void load()
       }
     }
     reloadRef.current = load
     load()
-    // The interval is the backstop for a file edited underneath us. A binding
-    // that swaps the configuration is caught by the packet instead, because two
-    // seconds of drawing the wrong menus is two seconds of the wrong menus.
-    const timer = setInterval(load, 2000)
-    return () => { cancelled = true; clearInterval(timer) }
+    // Native file notifications also cover edits outside Studio. No recurring
+    // WebView IPC, profile parsing, or window placement while playing.
+    const listeners = [
+      listen('overlay-config-changed', () => { void load() }),
+      listen('applied-profile-changed', () => { void load() }),
+    ]
+    for (const listener of listeners) void listener.catch(() => {})
+    return () => {
+      cancelled = true
+      reloadRef.current = null
+      for (const listener of listeners) void listener.then(stop => stop()).catch(() => {})
+    }
+  }, [])
+
+  useEffect(() => {
+    let disposed = false
+    const listener = listen<boolean>('overlay-display-ready', event => {
+      if (disposed) return
+      displayReadyRef.current = event.payload
+      placementRevisionRef.current += 1
+      placedKeyRef.current = null
+      if (rootRef.current) rootRef.current.dataset.visible = 'false'
+      // Invalidate in-flight placement immediately, including at the start of
+      // an HDMI change. Re-measure refresh and place again once it settles.
+      setDisplayRevision(revision => revision + 1)
+    })
+    return () => { disposed = true; void listener.then(stop => stop()).catch(() => {}) }
   }, [])
 
   // --- The hot path ---------------------------------------------------------
@@ -222,14 +259,18 @@ export function Overlay() {
     let unlisten: (() => void) | undefined
     listen<OverlayPacket>('overlay-telemetry', event => {
       if (disposed) return
+      if (!displayReadyRef.current) return
       const { buttons, leftPad, rightPad } = event.payload
       // A configuration swap invalidates every menu on screen. Drop them at
       // once rather than drawing the old ones until the re-read lands: a menu
       // for bindings the controller no longer has is worse than no menu.
       const live = event.payload.activeProfile ?? null
-      if (live !== liveProfileRef.current) {
-        const first = liveProfileRef.current === undefined
+      const deviceType = event.payload.deviceType ?? null
+      if (live !== liveProfileRef.current || deviceType !== deviceTypeRef.current || event.payload.controllerId !== controllerIdRef.current) {
+        const first = liveProfileRef.current === undefined && deviceTypeRef.current === undefined
         liveProfileRef.current = live
+        controllerIdRef.current = event.payload.controllerId
+        deviceTypeRef.current = deviceType
         if (!first) {
           menusRef.current = {}
           menusJsonRef.current = ''
@@ -259,7 +300,7 @@ export function Overlay() {
         const key = `NAMED:${native.id}`, menu = menusRef.current[key]
         const visible = namedMenuVisible(menu.placement.reveal, native)
         if (key !== activeKeyRef.current) setActiveKey(key)
-        if (rootRef.current) rootRef.current.dataset.visible = visible ? 'true' : 'false'
+        if (rootRef.current) rootRef.current.dataset.visible = visible && placedKeyRef.current === key ? 'true' : 'false'
         if (dotRef.current) {
           dotRef.current.style.display = native.cursor ? '' : 'none'
           dotRef.current.parentElement?.querySelectorAll<HTMLElement>('[data-trail]').forEach(trail => { trail.style.display = native.cursor ? '' : 'none' })
@@ -392,14 +433,17 @@ export function Overlay() {
   useEffect(() => {
     const menu = activeKey ? menus[activeKey] : null
     placedKeyRef.current = null
-    if (!menu) return
+    if (!menu || !displayReadyRef.current) return
     let cancelled = false
+    const revision = placementRevisionRef.current
     // Shown either way once this settles: a failed move should still draw the
     // menu where the window is rather than not at all.
-    const placed = () => { if (!cancelled) placedKeyRef.current = activeKey }
+    const placed = () => {
+      if (!cancelled && displayReadyRef.current && revision === placementRevisionRef.current) placedKeyRef.current = activeKey
+    }
     invoke<{ x: number; y: number; width: number; height: number; scale?: number }>('overlay_workarea')
       .then(area => {
-        if (cancelled) return
+        if (cancelled || !displayReadyRef.current || revision !== placementRevisionRef.current) return
         // The work area is in physical pixels, so the stored logical size is
         // scaled by the DPI of the display the menu is going to (the game's,
         // which may not be the one this window is on yet). placeMenu keeps the box fully on screen
@@ -417,7 +461,7 @@ export function Overlay() {
       .catch(() => {})
       .finally(placed)
     return () => { cancelled = true }
-  }, [activeKey, menus, aspect])
+  }, [activeKey, menus, aspect, displayRevision])
 
   const menu = activeKey ? menus[activeKey] : null
 

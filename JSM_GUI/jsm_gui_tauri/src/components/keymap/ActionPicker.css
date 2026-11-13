@@ -5,21 +5,22 @@
   z-index: var(--z-dialog);
   align-items: stretch;
   justify-content: stretch;
-  padding: var(--titlebar-h) 0 0;
+  padding: 0;
   background: transparent;
 }
 
 .action-picker {
   width: 100%;
   height: 100%;
-  display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
-  background: var(--surface-canvas);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-frame);
   color: var(--text-1);
   animation: dialog-in var(--dur-3) var(--ease-emphasis);
 }
 
 .action-picker__header {
+  flex: none;
   display: flex;
   align-items: center;
   gap: var(--sp-5);
@@ -71,6 +72,7 @@ body[data-focus-glide] .action-picker__search:focus-within { box-shadow: inset 0
 }
 
 .action-picker__tabs {
+  flex: none;
   display: flex;
   align-items: center;
   gap: var(--sp-1);
@@ -101,11 +103,13 @@ body[data-focus-glide] .action-picker__search:focus-within { box-shadow: inset 0
 .action-tab[aria-pressed='true'] { background: var(--text-1); color: var(--surface-frame); }
 
 .action-picker__body {
+  flex: 1;
+  overscroll-behavior: contain;
   min-height: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
   gap: var(--sp-6);
-  padding: var(--sp-6) var(--sp-8) 96px;
+  padding: var(--sp-6) var(--sp-8);
   overflow: auto;
 }
 .action-picker__content { min-width: 0; }
@@ -223,7 +227,7 @@ body[data-input-source='controller'] .action-choice:focus {
 .gamepad-actions .action-choice { gap: 14px; }
 
 @media (max-width: 1023px) {
-  .action-picker__body { grid-template-columns: minmax(0, 1fr); padding: var(--sp-4) var(--sp-4) 96px; }
+  .action-picker__body { grid-template-columns: minmax(0, 1fr); padding: var(--sp-4); }
   .action-picker__header { flex-wrap: wrap; padding: var(--sp-4); }
   .action-picker__tabs { padding: var(--sp-2) var(--sp-4) var(--sp-3); }
   .action-picker__search { width: 100%; order: 5; }
@@ -280,8 +284,36 @@ body[data-input-source='controller'] .action-choice:focus {
 .action-common .action-used { display: none; }
 
 /* Console v2: the groups inside the open family, stepped by LT / RT. */
-.action-picker__groups { display: flex; align-items: center; gap: var(--sp-1); padding: var(--sp-3) var(--sp-8) 0; overflow-x: auto; }
+.action-picker__groups { flex: none; display: flex; align-items: center; gap: var(--sp-1); padding: var(--sp-3) var(--sp-8) 0; overflow-x: auto; }
 .action-group-tab { height: 36px; display: inline-flex; align-items: center; gap: var(--sp-2); flex: none; padding: 0 var(--sp-3); border: 0; border-radius: var(--r-pill); background: transparent; color: var(--text-2); font: inherit; font-size: var(--fs-label); font-weight: var(--fw-medium); cursor: pointer; }
 .action-group-tab:hover { background: var(--surface-row-hover); color: var(--text-1); }
 .action-group-tab[aria-pressed='true'] { background: var(--surface-row-hover); color: var(--text-1); box-shadow: inset 0 0 0 1px var(--line-2); }
 .action-group-tab__count { color: var(--text-3); font-size: var(--fs-hint); }
+
+.action-picker__footer { flex: none; min-width: 0; min-height: var(--hintbar-h); }
+.action-picker__footer .hint-capsule { min-height: var(--hintbar-h); }
+.action-choice[aria-pressed='true'] { background: var(--surface-selected); box-shadow: inset 0 0 0 1px var(--line-2); }
+.action-picker :is(button, input):focus-visible { outline: 2px solid var(--focus-keyboard, var(--accent)); outline-offset: 3px; }
+.action-picker__tabs { scrollbar-width: thin; }
+.action-picker__groups { padding-bottom: var(--sp-1); }
+@media (max-width: 1023px) {
+  .action-picker__header { gap: var(--sp-3); }
+  .action-picker__title { flex-basis: 50%; }
+  .action-picker__groups { padding-inline: var(--sp-4); }
+  .action-picker__current { display: none; }
+  .picker-detail { display: none; }
+}
+
+.action-picker__tools { display: flex; justify-content: flex-start; margin-bottom: var(--sp-4); }
+
+@media (max-width: 1023px) {
+  .action-picker__tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-1); }
+  .action-picker__tabs .action-tab { justify-content: center; padding-inline: var(--sp-2); }
+  .action-picker__tabs :is(.action-picker__step, .action-picker__spacer, [data-listen]) { display: none; }
+}
+
+.action-picker__customize { margin-left: auto; flex: none; }
+@media (max-width: 1023px) {
+  .action-picker__tabs .action-tab { height: 36px; }
+  .action-picker__header { padding-bottom: var(--sp-2); }
+}

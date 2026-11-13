@@ -54,6 +54,9 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
     assert.match(await page.evaluate(() => document.activeElement?.textContent), /Deep Rock Galactic/);
     await shot('step1');
     await pad(['S']);
+    assert.equal(await step(), '1', 'choosing a game keeps its name and automatic-switch setting reviewable');
+    assert.equal(await wizard.getByRole('region', { name: 'Which game is this for?' }).getByRole('button', { name: /Deep Rock Galactic/ }).count(), 1, 'running Steam games are not duplicated in Recent');
+    await wizard.getByRole('button', { name: 'Next: how you play', exact: true }).click();
     assert.equal(await step(), '2');
 
     // Step 2: one card per play style; gyro aim is best on the Steam Controller.

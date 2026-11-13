@@ -25,17 +25,20 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
     const last = async () => (await results()).slice(-1)[0]
     const clear = () => page.evaluate(() => { window.__pickerResult = [] })
     const open = async detail => {
+      const catalogue = page.locator('[data-picker="actions"]')
+      if (await catalogue.count()) await catalogue.getByRole('button', { name: 'Cancel', exact: true }).click()
       await clear()
       await page.evaluate(d => window.dispatchEvent(new CustomEvent('jsm:picker', { detail: d })), detail)
-      await page.locator(`[data-picker="${detail.kind === 'key' ? 'key' : detail.kind}"]`).waitFor()
-      await page.waitForTimeout(250)
+      await page.locator('[data-picker="actions"]').waitFor()
+      if (['gamepad', 'mode', 'controller', 'command'].includes(detail.kind)) await page.locator('[data-picker="actions"] [data-customize]').click()
+      await page.waitForTimeout(300)
     }
-    const picker = kind => page.locator(`[data-picker="${kind}"]`)
+    const picker = kind => page.locator(`[data-picker="${['key', 'mouse', 'menu', 'config'].includes(kind) ? 'actions' : kind}"]`)
     const active = () => page.evaluate(() => document.activeElement?.outerHTML.slice(0, 300) ?? '')
     const activeAttr = name => page.evaluate(n => document.activeElement?.getAttribute(n), name)
     const footer = async () => {
-      await page.waitForFunction(() => ([...document.querySelectorAll('[data-subpage] footer')].pop()?.innerText ?? '').trim().length > 0).catch(() => {})
-      return page.locator('[data-subpage] footer').last().innerText()
+      await page.waitForFunction(() => ([...document.querySelectorAll('[data-subpage] footer, .action-picker__footer')].pop()?.innerText ?? '').trim().length > 0).catch(() => {})
+      return page.locator('[data-subpage] footer, .action-picker__footer').last().innerText()
     }
     const group = kind => picker(kind).locator('[data-category][aria-pressed="true"]').innerText()
     const closed = kind => picker(kind).waitFor({ state: 'detached' })
@@ -43,72 +46,30 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
     // Wake the pad up so hints draw its buttons.
     await press('DOWN')
 
-    // ---- Pick a key: groups on LT/RT, the current key, X listens, A uses.
+    // ---- One searchable catalogue for keyboard and mouse; key combos are an explicit editor.
     await open({ kind: 'key', input: 'S', value: 'SPACE' })
-    assert.equal(await picker('key').locator('h2').innerText(), 'Pick a key')
-    assert.match(await picker('key').innerText(), /A button · Press sends/)
-    assert.match(await picker('key').innerText(), /Or press it on a real keyboard/)
-    assert.deepEqual(await picker('key').locator('[data-category]').allInnerTexts(), ['Common in games', 'Letters', 'Numbers', 'F-keys & system', 'Arrows & numpad', 'Media'])
-    assert.equal(await activeAttr('data-token'), 'SPACE', 'focus lands on the current key')
-    assert.match(await page.evaluate(() => document.activeElement.innerText), /Jump · current/)
-    assert.match(await page.evaluate(() => document.activeElement.className), /key-cap/, 'key tiles keep button.key-cap')
-    assert.equal(await picker('key').locator('button.key-cap').count(), 23, 'the 23 Common keys')
-    assert.match(await picker('key').locator('[data-combo-tile]').innerText(), /With Ctrl, Shift…/)
-    assert.match(await footer(), /Use Space/)
-    assert.match(await footer(), /Listen for a key/)
-    assert.match(await footer(), /Group/)
-    await pull('right')
-    assert.equal(await group('key'), 'Letters')
-    assert.ok(await picker('key').evaluate(el => el.contains(document.activeElement)), 'focus stays in the picker on a group change')
-    await pull('left'); await pull('left')
-    assert.equal(await group('key'), 'Media', 'LT wraps')
-    await pull('right')
-    await press('RIGHT')
-    assert.equal(await activeAttr('data-token'), 'LSHIFT')
-    await press('S')
+    assert.equal(await picker('key').locator('h2').innerText(), 'Choose an action')
+    assert.equal(await picker('key').getByRole('searchbox').count(), 1)
+    assert.equal(await activeAttr('data-token'), 'SPACE', 'current key gets focus')
+    await picker('key').getByRole('searchbox').fill('F15')
+    await picker('key').locator('[data-token="F15"]').click()
     await closed('key')
-    assert.deepEqual((await last()).patch, { outputKind: 'keyboard', outputValue: 'LSHIFT' })
-    // X: Listen for a key (the old Capture).
-    await open({ kind: 'key', input: 'S', value: 'SPACE' })
-    await press('W')
-    await closed('key')
-    assert.deepEqual(await last(), { capture: true })
-    // Every key is still reachable: F13–F24 and the numpad.
-    await open({ kind: 'key', input: 'S', value: 'F15' })
-    assert.equal(await group('key'), 'F-keys & system', 'opens on the group the key is in')
-    assert.equal(await activeAttr('data-token'), 'F15')
-    assert.equal(await picker('key').locator('[data-token^="F"]').count(), 24)
-    await pull('right')
-    assert.equal(await group('key'), 'Arrows & numpad')
-    assert.ok(await picker('key').locator('[data-token="N7"]').count())
-    await press('E')
-    await closed('key')
-
-    // ---- Key + modifier combo: Ctrl on, Y right-hand keys, B Done.
+    assert.equal((await last()).patch.outputValue, 'F15')
     await open({ kind: 'key', input: 'S', value: 'C' })
-    await picker('key').locator('[data-combo-tile]').click()
+    await picker('key').locator('[data-customize]').click()
     await picker('combo').waitFor()
-    await page.waitForTimeout(200)
-    assert.equal(await activeAttr('data-mod'), 'ctrl')
-    assert.equal(await picker('combo').locator('[data-mod="ctrl"]').getAttribute('aria-pressed'), 'true')
-    await press('RIGHT', 'S') // Shift on too
-    await press('N') // Y: right-hand keys
+    await picker('combo').locator('[data-mod="shift"]').click()
+    await press('N')
     assert.match(await picker('combo').innerText(), /R Ctrl/)
-    await press('E') // B: Done
+    await picker('combo').locator('[data-combo-use]').click()
     await closed('combo')
     assert.deepEqual((await last()).combo, ['RCONTROL', 'RSHIFT', 'C'])
-
-    // ---- Mouse: art, the design's order, A uses.
     await open({ kind: 'mouse', input: 'S' })
-    assert.deepEqual(await picker('mouse').locator('[data-token]').allInnerTexts(), ['Left click', 'Right click', 'Middle', 'Back', 'Forward', 'Wheel up', 'Wheel down'])
-    assert.equal(await activeAttr('data-token'), 'LMOUSE')
-    assert.match(await picker('mouse').innerText(), /ZL uses it too|uses it too/, 'who else sends the focused button')
-    await press('DOWN', 'DOWN', 'RIGHT')
-    assert.equal(await activeAttr('data-token'), 'SCROLLUP')
-    assert.match(await picker('mouse').innerText(), /Nothing else sends it|uses it too/)
-    await press('S') // Wheel up
+    assert.ok(await picker('mouse').locator('[data-token="LMOUSE"]').count())
+    assert.ok(await picker('mouse').locator('[data-token="SCROLLUP"]').count())
+    await picker('mouse').locator('[data-token="SCROLLUP"]').click()
     await closed('mouse')
-    assert.deepEqual((await last()).patch, { outputKind: 'wheel', outputValue: 'SCROLLUP' })
+    assert.equal((await last()).patch.outputValue, 'SCROLLUP')
 
     // ---- Gamepad button: LT/RT switch Xbox / DualShock 4; choosing turns the scheme on.
     await open({ kind: 'gamepad', input: 'S' })
@@ -126,15 +87,10 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
     assert.deepEqual(pad[0], { enable: 'DS4' })
     assert.equal(pad[1].patch.outputValue, 'PS_CROSS')
 
-    // ---- Open a menu: menu tiles with size, ◂ ▸ How, make one.
+    // ---- Named virtual menus share the catalogue and keep all four verbs.
     await open({ kind: 'menu', input: 'S' })
-    assert.match(await picker('menu').innerText(), /Weapon wheel[\s\S]*8 slices/)
-    assert.match(await picker('menu').innerText(), /\+ Make a menu on the Menus tab/)
-    assert.match(await picker('menu').innerText(), /Hold: open while held, let go to pick\./)
-    assert.match(await footer(), /How/)
-    await press('RIGHT')
-    assert.match(await picker('menu').innerText(), /Open: opens it/)
-    await press('S')
+    for (const verb of ['HOLD', 'OPEN', 'CLOSE', 'TOGGLE']) assert.ok(await picker('menu').locator(`[data-token="MENU_${verb} wheel"]`).count())
+    await picker('menu').locator('[data-token="MENU_OPEN wheel"]').click()
     await closed('menu')
     assert.equal((await last()).patch.outputValue, 'MENU_OPEN wheel')
 
@@ -168,11 +124,11 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
     // 2 to feel + 14 tunes, and the library's ready sounds ("16+" with none).
     assert.match(tabs[2], /^Rumble & sound (16\+|1[7-9]|[2-9]\d)$/)
     const titles = () => picker('controller').locator('[data-action] [class*="tileTitle"]').allInnerTexts()
-    assert.deepEqual(await titles(), ['Gyro on', 'Gyro off', 'Gyro on everywhere', 'Gyro off everywhere', 'Invert both ways', 'Invert left-right', 'Invert up-down', 'Glide', 'Glide left-right', 'Glide up-down'])
+    assert.deepEqual(await titles(), ['Gyro on', 'Gyro off', 'Enable gyro on all controllers', 'Disable gyro on all controllers', 'Invert both ways', 'Invert left-right', 'Invert up-down', 'Momentum', 'Horizontal momentum', 'Vertical momentum'])
     assert.match(await picker('controller').locator('aside').innerText(), /This controller only[\s\S]*How it can work · set in Fine-tune[\s\S]*Normal[\s\S]*Toggle/)
     assert.match(await picker('controller').locator('aside').innerText(), /already turns gyro on in this configuration/, 'the conflict note reads GYRO_ON = MISC5')
     assert.match(await footer(), /Use Gyro on/)
-    assert.match(await footer(), /Search/)
+    assert.match(await footer(), /Group/)
     await pull('right')
     assert.deepEqual(await titles(), ['Calibrate gyro', 'Calibrate while held', 'Start continuous calibration', 'Finish continuous calibration', 'Set tilt neutral', 'Recentre gyro stick', 'Calibrate adaptive triggers'])
     assert.equal(await activeAttr('data-action'), 'CALIBRATE_GYRO', 'Calibrate gyro leads Calibrate')
@@ -192,6 +148,9 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
     const opened = page.evaluate(() => new Promise(resolve => window.addEventListener('jsm:open-page', event => resolve(event.detail), { once: true })))
     await picker('controller').locator('[data-action="stickShiftRIGHT"]').click()
     assert.equal(await opened, 'joysticks', 'Right stick mode shift opens the Sticks page')
+    await page.locator('[data-modeshift-editor]').waitFor()
+    await page.locator('[data-modeshift-editor]').locator('xpath=ancestor::*[@data-subpage][1]').locator('[data-modal-close]').first().click()
+    await page.locator('[data-modeshift-editor]').waitFor({ state: 'detached' })
     await closed('controller')
     // The light: Change light colour starts from the configuration's colour.
     await open({ kind: 'controller', input: 'S' })
@@ -204,6 +163,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
     await open({ kind: 'controller', input: 'S' })
     await picker('controller').locator('[data-category="light"]').click()
     await picker('controller').locator('[data-action="LED_BRIGHTNESS"]').click()
+    await picker('brightness').locator('[data-param-use]').click()
     await closed('controller')
     assert.equal((await last()).patch.outputValue, 'LED_BRIGHTNESS = 100')
     await open({ kind: 'controller', input: 'S' })
@@ -214,19 +174,14 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
     await closed('controller')
     assert.deepEqual(await last(), { heldLed: true })
 
-    // ---- Load a configuration: the shelf, you're in it, the caption.
+    // ---- Configuration choices explain the unavailable current configuration.
     await open({ kind: 'config', input: 'S' })
-    const current = picker('config').locator('[data-current="true"]')
-    assert.equal(await current.getAttribute('aria-disabled'), 'true')
-    assert.match(await current.innerText(), /You’re in it/)
-    assert.match(await picker('config').innerText(), /Switches to .* when you press A button/)
-    const focusedConfig = await activeAttr('data-config')
-    await press('S')
+    assert.equal(await picker('config').locator('[aria-disabled="true"]').count(), 1)
+    await picker('config').locator('.action-picker__content button:not([aria-disabled="true"])').first().click()
     await closed('config')
-    assert.equal((await last()).patch.outputValue, `profiles-library/${focusedConfig}.txt`)
-    // An empty library says why rather than vanishing.
+    assert.equal((await last()).patch.outputKind, 'loadConfig')
     await open({ kind: 'config', input: 'S', empty: true })
-    assert.match(await picker('config').innerText(), /Nothing else to switch to yet/)
+    assert.match(await picker('config').innerText(), /Nothing else in your library/)
     await press('E')
 
     // ---- Command: Command | Raw binding, config-key chips, a real keyboard, Menu is Done.
@@ -246,7 +201,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
     // ---- Y from any picker: Search every action, families in the kinds' order.
     await open({ kind: 'mouse', input: 'S' })
     await press('N')
-    const search = page.getByRole('dialog', { name: 'Search every action' })
+    const search = page.getByRole('dialog', { name: 'Choose an action' })
     await search.waitFor()
     assert.deepEqual(await search.locator('.action-picker__tabs .action-tab[data-family]').allInnerTexts(), ['Keyboard key', 'Mouse', 'Gamepad button', 'Open a menu', 'Switch layer', 'Controller action', 'Load a config', 'Command'])
     assert.ok(await search.getByRole('searchbox').evaluate(el => el === document.activeElement), 'Search every action opens with search focused')
@@ -275,6 +230,8 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
     await closed('controller')
 
     // ---- Pick an icon: categories on LT/RT, labelled tiles, the live preview, X No icon.
+    const remainingCatalogue = page.locator('[data-picker="actions"]')
+    if (await remainingCatalogue.count()) await remainingCatalogue.getByRole('button', { name: 'Cancel', exact: true }).click()
     await clear()
     await page.evaluate(() => window.dispatchEvent(new CustomEvent('jsm:icon-picker', { detail: { menu: 'Build menu', item: 'Weapon 1', value: 'lucide:house' } })))
     await picker('icon').waitFor()

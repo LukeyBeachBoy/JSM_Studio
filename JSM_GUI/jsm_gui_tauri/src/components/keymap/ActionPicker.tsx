@@ -7,6 +7,7 @@ import { keyDisplayName } from '../../utils/keyNames'
 import { loadConfigBindingValue } from '../../utils/loadConfigBinding'
 import { LayerUsageContext } from '../LayerBar'
 import { layerHue, layerSlot, visibleOverrideKeys, type LayerVerb } from '../../utils/layers'
+import { layerRemovalValue, parseLayerRemoval } from '../../utils/layerBinding'
 import { MAIN_ROWS, NAV_ROWS, NUMPAD_ROWS, EXTENDED_FUNCTION_ROWS } from './KeyboardBindingModal'
 import { mouseOptions, wheelOptions, systemKeyChoices } from './actionCatalog'
 import { BindingIconArt } from './IconPicker'
@@ -26,6 +27,8 @@ import { jsmActionGroupFor, jsmActionIcon, CONTROLLER_ACTION_GROUPS, type Contro
 import { inputDisplayName } from '../../keymap/inputNames'
 import type { ControllerVisualFamily } from '../../utils/controllerStatus'
 import { activationLabel, usedTokens } from './pickers/pickerShared'
+import { HintCapsule } from '../../shell/HintCapsule'
+import { useShell } from '../../shell/ShellContext'
 import { COMMON_KEYS } from './pickers/keyCatalog'
 
 // Search every action (console v2): the whole catalogue in one place, families
@@ -94,6 +97,10 @@ type Props = {
   initialCategory?: Category
   /** Search every action (Y from a kind's picker): open with the search box focused. */
   startWithSearch?: boolean
+  onCustomize?: (category: Category) => void
+  onCategoryChange?: (category: Category) => void
+  /** Close the whole catalogue before navigating to another editor. */
+  onNavigate?: () => void
 }
 
 /** One choosable action, for the detail panel and for search. */
@@ -101,8 +108,9 @@ type Choice = { key: string; label: string; cap?: string; token: string; kind: B
 
 export type ActionPickerProps = Props
 
-export function ActionPicker({ inputLabel, command, virtualControllerType, specialOptions, libraryProfiles = [], currentProfileName, onSelect, onClose, onEnableVirtualController, onCapture, onAddStickShift, onAddHeldLed, onAddLayerAction, defaultLedColor = '#ffffff', allowedOutputKinds, family = 'generic', initialCategory, startWithSearch }: Props) {
+export function ActionPicker({ inputLabel, command, virtualControllerType, specialOptions, libraryProfiles = [], currentProfileName, onSelect, onClose, onEnableVirtualController, onCapture, onAddStickShift, onAddHeldLed, onAddLayerAction, defaultLedColor = '#ffffff', allowedOutputKinds, family = 'generic', initialCategory, startWithSearch, onCustomize, onCategoryChange }: Props) {
   const { t } = useTranslation()
+  const shell = useShell()
   const { sounds } = useSoundLibrary()
   const title = useId()
   const { layers, text: configText = '' } = useContext(LayerUsageContext)
@@ -123,6 +131,7 @@ export function ActionPicker({ inputLabel, command, virtualControllerType, speci
     : systemTokens.has(command.outputValue) ? 'System'
     : !command.outputValue || COMMON_TOKENS.has(command.outputValue) ? 'Common'
     : 'Keyboard'))
+  useEffect(() => { onCategoryChange?.(category) }, [category, onCategoryChange])
   const [query, setQuery] = useState('')
   const [focused, setFocused] = useState<Choice | null>(null)
   const rootRef = useRef<HTMLElement>(null)
@@ -197,10 +206,18 @@ export function ActionPicker({ inputLabel, command, virtualControllerType, speci
       Keyboard: keys([...MAIN_ROWS, ...NAV_ROWS.filter(row => row.length), ...EXTENDED_FUNCTION_ROWS]),
       Numpad: keys(NUMPAD_ROWS),
       // Each mode, as a Hold on this input; the Switch mode picker sets the rest.
-      Layers: onAddLayerAction ? layers.map(layer => ({
+      Layers: !['regular', 'release'].includes(command.triggerKind) || parseLayerRemoval(command.outputValue) ? layers.map(layer => ({
+        key: `layer:${layer.id}`, label: `Turn off ${layer.name}`, token: layerRemovalValue(layer.id), kind: 'command' as const,
+        describe: 'Turns this layer off when the selected activator fires. It stays off after release.',
+        commit: () => { onSelect({ outputKind: 'command', outputValue: layerRemovalValue(layer.id) }); onClose() },
+      })) : (onAddLayerAction || command.source.kind === 'layerAction') ? layers.map(layer => ({
         key: `layer:${layer.id}`, label: layer.name, token: `# @layer-action = hold ${layer.id}`, kind: 'layerAction' as const,
         describe: t('pickers.layerPickDescribe', 'Holds {{layer}} while this input is down; Switch layer changes how', { layer: layer.name }),
-        commit: () => { onAddLayerAction(layer.id, 'hold', false); onClose() },
+        commit: () => {
+          if (command.source.kind === 'layerAction') onSelect({ layerAction: { ...command.source.action, layerId: layer.id } })
+          else onAddLayerAction?.(layer.id, 'hold', false)
+          onClose()
+        },
       })) : [],
       'Virtual menus': readVirtualMenus(configText).menus.flatMap(menu => (['HOLD', 'OPEN', 'CLOSE', 'TOGGLE'] as const).map(verb => ({
         key: `menu:${menu.id}:${verb}`, label: `${({ HOLD: 'Hold', OPEN: 'Open', CLOSE: 'Close', TOGGLE: 'Toggle' })[verb]} ${menu.name}`, token: `MENU_${verb} ${menu.id}`, kind: 'command' as const,
@@ -211,8 +228,8 @@ export function ActionPicker({ inputLabel, command, virtualControllerType, speci
       Gyro: [
         special('Gyro', 'GYRO_ON', t('pickers.gyroOn', 'Gyro on'), t('pickers.gyroOnShort', 'This controller, while held or toggled')),
         special('Gyro', 'GYRO_OFF', t('pickers.gyroOff', 'Gyro off'), t('pickers.gyroOffShort', 'This controller, while held or toggled')),
-        special('Gyro', 'GYRO_ON_ALL', t('pickers.gyroOnAll', 'Gyro on everywhere'), t('pickers.everyController', 'Every connected controller')),
-        special('Gyro', 'GYRO_OFF_ALL', t('pickers.gyroOffAll', 'Gyro off everywhere'), t('pickers.everyController', 'Every connected controller')),
+        special('Gyro', 'GYRO_ON_ALL', t('pickers.allControllersGyroOn', 'Enable gyro on all controllers'), t('pickers.everyController', 'Every connected controller')),
+        special('Gyro', 'GYRO_OFF_ALL', t('pickers.allControllersGyroOff', 'Disable gyro on all controllers'), t('pickers.everyController', 'Every connected controller')),
         special('Gyro', 'GYRO_INVERT', t('pickers.invertBoth', 'Invert both ways'), t('pickers.invertBothSub', 'Left-right and up-down')),
         special('Gyro', 'GYRO_INV_X', t('pickers.invertX', 'Invert left-right'), t('pickers.invertXSub', 'Turning goes the other way')),
         special('Gyro', 'GYRO_INV_Y', t('pickers.invertY', 'Invert up-down'), t('pickers.invertYSub', 'Looking up goes down')),
@@ -257,7 +274,7 @@ export function ActionPicker({ inputLabel, command, virtualControllerType, speci
     }
     return Object.fromEntries(Object.entries(groups).map(([key, values]) => [key, allowedOutputKinds ? values.filter(choice => allowedOutputKinds.includes(choice.kind)) : values])) as Record<Category, Choice[]>
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [outputType, specialOptions, libraryProfiles, currentProfileName, virtualControllerType, t, colorToken, brightness, onAddStickShift, onAddHeldLed, onAddLayerAction, layers, sounds, allowedOutputKinds, configText])
+  }, [outputType, specialOptions, libraryProfiles, currentProfileName, virtualControllerType, t, colorToken, brightness, onAddStickShift, onAddHeldLed, onAddLayerAction, layers, sounds, allowedOutputKinds, configText, command.triggerKind, command.outputValue, command.source])
 
   const results = query.trim()
     // Common in games repeats keyboard keys: each token once, with its use.
@@ -309,6 +326,7 @@ export function ActionPicker({ inputLabel, command, virtualControllerType, speci
       focusContent()
     } else if (event.key === 'Escape') {
       event.preventDefault()
+      event.stopPropagation()
       if (query) { refocus.current = true; setQuery('') } else focusContent()
     }
   }
@@ -363,10 +381,11 @@ export function ActionPicker({ inputLabel, command, virtualControllerType, speci
 
   const detail = focused ?? Object.values(choices).flat().find(choice => choice.token === command.outputValue) ?? null
   const isControllerGroup = (item: Category): item is ControllerActionGroup => (CONTROLLER_ACTION_GROUPS as readonly string[]).includes(item)
-  const heading = startWithSearch ? t('pickers.searchEvery', 'Search every action') : t('keymap.pickerTitle', 'Choose an action')
+  const heading = t('keymap.pickerTitle', 'Choose an action')
 
   return createPortal(<div className="modal-overlay action-picker-overlay" data-capture-ignore="true">
     <section ref={rootRef} className="action-picker" role="dialog" aria-modal="true" aria-labelledby={title}
+      data-picker="actions" data-has-groups={!results && openFamily.groups.length > 1 ? "true" : undefined}
       data-hints={`A:Choose;${onCapture ? 'X:Listen for a key;' : ''}Y:Search;B:Back;LB/RB:Kind${openFamily.groups.length > 1 ? ';LT/RT:Group' : ''}`}
       // The keyboard's Y, as the capsule says; the pad's Y arrives as a pad event.
       onKeyDown={event => {
@@ -387,7 +406,7 @@ export function ActionPicker({ inputLabel, command, virtualControllerType, speci
         <label className="action-picker__search">
           <Icon name="search" size={16} />
           {/* Out of the focus walk (Y, the keyboard's Y or a click reach it). */}
-          <input ref={searchRef} type="search" tabIndex={-1} value={query} placeholder={t('pickers.pickerSearch', 'Search every action')} aria-label={t('pickers.pickerSearch', 'Search every action')}
+          <input ref={searchRef} type="search" tabIndex={-1} value={query} name="action-search" autoComplete="off" spellCheck={false} placeholder={t('pickers.pickerSearch', 'Search every action…')} aria-label={t('pickers.pickerSearch', 'Search every action')}
             onChange={event => setQuery(event.target.value)} onKeyDown={onSearchKeyDown} />
         </label>
         <button type="button" className="ghost-btn" data-modal-close onClick={onClose}>{t('common.cancel', 'Cancel')}</button>
@@ -398,7 +417,7 @@ export function ActionPicker({ inputLabel, command, virtualControllerType, speci
         {families.map(item => <button key={item.id} type="button" className="action-tab" data-family={item.id} aria-pressed={!results && openFamily.id === item.id} onClick={() => { setQuery(''); setCategory(item.groups.includes(category) ? category : item.groups[0]) }}>{familyName(item.id)}</button>)}
         <span className="action-picker__step" aria-hidden="true"><ButtonGlyph button="RB" size={22} family={glyphFamily} /></span>
         <span className="action-picker__spacer" />
-        {onCapture && <button type="button" className="action-tab" onClick={() => { onClose(); onCapture() }}><ButtonGlyph button="X" size={20} family={glyphFamily} />{t('pickers.listen', 'Listen for a key')}</button>}
+        {onCapture && <button type="button" className="action-tab" data-listen onClick={() => { onClose(); onCapture() }}><ButtonGlyph button="X" size={20} family={glyphFamily} />{t('pickers.listen', 'Listen for a key')}</button>}
       </nav>
 
       {!results && openFamily.groups.length > 1 && (
@@ -407,11 +426,15 @@ export function ActionPicker({ inputLabel, command, virtualControllerType, speci
           {openFamily.groups.map(item => <button key={item} type="button" className="action-group-tab" data-category={item} aria-pressed={category === item}
             onClick={() => { setQuery(''); setCategory(item) }}>{categoryName(item)}<span className="action-group-tab__count">{choices[item].length}</span></button>)}
           <span className="action-picker__step" aria-hidden="true"><ButtonGlyph button="RT" size={20} family={glyphFamily} /></span>
+          {onCustomize && <button type="button" className="console-btn action-picker__customize" data-customize onClick={() => onCustomize(category)}>{openFamily.id === 'keyboard' ? t('pickers.keyCombo', 'Key combo…') : t('pickers.customize', 'Customize…')}</button>}
         </nav>
       )}
 
       <div className="action-picker__body">
         <div className="action-picker__content" role="region" aria-label={results ? t('keymap.pickerSearchResults', 'Search results') : t('keymap.pickerCategoryActions', '{{category}} actions', { category: categoryName(category) })}>
+          {!results && onCustomize && openFamily.groups.length < 2 && !['mouse', 'menus', 'configurations'].includes(openFamily.id) && <div className="action-picker__tools">
+            <button type="button" className="console-btn" data-customize onClick={() => onCustomize(category)}>{openFamily.id === 'keyboard' ? t('pickers.keyCombo', 'Key combo…') : openFamily.id === 'gamepad' ? t('pickers.choosePadScheme', 'Choose Xbox or DualShock 4…') : openFamily.id === 'modes' ? t('pickers.layerBehavior', 'Layer behavior…') : t('pickers.customize', 'Customize…')}</button>
+          </div>}
           {results && (results.length
             ? <div className="action-grid">{results.map(choice => choiceButton(choice))}</div>
             : <p className="action-picker-note">{t('pickers.noMatch', 'No action matches “{{query}}”. Command takes any JoyShockMapper command.', { query })}</p>)}
@@ -438,7 +461,7 @@ export function ActionPicker({ inputLabel, command, virtualControllerType, speci
           {!results && category === 'Virtual menus' && (choices['Virtual menus'].length
             ? <div className="action-grid">{choices['Virtual menus'].map(choice => choiceButton(choice))}</div>
             : <div className="action-picker-empty">
-                <p className="action-picker-note">{t('pickers.menuNoneShort', 'No menus yet. Make one on the Menus tab, then choose Hold, Open, Close or Toggle here.')}</p>
+                <p className="action-picker-note">{t('pickers.noNamedMenus', 'No virtual menus yet. Stick radial menus and trackpad menus are configured on their own tabs. Create a reusable virtual menu on the Menus tab to open it from a button.')}</p>
                 <button type="button" className="console-btn" data-hints="A:Go to Menus;B:Back"
                   onClick={() => { onClose(); window.dispatchEvent(new CustomEvent('jsm:open-page', { detail: 'virtualMenus' })) }}>
                   <Icon name="add" size={16} />{t('pickers.makeMenu', '+ Make a menu on the Menus tab')}
@@ -446,7 +469,7 @@ export function ActionPicker({ inputLabel, command, virtualControllerType, speci
               </div>)}
           {!results && category === 'Layers' && (choices.Layers.length
             ? <>
-                <p className="action-picker-note">{t('pickers.pickerLayersNote', 'Choosing a layer holds it while this input is down. The Switch layer picker makes it Toggle, Turn on or Turn off.')}</p>
+                <p className="action-picker-note">{t('pickers.layerHoldCustomize', 'Choose a layer to hold it while this input is down. Customize changes this to Toggle, Turn on or Turn off.')}</p>
                 <div className="action-grid action-grid--layers">{choices.Layers.map((choice, index) => choiceButton(choice, {
                   className: 'action-choice action-layer', style: { ['--layer-hue' as string]: layerHue(layerSlot(layers, layers[index].id)) },
                   content: <><span className="action-layer__swatch" aria-hidden="true" /><span className="action-layer__name">{choice.label}</span>
@@ -482,6 +505,9 @@ export function ActionPicker({ inputLabel, command, virtualControllerType, speci
           </> : <span className="picker-detail__note">{t('pickers.moveToSee', 'Move to an action to see what it sends.')}</span>}
         </aside>
       </div>
+      <footer className="action-picker__footer">
+        <HintCapsule width={shell.width} family={family} controller={shell.controller} where={`${inputLabel} · ${heading}`} />
+      </footer>
     </section>
   </div>, document.body)
 }
@@ -505,7 +531,7 @@ function CustomAction({ command, onPick }: { command: BindingCommand; onPick: (k
       <div className="segmented" role="radiogroup" aria-label={t('pickers.customKind', 'Send it as')} data-hints="MOVE:Choose;A:Select;B:Back">
         {kinds.map(([value, label]) => <button key={value} type="button" role="radio" aria-checked={kind === value} onClick={() => setKind(value)}>{label}</button>)}
       </div>
-      <input className="text-field action-custom__field" type="text" value={text} spellCheck={false} data-capture-ignore="true"
+      <input className="text-field action-custom__field" type="text" name="custom-action" autoComplete="off" value={text} spellCheck={false} data-capture-ignore="true"
         aria-label={kind === 'raw' ? t('pickers.customRaw', 'Raw binding') : t('pickers.customCommand', 'Command')}
         placeholder={kind === 'raw' ? t('pickers.customRawPlaceholder', 'Any JoyShockMapper binding, e.g. LCONTROL\\ C\\') : t('keymap.advancedCommandPlaceholder')}
         onChange={event => setText(event.target.value)}

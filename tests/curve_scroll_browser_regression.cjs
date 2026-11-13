@@ -48,7 +48,7 @@ const { prepare, openGyro, top, openFineTune, openRow } = require('./gyro_v2_hel
     assert.equal(await handles(), 'min,max', 'a linear curve has its slow and fast corners to drag');
     await view.getByText(/live 30 °\/s/).first().waitFor();
 
-    for (const part of ['Speeds', 'Game & lean']) {
+    for (const part of ['Sensitivity', 'Calibration']) {
       await top(page).locator('[role="tab"]').filter({ hasText: new RegExp('^' + part) }).click();
       for (const viewport of [{ width: 1440, height: 650 }, { width: 1024, height: 720 }]) {
         await page.setViewportSize(viewport);

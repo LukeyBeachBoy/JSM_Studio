@@ -3,7 +3,7 @@ import type { IconName } from '../components/icons/Icon'
 // One page per physical control, the way Steam Input splits them up, instead of
 // one page carrying every binding on the controller.
 export type ControlTab = 'buttons' | 'dpad' | 'triggers' | 'joysticks'
-export type StudioTab = 'configurations' | 'bases' | 'associations' | 'globalChords' | 'timing' | 'ai' | 'deviceVisibility' | 'appearance' | 'settings' | 'startup' | 'help' | 'credits' | 'debugConsole'
+export type StudioTab = 'configurations' | 'bases' | 'associations' | 'globalChords' | 'slots' | 'timing' | 'ai' | 'deviceVisibility' | 'appearance' | 'settings' | 'startup' | 'help' | 'credits' | 'debugConsole'
 export type PrimaryTab = 'home' | 'overview' | ControlTab | 'touchpad' | 'virtualMenus' | 'gyro' | 'layers' | StudioTab
 
 /**
@@ -41,10 +41,10 @@ export const HOME_PAGE: PageMeta = page('home', 'app.nav.home', 'Home', 'overvie
 export const CONTROL_PAGES: PageMeta[] = [
   page('overview', 'app.nav.overview', 'Layout', 'overview', 'controls', 'Everything this configuration does, on the controller. Select an input to change it.'),
   page('buttons', 'app.nav.buttons', 'Buttons', 'buttons', 'controls', 'Face buttons, bumpers, menu buttons, D-pad, back buttons and grips.'),
-  page('joysticks', 'app.nav.joysticks', 'Sticks', 'joysticks', 'controls', 'What each stick is for, and how it feels.'),
+  page('joysticks', 'app.nav.joysticks', 'Sticks', 'joysticks', 'controls', 'Stick modes, speed, full-turn calibration, dead zones and direction.'),
   page('triggers', 'app.nav.triggers', 'Triggers', 'triggers', 'controls', 'Half and full press for each trigger, and how the two combine.'),
-  page('touchpad', 'app.nav.trackpads', 'Trackpads', 'trackpads', 'controls', 'Each pad has its own mode. Select a zone on the picture to bind it.'),
-  page('gyro', 'app.nav.gyro', 'Gyro', 'gyro', 'controls', 'How tilting the controller moves your aim, and when.'),
+  page('touchpad', 'app.nav.trackpads', 'Trackpads', 'trackpads', 'controls', 'Pad modes, mouse area, orientation, touch and click bindings, and mode shifts.'),
+  page('gyro', 'app.nav.gyro', 'Gyro', 'gyro', 'controls', 'Gyro activation, sensitivity, calibration, direction, roll contribution and tilt.'),
   page('virtualMenus', 'app.nav.virtualMenus', 'Menus', 'library', 'controls', 'Wheels, grids and hotbars that put many actions on one button.'),
   page('layers', 'app.nav.layers', 'Layers', 'layers', 'controls', 'Swap a few bindings while a layer is on.'),
 ]
@@ -57,14 +57,15 @@ export const DPAD_PAGE: PageMeta = page('dpad', 'app.nav.dpad', 'D-Pad', 'dpad',
 export const LIBRARY_PAGES: PageMeta[] = [
   page('configurations', 'app.nav.configurations', 'Games', 'library', 'studio', 'Every configuration and base in your config folder, and which one is live.', 'library'),
   page('bases', 'app.nav.bases', 'Bases', 'inherited', 'studio', 'Shared settings games are built on. Change a base and every game on it follows.', 'library'),
-  page('associations', 'app.nav.associations', 'Launch with game', 'associations', 'studio', 'Make a configuration live by itself when its game comes to the front.', 'library'),
+  page('associations', 'app.nav.associations', 'Auto-switch', 'associations', 'studio', 'Make a configuration live by itself when its game comes to the front.', 'library'),
 ]
 
 /** Settings (console v2, V6): everything shared by every configuration, as
  *  categories in the rail (LT/RT). Guides, the log and credits sit last. */
 export const SETTINGS_PAGES: PageMeta[] = [
-  page('settings', 'app.nav.preferences', 'Controller', 'preferences', 'studio', 'How the controller drives this app, its keyboard, calibration, light, sounds and pads.', 'settings'),
+  page('settings', 'app.nav.preferences', 'Controller', 'preferences', 'studio', 'Controller polling, app navigation, keyboard, calibration, light, sounds and pads.', 'settings'),
   page('globalChords', 'app.nav.globalChords', 'Hold to swap', 'chords', 'studio', 'Hold a button, or a few together, to swap in another whole configuration. Let go to come back.', 'settings'),
+  page('slots', 'app.nav.slots', 'Configuration slots', 'layers', 'studio', 'Keep Desktop ready, remember your last game, and switch with global hotkeys.', 'settings'),
   page('timing', 'app.nav.timing', 'Press timing', 'timing', 'studio', 'How long a hold is, how quick a double-tap is. Shared by every configuration, saved as you change it.', 'settings'),
   page('deviceVisibility', 'app.nav.deviceVisibility', 'Hide the real controller', 'visibility', 'studio', 'Games see only what JSM sends, so nothing reacts twice.', 'settings'),
   page('appearance', 'app.nav.appearance', 'Look & language', 'appearance', 'studio', 'Move across a choice to see it before you pick it.', 'settings'),
@@ -102,3 +103,12 @@ export const slideOrder = (tab: PrimaryTab): PrimaryTab[] =>
  *  Kit: "Section", "Category", "Mode", "Topic"). */
 export const stepLabel = (tab: PrimaryTab): string =>
   studioHub(tab) === 'settings' ? 'Category' : tab === 'overview' ? 'Layer' : 'Section'
+
+/** Pages for physical controls the selected device actually has. */
+export function controllerPageAvailable(tab: PrimaryTab, type?: number) {
+  if (!type) return true
+  if (tab === 'touchpad') return [4, 5, 24].includes(type)
+  if (tab === 'triggers') return type !== 25
+  if (tab === 'gyro') return ![6, 7, 8, 25].includes(type)
+  return true
+}

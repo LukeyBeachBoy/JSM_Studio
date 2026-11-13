@@ -1,3 +1,4 @@
+import { InputText } from '../glyphs/InputText'
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TelemetryDevice } from '../../hooks/useTelemetry'
@@ -173,7 +174,7 @@ export function ModesPage(props: ModesPageProps) {
               <span className={styles.activation}>
                 {activation.primary
                   ? <><span className={styles.pill} data-hue=""><InputGlyph command={activation.primary.input.replace(/^!/, '')} family={family} size={20} /></span>
-                    <span>{activation.phrase}{activation.closes && <span className={styles.muted}> · {activation.closes}</span>}{activation.on.length > 1 && <span className={styles.muted}> · +{activation.on.length - 1} more</span>}</span></>
+                    <span>{activation.phrase}{activation.closes && <span className={styles.muted}> · <InputText text={activation.closes} /></span>}{activation.on.length > 1 && <span className={styles.muted}> · +{activation.on.length - 1} more</span>}</span></>
                   : <span className={styles.muted}>No button yet</span>}
               </span>
               {isFocused && rows.some(row => row.input) && <span className={styles.cardArt}>
@@ -182,7 +183,7 @@ export function ModesPage(props: ModesPageProps) {
               <span className={styles.changes}>
                 {rows.slice(0, isFocused ? 5 : 6).map(row => <span key={row.key} className={styles.change}>
                   <span className={styles.pill}>{row.input ? <InputGlyph command={row.input} family={family} size={20} /> : <Icon name="tuning" size={18} />}</span>
-                  <span className={styles.changeText}>{row.input ? row.short : `${row.name} ${row.short}`}</span>
+                  <span className={styles.changeText}>{<InputText text={row.input ? row.short : `${row.name} ${row.short}`} />}</span>
                 </span>)}
                 {rows.length > (isFocused ? 5 : 6) && <span className={styles.more}>+{rows.length - (isFocused ? 5 : 6)} more · Y to see them all</span>}
                 {!rows.length && <span className={styles.muted}>No changes yet</span>}
@@ -203,8 +204,8 @@ export function ModesPage(props: ModesPageProps) {
             <b>New layer</b>
             <small>Name it, then pick its button</small>
           </button>
-          <span className={styles.addChips} aria-label="Start from">
-            <span className={styles.addFrom}>Start from</span>
+          <span className={styles.addChips} aria-label="New empty layer templates">
+            <span className={styles.addFrom}>Empty layer:</span>
             {TEMPLATES.map(template => <button key={template} type="button" className={styles.chip} aria-disabled={disabled ? 'true' : undefined}
               data-hints="A:Add;B:Back" data-caption={`${template} · an empty layer called ${uniqueName(template)}, in the next colour`} onClick={() => create(template)}>{template}</button>)}
           </span>
