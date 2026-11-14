@@ -108,6 +108,18 @@ export function accelSensitivityAt(speed: number, p: AccelCurveParams): number {
   return floor + blend * (base - floor)
 }
 
+/** Include cutoff edges and recovery samples even when the band is narrower than one plot interval. */
+export function curveSampleSpeeds(max: number, count: number, steadying?: AccelCurveParams['steadying']) {
+  const speeds = Array.from({ length: count + 1 }, (_, i) => max * i / count)
+  if (!steadying) return speeds
+  const { cutoff, recovery } = steadying
+  if (cutoff > 0) speeds.push(cutoff - 0.000001, cutoff, cutoff + 0.000001)
+  if (recovery > cutoff) {
+    for (let i = 0; i <= 12; i++) speeds.push(cutoff + (recovery - cutoff) * i / 12)
+  }
+  return speeds.filter(speed => speed >= 0 && speed <= max).sort((a, b) => a - b)
+}
+
 function baseAccelSensitivityAt(speed: number, p: AccelCurveParams): number {
   let adjusted = Math.max(0, speed - (p.ownRange ? p.ownRange.min : p.minThreshold))
   if (p.ownRange) {

@@ -116,7 +116,7 @@ async function inSpeedParts(page, part, fn) {
   return result
 }
 
-/** The Steadiness ▸ Advanced part rows ("Deadzone & steadying", "Smoothing"…). */
+/** The Steadiness ▸ Advanced part rows ("Smoothing", "One Euro filter"…). */
 async function inSteadinessPart(page, part, fn) {
   await gyroFront(page)
   await page.locator('[data-gyro-fine-tune]').click()
@@ -157,7 +157,7 @@ async function gyroInheritedChecks(page, { origin = true } = {}) {
     if (origin) assert.equal(await tagOf(activation), 'From FPS Template')
     await scope.locator('[data-condition="0"]').waitFor()
   })
-  await inSteadinessPart(page, 'Deadzone & steadying', async scope => {
+  await inSpeedParts(page, 'Sensitivity', async scope => {
     assert.equal(await valueText(valueRow(scope, 'Gyro cutoff speed')), '1 °/s')
     if (origin) assert.equal(await tagOf(valueRow(scope, 'Gyro cutoff speed')), 'From FPS Template')
   })

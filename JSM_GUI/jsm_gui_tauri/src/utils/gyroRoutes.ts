@@ -9,7 +9,7 @@ export type GyroGroup = 'speed' | 'steadiness' | 'direction' | 'tilt' | 'rumble'
 export type GyroSub =
   | { view: 'speed-advanced'; part?: 'speeds' | 'shape' | 'game' }
   | { view: 'match-turn' }
-  | { view: 'steadiness-advanced'; part?: 'jitter' | 'smoothing' | 'adaptive' | 'snap' }
+  | { view: 'steadiness-advanced'; part?: 'smoothing' | 'adaptive' | 'snap' }
   | { view: 'direction-advanced' }
   | { view: 'tilt'; part?: 'behaviour' | 'angles' | 'tuning' | 'orientation' | 'when' | 'holding' }
   | { view: 'stick'; part?: 'setup' | 'deadzone' }
@@ -32,7 +32,7 @@ const ROUTES: [RegExp, GyroRoute][] = [
   [/^(MIN_GYRO_THRESHOLD|MAX_GYRO_THRESHOLD)$/, fine('speed', { view: 'speed-advanced', part: 'speeds' })],
   [/^(ACCEL_CURVE|ACCEL_CURVE_LINK|ACCEL_NATURAL_VHALF|ACCEL_POWER_VREF|ACCEL_POWER_EXPONENT|ACCEL_SIGMOID_MID|ACCEL_SIGMOID_WIDTH|ACCEL_JUMP_TAU)$/, fine('speed', { view: 'speed-advanced', part: 'shape' })],
   [/^(REAL_WORLD_CALIBRATION|IN_GAME_SENS|COUNTER_OS_MOUSE_SPEED|IGNORE_OS_MOUSE_SPEED)$/, fine('speed', { view: 'speed-advanced', part: 'game' })],
-  [/^(GYRO_CUTOFF_SPEED|GYRO_CUTOFF_RECOVERY|GYRO_STEADYING_FLOOR)$/, fine('steadiness', { view: 'steadiness-advanced', part: 'jitter' })],
+  [/^(GYRO_CUTOFF_SPEED|GYRO_CUTOFF_RECOVERY|GYRO_STEADYING_FLOOR)$/, fine('speed')],
   [/^(GYRO_SMOOTH_THRESHOLD|GYRO_SMOOTH_TIME|GYRO_SMOOTHING_DECAY)$/, fine('steadiness', { view: 'steadiness-advanced', part: 'smoothing' })],
   [/^(ONE_EURO_FILTER|ONE_EURO_MIN_CUTOFF|ONE_EURO_SPEED_COEFF)$/, fine('steadiness', { view: 'steadiness-advanced', part: 'adaptive' })],
   [/^(GYRO_ANGLE_SNAP|GYRO_ANGLE_SNAP_EASE|DECEL_BRAKE_STRENGTH|DECEL_BRAKE_THRESHOLD|GYRO_CLICK_DAMPEN|TRACKBALL_DECAY)$/, fine('steadiness', { view: 'steadiness-advanced', part: 'snap' })],

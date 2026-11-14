@@ -92,7 +92,7 @@ assert.equal(route('GYRO_SENS'), JSON.stringify({ view: 'fine-tune', group: 'spe
 assert.equal(route('MAX_GYRO_THRESHOLD'), JSON.stringify({ view: 'fine-tune', group: 'speed', sub: { view: 'speed-advanced', part: 'speeds' } }))
 assert.equal(route('ACCEL_SIGMOID_MID'), JSON.stringify({ view: 'fine-tune', group: 'speed', sub: { view: 'speed-advanced', part: 'shape' } }))
 assert.equal(route('REAL_WORLD_CALIBRATION'), JSON.stringify({ view: 'fine-tune', group: 'speed', sub: { view: 'speed-advanced', part: 'game' } }))
-assert.equal(route('GYRO_STEADYING_FLOOR'), JSON.stringify({ view: 'fine-tune', group: 'steadiness', sub: { view: 'steadiness-advanced', part: 'jitter' } }))
+assert.equal(route('GYRO_STEADYING_FLOOR'), JSON.stringify({ view: 'fine-tune', group: 'speed' }))
 assert.equal(route('ONE_EURO_MIN_CUTOFF'), JSON.stringify({ view: 'fine-tune', group: 'steadiness', sub: { view: 'steadiness-advanced', part: 'adaptive' } }))
 assert.equal(route('DECEL_BRAKE_STRENGTH'), JSON.stringify({ view: 'fine-tune', group: 'steadiness', sub: { view: 'steadiness-advanced', part: 'snap' } }))
 assert.equal(route('GYRO_SPACE'), JSON.stringify({ view: 'fine-tune', group: 'direction' }))

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
-import { accelSensitivityAt, type AccelCurveParams } from '../utils/accelCurve'
+import { accelSensitivityAt, curveSampleSpeeds, type AccelCurveParams } from '../utils/accelCurve'
 import { niceCeil, niceStep } from '../utils/niceNumbers'
 
 // The curve editor's graph (TODO-40): the acceleration curve drawn at the size
@@ -134,14 +134,9 @@ export function CurvePlot({ params, secondary, unit, formatOutput, xMax, liveSpe
   const ready = size.width > 0 && size.height > 0 && plotW > 20 && plotH > 20
   const samples = Math.round(clamp(plotW / 2, 120, 480))
   const at = (speed: number, p: AccelCurveParams = params) => accelSensitivityAt(speed, p)
-  const trace = (sens: (speed: number) => number) => {
-    let d = ''
-    for (let i = 0; i <= samples; i++) {
-      const speed = (domain.x * i) / samples
-      d += `${i === 0 ? 'M' : 'L'}${toX(speed).toFixed(1)},${toY(sens(speed)).toFixed(1)}`
-    }
-    return d
-  }
+  const sampleSpeeds = curveSampleSpeeds(domain.x, samples, params.steadying)
+  const trace = (sens: (speed: number) => number) => sampleSpeeds.map((speed, i) =>
+    `${i === 0 ? 'M' : 'L'}${toX(speed).toFixed(1)},${toY(sens(speed)).toFixed(1)}`).join('')
 
   let body = null
   if (ready) {

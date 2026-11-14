@@ -139,6 +139,32 @@ function tremor(seconds: number, tickMs: number, amplitude = 2.5): [number, numb
 }
 const rms = (values: [number, number][]) => Math.sqrt(values.reduce((sum, [x, y]) => sum + x * x + y * y, 0) / Math.max(1, values.length))
 
+export type SmoothingInput = { at: number; x: number; y: number }
+export type SmoothingFrame = SmoothingInput & { filteredX: number; filteredY: number }
+
+/** Replay sampled, mapped angular velocities at the configured native tick.
+ * The preview isolates smoothing/One Euro; sensitivity and steadying are not
+ * velocity filters and must not be included in this comparison. */
+export function replaySmoothing(frames: SmoothingInput[], settings: SteadyingSettings): SmoothingFrame[] {
+  if (!frames.length) return []
+  const model = new SteadyingModel({ ...settings, cutoff: 0, recovery: 0 })
+  const output: SmoothingFrame[] = []
+  let frame = 0
+  for (let at = frames[0].at; at <= frames[frames.length - 1].at; at += settings.tickMs) {
+    while (frame + 1 < frames.length && frames[frame + 1].at <= at) frame++
+    const input = frames[frame]
+    const [filteredX, filteredY] = model.step(input.x, input.y)
+    output.push({ at, x: input.x, y: input.y, filteredX, filteredY })
+  }
+  return output
+}
+
+/** Explicit example input for a disconnected preview, never labeled live. */
+export function smoothingSimulation(settings: SteadyingSettings): SmoothingFrame[] {
+  const shake = tremor(2, settings.tickMs, 1.6)
+  return replaySmoothing(shake.map(([x, y], i) => ({ at: i * settings.tickMs, x: 4 + x, y })), settings)
+}
+
 /** Time (ms) for the output to reach half its settled value after a step to `speed`. */
 function halfRiseMs(s: SteadyingSettings, speed: number) {
   const model = new SteadyingModel(s)

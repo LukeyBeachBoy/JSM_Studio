@@ -1,0 +1,18 @@
+.comparison { display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; margin: 0; }
+.legend { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-4); color: var(--text-2); font-size: var(--fs-hint); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 20px; border-top: 2px solid var(--text-1); }
+.legend i[data-dashed] { border-top-style: dashed; }
+.pause { margin-left: auto; min-height: 44px; padding: var(--sp-2) var(--sp-3); border: 1px solid var(--line-2); border-radius: var(--r-sm); background: transparent; color: var(--text-1); font: inherit; cursor: pointer; touch-action: manipulation; }
+.pause:hover { background: var(--surface-row-hover); }
+.pause:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--sp-1) var(--sp-3); color: var(--text-1); font-size: var(--fs-hint); }
+.heading span { color: var(--text-2); font-variant-numeric: tabular-nums; }
+.plot { display: block; width: 100%; height: auto; overflow: visible; }
+.axis path { fill: none; stroke: var(--line-2); stroke-width: 1; }
+.axis text { fill: var(--text-2); font-size: 12px; font-family: inherit; font-variant-numeric: tabular-nums; }
+.signal { fill: none; stroke: var(--text-1); stroke-width: 2; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.signal[data-axis='vertical'] { stroke-dasharray: 5 4; stroke-width: 1.5; }
+.panel[data-smoothing-panel='after'] .signal { stroke: var(--accent); }
+.caption, .status { margin: 0; color: var(--text-2); font-size: var(--fs-hint); line-height: var(--lh-hint); }
+.status { color: var(--text-1); }

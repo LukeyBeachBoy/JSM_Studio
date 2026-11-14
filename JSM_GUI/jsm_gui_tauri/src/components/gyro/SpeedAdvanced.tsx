@@ -9,6 +9,7 @@ import {
 import { CURVE_WORDS, effectiveGyroCurveParams, joinVerticalSpeeds, readGyroSpeed, round4, setCurveType, writePair } from '../../utils/gyroSpeed'
 import { readVirtualSetting } from '../../utils/virtualStickSettings'
 import { useGyro, KeyNumberRow, SwitchRow, Note, PadActions } from './GyroContext'
+import { SteadyingRows } from './SteadyingRows'
 import { CurveArt } from './art'
 import { liveOmega, StatTiles } from './visuals'
 import { usePointerSpeed, pointerSpeedText } from './usePointerSpeed'
@@ -247,7 +248,7 @@ export function SpeedAdvanced({ open, onClose, trail, part, onPart, onMatchTurn 
             <ModeCards columns={7} value={curve} useLabel={card => `Use ${card.label}`}
               onChange={value => write(previous => setCurveType(previous, value as AccelCurveType | 'OFF', '', gyro.text))}
               options={(['OFF', ...ACCEL_CURVE_TYPES] as (AccelCurveType | 'OFF')[]).map(type => ({ value: type, label: CURVE_LABEL[type], art: <CurveArt type={type} />, unavailable: unavailable ?? gyro.locked ?? (borrowed && type !== 'OFF' ? 'Gyro is borrowing the trackpads’ shape (Shape ▸ Curve source).' : undefined) }))} />
-            <div className={styles.plot}>
+            <div className={styles.stickyCurve}><div className={styles.plot}>
               <CurvePlot params={params} secondary={secondary} unit="°/s" formatOutput={fmtX} xMax={xMax} liveSpeed={live} trail={recent}
                 handles={handles} markers={markers} levels={levels} showOutputSpeed={false} outputLabel="Sensitivity (RWS)" disabled={Boolean(unavailable ?? gyro.locked)} ariaLabel={summary} />
             </div>
@@ -259,8 +260,9 @@ export function SpeedAdvanced({ open, onClose, trail, part, onPart, onMatchTurn 
             {hasRecovery && <p className={styles.visualCaption} data-steadying-summary="">
               {steadying?.enabled ? <>Steadying floor: {fmtX(steadying.floor)} horizontal{secondary ? ` / ${fmtX(verticalParams.steadying?.floor ?? 0)} vertical` : ''}, capped at the curve sensitivity.</> : 'Low-speed steadying reduces sensitivity towards zero.'}
               {' '}{steadying?.enabled ? 'Smooth S-shaped transition into the curve by ' : 'Blends into the curve by '}{fmtSpeed(steadying!.recovery)}. {steadying!.cutoff > 0 && <>The cutoff blocks motion at or below {fmtSpeed(steadying!.cutoff)}. </>}
-              Curve handles edit values before steadying, so they can sit above the plotted line. Adjust the floor in Filters → Advanced → Deadzone &amp; steadying.
+              Curve handles show sensitivity before steadying.
             </p>}
+            </div>
           </>}
         </section>
         <section className={styles.partsPanel} aria-label="Parts">
@@ -277,6 +279,7 @@ export function SpeedAdvanced({ open, onClose, trail, part, onPart, onMatchTurn 
             {part === 'speeds' && <>{speedsRows}
               <SwitchRow label="Separate vertical sensitivity" hint="Use different sensitivity for horizontal and vertical aim" on={separateOn} disabled={unavailable ?? gyro.locked}
                 onChange={next => { setSeparate(next); if (!next) write(previous => joinVerticalSpeeds(previous, '', gyro.text)) }} />
+              <SteadyingRows rangeDisabled={reasons.filters} floorDisabled={reasons.filters ?? reasons.deflectionOnly} />
               <p className={styles.partSummary}><b>Shape</b> · half-way speed, start speed and bend, midpoint and width, smoothness, share a curve with the trackpads<br /><b>Calibration</b> · in-game sensitivity, calibration factor, Ignore Windows pointer speed</p>
             </>}
             {part === 'shape' && shapeRows}

@@ -31,6 +31,11 @@
 .panel[data-has-visual='true'] { grid-template-columns: minmax(0, 1fr) 470px; }
 @media (max-width: 1279px) { .panel[data-has-visual='true'] { grid-template-columns: minmax(0, 1fr) 360px; } }
 @media (max-width: 1099px) { .panel[data-has-visual='true'] { grid-template-columns: minmax(0, 1fr); } }
+/* Keep both axes in view while adjusting the sensitivity floor on a compact screen. */
+@media (max-width: 1099px) {
+  [data-gyro-fine-tune-page][data-group='speed'] .fineTune { grid-template-columns: 144px minmax(0, 1fr); gap: var(--sp-3); }
+  [data-gyro-fine-tune-page][data-group='speed'] .panel[data-has-visual='true'] { grid-template-columns: minmax(0, 1fr) minmax(0, .85fr); }
+}
 .content { min-width: 0; display: flex; flex-direction: column; gap: var(--sp-4); }
 .heading h1 { margin: 0; font-size: var(--fs-section, 26px); font-weight: var(--fw-semibold); }
 .heading p { margin: var(--sp-1) 0 0; color: var(--text-2); font-size: var(--fs-body); }

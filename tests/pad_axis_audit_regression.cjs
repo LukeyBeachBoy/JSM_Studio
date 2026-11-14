@@ -212,12 +212,12 @@ const fine = (group, sub) => ({ view: 'fine-tune', group, sub });
 // A rail of groups or parts opens each one as the pad reaches it, so the rows under a walk down the rail
 // change as it goes: those screens (and the curve editor, whose parts sit beside the curve) keep every
 // geometric check but are not asked to retrace a walk row for row.
-const GYRO_RAIL = /^(Fine-tune |Speed advanced|Speed shape|Speed game|Ignore jitter|Smoothing|Adaptive|Snap and|Tilt |Stick )/;
+const GYRO_RAIL = /^(Fine-tune |Speed advanced|Speed shape|Speed game|Smoothing|Adaptive|Snap and|Tilt |Stick )/;
 const GYRO_SCREENS = [
   ['Fine-tune Speed', fine('speed')], ['Fine-tune Steadiness', fine('steadiness')], ['Fine-tune Direction', fine('direction')], ['Fine-tune Rumble', fine('rumble')],
   ['Speed advanced', fine('speed', { view: 'speed-advanced', part: 'speeds' })], ['Speed shape', fine('speed', { view: 'speed-advanced', part: 'shape' })], ['Speed game and lean', fine('speed', { view: 'speed-advanced', part: 'game' })],
   ['Match a full turn', fine('speed', { view: 'match-turn' })],
-  ['Ignore jitter', fine('steadiness', { view: 'steadiness-advanced', part: 'jitter' })], ['Smoothing', fine('steadiness', { view: 'steadiness-advanced', part: 'smoothing' })],
+  ['Smoothing', fine('steadiness', { view: 'steadiness-advanced', part: 'smoothing' })],
   ['Adaptive filter', fine('steadiness', { view: 'steadiness-advanced', part: 'adaptive' })], ['Snap and brake', fine('steadiness', { view: 'steadiness-advanced', part: 'snap' })],
   ['Direction advanced', fine('direction', { view: 'direction-advanced' })],
   ['Tilt behaviour', fine('direction', { view: 'tilt', part: 'behaviour' })], ['Tilt angles', fine('direction', { view: 'tilt', part: 'angles' })],

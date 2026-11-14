@@ -82,6 +82,7 @@
 .axes text { fill: var(--text-2); font-size: 11px; }
 .area { fill: color-mix(in srgb, var(--accent) 12%, transparent); stroke: none; }
 .curve { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.verticalResponse { fill: none; stroke: var(--accent); stroke-width: 1.5; opacity: .65; }
 .alt { fill: none; stroke: var(--text-3); stroke-width: 1.5; stroke-dasharray: 5 5; }
 .raw { fill: none; stroke: var(--text-3); stroke-width: 1.5; }
 .liveLine { fill: none; stroke: var(--telemetry); stroke-width: 2; }
@@ -163,6 +164,9 @@
 .speedAdvanced { display: grid; grid-template-columns: minmax(0, 1fr) 500px; gap: var(--sp-6); align-items: start; }
 @media (max-width: 1279px) { .speedAdvanced { grid-template-columns: minmax(0, 1fr) 400px; } }
 .curveCard { display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; padding: var(--sp-5); border-radius: 20px; background: var(--surface-raised, #1a222b); }
+.curveCard:has(.stickyCurve) { align-self: stretch; }
+.stickyCurve { position: sticky; top: 0; display: grid; gap: var(--sp-3); }
+.stickyCurve .visualCaption { margin-top: 0; }
 .curveHeader { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-2) var(--sp-4); align-items: center; }
 .curveHeader h2 { margin: 0; font-size: var(--fs-section); }
 .curveHeader p { margin: 2px 0 0; color: var(--text-2); font-size: var(--fs-hint); }
@@ -170,7 +174,8 @@
 .rangeToggle button { height: 32px; padding: 0 14px; border: 0; border-radius: var(--r-pill); background: transparent; color: var(--text-2); font: inherit; font-size: var(--fs-hint); cursor: pointer; }
 .rangeToggle button[data-current='true'] { background: var(--surface-row-hover); color: var(--text-1); font-weight: var(--fw-semibold); }
 .plot { height: clamp(260px, 42vh, 420px); padding: var(--sp-3); border-radius: var(--r-row); background: var(--art-well, #0e1419); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06); }
-.plot > * { height: 100%; }
+.plot > :global(.curve-plot) { height: 100%; min-height: 0; }
+@media (max-height: 680px) { .stickyCurve .plot { height: 36vh; } }
 .partsPanel { display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; }
 .partTabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-2); }
 .tiltTabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2); }

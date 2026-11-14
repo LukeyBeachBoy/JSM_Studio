@@ -44,7 +44,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/luker/.c
       ['IN_GAME_SENS', { sub: 'Advanced', active: 'Calibration' }],
       ['ROLL_CONTRIBUTION', { sub: 'Fine-tune', active: 'Direction' }],
       ['GYRO_SMOOTH_TIME', { sub: 'Advanced', active: 'Smoothing' }],
-      ['GYRO_STEADYING_FLOOR', { sub: 'Advanced', active: 'Deadzone & steadying' }],
+      ['GYRO_STEADYING_FLOOR', { sub: 'Fine-tune', active: 'Sensitivity' }],
       ['ONE_EURO_SPEED_COEFF', { sub: 'Advanced', active: 'One Euro filter' }],
       ['DECEL_BRAKE_THRESHOLD', { sub: 'Advanced', active: 'Angle snapping & braking' }],
       ['GYRO_HAPTIC_INTERVAL', { sub: 'Fine-tune', active: 'Rumble' }],

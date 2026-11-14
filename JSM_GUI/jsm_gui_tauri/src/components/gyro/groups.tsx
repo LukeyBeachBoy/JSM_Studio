@@ -1,4 +1,5 @@
 import { ModeCards, OpenRow, SegmentedRow, SettingRows, ValueRow, type FineTuneGroup } from '../ui/console'
+import { useState } from 'react'
 import { HAPTIC_EFFECT_CHOICES } from '../../utils/hapticBindings'
 import { previewHaptic } from '../../utils/hapticPreview'
 import { gyroDeflectionEnabled } from '../../utils/gyroDeflectionSettings'
@@ -13,10 +14,12 @@ import {
   ANGLE_SNAP_ON, CLICK_DAMPEN_ON, RUMBLE_LABELS, RUMBLE_PRESETS, STEADINESS_LABELS,
   applySteadiness, detectRumble, detectSteadiness, readSteadiness, type RumblePreset, type SteadinessPreset,
 } from '../../utils/gyroPresets'
-import { readSteadyingSettings, steadinessStats, sweepPaths } from '../../utils/gyroSteadiness'
+import { readSteadyingSettings, steadinessStats, smoothingSimulation } from '../../utils/gyroSteadiness'
+import { SmoothingComparison } from './SmoothingComparison'
 import type { GyroSub } from '../../utils/gyroRoutes'
 import { useGyro, KeyNumberRow, KeyChoiceRow, SwitchRow, VisualTitle, RowLabel, Note } from './GyroContext'
-import { SpeedResponse, SteadySweep, StatTiles, RotationDiagram, RumbleDial, liveOmega, liveGyro, useTurned, useModel, useLiveSweep } from './visuals'
+import { SpeedResponse, StatTiles, RotationDiagram, RumbleDial, liveOmega, liveGyro, useTurned, useModel, useLiveSweep } from './visuals'
+import { SteadyingRows } from './SteadyingRows'
 import { OutputArt, SpaceArt, EffectArt, type SpaceKind } from './art'
 import styles from './Gyro.module.css'
 
@@ -53,8 +56,10 @@ export function useSpeedGroup(open: Open): FineTuneGroup {
   const speed = readGyroSpeed(gyro.text)
   const preset = detectSpeedUp(gyro.text)
   const params = effectiveGyroCurveParams(gyro.text, gyro.rootText)
+  const vertical = effectiveGyroCurveParams(gyro.text, gyro.rootText, 'y')
+  const secondary = speed.separateY || params.steadying?.floor !== vertical.steadying?.floor ? vertical : undefined
   const presets: Exclude<SpeedUpPreset, 'off'>[] = ['gentle', 'strong']
-  const changed = gyro.changed('GYRO_SENS', 'MIN_GYRO_SENS', 'MAX_GYRO_SENS', 'MIN_GYRO_THRESHOLD', 'MAX_GYRO_THRESHOLD', 'ACCEL_CURVE')
+  const changed = gyro.changed('GYRO_SENS', 'MIN_GYRO_SENS', 'MAX_GYRO_SENS', 'MIN_GYRO_THRESHOLD', 'MAX_GYRO_THRESHOLD', 'ACCEL_CURVE', 'GYRO_STEADYING_FLOOR', 'GYRO_CUTOFF_SPEED', 'GYRO_CUTOFF_RECOVERY')
   const presetLabel = { off: 'Off', gentle: 'Gentle', strong: 'Strong', custom: 'Custom' }[preset]
   return {
     id: 'speed', label: 'Sensitivity', changed,
@@ -79,6 +84,7 @@ export function useSpeedGroup(open: Open): FineTuneGroup {
         ]}
         onChange={value => { if (value === 'custom') open({ view: 'speed-advanced', part: 'speeds' }); else gyro.setText(previous => applySpeedUp(previous, value as SpeedUpPreset, '', gyro.text)) }}
         data={{ 'data-setting': 'ACCEL_CURVE' }} />
+      <SteadyingRows rangeDisabled={reasons.filters} floorDisabled={reasons.filters ?? reasons.deflectionOnly} />
       <OpenRow label="Real-world calibration (RWC)" hint="Calibrate mouse output so RWS matches camera rotation" value="Start"
         disabled={reasons.output !== 'MOUSE' ? 'Only while gyro sends the mouse: a stick’s speed is its game turn rate.' : undefined}
         onOpen={() => open({ view: 'match-turn' })} hints="A:Start;B:Back" />
@@ -86,10 +92,10 @@ export function useSpeedGroup(open: Open): FineTuneGroup {
     </>,
     visual: <>
       <VisualTitle title="How your aim responds" live={liveOmega(gyro.sample) === null ? '—' : `${Math.round(liveOmega(gyro.sample) ?? 0)} °/s`} />
-      <SpeedResponse params={params} live={liveOmega(gyro.sample)}
-        caption={preset === 'off' ? `Off · ${fmtX(speed.base)} at every speed` : `${presetLabel}`}
+      <SpeedResponse params={params} secondary={secondary} live={liveOmega(gyro.sample)}
+        caption={preset === 'off' ? `Base ${fmtX(speed.base)}` : `${presetLabel}`}
         compare={presets.filter(name => name !== preset).map(name => ({ label: name === 'gentle' ? 'Gentle' : 'Strong', params: effectiveGyroCurveParams(applySpeedUp(gyro.text, name), gyro.rootText) }))} />
-      <p className={styles.visualCaption}>Dashed lines compare acceleration presets at this base sensitivity. Change Acceleration to apply a preset live.</p>
+      <p className={styles.visualCaption}>Dashed lines show the acceleration presets. {secondary && 'The thinner solid line shows vertical sensitivity.'}</p>
     </>,
   }
 }
@@ -101,9 +107,11 @@ export function useSteadinessGroup(open: Open): FineTuneGroup {
   const preset = detectSteadiness(gyro.text)
   const values = readSteadiness(gyro.text)
   const settings = readSteadyingSettings(gyro.text, { oneEuro: readSteadyingSettings(gyro.rootText).oneEuro, tickMs: readSteadyingSettings(gyro.rootText).tickMs })
-  const stats = useModel(() => steadinessStats(settings), settings)
-  const paths = useModel(() => sweepPaths(settings), settings)
-  const livePaths = useLiveSweep(gyro.sample, settings)
+  const stats = useModel(() => steadinessStats({ ...settings, cutoff: 0, recovery: 0 }), settings)
+  const example = useModel(() => smoothingSimulation(settings), settings)
+  const [tracePaused, setTracePaused] = useState(false)
+  const livePaths = useLiveSweep(gyro.sample, settings, tracePaused)
+  const smoothingActive = settings.oneEuro || (settings.smoothThreshold > 0 && settings.smoothTime > 0 && (settings.decay || settings.smoothTime * 1000 >= settings.tickMs * 2))
   const click = gyro.num('GYRO_CLICK_DAMPEN', 0)
   const snap = gyro.num('GYRO_ANGLE_SNAP', 0)
   const changed = gyro.changed('GYRO_CUTOFF_SPEED', 'GYRO_CUTOFF_RECOVERY', 'GYRO_STEADYING_FLOOR', 'GYRO_SMOOTH_THRESHOLD', 'GYRO_SMOOTH_TIME', 'GYRO_SMOOTHING_DECAY', 'GYRO_CLICK_DAMPEN', 'GYRO_ANGLE_SNAP', 'GYRO_ANGLE_SNAP_EASE', 'DECEL_BRAKE_STRENGTH', 'DECEL_BRAKE_THRESHOLD', 'TRACKBALL_DECAY', 'ONE_EURO_MIN_CUTOFF', 'ONE_EURO_SPEED_COEFF')
@@ -129,18 +137,18 @@ export function useSteadinessGroup(open: Open): FineTuneGroup {
         disabled={reasons.filters ?? reasons.deflectionOnly ?? gyro.locked}
         onChange={next => gyro.set('GYRO_ANGLE_SNAP', next ? ANGLE_SNAP_ON : 0)}
         onReset={gyro.get('GYRO_ANGLE_SNAP') !== undefined ? () => gyro.reset('GYRO_ANGLE_SNAP') : undefined} />
-      <OpenRow label="Advanced" hint="Deadzone and steadying, smoothing, One Euro filter, angle snapping and braking" onOpen={() => open({ view: 'steadiness-advanced' })} />
+      <OpenRow label="Advanced" hint="Smoothing, One Euro filter, angle snapping and braking" onOpen={() => open({ view: 'steadiness-advanced' })} />
     </>,
     visual: <>
-      <VisualTitle title={livePaths ? 'Recent motion through smoothing' : 'Filter simulation'} live={livePaths ? `${Number((liveOmega(gyro.sample) ?? 0).toFixed(1))} °/s` : undefined} />
-      <SteadySweep raw={(livePaths ?? paths).raw} out={(livePaths ?? paths).out} live={Boolean(livePaths)} label={livePaths ? 'Smoothing preview' : `With ${label}`} />
-      {livePaths && <p className={styles.visualCaption}>Recent controller samples replayed with the current smoothing and One Euro settings. This preview excludes sensitivity, deadzone, snapping and braking.</p>}
+      <VisualTitle title={livePaths ? 'Motion smoothing comparison' : 'Smoothing example'} live={livePaths && !tracePaused ? `${Number((liveOmega(gyro.sample) ?? 0).toFixed(1))} °/s` : undefined} />
+      <SmoothingComparison frames={livePaths ?? example} live={Boolean(livePaths)} active={smoothingActive} paused={tracePaused} onPause={livePaths ? () => setTracePaused(value => !value) : undefined} />
+      <p className={styles.visualCaption}>{livePaths ? 'Recent controller samples replayed with the current smoothing and One Euro settings.' : 'No live mapped motion is available. These traces use simulated input with the current smoothing and One Euro settings.'} This preview excludes sensitivity, deadzone, snapping and braking.</p>
       <StatTiles tiles={[
         { label: 'Wobble while still', value: stats.wobbleCut > 0.005 ? `−${Math.round(stats.wobbleCut * 100)}%` : 'Untouched', tone: stats.wobbleCut > 0.005 ? 'good' : undefined },
         { label: 'Delay on slow aim', value: stats.slowDelayMs <= settings.tickMs * 1.5 ? 'None' : ms(stats.slowDelayMs) },
         { label: 'Fast turns', value: stats.fastDelayMs <= settings.tickMs * 1.5 && stats.fastKept > 0.99 ? 'Untouched' : ms(stats.fastDelayMs) },
       ]} />
-      <p className={styles.visualCaption}>The statistics use simulated input: a still hold, a 4 °/s aim and a 120 °/s turn.</p>
+      <p className={styles.visualCaption}>Example results for smoothing only, using simulated input: a still hold, a 4 °/s aim and a 120 °/s turn. These are not measurements of your controller.</p>
     </>,
   }
 }

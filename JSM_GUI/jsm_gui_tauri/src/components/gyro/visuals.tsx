@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { accelCurveSettleSpeed, accelSensitivityAt, type AccelCurveParams } from '../../utils/accelCurve'
+import { accelCurveSettleSpeed, accelSensitivityAt, curveSampleSpeeds, type AccelCurveParams } from '../../utils/accelCurve'
 import { niceCeil } from '../../utils/niceNumbers'
-import { SteadyingModel, type SteadyingSettings } from '../../utils/gyroSteadiness'
+import { replaySmoothing, type SteadyingSettings } from '../../utils/gyroSteadiness'
 import { STEAM_BACK_ART, STEAM_FRONT_ART } from '../controllerArt'
 import type { TelemetrySample } from '../../hooks/useTelemetry'
 import styles from './Gyro.module.css'
@@ -70,7 +70,7 @@ export function useTurned(sample: TelemetrySample | null, axis: 'x' | 'y' | 'z' 
 /** Replay the selected controller's recent mapped samples through the current
  * smoothing settings. Replaying lets a settings edit redraw immediately;
  * this is a sampled preview, not the native output or a synthetic hand. */
-export function useLiveSweep(sample: TelemetrySample | null, settings: SteadyingSettings) {
+export function useLiveSweep(sample: TelemetrySample | null, settings: SteadyingSettings, paused = false) {
   const history = useRef<{ at: number; x: number; y: number }[]>([])
   const source = sample?.devices?.[0]?.handle
   const previousSource = useRef(source)
@@ -79,24 +79,12 @@ export function useLiveSweep(sample: TelemetrySample | null, settings: Steadying
   previousSource.current = source
   if (!motion) return null
   const last = history.current[history.current.length - 1]
-  if (last && (motion.timestampMs < last.at || motion.timestampMs - last.at > 250)) history.current = []
-  if (!last || motion.timestampMs !== last.at) history.current.push({ at: motion.timestampMs, ...motion.input })
-  history.current = history.current.filter(entry => motion.timestampMs - entry.at <= 2000)
-  const frames = history.current
-  const model = new SteadyingModel({ ...settings, cutoff: 0, recovery: 0 })
-  const raw: [number, number][] = [[0, 0]], out: [number, number][] = [[0, 0]]
-  let frame = 0, rx = 0, ry = 0, ox = 0, oy = 0
-  const start = frames[0]?.at ?? motion.timestampMs
-  for (let at = start; at <= motion.timestampMs; at += settings.tickMs) {
-    while (frame + 1 < frames.length && frames[frame + 1].at <= at) frame++
-    const input = frames[frame]
-    if (!input) break
-    const [x, y] = model.step(input.x, input.y)
-    const dt = settings.tickMs / 1000
-    rx += input.x * dt; ry += input.y * dt; ox += x * dt; oy += y * dt
-    raw.push([rx, ry]); out.push([ox, oy])
+  if (!paused) {
+    if (last && (motion.timestampMs < last.at || motion.timestampMs - last.at > 250)) history.current = []
+    if (!last || motion.timestampMs !== last.at) history.current.push({ at: motion.timestampMs, ...motion.input })
+    history.current = history.current.filter(entry => motion.timestampMs - entry.at <= 2000)
   }
-  return { raw, out }
+  return replaySmoothing(history.current, settings)
 }
 
 // ---- Graph frame.
@@ -117,13 +105,14 @@ function Axes({ f, xLabel, yLabel, xTicks }: { f: Frame; xLabel: string; yLabel:
 const pathOf = (points: [number, number][]) => points.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join('')
 
 /** Speed: aim speed against turning speed, the current curve and the ones to compare. */
-export function SpeedResponse({ params, compare = [], live, caption }: {
-  params: AccelCurveParams; compare?: { label: string; params: AccelCurveParams }[]; live: number | null; caption?: string
+export function SpeedResponse({ params, secondary, compare = [], live, caption }: {
+  params: AccelCurveParams; secondary?: AccelCurveParams; compare?: { label: string; params: AccelCurveParams }[]; live: number | null; caption?: string
 }) {
-  const all = [params, ...compare.map(item => item.params)]
-  const xMax = niceCeil(Math.max(120, ...all.map(p => accelCurveSettleSpeed(p) * 1.1), params.steadying?.recovery ?? 0))
+  const all = [params, ...(secondary ? [secondary] : []), ...compare.map(item => item.params)]
+  const xMax = niceCeil(Math.max(120, ...all.map(p => accelCurveSettleSpeed(p) * 1.1), (params.steadying?.recovery ?? 0) * 1.1, (params.steadying?.cutoff ?? 0) * 1.1))
   const yMax = Math.max(0.5, ...all.map(p => Math.max(p.minSens, p.maxSens))) * 1.25
-  const line = (p: AccelCurveParams) => pathOf(Array.from({ length: 61 }, (_, i) => { const s = (xMax * i) / 60; return [px(FRAME, s, xMax), py(FRAME, accelSensitivityAt(s, p), yMax)] }))
+  const line = (p: AccelCurveParams) => pathOf(curveSampleSpeeds(xMax, 60, p.steadying).map(s =>
+    [px(FRAME, s, xMax), py(FRAME, accelSensitivityAt(s, p), yMax)]))
   const liveSpeed = live === null ? null : Math.min(xMax, live)
   return <svg className={styles.graph} viewBox={`0 0 ${FRAME.w} ${FRAME.h}`} role="img" aria-label={`${caption ?? 'How your aim responds'}${live === null ? '' : `. Live: ${fmt(live)} degrees per second, ${fmt(accelSensitivityAt(live, params), 2)} RWS`}.
     Controller rotation speed from 0 to ${fmt(xMax)} degrees per second; sensitivity from 0 to ${fmt(yMax, 2)} RWS.`}>
@@ -133,7 +122,8 @@ export function SpeedResponse({ params, compare = [], live, caption }: {
       <path className={styles.alt} d={line(item.params)} />
       <text className={styles.altLabel} x={FRAME.w - FRAME.right - 4} y={py(FRAME, accelSensitivityAt(xMax, item.params), yMax) - 6} textAnchor="end">{item.label}</text>
     </g>)}
-    <path className={styles.curve} d={line(params)} />
+    {secondary && <path className={styles.verticalResponse} data-response-axis="vertical" d={line(secondary)}><title>Vertical sensitivity</title></path>}
+    <path className={styles.curve} data-response-axis="horizontal" d={line(params)}><title>Horizontal sensitivity</title></path>
     <text className={styles.curveLabel} x={FRAME.left + 8} y={py(FRAME, accelSensitivityAt(0, params), yMax) - 8}>{caption}</text>
     {liveSpeed !== null && <circle className={styles.liveDot} data-live-speed={live} cx={px(FRAME, liveSpeed, xMax)} cy={py(FRAME, accelSensitivityAt(live!, params), yMax)} r={5}><title>{fmt(live!)} °/s · {fmt(accelSensitivityAt(live!, params), 2)} RWS{live! > xMax ? ' · beyond chart range' : ''}</title></circle>}
   </svg>
@@ -186,28 +176,6 @@ export function PipelineStrip({ stages, current, caption }: { stages: { id: stri
     </li>)}</ol>
     {caption && <p>{caption}</p>}
   </div>
-}
-
-/** Raw vs steadied aim on a slow sweep onto a target (GyroSteadiness). */
-export function SteadySweep({ raw, out, label, live = false }: { raw: [number, number][]; out: [number, number][]; label: string; live?: boolean }) {
-  const all = [...raw, ...out]
-  const minX = Math.min(...all.map(p => p[0])), maxX = Math.max(...all.map(p => p[0]))
-  const minY = Math.min(...all.map(p => p[1])), maxY = Math.max(...all.map(p => p[1]))
-  const w = 420, h = 250, pad = 44
-  const scale = Math.min((w - pad * 2) / Math.max(1e-3, maxX - minX), (h - pad * 2 - 20) / Math.max(1e-3, maxY - minY))
-  const map = ([x, y]: [number, number]): [number, number] => [pad + (x - minX) * scale, h - pad - 20 - (y - minY) * scale]
-  const end = map(out[out.length - 1] ?? [0, 0])
-  return <figure className={styles.sweep}>
-    <svg className={styles.graph} viewBox={`0 0 ${w} ${h}`} role="img" aria-label={`${live ? 'Recent controller motion' : 'Simulated sweep'}, raw and ${label}`} data-live-sweep={live}>
-      {!live && <><circle className={styles.target} cx={end[0]} cy={end[1]} r={16} />
-      <path className={styles.target} d={`M${end[0] - 24} ${end[1]} H${end[0] + 24} M${end[0]} ${end[1] - 24} V${end[1] + 24}`} />
-      <text className={styles.markLabel} x={end[0]} y={end[1] - 30} textAnchor="middle">Target</text></>}
-      <path className={styles.raw} d={pathOf(raw.map(map))} />
-      <path className={styles.curve} d={pathOf(out.map(map))} />
-      <text className={styles.markLabel} x={pad} y={h - 8}>{live ? 'Recent motion · last 2 s' : 'Simulated slow sweep · 2 s'}</text>
-    </svg>
-    <figcaption className={styles.legend}><span><i data-key="raw" />{live ? 'Before smoothing' : 'Simulated input'}</span><span><i data-key="curve" />{label}</span></figcaption>
-  </figure>
 }
 
 /** Small number tiles under a visual. */
